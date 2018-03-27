@@ -73,6 +73,7 @@ class PowerSpectralDensity:
         spectral_density = np.genfromtxt(sd_file)
         self.frequencies = spectral_density[:, 0]
         self.power_spectral_density = spectral_density[:, 1]
+        self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
 
     def import_amplitude_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_asd.txt'):
         """
@@ -83,15 +84,4 @@ class PowerSpectralDensity:
         spectral_density = np.genfromtxt(sd_file)
         self.frequencies = spectral_density[:, 0]
         self.amplitude_spectral_density = spectral_density[:, 1]
-
-    def convert_psd_to_asd(self):
-        """
-        Convert a power spectral density to an amplitude spectral spectral_density
-        """
-        self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
-
-    def convert_asd_to_psd(self):
-        """
-        Convert an amplitude spectral density to a power spectral density.
-        """
         self.power_spectral_density = self.amplitude_spectral_density**2
