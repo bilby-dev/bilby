@@ -19,21 +19,21 @@ class Interferometer:
         self.x = x
         self.y = y
         self.length = length
-        self.D = 0.5 * (np.tensordot(self.x, self.x, 0) - np.tensordot(self.y, self.y, 0))
-        return None
+        self.detector_tensor = 0.5 * (np.tensordot(self.x, self.x, 0) - np.tensordot(self.y, self.y, 0))
 
     def antenna_response(self, theta, phi, psi, mode):
-        '''
+        """
         Calculate the antenna response function for a given sky location
 
-        arXiv:0903.0528
+        See arXiv:0903.0528 for definitions.
         TODO: argue about frames, relative to detector frame, earth-frame?
 
         :param theta: angle from the north pole
         :param phi: angle from the prime meridian
+        :param psi: binary polarisation angle
         :param mode: polarisation mode
-        :return: f(theta, phi, mode): antenna response for the specified mode.
-        '''
+        :return: detector_response(theta, phi, mode): antenna response for the specified mode.
+        """
         v = np.array([np.sin(phi), -np.cos(phi), 0])
         u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
         m = -u*np.sin(psi)-v*np.cos(psi)
@@ -41,23 +41,23 @@ class Interferometer:
         omega = np.cross(m, n)
 
         if mode == "plus":
-            e = np.tensordot(m, m, 0) - np.tensordot(n, n, 0)
+            polarization_tensor = np.tensordot(m, m, 0) - np.tensordot(n, n, 0)
         elif mode == "cross":
-            e = np.tensordot(m, n, 0) + np.tensordot(n, m, 0)
+            polarization_tensor = np.tensordot(m, n, 0) + np.tensordot(n, m, 0)
         elif mode == "b":
-            e = np.tensordot(m, m, 0) + np.tensordot(n, n, 0)
+            polarization_tensor = np.tensordot(m, m, 0) + np.tensordot(n, n, 0)
         elif mode == "l":
-            e = np.sqrt(2) * np.tensordot(omega, omega, 0)
+            polarization_tensor = np.sqrt(2) * np.tensordot(omega, omega, 0)
         elif mode == "x":
-            e = np.tensordot(m, omega, 0) + np.tensordot(omega, m, 0)
+            polarization_tensor = np.tensordot(m, omega, 0) + np.tensordot(omega, m, 0)
         elif mode == "y":
-            e = np.tensordot(n, omega, 0) + np.tensordot(omega, n, 0)
+            polarization_tensor = np.tensordot(n, omega, 0) + np.tensordot(omega, n, 0)
         else:
             print("Not a polarization mode!")
             return None
 
-        f = np.tensordot(self.D, e, axes=2)
-        return f
+        detector_response = np.tensordot(self.detector_tensor, polarization_tensor, axes=2)
+        return detector_response
 
 
 class PowerSpectralDensity:
@@ -81,7 +81,6 @@ class PowerSpectralDensity:
         self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
         self.interpolate_power_spectral_density()
 
-
     def import_amplitude_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_asd.txt'):
         """
         Automagically load one of the amplitude spectral density
@@ -95,7 +94,8 @@ class PowerSpectralDensity:
         self.interpolate_power_spectral_density()
 
     def interpolate_power_spectral_density(self):
-        self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density, bounds_error=False, fill_value=np.inf)
+        self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density,
+                                                            bounds_error=False, fill_value=np.inf)
 
     def noise_realisation(self, sampling_frequency, duration):
 
@@ -116,9 +116,9 @@ class PowerSpectralDensity:
         deltaT = 1./sampling_frequency
 
         norm1 = 0.5*(Pf1/delta_freq)**0.5
-        re1 = np.random.normal(0,norm1,int(number_of_frequencies))
-        im1 = np.random.normal(0,norm1,int(number_of_frequencies))
-        z1  = re1 + 1j*im1
+        re1 = np.random.normal(0, norm1, int(number_of_frequencies))
+        im1 = np.random.normal(0, norm1, int(number_of_frequencies))
+        z1 = re1 + 1j*im1
 
         # freq domain solution for htilde1, htilde2 in terms of z1, z2
         htilde1 = z1
