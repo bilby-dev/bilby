@@ -48,9 +48,22 @@ class BinaryBlackHole(CompactBinaryCoalescence):
 
 class BinaryNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity, tidal_deformability):
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
+                 tidal_deformability_1, tidal_deformability_2 ):
 
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
                                           polarisation_angle, eccentricity)
-        self.tidal_deformability = tidal_deformability  # lambda parameter
+        self.tidal_deformability_1 = tidal_deformability_1  # lambda parameter for Neutron Star 1
+        self.tidal_deformability_2 = tidal_deformability_2  # lambda parameter for Neutron Star 2
+
+
+class NeutronStarBlackHole(CompactBinaryCoalescence):
+    def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
+                 tidal_deformability):
+
+        CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
+                                          mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
+                                          polarisation_angle, eccentricity)
+        self.tidal_deformability = tidal_deformability  # lambda parameter for Neutron Star

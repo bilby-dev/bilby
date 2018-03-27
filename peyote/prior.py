@@ -6,6 +6,7 @@ import scipy.integrate as sit
 
 
 class Prior(object):
+    """Prior class"""
 
     def __init__(self, **kwargs):
         return
@@ -14,10 +15,16 @@ class Prior(object):
         return self.sample(1)
 
     def sample(self, Nsamples=1):
+        """Draw a sample from the prior, this rescales a unit line element according to the rescaling function"""
         return self.rescale(np.random.uniform(0, 1, Nsamples))
+
+    def rescale(self, val):
+        """'Rescale' a sample to the prior, does nothing."""
+        return val
 
 
 class DeltaFunction(Prior):
+    """Delta function prior, this always returns peak."""
 
     def __init__(self, peak):
         Prior.__init__(self)
@@ -34,8 +41,10 @@ class DeltaFunction(Prior):
 
 
 class PowerLaw(Prior):
+    """Power law prior distribution"""
 
     def __init__(self, alpha, bounds):
+        """Power law with bounds and alpha, spectral index"""
         Prior.__init__(self)
         self.alpha = alpha
         self.low, self.high = bounds

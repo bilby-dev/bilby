@@ -7,7 +7,7 @@ In the following, we assume you have installed
 
 First, clone the repository, install the requirements, and then install `Peyote`.
 ```bash
-$ git clone git@github.com:plasky/PEYOte.git
+$ git clone git@git.ligo.org:Monash/peyote.git
 $ pip install -r requirements.txt
 $ python setup.py install
 ```
@@ -34,3 +34,4 @@ $ make; make install
 
 ** warning **: in the configure line here, we have disabled everything except lalsimulation. If you need other modules, see `./configure --help`.
 
+You could also `pip install lal, lalsuite`.
