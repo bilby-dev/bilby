@@ -36,9 +36,19 @@ class PowerSpectralDensity:
     def convert_psd_to_asd(self, power_spectral_density):
         """
         Convert a power spectral density to an amplitude spectral spectral_density
-        return a two-dimensional array of frequency and amplitude spectral density.
+        Return a two-dimensional array of frequency and amplitude spectral density.
         """
         frequencies = self.power_spectral_density[:, 0]
         psd = self.power_spectral_density[:, 1]
         amplitude_spectral_density = np.sqrt(psd)
         return np.c_[frequencies, amplitude_spectral_density]
+
+    def convert_asd_to_psd(self, amplitude_spectral_density):
+        """
+        Convert an amplitude spectral density to a power spectral density.
+        Return two dimensional array: frequency, power spectral density
+        """
+        frequencies = self.amplitude_spectral_density[:, 0]
+        asd = self.amplitude_spectral_density[:, 1]
+        power_spectral_density = asd**2.
+        return np.c_[frequencies, power_spectral_density]
