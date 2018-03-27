@@ -3,6 +3,8 @@ matplotlib>=1.4
 scipy
 gwpy
 pandas
+lal
+lalsuite
 pymultinest
 gwsurrogate
 NRSur7dq2
