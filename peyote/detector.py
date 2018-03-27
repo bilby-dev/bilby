@@ -24,11 +24,21 @@ class PowerSpectralDensity:
     def __init__(self):
         return None
 
-    def import_power_spectral_density_file(self, psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
+    def import_spectral_density_file(self, spectral_density_file='aLIGO_ZERO_DET_high_P_psd.txt'):
         """
-        Automagically load one of the PSD curves contained in the NoiseCurves directory of MonashGWTools
-        without having to point to a local directory
+        Automagically load one of the power spectral density or amplitude spectral density
+        curves contained in the noise_curves directory
         """
-        psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', psd_file)
-        psd = np.genfromtxt(psd_file)
-        return psd
+        sd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', spectral_density_file)
+        spectral_density = np.genfromtxt(sd_file)
+        return spectral_density
+
+    def convert_psd_to_asd(self, power_spectral_density):
+        """
+        Convert a power spectral density to an amplitude spectral spectral_density
+        return a two-dimensional array of frequency and amplitude spectral density.
+        """
+        frequencies = self.power_spectral_density[:, 0]
+        psd = self.power_spectral_density[:, 1]
+        amplitude_spectral_density = np.sqrt(psd)
+        return np.c_[frequencies, amplitude_spectral_density]
