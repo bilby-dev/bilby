@@ -143,5 +143,5 @@ class PowerSpectralDensity:
 
     @staticmethod
     def equally_spaced_frequency_array(deltaF, numFreqs):
-        f = deltaF * np.linspace(1, numFreqs, numFreqs)
-        return f
+        frequency_array = deltaF * np.linspace(1, numFreqs, numFreqs)
+        return frequency_array
