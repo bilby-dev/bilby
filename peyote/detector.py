@@ -76,6 +76,8 @@ class PowerSpectralDensity:
         self.frequencies = spectral_density[:, 0]
         self.power_spectral_density = spectral_density[:, 1]
         self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
+        self.interpolate_power_spectral_density()
+
 
     def import_amplitude_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_asd.txt'):
         """
@@ -87,31 +89,32 @@ class PowerSpectralDensity:
         self.frequencies = spectral_density[:, 0]
         self.amplitude_spectral_density = spectral_density[:, 1]
         self.power_spectral_density = self.amplitude_spectral_density**2
+        self.interpolate_power_spectral_density()
 
-    def noise_realisations(self, sampling_frequency, duration):
+    def interpolate_power_spectral_density(self):
+        self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density, bounds_error=False, fill_value=np.inf)
 
-        # calculate N = nuber of samples
-        N = duration * sampling_frequency
-        N = int(np.round(N))
+    def noise_realisation(self, sampling_frequency, duration):
+
+        number_of_samples = duration * sampling_frequency
+        number_of_samples = int(np.round(number_of_samples))
 
         # prepare for FFT
-        numFreqs = (N-1)//2
-        deltaF = 1./duration
+        number_of_frequencies = (number_of_samples-1)//2
+        delta_freq = 1./duration
 
-        f = deltaF*np.linspace(1, numFreqs, numFreqs)
+        f = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
 
-        amp_values = self.power_spectral_density
-        f_transfer1 = self.frequencies
-        Pf1_interp_func = interp1d(self.frequencies, self.power_spectral_density, bounds_error=False, fill_value=np.inf)
-        Pf1 = Pf1_interp_func(f)
+        Pf1 = self.power_spectral_density_interpolated(f)
+
         if sum(np.isinf(Pf1)) > 0:
             Pf1[np.isinf(Pf1)] = max(Pf1[~np.isinf(Pf1)])
         #
         deltaT = 1./sampling_frequency
 
-        norm1 = 0.5*(Pf1/deltaF)**0.5
-        re1 = np.random.normal(0,norm1,int(numFreqs))
-        im1 = np.random.normal(0,norm1,int(numFreqs))
+        norm1 = 0.5*(Pf1/delta_freq)**0.5
+        re1 = np.random.normal(0,norm1,int(number_of_frequencies))
+        im1 = np.random.normal(0,norm1,int(number_of_frequencies))
         z1  = re1 + 1j*im1
 
         # freq domain solution for htilde1, htilde2 in terms of z1, z2
