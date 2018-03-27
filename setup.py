@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-setup(name='PEYOte',
+setup(name='peyote',
       version='0.1',
       packages=['peyote'],
       )
