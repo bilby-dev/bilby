@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 
 # import local files
-import detector
-import parameter
-import prior
-import source
+import peyote.detector as detector
+import peyote.parameter as parameter
+import peyote.prior as prior
+import peyote.source as source
