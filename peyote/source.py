@@ -19,7 +19,7 @@ class AstrophysicalSource(Source):
 
 class CompactBinaryCoalescence(AstrophysicalSource):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle):
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
         AstrophysicalSource.__init__(self, name, right_ascension, declination, luminosity_distance)
         self.mass_1 = mass_1
         self.mass_2 = mass_2
@@ -29,6 +29,7 @@ class CompactBinaryCoalescence(AstrophysicalSource):
         self.inclination_angle = inclination_angle  # iota
         self.waveform_phase = waveform_phase  # phi
         self.polarisation_angle = polarisation_angle  # psi
+        self.eccentricity = eccentricity
 
 
 class Supernova(AstrophysicalSource):
@@ -38,18 +39,18 @@ class Supernova(AstrophysicalSource):
 
 class BinaryBlackHole(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle):
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
 
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
-                                          polarisation_angle)
+                                          polarisation_angle, eccentricity)
 
 
 class BinaryBlackNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, tidal_deformability):
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity, tidal_deformability):
 
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
-                                          polarisation_angle)
-        self.tidal_deformability = tidal_deformability  #lambda paramter
+                                          polarisation_angle, eccentricity)
+        self.tidal_deformability = tidal_deformability  # lambda parameter
