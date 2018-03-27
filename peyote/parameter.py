@@ -14,6 +14,9 @@ class Parameter:
         Parameter.instances.append(self)
 
     def fix(self, value=None):
+        '''
+        Specify parameter as fixed, this will not be sampled.
+        '''
         self.is_fixed = True
         if value is not None: self.default = value
         self.prior = prior.deltaFunction(self.default)
