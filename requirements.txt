@@ -1,0 +1,9 @@
+numpy
+matplotlib>=1.4
+scipy
+gwpy
+pandas
+pymultinest
+gwsurrogate
+NRSur7dq2
+chainconsumer
