@@ -25,19 +25,17 @@ class Interferometer:
         """
         Calculate the antenna response function for a given sky location
 
-        See arXiv:0903.0528 for definitions.
-        TODO: argue about frames, relative to detector frame, earth-frame?
-
-        :param theta: angle from the north pole
-        :param phi: angle from the prime meridian
-        :param psi: binary polarisation angle
+        See arXiv:gr-qc/0008066 for definitions.
+        :param theta: zenith polar angle on the celestial sphere
+        :param phi: azimuthal polar angle on the celestial sphere
+        :param psi: binary polarisation angle counter-clockwise about the direction of propagation
         :param mode: polarisation mode
-        :return: detector_response(theta, phi, mode): antenna response for the specified mode.
+        :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
         v = np.array([np.sin(phi), -np.cos(phi), 0])
         u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
-        m = -u*np.sin(psi)-v*np.cos(psi)
-        n = -u*np.cos(psi)+v*np.sin(psi)
+        m = -u * np.sin(psi) - v * np.cos(psi)
+        n = -u * np.cos(psi) + v * np.sin(psi)
         omega = np.cross(m, n)
 
         if mode == "plus":
