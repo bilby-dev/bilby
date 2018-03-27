@@ -50,8 +50,8 @@ class Interferometer:
         elif mode=="y":
             polarisation_tensor = np.tensordot(nn, omega, 0)+np.tensordot(omega, nn, 0)
         else:
-                print("Not a polarization mode!")
-                return None
+            print("Not a polarization mode!")
+            return None
 
         response = np.tensordot(self.detector_tensor, polarisation_tensor, axes=2)
         return response
