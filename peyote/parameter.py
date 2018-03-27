@@ -1,7 +1,5 @@
 #!/bin/python
 
-import prior
-
 
 class Parameter:
     instances = []
