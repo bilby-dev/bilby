@@ -48,7 +48,8 @@ class BinaryBlackHole(CompactBinaryCoalescence):
 
 class BinaryBlackNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity, tidal_deformability):
+                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
+                 tidal_deformability):
 
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
