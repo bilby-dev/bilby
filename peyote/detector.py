@@ -22,7 +22,7 @@ class Interferometer:
         self.D = 0.5 * (np.tensordot(self.x, self.x, 0) - np.tensordot(self.y, self.y, 0))
         return None
 
-    def antenna_response(self, theta, phi, mode):
+    def antenna_response(self, theta, phi, psi, mode):
         '''
         Calculate the antenna response function for a given sky location
 
@@ -34,8 +34,10 @@ class Interferometer:
         :param mode: polarisation mode
         :return: f(theta, phi, mode): antenna response for the specified mode.
         '''
-        m = np.array([np.sin(phi), -np.cos(phi), 0])
-        n = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
+        v = np.array([np.sin(phi), -np.cos(phi), 0])
+        u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
+        m = -u*np.sin(psi)-v*np.cos(psi)
+        n = -u*np.cos(psi)+v*np.sin(psi)
         omega = np.cross(m, n)
 
         if mode == "plus":
