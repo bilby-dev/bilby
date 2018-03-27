@@ -5,23 +5,24 @@ import os
 class Interferometer:
     """Class for the Interferometer """
 
-    def __init__(self, name, x, y, length):
+    def __init__(self, name, x_arm, y_arm, length, power_spectral_density):
         """
         Interferometer class
         :param name: interferometer name, e.g., H1
-        :param x: unit vector along one arm in Earth-centered cartesian coordinates
-        :param y: unit vector along the other arm in Earth-centered cartesian coordinates
+        :param x_arm: unit vector along one arm in Earth-centered cartesian coordinates
+        :param y_arm: unit vector along the other arm in Earth-centered cartesian coordinates
         :param length: length of the interferometer
         """
         self.name = name
-        self.x = x
-        self.y = y
+        self.x_arm = x_arm
+        self.y_arm = y_arm
         self.length = length
-        self.D = 0.5*(np.tensordot(self.x,self.x,0)-np.tensordot(self.y,self.y,0))
-        return None
+        self.detector_tensor = 0.5*(np.tensordot(self.x_arm, self.x_arm, 0)-np.tensordot(self.y_arm, self.y_arm, 0))
+        self.power_spectral_density = power_spectral_density
+        return
 
     def antenna_response(self, theta, phi, mode):
-        '''
+        """
         Calculate the antenna response function for a given sky location
 
         arXiv:0903.0528
@@ -30,30 +31,30 @@ class Interferometer:
         :param theta: angle from the north pole
         :param phi: angle from the prime meridian
         :param mode: polarisation mode
-        :return: f(theta, phi, mode): antenna response for the specified mode.
-        '''
-        m = np.array([np.sin(phi),-np.cos(phi),0])
-        n = np.array([np.cos(phi)*np.cos(theta),np.cos(theta)*np.sin(phi),-np.sin(theta)])
-        omega = np.cross(m, n)
+        :return: response(theta, phi, mode): antenna response for the specified mode.
+        """
+        mm = np.array([np.sin(phi), -np.cos(phi), 0])
+        nn = np.array([np.cos(phi)*np.cos(theta), np.cos(theta)*np.sin(phi), -np.sin(theta)])
+        omega = np.cross(mm, nn)
 
         if mode=="plus":
-                e = np.tensordot(m, m, 0)-np.tensordot(n, n, 0)
+            polarisation_tensor = np.tensordot(mm, mm, 0)-np.tensordot(nn, nn, 0)
         elif mode=="cross":
-                e = np.tensordot(m, n, 0)+np.tensordot(n, m, 0)
+            polarisation_tensor = np.tensordot(mm, nn, 0)+np.tensordot(nn, mm, 0)
         elif mode=="b":
-                e = np.tensordot(m, m, 0)+np.tensordot(n, n, 0)
+            polarisation_tensor = np.tensordot(mm, mm, 0)+np.tensordot(nn, nn, 0)
         elif mode=="l":
-                e = np.sqrt(2)*np.tensordot(omega, omega, 0)
+            polarisation_tensor = np.sqrt(2)*np.tensordot(omega, omega, 0)
         elif mode=="x":
-                e = np.tensordot(m, omega, 0)+np.tensordot(omega, m, 0)
+            polarisation_tensor = np.tensordot(mm, omega, 0)+np.tensordot(omega, mm, 0)
         elif mode=="y":
-                e = np.tensordot(n, omega, 0)+np.tensordot(omega, n, 0)
+            polarisation_tensor = np.tensordot(nn, omega, 0)+np.tensordot(omega, nn, 0)
         else:
                 print("Not a polarization mode!")
                 return None
 
-        f = np.tensordot(self.D, e, axes=2)
-        return f
+        response = np.tensordot(self.detector_tensor, polarisation_tensor, axes=2)
+        return response
 
 
 class PowerSpectralDensity:
@@ -62,7 +63,7 @@ class PowerSpectralDensity:
         self.frequencies = []
         self.power_spectral_density = []
         self.amplitude_spectral_density = []
-        return None
+        return
 
     def import_power_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_psd.txt'):
         """
