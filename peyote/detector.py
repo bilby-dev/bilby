@@ -67,7 +67,7 @@ class PowerSpectralDensity:
 
     def import_power_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_psd.txt'):
         """
-        Automagically load one of the power spectral density or amplitude spectral density
+        Automagically load the power spectral density 
         curves contained in the noise_curves directory
         """
         sd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', spectral_density_file)
@@ -78,7 +78,7 @@ class PowerSpectralDensity:
 
     def import_amplitude_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_asd.txt'):
         """
-        Automagically load one of the p]amplitude spectral density
+        Automagically load one of the amplitude spectral density
         curves contained in the noise_curves directory
         """
         sd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', spectral_density_file)
