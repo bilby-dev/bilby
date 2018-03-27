@@ -106,3 +106,4 @@ venv.bak/
 # Idea
 /.idea
 *.idea
+*.idea*
