@@ -19,42 +19,46 @@ class Interferometer:
         self.x = x
         self.y = y
         self.length = length
-        self.detector_tensor = 0.5 * (np.tensordot(self.x, self.x, 0) - np.tensordot(self.y, self.y, 0))
+        self.detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
 
     def antenna_response(self, theta, phi, psi, mode):
         """
         Calculate the antenna response function for a given sky location
 
-        See arXiv:gr-qc/0008066 for definitions.
+        See Nishizawa et al. (2009) arXiv:0903.0528 for definitions of the polarisation tensors.
+        [u, v, w] represent the Earth-frame
+        [m, n, omega] represent the wave-frame
+        Note: there is a typo if the definition of the wave-frame in Nishizawa et al.
+
         :param theta: zenith polar angle on the celestial sphere
         :param phi: azimuthal polar angle on the celestial sphere
         :param psi: binary polarisation angle counter-clockwise about the direction of propagation
         :param mode: polarisation mode
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
-        v = np.array([np.sin(phi), -np.cos(phi), 0])
         u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
+        v = np.array([-np.sin(phi), np.cos(phi), 0])
         m = -u * np.sin(psi) - v * np.cos(psi)
         n = -u * np.cos(psi) + v * np.sin(psi)
         omega = np.cross(m, n)
 
         if mode == "plus":
-            polarization_tensor = np.tensordot(m, m, 0) - np.tensordot(n, n, 0)
+            polarization_tensor = np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n)
         elif mode == "cross":
-            polarization_tensor = np.tensordot(m, n, 0) + np.tensordot(n, m, 0)
-        elif mode == "b":
-            polarization_tensor = np.tensordot(m, m, 0) + np.tensordot(n, n, 0)
-        elif mode == "l":
-            polarization_tensor = np.sqrt(2) * np.tensordot(omega, omega, 0)
+            polarization_tensor = np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m)
+        elif mode == "breathing":
+            polarization_tensor = np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
+        elif mode == "longitudinal":
+            polarization_tensor = np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
         elif mode == "x":
-            polarization_tensor = np.tensordot(m, omega, 0) + np.tensordot(omega, m, 0)
+            polarization_tensor = np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
         elif mode == "y":
-            polarization_tensor = np.tensordot(n, omega, 0) + np.tensordot(omega, n, 0)
+            polarization_tensor = np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
         else:
             print("Not a polarization mode!")
             return None
 
-        detector_response = np.tensordot(self.detector_tensor, polarization_tensor, axes=2)
+        detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
 
 
