@@ -18,8 +18,8 @@ class SimpleSinusoidSource(Source):
     """
 
     def model(self, parameters):
-        return self.parameters['A'].value * np.sin(
-                self.parameters['f'].value*self.parameters['geocent_time'])
+        return parameters['A'] * np.sin(
+                parameters['f'] * parameters['geocent_time'])
 
 
 class Glitch(Source):
