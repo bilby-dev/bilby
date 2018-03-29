@@ -1,5 +1,5 @@
 import numpy as np
-
+import os.path
 
 class Source:
     def __init__(self, name):
@@ -106,4 +106,7 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
         file_name='{}-q{}-M{}.csv'.format(eos_string,mass_ratio_string,mean_mass_string)
         full_filename='{}/{}'.format(directory_path,file_name)
         print(full_filename)
-        return(full_filename)
+        if os.path.isfile(fname):
+            return full_filename
+
+
