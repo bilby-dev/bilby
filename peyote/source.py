@@ -1,6 +1,20 @@
 class Source:
-    def __init__(self, name):
+    def __init__(self, name, parameters):
         self.name = name
+        self.parameters = parameters
+
+    def waveform(self, time):
+        return 0
+
+
+class SimpleSinusoidSouce(Source):
+    """ A simple example of a sinusoid souce
+
+    Parameters should be [amplitude, frequency]
+    """
+
+    def waveform(self, time):
+        return self.parameters[0] * np.sin(self.parameters[1]*time)
 
 
 class Glitch(Source):
