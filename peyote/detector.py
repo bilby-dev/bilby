@@ -64,21 +64,24 @@ class Interferometer:
         return detector_tensor 
 
 
-    def antenna_response(self, theta, phi, psi, mode):
+    def antenna_response(self, ra, dec, time, psi, mode):
         """
         Calculate the antenna response function for a given sky location
 
         See Nishizawa et al. (2009) arXiv:0903.0528 for definitions of the polarisation tensors.
         [u, v, w] represent the Earth-frame
         [m, n, omega] represent the wave-frame
-        Note: there is a typo if the definition of the wave-frame in Nishizawa et al.
+        Note: there is a typo in the definition of the wave-frame in Nishizawa et al.
 
-        :param theta: zenith polar angle on the celestial sphere
-        :param phi: azimuthal polar angle on the celestial sphere
+        :param ra: right ascension in radians
+        :param dec: declination in radians
+        :param time: geocentric GPS time
         :param psi: binary polarisation angle counter-clockwise about the direction of propagation
         :param mode: polarisation mode
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
+        gmst = peyote.utils.gps_time_to_gmst(time)
+        theta, phi = peyote.utils.ra_dec_to_theta_phi(ra, dec, gmst)
         u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
         v = np.array([-np.sin(phi), np.cos(phi), 0])
         m = -u * np.sin(psi) - v * np.cos(psi)
