@@ -4,6 +4,11 @@ import os.path
 from astropy.table import Table
 from peyote.utils import sampling_frequency, nfft
 
+try:
+    import lal
+    import lalsimulation as lalsim
+except ImportError:
+    print("lal is not installed")
 
 class Source:
     def __init__(self, name):
@@ -25,6 +30,44 @@ class SimpleSinusoidSource(Source):
         return {'plus': parameters['A'] * (
             np.sin(parameters['f'] * times)
             + 1j * np.cos(parameters['f'] * times))}
+
+
+class BinaryBlackHole(Source):
+    """
+    A way of getting a BBH waveform from lal
+    """
+    def waveform_from_lal(self, frequencies, parameters):
+        luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
+        mass_1 = parameters['mass_1'] * lal.MSUN_SI
+        mass_2 = parameters['mass_2'] * lal.MSUN_SI
+
+        longitude_ascending_nodes = 0.0
+        eccentricity = 0.0
+        meanPerAno = 0.0
+
+        waveform_dictionary = lal.CreateDict()
+
+        approximant = lalsim.GetApproximantFromString(parameters['waveform_approximant'])
+
+        # delta_f = frequencies[1]-frequencies[0]
+        # minimum_frequency = np.min(frequencies)
+        # print(minimum_frequency)
+        # maximum_frequency = np.max(frequencies)
+
+        hplus,hcross = lalsim.SimInspiralChooseFDWaveform(mass_1, mass_2,
+                        parameters['spin_1'][0], parameters['spin_1'][1], parameters['spin_1'][2],
+                        parameters['spin_2'][0], parameters['spin_2'][1], parameters['spin_2'][2],
+                        luminosity_distance, parameters['inclination_angle'],
+                        parameters['waveform_phase'],
+                        longitude_ascending_nodes, eccentricity, meanPerAno,
+                        parameters['deltaF'], parameters['fmin'], parameters['fmax'],
+                        parameters['reference_frequency'],
+                        waveform_dictionary, approximant)
+
+        h_plus = hplus.data.data
+        h_cross = hcross.data.data
+
+        return h_plus, h_cross
 
 
 class Glitch(Source):
@@ -61,12 +104,13 @@ class Supernova(AstrophysicalSource):
         AstrophysicalSource.__init__(self, name, right_ascension, declination, luminosity_distance)
 
 
-class BinaryBlackHole(CompactBinaryCoalescence):
-    def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-                 coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
-        CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
-                                          mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
-                                          polarisation_angle, eccentricity)
+# class BinaryBlackHole(CompactBinaryCoalescence):
+#     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
+#                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
+#         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
+#                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
+#                                           polarisation_angle, eccentricity)
+
 
 
 class BinaryNeutronStar(CompactBinaryCoalescence):
@@ -116,5 +160,3 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
             Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
             Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
             return(strain_table['time'],strain_table["hplus"],strain_table["hcross"],frequency,Hplus,Hcross)
-
-
