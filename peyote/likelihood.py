@@ -2,38 +2,34 @@ import numpy as np
 
 class likelihood:
 
-	def __init__(self, detectors):
+	def __init__(self, Interferometers, source) :
+		self.Interferometers = Interferometers
+                self.source = source
 
-		self.detectors = detectors
-		
-	def logL_cbc(self, source):
-		
-		logL = 0 
+	def logL(self, params) :
 
-		waveform_polarizations = source.model(source.params)
+ 		logL = 0
 
-		
+		waveform_polarizations = self.source.model(params)
 
-		for detector in self.detectors:
-				
+		for Interferometer in self.Interferometers :
 
-			det_response = detector.response(source.params)
-			time_shift = detector.time_shift(source.params['geocent_time'])
+			for mode in params['modes'] :
 
-			signal = np.dot(waveform_polarizations, det_response) 
-				
-			signal *= np.exp(-1j*2*np.pi*time_shift)
+				#det_response = Interferometer.antenna_response(
+                                #        params['ra'], params['dec'],
+                                #        params['geocent_time'], params['psi'],
+                                #        mode )
+                                det_response = 1
 
-	
-			logL += 4 * detector.deltaF * np.vdot( detector.data - signal, (detector.data - signal) / detector.psd )
-		
-		return logL	
-				
-			
+				waveform_polarizations[mode] *= det_response
 
-			
+			signal_IFO = np.sum( waveform_polarizations.values() )
 
-	
-		
+			#time_shift = Interferometer.time_shift(source.params['geocent_time'])
+			#signal *= np.exp(-1j*2*np.pi*time_shift) # This is just here as a reminder that a tc shift needs to be performed
+			                                          # on frequency-domain GWs
 
-		 
+                        logL += 4. * params['deltaF'] * np.vdot( Interferometer.data - signal_IFO, ( Interferometer.data - signal_IFO ) / Interferometer.psd )
+
+		return logL
