@@ -49,9 +49,9 @@ plt.legend(loc='best')
 plt.tight_layout()
 plt.show()
 
-
+hf_noise[0] = np.max(hf_noise)
+hf_noise[-1] = np.max(hf_noise)
 IFO = peyote.detector.H1
 IFO.data = hf_signal
-IFO.psd = PSD.power_spectral_density
+IFO.psd = hf_noise
 likelihood = peyote.likelihood.likelihood([IFO], foo)
-print(likelihood.logL(time, params))
