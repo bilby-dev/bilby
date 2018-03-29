@@ -1,6 +1,15 @@
 class Source:
-    def __init__(self, name):
+    def __init__(self, name, parameters):
         self.name = name
+        self.parameters = parameters
+
+    def waveform(self, time):
+        return 0
+
+
+class SimpleSinusoidSouce(Source):
+    def waveform(self):
+        return np.sin(self.parameters[0], self.parameters[1])
 
 
 class Glitch(Source):
