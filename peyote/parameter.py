@@ -1,6 +1,7 @@
 #!/bin/python
 
 import numpy as np
+import prior
 
 
 class Parameter:
@@ -46,7 +47,7 @@ phi2 = Parameter(name='phi2', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi))
 
 # extrinsic
 distance = Parameter(name='distance', prior=prior.PowerLaw(alpha=2, bounds=(1e2, 5e3)), default=400)
-z = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
+#zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
 latitude = Parameter(name='latitude', prior=prior.Cosine(), default=0)
 longitude = Parameter(name='longitude', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 inclination = Parameter(name='inclination', prior=prior.Sine(), default=0)
