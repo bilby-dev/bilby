@@ -32,12 +32,16 @@ PSD.import_power_spectral_density()  # import default psd
 #PSD.import_power_spectral_density(spectral_density_file="CE_psd.txt")  # import cosmic explorer
 hf_noise , _ = PSD.noise_realisation(fs, time_duration)
 
-plt.loglog(ff, np.abs(hf_noise))
 
-plt.loglog(ff, np.abs(hf_signal))
+plt.clf()
+plt.loglog(ff, np.abs(hf_signal + hf_noise), label='signal+noise')
 
-plt.loglog(ff, np.abs(hf_signal + hf_noise))
+plt.loglog(ff, np.abs(hf_noise), label='noise')
+
+plt.loglog(ff, np.abs(hf_signal), label='signal')
 plt.xlabel(r'frequency [Hz]')
+
+plt.legend(loc='best')
 
 plt.tight_layout()
 plt.show()
