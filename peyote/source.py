@@ -2,6 +2,7 @@ import peyote
 import numpy as np
 import os.path
 
+
 class Source:
     def __init__(self, name):
         self.name = name
@@ -20,7 +21,7 @@ class SimpleSinusoidSource(Source):
 
     def model(self, parameters):
         return parameters['A'] * np.sin(
-                parameters['f'] * parameters['geocent_time'])
+            parameters['f'] * parameters['geocent_time'])
 
 
 class Glitch(Source):
@@ -60,7 +61,6 @@ class Supernova(AstrophysicalSource):
 class BinaryBlackHole(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
-
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
                                           polarisation_angle, eccentricity)
@@ -69,8 +69,7 @@ class BinaryBlackHole(CompactBinaryCoalescence):
 class BinaryNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
-                 tidal_deformability_1, tidal_deformability_2 ):
-
+                 tidal_deformability_1, tidal_deformability_2):
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
                                           polarisation_angle, eccentricity)
@@ -82,11 +81,11 @@ class NeutronStarBlackHole(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
                  tidal_deformability):
-
         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
                                           polarisation_angle, eccentricity)
         self.tidal_deformability = tidal_deformability  # lambda parameter for Neutron Star
+
 
 class BinaryNeutronStarMergerNumericalRelativity(Source):
     """ Loads in NR simulations of BNS merger
@@ -99,15 +98,13 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
     """
 
     def model(self, parameters):
-        mean_mass_string='{:.0f}'.format(self.parameters['mean_mass'].value * 1000)
-        eos_string=self.parameters['equation_of_state'].value
-        mass_ratio_string='{:.0f}'.format(self.parameters['mass_ratio'].value*10)
-        directory_path=self.parameters['directory_path'].value
+        mean_mass_string = '{:.0f}'.format(self.parameters['mean_mass'].value * 1000)
+        eos_string = self.parameters['equation_of_state'].value
+        mass_ratio_string = '{:.0f}'.format(self.parameters['mass_ratio'].value * 10)
+        directory_path = self.parameters['directory_path'].value
 
-        file_name='{}-q{}-M{}.csv'.format(eos_string,mass_ratio_string,mean_mass_string)
-        full_filename='{}/{}'.format(directory_path,file_name)
+        file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
+        full_filename = '{}/{}'.format(directory_path, file_name)
         print(full_filename)
-        if os.path.isfile(fname):
+        if os.path.isfile(file_name):
             return full_filename
-
-
