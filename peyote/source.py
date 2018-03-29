@@ -1,3 +1,4 @@
+import peyote
 import numpy as np
 
 
