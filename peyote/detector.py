@@ -29,9 +29,9 @@ class Interferometer:
         self.yarm_azimuth = yarm_azimuth * np.pi / 180
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
-        self.x = unit_vector_along_arm('x')
-        self.y = unit_vector_along_arm('y')
-        self.detector_tensor = detector_tensor()
+        self.x = self.unit_vector_along_arm('x')
+        self.y = self.unit_vector_along_arm('y')
+        self.detector_tensor = self.detector_tensor()
 
     def unit_vector_along_arm(self, arm):
         '''
@@ -163,11 +163,11 @@ class PowerSpectralDensity:
         frequency_array = deltaF * np.linspace(1, numFreqs, numFreqs)
         return frequency_array
 
-H1 = Interferometer(name='H1', length=4, latitude=46+27./60+18.528/3600, longitude=-(119+24./60+27.5657/3600),
+H1 = Interferometer(name='H1', length=4, latitude=46+27./60+18.528/3600, longitude=-(119+24./60+27.5657/3600),\
                     elevation=142.554, xarm_azimuth=125.9994, yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
-L1 = Interferometer(name='L1', length=4, latitude=30+33./60+46.4196/3600, longitude=-(90+46./60+27.2654/3600),
+L1 = Interferometer(name='L1', length=4, latitude=30+33./60+46.4196/3600, longitude=-(90+46./60+27.2654/3600),\
                     elevation=-6.574, xarm_azimuth=197.7165, yarm_azimuth=287.7165, xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
-V1 = Interferometer(name='V1', length=3, latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600),
+V1 = Interferometer(name='V1', length=3, latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600,\
                     elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
-GEO600 = Interferometer(name='GEO600', length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600,
+GEO600 = Interferometer(name='GEO600', length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600,\
                     elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117)
