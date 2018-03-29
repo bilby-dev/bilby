@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
 import os
+from peyote import utils as utils
 from scipy.interpolate import interp1d
 
 
@@ -101,49 +102,18 @@ class PowerSpectralDensity:
 
     def noise_realisation(self, sampling_frequency, duration):
 
-        number_of_samples = duration * sampling_frequency
-        number_of_samples = int(np.round(number_of_samples))
-
-        # prepare for FFT
-        number_of_frequencies = (number_of_samples-1)//2
-        delta_freq = 1./duration
-
-        f = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
+        white_noise, f = utils.create_white_noise(sampling_frequency, duration)
 
         Pf1 = self.power_spectral_density_interpolated(f)
 
         if sum(np.isinf(Pf1)) > 0:
             Pf1[np.isinf(Pf1)] = max(Pf1[~np.isinf(Pf1)])
-        #
-        deltaT = 1./sampling_frequency
 
-        norm1 = 0.5*(Pf1/delta_freq)**0.5
-        re1 = np.random.normal(0, norm1, int(number_of_frequencies))
-        im1 = np.random.normal(0, norm1, int(number_of_frequencies))
-        z1 = re1 + 1j*im1
-
-        # freq domain solution for htilde1, htilde2 in terms of z1, z2
-        htilde1 = z1
-        # convolve data with instrument transfer function
-        otilde1 = htilde1 * 1.
-        # set DC and Nyquist = 0
-        # python: we are working entirely with positive frequencies
-        if np.mod(number_of_samples, 2) == 0:
-            otilde1 = np.concatenate(([0], otilde1, [0]))
-            f = np.concatenate(([0], f, [sampling_frequency / 2.]))
-        else:
-            # no Nyquist frequency when N=odd
-            otilde1 = np.concatenate(([0], otilde1))
-            f = np.concatenate(([0], f))
-
-        # normalise for positive frequencies and units of strain/rHz
-        hf = otilde1
-        # python: transpose for use with infft
-        hf = np.transpose(hf)
-        f = np.transpose(f)
-
+        hf = 0.5(Pf1)**0.5 * white_noise
         self.frequency_noise_realization = hf
         self.interpolated_frequency = f
+
+        return hf, f
 
     @staticmethod
     def equally_spaced_frequency_array(deltaF, numFreqs):
