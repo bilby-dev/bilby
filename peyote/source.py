@@ -1,6 +1,8 @@
 import peyote
 import numpy as np
 import os.path
+from astropy.table import Table
+from peyote.utils import sampling_frequency, nfft
 
 
 class Source:
@@ -20,7 +22,7 @@ class SimpleSinusoidSource(Source):
     """
 
     def model(self, parameters):
-        return {'+': parameters['A'] * np.sin(
+        return {'plus': parameters['A'] * np.sin(
             parameters['f'] * parameters['geocent_time'])}
 
 
@@ -92,19 +94,26 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
 
     takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
 
-    model takes one parameter `parameters`, a dictionary of Parameters and
-    returns the waveform model.
+    returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
 
     """
 
     def model(self, parameters):
-        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'].value * 1000)
-        eos_string = parameters['equation_of_state'].value
-        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'].value * 10)
-        directory_path = parameters['directory_path'].value
+        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
+        eos_string = parameters['equation_of_state']
+        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
+        directory_path = parameters['directory_path']
 
         file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
         full_filename = '{}/{}'.format(directory_path, file_name)
-        print(full_filename)
-        if os.path.isfile(file_name):
-            return full_filename
+
+        if not os.path.isfile(full_filename):
+            print('{} does not exist'.format(full_filename)) # add exception
+            return(-1)
+        else: # ok file exists
+            strain_table = Table.read(full_filename)
+            Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
+            Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
+            return(strain_table['time'],strain_table["hplus"],strain_table["hcross"],frequency,Hplus,Hcross)
+
+
