@@ -19,10 +19,10 @@ signal_amplitude = 1e-21
 signal_frequency = 100
 
 params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=time,
-              modes=['+'])
+              modes=['+'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
 
 foo = src.SimpleSinusoidSource('foo')
-ht_signal = foo.model(params)
+ht_signal = foo.model(params)['+']
 
 hf_signal, ff = utils.nfft(ht_signal, sampling_frequency)
 
@@ -48,5 +48,8 @@ plt.legend(loc='best')
 plt.tight_layout()
 plt.show()
 
-likelihood = peyote.likelihood.likelihood([peyote.detector.H1], foo)
-print likelihood.logL_cbc(params)
+IFO = peyote.detector.H1
+IFO.data = hf_signal
+IFO.psd = 1
+likelihood = peyote.likelihood.likelihood([IFO], foo)
+print likelihood.logL(params)
