@@ -14,7 +14,7 @@ def sampling_frequency(time_series):
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
-    '''
+    """
     Convert from RA and DEC to polar coordinates on celestial sphere
     Input:
     ra - right ascension in radians
@@ -23,28 +23,28 @@ def ra_dec_to_theta_phi(ra, dec, gmst):
     Output:
     theta - zenith angle in radians
     phi - azimuthal angle in radians
-    '''
+    """
     phi = ra - gmst
     theta = np.pi / 2 - dec
     return theta, phi
 
 
 def gps_time_to_gmst(time):
-    '''
+    """
     Convert gps time to Greenwich mean sidereal time in radians
     Input:
     time - gps time
     Output:
     gmst - Greenwich mean sidereal time in radians
-    '''
+    """
     gps_time = Time(time, format='gps', scale='utc')
     gmst = gps_time.sidereal_time('mean', 'greenwich').value * np.pi / 12
     return gmst
 
 def create_white_noise(sampling_frequency, duration):
-    '''
+    """
     Create white_noise which is then coloured by a given PSD
-    '''
+    """
 
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
