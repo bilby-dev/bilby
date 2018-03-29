@@ -46,9 +46,9 @@ class Interferometer:
         e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude), -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
         e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude), np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
         if arm == 'x':
-            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
+            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.sin(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
         elif arm == 'y':
-            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
+            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.sin(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
         else:
             print('Not a recognized arm, aborting!')
             return
