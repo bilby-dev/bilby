@@ -17,7 +17,7 @@ class likelihood:
 
 			for mode in source.params['modes'].keys() :
 
-				det_response = Interometer.response(parmams['ra'], parmams['dec'], params['time'], parmams['psi'], mode)
+				det_response = Interometer.response(parmams['ra'], parmams['dec'], params['geocent_time'], parmams['psi'], mode)
 
 				waveform_polarizations[mode] *= det_response
 
