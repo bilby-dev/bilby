@@ -14,7 +14,7 @@ class SimpleSinusoidSouce(Source):
     """
 
     def waveform(self, time):
-        return self.parameters[0] * np.sin(self.parameters[0]*time)
+        return self.parameters[0] * np.sin(self.parameters[1]*time)
 
 
 class Glitch(Source):
