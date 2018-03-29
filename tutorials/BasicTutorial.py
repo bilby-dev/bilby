@@ -11,8 +11,9 @@ import peyote.utils as utils
 
 
 time_duration = 1
-fs = 4096.
-time = np.arange(0, time_duration, 1./fs)
+sampling_frequency = 4096.
+time = utils.create_time_series(sampling_frequency, time_duration)
+
 
 signal_amplitude = 1e-21
 signal_frequency = 100
