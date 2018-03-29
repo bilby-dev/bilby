@@ -1,20 +1,25 @@
-class Source:
-    def __init__(self, name, parameters):
-        self.name = name
-        self.parameters = parameters
+import numpy as np
 
-    def waveform(self, time):
+
+class Source:
+    def __init__(self, name):
+        self.name = name
+
+    def model(self, time):
         return 0
 
 
-class SimpleSinusoidSouce(Source):
-    """ A simple example of a sinusoid souce
+class SimpleSinusoidSource(Source):
+    """ A simple example of a sinusoid source
 
-    Parameters should be [amplitude, frequency]
+    model takes one parameter `parameters`, a dictionary of Parameters and
+    returns the waveform model.
+
     """
 
-    def waveform(self, time):
-        return self.parameters[0] * np.sin(self.parameters[1]*time)
+    def model(self, parameters):
+        return self.parameters['A'].value * np.sin(
+                self.parameters['f'].value*self.parameters['geocent_time'])
 
 
 class Glitch(Source):
