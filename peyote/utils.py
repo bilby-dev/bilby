@@ -13,6 +13,9 @@ def sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
+def create_time_series(sampling_frequency, duration, starting_time = 0.):
+    return np.arange(starting_time, duration, 1./sampling_frequency)
+
 def ra_dec_to_theta_phi(ra, dec, gmst):
     """
     Convert from RA and DEC to polar coordinates on celestial sphere
