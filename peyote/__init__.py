@@ -6,3 +6,4 @@ import peyote.detector as detector
 import peyote.prior as prior
 import peyote.parameter as parameter
 import peyote.source as source
+import peyote.likelihood as likelihood
