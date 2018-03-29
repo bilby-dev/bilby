@@ -72,7 +72,6 @@ class PowerLaw(Prior):
         return val ** self.alpha * (1 + self.alpha) / (self.high ** (1 + self.alpha) -
                                                        self.low ** (1 + self.alpha))
 
-
 class Cosine(Prior):
 
     def __init__(self):
