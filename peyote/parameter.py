@@ -1,7 +1,7 @@
 #!/bin/python
 
 import numpy as np
-import prior
+from peyote import prior as prior
 
 
 class Parameter:
