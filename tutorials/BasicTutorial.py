@@ -1,8 +1,6 @@
 """
 Basic tutorial to get PEYOte running
 """
-import matplotlib
-matplotlib.use('agg')
 import numpy as np
 import pylab as plt
 
