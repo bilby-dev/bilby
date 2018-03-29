@@ -15,11 +15,11 @@ time = np.linspace(0, time_duration, 10000)
 fs = sampling_frequency(time)
 
 
-# params = [par.amplitude, par.frequency, par.time_at_coalescence]
-#
-# foo = src.SimpleSinusoidSource(params)
-# ht = foo.model(time)
-#
+params = dict(A=10, f=0.1, geocent_time=0)
+
+foo = src.SimpleSinusoidSource('foo')
+ht = foo.model(params)
+
 
 
 """

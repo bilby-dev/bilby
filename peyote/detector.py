@@ -143,16 +143,14 @@ class PowerSpectralDensity:
 
     def interpolate_power_spectral_density(self):
         self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density,
-                                                            bounds_error=False, fill_value=np.inf)
+                                                            bounds_error=False,
+                                                            fill_value=max(self.power_spectral_density))
 
     def noise_realisation(self, sampling_frequency, duration):
 
         white_noise, frequency = peyote.utils.create_white_noise(sampling_frequency, duration)
 
         Pf1 = self.power_spectral_density_interpolated(frequency)
-
-        if sum(np.isinf(Pf1)) > 0:
-            Pf1[np.isinf(Pf1)] = max(Pf1[~np.isinf(Pf1)])
 
         hf = 0.5*(Pf1)**0.5 * white_noise
         self.frequency_noise_realization = hf
