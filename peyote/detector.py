@@ -102,18 +102,18 @@ class PowerSpectralDensity:
 
     def noise_realisation(self, sampling_frequency, duration):
 
-        white_noise, f = utils.create_white_noise(sampling_frequency, duration)
+        white_noise, frequency = utils.create_white_noise(sampling_frequency, duration)
 
-        Pf1 = self.power_spectral_density_interpolated(f)
+        Pf1 = self.power_spectral_density_interpolated(frequency)
 
         if sum(np.isinf(Pf1)) > 0:
             Pf1[np.isinf(Pf1)] = max(Pf1[~np.isinf(Pf1)])
 
-        hf = 0.5(Pf1)**0.5 * white_noise
+        hf = 0.5*(Pf1)**0.5 * white_noise
         self.frequency_noise_realization = hf
-        self.interpolated_frequency = f
+        self.interpolated_frequency = frequency
 
-        return hf, f
+        return hf, frequency
 
     @staticmethod
     def equally_spaced_frequency_array(deltaF, numFreqs):
