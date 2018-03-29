@@ -19,13 +19,13 @@ class likelihood:
 
 				det_response = Interometer.response(parmams['ra'], parmams['dec'], parmams['psi'], mode)
 
-				waveform_polarizations['%s'%mode] *= det_response
+				waveform_polarizations[mode] *= det_response
 
 			signal_IFO = np.sum( waveform_polarizations.values() )
 
 			#time_shift = Interferometer.time_shift(source.params['geocent_time'])
 			#signal *= np.exp(-1j*2*np.pi*time_shift) # This is just here as a reminder that a tc shift needs to be performed
 			                                          # on frequency-domain GWs
- 			logL += 4. * Interferometer.deltaF * np.vdot( Interferometer.data - signal_IFO, (Interferometer.data - signal_IFO) / Interferometer.data.psd )
+ 			logL += 4. * Interferometer.deltaF * np.vdot( Interferometer.data - signal_IFO, (Interferometer.data - signal_IFO) / Interferometer.psd )
 
 		return logL
