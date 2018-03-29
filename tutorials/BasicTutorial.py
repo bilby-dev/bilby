@@ -2,16 +2,33 @@
 Basic tutorial to get PEYOte running
 """
 import numpy as np
+import pylab as plt
 
 import peyote.source as src
 import peyote.parameter as par
+import peyote.detector as det
+from peyote.utils import sampling_frequency
 
-time = np.linspace(0, 100, 10000)
 
-params = [par.amplitude, par.frequency, par.time_at_coalescence]
+time_duration = 100
+time = np.linspace(0, time_duration, 10000)
+fs = sampling_frequency(time)
 
-foo = src.SimpleSinusoidSource('test', params)
-ht = foo.waveform(time)
 
-plt.plot(time, ht)
+# params = [par.amplitude, par.frequency, par.time_at_coalescence]
+#
+# foo = src.SimpleSinusoidSource(params)
+# ht = foo.model(time)
+#
+
+
+"""
+Create a noise realisation with a default power spectral density
+"""
+PSD = det.PowerSpectralDensity()  # instantiate a detector psd
+PSD.import_power_spectral_density()  # import default psd
+hf , ff = PSD.noise_realisation(fs, time_duration)
+
+plt.loglog(ff, np.abs(hf))
+plt.xlabel(r'frequency [Hz]')
 plt.show()
