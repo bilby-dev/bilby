@@ -14,8 +14,6 @@ time_duration = 1.
 sampling_frequency = 4096.
 time = utils.create_time_series(sampling_frequency, time_duration)
 
-#broken
-
 signal_amplitude = 1e-21
 signal_frequency = 100
 
