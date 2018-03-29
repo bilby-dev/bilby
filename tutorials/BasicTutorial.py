@@ -18,11 +18,11 @@ time = utils.create_time_series(sampling_frequency, time_duration)
 signal_amplitude = 1e-21
 signal_frequency = 100
 
-params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=time,
-              modes=['+'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
+params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=1,
+              modes=['plus'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
 
 foo = src.SimpleSinusoidSource('foo')
-ht_signal = foo.model(params)['plus']
+ht_signal = foo.model(time, params)['plus']
 
 hf_signal, ff = utils.nfft(ht_signal, sampling_frequency)
 
@@ -49,12 +49,9 @@ plt.legend(loc='best')
 plt.tight_layout()
 plt.show()
 
-params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=1,
-              modes=['plus'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
 
 IFO = peyote.detector.H1
 IFO.data = hf_signal
 IFO.psd = PSD.power_spectral_density
-print len(IFO.psd), len(IFO.data)
 likelihood = peyote.likelihood.likelihood([IFO], foo)
-print likelihood.logL(params)
+print(likelihood.logL(time, params))
