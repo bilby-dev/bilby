@@ -4,10 +4,11 @@ import os
 from scipy.interpolate import interp1d
 import peyote
 
+
 class Interferometer:
     """Class for the Interferometer """
 
-    def __init__(self, name, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt = 0, yarm_tilt = 0):
+    def __init__(self, name, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0, yarm_tilt=0):
         """
         Interferometer class
         :param name: interferometer name, e.g., H1
@@ -22,7 +23,7 @@ class Interferometer:
         """
         self.name = name
         self.length = length
-        self.latitude = latitude * np.pi / 180 #convert to rads
+        self.latitude = latitude * np.pi / 180  # convert to rads
         self.longitude = longitude * np.pi / 180
         self.elevation = elevation
         self.xarm_azimuth = xarm_azimuth * np.pi / 180
@@ -32,6 +33,7 @@ class Interferometer:
         self.x = self.unit_vector_along_arm('x')
         self.y = self.unit_vector_along_arm('y')
         self.detector_tensor = self.detector_tensor()
+        self.vertex = self.vertex_position_geocentric()
 
     def unit_vector_along_arm(self, arm):
         '''
@@ -46,14 +48,15 @@ class Interferometer:
         e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude), -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
         e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude), np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
         if arm == 'x':
-            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.sin(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
+            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.sin(self.xarm_azimuth) * e_lat\
+                    + np.sin(self.xarm_tilt) * e_h
         elif arm == 'y':
-            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.sin(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
+            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.sin(self.yarm_azimuth) * e_lat\
+                    + np.sin(self.yarm_tilt) * e_h
         else:
             print('Not a recognized arm, aborting!')
             return
         return n
-    
 
     def detector_tensor(self):
         '''
@@ -61,8 +64,7 @@ class Interferometer:
         See Eq. B6 of arXiv:gr-qc/0008066
         '''
         detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-        return detector_tensor 
-
+        return detector_tensor
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -106,6 +108,32 @@ class Interferometer:
 
         detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
+
+    def vertex_position_geocentric(self):
+        '''
+        Calculate the position of the IFO vertex in geocentric coordiantes in meters.
+        Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
+        See Section 2.1 of LIGO-T980044-10 for the correct expression
+        '''
+        semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
+        semi_minor_axis = 6356752.314  # in m
+        radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(self.latitude)**2 + semi_minor_axis**2 * np.sin(self.latitude)**2)**(-0.5)
+        x_comp = (radius + self.elevation) * np.cos(self.latitude) * np.cos(self.longitude)
+        y_comp = (radius + self.elevation) * np.cos(self.latitude) * np.sin(self.longitude)
+        z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + self.elevation) * np.sin(self.latitude)
+        return np.array([x_comp, y_comp, z_comp])
+
+    def time_delay_from_geocenter(self, ra, dec, time):
+        '''
+        Use the time delay frunction from utils to calculate the time delay from the geocenter for a specific IFO
+        Input:
+        ra - right ascension of source in radians
+        dec - declination of source in radians
+        time - GPS time
+        Output:
+        delta_t - time delay from geocenter
+        '''
+        return peyote.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
 
 
 class PowerSpectralDensity:
@@ -163,6 +191,7 @@ class PowerSpectralDensity:
         frequency_array = deltaF * np.linspace(1, numFreqs, numFreqs)
         return frequency_array
 
+# Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/ GEO600 
 H1 = Interferometer(name='H1', length=4, latitude=46+27./60+18.528/3600, longitude=-(119+24./60+27.5657/3600),\
                     elevation=142.554, xarm_azimuth=125.9994, yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
 L1 = Interferometer(name='L1', length=4, latitude=30+33./60+46.4196/3600, longitude=-(90+46./60+27.2654/3600),\
