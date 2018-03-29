@@ -2,22 +2,23 @@ import numpy as np
 
 class likelihood:
 
-	def __init__(self, Interferometers):
+	def __init__(self, Interferometers, source):
 
 		self.Interferometers = Interferometers
+                self.source = source
 
-	def logL_cbc(self, source, params):
+	def logL_cbc(self, params):
 
  		logL = 0
 
-		waveform_polarizations = source.model(params)
+		waveform_polarizations = self.source.model(params)
 
 
 		for Interferometer in self.Interferometers:
 
-			for mode in source.params['modes'].keys() :
+			for mode in params['modes'].keys() :
 
-				det_response = Interometer.response(parmams['ra'], parmams['dec'], parmams['psi'], mode)
+				det_response = self.Interometer.response(params['ra'], params['dec'], parmams['psi'], mode)
 
 				waveform_polarizations[mode] *= det_response
 
