@@ -41,6 +41,7 @@ def gps_time_to_gmst(time):
     gmst = gps_time.sidereal_time('mean', 'greenwich').value * np.pi / 12
     return gmst
 
+
 def create_white_noise(sampling_frequency, duration):
     """
     Create white_noise which is then coloured by a given PSD
@@ -82,3 +83,50 @@ def create_white_noise(sampling_frequency, duration):
     f = np.transpose(f)
 
     return white_noise, f
+
+
+def nfft(ht, Fs):
+    '''
+    performs an FFT while keeping track of the frequency bins
+    assumes input time series is real (positive frequencies only)
+
+    ht = time series
+    Fs = sampling frequency
+
+    returns
+    hf = single-sided FFT of ft normalised to units of strain / sqrt(Hz)
+    f = frequencies associated with hf
+    '''
+    # add one zero padding if time series does not have even number of sampling times
+    if np.mod(len(ht), 2) == 1:
+        ht = np.append(ht, 0)
+    LL = len(ht)
+    # frequency range
+    ff = Fs / 2 * np.linspace(0, 1, LL/2+1)
+
+    # calculate FFT
+    # rfft computes the fft for real inputs
+    hf = np.fft.rfft(ht)
+
+    # normalise to units of strain / sqrt(Hz)
+    hf = hf / Fs
+
+    return hf, ff
+
+
+def infft(hf, Fs):
+    '''
+    inverse FFT for use in conjunction with nfft
+    eric.thrane@ligo.org
+    input:
+    hf = single-side FFT calculated by fft_eht
+    Fs = sampling frequency
+    output:
+    h = time series
+    '''
+    # use irfft to work with positive frequencies only
+    h = np.fft.irfft(hf)
+    # undo LAL/Lasky normalisation
+    h = h*Fs
+
+    return h
