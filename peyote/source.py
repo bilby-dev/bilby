@@ -86,3 +86,24 @@ class NeutronStarBlackHole(CompactBinaryCoalescence):
                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
                                           polarisation_angle, eccentricity)
         self.tidal_deformability = tidal_deformability  # lambda parameter for Neutron Star
+
+class BinaryNeutronStarMergerNumericalRelativity(Source):
+    """ Loads in NR simulations of BNS merger
+
+    takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
+
+    model takes one parameter `parameters`, a dictionary of Parameters and
+    returns the waveform model.
+
+    """
+
+    def model(self, parameters):
+        mean_mass_string='{:.0f}'.format(self.parameters['mean_mass'].value * 1000)
+        eos_string=self.parameters['equation_of_state'].value
+        mass_ratio_string='{:.0f}'.format(self.parameters['mass_ratio'].value*10)
+        directory_path=self.parameters['directory_path'].value
+
+        file_name='{}-q{}-M{}.csv'.format(eos_string,mass_ratio_string,mean_mass_string)
+        full_filename='{}/{}'.format(directory_path,file_name)
+        print(full_filename)
+        return(full_filename)
