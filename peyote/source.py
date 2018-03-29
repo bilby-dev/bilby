@@ -8,8 +8,13 @@ class Source:
 
 
 class SimpleSinusoidSouce(Source):
-    def waveform(self):
-        return np.sin(self.parameters[0], self.parameters[1])
+    """ A simple example of a sinusoid souce
+
+    Parameters should be [amplitude, frequency]
+    """
+
+    def waveform(self, time):
+        return self.parameters[0] * np.sin(self.parameters[0]*time)
 
 
 class Glitch(Source):
