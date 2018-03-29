@@ -6,12 +6,11 @@ class likelihood:
 
 		self.Interferometers = Interferometers
 
-	def logL_cbc( self, source, params ):
+	def logL( self, source, params ):
 
 		logL = 0
 
 		waveform_polarizations = source.model( params )
-
 
 		for Interferometer in self.Interferometers:
 
