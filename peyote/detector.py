@@ -50,7 +50,7 @@ class Interferometer:
         elif arm == 'y':
             n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
         else:
-            print 'Not a recognized arm, aborting'!
+            print('Not a recognized arm, aborting'!)
             return
         return n
     
