@@ -1,9 +1,8 @@
 from __future__ import division, print_function
 import numpy as np
 import os
-from peyote import utils as utils
 from scipy.interpolate import interp1d
-
+import peyote
 
 class Interferometer:
     """Class for the Interferometer """
@@ -102,14 +101,14 @@ class PowerSpectralDensity:
 
     def noise_realisation(self, sampling_frequency, duration):
 
-        white_noise, f = utils.create_white_noise(sampling_frequency, duration)
+        white_noise, f = peyote.utils.create_white_noise(sampling_frequency, duration)
 
         Pf1 = self.power_spectral_density_interpolated(f)
 
         if sum(np.isinf(Pf1)) > 0:
             Pf1[np.isinf(Pf1)] = max(Pf1[~np.isinf(Pf1)])
 
-        hf = 0.5(Pf1)**0.5 * white_noise
+        hf = 0.5*(Pf1)**0.5 * white_noise
         self.frequency_noise_realization = hf
         self.interpolated_frequency = f
 
