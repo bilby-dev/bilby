@@ -55,3 +55,4 @@ IFO = peyote.detector.H1
 IFO.data = hf_signal
 IFO.psd = hf_noise
 likelihood = peyote.likelihood.likelihood([IFO], foo)
+print(likelihood.logL(time, params))
