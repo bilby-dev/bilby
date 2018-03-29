@@ -3,6 +3,7 @@ matplotlib>=1.4
 scipy
 gwpy
 pandas
+astropy
 lal
 lalsuite
 pymultinest
