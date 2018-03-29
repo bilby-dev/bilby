@@ -25,6 +25,6 @@ class likelihood:
 			#time_shift = Interferometer.time_shift(source.params['geocent_time'])
 			#signal *= np.exp(-1j*2*np.pi*time_shift) # This is just here as a reminder that a tc shift needs to be performed
 			                                          # on frequency-domain GWs
- 			logL += 4. * Interferometer.deltaF * np.vdot( Interferometer.data - signal_IFO, ( Interferometer.data - signal_IFO ) / Interferometer.psd )
+            logL += 4. * params.deltaF * np.vdot( Interferometer.data - signal_IFO, ( Interferometer.data - signal_IFO ) / Interferometer.psd )
 
 		return logL
