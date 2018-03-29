@@ -7,12 +7,12 @@ import peyote
 class Interferometer:
     """Class for the Interferometer """
 
-    def __init__(self, name, length, lattitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt = 0, yarm_tilt = 0):
+    def __init__(self, name, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt = 0, yarm_tilt = 0):
         """
         Interferometer class
         :param name: interferometer name, e.g., H1
         :param length: length of the interferometer
-        :param lattitude: lattitude North in degrees (South is negative)
+        :param latitude: latitude North in degrees (South is negative)
         :param longitude: longitude East in degrees (West is negative)
         :param elevation: height above surface in meters
         :param xarm_azimuth: orientation of the x arm in degrees North of East
@@ -22,7 +22,7 @@ class Interferometer:
         """
         self.name = name
         self.length = length
-        self.lattitude = lattitude * np.pi / 180 #convert to rads
+        self.latitude = latitude * np.pi / 180 #convert to rads
         self.longitude = longitude * np.pi / 180
         self.elevation = elevation
         self.xarm_azimuth = xarm_azimuth * np.pi / 180
@@ -43,8 +43,8 @@ class Interferometer:
         n - unit vector along arm in cartesian Earth-based coordinates
         '''
         e_long = np.array([-np.sin(self.longitude), np.cos(self.longitude), 0])
-        e_lat = np.array([-np.sin(self.lattitude) * np.cos(self.longitude), -np.sin(self.lattitude) * np.sin(self.longitude), np.cos(self.lattitude)])
-        e_h = np.array([np.cos(self.lattitude) * np.cos(self.longitude), np.cos(self.lattitude) * np.sin(self.longitude), np.sin(self.lattitude)])
+        e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude), -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
+        e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude), np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
         if arm == 'x':
             n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
         elif arm == 'y':
@@ -162,3 +162,12 @@ class PowerSpectralDensity:
     def equally_spaced_frequency_array(deltaF, numFreqs):
         frequency_array = deltaF * np.linspace(1, numFreqs, numFreqs)
         return frequency_array
+
+H1 = Interferometer(name='H1', length=4, latitude=46+27./60+18.528/3600, longitude=-(119+24./60+27.5657/3600),
+                    elevation=142.554, xarm_azimuth=125.9994, yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
+L1 = Interferometer(name='L1', length=4, latitude=30+33./60+46.4196/3600, longitude=-(90+46./60+27.2654/3600),
+                    elevation=-6.574, xarm_azimuth=197.7165, yarm_azimuth=287.7165, xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
+V1 = Interferometer(name='V1', length=3, latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600),
+                    elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
+GEO600 = Interferometer(name='GEO600', length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600,
+                    elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117)
