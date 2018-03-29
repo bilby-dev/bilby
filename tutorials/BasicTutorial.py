@@ -22,13 +22,14 @@ params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=time
               modes=['+'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
 
 foo = src.SimpleSinusoidSource('foo')
-ht_signal = foo.model(params)['+']
+ht_signal = foo.model(params)['plus']
 
 hf_signal, ff = utils.nfft(ht_signal, sampling_frequency)
 
 """
 Create a noise realisation with a default power spectral density
 """
+
 PSD = det.PowerSpectralDensity()  # instantiate a detector psd
 PSD.import_power_spectral_density()  # import default psd
 #PSD.import_power_spectral_density(spectral_density_file="CE_psd.txt")  # import cosmic explorer
@@ -48,8 +49,12 @@ plt.legend(loc='best')
 plt.tight_layout()
 plt.show()
 
+params = dict(A=signal_amplitude, f=2.*np.pi*signal_frequency, geocent_time=1,
+              modes=['plus'], ra=1, dec=2, psi=0, deltaF=sampling_frequency)
+
 IFO = peyote.detector.H1
 IFO.data = hf_signal
-IFO.psd = 1
+IFO.psd = PSD.power_spectral_density
+print len(IFO.psd), len(IFO.data)
 likelihood = peyote.likelihood.likelihood([IFO], foo)
 print likelihood.logL(params)

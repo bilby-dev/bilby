@@ -20,7 +20,7 @@ class SimpleSinusoidSource(Source):
     """
 
     def model(self, parameters):
-        return {'+': parameters['A'] * np.sin(
+        return {'plus': parameters['A'] * np.sin(
             parameters['f'] * parameters['geocent_time'])}
 
 
