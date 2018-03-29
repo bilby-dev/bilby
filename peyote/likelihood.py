@@ -22,7 +22,6 @@ class likelihood:
 
 			signal_IFO = np.sum( waveform_polarizations.values() )
 			print(waveform_polarizations.values()[0])
-			pdb.set_trace()
 			#time_shift = Interferometer.time_shift(source.params['geocent_time'])
 			#signal *= np.exp(-1j*2*np.pi*time_shift) # This is just here as a reminder that a tc shift needs to be performed
 			                                          # on frequency-domain GWs
