@@ -98,10 +98,10 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
     """
 
     def model(self, parameters):
-        mean_mass_string = '{:.0f}'.format(self.parameters['mean_mass'].value * 1000)
-        eos_string = self.parameters['equation_of_state'].value
-        mass_ratio_string = '{:.0f}'.format(self.parameters['mass_ratio'].value * 10)
-        directory_path = self.parameters['directory_path'].value
+        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'].value * 1000)
+        eos_string = parameters['equation_of_state'].value
+        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'].value * 10)
+        directory_path = parameters['directory_path'].value
 
         file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
         full_filename = '{}/{}'.format(directory_path, file_name)

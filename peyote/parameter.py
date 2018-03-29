@@ -3,9 +3,9 @@
 import numpy as np
 from peyote import prior as prior
 
+instances = {}
 
 class Parameter:
-    instances = []
 
     def __init__(self, name, prior=None, default=None):
         self.name = name
@@ -13,7 +13,7 @@ class Parameter:
         self.prior = prior
         self.is_fixed = False
         self.value = self.default
-        Parameter.instances.append(self)
+        instances[self.name] = self
 
     def fix(self, value=None):
         """
@@ -47,7 +47,7 @@ phi2 = Parameter(name='phi2', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi))
 
 # extrinsic
 distance = Parameter(name='distance', prior=prior.PowerLaw(alpha=2, bounds=(1e2, 5e3)), default=400)
-#zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
+# zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
 latitude = Parameter(name='latitude', prior=prior.Cosine(), default=0)
 longitude = Parameter(name='longitude', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 inclination = Parameter(name='inclination', prior=prior.Sine(), default=0)
@@ -60,4 +60,3 @@ time_at_coalescence = Parameter(name='tc', default=1126259642.413)
 
 frequency = Parameter(name='frequency', prior=prior.PowerLaw(alpha=-1, bounds=(1e2, 2e3)))
 amplitude = Parameter(name='amplitude', prior=prior.PowerLaw(alpha=0, bounds=(1*1e-24, 5*1e-24)))
-phase = Parameter(name='phase', prior=prior.PowerLaw(alpha=1, bounds=(0, 2*np.pi)))
