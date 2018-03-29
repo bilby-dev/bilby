@@ -174,7 +174,7 @@ class TestBinaryBlackHoleInstantiation(unittest.TestCase):
         self.assertEqual(self.source.eccentricity, 16)
 
 
-class TestBinaryBlackHoleInstantiation(unittest.TestCase):
+class TestBinaryNeutronStarInstantiation(unittest.TestCase):
 
     def setUp(self):
         name = "test_name"
@@ -190,10 +190,12 @@ class TestBinaryBlackHoleInstantiation(unittest.TestCase):
         waveform_phase = 14
         polarisation_angle = 15
         eccentricity = 16
-        tidal_deformability = 17
+        tidal_deformability_1 = 17
+        tidal_deformability_2 = 18
+
         self.source = BinaryNeutronStar(name, right_ascension, declination, luminosity_distance, mass_1, mass_2,
                                         spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
-                                        polarisation_angle, eccentricity, tidal_deformability)
+                                        polarisation_angle, eccentricity, tidal_deformability_1, tidal_deformability_2)
 
     def tearDown(self):
         del self.source
@@ -237,8 +239,11 @@ class TestBinaryBlackHoleInstantiation(unittest.TestCase):
     def test_eccentricity(self):
         self.assertEqual(self.source.eccentricity, 16)
 
-    def test_tidal_deformability(self):
-        self.assertEqual(self.source.tidal_deformability, 17)
+    def test_tidal_deformability_1(self):
+        self.assertEqual(self.source.tidal_deformability_1, 17)
+
+    def test_tidal_deformability_1(self):
+        self.assertEqual(self.source.tidal_deformability_2, 18)
 
 
 class TestSupernovaInstantiation(unittest.TestCase):
