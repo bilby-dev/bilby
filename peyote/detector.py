@@ -8,17 +8,21 @@ import peyote
 class Interferometer:
     """Class for the Interferometer """
 
-    def __init__(self, name, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0, yarm_tilt=0):
+    def __init__(self, name, power_spectral_density, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0.):
         """
         Interferometer class
+
         :param name: interferometer name, e.g., H1
+        :param power_spectral_density: PowerSpectralDensity object, default is aLIGO design sensitivity.
         :param length: length of the interferometer
         :param latitude: latitude North in degrees (South is negative)
         :param longitude: longitude East in degrees (West is negative)
         :param elevation: height above surface in meters
         :param xarm_azimuth: orientation of the x arm in degrees North of East
         :param yarm_azimuth: orientation of the y arm in degrees North of East
-        :param xarm_tilt: tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08
+        :param xarm_tilt: tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in
+                          LIGO-T980044-08
         :param yarm_tilt: tilt of the y arm in radians above the horizontal
         """
         self.name = name
@@ -34,37 +38,11 @@ class Interferometer:
         self.y = self.unit_vector_along_arm('y')
         self.detector_tensor = self.detector_tensor()
         self.vertex = self.vertex_position_geocentric()
-
-    def unit_vector_along_arm(self, arm):
-        '''
-        Calculates the unit vector pointing along the specified arm of the detector at the given position in cartesian Earth-based coordinates.
-        See Eqs. B14-B17 in arXiv:gr-qc/0008066
-        Input:
-        arm - x or y arm of the detector
-        Output:
-        n - unit vector along arm in cartesian Earth-based coordinates
-        '''
-        e_long = np.array([-np.sin(self.longitude), np.cos(self.longitude), 0])
-        e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude), -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
-        e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude), np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
-        if arm == 'x':
-            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) * np.sin(self.xarm_azimuth) * e_lat\
-                    + np.sin(self.xarm_tilt) * e_h
-        elif arm == 'y':
-            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) * np.sin(self.yarm_azimuth) * e_lat\
-                    + np.sin(self.yarm_tilt) * e_h
-        else:
-            print('Not a recognized arm, aborting!')
-            return
-        return n
-
-    def detector_tensor(self):
-        '''
-        Calculate the detector tensor from the unit vectors along each arm of the detector.
-        See Eq. B6 of arXiv:gr-qc/0008066
-        '''
-        detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-        return detector_tensor
+        self.power_spectral_density = power_spectral_density
+        self.power_spectral_density_array = np.array([])
+        self.amplitude_spectral_density_array = np.array([])
+        self.data = np.array([])
+        self.whitened_data = np.array([])
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -82,121 +60,211 @@ class Interferometer:
         :param mode: polarisation mode
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
-        gmst = peyote.utils.gps_time_to_gmst(time)
-        theta, phi = peyote.utils.ra_dec_to_theta_phi(ra, dec, gmst)
-        u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
-        v = np.array([-np.sin(phi), np.cos(phi), 0])
-        m = -u * np.sin(psi) - v * np.cos(psi)
-        n = -u * np.cos(psi) + v * np.sin(psi)
-        omega = np.cross(m, n)
-
-        if mode == "plus":
-            polarization_tensor = np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n)
-        elif mode == "cross":
-            polarization_tensor = np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m)
-        elif mode == "breathing":
-            polarization_tensor = np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
-        elif mode == "longitudinal":
-            polarization_tensor = np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
-        elif mode == "x":
-            polarization_tensor = np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
-        elif mode == "y":
-            polarization_tensor = np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
-        else:
-            print("Not a polarization mode!")
-            return None
-
+        polarization_tensor = peyote.utils.get_polarization_tensor(ra, dec, time, psi, mode)
         detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
 
-    def vertex_position_geocentric(self):
-        '''
-        Calculate the position of the IFO vertex in geocentric coordiantes in meters.
-        Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
-        See Section 2.1 of LIGO-T980044-10 for the correct expression
-        '''
-        semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
-        semi_minor_axis = 6356752.314  # in m
-        radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(self.latitude)**2 + semi_minor_axis**2 * np.sin(self.latitude)**2)**(-0.5)
-        x_comp = (radius + self.elevation) * np.cos(self.latitude) * np.cos(self.longitude)
-        y_comp = (radius + self.elevation) * np.cos(self.latitude) * np.sin(self.longitude)
-        z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + self.elevation) * np.sin(self.latitude)
-        return np.array([x_comp, y_comp, z_comp])
+    def detector_tensor(self):
+        """
+        Calculate the detector tensor from the unit vectors along each arm of the detector.
+
+        See Eq. B6 of arXiv:gr-qc/0008066
+        """
+        detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
+        return detector_tensor
+
+    def inject_signal(self, source, params, sampling_frequency, time_duration):
+        """
+        Inject a signal into noise.
+
+        Adds the requested signal to self.data
+
+        :param source: source type
+        :param params: parameters
+        :param frequency: frequency array
+        """
+        signal = source.frequency_domain_strain(sampling_frequency, time_duration, params)
+
+        for mode in signal.keys():
+            det_response = self.antenna_response(params['ra'], params['dec'], params['geocent_time'], params['psi'],
+                                                 mode)
+
+            signal[mode] *= det_response
+
+        self.data += np.sum(signal.values())
+
+    def unit_vector_along_arm(self, arm):
+        """
+        Calculate the unit vector pointing along the specified arm in cartesian Earth-based coordinates.
+
+        See Eqs. B14-B17 in arXiv:gr-qc/0008066
+
+        Input:
+        arm - x or y arm of the detector
+        Output:
+        n - unit vector along arm in cartesian Earth-based coordinates
+        """
+        e_long = np.array([-np.sin(self.longitude), np.cos(self.longitude), 0])
+        e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude),
+                          -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
+        e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude),
+                        np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
+        if arm == 'x':
+            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) \
+                * np.sin(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
+        elif arm == 'y':
+            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) \
+                * np.sin(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
+        else:
+            print('Not a recognized arm, aborting!')
+            return
+        return n
+
+    def set_spectral_densities(self, frequency):
+        """
+        Set the PSD for the interferometer for a user-specified frequency series.
+
+        :param frequency: frequency series on which to calculate PSD
+        """
+        self.power_spectral_density_array = \
+            self.power_spectral_density.power_spectral_density_interpolated(frequency)
+        self.amplitude_spectral_density_array = self.power_spectral_density_array**0.5
+
+    def set_data(self, frequency_domain_strain):
+        """
+        Set the interferometer frequency-domain stain
+
+        :param frequency_domain_strain: frequency-domain strain
+        """
+        self.data = frequency_domain_strain
+        return
 
     def time_delay_from_geocenter(self, ra, dec, time):
-        '''
-        Use the time delay frunction from utils to calculate the time delay from the geocenter for a specific IFO
+        """
+        Calculate the time delay from the geocenter for the interferometer.
+
+        Use the time delay function from utils.
+
         Input:
         ra - right ascension of source in radians
         dec - declination of source in radians
         time - GPS time
         Output:
         delta_t - time delay from geocenter
-        '''
-        return peyote.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        """
+        delta_t = peyote.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        return delta_t
+
+    def vertex_position_geocentric(self):
+        """
+        Calculate the position of the IFO vertex in geocentric coordinates in meters.
+
+        Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
+        See Section 2.1 of LIGO-T980044-10 for the correct expression
+        """
+        vertex_position = peyote.utils.get_vertex_position_geocentric(self.latitude, self.longitude, self.elevation)
+        return vertex_position
+
+    def whiten_data(self):
+        self.whitened_data = self.data / self.amplitude_spectral_density_array
 
 
 class PowerSpectralDensity:
 
-    def __init__(self):
+    def __init__(self, asd_file=None,  psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
+        """
+        Instantiate a new PSD object.
+
+        Only one of the asd_file or psd_file needs to be specified.
+        If multiple are given, the first will be used.
+        FIXME: Allow reading a frame and then FFT to get PSD, use gwpy?
+
+        :param asd_file: amplitude spectral density, format 'f h_f'
+        :param psd_file: power spectral density, format 'f h_f'
+        """
+
         self.frequencies = []
         self.power_spectral_density = []
         self.amplitude_spectral_density = []
         self.frequency_noise_realization = []
         self.interpolated_frequency = []
+        self.power_spectral_density_interpolated = None
 
-    def import_power_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_psd.txt'):
-        """
-        Automagically load one of the power spectral density or amplitude spectral density
-        curves contained in the noise_curves directory
-        """
-        sd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', spectral_density_file)
-        spectral_density = np.genfromtxt(sd_file)
-        self.frequencies = spectral_density[:, 0]
-        self.power_spectral_density = spectral_density[:, 1]
-        self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
-        self.interpolate_power_spectral_density()
+        if asd_file is not None:
+            self.amplitude_spectral_density_file = asd_file
+            self.import_amplitude_spectral_density()
+        else:
+            self.power_spectral_density_file = psd_file
+            self.import_power_spectral_density()
 
-    def import_amplitude_spectral_density(self, spectral_density_file='aLIGO_ZERO_DET_high_P_asd.txt'):
+    def import_amplitude_spectral_density(self):
         """
-        Automagically load one of the amplitude spectral density
-        curves contained in the noise_curves directory
+        Automagically load one of the amplitude spectral density curves contained in the noise_curves directory.
+
+        Test if the file contains a path (i.e., contains '/').
+        If not assume the file is in the default directory.
         """
-        sd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', spectral_density_file)
-        spectral_density = np.genfromtxt(sd_file)
+        if '/' not in self.amplitude_spectral_density_file:
+            self.amplitude_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
+                                                                self.amplitude_spectral_density_file)
+        spectral_density = np.genfromtxt(self.amplitude_spectral_density_file)
         self.frequencies = spectral_density[:, 0]
         self.amplitude_spectral_density = spectral_density[:, 1]
         self.power_spectral_density = self.amplitude_spectral_density**2
         self.interpolate_power_spectral_density()
 
+    def import_power_spectral_density(self):
+        """
+        Automagically load one of the power spectral density curves contained in the noise_curves directory.
+
+        Test if the file contains a path (i.e., contains '/').
+        If not assume the file is in the default directory.
+        """
+        if '/' not in self.power_spectral_density_file:
+            self.power_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
+                                                            self.power_spectral_density_file)
+        spectral_density = np.genfromtxt(self.power_spectral_density_file)
+        self.frequencies = spectral_density[:, 0]
+        self.power_spectral_density = spectral_density[:, 1]
+        self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
+        self.interpolate_power_spectral_density()
+
     def interpolate_power_spectral_density(self):
+        """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
         self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density,
                                                             bounds_error=False,
                                                             fill_value=max(self.power_spectral_density))
 
-    def noise_realisation(self, sampling_frequency, duration):
+    def get_noise_realisation(self, sampling_frequency, duration):
+        """
+        Generate frequency Gaussian noise scaled to the power spectral density.
 
+        :param sampling_frequency: sampling frequency of noise
+        :param duration: duration of noise
+        :return:  frequency_domain_strain (array), frequency (array)
+        """
         white_noise, frequency = peyote.utils.create_white_noise(sampling_frequency, duration)
 
-        Pf1 = self.power_spectral_density_interpolated(frequency)
+        interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequency)
 
-        hf = 0.5*(Pf1)**0.5 * white_noise
-        self.frequency_noise_realization = hf
+        frequency_domain_strain = 0.5 * interpolated_power_spectral_density ** 0.5 * white_noise
+        self.frequency_noise_realization = frequency_domain_strain
         self.interpolated_frequency = frequency
 
-        return hf, frequency
+        return frequency_domain_strain, frequency
 
-    @staticmethod
-    def equally_spaced_frequency_array(deltaF, numFreqs):
-        frequency_array = deltaF * np.linspace(1, numFreqs, numFreqs)
-        return frequency_array
 
-# Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/ GEO600 
-H1 = Interferometer(name='H1', length=4, latitude=46+27./60+18.528/3600, longitude=-(119+24./60+27.5657/3600),\
-                    elevation=142.554, xarm_azimuth=125.9994, yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
-L1 = Interferometer(name='L1', length=4, latitude=30+33./60+46.4196/3600, longitude=-(90+46./60+27.2654/3600),\
-                    elevation=-6.574, xarm_azimuth=197.7165, yarm_azimuth=287.7165, xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
-V1 = Interferometer(name='V1', length=3, latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600,\
+# Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/ GEO600
+H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4, latitude=46+27./60+18.528/3600,
+                    longitude=-(119+24./60+27.5657/3600), elevation=142.554, xarm_azimuth=125.9994,
+                    yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
+L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4, latitude=30+33./60+46.4196/3600,
+                    longitude=-(90+46./60+27.2654/3600), elevation=-6.574, xarm_azimuth=197.7165, yarm_azimuth=287.7165,
+                    xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
+V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
+                    latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600,
                     elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
-GEO600 = Interferometer(name='GEO600', length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600,\
-                    elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117)
+# FIXME: Using initial LIGO noise curve for GEO600, do we really want GEO?
+GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(psd_file='LIGO_srd_psd.txt'),
+                        length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600, elevation=114.425,
+                        xarm_azimuth=115.9431, yarm_azimuth=21.6117)
