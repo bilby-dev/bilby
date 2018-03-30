@@ -3,8 +3,6 @@
 import numpy as np
 from peyote import prior as prior
 
-instances = {}
-
 class Parameter:
 
     def __init__(self, name, prior=None, default=None):
@@ -29,6 +27,9 @@ class Parameter:
         self.value = value
         return None
 
+
+instances = {}
+
 # define a bunch of parameter objects for CBCs
 
 # component masses
@@ -48,11 +49,11 @@ phi2 = Parameter(name='phi2', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi))
 # extrinsic
 distance = Parameter(name='distance', prior=prior.PowerLaw(alpha=2, bounds=(1e2, 5e3)), default=400)
 # zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
-latitude = Parameter(name='latitude', prior=prior.Cosine(), default=0)
-longitude = Parameter(name='longitude', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
-inclination = Parameter(name='inclination', prior=prior.Sine(), default=0)
-polarization = Parameter(name='polarization', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
-phase = Parameter(name='phase', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+declination = Parameter(name='dec', prior=prior.Cosine(), default=0)
+right_ascension = Parameter(name='ra', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+inclination = Parameter(name='iota', prior=prior.Sine(), default=0)
+polarization = Parameter(name='psi', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+phase = Parameter(name='phi_c', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 
 time_at_coalescence = Parameter(name='tc', default=1126259642.413)
 
