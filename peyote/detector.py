@@ -81,7 +81,8 @@ class Interferometer:
 
         :param source: source type
         :param params: parameters
-        :param frequency: frequency array
+        :param sampling_frequency: frequency at which data is sampled
+        :param time_duration: duration of the data
         """
         signal = source.frequency_domain_strain(sampling_frequency, time_duration, params)
 
@@ -91,7 +92,7 @@ class Interferometer:
 
             signal[mode] *= det_response
 
-        self.data += np.sum(signal.values())
+        self.data += sum(signal.values())
 
     def unit_vector_along_arm(self, arm):
         """
