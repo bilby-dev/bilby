@@ -26,10 +26,17 @@ class SimpleSinusoidSource(Source):
 
     """
 
-    def model(self, times, parameters):
-        return {'plus': parameters['A'] * (
-            np.sin(parameters['f'] * times)
-            + 1j * np.cos(parameters['f'] * times))}
+    def time_domain_strain(self, times, parameters):
+        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * times),
+                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * times)}
+
+    def frequency_domain_strain(self, sampling_frequency, time_duration, parameters):
+        hf = {}
+        time = peyote.utils.create_time_series(sampling_frequency, time_duration)
+        ht = self.time_domain_strain(time, parameters)
+        for mode in ht.keys():
+            hf[mode], _ = peyote.utils.nfft(ht[mode], sampling_frequency)
+        return hf
 
 
 class BinaryBlackHole(Source):
