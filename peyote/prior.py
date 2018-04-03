@@ -27,6 +27,26 @@ class Prior(object):
         return val
 
 
+class Uniform(Prior):
+    """Uniform prior"""
+
+    def __init__(self, lower, upper):
+        Prior.__init__(self)
+        self.lower = lower
+        self.upper = upper
+        self.support = upper - lower
+
+    def rescale(self, val):
+        return self.lower + val * self.support
+
+    def prob(self, val):
+        """Return the prior probability of val"""
+        if (self.lower < val) and (val < self.upper):
+            return 1/self.support
+        else:
+            return 0
+
+
 class DeltaFunction(Prior):
     """Dirac delta function prior, this always returns peak."""
 
