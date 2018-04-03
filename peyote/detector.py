@@ -81,18 +81,22 @@ class Interferometer:
 
         :param source: source type
         :param params: parameters
-        :param sampling_frequency: frequency at which data is sampled
-        :param time_duration: duration of the data
         """
         signal = source.frequency_domain_strain(params)
 
         for mode in signal.keys():
-            det_response = self.antenna_response(params['ra'], params['dec'], params['geocent_time'], params['psi'],
-                                                 mode)
+            det_response = self.antenna_response(
+                params['ra'], params['dec'], params['geocent_time'],
+                params['psi'], mode)
 
             signal[mode] *= det_response
+        signal_ifo = sum(signal.values())
 
-        self.data += sum(signal.values())
+        time_shift = self.time_delay_from_geocenter(
+            params['ra'], params['dec'], params['geocent_time'])
+        signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
+
+        self.data += signal_ifo
 
     def unit_vector_along_arm(self, arm):
         """

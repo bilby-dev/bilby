@@ -41,10 +41,8 @@ class SimpleSinusoidSource(Source):
         self.ff = sampling_frequency / 2 * np.linspace(0, 1, self.LL/2+1)
 
     def time_domain_strain(self, parameters):
-        return {
-            'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
-            'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)
-            }
+        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
+                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)}
 
     def frequency_domain_strain(self, parameters):
         hf = {}
@@ -53,11 +51,10 @@ class SimpleSinusoidSource(Source):
             hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
         return hf
 
-    def frequency_domain_strain(self, parameters):
-        a = np.zeros(self.LL/2+1)
-        a[np.argmin(np.abs(parameters['f'] - self.ff))] = 1e-21
-        return {'plus': a, 'cross': a}
-
+    #def frequency_domain_strain(self, parameters):
+    #    a = np.zeros(self.LL/2+1)
+    #    a[np.argmin(np.abs(parameters['f'] - self.ff))] = 1e-21
+    #    return {'plus': a, 'cross': a}
 
 
 class BinaryBlackHole(Source):

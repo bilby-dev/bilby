@@ -16,8 +16,9 @@ signal_frequency = 100
 
 params = dict(A=signal_amplitude, f=signal_frequency, geocent_time=1, ra=1, dec=2, psi=0, deltaF=sampling_frequency)
 
-foo = peyote.source.SimpleSinusoidSource('foo')
-hf_signal = foo.frequency_domain_strain(sampling_frequency, time_duration, params)
+foo = peyote.source.SimpleSinusoidSource(
+    'foo', sampling_frequency, time_duration)
+hf_signal = foo.frequency_domain_strain(params)
 
 IFO_1 = peyote.detector.H1
 IFO_2 = peyote.detector.L1
@@ -26,15 +27,15 @@ IFOs = [IFO_1, IFO_2, IFO_3]
 for IFO in IFOs:
     hf_noise, ff = IFO.power_spectral_density.get_noise_realisation(sampling_frequency, time_duration)
     IFO.set_data(frequency_domain_strain=hf_noise)
-    IFO.inject_signal(foo, params, sampling_frequency, time_duration)
+    IFO.inject_signal(foo, params)
     IFO.set_spectral_densities(ff)
     IFO.whiten_data()
 
-likelihood = peyote.likelihood.logl_gravitational_wave(sampling_frequency, time_duration, params, foo, IFOs)
+likelihood = peyote.likelihood.logl_gravitational_wave(params, foo, IFOs)
 
 noise_params = params.copy()
 noise_params['A'] = 0
-noise_likelihood = peyote.likelihood.logl_gravitational_wave(sampling_frequency, time_duration, noise_params, foo, IFOs)
+noise_likelihood = peyote.likelihood.logl_gravitational_wave(noise_params, foo, IFOs)
 
 print('delta_log_l = {}'.format(likelihood-noise_likelihood))
 
