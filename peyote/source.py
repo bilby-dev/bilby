@@ -51,11 +51,6 @@ class SimpleSinusoidSource(Source):
             hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
         return hf
 
-    #def frequency_domain_strain(self, parameters):
-    #    a = np.zeros(self.LL/2+1)
-    #    a[np.argmin(np.abs(parameters['f'] - self.ff))] = 1e-21
-    #    return {'plus': a, 'cross': a}
-
 
 class BinaryBlackHole(Source):
     """
