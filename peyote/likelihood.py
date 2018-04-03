@@ -55,12 +55,12 @@ def logl_gravitational_wave(sampling_frequency, time_duration, params, source, i
 
             waveform_polarizations[mode] *= det_response
 
-        signal_ifo = sum(waveform_polarizations.values())
+        signal_ifo = np.sum(waveform_polarizations.values(), axis=0)
 
         time_shift = interferometer.time_delay_from_geocenter(params['ra'], params['dec'], params['geocent_time'])
         signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
         signal_ifo_whitened = signal_ifo / interferometer.amplitude_spectral_density_array
 
-        log_l -= 4. * sampling_frequency * sum(abs((interferometer.whitened_data - signal_ifo_whitened)))
+        log_l -= 4. * sampling_frequency * np.real(sum((interferometer.whitened_data - signal_ifo_whitened)**2))
 
     return log_l
