@@ -26,16 +26,22 @@ class SimpleSinusoidSource(Source):
 
     """
 
-    def time_domain_strain(self, times, parameters):
-        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * times),
-                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * times)}
+    def __init__(self, name, sampling_frequency, time_duration):
+        self.name = name
+        self.sampling_frequency = sampling_frequency
+        self.time_duration = time_duration
+        self.time = peyote.utils.create_time_series(
+            sampling_frequency, time_duration)
 
-    def frequency_domain_strain(self, sampling_frequency, time_duration, parameters):
+    def time_domain_strain(self, parameters):
+        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
+                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)}
+
+    def frequency_domain_strain(self, parameters):
         hf = {}
-        time = peyote.utils.create_time_series(sampling_frequency, time_duration)
-        ht = self.time_domain_strain(time, parameters)
+        ht = self.time_domain_strain(parameters)
         for mode in ht.keys():
-            hf[mode], _ = peyote.utils.nfft(ht[mode], sampling_frequency)
+            hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
         return hf
 
 

@@ -34,19 +34,18 @@ class likelihood:
         return logL
 
 
-def logl_gravitational_wave(sampling_frequency, time_duration, params, source, interferometers):
+def logl_gravitational_wave(params, source, interferometers):
     """
     Calculate the log likelihood of a given gravitational-wave source given some strain data.
 
     :param sampling_frequency: data sampling frequency
-    :param time_duration: duration of the segment being analysed
     :param params: dictionary of parameter values describing the source
     :param source: Source object which contains a model
     :param interferometers: Interferometer classes with PSDs and data
     :return: log likelihood of the strain given the model and parameters
     """
     log_l = 0
-    waveform_polarizations = source.frequency_domain_strain(sampling_frequency, time_duration, params)
+    waveform_polarizations = source.frequency_domain_strain(params)
     for interferometer in interferometers:
         for mode in waveform_polarizations.keys():
 
@@ -61,6 +60,6 @@ def logl_gravitational_wave(sampling_frequency, time_duration, params, source, i
         signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
         signal_ifo_whitened = signal_ifo / interferometer.amplitude_spectral_density_array
 
-        log_l -= 4. * sampling_frequency * np.real(sum((interferometer.whitened_data - signal_ifo_whitened)**2))
+        log_l -= 4. * source.sampling_frequency * np.real(sum((interferometer.whitened_data - signal_ifo_whitened)**2))
 
     return log_l
