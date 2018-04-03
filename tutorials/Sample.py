@@ -9,36 +9,42 @@ import peyote
 import corner
 from dynesty import plotting as dyplot
 
+signal_amplitude = 1e-19
+signal_frequency = 100
+time_duration = 1.
+sampling_frequency = 4096.
+time = peyote.utils.create_time_series(sampling_frequency, time_duration)
+params = dict(A=signal_amplitude, f=signal_frequency, geocent_time=1,
+              ra=1, dec=2, psi=0)
+source = peyote.source.SimpleSinusoidSource(
+    'foo', sampling_frequency, time_duration)
+hf_signal = source.frequency_domain_strain(params)
 
-class Likelihood:
-    def __init__(self, data):
-        self.data = data
-        self.N = len(data)
-        self.parameter_keys = ['mu', 'sigma']
-
-    def logl(self, theta):
-        mu = theta[0]
-        sigma = theta[1]
-        res = (self.data - mu)
-        return -0.5 * (np.sum((res / sigma)**2) + self.N*np.log(2*np.pi*sigma))
+IFO_1 = peyote.detector.H1
+IFOs = [IFO_1]
+for IFO in IFOs:
+    hf_noise, ff = IFO.power_spectral_density.get_noise_realisation(
+        sampling_frequency, time_duration)
+    IFO.set_data(frequency_domain_strain=hf_noise)
+    IFO.inject_signal(source, params)
+    IFO.set_spectral_densities(ff)
+    IFO.whiten_data()
 
 
-data = np.random.normal(0.5, 1, 10000)
+likelihood = peyote.likelihood.likelihood(IFOs, source, params)
 
 parameters = dict(
-    mu=peyote.parameter.Parameter(
-        'mu', prior=peyote.prior.Uniform(lower=-1, upper=1)),
-    sigma=peyote.parameter.Parameter(
-        'sigma', prior=peyote.prior.Uniform(lower=0, upper=10)))
+    f=peyote.parameter.Parameter(
+        'f', prior=peyote.prior.Uniform(lower=90, upper=110)))
 
-likelihood = Likelihood(data)
 sampler = peyote.sampler.Sampler(
-    likelihood=likelihood, parameters=parameters)
+    likelihood=likelihood, parameters=parameters, nlive=100,
+    bound='single', sampler='dynesty')
 res = sampler.run()
 
 fig, axes = dyplot.traceplot(res)
 fig.tight_layout()
 fig.savefig('single_trace')
 
-fig = corner.corner(res.samples, weights=res.weights)
+fig = corner.corner(res.samples)
 fig.savefig('test')

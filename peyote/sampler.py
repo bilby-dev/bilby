@@ -25,6 +25,19 @@ class Sampler:
                 loglikelihood=self.likelihood.logl,
                 prior_transform=self.prior_transform,
                 ndim=self.ndim, **self.kwargs)
+        elif self.sampler == 'dynesty':
+            try:
+                import dynesty
+            except ImportError:
+                raise ImportError(
+                    "Sampler dynesty not installed on this system")
+            sampler = dynesty.NestedSampler(
+                loglikelihood=self.likelihood.logl,
+                prior_transform=self.prior_transform,
+                ndim=self.ndim, **self.kwargs)
+            sampler.run_nested()
+            res = sampler.results
+
         else:
             raise ValueError(
                 "Sampler {} not yet implemented".format(self.sampler))

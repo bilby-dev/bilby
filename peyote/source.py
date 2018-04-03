@@ -10,6 +10,7 @@ try:
 except ImportError:
     print("lal is not installed")
 
+
 class Source:
     def __init__(self, name):
         self.name = name
@@ -26,10 +27,37 @@ class SimpleSinusoidSource(Source):
 
     """
 
-    def model(self, times, parameters):
-        return {'plus': parameters['A'] * (
-            np.sin(parameters['f'] * times)
-            + 1j * np.cos(parameters['f'] * times))}
+    def __init__(self, name, sampling_frequency, time_duration):
+        self.name = name
+        self.sampling_frequency = sampling_frequency
+        self.time_duration = time_duration
+        self.time = peyote.utils.create_time_series(
+            sampling_frequency, time_duration)
+
+        if np.mod(len(self.time), 2) == 1:
+            self.LL = len(self.time) + 1
+        else:
+            self.LL = len(self.time)
+        self.ff = sampling_frequency / 2 * np.linspace(0, 1, self.LL/2+1)
+
+    def time_domain_strain(self, parameters):
+        return {
+            'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
+            'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)
+            }
+
+    def frequency_domain_strain(self, parameters):
+        hf = {}
+        ht = self.time_domain_strain(parameters)
+        for mode in ht.keys():
+            hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
+        return hf
+
+    def frequency_domain_strain(self, parameters):
+        a = np.zeros(self.LL/2+1)
+        a[np.argmin(np.abs(parameters['f'] - self.ff))] = 1e-21
+        return {'plus': a, 'cross': a}
+
 
 
 class BinaryBlackHole(Source):
