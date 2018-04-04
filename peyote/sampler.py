@@ -48,7 +48,7 @@ class Sampler:
     def loglikelihood(self, theta):
         for i, k in enumerate(self.parameter_keys):
             self.fixed_parameters[k] = theta[i]
-        return self.likelihood.logl(self.fixed_parameters)
+        return self.likelihood.loglikelihood(self.fixed_parameters)
 
     def run_sampler(self):
         pass

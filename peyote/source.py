@@ -31,6 +31,8 @@ class SimpleSinusoidSource(Source):
 
     """
 
+    parameter_keys = ['A', 'f']
+
     def time_domain_strain(self, parameters):
         return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
                 'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)}
