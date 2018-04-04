@@ -17,10 +17,11 @@ class Source:
         self.name = name
         self.sampling_frequency = sampling_frequency
         self.time_duration = time_duration
-        self.time = peyote.utils.create_time_series(
+        self.time_array = peyote.utils.create_time_series(
             sampling_frequency, time_duration)
-        self.nsamples = len(self.time)
-        self.frequency_array = np.fft.rfftfreq(self.nsamples, 1/self.sampling_frequency)
+        self.nsamples = len(self.time_array)
+        self.frequency_array = np.fft.rfftfreq(
+            self.nsamples, 1/self.sampling_frequency)
 
 
 class SimpleSinusoidSource(Source):
@@ -49,6 +50,11 @@ class BinaryBlackHole(Source):
     """
     A way of getting a BBH waveform from lal
     """
+    parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
+                      'spin_1', 'inclination_angle', 'waveform_phase',
+                      'waveform_approximant', 'reference_frequency',
+                      'ra', 'dec', 'geocent_time', 'psi']
+
     def frequency_domain_strain(self, parameters):
         luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
         mass_1 = parameters['mass_1'] * lal.MSUN_SI
@@ -66,7 +72,6 @@ class BinaryBlackHole(Source):
         frequency_minimum = self.frequency_array[1]
         frequency_maximum = self.frequency_array[-1]
         delta_frequency = self.frequency_array[1] - self.frequency_array[0]
-        print(frequency_maximum, self.frequency_array[1], delta_frequency)
 
         hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
             mass_1, mass_2, parameters['spin_1'][0], parameters['spin_1'][1],
