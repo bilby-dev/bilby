@@ -27,19 +27,33 @@ class Sampler:
     """
 
     def __init__(self, likelihood, prior, sampler_string, **kwargs):
-        self.sampler_string = sampler_string
-        self.import_sampler()
         self.likelihood = likelihood
         self.prior = prior
-        self.fixed_parameters = prior.copy()
         self.kwargs = kwargs
+
+        self.sampler_string = sampler_string
+        self.import_sampler()
+
+        self.initialise_parameters()
+        self.verify_prior()
+
+    def initialise_parameters(self):
+        self.fixed_parameters = self.prior.copy()
         self.parameter_keys = []
-        for p in prior:
-            if hasattr(prior[p], 'prior'):
-                self.parameter_keys.append(prior[p].name)
+        for p in self.prior:
+            if hasattr(self.prior[p], 'prior'):
+                self.parameter_keys.append(self.prior[p].name)
                 self.fixed_parameters[p] = np.nan
         self.ndim = len(self.parameter_keys)
         print('Search parameters = {}'.format(self.parameter_keys))
+
+    def verify_prior(self):
+        required_keys = self.likelihood.parameter_keys
+        unmatched_keys = [
+            r for r in required_keys if r not in self.prior]
+        if len(unmatched_keys) > 0:
+            raise ValueError(
+                "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
         return [self.prior[k].prior.rescale(t)
