@@ -130,6 +130,19 @@ class Dynesty(Sampler):
         return self.result
 
 
+class Pymultinest(Sampler):
+    def run_sampler(self):
+        pymultinest = self.sampler
+        out = pymultinest.solve(
+            LogLikelihood=self.loglikelihood,
+            Prior=self.prior_transform,
+            n_dims=self.ndim, **self.kwargs)
+        self.result.samples = out['samples']
+        self.result.logz = out['logZ']
+        self.result.logzerr = out['logZerr']
+        return self.result
+
+
 def run_sampler(likelihood, prior, sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
         _Sampler = getattr(peyote.sampler, sampler.title())
