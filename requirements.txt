@@ -4,8 +4,6 @@ scipy
 gwpy
 pandas
 astropy
-lal
-lalsuite
 pymultinest
 gwsurrogate
 NRSur7dq2
