@@ -20,7 +20,7 @@ class Source:
         self.time = peyote.utils.create_time_series(
             sampling_frequency, time_duration)
         self.nsamples = len(self.time)
-        self.ff = np.fft.rfftfreq(self.nsamples, 1/self.sampling_frequency)
+        self.frequency_array = np.fft.rfftfreq(self.nsamples, 1/self.sampling_frequency)
 
 
 class SimpleSinusoidSource(Source):
@@ -63,10 +63,10 @@ class BinaryBlackHole(Source):
         approximant = lalsim.GetApproximantFromString(
             parameters['waveform_approximant'])
 
-        # delta_f = frequencies[1]-frequencies[0]
-        # minimum_frequency = np.min(frequencies)
-        # print(minimum_frequency)
-        # maximum_frequency = np.max(frequencies)
+        frequency_minimum = self.frequency_array[1]
+        frequency_maximum = self.frequency_array[-1]
+        delta_frequency = self.frequency_array[1] - self.frequency_array[0]
+        print(frequency_maximum, self.frequency_array[1], delta_frequency)
 
         hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
             mass_1, mass_2, parameters['spin_1'][0], parameters['spin_1'][1],
@@ -74,8 +74,8 @@ class BinaryBlackHole(Source):
             parameters['spin_2'][1], parameters['spin_2'][2],
             luminosity_distance, parameters['inclination_angle'],
             parameters['waveform_phase'], longitude_ascending_nodes,
-            eccentricity, meanPerAno, parameters['deltaF'], parameters['fmin'],
-            parameters['fmax'], parameters['reference_frequency'],
+            eccentricity, meanPerAno, delta_frequency, frequency_minimum,
+            frequency_maximum, parameters['reference_frequency'],
             waveform_dictionary, approximant)
 
         h_plus = hplus.data.data
