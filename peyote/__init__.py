@@ -7,4 +7,4 @@ import peyote.prior as prior
 import peyote.parameter as parameter
 import peyote.source as source
 import peyote.likelihood as likelihood
-import peyote.sampler as sampler
+from peyote.sampler import run_sampler
