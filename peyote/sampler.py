@@ -4,6 +4,27 @@ import numpy as np
 import peyote
 
 
+class Result(dict):
+    def __init__(self):
+        pass
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def summary(self):
+        """Print a summary """
+        return ("nsamples: {:d}\n"
+                "logz: {:6.3f} +/- {:6.3f}\n"
+                .format(self.niter, self.ncall, len(self.samples),
+                        self.logz, self.logzerr))
+
+
 class Sampler:
     """ A sampler object to aid in setting up an inference run
 
@@ -36,6 +57,9 @@ class Sampler:
 
         self.initialise_parameters()
         self.verify_prior()
+
+        self.result = Result()
+        self.result.parameter_keys = self.parameter_keys
 
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
@@ -79,11 +103,14 @@ class Sampler:
 class Nestle(Sampler):
     def run_sampler(self):
         nestle = self.sampler
-        res = nestle.sample(
+        out = nestle.sample(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
-        return res
+        self.result.samples = nestle.resample_equal(out.samples, out.weights)
+        self.result.logz = out.logz
+        self.result.logzerr = out.logzerr
+        return self.result
 
 
 class Dynesty(Sampler):
@@ -94,7 +121,13 @@ class Dynesty(Sampler):
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
         sampler.run_nested()
-        return sampler.results
+        out = sampler.results
+        weights = np.exp(out['logwt'] - out['logz'][-1])
+        self.result.samples = dynesty.utils.resample_equal(
+            out.samples, weights)
+        self.result.logz = out.logz
+        self.result.logzerr = out.logzerr
+        return self.result
 
 
 def run_sampler(likelihood, prior, sampler='nestle', **sampler_kwargs):
