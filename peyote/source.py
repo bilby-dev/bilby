@@ -49,7 +49,7 @@ class BinaryBlackHole(Source):
     """
     A way of getting a BBH waveform from lal
     """
-    def waveform_from_lal(self, frequencies, parameters):
+    def frequency_domain_strain(self, parameters):
         luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
         mass_1 = parameters['mass_1'] * lal.MSUN_SI
         mass_2 = parameters['mass_2'] * lal.MSUN_SI
@@ -60,27 +60,28 @@ class BinaryBlackHole(Source):
 
         waveform_dictionary = lal.CreateDict()
 
-        approximant = lalsim.GetApproximantFromString(parameters['waveform_approximant'])
+        approximant = lalsim.GetApproximantFromString(
+            parameters['waveform_approximant'])
 
         # delta_f = frequencies[1]-frequencies[0]
         # minimum_frequency = np.min(frequencies)
         # print(minimum_frequency)
         # maximum_frequency = np.max(frequencies)
 
-        hplus,hcross = lalsim.SimInspiralChooseFDWaveform(mass_1, mass_2,
-                        parameters['spin_1'][0], parameters['spin_1'][1], parameters['spin_1'][2],
-                        parameters['spin_2'][0], parameters['spin_2'][1], parameters['spin_2'][2],
-                        luminosity_distance, parameters['inclination_angle'],
-                        parameters['waveform_phase'],
-                        longitude_ascending_nodes, eccentricity, meanPerAno,
-                        parameters['deltaF'], parameters['fmin'], parameters['fmax'],
-                        parameters['reference_frequency'],
-                        waveform_dictionary, approximant)
+        hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+            mass_1, mass_2, parameters['spin_1'][0], parameters['spin_1'][1],
+            parameters['spin_1'][2], parameters['spin_2'][0],
+            parameters['spin_2'][1], parameters['spin_2'][2],
+            luminosity_distance, parameters['inclination_angle'],
+            parameters['waveform_phase'], longitude_ascending_nodes,
+            eccentricity, meanPerAno, parameters['deltaF'], parameters['fmin'],
+            parameters['fmax'], parameters['reference_frequency'],
+            waveform_dictionary, approximant)
 
         h_plus = hplus.data.data
         h_cross = hcross.data.data
 
-        return h_plus, h_cross
+        return {'plus': h_plus, 'cross': h_cross}
 
 
 class Glitch(Source):
