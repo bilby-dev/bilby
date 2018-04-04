@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import peyote
 import numpy as np
 import os.path
@@ -12,11 +13,14 @@ except ImportError:
 
 
 class Source:
-    def __init__(self, name):
+    def __init__(self, name, sampling_frequency, time_duration):
         self.name = name
-
-    def model(self, time):
-        return 0
+        self.sampling_frequency = sampling_frequency
+        self.time_duration = time_duration
+        self.time = peyote.utils.create_time_series(
+            sampling_frequency, time_duration)
+        self.nsamples = len(self.time)
+        self.ff = np.fft.rfftfreq(self.nsamples, 1/self.sampling_frequency)
 
 
 class SimpleSinusoidSource(Source):
@@ -26,19 +30,6 @@ class SimpleSinusoidSource(Source):
     returns the waveform model.
 
     """
-
-    def __init__(self, name, sampling_frequency, time_duration):
-        self.name = name
-        self.sampling_frequency = sampling_frequency
-        self.time_duration = time_duration
-        self.time = peyote.utils.create_time_series(
-            sampling_frequency, time_duration)
-
-        if np.mod(len(self.time), 2) == 1:
-            self.LL = len(self.time) + 1
-        else:
-            self.LL = len(self.time)
-        self.ff = sampling_frequency / 2 * np.linspace(0, 1, self.LL/2+1)
 
     def time_domain_strain(self, parameters):
         return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
