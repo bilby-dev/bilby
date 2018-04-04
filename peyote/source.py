@@ -51,7 +51,7 @@ class BinaryBlackHole(Source):
     A way of getting a BBH waveform from lal
     """
     parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
-                      'spin_1', 'inclination_angle', 'waveform_phase',
+                      'spin_1', 'iota', 'phase',
                       'waveform_approximant', 'reference_frequency',
                       'ra', 'dec', 'geocent_time', 'psi']
 
@@ -77,8 +77,8 @@ class BinaryBlackHole(Source):
             mass_1, mass_2, parameters['spin_1'][0], parameters['spin_1'][1],
             parameters['spin_1'][2], parameters['spin_2'][0],
             parameters['spin_2'][1], parameters['spin_2'][2],
-            luminosity_distance, parameters['inclination_angle'],
-            parameters['waveform_phase'], longitude_ascending_nodes,
+            luminosity_distance, parameters['iota'],
+            parameters['phase'], longitude_ascending_nodes,
             eccentricity, meanPerAno, delta_frequency, frequency_minimum,
             frequency_maximum, parameters['reference_frequency'],
             waveform_dictionary, approximant)

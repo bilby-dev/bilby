@@ -1,17 +1,20 @@
-#!/bin/python
-
+from __future__ import division, print_function
 import numpy as np
 from peyote import prior as prior
 
+
 class Parameter:
 
-    def __init__(self, name, prior=None, default=None):
+    def __init__(self, name, prior=None, default=None, latex_label=None):
         self.name = name
         self.default = default
         self.prior = prior
         self.is_fixed = False
         self.value = self.default
-        instances[self.name] = self
+        if latex_label is None:
+            self.latex_label = name
+        else:
+            self.latex_label = latex_label
 
     def fix(self, value=None):
         """
@@ -28,14 +31,15 @@ class Parameter:
         return None
 
 
-instances = {}
+# Default prior parameters
 
-# define a bunch of parameter objects for CBCs
-
-# component masses
-mass1 = Parameter(name='mass1', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)))
-mass2 = Parameter(name='mass2', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)))
-chirp_mass = Parameter(name='mchirp', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)))
+# Component masses
+mass1 = Parameter(name='mass1', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
+                  latex_label='$m_1$')
+mass2 = Parameter(name='mass2', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
+                  latex_label='$m_2$')
+chirp_mass = Parameter(name='mchirp', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
+                       latex_label='$\mathcal{M}$')
 mass_ratio = Parameter(name='q', prior=prior.PowerLaw(alpha=0, bounds=(0, 1)))
 
 # spins
@@ -47,17 +51,14 @@ phi1 = Parameter(name='phi1', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi))
 phi2 = Parameter(name='phi2', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 
 # extrinsic
-distance = Parameter(name='distance', prior=prior.PowerLaw(alpha=2, bounds=(1e2, 5e3)), default=400)
+luminosity_distance = Parameter(
+    name='luminosity_distance',
+    prior=prior.PowerLaw(alpha=2, bounds=(1e2, 5e3)), default=400)
 # zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
-declination = Parameter(name='dec', prior=prior.Cosine(), default=0)
-right_ascension = Parameter(name='ra', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+dec = Parameter(name='dec', prior=prior.Cosine(), default=0)
+ra = Parameter(name='ra', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 inclination = Parameter(name='iota', prior=prior.Sine(), default=0)
-polarization = Parameter(name='psi', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
-phase = Parameter(name='phi_c', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+psi = Parameter(name='psi', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
+phase = Parameter(name='phase', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 
 time_at_coalescence = Parameter(name='tc', default=1126259642.413)
-
-# parameters for a sine wave
-
-frequency = Parameter(name='frequency', prior=prior.PowerLaw(alpha=-1, bounds=(1e2, 2e3)))
-amplitude = Parameter(name='amplitude', prior=prior.PowerLaw(alpha=0, bounds=(1*1e-24, 5*1e-24)))
