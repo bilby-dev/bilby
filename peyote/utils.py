@@ -49,11 +49,14 @@ def gps_time_to_gmst(time):
     return gmst
 
 
-def create_white_noise(sampling_frequency, duration):
+def create_fequency_series(sampling_frequency, duration):
     """
-    Create white_noise which is then coloured by a given PSD
+    Create a frequency series with the correct length and spacing. 
+    
+    :param sampling_frequency: sampling frequency
+    :param duration: duration of data
+    :return: frequencies, frequency series
     """
-
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
 
@@ -61,35 +64,53 @@ def create_white_noise(sampling_frequency, duration):
     number_of_frequencies = (number_of_samples-1)//2
     delta_freq = 1./duration
 
-    f = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
+    frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
+
+    if np.mod(number_of_samples, 2) == 0:
+        frequencies = np.concatenate(([0], frequencies, [sampling_frequency / 2.]))
+    else:
+        # no Nyquist frequency when N=odd
+        frequencies = np.concatenate(([0], frequencies))
+
+    return frequencies
+
+
+def create_white_noise(sampling_frequency, duration):
+    """
+    Create white_noise which is then coloured by a given PSD
+    
+    
+    :param sampling_frequency: sampling frequency
+    :param duration: duration of data
+    """
+
+    number_of_samples = duration * sampling_frequency
+    number_of_samples = int(np.round(number_of_samples))
+
+    delta_freq = 1./duration
+
+    frequencies = create_fequency_series(sampling_frequency, duration)
 
     norm1 = 0.5*(1./delta_freq)**0.5
-    re1 = np.random.normal(0, norm1, int(number_of_frequencies))
-    im1 = np.random.normal(0, norm1, int(number_of_frequencies))
-    z1 = re1 + 1j*im1
+    re1 = np.random.normal(0, norm1, len(frequencies))
+    im1 = np.random.normal(0, norm1, len(frequencies))
+    htilde1 = re1 + 1j*im1
 
-
-    # freq domain solution for htilde1, htilde2 in terms of z1, z2
-    htilde1 = z1
     # convolve data with instrument transfer function
     otilde1 = htilde1 * 1.
     # set DC and Nyquist = 0
-    # python: we are working entirely with positive frequencies
+    otilde1[0] = 0
+    # no Nyquist frequency when N=odd
     if np.mod(number_of_samples, 2) == 0:
-        otilde1 = np.concatenate(([0], otilde1, [0]))
-        f = np.concatenate(([0], f, [sampling_frequency / 2.]))
-    else:
-        # no Nyquist frequency when N=odd
-        otilde1 = np.concatenate(([0], otilde1))
-        f = np.concatenate(([0], f))
+        otilde1[-1] = 0
 
     # normalise for positive frequencies and units of strain/rHz
     white_noise = otilde1
     # python: transpose for use with infft
     white_noise = np.transpose(white_noise)
-    f = np.transpose(f)
+    frequencies = np.transpose(frequencies)
 
-    return white_noise, f
+    return white_noise, frequencies
 
 
 def nfft(ht, Fs):

@@ -125,22 +125,36 @@ class Interferometer:
             return
         return n
 
-    def set_spectral_densities(self, frequency):
+    def set_spectral_densities(self, sampling_frequency, duration):
         """
-        Set the PSD for the interferometer for a user-specified frequency series.
+        Set the PSD for the interferometer for a user-specified frequency series, this should match the data provided.
 
-        :param frequency: frequency series on which to calculate PSD
+        :param sampling_frequency: sampling frequency
+        :param duration: duration of data
         """
+        frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
         self.power_spectral_density_array = \
-            self.power_spectral_density.power_spectral_density_interpolated(frequency)
+            self.power_spectral_density.power_spectral_density_interpolated(frequencies)
         self.amplitude_spectral_density_array = self.power_spectral_density_array**0.5
 
-    def set_data(self, frequency_domain_strain):
+    def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
+                 frequency_domain_strain=None):
         """
-        Set the interferometer frequency-domain stain
+        Set the interferometer frequency-domain stain and accompanying PSD values.
 
-        :param frequency_domain_strain: frequency-domain strain
+        :param sampling_frequency: sampling frequency
+        :param duration: duration of data
+        :param from_power_spectral_density: flag, use IFO's PSD object to generate noise
+        :param frequency_domain_strain: frequency-domain strain, requires frequencies is also specified
         """
+        if from_power_spectral_density is not None:
+            frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
+                                                                                                   duration)
+        elif frequency_domain_strain is None:
+            print("No method provided.")
+            return
+
+        self.set_spectral_densities(sampling_frequency, duration)
         self.data = frequency_domain_strain
         return
 
@@ -253,8 +267,6 @@ class PowerSpectralDensity:
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequency)
 
         frequency_domain_strain = 0.5 * interpolated_power_spectral_density ** 0.5 * white_noise
-        self.frequency_noise_realization = frequency_domain_strain
-        self.interpolated_frequency = frequency
 
         return frequency_domain_strain, frequency
 
