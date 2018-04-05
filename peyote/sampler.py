@@ -2,6 +2,8 @@ from __future__ import print_function, division
 import numpy as np
 import logging
 import numbers
+import pickle
+import os
 
 import peyote
 
@@ -19,12 +21,25 @@ class Result(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-    def summary(self):
+    def __repr__(self):
         """Print a summary """
         return ("nsamples: {:d}\n"
                 "logz: {:6.3f} +/- {:6.3f}\n"
-                .format(self.niter, self.ncall, len(self.samples),
-                        self.logz, self.logzerr))
+                .format(len(self.samples), self.logz, self.logzerr))
+
+    def save_to_file(self, outdir, label):
+        file_name = '{}/{}_results.p'.format(outdir, label)
+        if os.path.isdir(outdir) is False:
+            os.makedirs(outdir)
+        if os.path.isfile(file_name):
+            logging.info(
+                'Renaming existing file {} to {}.old'
+                .format(file_name, file_name))
+            os.rename(file_name, file_name+'.old')
+
+        logging.info("Saving result to {}".format(file_name))
+        with open(file_name, 'w+') as f:
+            pickle.dump(self, f)
 
 
 class Sampler:
@@ -130,6 +145,8 @@ class Nestle(Sampler):
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
+
+        self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
         self.result.logz = out.logz
         self.result.logzerr = out.logzerr
@@ -145,6 +162,8 @@ class Dynesty(Sampler):
             ndim=self.ndim, **self.kwargs)
         sampler.run_nested()
         out = sampler.results
+
+        self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
@@ -160,17 +179,21 @@ class Pymultinest(Sampler):
             LogLikelihood=self.loglikelihood,
             Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
+        self.result.sampler_output = out
         self.result.samples = out['samples']
         self.result.logz = out['logZ']
         self.result.logzerr = out['logZerr']
         return self.result
 
 
-def run_sampler(likelihood, prior, sampler='nestle', **sampler_kwargs):
+def run_sampler(likelihood, prior, label='default_label', outdir='.',
+                sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
         _Sampler = getattr(peyote.sampler, sampler.title())
         sampler = _Sampler(likelihood, prior, sampler, **sampler_kwargs)
-        return sampler.run_sampler()
+        result = sampler.run_sampler()
+        result.save_to_file(outdir, label)
+        return result
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
