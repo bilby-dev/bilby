@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import numpy as np
+import logging
 
 import peyote
 
@@ -57,20 +58,25 @@ class Sampler:
 
         self.initialise_parameters()
         self.verify_prior()
+        self.add_initial_data_to_results()
 
+    def add_initial_data_to_results(self):
         self.result = Result()
-        self.result.parameter_keys = self.parameter_keys
-        self.result.labels = [prior[k].latex_label for k in self.parameter_keys]
+        self.result.search_parameter_keys = self.search_parameter_keys
+        self.result.labels = [
+            self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
-        self.parameter_keys = []
+        self.search_parameter_keys = []
         for p in self.prior:
             if hasattr(self.prior[p], 'prior'):
-                self.parameter_keys.append(self.prior[p].name)
+                self.search_parameter_keys.append(self.prior[p].name)
                 self.fixed_parameters[p] = np.nan
-        self.ndim = len(self.parameter_keys)
-        print('Search parameters = {}'.format(self.parameter_keys))
+        self.ndim = len(self.search_parameter_keys)
+        logging.info("Search parameters:")
+        for k in self.search_parameter_keys:
+            logging.info(str(self.prior[k].prior))
 
     def verify_prior(self):
         required_keys = self.likelihood.parameter_keys
@@ -82,10 +88,10 @@ class Sampler:
 
     def prior_transform(self, theta):
         return [self.prior[k].prior.rescale(t)
-                for k, t in zip(self.parameter_keys, theta)]
+                for k, t in zip(self.search_parameter_keys, theta)]
 
     def loglikelihood(self, theta):
-        for i, k in enumerate(self.parameter_keys):
+        for i, k in enumerate(self.search_parameter_keys):
             self.fixed_parameters[k] = theta[i]
         return self.likelihood.loglikelihood(self.fixed_parameters)
 
