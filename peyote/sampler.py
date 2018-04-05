@@ -65,6 +65,7 @@ class Sampler:
     """
 
     def __init__(self, likelihood, prior, sampler_string, **kwargs):
+        logging.info("Using sampler {}".format(self.__class__.__name__))
         self.likelihood = likelihood
         self.prior = prior
         self.kwargs = kwargs
@@ -175,6 +176,8 @@ class Dynesty(Sampler):
 class Pymultinest(Sampler):
     def run_sampler(self):
         pymultinest = self.sampler
+        if 'verbose' not in self.kwargs:
+            self.kwargs['verbose'] = True
         out = pymultinest.solve(
             LogLikelihood=self.loglikelihood,
             Prior=self.prior_transform,
