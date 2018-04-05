@@ -34,10 +34,10 @@ class Parameter:
 # Default prior parameters
 
 # Component masses
-mass1 = Parameter(name='mass1', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
-                  latex_label='$m_1$')
-mass2 = Parameter(name='mass2', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
-                  latex_label='$m_2$')
+mass_1 = Parameter(name='mass_1', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
+                   latex_label='$m_1$')
+mass_2 = Parameter(name='mass_2', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
+                   latex_label='$m_2$')
 chirp_mass = Parameter(name='mchirp', prior=prior.PowerLaw(alpha=0, bounds=(5, 100)),
                        latex_label='$\mathcal{M}$')
 mass_ratio = Parameter(name='q', prior=prior.PowerLaw(alpha=0, bounds=(0, 1)))
