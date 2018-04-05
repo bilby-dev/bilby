@@ -57,7 +57,7 @@ luminosity_distance = Parameter(
 # zz = Parameter(name='z', prior=prior.FromFile('SFR_redshift_prior.txt'))  # FIXME: This file doesn't exist
 dec = Parameter(name='dec', prior=prior.Cosine(), default=0)
 ra = Parameter(name='ra', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
-inclination = Parameter(name='iota', prior=prior.Sine(), default=0)
+iota = Parameter(name='iota', prior=prior.Sine(), default=0)
 psi = Parameter(name='psi', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 phase = Parameter(name='phase', prior=prior.PowerLaw(alpha=0, bounds=(0, 2*np.pi)), default=0)
 
