@@ -51,9 +51,9 @@ class BinaryBlackHole(Source):
     A way of getting a BBH waveform from lal
     """
     parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
-                      'spin_1', 'iota', 'phase',
-                      'waveform_approximant', 'reference_frequency',
-                      'ra', 'dec', 'geocent_time', 'psi']
+                      'spin_1', 'iota', 'phase', 'waveform_approximant',
+                      'reference_frequency', 'ra', 'dec', 'geocent_time',
+                      'psi']
 
     def frequency_domain_strain(self, parameters):
         luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI

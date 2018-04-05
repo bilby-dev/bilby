@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import numpy as np
 import logging
+import numbers
 
 import peyote
 
@@ -69,14 +70,29 @@ class Sampler:
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
         self.search_parameter_keys = []
-        for p in self.prior:
-            if hasattr(self.prior[p], 'prior'):
-                self.search_parameter_keys.append(self.prior[p].name)
-                self.fixed_parameters[p] = np.nan
+        for key in self.likelihood.parameter_keys:
+            if key in self.prior:
+                p = self.prior[key]
+                CA = isinstance(p, numbers.Real)
+                CB = hasattr(p, 'prior')
+                CC = getattr(p, 'is_fixed', False) is True
+                if CA is False and CB and CC is False:
+                    self.search_parameter_keys.append(key)
+                    self.fixed_parameters[key] = np.nan
+                elif CC:
+                    self.fixed_parameters[key] = p.value
+            else:
+                try:
+                    self.prior[key] = getattr(peyote.parameter, key)
+                    self.search_parameter_keys.append(key)
+                except AttributeError:
+                    raise AttributeError(
+                        "No default prior known for parameter {}".format(key))
         self.ndim = len(self.search_parameter_keys)
+
         logging.info("Search parameters:")
-        for k in self.search_parameter_keys:
-            logging.info(str(self.prior[k].prior))
+        for key in self.search_parameter_keys:
+            logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
 
     def verify_prior(self):
         required_keys = self.likelihood.parameter_keys
