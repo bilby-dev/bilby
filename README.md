@@ -1,3 +1,7 @@
+[![pipeline status](https://git.ligo.org/Monash/peyote/badges/master/pipeline.svg)](https://git.ligo.org/Monash/peyote/commits/master)
+[![coverage report](https://monash.docs.ligo.org/peyote/coverage.svg)](
+https://monash.docs.ligo.org/peyote/)
+
 # PEYOte
 
 Fulfilling all your GW dreams.
@@ -35,3 +39,27 @@ $ make; make install
 ** warning **: in the configure line here, we have disabled everything except lalsimulation. If you need other modules, see `./configure --help`.
 
 You could also `pip install lal, lalsuite`.
+
+## Tests and coverage
+
+To locally test the code
+
+```bash
+$ python tests.py
+```
+
+To locally generate a coverage report
+
+```bash
+$ pip install coverage
+$ coverage run tests.py
+$ coverage html
+```
+
+This will generate a directory `htmlcov`, to see detailed coverage navigate
+from your browser to the file `peyote/htmlcov/index.html`.
+
+The coverage report for master can be seen here:
+[https://monash.docs.ligo.org/peyote/](https://monash.docs.ligo.org/peyote/).
+
+
