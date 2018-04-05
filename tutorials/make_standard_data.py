@@ -27,13 +27,10 @@ source = peyote.source.BinaryBlackHole(
 hf_signal = source.frequency_domain_strain(simulation_parameters)
 
 IFO = peyote.detector.H1
-hf_noise, frequencies = IFO.power_spectral_density.get_noise_realisation(
-    sampling_frequency, time_duration)
-IFO.set_data(frequency_domain_strain=hf_noise)
+IFO.set_data(from_power_spectral_density=True, sampling_frequency=sampling_frequency, duration=time_duration)
 IFO.inject_signal(source, simulation_parameters)
-IFO.set_spectral_densities(frequencies)
-IFO.whiten_data()
 hf_signal_and_noise = IFO.data
+frequencies = peyote.utils.create_fequency_series(sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
