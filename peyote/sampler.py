@@ -60,6 +60,7 @@ class Sampler:
 
         self.result = Result()
         self.result.parameter_keys = self.parameter_keys
+        self.result.labels = [prior[k].latex_label for k in self.parameter_keys]
 
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
