@@ -66,7 +66,7 @@ def create_fequency_series(sampling_frequency, duration):
 
     frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
 
-    if np.mod(number_of_samples, 2) == 0:
+    if len(frequencies) % 2 == 1:
         frequencies = np.concatenate(([0], frequencies, [sampling_frequency / 2.]))
     else:
         # no Nyquist frequency when N=odd
