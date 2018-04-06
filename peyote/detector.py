@@ -214,9 +214,19 @@ class PowerSpectralDensity:
         if asd_file is not None:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
+            print("You specified an amplitude spectral density file.")
+            if min(self.power_spectral_density)<1e30:
+                print("{} WARNING {}".format("*"*30, "*"*30))
+                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
+                print("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
+            print("You specified a power spectral density file.")
+            if min(self.power_spectral_density)>1e30:
+                print("{} WARNING {}".format("*"*30, "*"*30))
+                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
+                print("You may have intended to provide this as an amplitude spectral density.")
 
     def import_amplitude_spectral_density(self):
         """
