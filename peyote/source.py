@@ -69,7 +69,7 @@ class BinaryBlackHole(Source):
         approximant = lalsim.GetApproximantFromString(
             parameters['waveform_approximant'])
 
-        frequency_minimum = self.frequency_array[1]
+        frequency_minimum = 20
         frequency_maximum = self.frequency_array[-1]
         delta_frequency = self.frequency_array[1] - self.frequency_array[0]
 

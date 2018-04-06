@@ -26,7 +26,7 @@ class likelihood:
                 parameters['geocent_time'])
             signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
 
-            log_l -= 4. * self.source.sampling_frequency * np.vdot(
+            log_l -= 4. / self.source.time_duration * np.vdot(
                 interferometer.data - signal_ifo,
                 (interferometer.data - signal_ifo) / (
                     interferometer.power_spectral_density_array))
