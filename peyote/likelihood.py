@@ -35,6 +35,15 @@ class likelihood:
 
 
 class likelihoodB(likelihood):
+
+
+    def __init__(self, interferometers, source):
+        likelihood.__init__(self, interferometers, source)
+
+        for interferometer in self.interferometers:
+            interferometer.whiten_data()
+
+
     def loglikelihood(self, parameters):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)

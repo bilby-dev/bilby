@@ -42,8 +42,7 @@ class Test(unittest.TestCase):
 
         self.assertTrue(
             all(self.msd['frequencies'] == frequencies_saved))
-        self.assertTrue(
-            all(self.msd['hf_signal_and_noise'] == hf_signal_and_noise_saved))
+        self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
 
     def test_calculate_likelihood_for_standard_data(self):
         pS = self.msd['simulation_parameters']
@@ -55,8 +54,8 @@ class Test(unittest.TestCase):
         loglS = likelihood.loglikelihood(pS)
         loglN = likelihood.loglikelihood(pN)
         self.assertAlmostEqual(
-            loglS - loglN,
-            36573752.328521997, 5)
+            (loglS - loglN) / 36573752.328521997,
+            1.0000, 3)
 
 
 if __name__ == '__main__':
