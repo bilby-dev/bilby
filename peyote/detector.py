@@ -156,7 +156,7 @@ class Interferometer:
 
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
-        self.set_spectral_densities(sampling_frequency, duration)
+        self.set_spectral_densities()
 
         return
 
