@@ -125,16 +125,13 @@ class Interferometer:
             return
         return n
 
-    def set_spectral_densities(self, sampling_frequency, duration):
+    def set_spectral_densities(self):
         """
-        Set the PSD for the interferometer for a user-specified frequency series, this should match the data provided.
+        Set the PSD for the interferometer for a user-specified frequency series, this matches the data provided.
 
-        :param sampling_frequency: sampling frequency
-        :param duration: duration of data
         """
-        frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
         self.power_spectral_density_array = \
-            self.power_spectral_density.power_spectral_density_interpolated(frequencies)
+            self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
         self.amplitude_spectral_density_array = self.power_spectral_density_array**0.5
 
     def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
@@ -150,12 +147,17 @@ class Interferometer:
         if from_power_spectral_density is not None:
             frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
                                                                                                    duration)
+        if frequency_domain_strain is not None:
+            frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
+
         elif frequency_domain_strain is None:
             print("No method provided.")
             return
 
-        self.set_spectral_densities(sampling_frequency, duration)
         self.data = frequency_domain_strain
+        self.frequency_array = frequencies
+        self.set_spectral_densities(sampling_frequency, duration)
+
         return
 
     def time_delay_from_geocenter(self, ra, dec, time):
