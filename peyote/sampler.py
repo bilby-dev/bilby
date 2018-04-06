@@ -64,10 +64,12 @@ class Sampler:
 
     """
 
-    def __init__(self, likelihood, prior, sampler_string, **kwargs):
-        logging.info("Using sampler {}".format(self.__class__.__name__))
+    def __init__(self, likelihood, prior, sampler_string, outdir='outdir',
+                 label='label', **kwargs):
         self.likelihood = likelihood
         self.prior = prior
+        self.label = label
+        self.outdir = outdir
         self.kwargs = kwargs
 
         self.sampler_string = sampler_string
@@ -76,6 +78,15 @@ class Sampler:
         self.initialise_parameters()
         self.verify_prior()
         self.add_initial_data_to_results()
+        self.set_kwargs()
+
+        self.log_summary_for_sampler()
+
+        if os.path.isdir(outdir) is False:
+            os.makedirs(outdir)
+
+    def set_kwargs(self):
+        pass
 
     def add_initial_data_to_results(self):
         self.result = Result()
@@ -138,6 +149,10 @@ class Sampler:
                 "Sampler {} not installed on this system".format(
                     self.sampler_string))
 
+    def log_summary_for_sampler(self):
+        logging.info("Using sampler {} with kwargs {}".format(
+            self.__class__.__name__, self.kwargs))
+
 
 class Nestle(Sampler):
     def run_sampler(self):
@@ -174,28 +189,40 @@ class Dynesty(Sampler):
 
 
 class Pymultinest(Sampler):
+
+    def set_kwargs(self):
+        self.kwargs_defaults = dict(
+            importance_nested_sampling=False, resume=True, verbose=True,
+            sampling_efficiency='parameter', outputfiles_basename=self.outdir)
+        self.kwargs_defaults.update(self.kwargs)
+        self.kwargs = self.kwargs_defaults
+        if self.kwargs['outputfiles_basename'].endswith('/') is False:
+            self.kwargs['outputfiles_basename'] = '{}/'.format(
+                self.kwargs['outputfiles_basename'])
+        self.kwargs
+
     def run_sampler(self):
         pymultinest = self.sampler
-        if 'verbose' not in self.kwargs:
-            self.kwargs['verbose'] = True
         out = pymultinest.solve(
-            LogLikelihood=self.loglikelihood,
-            Prior=self.prior_transform,
+            LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
+
         self.result.sampler_output = out
         self.result.samples = out['samples']
         self.result.logz = out['logZ']
         self.result.logzerr = out['logZerr']
+        self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result
 
 
-def run_sampler(likelihood, prior, label='default_label', outdir='.',
+def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
         _Sampler = getattr(peyote.sampler, sampler.title())
-        sampler = _Sampler(likelihood, prior, sampler, **sampler_kwargs)
+        sampler = _Sampler(likelihood, prior, sampler, outdir=outdir,
+                           label=label, **sampler_kwargs)
         result = sampler.run_sampler()
-        result.save_to_file(outdir, label)
+        result.save_to_file(outdir=outdir, label=label)
         return result
     else:
         raise ValueError(
