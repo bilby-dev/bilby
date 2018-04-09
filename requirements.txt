@@ -8,3 +8,4 @@ pymultinest
 gwsurrogate
 NRSur7dq2
 chainconsumer
+nestle
