@@ -87,7 +87,7 @@ class Sampler:
         self.result = 0
         self.search_parameter_keys = []
         self.ndim = 0
-        self.sampler = 0
+        self.sampler = self
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
