@@ -43,6 +43,7 @@ class Interferometer:
         self.amplitude_spectral_density_array = np.array([])
         self.data = np.array([])
         self.whitened_data = np.array([])
+        self.frequency_array = []
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -144,6 +145,7 @@ class Interferometer:
         :param from_power_spectral_density: flag, use IFO's PSD object to generate noise
         :param frequency_domain_strain: frequency-domain strain, requires frequencies is also specified
         """
+        frequencies = []
         if from_power_spectral_density is not None:
             frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
                                                                                                    duration)
