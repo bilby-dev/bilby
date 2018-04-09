@@ -215,7 +215,6 @@ class Pymultinest(Sampler):
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(
                 self.kwargs['outputfiles_basename'])
-        self.kwargs
 
     def run_sampler(self):
         pymultinest = self.sampler
