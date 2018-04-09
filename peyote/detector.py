@@ -95,7 +95,7 @@ class Interferometer:
 
         time_shift = self.time_delay_from_geocenter(
             params['ra'], params['dec'], params['geocent_time'])
-        signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
+        signal_ifo *= np.exp(-1j * 2 * np.pi * time_shift)
 
         self.data += signal_ifo
 
@@ -133,7 +133,7 @@ class Interferometer:
         """
         self.power_spectral_density_array = \
             self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
-        self.amplitude_spectral_density_array = self.power_spectral_density_array**0.5
+        self.amplitude_spectral_density_array = self.power_spectral_density_array ** 0.5
 
     def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
                  frequency_domain_strain=None):
@@ -148,7 +148,7 @@ class Interferometer:
         frequencies = []
         if from_power_spectral_density is not None:
             frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
-                                                                                                   duration)
+                                                                                                     duration)
         if frequency_domain_strain is not None:
             frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
 
@@ -194,7 +194,7 @@ class Interferometer:
 
 class PowerSpectralDensity:
 
-    def __init__(self, asd_file=None,  psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
+    def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
         """
         Instantiate a new PSD object.
 
@@ -217,16 +217,16 @@ class PowerSpectralDensity:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
             print("You specified an amplitude spectral density file.")
-            if min(self.power_spectral_density)<1e30:
-                print("{} WARNING {}".format("*"*30, "*"*30))
+            if min(self.power_spectral_density) < 1e30:
+                print("{} WARNING {}".format("*" * 30, "*" * 30))
                 print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
                 print("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
             print("You specified a power spectral density file.")
-            if min(self.power_spectral_density)>1e30:
-                print("{} WARNING {}".format("*"*30, "*"*30))
+            if min(self.power_spectral_density) > 1e30:
+                print("{} WARNING {}".format("*" * 30, "*" * 30))
                 print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
                 print("You may have intended to provide this as an amplitude spectral density.")
 
@@ -243,7 +243,7 @@ class PowerSpectralDensity:
         spectral_density = np.genfromtxt(self.amplitude_spectral_density_file)
         self.frequencies = spectral_density[:, 0]
         self.amplitude_spectral_density = spectral_density[:, 1]
-        self.power_spectral_density = self.amplitude_spectral_density**2
+        self.power_spectral_density = self.amplitude_spectral_density ** 2
         self.interpolate_power_spectral_density()
 
     def import_power_spectral_density(self):
@@ -286,16 +286,20 @@ class PowerSpectralDensity:
 
 
 # Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/ GEO600
-H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4, latitude=46+27./60+18.528/3600,
-                    longitude=-(119+24./60+27.5657/3600), elevation=142.554, xarm_azimuth=125.9994,
+H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4,
+                    latitude=46 + 27. / 60 + 18.528 / 3600,
+                    longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
                     yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
-L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4, latitude=30+33./60+46.4196/3600,
-                    longitude=-(90+46./60+27.2654/3600), elevation=-6.574, xarm_azimuth=197.7165, yarm_azimuth=287.7165,
+L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4,
+                    latitude=30 + 33. / 60 + 46.4196 / 3600,
+                    longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
+                    yarm_azimuth=287.7165,
                     xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
 V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
-                    latitude=43+37./60+53.0921/3600, longitude=10+30./60+16.1878/3600,
+                    latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
                     elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
 # FIXME: Using initial LIGO noise curve for GEO600, do we really want GEO?
 GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(psd_file='LIGO_srd_psd.txt'),
-                        length=0.6, latitude=52+14./60+42.528/3600, longitude=9+48./60+25.894/3600, elevation=114.425,
+                        length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
+                        elevation=114.425,
                         xarm_azimuth=115.9431, yarm_azimuth=21.6117)
