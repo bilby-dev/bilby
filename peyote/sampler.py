@@ -82,6 +82,13 @@ class Sampler:
 
         self.log_summary_for_sampler()
 
+        # Initialize some variables that are going to be used later
+        self.fixed_parameters = []
+        self.result = 0
+        self.search_parameter_keys = []
+        self.ndim = 0
+        self.sampler = 0
+
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
