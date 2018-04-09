@@ -114,7 +114,7 @@ def create_white_noise(sampling_frequency, duration):
 
 
 def nfft(ht, Fs):
-    '''
+    """
     performs an FFT while keeping track of the frequency bins
     assumes input time series is real (positive frequencies only)
 
@@ -124,7 +124,7 @@ def nfft(ht, Fs):
     returns
     hf = single-sided FFT of ft normalised to units of strain / sqrt(Hz)
     f = frequencies associated with hf
-    '''
+    """
     # add one zero padding if time series does not have even number of sampling times
     if np.mod(len(ht), 2) == 1:
         ht = np.append(ht, 0)
@@ -143,7 +143,7 @@ def nfft(ht, Fs):
 
 
 def infft(hf, Fs):
-    '''
+    """
     inverse FFT for use in conjunction with nfft
     eric.thrane@ligo.org
     input:
@@ -151,7 +151,7 @@ def infft(hf, Fs):
     Fs = sampling frequency
     output:
     h = time series
-    '''
+    """
     # use irfft to work with positive frequencies only
     h = np.fft.irfft(hf)
     # undo LAL/Lasky normalisation
@@ -161,7 +161,7 @@ def infft(hf, Fs):
 
 
 def time_delay_geocentric(detector1, detector2, ra, dec, time):
-    '''
+    """
     Calculate time delay between two detectors in geocentric coordinates based on XLALArrivaTimeDiff in TimeDelay.c
     Input:
     detector1 - cartesian coordinate vector for the first detector in the geocentric frame
@@ -173,12 +173,12 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     time - GPS time in the geocentric frame
     Output:
     delta_t - time delay between the two detectors in the geocentric frame
-    '''
+    """
     gmst = gps_time_to_gmst(time)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     omega = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
-    delta_D = detector2 - detector1
-    delta_t = np.dot(omega, delta_D) / speed_of_light
+    delta_d = detector2 - detector1
+    delta_t = np.dot(omega, delta_d) / speed_of_light
     return delta_t
 
 

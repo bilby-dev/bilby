@@ -82,6 +82,13 @@ class Sampler:
 
         self.log_summary_for_sampler()
 
+        # Initialize some variables that are going to be used later
+        self.fixed_parameters = []
+        self.result = 0
+        self.search_parameter_keys = []
+        self.ndim = 0
+        self.sampler = self
+
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
@@ -160,7 +167,6 @@ class Nestle(Sampler):
         self.kwargs_defaults = dict(verbose=True)
         self.kwargs_defaults.update(self.kwargs)
         self.kwargs = self.kwargs_defaults
-        self.kwargs
 
     def run_sampler(self):
         nestle = self.sampler
@@ -209,7 +215,6 @@ class Pymultinest(Sampler):
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(
                 self.kwargs['outputfiles_basename'])
-        self.kwargs
 
     def run_sampler(self):
         pymultinest = self.sampler

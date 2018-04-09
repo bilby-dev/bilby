@@ -48,7 +48,7 @@ class Uniform(Prior):
     def prob(self, val):
         """Return the prior probability of val"""
         if (self.lower < val) and (val < self.upper):
-            return 1/self.support
+            return 1 / self.support
         else:
             return 0
 
@@ -98,13 +98,13 @@ class PowerLaw(Prior):
         return val ** self.alpha * (1 + self.alpha) / (self.high ** (1 + self.alpha) -
                                                        self.low ** (1 + self.alpha))
 
+
 class Cosine(Prior):
 
     def __init__(self):
         Prior.__init__(self)
 
-    @staticmethod
-    def rescale(val):
+    def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to a uniform in cosine prior.
 
@@ -123,8 +123,7 @@ class Sine(Prior):
     def __init__(self):
         Prior.__init__(self)
 
-    @staticmethod
-    def rescale(val):
+    def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to a uniform in sine prior.
 
@@ -154,7 +153,7 @@ class Interped(Prior):
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=min(self.yy))
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=False,
-                                                             fill_value=(min(self.xx), max(self.xx)))
+                                                         fill_value=(min(self.xx), max(self.xx)))
 
     def prob(self, val):
         """Return the prior probability of val"""
