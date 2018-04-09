@@ -104,8 +104,7 @@ class Cosine(Prior):
     def __init__(self):
         Prior.__init__(self)
 
-    @staticmethod
-    def rescale(val):
+    def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to a uniform in cosine prior.
 
@@ -124,8 +123,7 @@ class Sine(Prior):
     def __init__(self):
         Prior.__init__(self)
 
-    @staticmethod
-    def rescale(val):
+    def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to a uniform in sine prior.
 
