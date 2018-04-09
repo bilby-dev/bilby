@@ -155,8 +155,18 @@ class Sampler:
 
 
 class Nestle(Sampler):
+
+    def set_kwargs(self):
+        self.kwargs_defaults = dict(verbose=True)
+        self.kwargs_defaults.update(self.kwargs)
+        self.kwargs = self.kwargs_defaults
+        self.kwargs
+
     def run_sampler(self):
         nestle = self.sampler
+        if self.kwargs.get('verbose', True):
+            self.kwargs['callback'] = nestle.print_progress
+
         out = nestle.sample(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
