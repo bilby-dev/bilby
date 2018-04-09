@@ -19,9 +19,8 @@ class Source:
         self.time_duration = time_duration
         self.time_array = peyote.utils.create_time_series(
             sampling_frequency, time_duration)
-        self.nsamples = len(self.time_array)
-        self.frequency_array = np.fft.rfftfreq(
-            self.nsamples, 1/self.sampling_frequency)
+        self.frequency_array = peyote.utils.create_fequency_series(
+            sampling_frequency, time_duration)
 
 
 class SimpleSinusoidSource(Source):
