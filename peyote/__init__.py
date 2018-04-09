@@ -8,3 +8,4 @@ import peyote.parameter as parameter
 import peyote.source as source
 import peyote.likelihood as likelihood
 from peyote.sampler import run_sampler
+from peyote.utils import setup_logger

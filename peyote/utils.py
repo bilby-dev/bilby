@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from astropy.time import Time
 
@@ -242,3 +243,31 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     y_comp = (radius + elevation) * np.cos(latitude) * np.sin(longitude)
     z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * np.sin(latitude)
     return np.array([x_comp, y_comp, z_comp])
+
+
+def setup_logger(log_level='info'):
+    """ Setup logging output: call at the start of the script to use
+
+    Parameters
+    ----------
+    log_level = ['debug', 'info', 'warning']
+        Either a string from the list above, or an interger as specified
+        in https://docs.python.org/2/library/logging.html#logging-levels
+    """
+    logger = logging.getLogger()
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+
+    if type(log_level) is str:
+        try:
+            LEVEL = getattr(logging, log_level.upper())
+        except AttributeError:
+            raise ValueError('log_level {} not understood'.format(log_level))
+    else:
+        LEVEL = int(log_level)
+
+    logger.setLevel(LEVEL)
+    stream_handler.setLevel(LEVEL)
+    logger.addHandler(stream_handler)
+

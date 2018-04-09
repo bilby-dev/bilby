@@ -3,10 +3,7 @@ import pylab as plt
 
 import peyote
 
-import logging
-logging.getLogger().addHandler(logging.StreamHandler())
-logging.getLogger().setLevel('DEBUG')
-
+peyote.setup_logging()
 
 time_duration = 1.
 sampling_frequency = 4096.
