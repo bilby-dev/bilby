@@ -12,18 +12,20 @@ class likelihood:
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
+            h = []
             for mode in waveform_polarizations:
                 det_response = interferometer.antenna_response(
                     parameters['ra'], parameters['dec'],
                     parameters['geocent_time'], parameters['psi'], mode)
 
-                waveform_polarizations[mode] *= det_response
+                h.append(waveform_polarizations[mode] * det_response)
 
-            signal_ifo = np.sum(waveform_polarizations.values(), axis=0)
+            signal_ifo = np.sum(h, axis=0)
 
             time_shift = interferometer.time_delay_from_geocenter(
                 parameters['ra'], parameters['dec'],
                 parameters['geocent_time'])
+            #signal_ifo *= np.exp(1j*2*np.pi*time_shift*self.source.frequency_array)
             signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
 
             log_l -= 4. / self.source.time_duration * np.vdot(
