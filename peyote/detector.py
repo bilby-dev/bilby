@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import numpy as np
+import logging
 import os
 from scipy.interpolate import interp1d
 import peyote
@@ -146,16 +147,20 @@ class Interferometer:
         :param from_power_spectral_density: flag, use IFO's PSD object to generate noise
         :param frequency_domain_strain: frequency-domain strain, requires frequencies is also specified
         """
-        frequencies = []
-        if from_power_spectral_density is not None:
+
+        if frequency_domain_strain is not None:
+            logging.info(
+                'Setting {} data using provided frequency_domain_strain'
+                .format(self.name))
+            frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
+        elif from_power_spectral_density is not None:
+            logging.info(
+                'Setting {} data using noise realization from provided'
+                'power_spectal_density'.format(self.name))
             frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
                                                                                                      duration)
-        if frequency_domain_strain is not None:
-            frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
-
-        elif frequency_domain_strain is None:
-            print("No method provided.")
-            return
+        else:
+            raise ValueError("No method to set data provided.")
 
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
