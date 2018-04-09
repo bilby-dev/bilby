@@ -167,7 +167,6 @@ class Nestle(Sampler):
         self.kwargs_defaults = dict(verbose=True)
         self.kwargs_defaults.update(self.kwargs)
         self.kwargs = self.kwargs_defaults
-        self.kwargs
 
     def run_sampler(self):
         nestle = self.sampler
