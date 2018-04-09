@@ -5,8 +5,8 @@ class likelihood:
     def __init__(self, interferometers, source):
         self.interferometers = interferometers
         self.source = source
-        self.parameter_keys = ['ra', 'dec', 'geocent_time', 'psi']
-        self.parameter_keys += self.source.parameter_keys
+        self.parameter_keys = set(self.source.parameter_keys +
+                                  ['ra', 'dec', 'geocent_time', 'psi'])
 
     def loglikelihood(self, parameters):
         log_l = 0
