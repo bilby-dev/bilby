@@ -9,8 +9,6 @@ import peyote
 
 
 class Result(dict):
-    def __init__(self):
-        pass
 
     def __getattr__(self, name):
         try:
@@ -34,8 +32,8 @@ class Result(dict):
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'
-                    .format(file_name, file_name))
-            os.rename(file_name, file_name + '.old')
+                .format(file_name, file_name))
+            os.rename(file_name, file_name+'.old')
 
         logging.info("Saving result to {}".format(file_name))
         with open(file_name, 'w+') as f:
@@ -68,7 +66,6 @@ class Sampler:
                  label='label', **kwargs):
         self.likelihood = likelihood
         self.prior = prior
-
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
@@ -110,13 +107,13 @@ class Sampler:
         for key in self.likelihood.source.__dict__:
             if key in self.prior.__dict__:
                 p = self.prior.__dict__[key]
-                CA = isinstance(p, numbers.Real)
-                CB = hasattr(p, 'prior')
-                CC = getattr(p, 'is_fixed', False) is True
-                if CA is False and CB and CC is False:
+                ca = isinstance(p, numbers.Real)
+                cb = hasattr(p, 'prior')
+                cc = getattr(p, 'is_fixed', False) is True
+                if ca is False and cb and cc is False:
                     self.search_parameter_keys.append(key)
                     self.active_parameter_values[key] = np.nan
-                elif CC:
+                elif cc:
                     self.active_parameter_values[key] = p.value
             else:
                 try:
@@ -246,4 +243,3 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
-
