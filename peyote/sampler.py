@@ -187,6 +187,12 @@ class Nestle(Sampler):
 
 
 class Dynesty(Sampler):
+
+    def __init__(self, likelihood, prior, sampler_string, outdir='outdir',
+                 label='label', **kwargs):
+        Sampler.__init__(self, likelihood, prior, sampler_string, outdir,
+                         label, **kwargs)
+
     def run_sampler(self):
         dynesty = self.extenal_sampler
         nested_sampler = dynesty.NestedSampler(
