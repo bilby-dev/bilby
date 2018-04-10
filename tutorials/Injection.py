@@ -57,9 +57,10 @@ for IFO in IFOs:
 
 likelihood = peyote.likelihood.LikelihoodB(source=source, interferometers=IFOs)
 
-prior = simulation_parameters.copy()
-prior['mass_1'] = peyote.parameter.Parameter('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
-                                             latex_label='$m_1$')
+# prior = simulation_parameters.copy()
+prior = source.copy()
+prior.mass_1 = peyote.parameter.Parameter('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
+                                          latex_label='$m_1$')
 # prior['mass_2'] = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
 #                                              latex_label='$m_2$')
 
