@@ -25,9 +25,13 @@ simulation_parameters = dict(
     dec=1,
     geocent_time=0,
     psi=1
-    )
+)
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
+# source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
+source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29.,
+                                       spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=5000., iota=0., phase=0.,
+                                       waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=0, dec=1,
+                                       geocent_time=0, psi=1)
 
 IFO_1 = peyote.detector.H1
 IFO_2 = peyote.detector.L1
@@ -66,4 +70,3 @@ print(result.samples)
 truths = [simulation_parameters[k] for k in result.parameter_keys]
 fig = corner.corner(result.samples, labels=result.labels, truths=truths)
 fig.show()
-
