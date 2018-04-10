@@ -35,25 +35,31 @@ class Likelihood:
 
 class LikelihoodB(Likelihood):
 
+
     def __init__(self, interferometers, source):
         Likelihood.__init__(self, interferometers, source)
 
         for interferometer in self.interferometers:
             interferometer.whiten_data()
 
+
     def log_likelihood(self):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain()
         for interferometer in self.interferometers:
             for mode in waveform_polarizations.keys():
-                det_response = interferometer.antenna_response(self.source.ra, self.source.dec,
-                                                               self.source.geocent_time, self.source.psi, mode)
+
+                det_response = interferometer.antenna_response(
+                    self.source.ra, self.source.dec,
+                    self.source.geocent_time, self.source.psi, mode)
+
                 waveform_polarizations[mode] *= det_response
 
             signal_ifo = np.sum(waveform_polarizations.values(), axis=0)
 
-            time_shift = interferometer.time_delay_from_geocenter(self.source.ra, self.source.dec,
-                                                                  self.source.geocent_time)
+            time_shift = interferometer.time_delay_from_geocenter(
+                self.source.ra, self.source.dec,
+                self.source.geocent_time)
             signal_ifo *= np.exp(-1j * 2 * np.pi * time_shift)
             signal_ifo_whitened = signal_ifo / (
                 interferometer.amplitude_spectral_density_array)
