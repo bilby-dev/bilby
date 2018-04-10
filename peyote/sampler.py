@@ -143,7 +143,7 @@ class Sampler:
 
     def import_external_sampler(self):
         try:
-            self.extenal_sampler = __import__(self.sampler_string)
+            self.external_sampler = __import__(self.sampler_string)
         except ImportError:
             raise ImportError(
                 "Sampler {} not installed on this system".format(
@@ -162,7 +162,7 @@ class Nestle(Sampler):
         self.kwargs = self.kwargs_defaults
 
     def run_sampler(self):
-        nestle = self.extenal_sampler
+        nestle = self.external_sampler
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
 
@@ -180,7 +180,7 @@ class Nestle(Sampler):
 
 class Dynesty(Sampler):
     def run_sampler(self):
-        dynesty = self.extenal_sampler
+        dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
@@ -210,7 +210,7 @@ class Pymultinest(Sampler):
                 self.kwargs['outputfiles_basename'])
 
     def run_sampler(self):
-        pymultinest = self.extenal_sampler
+        pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
