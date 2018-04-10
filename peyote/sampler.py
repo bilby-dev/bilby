@@ -5,6 +5,7 @@ import numbers
 import pickle
 import os
 
+
 import peyote
 
 
@@ -194,7 +195,7 @@ class Dynesty(Sampler):
                          label, **kwargs)
 
     def run_sampler(self):
-        dynesty = self.extenal_sampler
+        import dynesty
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
