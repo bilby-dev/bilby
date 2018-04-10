@@ -50,8 +50,8 @@ class LikelihoodB(Likelihood):
         waveform_polarizations = self.source.frequency_domain_strain()
         for interferometer in self.interferometers:
             for mode in waveform_polarizations.keys():
-                det_response = interferometer.antenna_response( self.source.ra, self.source.dec,
-                                                                self.source.geocent_time, self.source.psi, mode)
+                det_response = interferometer.antenna_response(self.source.ra, self.source.dec,
+                                                               self.source.geocent_time, self.source.psi, mode)
                 waveform_polarizations[mode] *= det_response
 
             signal_ifo = np.sum(waveform_polarizations.values(), axis=0)
