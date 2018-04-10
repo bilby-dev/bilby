@@ -49,19 +49,19 @@ class BinaryBlackHole(Source):
     def __init__(self, name, sampling_frequency, time_duration, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
                  iota, phase, waveform_approximant, reference_frequency, ra, dec, geocent_time, psi):
         Source.__init__(self, name, sampling_frequency, time_duration)
-            self.mass_1 = mass_1
-            self.mass_2 = mass_2
-            self.luminosity_distance = luminosity_distance
-            self.spin_1 = spin_1
-            self.spin_2 = spin_2
-            self.iota = iota
-            self.phase = phase
-            self.waveform_approximant = waveform_approximant
-            self.reference_frequency = reference_frequency
-            self.ra = ra
-            self.dec = dec
-            self.geocent_time = geocent_time
-            self.psi = psi
+        self.mass_1 = mass_1
+        self.mass_2 = mass_2
+        self.luminosity_distance = luminosity_distance
+        self.spin_1 = spin_1
+        self.spin_2 = spin_2
+        self.iota = iota
+        self.phase = phase
+        self.waveform_approximant = waveform_approximant
+        self.reference_frequency = reference_frequency
+        self.ra = ra
+        self.dec = dec
+        self.geocent_time = geocent_time
+        self.psi = psi
 
     #                 parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
     #                      'spin_2', 'iota', 'phase', 'waveform_approximant',
@@ -69,35 +69,35 @@ class BinaryBlackHole(Source):
     #                      'psi']
 
     def frequency_domain_strain(self, parameters):
-#        luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
-#        mass_1 = parameters['mass_1'] * lal.MSUN_SI
-#        mass_2 = parameters['mass_2'] * lal.MSUN_SI
+        luminosity_distance = self.luminosity_distance * 1e6 * lal.PC_SI
+        mass_1 = self.mass_1 * lal.MSUN_SI
+        mass_2 = self.mass_2 * lal.MSUN_SI
 
         longitude_ascending_nodes = 0.0
         eccentricity = 0.0
-        meanPerAno = 0.0
+        mean_per_ano = 0.0
 
         waveform_dictionary = lal.CreateDict()
 
         approximant = lalsim.GetApproximantFromString(
-            parameters['waveform_approximant'])
+            self.waveform_approximant)
 
         frequency_minimum = 20
         frequency_maximum = self.frequency_array[-1]
         delta_frequency = self.frequency_array[1] - self.frequency_array[0]
 
-        hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
-            mass_1, mass_2, parameters['spin_1'][0], parameters['spin_1'][1],
-            parameters['spin_1'][2], parameters['spin_2'][0],
-            parameters['spin_2'][1], parameters['spin_2'][2],
-            luminosity_distance, parameters['iota'],
-            parameters['phase'], longitude_ascending_nodes,
-            eccentricity, meanPerAno, delta_frequency, frequency_minimum,
-            frequency_maximum, parameters['reference_frequency'],
+        h_plus, h_cross = lalsim.SimInspiralChooseFDWaveform(
+            mass_1, mass_2, self.spin_1[0], self.spin_1[1],
+            self.spin_1[2], self.spin_2[0],
+            self.spin_2[1], self.spin_2[2],
+            luminosity_distance, self.iota,
+            self.phase, longitude_ascending_nodes,
+            eccentricity, mean_per_ano, delta_frequency, frequency_minimum,
+            frequency_maximum, self.reference_frequency,
             waveform_dictionary, approximant)
 
-        h_plus = hplus.data.data
-        h_cross = hcross.data.data
+        h_plus = h_plus.data.data
+        h_cross = h_cross.data.data
 
         return {'plus': h_plus, 'cross': h_cross}
 
