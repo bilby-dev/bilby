@@ -106,9 +106,10 @@ class Sampler:
         self.result.labels = [self.prior.__dict__[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
+
         for key in self.likelihood.source.__dict__:
-            if key in self.active_parameter_values:
-                p = self.active_parameter_values[key]
+            if key in self.prior.__dict__:
+                p = self.prior.__dict__[key]
                 CA = isinstance(p, numbers.Real)
                 CB = hasattr(p, 'prior')
                 CC = getattr(p, 'is_fixed', False) is True
@@ -145,6 +146,10 @@ class Sampler:
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.active_parameter_values[k] = theta[i]
+        print(self.likelihood.source.__dict__)
+        print(self.active_parameter_values)
+        exit()
+#        self.likelihood.source.__dict__ = self.active_parameter_values
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
