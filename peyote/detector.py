@@ -86,7 +86,7 @@ class Interferometer:
         """
         signal = source.frequency_domain_strain()
 
-        for mode in signal:
+        for mode in signal.keys():
             det_response = self.antenna_response(source.ra, source.dec, source.geocent_time, source.psi, mode)
 
             signal[mode] *= det_response

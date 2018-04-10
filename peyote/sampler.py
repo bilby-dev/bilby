@@ -145,8 +145,8 @@ class Sampler:
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.active_parameter_values[k] = theta[i]
-            self.likelihood.source.__dict__[k] = self.active_parameter_values[k]
+            self.likelihood.source.__dict__[k] = theta[i]
+#        print(self.likelihood.source.luminosity_distance)
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
