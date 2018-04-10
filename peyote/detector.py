@@ -82,7 +82,7 @@ class Interferometer:
         Adds the requested signal to self.data
 
         :param source: source type
-        :param params: parameters
+
         """
         signal = source.frequency_domain_strain()
 
