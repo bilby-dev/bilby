@@ -13,8 +13,8 @@ simulation_parameters = dict(
     spin_1=[0, 0, 0],
     spin_2=[0, 0, 0],
     luminosity_distance=100.,
-    iota=2.97305,
-    phase=1.145,
+    iota=0.4, #np.pi/2,
+    phase=1.3,
     waveform_approximant='IMRPhenomPv2',
     reference_frequency=50.,
     ra=1.375,
@@ -45,7 +45,6 @@ H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
 H1.set_data(sampling_frequency, time_duration, frequency_domain_strain=H1_hf_noise)
 H1.inject_signal(source)
 H1.set_spectral_densities()
-H1.whiten_data()
 
 # Simulate the data in L1
 L1 = peyote.detector.L1
@@ -54,19 +53,19 @@ L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
 L1.set_data(sampling_frequency, time_duration, frequency_domain_strain=L1_hf_noise)
 L1.inject_signal(source)
 L1.set_spectral_densities()
-L1.whiten_data()
 
 IFOs = [H1, L1]
 
 # Plot the noise and signal
-# plt.loglog(frequencies, np.abs(H1_hf_noise), lw=1.5, label='H1 noise+signal')
-# plt.loglog(frequencies, np.abs(L1_hf_noise), lw=1.5, label='L1 noise+signal')
-# plt.loglog(frequencies, np.abs(hf_signal['plus']), lw=0.8, label='signal')
-# plt.xlim(10, 1000)
-# plt.legend()
-# plt.xlabel(r'frequency')
-# plt.ylabel(r'strain')
-# plt.show()
+fig, ax = plt.subplots()
+plt.loglog(frequencies, np.abs(H1_hf_noise), lw=1.5, label='H1 noise+signal')
+plt.loglog(frequencies, np.abs(L1_hf_noise), lw=1.5, label='L1 noise+signal')
+plt.loglog(frequencies, np.abs(hf_signal['plus']), lw=0.8, label='signal')
+plt.xlim(10, 1000)
+plt.legend()
+plt.xlabel(r'frequency')
+plt.ylabel(r'strain')
+fig.savefig('data')
 
 
 likelihood = peyote.likelihood.Likelihood(IFOs, source)
