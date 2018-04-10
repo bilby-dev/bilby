@@ -75,9 +75,7 @@ class Sampler:
         self.import_external_sampler()
 
         self.active_parameter_values = self.prior.__dict__.copy()
-        del self.active_parameter_values['name']
-        del self.active_parameter_values['frequency_array']
-        del self.active_parameter_values['time_array']
+
         self.search_parameter_keys = []
         self.ndim = 0
         self.initialise_parameters()
@@ -143,7 +141,6 @@ class Sampler:
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.likelihood.source.__dict__[k] = theta[i]
-#        print(self.likelihood.source.luminosity_distance)
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
