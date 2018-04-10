@@ -72,6 +72,8 @@ class Sampler:
         self.outdir = outdir
         self.kwargs = kwargs
 
+        self.ndim = 0
+
         self.sampler_string = sampler_string
         self.import_external_sampler()
 
