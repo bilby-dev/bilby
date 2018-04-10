@@ -1,15 +1,11 @@
 from __future__ import division, print_function
 import peyote
 import numpy as np
-import os.path
+import os
 from astropy.table import Table
 from peyote.utils import sampling_frequency, nfft
-
-try:
-    import lal
-    import lalsimulation as lalsim
-except ImportError:
-    print("lal is not installed")
+import lal
+import lalsimulation as lalsim
 
 
 class Source:
@@ -23,41 +19,59 @@ class Source:
             sampling_frequency, time_duration)
 
 
-class SimpleSinusoidSource(Source):
-    """ A simple example of a sinusoid source
-
-    model takes one parameter `parameters`, a dictionary of Parameters and
-    returns the waveform model.
-
-    """
-
-    parameter_keys = ['A', 'f']
-
-    def time_domain_strain(self, parameters):
-        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
-                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)}
-
-    def frequency_domain_strain(self, parameters):
-        hf = {}
-        ht = self.time_domain_strain(parameters)
-        for mode in ht.keys():
-            hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
-        return hf
+# class SimpleSinusoidSource(Source):
+#    """ A simple example of a sinusoid source
+#
+#    model takes one parameter `parameters`, a dictionary of Parameters and
+#    returns the waveform model.
+#
+#    """
+#
+#    parameter_keys = ['A', 'f']
+#
+#    def time_domain_strain(self, parameters):
+#        return {'plus': parameters['A'] * np.sin(2 * np.pi * parameters['f'] * self.time),
+#                'cross': parameters['A'] * np.cos(2 * np.pi * parameters['f'] * self.time)}
+#
+#    def frequency_domain_strain(self, parameters):
+#        hf = {}
+#        ht = self.time_domain_strain(parameters)
+#        for mode in ht.keys():
+#            hf[mode], _ = peyote.utils.nfft(ht[mode], self.sampling_frequency)
+#        return hf
 
 
 class BinaryBlackHole(Source):
     """
     A way of getting a BBH waveform from lal
     """
-    parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
-                      'spin_1', 'iota', 'phase', 'waveform_approximant',
-                      'reference_frequency', 'ra', 'dec', 'geocent_time',
-                      'psi']
+
+    def __init__(self, name, sampling_frequency, time_duration, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
+                 iota, phase, waveform_approximant, reference_frequency, ra, dec, geocent_time, psi):
+        Source.__init__(self, name, sampling_frequency, time_duration)
+            self.mass_1 = mass_1
+            self.mass_2 = mass_2
+            self.luminosity_distance = luminosity_distance
+            self.spin_1 = spin_1
+            self.spin_2 = spin_2
+            self.iota = iota
+            self.phase = phase
+            self.waveform_approximant = waveform_approximant
+            self.reference_frequency = reference_frequency
+            self.ra = ra
+            self.dec = dec
+            self.geocent_time = geocent_time
+            self.psi = psi
+
+    #                 parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
+    #                      'spin_2', 'iota', 'phase', 'waveform_approximant',
+    #                      'reference_frequency', 'ra', 'dec', 'geocent_time',
+    #                      'psi']
 
     def frequency_domain_strain(self, parameters):
-        luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
-        mass_1 = parameters['mass_1'] * lal.MSUN_SI
-        mass_2 = parameters['mass_2'] * lal.MSUN_SI
+#        luminosity_distance = parameters['luminosity_distance'] * 1e6 * lal.PC_SI
+#        mass_1 = parameters['mass_1'] * lal.MSUN_SI
+#        mass_2 = parameters['mass_2'] * lal.MSUN_SI
 
         longitude_ascending_nodes = 0.0
         eccentricity = 0.0
@@ -130,7 +144,6 @@ class Supernova(AstrophysicalSource):
 #                                           polarisation_angle, eccentricity)
 
 
-
 class BinaryNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity,
@@ -171,10 +184,10 @@ class BinaryNeutronStarMergerNumericalRelativity(Source):
         full_filename = '{}/{}'.format(directory_path, file_name)
 
         if not os.path.isfile(full_filename):
-            print('{} does not exist'.format(full_filename)) # add exception
-            return(-1)
-        else: # ok file exists
+            print('{} does not exist'.format(full_filename))  # add exception
+            return (-1)
+        else:  # ok file exists
             strain_table = Table.read(full_filename)
             Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
             Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
-            return(strain_table['time'],strain_table["hplus"],strain_table["hcross"],frequency,Hplus,Hcross)
+            return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
