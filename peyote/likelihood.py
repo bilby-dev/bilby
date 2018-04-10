@@ -6,18 +6,15 @@ class Likelihood:
         self.interferometers = interferometers
         self.source = source
 
-    #        self.parameter_keys = set(self.source.parameter_keys +
-    #                                  ['ra', 'dec', 'geocent_time', 'psi'])
-
     def log_likelihood(self):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain()
         for interferometer in self.interferometers:
             h = []
             for mode in waveform_polarizations:
-                det_response = interferometer.antenna_response(self.source.ra, self.source.dec,
-                                                               self.source.geocent_time,
-                                                               self.source.psi, mode)
+                det_response = interferometer.antenna_response(
+                    self.source.ra, self.source.dec,
+                    self.source.geocent_time, self.source.psi, mode)
 
                 h.append(waveform_polarizations[mode] * det_response)
 
