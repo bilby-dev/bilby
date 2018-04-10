@@ -8,7 +8,7 @@ class likelihood:
         self.parameter_keys = set(self.source.parameter_keys +
                                   ['ra', 'dec', 'geocent_time', 'psi'])
 
-    def loglikelihood(self, parameters):
+    def log_likelihood(self, parameters):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
@@ -44,7 +44,7 @@ class likelihoodB(likelihood):
         for interferometer in self.interferometers:
             interferometer.whiten_data()
 
-    def loglikelihood(self, parameters):
+    def log_likelihood(self, parameters):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
