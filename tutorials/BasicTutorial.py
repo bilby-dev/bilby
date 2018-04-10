@@ -24,8 +24,8 @@ simulation_parameters = dict(
 )
 
 source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29.,
-                                       spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=410., iota=2.97305,
-                                       phase=1.145, waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
+                                       spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=100., iota=0.4,
+                                       phase=1.3, waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
                                        ra=1.375, dec=-1.2108, geocent_time=1126259642.413, psi=2.659)
 
 #source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
