@@ -32,8 +32,8 @@ class Result(dict):
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'
-                .format(file_name, file_name))
-            os.rename(file_name, file_name+'.old')
+                    .format(file_name, file_name))
+            os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
         with open(file_name, 'w+') as f:
@@ -88,8 +88,6 @@ class Sampler:
 
         self.log_summary_for_sampler()
 
-        # print(self.fixed_parameters)
-        # print(self.search_parameter_keys)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
@@ -231,9 +229,9 @@ class Pymultinest(Sampler):
 def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
-        SamplerClass = getattr(peyote.sampler, sampler.title())
-        sampler = SamplerClass(likelihood, prior, sampler, outdir=outdir,
-                               label=label, **sampler_kwargs)
+        sampler_class = getattr(peyote.sampler, sampler.title())
+        sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
+                                label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.save_to_file(outdir=outdir, label=label)
         return result
