@@ -59,7 +59,7 @@ L1.set_data(sampling_frequency, time_duration,
 IFOs = [H1, L1]
 
 source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
-likelihood = peyote.likelihood.likelihood(IFOs, source)
+likelihood = peyote.likelihood.Likelihood(IFOs, source)
 
 prior = dict(
     spin_1 = [0, 0, 0],

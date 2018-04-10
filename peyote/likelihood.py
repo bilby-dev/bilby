@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class likelihood:
+class Likelihood:
     def __init__(self, interferometers, source):
         self.interferometers = interferometers
         self.source = source
@@ -36,10 +36,10 @@ class likelihood:
         return log_l.real
 
 
-class likelihood_b(likelihood):
+class likelihood_b(Likelihood):
 
     def __init__(self, interferometers, source):
-        likelihood.__init__(self, interferometers, source)
+        Likelihood.__init__(self, interferometers, source)
 
         for interferometer in self.interferometers:
             interferometer.whiten_data()

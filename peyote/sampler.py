@@ -47,7 +47,7 @@ class Sampler:
 
     Parameters
     ----------
-    likelihood: peyote.likelihood.likelihood
+    likelihood: peyote.likelihood.Likelihood
         A  object with a log_l method
     prior: dict
         The prior to be used in the search. Elements can either be floats

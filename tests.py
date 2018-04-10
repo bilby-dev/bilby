@@ -45,7 +45,7 @@ class Test(unittest.TestCase):
         self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
-        likelihood = peyote.likelihood.likelihood(
+        likelihood = peyote.likelihood.Likelihood(
             [self.msd['IFO']], self.msd['source'])
 
         prior = self.msd['simulation_parameters'].copy()

@@ -66,7 +66,7 @@ IFOs = [H1, L1]
 # plt.show()
 
 
-likelihood = peyote.likelihood.likelihood(IFOs, source)
+likelihood = peyote.likelihood.Likelihood(IFOs, source)
 
 prior = simulation_parameters.copy()
 prior['mass_1'] = peyote.parameter.Parameter(
