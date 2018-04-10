@@ -29,7 +29,7 @@ class Prior(object):
     def __repr__(self):
         prior_name = self.__class__.__name__
         prior_args = ', '.join(
-            ['{}={}'.format(k, v) for k, v in self.__dict__.iteritems()])
+            ['{}={}'.format(k, v) for k, v in self.__dict__.items()])
         return "{}({})".format(prior_name, prior_args)
 
 
