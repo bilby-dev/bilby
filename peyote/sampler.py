@@ -68,10 +68,7 @@ class Sampler:
                  label='label', **kwargs):
         self.likelihood = likelihood
         self.prior = prior
-        # print(prior.luminosity_distance.prior)
-        # print(prior.mass_2.prior)
-        # print(prior.mass_1.prior)
-        # print(prior.iota.prior)
+
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
@@ -81,18 +78,22 @@ class Sampler:
         self.import_external_sampler()
 
         self.fixed_parameters = self.prior.__dict__.copy()
+        del self.fixed_parameters['name']
+        del self.fixed_parameters['frequency_array']
+        del self.fixed_parameters['time_array']
         self.search_parameter_keys = []
         self.ndim = 0
         self.initialise_parameters()
 
         self.verify_prior()
-        print(self.search_parameter_keys)
+
         self.result = Result()
         self.add_initial_data_to_results()
         self.set_kwargs()
 
         self.log_summary_for_sampler()
 
+        print(self.fixed_parameters)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
@@ -148,7 +149,6 @@ class Sampler:
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.fixed_parameters[k] = theta[i]
-#        print(self.fixed_parameters)
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
