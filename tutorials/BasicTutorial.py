@@ -1,41 +1,25 @@
 import numpy as np
 import pylab as plt
+
+import peyote
+import dynesty.plotting as dyplot
 import corner
 import peyote
-import dyplot
+
 # peyote.setup_logging()
 
 time_duration = 1.
 sampling_frequency = 4096.
 
-# simulation_parameters = dict(
-#     mass_1=36., mass_2=29.,
-#     spin_1=[0, 0, 0],
-#     spin_2=[0, 0, 0],
-#     luminosity_distance=100.,
-#     iota=0.4, #np.pi/2,
-#     phase=1.3,
-#     waveform_approximant='IMRPhenomPv2',
-#     reference_frequency=50.,
-#     ra=1.375,
-#     dec=-1.2108,
-#     geocent_time=1126259642.413,
-#     psi=2.659
-# )
+
 
 source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29.,
                                        spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=100., iota=0.4,
                                        phase=1.3, waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
                                        ra=1.375, dec=-1.2108, geocent_time=1126259642.413, psi=2.659)
 
-#source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
+# source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
 hf_signal = source.frequency_domain_strain()
-
-# plt.loglog(source.frequency_array, np.abs(hf_signal['plus']))
-# plt.show()
-
-
-# In[3]:
 
 
 # Simulate the data in H1
@@ -67,7 +51,6 @@ plt.xlabel(r'frequency')
 plt.ylabel(r'strain')
 fig.savefig('data')
 
-
 likelihood = peyote.likelihood.Likelihood(IFOs, source)
 
 prior = source.copy()
@@ -87,10 +70,9 @@ prior.luminosity_distance = peyote.parameter.Parameter(
 result = peyote.run_sampler(likelihood, prior, sampler='nestle',
                             n_live_points=200, verbose=True)
 
-
 truths = [source.__dict__[x] for x in result.search_parameter_keys]
 fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 fig.savefig('corner')
 
-#fig, axes = dyplot.traceplot(result['sampler_output'])
-#fig.savefig('trace')
+fig, axes = dyplot.traceplot(result['sampler_output'])
+fig.savefig('trace')
