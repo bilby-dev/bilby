@@ -93,8 +93,8 @@ class Sampler:
 
         self.log_summary_for_sampler()
 
-        print(self.fixed_parameters)
-        print(self.search_parameter_keys)
+        # print(self.fixed_parameters)
+        # print(self.search_parameter_keys)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
@@ -150,6 +150,9 @@ class Sampler:
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.fixed_parameters[k] = theta[i]
+        print(self.search_parameter_keys)
+        print(self.fixed_parameters)
+        exit()
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
