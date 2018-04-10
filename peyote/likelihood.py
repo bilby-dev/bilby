@@ -11,7 +11,7 @@ class likelihood:
         self.set_null_likelihood()
 
     def loglikelihood(self, parameters):
-        log_l = 0
+        log_l = -self.set_null_likelihood()
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
             h = []
