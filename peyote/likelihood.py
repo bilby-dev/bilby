@@ -8,30 +8,36 @@ class likelihood:
         self.parameter_keys = set(self.source.parameter_keys +
                                   ['ra', 'dec', 'geocent_time', 'psi'])
 
+    def get_interferometer_signal(self, parameters, waveform_polarizations, interferometer):
+        h = []
+        for mode in waveform_polarizations:
+            det_response = interferometer.antenna_response(
+                parameters['ra'], parameters['dec'],
+                parameters['geocent_time'], parameters['psi'], mode)
+
+            h.append(waveform_polarizations[mode] * det_response)
+        signal = np.sum(h, axis=0)
+
+        time_shift = interferometer.time_delay_from_geocenter(
+            parameters['ra'], parameters['dec'],
+            parameters['geocent_time'])
+        signal *= np.exp(-1j * 2 * np.pi * time_shift * self.source.frequency_array)
+
+        return signal
+
     def loglikelihood(self, parameters):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
-            h = []
-            for mode in waveform_polarizations:
-                det_response = interferometer.antenna_response(
-                    parameters['ra'], parameters['dec'],
-                    parameters['geocent_time'], parameters['psi'], mode)
+            log_l += self.log_likelihood_interferometer(parameters, waveform_polarizations, interferometer)
+        return log_l.real
 
-                h.append(waveform_polarizations[mode] * det_response)
+    def log_likelihood_interferometer(self, parameters, waveform_polarizations, interferometer):
+        signal_ifo = self.get_interferometer_signal(parameters, waveform_polarizations, interferometer)
 
-            signal_ifo = np.sum(h, axis=0)
-
-            time_shift = interferometer.time_delay_from_geocenter(
-                parameters['ra'], parameters['dec'],
-                parameters['geocent_time'])
-            signal_ifo *= np.exp(-1j*2*np.pi*time_shift*self.source.frequency_array)
-
-            log_l -= 4. / self.source.time_duration * np.vdot(
-                interferometer.data - signal_ifo,
-                (interferometer.data - signal_ifo) / (
-                    interferometer.power_spectral_density_array))
-
+        log_l = - 4. / self.source.time_duration * np.vdot(interferometer.data - signal_ifo,
+                                                           (interferometer.data - signal_ifo)
+                                                           / (interferometer.power_spectral_density_array))
         return log_l.real
 
 
