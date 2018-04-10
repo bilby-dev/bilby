@@ -68,6 +68,13 @@ class BinaryBlackHole(Source):
     #                      'reference_frequency', 'ra', 'dec', 'geocent_time',
     #                      'psi']
 
+    def copy(self):
+        copy = BinaryBlackHole(self.name, self.sampling_frequency, self.time_duration, self.mass_1, self.mass_2,
+                               self.luminosity_distance, self.spin_1, self.spin_2, self.iota, self.phase,
+                               self.waveform_approximant, self.reference_frequency, self.ra, self.dec,
+                               self.geocent_time, self.psi)
+        return copy
+
     def frequency_domain_strain(self):
         luminosity_distance = self.luminosity_distance * 1e6 * lal.PC_SI
         mass_1 = self.mass_1 * lal.MSUN_SI
