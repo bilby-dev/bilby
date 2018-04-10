@@ -84,7 +84,7 @@ prior.luminosity_distance = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
     latex_label='$d_L$')
 
-result = peyote.run_sampler(likelihood, prior, sampler='dynesty',
+result = peyote.run_sampler(likelihood, prior, sampler='nestle',
                             n_live_points=200, verbose=True)
 
 
