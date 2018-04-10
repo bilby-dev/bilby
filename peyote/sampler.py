@@ -106,13 +106,9 @@ class Sampler:
         self.result.labels = [self.prior.__dict__[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-
-        prior_dict = self.prior.__dict__
-        likelihood_dict = self.likelihood.source.__dict__
-
-        for key in likelihood_dict:
-            if key in prior_dict:
-                p = prior_dict[key]
+        for key in self.likelihood.source.__dict__:
+            if key in self.active_parameter_values:
+                p = self.active_parameter_values[key]
                 CA = isinstance(p, numbers.Real)
                 CB = hasattr(p, 'prior')
                 CC = getattr(p, 'is_fixed', False) is True
@@ -131,7 +127,6 @@ class Sampler:
         self.ndim = len(self.search_parameter_keys)
 
         logging.info("Search parameters:")
-
         for key in self.search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.prior.__dict__[key]))
 
@@ -249,3 +244,4 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
+
