@@ -34,8 +34,8 @@ class Result(dict):
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'
-                .format(file_name, file_name))
-            os.rename(file_name, file_name+'.old')
+                    .format(file_name, file_name))
+            os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
         with open(file_name, 'w+') as f:
@@ -71,12 +71,19 @@ class Sampler:
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
-
         self.sampler_string = sampler_string
+
+        self.external_sampler = None
         self.import_external_sampler()
 
+        self.fixed_parameters = self.prior.__dict__
+        self.search_parameter_keys = []
+        self.ndim = 0
         self.initialise_parameters()
+
         self.verify_prior()
+#        print(self.search_parameter_keys)
+        self.result = Result()
         self.add_initial_data_to_results()
         self.set_kwargs()
 
@@ -89,17 +96,19 @@ class Sampler:
         pass
 
     def add_initial_data_to_results(self):
-        self.result = Result()
+
         self.result.search_parameter_keys = self.search_parameter_keys
         self.result.labels = [
             self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-        self.fixed_parameters = self.prior.copy()
-        self.search_parameter_keys = []
-        for key in self.likelihood.parameter_keys:
-            if key in self.prior:
-                p = self.prior[key]
+
+        prior_dict = self.prior.__dict__
+        likelihood_dict = self.likelihood.source.__dict__
+
+        for key in likelihood_dict:
+            if key in prior_dict:
+                p = prior_dict[key]
                 CA = isinstance(p, numbers.Real)
                 CB = hasattr(p, 'prior')
                 CC = getattr(p, 'is_fixed', False) is True
@@ -118,13 +127,14 @@ class Sampler:
         self.ndim = len(self.search_parameter_keys)
 
         logging.info("Search parameters:")
+
         for key in self.search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
+            logging.info('  {} ~ {}'.format(key, self.prior.__dict__[key]))
 
     def verify_prior(self):
-        required_keys = self.likelihood.parameter_keys
+        required_keys = self.likelihood.source.__dict__
         unmatched_keys = [
-            r for r in required_keys if r not in self.prior]
+            r for r in required_keys if r not in self.prior.__dict__]
         if len(unmatched_keys) > 0:
             raise ValueError(
                 "Input prior is missing keys {}".format(unmatched_keys))
@@ -143,7 +153,7 @@ class Sampler:
 
     def import_external_sampler(self):
         try:
-            self.extenal_sampler = __import__(self.sampler_string)
+            self.external_sampler = __import__(self.sampler_string)
         except ImportError:
             raise ImportError(
                 "Sampler {} not installed on this system".format(
@@ -162,7 +172,7 @@ class Nestle(Sampler):
         self.kwargs = self.kwargs_defaults
 
     def run_sampler(self):
-        nestle = self.extenal_sampler
+        nestle = self.external_sampler
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
 
@@ -180,7 +190,7 @@ class Nestle(Sampler):
 
 class Dynesty(Sampler):
     def run_sampler(self):
-        dynesty = self.extenal_sampler
+        dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
@@ -210,7 +220,7 @@ class Pymultinest(Sampler):
                 self.kwargs['outputfiles_basename'])
 
     def run_sampler(self):
-        pymultinest = self.extenal_sampler
+        pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
@@ -235,4 +245,3 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
-
