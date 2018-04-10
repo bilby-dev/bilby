@@ -226,8 +226,8 @@ class Pymultinest(Sampler):
 def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
-        SamplerClass = getattr(peyote.sampler, sampler.title())
-        sampler = SamplerClass(likelihood, prior, sampler, outdir=outdir,
+        sampler_class = getattr(peyote.sampler, sampler.title())
+        sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
                                label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.save_to_file(outdir=outdir, label=label)
