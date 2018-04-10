@@ -3,28 +3,33 @@ import pylab as plt
 
 import peyote
 
-peyote.setup_logging()
+# peyote.setup_logging()
 
 time_duration = 1.
 sampling_frequency = 4096.
 
 simulation_parameters = dict(
-    mass_1 = 36., mass_2 = 29.,
-    spin_1 = [0, 0, 0],
-    spin_2 = [0, 0, 0],
-    luminosity_distance = 410.,
-    iota = 2.97305,
-    phase = 1.145,
-    waveform_approximant = 'IMRPhenomPv2',
-    reference_frequency = 50.,
-    ra = 1.375,
-    dec = -1.2108,
-    geocent_time = 1126259642.413,
+    mass_1=36., mass_2=29.,
+    spin_1=[0, 0, 0],
+    spin_2=[0, 0, 0],
+    luminosity_distance=410.,
+    iota=2.97305,
+    phase=1.145,
+    waveform_approximant='IMRPhenomPv2',
+    reference_frequency=50.,
+    ra=1.375,
+    dec=-1.2108,
+    geocent_time=1126259642.413,
     psi=2.659
-    )
+)
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
-hf_signal = source.frequency_domain_strain(simulation_parameters)
+source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29.,
+                                       spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=410., iota=2.97305,
+                                       phase=1.145, waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
+                                       ra=1.375, dec=-1.2108, geocent_time=1126259642.413, psi=2.659)
+
+#source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
+hf_signal = source.frequency_domain_strain()
 
 # plt.loglog(source.frequency_array, np.abs(hf_signal['plus']))
 # plt.show()
@@ -52,8 +57,6 @@ L1.set_spectral_densities()
 L1.whiten_data()
 
 IFOs = [H1, L1]
-
-
 
 # Plot the noise and signal
 # plt.loglog(frequencies, np.abs(H1_hf_noise), lw=1.5, label='H1 noise+signal')
