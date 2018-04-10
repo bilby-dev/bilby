@@ -68,7 +68,7 @@ class BinaryBlackHole(Source):
     #                      'reference_frequency', 'ra', 'dec', 'geocent_time',
     #                      'psi']
 
-    def frequency_domain_strain(self, parameters):
+    def frequency_domain_strain(self):
         luminosity_distance = self.luminosity_distance * 1e6 * lal.PC_SI
         mass_1 = self.mass_1 * lal.MSUN_SI
         mass_2 = self.mass_2 * lal.MSUN_SI
@@ -99,7 +99,7 @@ class BinaryBlackHole(Source):
         h_plus = h_plus.data.data
         h_cross = h_cross.data.data
 
-        return {'plus': h_plus, 'cross': h_cross}
+        return h_plus, h_cross
 
 
 class Glitch(Source):
