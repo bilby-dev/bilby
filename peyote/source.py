@@ -104,7 +104,7 @@ class BinaryBlackHole(Source):
         h_plus = h_plus.data.data
         h_cross = h_cross.data.data
 
-        return h_plus, h_cross
+        return {'plus': h_plus, 'cross': h_cross}
 
 
 class Glitch(Source):

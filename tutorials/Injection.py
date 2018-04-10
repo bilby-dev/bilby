@@ -39,7 +39,7 @@ IFO_3 = peyote.detector.V1
 IFOs = [IFO_1, IFO_2, IFO_3]
 for IFO in IFOs:
     IFO.set_data(from_power_spectral_density=True, sampling_frequency=sampling_frequency, duration=time_duration)
-    IFO.inject_signal(source, simulation_parameters)
+    IFO.inject_signal(source)
 
 # ff = peyote.utils.create_frequency_series(sampling_frequency, time_duration)
 # for IFO in IFOs:
