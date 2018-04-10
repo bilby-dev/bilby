@@ -95,7 +95,7 @@ class Sampler:
             self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-        self.fixed_parameters = self.prior.copy()
+        self.active_parameter_values = self.prior.copy()
         self.search_parameter_keys = []
         for key in self.likelihood.parameter_keys:
             if key in self.prior:
@@ -105,9 +105,9 @@ class Sampler:
                 CC = getattr(p, 'is_fixed', False) is True
                 if CA is False and CB and CC is False:
                     self.search_parameter_keys.append(key)
-                    self.fixed_parameters[key] = np.nan
+                    self.active_parameter_values[key] = np.nan
                 elif CC:
-                    self.fixed_parameters[key] = p.value
+                    self.active_parameter_values[key] = p.value
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
@@ -135,8 +135,8 @@ class Sampler:
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.fixed_parameters[k] = theta[i]
-        return self.likelihood.loglikelihood(self.fixed_parameters)
+            self.active_parameter_values[k] = theta[i]
+        return self.likelihood.loglikelihood(self.active_parameter_values)
 
     def run_sampler(self):
         pass
