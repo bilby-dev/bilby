@@ -79,17 +79,15 @@ class BinaryBlackHole(Source):
 
         waveform_dictionary = lal.CreateDict()
 
-        approximant = lalsim.GetApproximantFromString(
-            self.waveform_approximant)
+        approximant = lalsim.GetApproximantFromString(self.waveform_approximant)
 
         frequency_minimum = 20
         frequency_maximum = self.frequency_array[-1]
         delta_frequency = self.frequency_array[1] - self.frequency_array[0]
 
         h_plus, h_cross = lalsim.SimInspiralChooseFDWaveform(
-            mass_1, mass_2, self.spin_1[0], self.spin_1[1],
-            self.spin_1[2], self.spin_2[0],
-            self.spin_2[1], self.spin_2[2],
+            mass_1, mass_2, self.spin_1[0], self.spin_1[1], self.spin_1[2],
+            self.spin_2[0], self.spin_2[1], self.spin_2[2],
             luminosity_distance, self.iota,
             self.phase, longitude_ascending_nodes,
             eccentricity, mean_per_ano, delta_frequency, frequency_minimum,
