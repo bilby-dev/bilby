@@ -1,8 +1,8 @@
 import numpy as np
 import pylab as plt
-
+import corner
 import peyote
-
+import dyplot
 # peyote.setup_logging()
 
 time_duration = 1.
@@ -43,7 +43,7 @@ H1 = peyote.detector.H1
 H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 H1.set_data(sampling_frequency, time_duration, frequency_domain_strain=H1_hf_noise)
-H1.inject_signal(source, simulation_parameters)
+H1.inject_signal(source)
 H1.set_spectral_densities()
 H1.whiten_data()
 
@@ -52,7 +52,7 @@ L1 = peyote.detector.L1
 L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 L1.set_data(sampling_frequency, time_duration, frequency_domain_strain=L1_hf_noise)
-L1.inject_signal(source, simulation_parameters)
+L1.inject_signal(source)
 L1.set_spectral_densities()
 L1.whiten_data()
 
@@ -85,5 +85,12 @@ prior.luminosity_distance = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=300, upper=600),
     latex_label='$d_L$')
 
-result = peyote.run_sampler(likelihood, prior, sampler='pymultinest',
-                            n_live_points=800, verbose=True)
+result = peyote.run_sampler(likelihood, prior, sampler='nestle',
+                            n_live_points=200, verbose=True)
+
+truths = [simulation_parameters[x] for x in result.search_parameter_keys]
+fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
+fig.savefig('corner')
+
+fig, axes = dyplot.traceplot(result['sampler_output'])
+fig.savefig('trace')
