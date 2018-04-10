@@ -97,7 +97,13 @@ class Sampler:
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
         self.search_parameter_keys = []
-        for key in self.likelihood.source:
+
+        for key in dir(self.likelihood.source):
+            if key.startswith('__'):
+                continue
+            if key == 'copy':
+                continue
+
             if key in self.prior:
                 p = self.prior[key]
                 CA = isinstance(p, numbers.Real)
