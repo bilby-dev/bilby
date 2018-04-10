@@ -59,9 +59,9 @@ prior.mass_1 = peyote.parameter.Parameter(
 prior.mass_2 = peyote.parameter.Parameter(
     'mass_2', prior=peyote.prior.Uniform(lower=27, upper=31),
     latex_label='$m_2$')
-prior.iota = peyote.parameter.Parameter(
-    'iota', prior=peyote.prior.Uniform(lower=0, upper=np.pi),
-    latex_label='$iota$')
+#prior.iota = peyote.parameter.Parameter(
+#    'iota', prior=peyote.prior.Uniform(lower=0, upper=np.pi),
+#    latex_label='$iota$')
 prior.luminosity_distance = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
     latex_label='$d_L$')
