@@ -75,7 +75,7 @@ class Interferometer:
         detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
         return detector_tensor
 
-    def inject_signal(self, source, params):
+    def inject_signal(self, source):
         """
         Inject a signal into noise.
 
@@ -84,19 +84,17 @@ class Interferometer:
         :param source: source type
         :param params: parameters
         """
-        signal = source.frequency_domain_strain(params)
+        signal = source.frequency_domain_strain()
 
         for mode in signal.keys():
-            det_response = self.antenna_response(
-                params['ra'], params['dec'], params['geocent_time'],
-                params['psi'], mode)
+            det_response = self.antenna_response(source.ra, source.dec, source.geocent_time, source.psi, mode)
 
             signal[mode] *= det_response
         signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
-            params['ra'], params['dec'], params['geocent_time'])
-        #signal_ifo *= np.exp(1j*2*np.pi*time_shift*source.frequency_array)
+            source.ra, source.dec, source.geocent_time)
+        # signal_ifo *= np.exp(1j*2*np.pi*time_shift*source.frequency_array)
         signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
 
         self.data += signal_ifo
