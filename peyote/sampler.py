@@ -77,10 +77,10 @@ class Sampler:
         self.external_sampler = None
         self.import_external_sampler()
 
-        self.fixed_parameters = self.prior.__dict__.copy()
-        del self.fixed_parameters['name']
-        del self.fixed_parameters['frequency_array']
-        del self.fixed_parameters['time_array']
+        self.active_parameter_values = self.prior.__dict__.copy()
+        del self.active_parameter_values['name']
+        del self.active_parameter_values['frequency_array']
+        del self.active_parameter_values['time_array']
         self.search_parameter_keys = []
         self.ndim = 0
         self.initialise_parameters()
@@ -118,9 +118,9 @@ class Sampler:
                 CC = getattr(p, 'is_fixed', False) is True
                 if CA is False and CB and CC is False:
                     self.search_parameter_keys.append(key)
-                    self.fixed_parameters[key] = np.nan
+                    self.active_parameter_values[key] = np.nan
                 elif CC:
-                    self.fixed_parameters[key] = p.value
+                    self.active_parameter_values[key] = p.value
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
@@ -149,10 +149,7 @@ class Sampler:
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.fixed_parameters[k] = theta[i]
-        print(self.search_parameter_keys)
-        print(self.fixed_parameters)
-        exit()
+            self.active_parameter_values[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
