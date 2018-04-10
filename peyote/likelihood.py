@@ -7,11 +7,11 @@ class likelihood:
         self.source = source
         self.parameter_keys = set(self.source.parameter_keys +
                                   ['ra', 'dec', 'geocent_time', 'psi'])
-        self.noise_likelihood = 0
-        self.set_null_likelihood()
+        self.noise_log_likelihood = 0
+        self.set_noise_log_likelihood()
 
     def loglikelihood(self, parameters):
-        log_l = -self.set_null_likelihood()
+        log_l = -self.noise_log_likelihood
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
             h = []
@@ -36,12 +36,12 @@ class likelihood:
 
         return log_l.real
 
-    def set_null_likelihood(self):
+    def set_noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
             log_l -= 4. / self.source.time_duration * np.sum(abs(interferometer.data)**2
                                                              / interferometer.power_spectral_density_array)
-        self.noise_likelihood = log_l.real
+        self.noise_log_likelihood = log_l.real
 
 
 
