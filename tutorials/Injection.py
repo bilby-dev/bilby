@@ -59,7 +59,7 @@ prior['mass_1'] = peyote.parameter.Parameter('mass_1', prior=peyote.prior.Unifor
 # prior['mass_2'] = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
 #                                              latex_label='$m_2$')
 
-result = peyote.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=100, print_progress=True)
+result = peyote.sampler.run_sampler(likelihood, prior, sampler='nestle', npoints=100, print_progress=True)
 
 print(result.samples)
 
