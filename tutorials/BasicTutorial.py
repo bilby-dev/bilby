@@ -1,7 +1,6 @@
 import numpy as np
 import pylab as plt
 
-import peyote
 import dynesty.plotting as dyplot
 import corner
 import peyote
