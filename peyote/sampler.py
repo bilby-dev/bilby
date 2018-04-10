@@ -94,6 +94,7 @@ class Sampler:
         self.log_summary_for_sampler()
 
         print(self.fixed_parameters)
+        print(self.search_parameter_keys)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
