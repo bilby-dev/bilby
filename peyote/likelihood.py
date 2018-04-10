@@ -36,7 +36,7 @@ class likelihood:
         return log_l.real
 
 
-class likelihoodB(likelihood):
+class likelihood_b(likelihood):
 
     def __init__(self, interferometers, source):
         likelihood.__init__(self, interferometers, source)
