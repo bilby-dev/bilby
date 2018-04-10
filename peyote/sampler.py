@@ -34,8 +34,8 @@ class Result(dict):
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'
-                .format(file_name, file_name))
-            os.rename(file_name, file_name+'.old')
+                    .format(file_name, file_name))
+            os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
         with open(file_name, 'w+') as f:
@@ -97,7 +97,7 @@ class Sampler:
     def initialise_parameters(self):
         self.fixed_parameters = self.prior.copy()
         self.search_parameter_keys = []
-        for key in self.likelihood.parameter_keys:
+        for key in self.likelihood.source:
             if key in self.prior:
                 p = self.prior[key]
                 CA = isinstance(p, numbers.Real)
@@ -228,11 +228,10 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
     if hasattr(peyote.sampler, sampler.title()):
         sampler_class = getattr(peyote.sampler, sampler.title())
         sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
-                               label=label, **sampler_kwargs)
+                                label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
-
