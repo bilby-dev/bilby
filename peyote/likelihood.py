@@ -25,8 +25,8 @@ class likelihood:
             time_shift = interferometer.time_delay_from_geocenter(
                 parameters['ra'], parameters['dec'],
                 parameters['geocent_time'])
-            #signal_ifo *= np.exp(1j*2*np.pi*time_shift*self.source.frequency_array)
-            signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
+            # signal_ifo *= np.exp(1j*2*np.pi*time_shift*self.source.frequency_array)
+            signal_ifo *= np.exp(-1j * 2 * np.pi * time_shift)
 
             log_l -= 4. / self.source.time_duration * np.vdot(
                 interferometer.data - signal_ifo,
@@ -38,20 +38,17 @@ class likelihood:
 
 class likelihoodB(likelihood):
 
-
     def __init__(self, interferometers, source):
         likelihood.__init__(self, interferometers, source)
 
         for interferometer in self.interferometers:
             interferometer.whiten_data()
 
-
     def loglikelihood(self, parameters):
         log_l = 0
         waveform_polarizations = self.source.frequency_domain_strain(parameters)
         for interferometer in self.interferometers:
             for mode in waveform_polarizations.keys():
-
                 det_response = interferometer.antenna_response(
                     parameters['ra'], parameters['dec'],
                     parameters['geocent_time'], parameters['psi'], mode)
@@ -63,12 +60,12 @@ class likelihoodB(likelihood):
             time_shift = interferometer.time_delay_from_geocenter(
                 parameters['ra'], parameters['dec'],
                 parameters['geocent_time'])
-            signal_ifo *= np.exp(-1j*2*np.pi*time_shift)
+            signal_ifo *= np.exp(-1j * 2 * np.pi * time_shift)
             signal_ifo_whitened = signal_ifo / (
-                    interferometer.amplitude_spectral_density_array)
+                interferometer.amplitude_spectral_density_array)
 
             log_l -= 4. * self.source.sampling_frequency * (
                 np.real(sum(
-                    (interferometer.whitened_data - signal_ifo_whitened)**2)))
+                    (interferometer.whitened_data - signal_ifo_whitened) ** 2)))
 
         return log_l
