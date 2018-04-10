@@ -68,6 +68,10 @@ class Sampler:
                  label='label', **kwargs):
         self.likelihood = likelihood
         self.prior = prior
+        # print(prior.luminosity_distance.prior)
+        # print(prior.mass_2.prior)
+        # print(prior.mass_1.prior)
+        # print(prior.iota.prior)
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
@@ -76,13 +80,13 @@ class Sampler:
         self.external_sampler = None
         self.import_external_sampler()
 
-        self.fixed_parameters = self.prior.__dict__
+        self.fixed_parameters = self.prior.__dict__.copy()
         self.search_parameter_keys = []
         self.ndim = 0
         self.initialise_parameters()
 
         self.verify_prior()
-#        print(self.search_parameter_keys)
+        print(self.search_parameter_keys)
         self.result = Result()
         self.add_initial_data_to_results()
         self.set_kwargs()
@@ -96,10 +100,8 @@ class Sampler:
         pass
 
     def add_initial_data_to_results(self):
-
         self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [
-            self.prior[k].latex_label for k in self.search_parameter_keys]
+        self.result.labels = [self.prior.__dict__[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
 
@@ -140,13 +142,14 @@ class Sampler:
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.prior[k].prior.rescale(t)
-                for k, t in zip(self.search_parameter_keys, theta)]
+        return [self.prior.__dict__[key].prior.rescale(t)
+                for key, t in zip(self.search_parameter_keys, theta)]
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.fixed_parameters[k] = theta[i]
-        return self.likelihood.loglikelihood(self.fixed_parameters)
+#        print(self.fixed_parameters)
+        return self.likelihood.log_likelihood()
 
     def run_sampler(self):
         pass
