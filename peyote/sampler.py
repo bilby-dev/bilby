@@ -104,7 +104,7 @@ class Sampler:
             if key == 'copy':
                 continue
 
-            if key in self.prior:
+            if key in dir(self.prior):
                 p = self.prior[key]
                 CA = isinstance(p, numbers.Real)
                 CB = hasattr(p, 'prior')
