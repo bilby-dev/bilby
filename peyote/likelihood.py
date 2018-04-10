@@ -26,8 +26,7 @@ class Likelihood:
             time_shift = interferometer.time_delay_from_geocenter(self.source.ra, self.source.dec,
                                                                   self.source.geocent_time)
 
-            # signal_ifo *= np.exp(1j*2*np.pi*time_shift*self.source.frequency_array)
-            signal_ifo *= np.exp(-1j * 2 * np.pi * time_shift)
+            signal_ifo *= np.exp(1j*2*np.pi*time_shift*self.source.frequency_array)
 
             log_l -= 4. / self.source.time_duration * np.vdot(
                 interferometer.data - signal_ifo,
