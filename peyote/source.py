@@ -1,11 +1,13 @@
 from __future__ import division, print_function
-import peyote
-import numpy as np
+
 import os
-from astropy.table import Table
-from peyote.utils import sampling_frequency, nfft
+
 import lal
 import lalsimulation as lalsim
+from astropy.table import Table
+
+import peyote
+from peyote.utils import sampling_frequency, nfft
 
 
 class Source:
@@ -62,13 +64,6 @@ class BinaryBlackHole(Source):
         self.dec = dec
         self.geocent_time = geocent_time
         self.psi = psi
-
-
-
-    #                 parameter_keys = ['mass_1', 'mass_2', 'luminosity_distance', 'spin_1',
-    #                      'spin_2', 'iota', 'phase', 'waveform_approximant',
-    #                      'reference_frequency', 'ra', 'dec', 'geocent_time',
-    #                      'psi']
 
     def copy(self):
         copy = BinaryBlackHole(self.name, self.sampling_frequency, self.time_duration, self.mass_1, self.mass_2,
@@ -141,15 +136,6 @@ class CompactBinaryCoalescence(AstrophysicalSource):
 class Supernova(AstrophysicalSource):
     def __init__(self, name, right_ascension, declination, luminosity_distance):
         AstrophysicalSource.__init__(self, name, right_ascension, declination, luminosity_distance)
-
-
-# class BinaryBlackHole(CompactBinaryCoalescence):
-#     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
-#                  coalescence_time, inclination_angle, waveform_phase, polarisation_angle, eccentricity):
-#         CompactBinaryCoalescence.__init__(self, name, right_ascension, declination, luminosity_distance, mass_1,
-#                                           mass_2, spin_1, spin_2, coalescence_time, inclination_angle, waveform_phase,
-#                                           polarisation_angle, eccentricity)
-
 
 class BinaryNeutronStar(CompactBinaryCoalescence):
     def __init__(self, name, right_ascension, declination, luminosity_distance, mass_1, mass_2, spin_1, spin_2,
