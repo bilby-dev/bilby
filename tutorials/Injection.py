@@ -41,7 +41,7 @@ for IFO in IFOs:
     IFO.set_data(from_power_spectral_density=True, sampling_frequency=sampling_frequency, duration=time_duration)
     IFO.inject_signal(source, simulation_parameters)
 
-# ff = peyote.utils.create_fequency_series(sampling_frequency, time_duration)
+# ff = peyote.utils.create_frequency_series(sampling_frequency, time_duration)
 # for IFO in IFOs:
 #     plt.loglog(ff, np.abs(IFO.data), label=IFO.name)
 #
@@ -61,8 +61,8 @@ likelihood = peyote.likelihood.LikelihoodB(source=source, interferometers=IFOs)
 prior = source.copy()
 prior.mass_1 = peyote.parameter.Parameter('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
                                           latex_label='$m_1$')
-# prior['mass_2'] = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
-#                                              latex_label='$m_2$')
+prior.mass_2 = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
+                                          latex_label='$m_2$')
 
 result = peyote.sampler.run_sampler(likelihood, prior, 'dynesty', npoints=100, print_progress=True)
 
