@@ -66,7 +66,7 @@ prior.mass_2 = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(l
 
 # result = peyote.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=100, print_progress=True)
 
-sampler = peyote.sampler.Dynesty(likelihood, prior, outdir='outdir', label='label')
+sampler = peyote.sampler.Nestle(likelihood, prior, outdir='outdir', label='label')
 result = sampler.run_sampler()
 print(result.samples)
 
