@@ -5,13 +5,10 @@ import numbers
 import pickle
 import os
 
-
 import peyote
 
 
 class Result(dict):
-    def __init__(self):
-        pass
 
     def __getattr__(self, name):
         try:
@@ -44,26 +41,6 @@ class Result(dict):
 
 
 class Sampler:
-    """ A sampler object to aid in setting up an inference run
-
-    Parameters
-    ----------
-    likelihood: peyote.likelihood.Likelihood
-        A  object with a log_l method
-    prior: dict
-        The prior to be used in the search. Elements can either be floats
-        (indicating a fixed value or delta function prior) or they can be
-        of type peyote.parameter.Parameter with an associated prior
-    sampler_string: str
-        A string containing the module name of the sampler
-
-
-    Returns
-    -------
-    results:
-        A dictionary of the results
-
-    """
 
     def __init__(self, likelihood, prior, sampler_string, outdir='outdir',
                  label='label', **kwargs):
@@ -76,31 +53,22 @@ class Sampler:
         self.ndim = 0
 
         self.sampler_string = sampler_string
-        self.import_external_sampler()
 
+        self.fixed_parameters = self.prior.copy()
+        self.search_parameter_keys = []
         self.initialise_parameters()
-        self.verify_prior()
-        self.add_initial_data_to_results()
-        self.set_kwargs()
 
-        self.log_summary_for_sampler()
+        self.result = Result()
+        self.add_initial_data_to_results()
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
-    def set_kwargs(self):
-        pass
-
     def add_initial_data_to_results(self):
-        self.result = Result()
         self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [
-            self.prior[k].latex_label for k in self.search_parameter_keys]
+        self.result.labels = [self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-        self.fixed_parameters = self.prior.copy()
-        self.search_parameter_keys = []
-
         for key in dir(self.likelihood.source):
             if key.startswith('__'):
                 continue
@@ -130,14 +98,6 @@ class Sampler:
         for key in self.search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
 
-    def verify_prior(self):
-        required_keys = self.likelihood.parameter_keys
-        unmatched_keys = [
-            r for r in required_keys if r not in self.prior]
-        if len(unmatched_keys) > 0:
-            raise ValueError(
-                "Input prior is missing keys {}".format(unmatched_keys))
-
     def prior_transform(self, theta):
         return [self.prior[k].prior.rescale(t)
                 for k, t in zip(self.search_parameter_keys, theta)]
@@ -150,20 +110,13 @@ class Sampler:
     def run_sampler(self):
         pass
 
-    def import_external_sampler(self):
-        try:
-            self.extenal_sampler = __import__(self.sampler_string)
-        except ImportError:
-            raise ImportError(
-                "Sampler {} not installed on this system".format(
-                    self.sampler_string))
-
-    def log_summary_for_sampler(self):
-        logging.info("Using sampler {} with kwargs {}".format(
-            self.__class__.__name__, self.kwargs))
-
 
 class Nestle(Sampler):
+
+    def __init__(self, likelihood, prior, outdir='outdir',
+                 label='label', **kwargs):
+        Sampler.__init__(self, likelihood, prior, 'nestle', outdir,
+                         label, **kwargs)
 
     def set_kwargs(self):
         self.kwargs_defaults = dict(verbose=True)
@@ -171,7 +124,8 @@ class Nestle(Sampler):
         self.kwargs = self.kwargs_defaults
 
     def run_sampler(self):
-        nestle = self.extenal_sampler
+        # nestle = self.extenal_sampler
+        import nestle
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
 
