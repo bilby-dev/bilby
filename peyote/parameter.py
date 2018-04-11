@@ -48,40 +48,38 @@ class Parameter:
 
         if self.name == 'mass_1':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
-        if self.name == 'mass_2':
+        elif self.name == 'mass_2':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
-        if self.name == 'mchirp':
+        elif self.name == 'mchirp':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
-        if self.name == 'q':
+        elif self.name == 'q':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
-
-        # spins
-        if self.name == 'a1':
+        elif self.name == 'a1':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
-        if self.name == 'a2':
+        elif self.name == 'a2':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
-        if self.name == 'tilt1':
+        elif self.name == 'tilt1':
             self.prior = peyote.prior.Sine()
-        if self.name == 'tilt2':
+        elif self.name == 'tilt2':
             self.prior = peyote.prior.Sine()
-        if self.name == 'phi1':
+        elif self.name == 'phi1':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
-        if self.name == 'phi2':
+        elif self.name == 'phi2':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
-
-        # extrinsic
-        if self.name == 'luminosity_distance':
+        elif self.name == 'luminosity_distance':
             self.prior = peyote.prior.PowerLaw(alpha=2, bounds=(1e2, 5e3))
-        if self.name == 'dec':
+        elif self.name == 'dec':
             self.prior = peyote.prior.Cosine()
-        if self.name == 'ra':
+        elif self.name == 'ra':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
-        if self.name == 'iota':
+        elif self.name == 'iota':
             self.prior = peyote.prior.Sine()
-        if self.name == 'psi':
+        elif self.name == 'psi':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
-        if self.name == 'phase':
+        elif self.name == 'phase':
             self.prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        else:
+            self.prior = None
 
     def set_default_values(self):
         # spins
