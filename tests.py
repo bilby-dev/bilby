@@ -48,9 +48,9 @@ class Test(unittest.TestCase):
         likelihood = peyote.likelihood.Likelihood(
             [self.msd['IFO']], self.msd['source'])
 
-        prior = self.msd['simulation_parameters'].copy()
-        dL = self.msd['simulation_parameters']['luminosity_distance']
-        prior['luminosity_distance'] = peyote.parameter.Parameter(
+        prior = self.msd['source'].copy()
+        dL = self.msd['source'].luminosity_distance
+        prior.luminosity_distance = peyote.parameter.Parameter(
             'luminosity_distance',
             prior=peyote.prior.Uniform(lower=dL-10, upper=dL+10))
 
