@@ -10,8 +10,41 @@ import lal
 import lalsimulation as lalsim
 from astropy.table import Table
 
-import peyote
 from peyote.utils import sampling_frequency, nfft
+
+
+def LALBinaryBlackHole(
+        frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
+        iota, phase, waveform_approximant, reference_frequency, ra, dec,
+        geocent_time, psi):
+    """ A Binary Black Hole waveform model using lalsimulation """
+    luminosity_distance = luminosity_distance * 1e6 * lal.PC_SI
+    mass_1 = mass_1 * lal.MSUN_SI
+    mass_2 = mass_2 * lal.MSUN_SI
+
+    longitude_ascending_nodes = 0.0
+    eccentricity = 0.0
+    meanPerAno = 0.0
+
+    waveform_dictionary = lal.CreateDict()
+
+    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+
+    frequency_minimum = 20
+    frequency_maximum = frequency_array[-1]
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1[0], spin_1[1], spin_1[2], spin_2[0], spin_2[1],
+        spin_2[2], luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, meanPerAno, delta_frequency,
+        frequency_minimum, frequency_maximum, reference_frequency,
+        waveform_dictionary, approximant)
+
+    h_plus = hplus.data.data
+    h_cross = hcross.data.data
+
+    return {'plus': h_plus, 'cross': h_cross}
 
 
 class WaveformGenerator:
@@ -29,18 +62,24 @@ class WaveformGenerator:
             sampling_frequency, time_duration)
         self.frequency_array = peyote.utils.create_fequency_series(
             sampling_frequency, time_duration)
-        self.frequency_domain_strain = lambda x: source_model(self.frequency_array, **x)
+        self.source_model = source_model
+
+    def frequency_domain_strain(self):
+        kwargs = {k: self.__dict__[k] for k in self.parameter_keys}
+        return self.source_model(self.frequency_array, **kwargs)
+
+    def set_values(self, dictionary):
+        for k in self.parameter_keys:
+            try:
+                setattr(self, k, dictionary[k])
+            except KeyError:
+                raise KeyError(
+                    'The provided dictionary did not contain key {}'.format(k))
 
 
 class Source:
-    def __init__(self, name, sampling_frequency, time_duration):
-        self.name = name
-        self.sampling_frequency = sampling_frequency
-        self.time_duration = time_duration
-        self.time_array = peyote.utils.create_time_series(
-            sampling_frequency, time_duration)
-        self.frequency_array = peyote.utils.create_fequency_series(
-            sampling_frequency, time_duration)
+    def __init__(self):
+        pass
 
 
 class SimpleSinusoidSource(Source):

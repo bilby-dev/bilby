@@ -4,45 +4,10 @@ import pylab as plt
 import dynesty.plotting as dyplot
 import corner
 import peyote
-import dynesty.plotting as dyplot
-import corner
 import lal
 import lalsimulation as lalsim
 
-peyote.setup_logging()
-
-
-def BBH(frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
-        iota, phase, waveform_approximant, reference_frequency, ra, dec,
-        geocent_time, psi):
-    luminosity_distance = luminosity_distance * 1e6 * lal.PC_SI
-    mass_1 = mass_1 * lal.MSUN_SI
-    mass_2 = mass_2 * lal.MSUN_SI
-
-    longitude_ascending_nodes = 0.0
-    eccentricity = 0.0
-    meanPerAno = 0.0
-
-    waveform_dictionary = lal.CreateDict()
-
-    approximant = lalsim.GetApproximantFromString(waveform_approximant)
-
-    frequency_minimum = 20
-    frequency_maximum = frequency_array[-1]
-    delta_frequency = frequency_array[1] - frequency_array[0]
-
-    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
-        mass_1, mass_2, spin_1[0], spin_1[1], spin_1[2], spin_2[0], spin_2[1],
-        spin_2[2], luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, meanPerAno, delta_frequency,
-        frequency_minimum, frequency_maximum, reference_frequency,
-        waveform_dictionary, approximant)
-
-    h_plus = hplus.data.data
-    h_cross = hcross.data.data
-
-    return {'plus': h_plus, 'cross': h_cross}
-
+peyote.setup_logger()
 
 time_duration = 1.
 sampling_frequency = 4096.
@@ -64,7 +29,8 @@ simulation_parameters = dict(
     )
 
 waveformgenerator = peyote.source.WaveformGenerator(
-    'BBH', sampling_frequency, time_duration, BBH)
+    'BBH', sampling_frequency, time_duration, peyote.source.LALBinaryBlackHole)
+waveformgenerator.set_values(simulation_parameters)
 hf_signal = waveformgenerator.frequency_domain_strain()
 
 # Simulate the data in H1
@@ -98,18 +64,17 @@ plt.xlabel(r'frequency')
 plt.ylabel(r'strain')
 fig.savefig('data')
 
-likelihood = peyote.likelihood.likelihood(IFOs, waveformgenerator)
+likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 
 prior = simulation_parameters.copy()
-prior.mass_1 = peyote.parameter.Parameter(
+prior['mass_1'] = peyote.parameter.Parameter(
     'mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
     latex_label='$m_1$')
-prior.luminosity_distance = peyote.parameter.Parameter(
+prior['luminosity_distance'] = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
     latex_label='$d_L$')
 
-result = peyote.run_sampler(likelihood, prior, sampler='nestle',
-                            n_live_points=200, verbose=True)
+result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
 
 truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 fig = corner.corner(result.samples, truths=truths,
