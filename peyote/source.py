@@ -5,7 +5,7 @@ import os
 import lal
 import lalsimulation as lalsim
 from astropy.table import Table
-
+import numpy as np
 import peyote
 from peyote.utils import sampling_frequency, nfft
 
