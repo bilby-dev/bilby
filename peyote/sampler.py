@@ -9,8 +9,6 @@ import peyote
 
 
 class Result(dict):
-    def __init__(self):
-        pass
 
     def __getattr__(self, name):
         try:
@@ -34,8 +32,8 @@ class Result(dict):
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'
-                .format(file_name, file_name))
-            os.rename(file_name, file_name+'.old')
+                    .format(file_name, file_name))
+            os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
         with open(file_name, 'w+') as f:
@@ -71,12 +69,20 @@ class Sampler:
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
-
         self.sampler_string = sampler_string
+
+        self.external_sampler = None
         self.import_external_sampler()
 
+        self.active_parameter_values = self.prior.__dict__.copy()
+
+        self.search_parameter_keys = []
+        self.ndim = 0
         self.initialise_parameters()
+
         self.verify_prior()
+
+        self.result = Result()
         self.add_initial_data_to_results()
         self.set_kwargs()
 
@@ -89,25 +95,22 @@ class Sampler:
         pass
 
     def add_initial_data_to_results(self):
-        self.result = Result()
         self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [
-            self.prior[k].latex_label for k in self.search_parameter_keys]
+        self.result.labels = [self.prior.__dict__[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-        self.fixed_parameters = self.prior.copy()
-        self.search_parameter_keys = []
-        for key in self.likelihood.parameter_keys:
-            if key in self.prior:
-                p = self.prior[key]
-                CA = isinstance(p, numbers.Real)
-                CB = hasattr(p, 'prior')
-                CC = getattr(p, 'is_fixed', False) is True
-                if CA is False and CB and CC is False:
+
+        for key in self.likelihood.source.__dict__:
+            if key in self.prior.__dict__:
+                p = self.prior.__dict__[key]
+                ca = isinstance(p, numbers.Real)
+                cb = hasattr(p, 'prior')
+                cc = getattr(p, 'is_fixed', False) is True
+                if ca is False and cb and cc is False:
                     self.search_parameter_keys.append(key)
-                    self.fixed_parameters[key] = np.nan
-                elif CC:
-                    self.fixed_parameters[key] = p.value
+                    self.active_parameter_values[key] = np.nan
+                elif cc:
+                    self.active_parameter_values[key] = p.value
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
@@ -119,31 +122,31 @@ class Sampler:
 
         logging.info("Search parameters:")
         for key in self.search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
+            logging.info('  {} ~ {}'.format(key, self.prior.__dict__[key]))
 
     def verify_prior(self):
-        required_keys = self.likelihood.parameter_keys
+        required_keys = self.likelihood.source.__dict__
         unmatched_keys = [
-            r for r in required_keys if r not in self.prior]
+            r for r in required_keys if r not in self.prior.__dict__]
         if len(unmatched_keys) > 0:
             raise ValueError(
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.prior[k].prior.rescale(t)
-                for k, t in zip(self.search_parameter_keys, theta)]
+        return [self.prior.__dict__[key].prior.rescale(t)
+                for key, t in zip(self.search_parameter_keys, theta)]
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.fixed_parameters[k] = theta[i]
-        return self.likelihood.loglikelihood(self.fixed_parameters)
+            self.likelihood.source.__dict__[k] = theta[i]
+        return self.likelihood.log_likelihood()
 
     def run_sampler(self):
         pass
 
     def import_external_sampler(self):
         try:
-            self.extenal_sampler = __import__(self.sampler_string)
+            self.external_sampler = __import__(self.sampler_string)
         except ImportError:
             raise ImportError(
                 "Sampler {} not installed on this system".format(
@@ -162,7 +165,7 @@ class Nestle(Sampler):
         self.kwargs = self.kwargs_defaults
 
     def run_sampler(self):
-        nestle = self.extenal_sampler
+        nestle = self.external_sampler
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
 
@@ -180,7 +183,7 @@ class Nestle(Sampler):
 
 class Dynesty(Sampler):
     def run_sampler(self):
-        dynesty = self.extenal_sampler
+        dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
@@ -210,7 +213,7 @@ class Pymultinest(Sampler):
                 self.kwargs['outputfiles_basename'])
 
     def run_sampler(self):
-        pymultinest = self.extenal_sampler
+        pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
@@ -226,13 +229,12 @@ class Pymultinest(Sampler):
 def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     if hasattr(peyote.sampler, sampler.title()):
-        SamplerClass = getattr(peyote.sampler, sampler.title())
-        sampler = SamplerClass(likelihood, prior, sampler, outdir=outdir,
-                               label=label, **sampler_kwargs)
+        sampler_class = getattr(peyote.sampler, sampler.title())
+        sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
+                                label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
-

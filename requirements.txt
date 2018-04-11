@@ -1,3 +1,5 @@
+dynesty
+corner
 numpy
 matplotlib>=1.4
 scipy
