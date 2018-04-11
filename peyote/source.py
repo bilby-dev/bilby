@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import peyote
 import numpy as np
 import os.path
+import inspect
 from astropy.table import Table
 from peyote.utils import sampling_frequency, nfft
 
@@ -10,6 +11,24 @@ try:
     import lalsimulation as lalsim
 except ImportError:
     print("lal is not installed")
+
+
+class WaveformGenerator:
+    def __init__(self, name, sampling_frequency, time_duration, source_model):
+
+        self.parameter_keys = inspect.getargspec(source_model).args
+        self.parameter_keys.pop(0)
+        for a in self.parameter_keys:
+            setattr(self, a, None)
+
+        self.name = name
+        self.sampling_frequency = sampling_frequency
+        self.time_duration = time_duration
+        self.time_array = peyote.utils.create_time_series(
+            sampling_frequency, time_duration)
+        self.frequency_array = peyote.utils.create_fequency_series(
+            sampling_frequency, time_duration)
+        self.frequency_domain_strain = lambda x: source_model(self.frequency_array, **x)
 
 
 class Source:

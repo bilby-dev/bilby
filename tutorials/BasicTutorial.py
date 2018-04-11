@@ -4,8 +4,43 @@ import pylab as plt
 import peyote
 import dynesty.plotting as dyplot
 import corner
+import lal
+import lalsimulation as lalsim
 
 peyote.setup_logger()
+
+
+def BBH(frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
+        iota, phase, waveform_approximant, reference_frequency, ra, dec,
+        geocent_time, psi):
+    luminosity_distance = luminosity_distance * 1e6 * lal.PC_SI
+    mass_1 = mass_1 * lal.MSUN_SI
+    mass_2 = mass_2 * lal.MSUN_SI
+
+    longitude_ascending_nodes = 0.0
+    eccentricity = 0.0
+    meanPerAno = 0.0
+
+    waveform_dictionary = lal.CreateDict()
+
+    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+
+    frequency_minimum = 20
+    frequency_maximum = frequency_array[-1]
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1[0], spin_1[1], spin_1[2], spin_2[0], spin_2[1],
+        spin_2[2], luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, meanPerAno, delta_frequency,
+        frequency_minimum, frequency_maximum, reference_frequency,
+        waveform_dictionary, approximant)
+
+    h_plus = hplus.data.data
+    h_cross = hcross.data.data
+
+    return {'plus': h_plus, 'cross': h_cross}
+
 
 time_duration = 1.
 sampling_frequency = 4096.
@@ -15,7 +50,7 @@ simulation_parameters = dict(
     spin_1=[0, 0, 0],
     spin_2=[0, 0, 0],
     luminosity_distance=100.,
-    iota=0.4, #np.pi/2,
+    iota=0.4,
     phase=1.3,
     waveform_approximant='IMRPhenomPv2',
     reference_frequency=50.,
@@ -25,15 +60,15 @@ simulation_parameters = dict(
     psi=2.659
     )
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration)
-hf_signal = source.frequency_domain_strain(simulation_parameters)
+waveformgenerator = peyote.source.WaveformGenerator('BBH', sampling_frequency, time_duration, BBH)
+hf_signal = waveformgenerator.frequency_domain_strain(simulation_parameters)
 
 # Simulate the data in H1
 H1 = peyote.detector.H1
 H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 H1.set_data(sampling_frequency, time_duration, frequency_domain_strain=H1_hf_noise)
-H1.inject_signal(source, simulation_parameters)
+H1.inject_signal(waveformgenerator, simulation_parameters)
 H1.set_spectral_densities()
 
 # Simulate the data in L1
@@ -41,7 +76,7 @@ L1 = peyote.detector.L1
 L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 L1.set_data(sampling_frequency, time_duration, frequency_domain_strain=L1_hf_noise)
-L1.inject_signal(source, simulation_parameters)
+L1.inject_signal(waveformgenerator, simulation_parameters)
 L1.set_spectral_densities()
 
 IFOs = [H1, L1]
@@ -57,7 +92,7 @@ plt.xlabel(r'frequency')
 plt.ylabel(r'strain')
 fig.savefig('data')
 
-likelihood = peyote.likelihood.likelihood(IFOs, source)
+likelihood = peyote.likelihood.likelihood(IFOs, waveformgenerator)
 
 prior = simulation_parameters.copy()
 prior['mass_1'] = peyote.parameter.Parameter(
