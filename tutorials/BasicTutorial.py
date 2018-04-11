@@ -4,8 +4,6 @@ import pylab as plt
 import dynesty.plotting as dyplot
 import corner
 import peyote
-import lal
-import lalsimulation as lalsim
 
 peyote.setup_logger()
 
@@ -28,6 +26,7 @@ simulation_parameters = dict(
     psi=2.659
     )
 
+# Create the waveformgenerator using a LAL BinaryBlackHole source function
 waveformgenerator = peyote.source.WaveformGenerator(
     'BBH', sampling_frequency, time_duration, peyote.source.LALBinaryBlackHole)
 waveformgenerator.set_values(simulation_parameters)
