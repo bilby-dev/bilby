@@ -100,23 +100,6 @@ class Parameter:
         else:
             self.value = np.nan
 
-    #   # extrinsic
-    #   if self.name == 'luminosity_distance':
-    #       self.default = 400
-    #   if self.name == 'dec':
-    #       self.default = 0
-    #   if self.name == 'ra':
-    #       self.default = 0
-    #   if self.name == 'iota':
-    #       self.default = 0
-    #   if self.name == 'psi':
-    #       self.default = 0
-    #   if self.name == 'phase':
-    #       self.default = 0
-    #
-    #   if self.name == 'tc':
-    #       self.default = 1126259642.413
-
     def set_default_latex_label(self):
         if self.name == 'mass_1':
             self.latex_label = '$m_1$'
