@@ -46,9 +46,9 @@ class Parameter:
     @latex_label.setter
     def latex_label(self, latex_label=None):
         if latex_label is None:
-            self.__latex_label = self.name
-        else:
             self.set_default_latex_label()
+        else:
+            self.__latex_label = latex_label
 
     @is_fixed.setter
     def is_fixed(self, is_fixed):
