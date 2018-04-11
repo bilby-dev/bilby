@@ -1,13 +1,15 @@
 import numpy as np
 import pylab as plt
 
+import dynesty.plotting as dyplot
+import corner
 import peyote
 import dynesty.plotting as dyplot
 import corner
 import lal
 import lalsimulation as lalsim
 
-peyote.setup_logger()
+peyote.setup_logging()
 
 
 def BBH(frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
@@ -46,7 +48,8 @@ time_duration = 1.
 sampling_frequency = 4096.
 
 simulation_parameters = dict(
-    mass_1=36., mass_2=29.,
+    mass_1=36.,
+    mass_2=29.,
     spin_1=[0, 0, 0],
     spin_2=[0, 0, 0],
     luminosity_distance=100.,
@@ -60,23 +63,26 @@ simulation_parameters = dict(
     psi=2.659
     )
 
-waveformgenerator = peyote.source.WaveformGenerator('BBH', sampling_frequency, time_duration, BBH)
-hf_signal = waveformgenerator.frequency_domain_strain(simulation_parameters)
+waveformgenerator = peyote.source.WaveformGenerator(
+    'BBH', sampling_frequency, time_duration, BBH)
+hf_signal = waveformgenerator.frequency_domain_strain()
 
 # Simulate the data in H1
 H1 = peyote.detector.H1
 H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
-H1.set_data(sampling_frequency, time_duration, frequency_domain_strain=H1_hf_noise)
-H1.inject_signal(waveformgenerator, simulation_parameters)
+H1.set_data(sampling_frequency, time_duration,
+            frequency_domain_strain=H1_hf_noise)
+H1.inject_signal(waveformgenerator)
 H1.set_spectral_densities()
 
 # Simulate the data in L1
 L1 = peyote.detector.L1
 L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
-L1.set_data(sampling_frequency, time_duration, frequency_domain_strain=L1_hf_noise)
-L1.inject_signal(waveformgenerator, simulation_parameters)
+L1.set_data(sampling_frequency, time_duration,
+            frequency_domain_strain=L1_hf_noise)
+L1.inject_signal(waveformgenerator)
 L1.set_spectral_densities()
 
 IFOs = [H1, L1]
@@ -95,22 +101,10 @@ fig.savefig('data')
 likelihood = peyote.likelihood.likelihood(IFOs, waveformgenerator)
 
 prior = simulation_parameters.copy()
-prior['mass_1'] = peyote.parameter.Parameter(
+prior.mass_1 = peyote.parameter.Parameter(
     'mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
     latex_label='$m_1$')
-#prior['mass_2'] = peyote.parameter.Parameter(
-#    'mass_2', prior=peyote.prior.Uniform(lower=27, upper=31),
-#    latex_label='$m_2$')
-#prior['iota'] = peyote.parameter.Parameter(
-#    'iota', prior=peyote.prior.Uniform(lower=0, upper=np.pi),
-#    latex_label='$iota$')
-#prior['phase'] = peyote.parameter.Parameter(
-#    'phase', prior=peyote.prior.Uniform(lower=0, upper=np.pi))
-#prior['geocent_time'] = peyote.parameter.Parameter(
-#    'geocent_time', prior=peyote.prior.Uniform(
-#        lower=simulation_parameters['geocent_time']-100,
-#        upper=simulation_parameters['geocent_time']+100))
-prior['luminosity_distance'] = peyote.parameter.Parameter(
+prior.luminosity_distance = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
     latex_label='$d_L$')
 
@@ -118,7 +112,8 @@ result = peyote.run_sampler(likelihood, prior, sampler='nestle',
                             n_live_points=200, verbose=True)
 
 truths = [simulation_parameters[x] for x in result.search_parameter_keys]
-fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
+fig = corner.corner(result.samples, truths=truths,
+                    labels=result.search_parameter_keys)
 fig.savefig('corner')
 
 fig, axes = dyplot.traceplot(result['sampler_output'])
