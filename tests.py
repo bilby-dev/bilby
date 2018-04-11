@@ -52,7 +52,7 @@ class Test(unittest.TestCase):
         dL = self.msd['source'].luminosity_distance
         prior.luminosity_distance = peyote.parameter.Parameter(
             'luminosity_distance',
-            prior=peyote.prior.Uniform(lower=dL-10, upper=dL+10))
+            prior=peyote.prior.Uniform(lower=dL - 10, upper=dL + 10))
 
         result = peyote.run_sampler(likelihood, prior, sampler='nestle',
                                     verbose=False)
@@ -62,3 +62,32 @@ class Test(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestParameterInstantiation(unittest.TestCase):
+    def setUp(self):
+        self.parameter = None
+
+    def tearDown(self):
+        del self.parameter
+
+    def test_instantiation_without_optional_parameters(self):
+        test_name = 'test_name'
+        self.parameter = peyote.parameter.Parameter(test_name)
+        self.assertEqual(self.parameter.name, test_name)
+        self.assertIsNone(self.parameter.prior)
+        self.assertTrue(np.isnan(self.parameter.value))
+        self.assertEqual(self.parameter.latex_label, test_name)
+        self.assertFalse(self.parameter.is_fixed)
+
+    def test_instantiation_with_defined_prior(self):
+        test_name = 'test_name'
+        prior = peyote.prior.Uniform(0, 100)
+        self.parameter = peyote.parameter.Parameter(test_name, prior)
+        self.assertEqual(self.parameter.name, test_name)
+        self.assertIsNone(self.parameter.prior)
+        self.assertTrue(np.isnan(self.parameter.value))
+        self.assertEqual(self.parameter.latex_label, test_name)
+        self.assertFalse(self.parameter.is_fixed)
+
+

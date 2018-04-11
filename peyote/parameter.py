@@ -5,25 +5,54 @@ import peyote
 
 class Parameter:
 
-    def __init__(self, name, prior=None, value=None, latex_label=None, fixed=False):
+    def __init__(self, name, prior=None, value=None, latex_label=None, is_fixed=False):
         self.name = name
 
+        self.prior = prior
+        self.value = value
+        self.latex_label = latex_label
+        self.is_fixed = is_fixed
+
+    @property
+    def prior(self):
+        return self.prior
+
+    @property
+    def value(self):
+        return self.value
+
+    @property
+    def latex_label(self):
+        return self.latex_label
+
+    @property
+    def is_fixed(self):
+        return self.is_fixed
+
+    @prior.setter
+    def prior(self, prior=None):
         if prior is None:
             self.set_default_prior()
         else:
             self.prior = prior
 
+    @value.setter
+    def value(self, value=None):
         if value is None:
             self.set_default_values()
         else:
             self.value = value
 
+    @latex_label.setter
+    def latex_label(self, latex_label=None):
         if latex_label is None:
-            self.latex_label = name
+            self.latex_label = self.name
         else:
             self.set_default_latex_label()
 
-        if fixed:
+    @is_fixed.setter
+    def is_fixed(self, is_fixed):
+        if is_fixed:
             self.is_fixed = True
         else:
             self.is_fixed = False
@@ -38,11 +67,6 @@ class Parameter:
         elif self.value == np.nan:
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
         self.prior = None
-
-    def set_value(self, value):
-        """Set a value for the parameter"""
-        self.value = value
-        return None
 
     def set_default_prior(self):
 
