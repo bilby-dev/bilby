@@ -95,7 +95,7 @@ class Sampler:
             self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
-        self.fixed_parameters = self.prior.copy()
+        self.active_parameter_values = self.prior.copy()
         self.search_parameter_keys = []
         for key in self.likelihood.parameter_keys:
             if key in self.prior:
@@ -105,9 +105,9 @@ class Sampler:
                 CC = getattr(p, 'is_fixed', False) is True
                 if CA is False and CB and CC is False:
                     self.search_parameter_keys.append(key)
-                    self.fixed_parameters[key] = np.nan
+                    self.active_parameter_values[key] = np.nan
                 elif CC:
-                    self.fixed_parameters[key] = p.value
+                    self.active_parameter_values[key] = p.value
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
@@ -135,15 +135,15 @@ class Sampler:
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.fixed_parameters[k] = theta[i]
-        return self.likelihood.loglikelihood(self.fixed_parameters)
+            self.active_parameter_values[k] = theta[i]
+        return self.likelihood.loglikelihood(self.active_parameter_values)
 
     def run_sampler(self):
         pass
 
     def import_external_sampler(self):
         try:
-            self.extenal_sampler = __import__(self.sampler_string)
+            self.external_sampler = __import__(self.sampler_string)
         except ImportError:
             raise ImportError(
                 "Sampler {} not installed on this system".format(
@@ -162,7 +162,7 @@ class Nestle(Sampler):
         self.kwargs = self.kwargs_defaults
 
     def run_sampler(self):
-        nestle = self.extenal_sampler
+        nestle = self.external_sampler
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
 
@@ -180,7 +180,7 @@ class Nestle(Sampler):
 
 class Dynesty(Sampler):
     def run_sampler(self):
-        dynesty = self.extenal_sampler
+        dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.loglikelihood,
             prior_transform=self.prior_transform,
@@ -210,7 +210,7 @@ class Pymultinest(Sampler):
                 self.kwargs['outputfiles_basename'])
 
     def run_sampler(self):
-        pymultinest = self.extenal_sampler
+        pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
