@@ -4,6 +4,8 @@ import pylab as plt
 import dynesty.plotting as dyplot
 import corner
 import peyote
+import dynesty.plotting as dyplot
+import corner
 
 # peyote.setup_logging()
 
