@@ -27,10 +27,10 @@ simulation_parameters = dict(
     )
 
 # Create the waveformgenerator using a LAL BinaryBlackHole source function
-waveformgenerator = peyote.waveform_generator.WaveformGenerator(
+waveform_generator = peyote.waveform_generator.WaveformGenerator(
     'BBH', sampling_frequency, time_duration, peyote.source.LALBinaryBlackHole)
-waveformgenerator.set_values(simulation_parameters)
-hf_signal = waveformgenerator.frequency_domain_strain()
+waveform_generator.set_values(simulation_parameters)
+hf_signal = waveform_generator.frequency_domain_strain()
 
 # Simulate the data in H1
 H1 = peyote.detector.H1
@@ -38,7 +38,7 @@ H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 H1.set_data(sampling_frequency, time_duration,
             frequency_domain_strain=H1_hf_noise)
-H1.inject_signal(waveformgenerator)
+H1.inject_signal(waveform_generator)
 H1.set_spectral_densities()
 
 # Simulate the data in L1
@@ -47,7 +47,7 @@ L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
     sampling_frequency, time_duration)
 L1.set_data(sampling_frequency, time_duration,
             frequency_domain_strain=L1_hf_noise)
-L1.inject_signal(waveformgenerator)
+L1.inject_signal(waveform_generator)
 L1.set_spectral_densities()
 
 IFOs = [H1, L1]
@@ -63,7 +63,7 @@ plt.xlabel(r'frequency')
 plt.ylabel(r'strain')
 fig.savefig('data')
 
-likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
+likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 prior = simulation_parameters.copy()
 prior['mass_1'] = peyote.parameter.Parameter(
