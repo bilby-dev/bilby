@@ -1,14 +1,7 @@
 from __future__ import division, print_function
-import peyote
-import numpy as np
-import os.path
-
-import os
 
 import lal
 import lalsimulation as lalsim
-from astropy.table import Table
-from peyote.utils import sampling_frequency, nfft
 
 
 def lal_binary_black_hole(
