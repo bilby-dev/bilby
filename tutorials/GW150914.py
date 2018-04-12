@@ -55,19 +55,33 @@ L1.set_data(sampling_frequency, time_duration,
 
 IFOs = [H1, L1]
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, spin_1=[0, 0, 0], spin_2=[0, 0, 0],
-                                       luminosity_distance=410., iota=2.97305, phase=1.145,
-                                       waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375,
-                                       dec=-1.2108, geocent_time=1126259642.413, psi=2.659, mass_1=32, mass_2=32)
-# ignore the fact that I hardcoded in some masses
-likelihood = peyote.likelihood.Likelihood(IFOs, source)
+simulation_parameters = dict(
+    spin_1=[0, 0, 0],
+    spin_2=[0, 0, 0],
+    luminosity_distance=410.,
+    iota=2.97305,
+    phase=1.145,
+    waveform_approximant='IMRPhenomPv2',
+    reference_frequency=50.,
+    ra=1.375,
+    dec=-1.2108,
+    geocent_time=1126259642.413,
+    psi=2.659)
 
-prior = source.copy()
+# Create the waveform_generator using a LAL BinaryBlackHole source function
+waveform_generator = peyote.waveform_generator.WaveformGenerator(
+    'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
+waveform_generator.set_values(simulation_parameters)
+hf_signal = waveform_generator.frequency_domain_strain()
 
-prior.mass_1 = peyote.parameter.Parameter(
+likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
+
+prior = simulation_parameters.copy()
+
+prior['mass_1'] = peyote.parameter.Parameter(
     'mass_1', prior=peyote.prior.Uniform(lower=32, upper=41),
     latex_label='$m_1$')
-prior.mass_2 = peyote.parameter.Parameter(
+prior['mass_2'] = peyote.parameter.Parameter(
     'mass_2', prior=peyote.prior.Uniform(lower=25, upper=33),
     latex_label='$m_2$')
 
