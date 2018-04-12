@@ -99,7 +99,7 @@ class Sampler:
 
     def initialise_parameters(self):
 
-        for key in self.likelihood.waveformgenerator.parameter_keys:
+        for key in self.likelihood.waveform_generator.parameter_keys:
             if key in self.prior:
                 p = self.prior[key]
                 ca = isinstance(p, numbers.Real)
@@ -130,7 +130,7 @@ class Sampler:
             logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
 
     def verify_prior(self):
-        required_keys = self.likelihood.waveformgenerator.parameter_keys
+        required_keys = self.likelihood.waveform_generator.parameter_keys
         unmatched_keys = [
             r for r in required_keys if r not in self.prior]
         if len(unmatched_keys) > 0:
@@ -143,7 +143,7 @@ class Sampler:
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.likelihood.waveformgenerator.__dict__[k] = theta[i]
+            self.likelihood.waveform_generator.__dict__[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):

@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import numpy as np
-import peyote
+from . import prior
 
 
 class Parameter:
@@ -71,37 +71,37 @@ class Parameter:
     def set_default_prior(self):
 
         if self.name == 'mass_1':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(5, 100))
         elif self.name == 'mass_2':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(5, 100))
         elif self.name == 'mchirp':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(5, 100))
         elif self.name == 'q':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 1))
         elif self.name == 'a1':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 1))
         elif self.name == 'a2':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 1))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 1))
         elif self.name == 'tilt1':
-            self.__prior = peyote.prior.Sine()
+            self.__prior = prior.Sine()
         elif self.name == 'tilt2':
-            self.__prior = peyote.prior.Sine()
+            self.__prior = prior.Sine()
         elif self.name == 'phi1':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
         elif self.name == 'phi2':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
         elif self.name == 'luminosity_distance':
-            self.__prior = peyote.prior.PowerLaw(alpha=2, bounds=(1e2, 5e3))
+            self.__prior = prior.PowerLaw(alpha=2, bounds=(1e2, 5e3))
         elif self.name == 'dec':
-            self.__prior = peyote.prior.Cosine()
+            self.__prior = prior.Cosine()
         elif self.name == 'ra':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
         elif self.name == 'iota':
-            self.__prior = peyote.prior.Sine()
+            self.__prior = prior.Sine()
         elif self.name == 'psi':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
         elif self.name == 'phase':
-            self.__prior = peyote.prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+            self.__prior = prior.PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
         else:
             self.__prior = None
 
