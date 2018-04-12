@@ -45,32 +45,32 @@ def lal_binary_black_hole(
     return {'plus': h_plus, 'cross': h_cross}
 
 
-class BinaryNeutronStarMergerNumericalRelativity(Source):
-    """Loads in NR simulations of BNS merger
-
-    takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
-
-    returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
-    """
-
-    def model(self, parameters):
-        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
-        eos_string = parameters['equation_of_state']
-        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
-        directory_path = parameters['directory_path']
-
-        file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
-        full_filename = '{}/{}'.format(directory_path, file_name)
-
-        if not os.path.isfile(full_filename):
-            print('{} does not exist'.format(full_filename))  # add exception
-            return (-1)
-        else:  # ok file exists
-            strain_table = Table.read(full_filename)
-            Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
-            Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
-            return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
-
+# class BinaryNeutronStarMergerNumericalRelativity(Source):
+#     """Loads in NR simulations of BNS merger
+#
+#     takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
+#
+#     returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
+#     """
+#
+#     def model(self, parameters):
+#         mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
+#         eos_string = parameters['equation_of_state']
+#         mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
+#         directory_path = parameters['directory_path']
+#
+#         file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
+#         full_filename = '{}/{}'.format(directory_path, file_name)
+#
+#         if not os.path.isfile(full_filename):
+#             print('{} does not exist'.format(full_filename))  # add exception
+#             return (-1)
+#         else:  # ok file exists
+#             strain_table = Table.read(full_filename)
+#             Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
+#             Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
+#             return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
+#
 # class Source:
 #     def __init__(self):
 #         pass
