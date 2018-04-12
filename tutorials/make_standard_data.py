@@ -2,7 +2,7 @@ import peyote
 import os
 import numpy as np
 
-import waveform_generator
+from waveform_generator import WaveformGenerator
 
 np.random.seed(10)
 
@@ -25,7 +25,7 @@ simulation_parameters = dict(
     psi=2.659
     )
 
-waveform_generator = waveform_generator.WaveformGenerator(
+waveform_generator = WaveformGenerator(
     'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
 waveform_generator.set_values(simulation_parameters)
 
