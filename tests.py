@@ -4,6 +4,7 @@ import os
 import shutil
 import peyote
 import logging
+from past.builtins import execfile
 
 
 class Test(unittest.TestCase):

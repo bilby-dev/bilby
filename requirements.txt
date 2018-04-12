@@ -1,3 +1,4 @@
+future
 dynesty
 corner
 numpy
