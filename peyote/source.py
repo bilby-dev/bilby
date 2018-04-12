@@ -2,8 +2,17 @@ from __future__ import division, print_function
 
 import os
 
-import lal
-import lalsimulation as lalsim
+try:
+    import lal
+except ImportError:
+    raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
+                        "prebuilt functions.")
+try:
+    import lalsimulation as lalsim
+except ImportError:
+    raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
+                        "prebuilt functions.")
+
 from astropy.table import Table
 
 from utils import nfft, get_sampling_frequency
