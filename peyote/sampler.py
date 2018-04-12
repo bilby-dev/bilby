@@ -36,7 +36,7 @@ class Result(dict):
             os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
-        with open(file_name, 'w+') as f:
+        with open(file_name, 'wb+') as f:
             pickle.dump(self, f)
 
 
