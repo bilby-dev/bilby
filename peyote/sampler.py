@@ -108,8 +108,14 @@ class Sampler:
                 if ca is False and cb and cc is False:
                     self.search_parameter_keys.append(key)
                     self.active_parameter_values[key] = np.nan
-                elif cc:
+                elif ca is False and cc is True:
                     self.active_parameter_values[key] = p.value
+                elif ca:
+                    setattr(self.likelihood.waveformgenerator, key, p)
+                else:
+                    # Acts as a catch all for now - in future we should remove
+                    # this
+                    setattr(self.likelihood.waveformgenerator, key, p)
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
