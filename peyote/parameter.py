@@ -3,7 +3,7 @@ import numpy as np
 from . import prior
 
 
-class Parameter:
+class Parameter(object):
 
     def __init__(self, name, prior=None, value=None, latex_label=None, is_fixed=False):
         self.name = name
