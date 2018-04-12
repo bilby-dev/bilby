@@ -52,20 +52,17 @@ class Likelihood:
 
 class LikelihoodB(Likelihood):
 
-
     def __init__(self, interferometers, waveform_generator):
         Likelihood.__init__(self, interferometers, waveform_generator)
 
         for interferometer in self.interferometers:
             interferometer.whiten_data()
 
-
     def log_likelihood(self):
         log_l = 0
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
         for interferometer in self.interferometers:
             for mode in waveform_polarizations.keys():
-
                 det_response = interferometer.antenna_response(
                     self.waveform_generator.ra, self.waveform_generator.dec,
                     self.waveform_generator.geocent_time, self.waveform_generator.psi, mode)
