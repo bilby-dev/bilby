@@ -107,3 +107,12 @@ venv.bak/
 /.idea
 *.idea
 *.idea*
+
+#.txt files
+
+*.txt
+
+# Images
+
+*.jpg
+*.png
