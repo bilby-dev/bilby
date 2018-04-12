@@ -111,11 +111,11 @@ class Sampler:
                 elif ca is False and cc is True:
                     self.active_parameter_values[key] = p.value
                 elif ca:
-                    setattr(self.likelihood.waveformgenerator, key, p)
+                    setattr(self.likelihood.waveform_generator, key, p)
                 else:
                     # Acts as a catch all for now - in future we should remove
                     # this
-                    setattr(self.likelihood.waveformgenerator, key, p)
+                    setattr(self.likelihood.waveform_generator, key, p)
             else:
                 try:
                     self.prior[key] = getattr(peyote.parameter, key)
