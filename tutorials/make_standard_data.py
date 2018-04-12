@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import peyote
 import os
 import numpy as np
-
-from waveform_generator import WaveformGenerator
+import peyote
+from peyote.waveform_generator import WaveformGenerator
 
 np.random.seed(10)
 
