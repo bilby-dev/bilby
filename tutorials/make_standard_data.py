@@ -25,15 +25,15 @@ simulation_parameters = dict(
     psi=2.659
     )
 
-waveformgenerator = waveform_generator.WaveformGenerator(
+waveform_generator = waveform_generator.WaveformGenerator(
     'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
-waveformgenerator.set_values(simulation_parameters)
+waveform_generator.set_values(simulation_parameters)
 
 IFO = peyote.detector.H1
 IFO.set_data(
     from_power_spectral_density=True, sampling_frequency=sampling_frequency,
     duration=time_duration)
-IFO.inject_signal(waveformgenerator)
+IFO.inject_signal(waveform_generator)
 hf_signal_and_noise = IFO.data
 frequencies = peyote.utils.create_fequency_series(
         sampling_frequency=sampling_frequency, duration=time_duration)

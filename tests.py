@@ -41,13 +41,12 @@ class Test(unittest.TestCase):
             self.dir_path + '/tutorials/standard_data.txt').T
         hf_signal_and_noise_saved = hf_real_saved + 1j * hf_imag_saved
 
-        self.assertTrue(
-            all(self.msd['frequencies'] == frequencies_saved))
+        self.assertTrue(np.array_equal(self.msd['frequencies'], frequencies_saved))
         self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
         likelihood = peyote.likelihood.Likelihood(
-            [self.msd['IFO']], self.msd['waveformgenerator'])
+            [self.msd['IFO']], self.msd['waveform_generator'])
 
         prior = self.msd['simulation_parameters'].copy()
         dL = self.msd['simulation_parameters']['luminosity_distance']
