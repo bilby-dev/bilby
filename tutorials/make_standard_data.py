@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import peyote
 import os
 import numpy as np
