@@ -66,7 +66,10 @@ simulation_parameters = dict(
     ra=1.375,
     dec=-1.2108,
     geocent_time=1126259642.413,
-    psi=2.659)
+    psi=2.659,
+    mass_1=10,  # Ignore this dummy parameter for now
+    mass_2=10   # Ignore this dummy parameter for now
+)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
