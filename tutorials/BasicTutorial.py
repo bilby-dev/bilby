@@ -28,7 +28,7 @@ simulation_parameters = dict(
 
 # Create the waveformgenerator using a LAL BinaryBlackHole source function
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
-    'BBH', sampling_frequency, time_duration, peyote.source.LALBinaryBlackHole)
+    'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
 waveform_generator.set_values(simulation_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 

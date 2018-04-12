@@ -11,7 +11,7 @@ from astropy.table import Table
 from peyote.utils import sampling_frequency, nfft
 
 
-def LALBinaryBlackHole(
+def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
         iota, phase, waveform_approximant, reference_frequency, ra, dec,
         geocent_time, psi):
