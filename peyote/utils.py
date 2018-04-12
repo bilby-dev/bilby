@@ -6,7 +6,7 @@ from astropy.time import Time
 speed_of_light = 299792458.0  # speed of light in m/s
 
 
-def sampling_frequency(time_series):
+def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
     """

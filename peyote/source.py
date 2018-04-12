@@ -6,7 +6,7 @@ import lal
 import lalsimulation as lalsim
 from astropy.table import Table
 
-from utils import nfft, sampling_frequency
+from utils import nfft, get_sampling_frequency
 
 
 def lal_binary_black_hole(
@@ -60,8 +60,8 @@ class BinaryNeutronStarMergerNumericalRelativity:
             return (-1)
         else:  # ok file exists
             strain_table = Table.read(full_filename)
-            Hplus, _ = nfft(strain_table["hplus"], sampling_frequency(strain_table['time']))
-            Hcross, frequency = nfft(strain_table["hcross"], sampling_frequency(strain_table['time']))
+            Hplus, _ = nfft(strain_table["hplus"], get_sampling_frequency(strain_table['time']))
+            Hcross, frequency = nfft(strain_table["hcross"], get_sampling_frequency(strain_table['time']))
             return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
 
 # class Source:

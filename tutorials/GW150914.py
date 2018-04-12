@@ -23,7 +23,7 @@ time_duration = time_series[-1] - time_series[0]
 time_of_event = 1126259462.44
 
 # Create and save PSDs
-sampling_frequency = np.int(peyote.utils.sampling_frequency(time_series))
+sampling_frequency = np.int(peyote.utils.get_sampling_frequency(time_series))
 NFFT = 4 * sampling_frequency
 psd_H1, psd_frequencies = mlab.psd(strain_H1, Fs=sampling_frequency, NFFT=NFFT)
 psd_L1, psd_frequencies = mlab.psd(strain_L1, Fs=sampling_frequency, NFFT=NFFT)
