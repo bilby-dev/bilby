@@ -74,10 +74,9 @@ class Sampler:
         self.external_sampler = None
         self.import_external_sampler()
 
-        self.active_parameter_values = self.prior.__dict__.copy()
-
         self.search_parameter_keys = []
         self.ndim = 0
+        self.active_parameter_values = self.prior.copy()
         self.initialise_parameters()
 
         self.verify_prior()
@@ -96,13 +95,13 @@ class Sampler:
 
     def add_initial_data_to_results(self):
         self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [self.prior.__dict__[k].latex_label for k in self.search_parameter_keys]
+        self.result.labels = [self.prior[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
 
-        for key in self.likelihood.source.__dict__:
-            if key in self.prior.__dict__:
-                p = self.prior.__dict__[key]
+        for key in self.likelihood.waveformgenerator.parameter_keys:
+            if key in self.prior:
+                p = self.prior[key]
                 ca = isinstance(p, numbers.Real)
                 cb = hasattr(p, 'prior')
                 cc = getattr(p, 'is_fixed', False) is True
@@ -122,23 +121,23 @@ class Sampler:
 
         logging.info("Search parameters:")
         for key in self.search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.prior.__dict__[key]))
+            logging.info('  {} ~ {}'.format(key, self.prior[key]))
 
     def verify_prior(self):
-        required_keys = self.likelihood.source.__dict__
+        required_keys = self.likelihood.waveformgenerator.parameter_keys
         unmatched_keys = [
-            r for r in required_keys if r not in self.prior.__dict__]
+            r for r in required_keys if r not in self.prior]
         if len(unmatched_keys) > 0:
             raise ValueError(
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.prior.__dict__[key].prior.rescale(t)
+        return [self.prior[key].prior.rescale(t)
                 for key, t in zip(self.search_parameter_keys, theta)]
 
     def loglikelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
-            self.likelihood.source.__dict__[k] = theta[i]
+            self.likelihood.waveformgenerator.__dict__[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
