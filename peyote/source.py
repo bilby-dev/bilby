@@ -22,7 +22,7 @@ def lal_binary_black_hole(
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
-    meanPerAno = 0.0
+    mean_per_ano = 0.0
 
     waveform_dictionary = lal.CreateDict()
 
@@ -35,7 +35,7 @@ def lal_binary_black_hole(
     hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
         mass_1, mass_2, spin_1[0], spin_1[1], spin_1[2], spin_2[0], spin_2[1],
         spin_2[2], luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, meanPerAno, delta_frequency,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         frequency_minimum, frequency_maximum, reference_frequency,
         waveform_dictionary, approximant)
 
