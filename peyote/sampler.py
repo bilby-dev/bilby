@@ -121,7 +121,7 @@ class Sampler:
 
         logging.info("Search parameters:")
         for key in self.search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.prior[key]))
+            logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
 
     def verify_prior(self):
         required_keys = self.likelihood.waveformgenerator.parameter_keys
