@@ -96,7 +96,7 @@ class Interferometer:
 
         time_shift = self.time_delay_from_geocenter(
             source.ra, source.dec, source.geocent_time)
-        signal_ifo *= np.exp(-1j*2*np.pi*time_shift*source.frequency_array)
+        signal_ifo = signal_ifo * np.exp(-1j*2*np.pi*time_shift*source.frequency_array)
 
         self.data += signal_ifo
 
