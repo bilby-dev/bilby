@@ -16,18 +16,18 @@ sampling_frequency = 4096.
 
 
 def delta_function_frequency_domain_strain(frequency_array, amplitude, peak_time, phase, ra, dec, geocent_time, psi):
-    ht = {'plus': amplitude * np.sin(2 * np.pi * peak_time * frequency_array + phase) + 0j,
-          'cross': amplitude * np.cos(2 * np.pi * peak_time * frequency_array + phase) + 0j}
+    ht = {'plus': amplitude * np.sin(2 * np.pi * peak_time * frequency_array + phase),
+          'cross': amplitude * np.cos(2 * np.pi * peak_time * frequency_array + phase)}
     return ht
 
 
-def gaussian_frequency_domain_strain(frequency_array, amplitude, sigma, ra, dec, geocent_time, psi):
-    ht = {'plus': amplitude*np.exp(-frequency_array**2 * sigma**2/2 + 0j),
-          'cross': amplitude*np.exp(-frequency_array**2 * sigma**2/2) + 0j}
+def gaussian_frequency_domain_strain(frequency_array, amplitude, mu, sigma, ra, dec, geocent_time, psi):
+    ht = {'plus': amplitude*np.exp(-(mu - frequency_array)**2 / sigma**2 / 2),
+          'cross': amplitude*np.exp(-(mu - frequency_array)**2 / sigma**2 / 2)}
     return ht
 
 
-simulation_parameters = dict(amplitude=10, sigma=0.1,
+simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                              ra=1.375,
                              dec=-1.2108,
                              geocent_time=1126259642.413,
@@ -69,12 +69,18 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 prior = simulation_parameters.copy()
-prior['amplitude'] = peyote.parameter.Parameter('amplitude', prior=peyote.prior.Uniform(lower=9, upper=11),
+prior['amplitude'] = peyote.parameter.Parameter('amplitude',
+        prior=peyote.prior.Uniform(lower=0.9*1e-21, upper=1.1*1e-21),
                                                 latex_label='$A$')
-prior['sigma'] = peyote.parameter.Parameter('sigma', prior=peyote.prior.Uniform(lower=0.05, upper=0.2),
+prior['sigma'] = peyote.parameter.Parameter('sigma',
+        prior=peyote.prior.Uniform(lower=0, upper=10),
                                                 latex_label='$f$')
+prior['mu'] = peyote.parameter.Parameter('mu',
+        prior=peyote.prior.Uniform(lower=50, upper=200), latex_label='$\mu$')
 
 result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
+
+print(likelihood.noise_log_likelihood)
 
 truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
