@@ -61,11 +61,12 @@ class Parameter(object):
         """
         Specify parameter as fixed, this will not be sampled.
         """
-        self.value = value
         if value is not None:
-            self.is_fixed = True
-        elif self.value == np.nan:
+            self.value = value
+
+        if self.value == np.nan:
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
+        self.is_fixed = True
         self.prior = None
 
     def set_default_prior(self):
