@@ -1,11 +1,15 @@
-from __future__ import print_function, division
-import numpy as np
+from __future__ import print_function, division, absolute_import
+
 import logging
 import numbers
-import pickle
 import os
+import pickle
 
-import peyote
+import numpy as np
+import sys
+import inspect
+
+from . import parameter
 
 
 class Result(dict):
@@ -45,12 +49,12 @@ class Sampler:
 
     Parameters
     ----------
-    likelihood: peyote.likelihood.likelihood
+    likelihood: likelihood.Likelihood
         A  object with a log_l method
     prior: dict
         The prior to be used in the search. Elements can either be floats
         (indicating a fixed value or delta function prior) or they can be
-        of type peyote.parameter.Parameter with an associated prior
+        of type parameter.Parameter with an associated prior
     sampler_string: str
         A string containing the module name of the sampler
 
@@ -117,7 +121,7 @@ class Sampler:
                     # this
                     setattr(self.likelihood.waveform_generator, key, p)
             else:
-                self.prior[key] = peyote.parameter.Parameter(key)
+                self.prior[key] = parameter.Parameter(key)
                 if self.prior[key].prior is None:
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
@@ -232,8 +236,11 @@ class Pymultinest(Sampler):
 
 def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
-    if hasattr(peyote.sampler, sampler.title()):
-        sampler_class = getattr(peyote.sampler, sampler.title())
+
+    implemented_samplers = get_implemented_samplers()
+
+    if implemented_samplers.__contains__(sampler.title()):
+        sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
@@ -243,3 +250,11 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
+
+
+def get_implemented_samplers():
+    implemented_samplers = []
+    for name, obj in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(obj):
+            implemented_samplers.append(obj.__name__)
+    return implemented_samplers
