@@ -1,4 +1,5 @@
-import peyote
+import peyote.parameter as parameter
+import peyote.prior as prior
 import unittest
 import numpy as np
 
@@ -7,7 +8,7 @@ class TestParameterInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -32,7 +33,7 @@ class TestParameterName(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -46,18 +47,18 @@ class TestParameterPrior(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
 
     def test_prior_assignment(self):
-        test_prior = peyote.prior.Uniform(0, 100)
+        test_prior = prior.Uniform(0, 100)
         self.parameter.prior = test_prior
         self.assertDictEqual(test_prior.__dict__, self.parameter.prior.__dict__)
 
     def test_default_assignment(self):
-        test_prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
+        test_prior = prior.PowerLaw(alpha=0, bounds=(5, 100))
         self.parameter.name = 'mchirp'
         self.parameter.prior = None
         self.assertDictEqual(test_prior.__dict__, self.parameter.prior.__dict__)
@@ -66,7 +67,7 @@ class TestParameterPrior(unittest.TestCase):
 class TestParameterValue(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -89,7 +90,7 @@ class TestParameterValue(unittest.TestCase):
 class TestParameterLatexLabel(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -111,7 +112,7 @@ class TestParameterLatexLabel(unittest.TestCase):
 class TestParameterIsFixed(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -128,7 +129,7 @@ class TestFixMethod(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -136,4 +137,31 @@ class TestFixMethod(unittest.TestCase):
     def test_is_fixed_attribute_after_fixing(self):
         arbitrary_float = 11.3
         self.parameter.fix(arbitrary_float)
+        self.assertTrue(self.parameter.is_fixed)
+
+    def test_value_attribute_after_fixing(self):
+        arbitrary_float = 11.3
+        self.parameter.fix(arbitrary_float)
+        self.assertEqual(self.parameter.value, arbitrary_float)
+
+    def test_prior_attribute_after_fixing(self):
+        arbitrary_float = 11.3
+        self.parameter.fix(arbitrary_float)
+        self.assertIsNone(self.parameter.prior)
+
+    def test_raising_value_error_if_value_is_none(self):
+        self.parameter.value = np.nan
+        print(self.parameter.value)
+        self.assertRaises(ValueError, self.parameter.fix)
+
+    def test_fixing_existing_value(self):
+        arbitrary_float = 11.3
+        self.parameter.value = arbitrary_float
+        self.parameter.fix()
+        self.assertEqual(self.parameter.value, arbitrary_float)
+
+    def test_is_fixed_after_fixing_existing_value(self):
+        arbitrary_float = 11.3
+        self.parameter.value = arbitrary_float
+        self.parameter.fix()
         self.assertTrue(self.parameter.is_fixed)

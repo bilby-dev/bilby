@@ -64,7 +64,7 @@ class Parameter(object):
         if value is not None:
             self.value = value
 
-        if self.value == np.nan:
+        if np.isnan(self.value):
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
         self.is_fixed = True
         self.prior = None
