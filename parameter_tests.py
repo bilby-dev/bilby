@@ -151,7 +151,6 @@ class TestFixMethod(unittest.TestCase):
 
     def test_raising_value_error_if_value_is_none(self):
         self.parameter.value = np.nan
-        print(self.parameter.value)
         self.assertRaises(ValueError, self.parameter.fix)
 
     def test_fixing_existing_value(self):

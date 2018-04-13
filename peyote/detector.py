@@ -1,10 +1,9 @@
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 import numpy as np
 import logging
 import os
 from scipy.interpolate import interp1d
-import peyote
-
+from . import utils
 
 class Interferometer:
     """Class for the Interferometer """
@@ -62,7 +61,7 @@ class Interferometer:
         :param mode: polarisation mode
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
-        polarization_tensor = peyote.utils.get_polarization_tensor(ra, dec, time, psi, mode)
+        polarization_tensor = utils.get_polarization_tensor(ra, dec, time, psi, mode)
         detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
 
@@ -151,7 +150,7 @@ class Interferometer:
             logging.info(
                 'Setting {} data using provided frequency_domain_strain'
                 .format(self.name))
-            frequencies = peyote.utils.create_fequency_series(sampling_frequency, duration)
+            frequencies = utils.create_fequency_series(sampling_frequency, duration)
         elif from_power_spectral_density is not None:
             logging.info(
                 'Setting {} data using noise realization from provided'
@@ -180,7 +179,7 @@ class Interferometer:
         Output:
         delta_t - time delay from geocenter
         """
-        delta_t = peyote.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        delta_t = utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
         return delta_t
 
     def vertex_position_geocentric(self):
@@ -190,7 +189,7 @@ class Interferometer:
         Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
         See Section 2.1 of LIGO-T980044-10 for the correct expression
         """
-        vertex_position = peyote.utils.get_vertex_position_geocentric(self.latitude, self.longitude, self.elevation)
+        vertex_position = utils.get_vertex_position_geocentric(self.latitude, self.longitude, self.elevation)
         return vertex_position
 
     def whiten_data(self):
@@ -281,7 +280,7 @@ class PowerSpectralDensity:
         :param duration: duration of noise
         :return:  frequency_domain_strain (array), frequency (array)
         """
-        white_noise, frequency = peyote.utils.create_white_noise(sampling_frequency, duration)
+        white_noise, frequency = utils.create_white_noise(sampling_frequency, duration)
 
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequency)
 
