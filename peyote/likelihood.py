@@ -20,7 +20,7 @@ class Likelihood:
         time_shift = interferometer.time_delay_from_geocenter(
             self.waveform_generator.ra, self.waveform_generator.dec,
             self.waveform_generator.geocent_time)
-        signal *= np.exp(-1j * 2 * np.pi * time_shift * self.waveform_generator.frequency_array)
+        signal = signal * np.exp(-1j * 2 * np.pi * time_shift * self.waveform_generator.frequency_array)
 
         return signal
 

@@ -117,12 +117,11 @@ class Sampler:
                     # this
                     setattr(self.likelihood.waveform_generator, key, p)
             else:
-                try:
-                    self.prior[key] = getattr(peyote.parameter, key)
-                    self.search_parameter_keys.append(key)
-                except AttributeError:
+                self.prior[key] = peyote.parameter.Parameter(key)
+                if self.prior[key].prior is None:
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
+                self.search_parameter_keys.append(key)
         self.ndim = len(self.search_parameter_keys)
 
         logging.info("Search parameters:")
