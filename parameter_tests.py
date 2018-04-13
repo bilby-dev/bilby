@@ -122,3 +122,18 @@ class TestParameterIsFixed(unittest.TestCase):
 
     def test_default_is_fixed_assignment(self):
         self.assertFalse(self.parameter.is_fixed)
+
+
+class TestFixMethod(unittest.TestCase):
+
+    def setUp(self):
+        self.test_name = 'test_name'
+        self.parameter = peyote.parameter.Parameter(self.test_name)
+
+    def tearDown(self):
+        del self.parameter
+
+    def test_is_fixed_attribute_after_fixing(self):
+        arbitrary_float = 11.3
+        self.parameter.fix(arbitrary_float)
+        self.assertTrue(self.parameter.is_fixed)
