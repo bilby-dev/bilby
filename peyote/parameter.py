@@ -61,8 +61,8 @@ class Parameter(object):
         """
         Specify parameter as fixed, this will not be sampled.
         """
-        self.is_fixed = True
         if value is not None:
+            self.is_fixed = True
             self.value = value
         elif self.value == np.nan:
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
