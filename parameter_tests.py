@@ -165,3 +165,9 @@ class TestFixMethod(unittest.TestCase):
         self.parameter.value = arbitrary_float
         self.parameter.fix()
         self.assertTrue(self.parameter.is_fixed)
+
+    def test_prior_after_fixing_existing_value(self):
+        arbitrary_float = 11.3
+        self.parameter.value = arbitrary_float
+        self.parameter.fix()
+        self.assertIsNone(self.parameter.prior)
