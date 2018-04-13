@@ -237,6 +237,7 @@ def run_sampler(likelihood, prior, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
+        print("")
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:
