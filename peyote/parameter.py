@@ -160,3 +160,8 @@ class Parameter(object):
             self.__latex_label = 't_c'
         else:
             self.__latex_label = self.name
+
+    @staticmethod
+    def parse_floats_to_parameters(parameters):
+        for key in parameters:
+            parameters[key] = Parameter(key, value=parameters[key], is_fixed=True)

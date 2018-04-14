@@ -105,21 +105,21 @@ class Sampler:
 
         for key in self.likelihood.waveform_generator.parameter_keys:
             if key in self.prior:
-                p = self.prior[key]
-                ca = isinstance(p, numbers.Real)
-                cb = hasattr(p, 'prior')
-                cc = getattr(p, 'is_fixed', False) is True
+                param = self.prior[key]
+                ca = isinstance(param, numbers.Real)
+                cb = hasattr(param, 'prior')
+                cc = getattr(param, 'is_fixed', False)
                 if ca is False and cb and cc is False:
                     self.search_parameter_keys.append(key)
                     self.active_parameter_values[key] = np.nan
                 elif ca is False and cc is True:
-                    self.active_parameter_values[key] = p.value
+                    self.active_parameter_values[key] = param.value
                 elif ca:
-                    setattr(self.likelihood.waveform_generator, key, p)
+                    setattr(self.likelihood.waveform_generator, key, param)
                 else:
                     # Acts as a catch all for now - in future we should remove
                     # this
-                    setattr(self.likelihood.waveform_generator, key, p)
+                    setattr(self.likelihood.waveform_generator, key, param)
             else:
                 self.prior[key] = parameter.Parameter(key)
                 if self.prior[key].prior is None:

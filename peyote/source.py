@@ -19,7 +19,7 @@ from utils import nfft, get_sampling_frequency
 
 
 def lal_binary_black_hole(
-        frequency_array, mass_1, mass_2, luminosity_distance, spin_1, spin_2,
+        frequency_array, mass_1, mass_2, luminosity_distance, spin11, spin12, spin13, spin21, spin22, spin23,
         iota, phase, waveform_approximant, reference_frequency, ra, dec,
         geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
@@ -40,8 +40,8 @@ def lal_binary_black_hole(
     delta_frequency = frequency_array[1] - frequency_array[0]
 
     hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
-        mass_1, mass_2, spin_1[0], spin_1[1], spin_1[2], spin_2[0], spin_2[1],
-        spin_2[2], luminosity_distance, iota, phase,
+        mass_1, mass_2, spin11, spin12, spin13, spin21, spin22,
+        spin23, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         frequency_minimum, frequency_maximum, reference_frequency,
         waveform_dictionary, approximant)

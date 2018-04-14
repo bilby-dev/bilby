@@ -5,6 +5,8 @@ import dynesty.plotting as dyplot
 import corner
 import peyote
 
+
+
 peyote.setup_logger()
 
 time_duration = 1.
@@ -13,8 +15,12 @@ sampling_frequency = 4096.
 simulation_parameters = dict(
     mass_1=36.,
     mass_2=29.,
-    spin_1=[0, 0, 0],
-    spin_2=[0, 0, 0],
+    spin11=0,
+    spin12=0,
+    spin13=0,
+    spin21=0,
+    spin22=0,
+    spin23=0,
     luminosity_distance=100.,
     iota=0.4,
     phase=1.3,
@@ -66,9 +72,14 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 prior = simulation_parameters.copy()
+parse_to_parameters(prior)
+
 prior['mass_1'] = peyote.parameter.Parameter(
     'mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
     latex_label='$m_1$')
+#prior['mass_2'] = peyote.parameter.Parameter(
+#    'mass_2', prior=peyote.prior.Uniform(lower=25, upper=37),
+#    latex_label='$m_2$', value=28, is_fixed=True)
 prior['luminosity_distance'] = peyote.parameter.Parameter(
     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
     latex_label='$d_L$')
