@@ -10,8 +10,9 @@ import peyote
 time_duration = 1.
 sampling_frequency = 4096.
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29.,
-                                       spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=5000., iota=0., phase=0.,
+source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29., spin11=0,
+                                       spin12=0, spin13=0, spin21=0, spin22=0,
+                                       spin23=0, luminosity_distance=5000., iota=0., phase=0.,
                                        waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=0, dec=1,
                                        geocent_time=0, psi=1)
 
