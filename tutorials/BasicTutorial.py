@@ -71,11 +71,12 @@ fig.savefig('data')
 
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
-# New way way of doing it
+# New way way of doing it, still not perfect
 prior = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters.copy())
 prior['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
+prior['mass_1'].is_fixed = False
 prior['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
-
+prior['luminosity_distance'].is_fixed = False
 # Old way of doing it, still works
 # prior = simulation_parameters.copy()
 # prior['mass_1'] = peyote.parameter.Parameter(
