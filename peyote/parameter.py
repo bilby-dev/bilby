@@ -169,3 +169,4 @@ class Parameter(object):
                       + " instead. Will not be converted.")
                 continue
             parameters[key] = Parameter(key, value=parameters[key], is_fixed=True)
+        return parameters
