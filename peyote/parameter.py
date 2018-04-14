@@ -164,4 +164,7 @@ class Parameter(object):
     @staticmethod
     def parse_floats_to_parameters(parameters):
         for key in parameters:
+            if type(parameters[key]) is not float:
+                raise Warning("Expected parameter " + str(key) + " to be a float but was " + str(type(parameters[key]))
+                              + " instead.")
             parameters[key] = Parameter(key, value=parameters[key], is_fixed=True)
