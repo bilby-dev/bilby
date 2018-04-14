@@ -72,11 +72,15 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
-prior = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters.copy())
-prior['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
-prior['mass_1'].is_fixed = False
-prior['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
-prior['luminosity_distance'].is_fixed = False
+simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
+simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
+simulation_parameters['mass_1'].is_fixed = False
+simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
+simulation_parameters['luminosity_distance'].is_fixed = False
+
+result = peyote.run_sampler(likelihood, simulation_parameters, sampler='nestle', verbose=True)
+truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
+
 # Old way of doing it, still works
 # prior = simulation_parameters.copy()
 # prior['mass_1'] = peyote.parameter.Parameter(
@@ -85,12 +89,11 @@ prior['luminosity_distance'].is_fixed = False
 # prior['luminosity_distance'] = peyote.parameter.Parameter(
 #     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
 #     latex_label='$d_L$')
+# result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
+# truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 
-result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
 
-truths = [simulation_parameters[x] for x in result.search_parameter_keys]
-fig = corner.corner(result.samples, truths=truths,
-                    labels=result.search_parameter_keys)
+fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 fig.savefig('corner')
 
 fig, axes = dyplot.traceplot(result['sampler_output'])
