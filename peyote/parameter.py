@@ -145,7 +145,7 @@ class Parameter(object):
         elif self.name == 'phi2':
             self.__latex_label = '\phi_2'
         elif self.name == 'luminosity_distance':
-            self.__latex_label = 'd'
+            self.__latex_label = 'd_L'
         elif self.name == 'dec':
             self.__latex_label = '\mathrm{DEC}'
         elif self.name == 'ra':
