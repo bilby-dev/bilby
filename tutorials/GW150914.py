@@ -136,7 +136,7 @@ waveformgenerator = peyote.waveform_generator.WaveformGenerator(
     'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
 
 # Define the prior
-prior = dict(spin_1=[0, 0, 0], spin_2=[0, 0, 0], luminosity_distance=410.,
+prior = dict(spin11=0, spin12=0, spin13=0, spin21=0, spin22=0, spin23=0, luminosity_distance=410.,
              iota=2.97305, phase=1.145, waveform_approximant='IMRPhenomPv2',
              reference_frequency=50., ra=1.375, dec=-1.2108,
              geocent_time=time_of_event, psi=2.659, mass_1=36, mass_2=29)
