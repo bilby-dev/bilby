@@ -76,10 +76,10 @@ class Sampler(object):
         self.external_sampler = sampler_string
 
         self.search_parameter_keys = []
-        self.ndim = 0
 
         self.active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
+        self.ndim = len(self.search_parameter_keys)
 
         self.verify_prior()
 
@@ -136,8 +136,7 @@ class Sampler(object):
                 param = self.parameters[key]
 
                 if isinstance(param, Parameter) is False:
-                    # Acts as a catch all for now - in future we should remove
-                    # this
+                    # Acts as a catch all for now - in future we should remove this
                     setattr(self.likelihood.waveform_generator, key, param)
                 elif param.is_fixed is False:
                     self.search_parameter_keys.append(key)
@@ -151,7 +150,7 @@ class Sampler(object):
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
                 self.search_parameter_keys.append(key)
-        self.ndim = len(self.search_parameter_keys)
+
 
         logging.info("Search parameters:")
         for key in self.search_parameter_keys:
