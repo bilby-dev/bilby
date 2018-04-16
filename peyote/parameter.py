@@ -168,5 +168,8 @@ class Parameter(object):
                 print("Expected parameter " + str(key) + " to be a float or int but was " + str(type(parameters[key]))
                       + " instead. Will not be converted.")
                 continue
+            elif type(parameters[key]) is Parameter:
+                continue
+
             parameters[key] = Parameter(key, value=parameters[key], is_fixed=True)
         return parameters
