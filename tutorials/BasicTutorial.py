@@ -5,8 +5,6 @@ import dynesty.plotting as dyplot
 import corner
 import peyote
 
-
-
 peyote.utils.setup_logger()
 
 time_duration = 1.
@@ -30,7 +28,7 @@ simulation_parameters = dict(
     dec=-1.2108,
     geocent_time=1126259642.413,
     psi=2.659
-    )
+)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
@@ -78,7 +76,7 @@ simulation_parameters['mass_1'].is_fixed = False
 simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
 simulation_parameters['luminosity_distance'].is_fixed = False
 
-result = peyote.run_sampler(likelihood, simulation_parameters, sampler='nestle', verbose=True)
+result = peyote.sampler.run_sampler(likelihood, simulation_parameters, sampler='nestle', verbose=True)
 truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
 
 # Old way of doing it, still works
