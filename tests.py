@@ -54,7 +54,7 @@ class Test(unittest.TestCase):
             'luminosity_distance',
             prior=peyote.prior.Uniform(lower=dL - 10, upper=dL + 10))
 
-        result = peyote.run_sampler(likelihood, prior, sampler='nestle',
+        result = peyote.sampler.run_sampler(likelihood, prior, sampler='nestle',
                                     verbose=False)
         self.assertAlmostEqual(np.mean(result.samples), dL,
                                delta=np.std(result.samples))
