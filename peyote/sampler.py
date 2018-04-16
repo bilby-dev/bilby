@@ -9,8 +9,7 @@ import sys
 
 import numpy as np
 
-from . import parameter
-
+from .parameter import Parameter
 
 class Result(dict):
 
@@ -66,10 +65,10 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, prior, sampler_string, outdir='outdir',
+    def __init__(self, likelihood, parameters, sampler_string, outdir='outdir',
                  label='label', **kwargs):
         self.likelihood = likelihood
-        self.prior = prior
+        self.parameters = parameters
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
@@ -78,14 +77,14 @@ class Sampler(object):
 
         self.search_parameter_keys = []
         self.ndim = 0
-        self.active_parameter_values = self.prior.copy()
+
+        self.active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
 
         self.verify_prior()
 
         self.result = Result()
         self.add_initial_data_to_results()
-        self.set_kwargs()
 
         self.log_summary_for_sampler()
 
@@ -110,35 +109,45 @@ class Sampler(object):
             raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
                             'inherits from sampler')
 
-    def set_kwargs(self):
-        pass
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = kwargs
+
+    @property
+    def parameters(self):
+        return self.__parameters
+
+    @parameters.setter
+    def parameters(self, parameters):
+        self.__parameters = Parameter.parse_floats_to_parameters(parameters.copy())
 
     def add_initial_data_to_results(self):
         self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [self.prior[k].latex_label for k in self.search_parameter_keys]
+        self.result.labels = [self.parameters[k].latex_label for k in self.search_parameter_keys]
 
     def initialise_parameters(self):
 
         for key in self.likelihood.waveform_generator.parameter_keys:
-            if key in self.prior:
-                param = self.prior[key]
-                ca = isinstance(param, numbers.Real)
-                cb = hasattr(param, 'prior')
-                cc = getattr(param, 'is_fixed', False)
-                if ca is False and cb and cc is False:
-                    self.search_parameter_keys.append(key)
-                    self.active_parameter_values[key] = np.nan
-                elif ca is False and cc is True:
-                    self.active_parameter_values[key] = param.value
-                elif ca:
-                    setattr(self.likelihood.waveform_generator, key, param)
-                else:
+            if key in self.parameters:
+                param = self.parameters[key]
+
+                if isinstance(param, Parameter) is False:
                     # Acts as a catch all for now - in future we should remove
                     # this
                     setattr(self.likelihood.waveform_generator, key, param)
+                elif param.is_fixed is False:
+                    self.search_parameter_keys.append(key)
+                    self.active_parameter_values[key] = np.nan
+                elif param.is_fixed:
+                    self.active_parameter_values[key] = param.value
+
             else:
-                self.prior[key] = parameter.Parameter(key)
-                if self.prior[key].prior is None:
+                self.parameters[key] = Parameter(key)
+                if self.parameters[key].prior is None:
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
                 self.search_parameter_keys.append(key)
@@ -146,18 +155,18 @@ class Sampler(object):
 
         logging.info("Search parameters:")
         for key in self.search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.prior[key].prior))
+            logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
 
     def verify_prior(self):
         required_keys = self.likelihood.waveform_generator.parameter_keys
         unmatched_keys = [
-            r for r in required_keys if r not in self.prior]
+            r for r in required_keys if r not in self.parameters]
         if len(unmatched_keys) > 0:
             raise ValueError(
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.prior[key].prior.rescale(t) for key, t in zip(self.search_parameter_keys, theta)]
+        return [self.parameters[key].prior.rescale(t) for key, t in zip(self.search_parameter_keys, theta)]
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
@@ -167,14 +176,6 @@ class Sampler(object):
     def run_sampler(self):
         pass
 
-    def import_external_sampler(self):
-        try:
-            self.external_sampler = __import__(self.sampler_string)
-        except ImportError:
-            raise ImportError(
-                "Sampler {} not installed on this system".format(
-                    self.sampler_string))
-
     def log_summary_for_sampler(self):
         logging.info("Using sampler {} with kwargs {}".format(
             self.__class__.__name__, self.kwargs))
@@ -182,10 +183,13 @@ class Sampler(object):
 
 class Nestle(Sampler):
 
-    def set_kwargs(self):
-        self.kwargs_defaults = dict(verbose=True)
-        self.kwargs_defaults.update(self.kwargs)
-        self.kwargs = self.kwargs_defaults
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = kwargs
 
     def run_sampler(self):
         nestle = self.external_sampler
@@ -202,8 +206,6 @@ class Nestle(Sampler):
         self.result.logz = out.logz
         self.result.logzerr = out.logzerr
         return self.result
-
-
 
 
 class Dynesty(Sampler):
@@ -227,15 +229,18 @@ class Dynesty(Sampler):
 
 class Pymultinest(Sampler):
 
-    def set_kwargs(self):
-        self.kwargs_defaults = dict(
-            importance_nested_sampling=False, resume=True, verbose=True,
-            sampling_efficiency='parameter', outputfiles_basename=self.outdir)
-        self.kwargs_defaults.update(self.kwargs)
-        self.kwargs = self.kwargs_defaults
-        if self.kwargs['outputfiles_basename'].endswith('/') is False:
-            self.kwargs['outputfiles_basename'] = '{}/'.format(
-                self.kwargs['outputfiles_basename'])
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = dict(importance_nested_sampling=False, resume=True, verbose=True,
+                             sampling_efficiency='parameter', outputfiles_basename=self.outdir)
+        self.__kwargs.update(kwargs)
+        if self.__kwargs['outputfiles_basename'].endswith('/') is False:
+            self.__kwargs['outputfiles_basename'] = '{}/'.format(
+                self.__kwargs['outputfiles_basename'])
 
     def run_sampler(self):
         pymultinest = self.external_sampler
@@ -253,7 +258,6 @@ class Pymultinest(Sampler):
 
 def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
-
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
