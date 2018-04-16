@@ -284,7 +284,7 @@ class PowerSpectralDensity:
 
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequency)
 
-        frequency_domain_strain = 0.5 * interpolated_power_spectral_density ** 0.5 * white_noise
+        frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
 
         return frequency_domain_strain, frequency
 
