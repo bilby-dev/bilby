@@ -75,11 +75,10 @@ class Sampler(object):
 
         self.external_sampler = sampler_string
 
-        self.search_parameter_keys = []
-
-        self.active_parameter_values = self.parameters.copy()
+        self.__search_parameter_keys = []
+        self.__active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
-        self.ndim = len(self.search_parameter_keys)
+        self.__ndim = len(self.__search_parameter_keys)
 
         self.verify_prior()
 
@@ -126,8 +125,8 @@ class Sampler(object):
         self.__parameters = Parameter.parse_floats_to_parameters(parameters.copy())
 
     def add_initial_data_to_results(self):
-        self.result.search_parameter_keys = self.search_parameter_keys
-        self.result.labels = [self.parameters[k].latex_label for k in self.search_parameter_keys]
+        self.result.search_parameter_keys = self.__search_parameter_keys
+        self.result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
 
     def initialise_parameters(self):
 
@@ -139,21 +138,21 @@ class Sampler(object):
                     # Acts as a catch all for now - in future we should remove this
                     setattr(self.likelihood.waveform_generator, key, param)
                 elif param.is_fixed is False:
-                    self.search_parameter_keys.append(key)
-                    self.active_parameter_values[key] = np.nan
+                    self.__search_parameter_keys.append(key)
+                    self.__active_parameter_values[key] = np.nan
                 elif param.is_fixed:
-                    self.active_parameter_values[key] = param.value
+                    self.__active_parameter_values[key] = param.value
 
             else:
                 self.parameters[key] = Parameter(key)
                 if self.parameters[key].prior is None:
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
-                self.search_parameter_keys.append(key)
+                self.__search_parameter_keys.append(key)
 
 
         logging.info("Search parameters:")
-        for key in self.search_parameter_keys:
+        for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
 
     def verify_prior(self):
@@ -165,10 +164,10 @@ class Sampler(object):
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.parameters[key].prior.rescale(t) for key, t in zip(self.search_parameter_keys, theta)]
+        return [self.parameters[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
     def log_likelihood(self, theta):
-        for i, k in enumerate(self.search_parameter_keys):
+        for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.__dict__[k] = theta[i]
         return self.likelihood.log_likelihood()
 
@@ -198,7 +197,7 @@ class Nestle(Sampler):
         out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
+            ndim=self.__ndim, **self.kwargs)
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
@@ -213,7 +212,7 @@ class Dynesty(Sampler):
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
+            ndim=self.__ndim, **self.kwargs)
         nested_sampler.run_nested()
         out = nested_sampler.results
 
@@ -245,7 +244,7 @@ class Pymultinest(Sampler):
         pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
-            n_dims=self.ndim, **self.kwargs)
+            n_dims=self.__ndim, **self.kwargs)
 
         self.result.sampler_output = out
         self.result.samples = out['samples']
