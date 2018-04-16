@@ -157,10 +157,9 @@ class Sampler(object):
                 "Input prior is missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.prior[key].prior.rescale(t)
-                for key, t in zip(self.search_parameter_keys, theta)]
+        return [self.prior[key].prior.rescale(t) for key, t in zip(self.search_parameter_keys, theta)]
 
-    def loglikelihood(self, theta):
+    def log_likelihood(self, theta):
         for i, k in enumerate(self.search_parameter_keys):
             self.likelihood.waveform_generator.__dict__[k] = theta[i]
         return self.likelihood.log_likelihood()
@@ -194,7 +193,7 @@ class Nestle(Sampler):
             self.kwargs['callback'] = nestle.print_progress
 
         out = nestle.sample(
-            loglikelihood=self.loglikelihood,
+            loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
 
@@ -211,7 +210,7 @@ class Dynesty(Sampler):
     def run_sampler(self):
         dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
-            loglikelihood=self.loglikelihood,
+            loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
         nested_sampler.run_nested()
@@ -241,7 +240,7 @@ class Pymultinest(Sampler):
     def run_sampler(self):
         pymultinest = self.external_sampler
         out = pymultinest.solve(
-            LogLikelihood=self.loglikelihood, Prior=self.prior_transform,
+            LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
 
         self.result.sampler_output = out
