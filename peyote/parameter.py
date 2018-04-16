@@ -164,7 +164,8 @@ class Parameter(object):
     @staticmethod
     def parse_floats_to_parameters(parameters):
         for key in parameters:
-            if type(parameters[key]) is not float and type(parameters[key]) is not int:
+            if type(parameters[key]) is not float and type(parameters[key]) is not int \
+                    and type(parameters[key])  is not Parameter:
                 print("Expected parameter " + str(key) + " to be a float or int but was " + str(type(parameters[key]))
                       + " instead. Will not be converted.")
                 continue
