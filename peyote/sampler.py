@@ -65,29 +65,42 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, parameters, sampler_string, outdir='outdir',
-                 label='label', **kwargs):
+    def __init__(self, likelihood, parameters, external_sampler, outdir='outdir',
+                 label='label', result=None, **kwargs):
         self.likelihood = likelihood
         self.parameters = parameters
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
-
-        self.external_sampler = sampler_string
+        self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
         self.__active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
+        self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
 
-        self.verify_parameters()
-
-        self.result = self.initialise_results()
+        self.result = result
 
         self.log_summary_for_sampler()
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
+
+    @property
+    def result(self):
+        return self.__result
+
+    @result.setter
+    def result(self, result):
+        if result is None:
+            self.__result = Result()
+            self.__result.search_parameter_keys = self.__search_parameter_keys
+            self.__result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
+        elif type(result) is Result:
+            self.__result = result
+        else:
+            raise TypeError('result must either be a Result or None')
 
     @property
     def external_sampler(self):
@@ -122,12 +135,6 @@ class Sampler(object):
     @parameters.setter
     def parameters(self, parameters):
         self.__parameters = Parameter.parse_floats_to_parameters(parameters.copy())
-
-    def initialise_results(self):
-        result = Result()
-        result.search_parameter_keys = self.__search_parameter_keys
-        result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
-        return result
 
     def initialise_parameters(self):
 
