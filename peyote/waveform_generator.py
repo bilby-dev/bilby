@@ -24,7 +24,7 @@ class WaveformGenerator:
     """
     def __init__(self, name, sampling_frequency, time_duration, source_model):
 
-        self.parameter_keys = inspect.signature(source_model).args
+        self.parameter_keys = inspect.getfullargspec(source_model).args
         self.parameter_keys.pop(0)
         for a in self.parameter_keys:
             setattr(self, a, None)
