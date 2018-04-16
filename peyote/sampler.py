@@ -83,8 +83,7 @@ class Sampler(object):
 
         self.verify_parameters()
 
-        self.result = Result()
-        self.add_initial_data_to_results()
+        self.result = self.initialise_results()
 
         self.log_summary_for_sampler()
 
@@ -125,9 +124,11 @@ class Sampler(object):
     def parameters(self, parameters):
         self.__parameters = Parameter.parse_floats_to_parameters(parameters.copy())
 
-    def add_initial_data_to_results(self):
-        self.result.search_parameter_keys = self.__search_parameter_keys
-        self.result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
+    def initialise_results(self):
+        result = Result()
+        result.search_parameter_keys = self.__search_parameter_keys
+        result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
+        return result
 
     def initialise_parameters(self):
 
@@ -157,8 +158,7 @@ class Sampler(object):
 
     def verify_parameters(self):
         required_keys = self.likelihood.waveform_generator.parameter_keys
-        unmatched_keys = [
-            r for r in required_keys if r not in self.parameters]
+        unmatched_keys = [r for r in required_keys if r not in self.parameters]
         if len(unmatched_keys) > 0:
             raise ValueError(
                 "Input parameters are missing keys {}".format(unmatched_keys))
