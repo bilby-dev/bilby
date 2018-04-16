@@ -11,6 +11,7 @@ import numpy as np
 
 from .parameter import Parameter
 
+
 class Result(dict):
 
     def __getattr__(self, name):
@@ -78,9 +79,9 @@ class Sampler(object):
         self.__search_parameter_keys = []
         self.__active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
-        self.__ndim = len(self.__search_parameter_keys)
+        self.ndim = len(self.__search_parameter_keys)
 
-        self.verify_prior()
+        self.verify_parameters()
 
         self.result = Result()
         self.add_initial_data_to_results()
@@ -150,18 +151,17 @@ class Sampler(object):
                         "No default prior known for parameter {}".format(key))
                 self.__search_parameter_keys.append(key)
 
-
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
 
-    def verify_prior(self):
+    def verify_parameters(self):
         required_keys = self.likelihood.waveform_generator.parameter_keys
         unmatched_keys = [
             r for r in required_keys if r not in self.parameters]
         if len(unmatched_keys) > 0:
             raise ValueError(
-                "Input prior is missing keys {}".format(unmatched_keys))
+                "Input parameters are missing keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
         return [self.parameters[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -197,7 +197,7 @@ class Nestle(Sampler):
         out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.__ndim, **self.kwargs)
+            ndim=self.ndim, **self.kwargs)
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
@@ -212,7 +212,7 @@ class Dynesty(Sampler):
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.__ndim, **self.kwargs)
+            ndim=self.ndim, **self.kwargs)
         nested_sampler.run_nested()
         out = nested_sampler.results
 
@@ -244,7 +244,7 @@ class Pymultinest(Sampler):
         pymultinest = self.external_sampler
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
-            n_dims=self.__ndim, **self.kwargs)
+            n_dims=self.ndim, **self.kwargs)
 
         self.result.sampler_output = out
         self.result.samples = out['samples']
