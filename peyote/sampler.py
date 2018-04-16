@@ -1,13 +1,13 @@
 from __future__ import print_function, division, absolute_import
 
+import inspect
 import logging
 import numbers
 import os
 import pickle
+import sys
 
 import numpy as np
-import sys
-import inspect
 
 from . import parameter
 
@@ -44,7 +44,7 @@ class Result(dict):
             pickle.dump(self, f)
 
 
-class Sampler:
+class Sampler(object):
     """ A sampler object to aid in setting up an inference run
 
     Parameters
@@ -73,10 +73,8 @@ class Sampler:
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
-        self.sampler_string = sampler_string
 
-        self.external_sampler = None
-        self.import_external_sampler()
+        self.external_sampler = sampler_string
 
         self.search_parameter_keys = []
         self.ndim = 0
@@ -93,6 +91,24 @@ class Sampler:
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
+
+    @property
+    def external_sampler(self):
+        return self.__external_sampler
+
+    @external_sampler.setter
+    def external_sampler(self, sampler):
+        if type(sampler) is str:
+            try:
+                self.__external_sampler = __import__(sampler)
+            except ImportError:
+                raise ImportError(
+                    "Sampler {} not installed on this system".format(sampler))
+        elif isinstance(sampler, Sampler):
+            self.__external_sampler = sampler
+        else:
+            raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
+                            'inherits from sampler')
 
     def set_kwargs(self):
         pass
@@ -187,6 +203,8 @@ class Nestle(Sampler):
         self.result.logz = out.logz
         self.result.logzerr = out.logzerr
         return self.result
+
+
 
 
 class Dynesty(Sampler):
