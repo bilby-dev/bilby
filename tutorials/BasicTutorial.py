@@ -7,7 +7,7 @@ import peyote
 
 
 
-peyote.setup_logger()
+peyote.utils.setup_logger()
 
 time_duration = 1.
 sampling_frequency = 4096.
