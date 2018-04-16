@@ -34,7 +34,7 @@ class Likelihood:
     def log_likelihood_interferometer(self, waveform_polarizations, interferometer):
         signal_ifo = self.get_interferometer_signal(waveform_polarizations, interferometer)
 
-        log_l = - 4. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
+        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
                                                                        (interferometer.data - signal_ifo)
                                                                        / interferometer.power_spectral_density_array)
         return log_l.real
@@ -45,7 +45,7 @@ class Likelihood:
     def set_noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= 4. / self.waveform_generator.time_duration * np.sum(abs(interferometer.data) ** 2
+            log_l -= 2. / self.waveform_generator.time_duration * np.sum(abs(interferometer.data) ** 2
                                                                          / interferometer.power_spectral_density_array)
         self.noise_log_likelihood = log_l.real
 
@@ -78,7 +78,7 @@ class LikelihoodB(Likelihood):
             signal_ifo_whitened = signal_ifo / (
                 interferometer.amplitude_spectral_density_array)
 
-            log_l -= 4. * self.waveform_generator.sampling_frequency * (
+            log_l -= 2. * self.waveform_generator.sampling_frequency * (
                 np.real(sum(
                     (interferometer.whitened_data - signal_ifo_whitened) ** 2)))
 
