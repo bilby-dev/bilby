@@ -22,7 +22,9 @@ class WaveformGenerator:
     WaveformGenerator object and initialised to `None`.
 
     """
-    def __init__(self, name, sampling_frequency, time_duration, source_model):
+
+    def __init__(self, name, sampling_frequency=None, time_duration=None, source_model=None, time_array=None,
+                 frequency_array=None):
 
         self.parameter_keys = inspect.getargspec(source_model).args
         self.parameter_keys.pop(0)
@@ -32,11 +34,33 @@ class WaveformGenerator:
         self.name = name
         self.sampling_frequency = sampling_frequency
         self.time_duration = time_duration
-        self.time_array = peyote.utils.create_time_series(
-            sampling_frequency, time_duration)
-        self.frequency_array = peyote.utils.create_fequency_series(
-            sampling_frequency, time_duration)
+        self.time_array = time_array
+        self.frequency_array = frequency_array
         self.source_model = source_model
+
+    @property
+    def time_array(self):
+        return self.__time_array
+
+    @time_array.setter
+    def time_array(self, time_array):
+        if time_array is not None:
+            self.__time_array = time_array
+        else:
+            self.__time_array = peyote.utils.create_time_series(self.sampling_frequency, self.time_duration)
+
+    @property
+    def frequency_array(self):
+        return self.__frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        if frequency_array is not None:
+            self.__frequency_array = frequency_array
+        else:
+            self.__frequency_array = peyote.utils.create_fequency_series(self.sampling_frequency, self.time_duration)
+
+
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
