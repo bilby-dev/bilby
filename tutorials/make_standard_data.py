@@ -30,10 +30,10 @@ simulation_parameters = dict(
     dec=-1.2108,
     geocent_time=1126259642.413,
     psi=2.659
-    )
+)
 
-waveform_generator = WaveformGenerator(
-    'BBH', sampling_frequency, time_duration, peyote.source.lal_binary_black_hole)
+waveform_generator = WaveformGenerator(source_model=peyote.source.lal_binary_black_hole,
+                                       sampling_frequency=sampling_frequency, time_duration=time_duration)
 waveform_generator.set_values(simulation_parameters)
 
 IFO = peyote.detector.H1
@@ -43,7 +43,7 @@ IFO.set_data(
 IFO.inject_signal(waveform_generator)
 hf_signal_and_noise = IFO.data
 frequencies = peyote.utils.create_fequency_series(
-        sampling_frequency=sampling_frequency, duration=time_duration)
+    sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
