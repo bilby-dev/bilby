@@ -9,7 +9,7 @@ import dynesty.plotting as dyplot
 import corner
 import peyote
 
-peyote.setup_logger()
+peyote.utils.setup_logger()
 
 time_duration = 1.
 sampling_frequency = 4096.
@@ -79,7 +79,7 @@ prior['sigma'] = peyote.parameter.Parameter('sigma',
 prior['mu'] = peyote.parameter.Parameter('mu',
         prior=peyote.prior.Uniform(lower=50, upper=200), latex_label='$\mu$')
 
-result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
+result = peyote.sampler.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
 
 print(likelihood.noise_log_likelihood)
 

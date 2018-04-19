@@ -75,7 +75,7 @@ simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
 simulation_parameters['mass_1'].is_fixed = False
 simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
 simulation_parameters['luminosity_distance'].is_fixed = False
-
+#waveform_generator.set_values(simulation_parameters)
 result = peyote.sampler.run_sampler(likelihood, simulation_parameters, sampler='nestle', verbose=True)
 truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
 

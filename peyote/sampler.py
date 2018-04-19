@@ -138,7 +138,7 @@ class Sampler(object):
 
     def initialise_parameters(self):
 
-        for key in self.likelihood.waveform_generator.parameter_keys:
+        for key in self.likelihood.waveform_generator.parameters:
             if key in self.parameters:
                 param = self.parameters[key]
 
@@ -163,7 +163,7 @@ class Sampler(object):
             logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
 
     def verify_parameters(self):
-        required_keys = self.likelihood.waveform_generator.parameter_keys
+        required_keys = self.likelihood.waveform_generator.parameters
         unmatched_keys = [r for r in required_keys if r not in self.parameters]
         if len(unmatched_keys) > 0:
             raise ValueError(
@@ -174,7 +174,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.__dict__[k] = theta[i]
+            self.likelihood.waveform_generator.parameters[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
@@ -260,13 +260,13 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, prior, label='label', outdir='outdir',
+def run_sampler(likelihood, simulation_parameters, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
-        sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
+        sampler = sampler_class(likelihood, simulation_parameters, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         print("")

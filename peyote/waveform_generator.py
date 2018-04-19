@@ -27,7 +27,9 @@ class WaveformGenerator(object):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
         self.source_model = source_model
-        self.parameter_keys = inspect.getargspec(source_model).args
+        keys = inspect.getargspec(source_model).args
+        keys.pop(0)
+        self.parameters = dict.fromkeys(keys)
 
     @property
     def frequency_array(self):
@@ -37,29 +39,15 @@ class WaveformGenerator(object):
     def time_array(self):
         return peyote.utils.create_time_series(self.sampling_frequency, self.time_duration)
 
-    @property
-    def parameter_keys(self):
-        return self.__parameter_keys
-
-    @parameter_keys.setter
-    def parameter_keys(self, parameter_keys):
-        self.__parameter_keys = copy.copy(parameter_keys)
-        self.__parameter_keys.remove('frequency_array')
-        for a in self.__parameter_keys:
-            if hasattr(self, a):
-                continue
-            setattr(self, a, None)
-
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
-        kwargs = {k: self.__dict__[k] for k in self.parameter_keys}
-        return self.source_model(self.frequency_array, **kwargs)
+        return self.source_model(self.frequency_array, **self.parameters)
 
     def set_values(self, dictionary):
         """ Given a dictionary of values, set the class attributes """
-        for k in self.parameter_keys:
-            try:
-                setattr(self, k, dictionary[k])
-            except KeyError:
-                raise KeyError(
-                    'The provided dictionary did not contain key {}'.format(k))
+
+        for key in self.parameters.keys():
+            if key in dictionary.keys():
+                self.parameters[key] = dictionary[key]
+            else:
+                raise KeyError('The provided dictionary did not contain key {}'.format(key))
