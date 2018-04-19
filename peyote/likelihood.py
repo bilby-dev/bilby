@@ -26,14 +26,17 @@ class Likelihood:
         h = []
         for mode in waveform_polarizations:
             det_response = interferometer.antenna_response(
-                self.waveform_generator.ra, self.waveform_generator.dec,
-                self.waveform_generator.geocent_time, self.waveform_generator.psi, mode)
+                self.waveform_generator.parameters['ra'],
+                self.waveform_generator.parameters['dec'],
+                self.waveform_generator.parameters['geocent_time'],
+                self.waveform_generator.parameters['psi'], mode)
             h.append(waveform_polarizations[mode] * det_response)
         signal = np.sum(h, axis=0)
 
         time_shift = interferometer.time_delay_from_geocenter(
-            self.waveform_generator.ra, self.waveform_generator.dec,
-            self.waveform_generator.geocent_time)
+            self.waveform_generator.parameters['ra'],
+            self.waveform_generator.parameters['dec'],
+            self.waveform_generator.parameters['geocent_time'])
         signal = signal * np.exp(-1j * 2 * np.pi * time_shift * self.waveform_generator.frequency_array)
 
         return signal

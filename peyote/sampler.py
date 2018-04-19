@@ -138,7 +138,7 @@ class Sampler(object):
 
     def initialise_parameters(self):
 
-        for key in self.likelihood.waveform_generator.parameter_keys:
+        for key in self.likelihood.waveform_generator.parameters:
             if key in self.parameters:
                 param = self.parameters[key]
 
@@ -163,7 +163,7 @@ class Sampler(object):
             logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
 
     def verify_parameters(self):
-        required_keys = self.likelihood.waveform_generator.parameter_keys
+        required_keys = self.likelihood.waveform_generator.parameters
         unmatched_keys = [r for r in required_keys if r not in self.parameters]
         if len(unmatched_keys) > 0:
             raise ValueError(
@@ -174,7 +174,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.__dict__[k] = theta[i]
+            self.likelihood.waveform_generator.parameters[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):

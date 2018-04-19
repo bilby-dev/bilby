@@ -80,21 +80,25 @@ class Interferometer:
 
         Adds the requested signal to self.data
 
-        :param waveform_generator: source type
+        :param waveform_generator: waveform_generator type
 
         """
         signal = waveform_generator.frequency_domain_strain()
 
         for mode in signal.keys():
             det_response = self.antenna_response(
-                waveform_generator.ra, waveform_generator.dec, waveform_generator.geocent_time,
-                waveform_generator.psi, mode)
+                waveform_generator.parameters['ra'],
+                waveform_generator.parameters['dec'],
+                waveform_generator.parameters['geocent_time'],
+                waveform_generator.parameters['psi'], mode)
 
             signal[mode] *= det_response
         signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
-            waveform_generator.ra, waveform_generator.dec, waveform_generator.geocent_time)
+            waveform_generator.parameters['ra'],
+            waveform_generator.parameters['dec'],
+            waveform_generator.parameters['geocent_time'])
         signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * time_shift * waveform_generator.frequency_array)
 
         self.data += signal_ifo
