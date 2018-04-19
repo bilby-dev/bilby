@@ -1,5 +1,5 @@
 import inspect
-
+import copy
 import peyote
 
 
@@ -28,6 +28,7 @@ class WaveformGenerator(object):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
         self.source_model = source_model
+        self.parameter_keys = inspect.getargspec(source_model).args
 
     @property
     def frequency_array(self):
@@ -39,13 +40,16 @@ class WaveformGenerator(object):
 
     @property
     def parameter_keys(self):
-        self.__parameter_keys = inspect.getargspec(self.source_model).args
-        self.__parameter_keys.pop(0)
+        return self.__parameter_keys
+
+    @parameter_keys.setter
+    def parameter_keys(self, parameter_keys):
+        self.__parameter_keys = copy.copy(parameter_keys)
+        self.__parameter_keys.remove('frequency_array')
         for a in self.__parameter_keys:
             if hasattr(self, a):
                 continue
             setattr(self, a, None)
-        return self.__parameter_keys
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
