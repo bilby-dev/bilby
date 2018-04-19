@@ -3,7 +3,7 @@ import inspect
 import peyote
 
 
-class WaveformGenerator:
+class WaveformGenerator(object):
     """ A waveform generator
 
     Parameters
@@ -23,13 +23,7 @@ class WaveformGenerator:
 
     """
 
-    def __init__(self, name, sampling_frequency=None, time_duration=None, source_model=None):
-
-        self.parameter_keys = inspect.getargspec(source_model).args
-        self.parameter_keys.pop(0)
-        for a in self.parameter_keys:
-            setattr(self, a, None)
-
+    def __init__(self, name, sampling_frequency=4096, time_duration=1, source_model=None):
         self.name = name
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
@@ -42,6 +36,16 @@ class WaveformGenerator:
     @property
     def time_array(self):
         return peyote.utils.create_time_series(self.sampling_frequency, self.time_duration)
+
+    @property
+    def parameter_keys(self):
+        self.__parameter_keys = inspect.getargspec(self.source_model).args
+        self.__parameter_keys.pop(0)
+        for a in self.__parameter_keys:
+            if hasattr(self, a):
+                continue
+            setattr(self, a, None)
+        return self.__parameter_keys
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
