@@ -37,7 +37,7 @@ simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
 waveform_generator = peyote.waveform_generator.WaveformGenerator(source_model=gaussian_frequency_domain_strain,
                                                                  sampling_frequency=sampling_frequency,
                                                                  time_duration=time_duration)
-waveform_generator.set_values(simulation_parameters)
+waveform_generator.parameters = simulation_parameters
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Simulate the data in H1
