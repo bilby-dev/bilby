@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Likelihood:
+class Likelihood(object):
     def __init__(self, interferometers, waveform_generator, noise_log_likelihood=None):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
