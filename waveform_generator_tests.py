@@ -42,6 +42,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         params = self.simulation_parameters.keys()
         self.assertItemsEqual(self.waveform_generator.parameter_keys, params)
 
+
 class TestSetValuesFunction(unittest.TestCase):
 
     def setUp(self):
@@ -56,3 +57,11 @@ class TestSetValuesFunction(unittest.TestCase):
         del self.waveform_generator
         del self.simulation_parameters
 
+    def test_set_values_sets_expected_values_with_expected_keys(self):
+        self.waveform_generator.set_values(self.simulation_parameters)
+        for key in self.simulation_parameters:
+            self.assertEqual(self.waveform_generator.__dict__[key], self.simulation_parameters[key])
+
+    def test_set_values_with_unexpected_keys(self):
+        self.simulation_parameters['foo'] = 1337
+        self.assertRaises(KeyError, self.waveform_generator.set_values(self.simulation_parameters))
