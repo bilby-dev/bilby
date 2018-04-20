@@ -62,18 +62,24 @@ class TestParameterSetter(unittest.TestCase):
         del self.waveform_generator
         del self.simulation_parameters
 
-    def test_set_values_sets_expected_values_with_expected_keys(self):
+    def test_parameter_setter_sets_expected_values_with_expected_keys(self):
         self.waveform_generator.parameters = self.simulation_parameters
         for key in self.simulation_parameters:
             self.assertEqual(self.waveform_generator.parameters[key], self.simulation_parameters[key])
 
-    def test_set_values_with_unexpected_keys(self):
+    def test_parameter_setter_with_unexpected_keys(self):
         self.waveform_generator.parameters['foo'] = 1337
 
         def parameter_setter(wg_params, sim_params):
             wg_params = sim_params
-
         self.assertRaises(KeyError, parameter_setter(self.waveform_generator.parameters, self.simulation_parameters))
+
+    def test_parameter_setter_raises_type_error(self):
+        a = 4
+
+        def parameter_setter(wg_params, sim_params):
+            wg_params = sim_params
+        self.assertRaises(TypeError, parameter_setter(self.waveform_generator.parameters, a))
 
 
 class TestSourceModelSetter(unittest.TestCase):
