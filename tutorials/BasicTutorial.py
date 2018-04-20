@@ -79,17 +79,6 @@ simulation_parameters['luminosity_distance'].is_fixed = False
 result = peyote.sampler.run_sampler(likelihood, sampler='nestle', verbose=True)
 truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
 
-# Old way of doing it, still works
-# prior = simulation_parameters.copy()
-# prior['mass_1'] = peyote.parameter.Parameter(
-#     'mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
-#     latex_label='$m_1$')
-# prior['luminosity_distance'] = peyote.parameter.Parameter(
-#     'luminosity_distance', prior=peyote.prior.Uniform(lower=30, upper=200),
-#     latex_label='$d_L$')
-# result = peyote.run_sampler(likelihood, prior, sampler='nestle', verbose=True)
-# truths = [simulation_parameters[x] for x in result.search_parameter_keys]
-
 
 fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 fig.savefig('corner')
