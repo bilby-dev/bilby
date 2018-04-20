@@ -73,9 +73,8 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
 simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
-simulation_parameters['mass_1'].is_fixed = False
 simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
-simulation_parameters['luminosity_distance'].is_fixed = False
+
 result = peyote.sampler.run_sampler(likelihood, sampler='nestle', verbose=True)
 truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
 
