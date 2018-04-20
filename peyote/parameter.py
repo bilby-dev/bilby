@@ -35,6 +35,7 @@ class Parameter(object):
             self.set_default_prior()
         else:
             self.__prior = prior
+        self.__is_fixed = False
 
     @value.setter
     def value(self, value=None):
