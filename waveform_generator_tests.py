@@ -81,6 +81,10 @@ class TestParameterSetter(unittest.TestCase):
             wg_params = sim_params
         self.assertRaises(TypeError, parameter_setter(self.waveform_generator.parameters, a))
 
+    def test_parameter_setter_none_handling(self):
+        self.waveform_generator.parameters = None
+        self.assertItemsEqual(self.waveform_generator.parameters.keys(), self.simulation_parameters.keys())
+
 
 class TestSourceModelSetter(unittest.TestCase):
 
