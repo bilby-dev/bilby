@@ -16,19 +16,21 @@ def generate_and_plot_data(waveform_generator):
     hf_signal = waveform_generator.frequency_domain_strain()
     # Simulate the data in H1
     H1 = peyote.detector.H1
-    H1_hf_noise, frequencies = H1.power_spectral_density.\
+    H1_hf_noise, frequencies = H1.power_spectral_density. \
         get_noise_realisation(waveform_generator.sampling_frequency,
                               waveform_generator.time_duration)
-    H1.set_data(sampling_frequency, time_duration,
+    H1.set_data(waveform_generator.sampling_frequency,
+                waveform_generator.time_duration,
                 frequency_domain_strain=H1_hf_noise)
     H1.inject_signal(waveform_generator)
     H1.set_spectral_densities()
     # Simulate the data in L1
     L1 = peyote.detector.L1
-    L1_hf_noise, frequencies = L1.power_spectral_density.\
+    L1_hf_noise, frequencies = L1.power_spectral_density. \
         get_noise_realisation(waveform_generator.sampling_frequency,
                               waveform_generator.time_duration)
-    L1.set_data(sampling_frequency, time_duration,
+    L1.set_data(waveform_generator.sampling_frequency,
+                waveform_generator.time_duration,
                 frequency_domain_strain=L1_hf_noise)
     L1.inject_signal(waveform_generator)
     L1.set_spectral_densities()
@@ -69,33 +71,27 @@ simulation_parameters = dict(amplitude=1e-21,
                              dec=-1.2108,
                              geocent_time=1126259642.413,
                              psi=2.659)
+simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 
-time_duration = 1.
-sampling_frequency = 4096.
-wg = peyote.waveform_generator.WaveformGenerator\
-    (source_model=gaussian_frequency_domain_strain,
-     sampling_frequency=sampling_frequency,
-     time_duration=time_duration,
+wg = peyote.waveform_generator.WaveformGenerator(
+     source_model=gaussian_frequency_domain_strain,
      parameters=simulation_parameters)
 
-IFOs = generate_and_plot_data(wg)
+IFOs = generate_and_plot_data()
 
 likelihood = peyote.likelihood.Likelihood(IFOs, wg)
 
-simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
-simulation_parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
-simulation_parameters['amplitude'].is_fixed = False
-simulation_parameters['amplitude'].latex_label = '$A$'
-simulation_parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
-simulation_parameters['sigma'].is_fixed = False
-simulation_parameters['sigma'].latex_label = '$f$'
-simulation_parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
-simulation_parameters['mu'].is_fixed = False
-simulation_parameters['mu'].latex_label = '$\mu$'
+wg.parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
+wg.parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
+wg.parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
 
-result = peyote.sampler.run_sampler(likelihood, simulation_parameters, sampler='nestle', verbose=True)
+result = peyote.sampler.run_sampler(likelihood, verbose=True)
 
-truths = [simulation_parameters[x] for x in result.search_parameter_keys]
+#
+# Make some nice plots
+#
+
+truths = [wg.parameters[x].value for x in result.search_parameter_keys]
 corner_plot = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 corner_plot.savefig('corner')
 
