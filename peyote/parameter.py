@@ -67,8 +67,8 @@ class Parameter(object):
 
         if np.isnan(self.value):
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
-        self.is_fixed = True
         self.prior = None
+        self.is_fixed = True
 
     def set_default_prior(self):
 
