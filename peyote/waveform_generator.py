@@ -30,11 +30,13 @@ class WaveformGenerator(object):
 
     @property
     def frequency_array(self):
-        return utils.create_fequency_series(self.sampling_frequency, self.time_duration)
+        return utils.create_fequency_series(self.sampling_frequency,
+                                            self.time_duration)
 
     @property
     def time_array(self):
-        return utils.create_time_series(self.sampling_frequency, self.time_duration)
+        return utils.create_time_series(self.sampling_frequency,
+                                        self.time_duration)
 
     @property
     def parameters(self):
@@ -54,9 +56,11 @@ class WaveformGenerator(object):
                 if key in parameters.keys():
                     self.__parameters[key] = parameters[key]
                 else:
-                    raise KeyError('The provided dictionary did not contain key {}'.format(key))
+                    raise KeyError('The provided dictionary did not '
+                                   'contain key {}'.format(key))
         else:
-            raise TypeError('Parameters must either be set as a list of keys or a dictionary of key-value pairs.')
+            raise TypeError('Parameters must either be set as a list of keys or'
+                            ' a dictionary of key-value pairs.')
 
     @source_model.setter
     def source_model(self, source_model):
