@@ -31,10 +31,11 @@ simulation_parameters = dict(
     geocent_time=1126259642.413,
     psi=2.659
 )
-
+simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 waveform_generator = WaveformGenerator(source_model=peyote.source.lal_binary_black_hole,
-                                       sampling_frequency=sampling_frequency, time_duration=time_duration)
-waveform_generator.parameters = simulation_parameters
+                                       sampling_frequency=sampling_frequency,
+                                       time_duration=time_duration,
+                                       parameters=simulation_parameters)
 
 IFO = peyote.detector.H1
 IFO.set_data(
