@@ -22,11 +22,12 @@ class WaveformGenerator(object):
 
     """
 
-    def __init__(self, source_model, sampling_frequency=4096, time_duration=1):
+    def __init__(self, source_model, sampling_frequency=4096, time_duration=1,
+                 parameters=None):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
         self.source_model = source_model
-        self.parameters = inspect.getargspec(source_model).args
+        self.parameters = parameters
 
     @property
     def frequency_array(self):
@@ -48,7 +49,11 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
-        if isinstance(parameters, list):
+        if parameters is None:
+            parameters = inspect.getargspec(self.source_model).args
+            parameters.pop(0)
+            self.__parameters = dict.fromkeys(parameters)
+        elif isinstance(parameters, list):
             parameters.pop(0)
             self.__parameters = dict.fromkeys(parameters)
         elif isinstance(parameters, dict):
