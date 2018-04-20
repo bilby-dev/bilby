@@ -2,6 +2,7 @@ import inspect
 
 from . import utils
 
+
 class WaveformGenerator(object):
     """ A waveform generator
 
@@ -28,24 +29,39 @@ class WaveformGenerator(object):
         self.sampling_frequency = sampling_frequency
         self.source_model = source_model
         self.parameters = parameters
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
+
+    def frequency_domain_strain(self):
+        """ Wrapper to source_model """
+        return self.source_model(self.frequency_array, **self.parameters)
 
     @property
     def frequency_array(self):
-        return utils.create_fequency_series(self.sampling_frequency,
-                                            self.time_duration)
+        if self.__frequency_array_updated:
+            return self.__frequency_array
+        else:
+            self.__frequency_array = utils.create_fequency_series(
+                                        self.sampling_frequency,
+                                        self.time_duration)
+            self.__frequency_array_updated = True
+        return self.__frequency_array
 
     @property
     def time_array(self):
-        return utils.create_time_series(self.sampling_frequency,
+        if self.__time_array_updated:
+            return self.__time_array
+        else:
+            self.__time_array = utils.create_time_series(
+                                        self.sampling_frequency,
                                         self.time_duration)
+
+            self.__time_array_updated = True
+        return self.__time_array
 
     @property
     def parameters(self):
         return self.__parameters
-
-    @property
-    def source_model(self):
-        return self.__source_model
 
     @parameters.setter
     def parameters(self, parameters):
@@ -67,12 +83,31 @@ class WaveformGenerator(object):
             raise TypeError('Parameters must either be set as a list of keys or'
                             ' a dictionary of key-value pairs.')
 
+    @property
+    def source_model(self):
+        return self.__source_model
+
     @source_model.setter
     def source_model(self, source_model):
         self.__source_model = source_model
         self.parameters = inspect.getargspec(source_model).args
 
-    def frequency_domain_strain(self):
-        """ Wrapper to source_model """
-        return self.source_model(self.frequency_array, **self.parameters)
+    @property
+    def time_duration(self):
+        return self.__time_duration
 
+    @time_duration.setter
+    def time_duration(self, time_duration):
+        self.__time_duration = time_duration
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
+
+    @property
+    def sampling_frequency(self):
+        return self.__sampling_frequency
+
+    @sampling_frequency.setter
+    def sampling_frequency(self, sampling_frequency):
+        self.__sampling_frequency = sampling_frequency
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
