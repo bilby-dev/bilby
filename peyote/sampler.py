@@ -174,7 +174,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.parameters[k] = theta[i]
+            self.likelihood.waveform_generator.parameters[k].value = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):

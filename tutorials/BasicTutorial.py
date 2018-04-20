@@ -29,7 +29,7 @@ simulation_parameters = dict(
     geocent_time=1126259642.413,
     psi=2.659
 )
-
+simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency,
@@ -72,7 +72,7 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
-simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
+#simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
 simulation_parameters['mass_1'].is_fixed = False
 simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)

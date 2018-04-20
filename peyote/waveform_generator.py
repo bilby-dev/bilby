@@ -1,7 +1,7 @@
 import inspect
 
 from . import utils
-
+from . import parameter
 
 class WaveformGenerator(object):
     """ A waveform generator
@@ -34,7 +34,13 @@ class WaveformGenerator(object):
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
-        return self.source_model(self.frequency_array, **self.parameters)
+        parameters = dict()
+        for key in self.parameters.keys():
+            if isinstance(self.parameters[key], parameter.Parameter):
+                parameters[key] = self.parameters[key].value
+            else:
+                parameters[key] = self.parameters[key]
+        return self.source_model(self.frequency_array, **parameters)
 
     @property
     def frequency_array(self):
