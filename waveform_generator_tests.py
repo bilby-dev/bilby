@@ -8,6 +8,11 @@ def gaussian_frequency_domain_strain(frequency_array, amplitude, mu, sigma, ra, 
           'cross': amplitude * np.exp(-(mu - frequency_array) ** 2 / sigma ** 2 / 2)}
     return ht
 
+def gaussian_frequency_domain_strain_2(frequency_array, a, m, s, ra, dec, geocent_time, psi):
+    ht = {'plus': a * np.exp(-(m - frequency_array) ** 2 / s ** 2 / 2),
+          'cross': a * np.exp(-(m - frequency_array) ** 2 / s ** 2 / 2)}
+    return ht
+
 
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
@@ -43,7 +48,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.assertItemsEqual(self.waveform_generator.parameters, params)
 
 
-class TestSetValuesFunction(unittest.TestCase):
+class TestParameterSetter(unittest.TestCase):
 
     def setUp(self):
         self.waveform_generator = wg.WaveformGenerator(source_model=gaussian_frequency_domain_strain)
@@ -58,10 +63,33 @@ class TestSetValuesFunction(unittest.TestCase):
         del self.simulation_parameters
 
     def test_set_values_sets_expected_values_with_expected_keys(self):
-        self.waveform_generator.set_values(self.simulation_parameters)
+        self.waveform_generator.parameters = self.simulation_parameters
         for key in self.simulation_parameters:
             self.assertEqual(self.waveform_generator.parameters[key], self.simulation_parameters[key])
 
     def test_set_values_with_unexpected_keys(self):
-        self.simulation_parameters['foo'] = 1337
-        self.assertRaises(KeyError, self.waveform_generator.set_values(self.simulation_parameters))
+        self.waveform_generator.parameters['foo'] = 1337
+
+        def parameter_setter(wg_params, sim_params):
+            wg_params = sim_params
+
+        self.assertRaises(KeyError, parameter_setter(self.waveform_generator.parameters, self.simulation_parameters))
+
+
+class TestSourceModelSetter(unittest.TestCase):
+
+    def setUp(self):
+        self.waveform_generator = wg.WaveformGenerator(source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator.source_model = gaussian_frequency_domain_strain_2
+        self.simulation_parameters = dict(a=1e-21, m=100, s=1,
+                                     ra=1.375,
+                                     dec=-1.2108,
+                                     geocent_time=1126259642.413,
+                                     psi=2.659)
+
+    def tearDown(self):
+        del self.waveform_generator
+        del self.simulation_parameters
+
+    def test_parameters_are_set_correctly(self):
+        self.assertItemsEqual(self.waveform_generator.parameters, self.simulation_parameters.keys())
