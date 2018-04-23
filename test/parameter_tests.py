@@ -1,5 +1,4 @@
-from .context.peyote import parameter as parameter
-from .context.peyote import prior as prior
+from .context import peyote
 import unittest
 import numpy as np
 
@@ -8,7 +7,7 @@ class TestParameterInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -33,7 +32,7 @@ class TestParameterName(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -47,18 +46,18 @@ class TestParameterPrior(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
 
     def test_prior_assignment(self):
-        test_prior = prior.Uniform(0, 100)
+        test_prior = peyote.prior.Uniform(0, 100)
         self.parameter.prior = test_prior
         self.assertDictEqual(test_prior.__dict__, self.parameter.prior.__dict__)
 
     def test_default_assignment(self):
-        test_prior = prior.PowerLaw(alpha=0, bounds=(5, 100))
+        test_prior = peyote.prior.PowerLaw(alpha=0, bounds=(5, 100))
         self.parameter.name = 'mchirp'
         self.parameter.prior = None
         self.assertDictEqual(test_prior.__dict__, self.parameter.prior.__dict__)
@@ -67,7 +66,7 @@ class TestParameterPrior(unittest.TestCase):
 class TestParameterValue(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -90,7 +89,7 @@ class TestParameterValue(unittest.TestCase):
 class TestParameterLatexLabel(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -112,7 +111,7 @@ class TestParameterLatexLabel(unittest.TestCase):
 class TestParameterIsFixed(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -129,7 +128,7 @@ class TestFixMethod(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.Parameter(self.test_name)
 
     def tearDown(self):
         del self.parameter
