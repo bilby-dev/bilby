@@ -19,20 +19,14 @@ exitcode-jessie:
   image: ligo/software:jessie
   script:
     - ls
-    - echo $PWD
-    - echo $PYTHONPATH
-    - echo $CI_CONFIG_PATH
-    - PYTHONPATH="$PWD/peyote/"
+    - PYTHONPATH="$PWD/"
     - ls $PYTHONPATH
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
-#    - python setup.py install
-#    - for test in test/*.py; do coverage run $test; done
     - coverage run --source=peyote/ test/parameter_tests.py
     - coverage run --source=peyote/ test/tests.py
     - coverage run --source=peyote/ test/waveform_generator_tests.py
-#    - coverage run test_runner.py
     - coverage html --include=peyote/*
     - coverage-badge -o coverage.svg
   artifacts:
