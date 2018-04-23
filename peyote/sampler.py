@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 
-from result import Result
+from .result import Result
 from .parameter import Parameter
 
 
