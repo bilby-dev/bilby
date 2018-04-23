@@ -22,25 +22,6 @@ class Likelihood(object):
         else:
             self.__noise_log_likelihood = noise_log_likelihood
 
-    def get_interferometer_signal(self, waveform_polarizations, interferometer):
-        h = []
-        for mode in waveform_polarizations:
-            det_response = interferometer.antenna_response(
-                self.waveform_generator.parameters['ra'].value,
-                self.waveform_generator.parameters['dec'].value,
-                self.waveform_generator.parameters['geocent_time'].value,
-                self.waveform_generator.parameters['psi'].value, mode)
-            h.append(waveform_polarizations[mode] * det_response)
-        signal = np.sum(h, axis=0)
-
-        time_shift = interferometer.time_delay_from_geocenter(
-            self.waveform_generator.parameters['ra'].value,
-            self.waveform_generator.parameters['dec'].value,
-            self.waveform_generator.parameters['geocent_time'].value)
-        signal = signal * np.exp(-1j * 2 * np.pi * time_shift * self.waveform_generator.frequency_array)
-
-        return signal
-
     def log_likelihood(self):
         log_l = 0
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
@@ -49,7 +30,7 @@ class Likelihood(object):
         return log_l.real
 
     def log_likelihood_interferometer(self, waveform_polarizations, interferometer):
-        signal_ifo = self.get_interferometer_signal(waveform_polarizations, interferometer)
+        signal_ifo = interferometer.get_detector_response(waveform_polarizations, self.waveform_generator.parameters)
 
         log_l = - 2. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
                                                                        (interferometer.data - signal_ifo)

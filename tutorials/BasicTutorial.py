@@ -42,13 +42,13 @@ hf_signal = waveform_generator.frequency_domain_strain()
 H1 = peyote.detector.H1
 H1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
             from_power_spectral_density=True)
-H1.inject_signal(waveform_generator)
+H1.inject_signal(waveform_polarizations=hf_signal, parameters=simulation_parameters)
 
 # Simulate the data in L1
 L1 = peyote.detector.L1
 L1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
             from_power_spectral_density=True)
-L1.inject_signal(waveform_generator)
+L1.inject_signal(waveform_polarizations=hf_signal, parameters=simulation_parameters)
 
 IFOs = [H1, L1]
 
