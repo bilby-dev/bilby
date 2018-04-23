@@ -18,11 +18,11 @@ exitcode-jessie:
   stage: test
   image: ligo/software:jessie
   script:
-    - pip install -r ../requirements.txt
+    - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
     - coverage run test/*.py
-    - coverage html --include=../peyote/*
+    - coverage html --include=peyote/*
     - coverage-badge -o coverage.svg
   artifacts:
     paths:
