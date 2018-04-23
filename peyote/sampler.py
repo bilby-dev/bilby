@@ -97,29 +97,22 @@ class Sampler(object):
 
     def initialise_parameters(self):
 
-        for key in self.likelihood.waveform_generator.parameters:
-            if key not in self.priors:
-                self.priors[key] = Parameter(key)
-                if self.priors[key].prior is None:
-                    raise AttributeError(
-                        "No default prior known for parameter {}".format(key))
-
-            if isinstance(self.priors[key], Parameter) is False \
-                    or self.priors[key].is_fixed is True:
-                continue
-
-            self.__search_parameter_keys.append(key)
+        for key in self.priors:
+            if isinstance(self.priors[key], Parameter) \
+                    and self.priors[key].prior is not None \
+                    and self.priors[key].is_fixed is False:
+                self.__search_parameter_keys.append(key)
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.priors[key].prior))
 
     def verify_parameters(self):
-        required_keys = self.likelihood.waveform_generator.parameters
-        unmatched_keys = [r for r in required_keys if r not in self.priors]
+        required_keys = self.priors
+        unmatched_keys = [r for r in required_keys if r not in self.likelihood.waveform_generator.parameters]
         if len(unmatched_keys) > 0:
-            raise ValueError(
-                "Input parameters are missing keys {}".format(unmatched_keys))
+            raise KeyError(
+                "Source model does not contain keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
         return [self.priors[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
