@@ -40,29 +40,25 @@ hf_signal = waveform_generator.frequency_domain_strain()
 
 # Simulate the data in H1
 H1 = peyote.detector.H1
-H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(
-    sampling_frequency, time_duration)
-H1.set_data(sampling_frequency, time_duration,
-            frequency_domain_strain=H1_hf_noise)
+H1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
+            from_power_spectral_density=True)
 H1.inject_signal(waveform_generator)
-H1.set_spectral_densities()
 
 # Simulate the data in L1
 L1 = peyote.detector.L1
-L1_hf_noise, frequencies = L1.power_spectral_density.get_noise_realisation(
-    sampling_frequency, time_duration)
-L1.set_data(sampling_frequency, time_duration,
-            frequency_domain_strain=L1_hf_noise)
+L1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
+            from_power_spectral_density=True)
 L1.inject_signal(waveform_generator)
-L1.set_spectral_densities()
 
 IFOs = [H1, L1]
 
 # Plot the noise and signal
 fig, ax = plt.subplots()
-plt.loglog(frequencies, np.abs(H1_hf_noise), lw=1.5, label='H1 noise+signal')
-plt.loglog(frequencies, np.abs(L1_hf_noise), lw=1.5, label='L1 noise+signal')
-plt.loglog(frequencies, np.abs(hf_signal['plus']), lw=0.8, label='signal')
+plt.loglog(H1.frequency_array, np.abs(H1.data), lw=1.5, label='H1 noise+signal')
+plt.loglog(H1.frequency_array, H1.amplitude_spectral_density_array, lw=1.5, label='H1 ASD')
+plt.loglog(L1.frequency_array, np.abs(L1.data), lw=1.5, label='L1 noise+signal')
+plt.loglog(L1.frequency_array, L1.amplitude_spectral_density_array, lw=1.5, label='H1 ASD')
+# plt.loglog(frequencies, np.abs(hf_signal['plus']), lw=0.8, label='signal')
 plt.xlim(10, 1000)
 plt.legend()
 plt.xlabel(r'frequency')
@@ -76,6 +72,7 @@ simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
 simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
 
 result = peyote.sampler.run_sampler(likelihood, sampler='nestle', verbose=True)
+print(result)
 truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
 
 

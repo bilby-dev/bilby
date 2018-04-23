@@ -17,8 +17,11 @@ class Result(dict):
     def __repr__(self):
         """Print a summary """
         return ("nsamples: {:d}\n"
+                "noise_logz: {:6.3f}\n"
                 "logz: {:6.3f} +/- {:6.3f}\n"
-                .format(len(self.samples), self.logz, self.logzerr))
+                "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
+                .format(len(self.samples), self.logz, self.logzerr, self.noise_logz, self.log_bayes_factor,
+                        self.logzerr))
 
     def save_to_file(self, outdir, label):
         file_name = '{}/{}_results.p'.format(outdir, label)
