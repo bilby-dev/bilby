@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import os
 import shutil
-from .context import peyote
+from context import peyote
 import logging
 from past.builtins import execfile
 

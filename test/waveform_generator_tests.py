@@ -1,5 +1,5 @@
 import unittest
-from .context import peyote
+from context import peyote
 import numpy as np
 
 

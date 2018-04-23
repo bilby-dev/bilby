@@ -1,4 +1,4 @@
-from .context import peyote
+from context import peyote
 import unittest
 import numpy as np
 
