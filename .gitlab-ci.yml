@@ -21,6 +21,7 @@ exitcode-jessie:
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
+    - python setup.py install
     - for test in test/*.py; do coverage run $test; done
 #    - coverage run test/parameter_tests.py
 #    - coverage run test/tests.py
