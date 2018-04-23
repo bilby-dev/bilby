@@ -1,5 +1,3 @@
-import sys
-sys.path.append("../")
 from peyote import parameter as parameter
 from peyote import prior as prior
 import unittest
