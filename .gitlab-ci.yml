@@ -13,7 +13,8 @@ stages:
   - test
   - deploy
 
-include: peyote
+variables:
+GIT_SUBMODULE_STRATEGY=recursive
 
 # test example on Debian 8 "jessie"
 exitcode-jessie:
