@@ -99,7 +99,9 @@ class Interferometer:
             waveform_generator.parameters['ra'].value,
             waveform_generator.parameters['dec'].value,
             waveform_generator.parameters['geocent_time'].value)
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * time_shift * waveform_generator.frequency_array)
+        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift
+                                                            + waveform_generator.parameters['geocent_time'].value)
+                                         * waveform_generator.frequency_array)
 
         self.data += signal_ifo
 

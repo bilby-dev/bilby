@@ -37,7 +37,9 @@ class Likelihood(object):
             self.waveform_generator.parameters['ra'].value,
             self.waveform_generator.parameters['dec'].value,
             self.waveform_generator.parameters['geocent_time'].value)
-        signal = signal * np.exp(-1j * 2 * np.pi * time_shift * self.waveform_generator.frequency_array)
+        signal = signal * np.exp(-1j * 2 * np.pi * (time_shift
+                                                    + self.waveform_generator.parameters['geocent_time'].value)
+                                 * self.waveform_generator.frequency_array)
 
         return signal
 
