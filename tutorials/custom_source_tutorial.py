@@ -85,7 +85,7 @@ sampling_parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21,
 sampling_parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
 sampling_parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
 
-result = peyote.sampler.run_sampler(likelihood, prior=sampling_parameters, verbose=True)
+result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, verbose=True)
 
 #
 # Make some nice plots
