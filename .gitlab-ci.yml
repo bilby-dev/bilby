@@ -13,8 +13,6 @@ stages:
   - test
   - deploy
 
-include: peyote
-
 # test example on Debian 8 "jessie"
 exitcode-jessie:
   stage: test
