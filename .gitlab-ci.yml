@@ -21,7 +21,7 @@ exitcode-jessie:
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
-    - coverage run test_runner.py
+    - for test in test/*.py; do coverage run $test; done
     - coverage html --include=peyote/*
     - coverage-badge -o coverage.svg
   artifacts:
