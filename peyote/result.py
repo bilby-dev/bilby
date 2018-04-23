@@ -20,7 +20,7 @@ class Result(dict):
                 "noise_logz: {:6.3f}\n"
                 "logz: {:6.3f} +/- {:6.3f}\n"
                 "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                .format(len(self.samples), self.logz, self.logzerr, self.noise_logz, self.log_bayes_factor,
+                .format(len(self.samples), self.noise_logz, self.logz, self.logzerr, self.log_bayes_factor,
                         self.logzerr))
 
     def save_to_file(self, outdir, label):
