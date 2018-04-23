@@ -1,5 +1,5 @@
 import unittest
-from peyote import waveform_generator as wg
+from .context.peyote import waveform_generator as wg
 import numpy as np
 
 

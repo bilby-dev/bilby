@@ -1,5 +1,5 @@
-from peyote import parameter as parameter
-from peyote import prior as prior
+from .context.peyote import parameter as parameter
+from .context.peyote import prior as prior
 import unittest
 import numpy as np
 
