@@ -10,6 +10,7 @@ from past.builtins import execfile
 class Test(unittest.TestCase):
     outdir = 'TestDir'
     dir_path = os.path.dirname(os.path.realpath(__file__))
+    dir_path = os.path.abspath(os.path.join(dir_path, os.path.pardir))
 
     # Run a script to produce standard data
     msd = {}  # A dictionary of variables saved in make_standard_data.py
@@ -48,13 +49,12 @@ class Test(unittest.TestCase):
         likelihood = peyote.likelihood.Likelihood(
             [self.msd['IFO']], self.msd['waveform_generator'])
 
-        prior = self.msd['simulation_parameters'].copy()
-        dL = self.msd['simulation_parameters']['luminosity_distance']
-        prior['luminosity_distance'] = peyote.parameter.Parameter(
-            'luminosity_distance',
+        dL = self.msd['simulation_parameters']['luminosity_distance'].value
+        self.msd['waveform_generator'].parameters['luminosity_distance'] = \
+            peyote.parameter.Parameter('luminosity_distance',
             prior=peyote.prior.Uniform(lower=dL - 10, upper=dL + 10))
 
-        result = peyote.sampler.run_sampler(likelihood, prior, sampler='nestle',
+        result = peyote.sampler.run_sampler(likelihood, sampler='nestle',
                                     verbose=False)
         self.assertAlmostEqual(np.mean(result.samples), dL,
                                delta=np.std(result.samples))
