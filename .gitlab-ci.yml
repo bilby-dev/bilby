@@ -26,7 +26,7 @@ exitcode-jessie:
 #    - coverage run test/parameter_tests.py
 #    - coverage run test/tests.py
 #    - coverage run test/waveform_generator_tests.py
-    - coverage html --include=peyote/*
+    - coverage html --include=build/lib/peyote/*
     - coverage-badge -o coverage.svg
   artifacts:
     paths:
