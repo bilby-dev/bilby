@@ -97,7 +97,9 @@ class Interferometer:
             parameters['ra'].value,
             parameters['dec'].value,
             parameters['geocent_time'].value)
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * time_shift * self.frequency_array)
+
+        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift + parameters['geocent_time'].value)
+                                         * self.frequency_array)
 
         return signal_ifo
 
