@@ -18,9 +18,12 @@ exitcode-jessie:
   stage: test
   image: ligo/software:jessie
   script:
-    - export $PYTHONPATH=peyote/
+    - ls
+    - echo $PWD
     - echo $PYTHONPATH
     - echo $CI_CONFIG_PATH
+    - export $PYTHONPATH=/peyote/
+    - ls $PYTHONPATH
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
