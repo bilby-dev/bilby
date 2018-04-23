@@ -1,3 +1,4 @@
+from __future__ import division
 import logging
 import numpy as np
 from astropy.time import Time
