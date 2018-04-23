@@ -22,7 +22,7 @@ exitcode-jessie:
     - echo $PWD
     - echo $PYTHONPATH
     - echo $CI_CONFIG_PATH
-    - export $PYTHONPATH=/peyote/
+    - export $PYTHONPATH=$PWD/peyote/
     - ls $PYTHONPATH
     - pip install -r requirements.txt
     - pip install coverage
