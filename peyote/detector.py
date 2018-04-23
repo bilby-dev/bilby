@@ -87,20 +87,20 @@ class Interferometer:
 
         for mode in signal.keys():
             det_response = self.antenna_response(
-                waveform_generator.parameters['ra'].value,
-                waveform_generator.parameters['dec'].value,
-                waveform_generator.parameters['geocent_time'].value,
-                waveform_generator.parameters['psi'].value, mode)
+                waveform_generator.parameters['ra'],
+                waveform_generator.parameters['dec'],
+                waveform_generator.parameters['geocent_time'],
+                waveform_generator.parameters['psi'], mode)
 
             signal[mode] *= det_response
         signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
-            waveform_generator.parameters['ra'].value,
-            waveform_generator.parameters['dec'].value,
-            waveform_generator.parameters['geocent_time'].value)
+            waveform_generator.parameters['ra'],
+            waveform_generator.parameters['dec'],
+            waveform_generator.parameters['geocent_time'])
         signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift
-                                                            + waveform_generator.parameters['geocent_time'].value)
+                                                            + waveform_generator.parameters['geocent_time'])
                                          * waveform_generator.frequency_array)
 
         self.data += signal_ifo

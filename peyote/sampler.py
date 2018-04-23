@@ -33,10 +33,10 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, external_sampler='nestle',
+    def __init__(self, likelihood, prior, external_sampler='nestle',
                  outdir='outdir', label='label', result=None, **kwargs):
         self.likelihood = likelihood
-        self.parameters = likelihood.waveform_generator.parameters
+        self.parameters = prior
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
@@ -142,7 +142,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.parameters[k].value = theta[i]
+            self.likelihood.waveform_generator.parameters[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
@@ -228,13 +228,13 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, label='label', outdir='outdir',
+def run_sampler(likelihood, prior, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
-        sampler = sampler_class(likelihood, sampler, outdir=outdir,
+        sampler = sampler_class(likelihood, prior, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood

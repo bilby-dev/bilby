@@ -163,7 +163,8 @@ class Parameter(object):
             self.__latex_label = self.name
 
     @staticmethod
-    def parse_floats_to_parameters(parameters):
+    def parse_floats_to_parameters(old_parameters):
+        parameters = old_parameters.copy()
         for key in parameters:
             if type(parameters[key]) is not float and type(parameters[key]) is not int \
                     and type(parameters[key]) is not Parameter:
