@@ -98,17 +98,17 @@ class Sampler(object):
     def initialise_parameters(self):
 
         for key in self.likelihood.waveform_generator.parameters:
-            if key in self.priors:
-                if isinstance(self.priors[key], Parameter) is True \
-                        and self.priors[key].is_fixed is False:
-                    self.__search_parameter_keys.append(key)
-
-            else:
+            if key not in self.priors:
                 self.priors[key] = Parameter(key)
                 if self.priors[key].prior is None:
                     raise AttributeError(
                         "No default prior known for parameter {}".format(key))
-                self.__search_parameter_keys.append(key)
+
+            if isinstance(self.priors[key], Parameter) is False \
+                    or self.priors[key].is_fixed is True:
+                continue
+
+            self.__search_parameter_keys.append(key)
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
