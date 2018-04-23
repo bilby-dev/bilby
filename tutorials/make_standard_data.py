@@ -41,7 +41,7 @@ IFO = peyote.detector.H1
 IFO.set_data(
     from_power_spectral_density=True, sampling_frequency=sampling_frequency,
     duration=time_duration)
-IFO.inject_signal(waveform_generator)
+IFO.inject_signal(waveform_polarizations=waveform_generator.frequency_domain_strain(), parameters=simulation_parameters)
 hf_signal_and_noise = IFO.data
 frequencies = peyote.utils.create_fequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
