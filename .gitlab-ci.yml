@@ -23,10 +23,11 @@ exitcode-jessie:
     - pip install coverage-badge
 #    - python setup.py install
 #    - for test in test/*.py; do coverage run $test; done
-    - export PYTHONPATH=$CI_CONFIG_PATH/peyote
-    - coverage run test/parameter_tests.py
-    - coverage run test/tests.py
-    - coverage run test/waveform_generator_tests.py
+#    - export PYTHONPATH=$CI_CONFIG_PATH/peyote
+#    - coverage run test/parameter_tests.py
+#    - coverage run test/tests.py
+#    - coverage run test/waveform_generator_tests.py
+    - coverage run test_runner.py
     - coverage html --peyote/*
     - coverage-badge -o coverage.svg
   artifacts:

@@ -105,3 +105,7 @@ class TestSourceModelSetter(unittest.TestCase):
 
     def test_parameters_are_set_correctly(self):
         self.assertItemsEqual(self.waveform_generator.parameters, self.simulation_parameters.keys())
+
+
+if __name__ == '__main__':
+    unittest.main()

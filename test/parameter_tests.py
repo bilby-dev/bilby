@@ -172,3 +172,6 @@ class TestFixMethod(unittest.TestCase):
         self.parameter.value = arbitrary_float
         self.parameter.fix()
         self.assertIsNone(self.parameter.prior)
+
+if __name__ == '__main__':
+    unittest.main()
