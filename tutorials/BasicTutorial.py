@@ -29,14 +29,17 @@ simulation_parameters = dict(
     geocent_time=1126259642.413,
     psi=2.659
 )
-simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency,
     time_duration=time_duration,
-    source_model=peyote.source.lal_binary_black_hole,
-    parameters=simulation_parameters)
+    source_model=peyote.source.lal_binary_black_hole)
+
+waveform_generator.parameters = simulation_parameters
+
 hf_signal = waveform_generator.frequency_domain_strain()
+
+sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 
 # Simulate the data in H1
 H1 = peyote.detector.H1
@@ -68,14 +71,14 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
-# simulation_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
-# simulation_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
-simulation_parameters['geocent_time'].prior = peyote.prior.Uniform(lower=1126259642.413 - 0.1,
-                                                                   upper=1126259642.413 + 0.1)
+sampling_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
+sampling_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
+# sampling_parameters['geocent_time'].prior = peyote.prior.Uniform(lower=1126259642.413 - 0.1,
+#                                                                    upper=1126259642.413 + 0.1)
 
-result = peyote.sampler.run_sampler(likelihood, sampler='nestle', verbose=True)
+result = peyote.sampler.run_sampler(likelihood, prior=sampling_parameters, sampler='nestle', verbose=True)
 print(result)
-truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
+truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 
 
 fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)

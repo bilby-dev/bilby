@@ -71,27 +71,27 @@ simulation_parameters = dict(amplitude=1e-21,
                              dec=-1.2108,
                              geocent_time=1126259642.413,
                              psi=2.659)
-simulation_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
+sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
 
 wg = peyote.waveform_generator.WaveformGenerator(
      source_model=gaussian_frequency_domain_strain,
      parameters=simulation_parameters)
 
-IFOs = generate_and_plot_data()
+IFOs = generate_and_plot_data(wg)
 
 likelihood = peyote.likelihood.Likelihood(IFOs, wg)
 
-wg.parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
-wg.parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
-wg.parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
+sampling_parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
+sampling_parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
+sampling_parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
 
-result = peyote.sampler.run_sampler(likelihood, verbose=True)
+result = peyote.sampler.run_sampler(likelihood, prior=sampling_parameters, verbose=True)
 
 #
 # Make some nice plots
 #
 
-truths = [wg.parameters[x].value for x in result.search_parameter_keys]
+truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 corner_plot = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 corner_plot.savefig('corner')
 
