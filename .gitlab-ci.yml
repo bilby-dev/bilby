@@ -18,6 +18,7 @@ exitcode-jessie:
   stage: test
   image: ligo/software:jessie
   script:
+    - export $PYTHONPATH=peyote/
     - echo $PYTHONPATH
     - echo $CI_CONFIG_PATH
     - pip install -r requirements.txt
@@ -25,9 +26,9 @@ exitcode-jessie:
     - pip install coverage-badge
 #    - python setup.py install
 #    - for test in test/*.py; do coverage run $test; done
-    - coverage run --source=peyote test/parameter_tests.py
-    - coverage run --source=peyote test/tests.py
-    - coverage run --source=peyote test/waveform_generator_tests.py
+    - coverage run --source=peyote/ test/parameter_tests.py
+    - coverage run --source=peyote/ test/tests.py
+    - coverage run --source=peyote/ test/waveform_generator_tests.py
 #    - coverage run test_runner.py
     - coverage html --include=peyote/*
     - coverage-badge -o coverage.svg
