@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 import os
 import shutil
+import sys
+sys.path.append("../")
 import peyote
 import logging
 from past.builtins import execfile

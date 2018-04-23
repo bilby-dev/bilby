@@ -1,4 +1,6 @@
 import unittest
+import sys
+sys.path.append("../")
 from peyote import waveform_generator as wg
 import numpy as np
 
