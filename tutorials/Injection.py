@@ -27,7 +27,7 @@ for IFO in IFOs:
 
 likelihood = peyote.likelihood.Likelihood(source=source, interferometers=IFOs)
 
-print(likelihood.noise_log_likelihood)
+print(likelihood.noise_log_likelihood())
 print(likelihood.log_likelihood())
 print(likelihood.log_likelihood_ratio())
 
