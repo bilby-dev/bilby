@@ -50,8 +50,8 @@ class Test(unittest.TestCase):
             [self.msd['IFO']], self.msd['waveform_generator'])
 
         dL = self.msd['simulation_parameters']['luminosity_distance']
-        priors = {'luminosity_distance' : peyote.parameter.Parameter('luminosity_distance',
-            prior=peyote.prior.Uniform(lower=dL - 10, upper=dL + 10))
+        priors = {'luminosity_distance' : peyote.parameter.PriorFactory('luminosity_distance',
+                                                                        prior=peyote.prior.Uniform(lower=dL - 10, upper=dL + 10))
 }
 
         result = peyote.sampler.run_sampler(likelihood, priors, sampler='nestle',

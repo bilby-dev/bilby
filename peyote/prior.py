@@ -8,8 +8,9 @@ from scipy.integrate import cumtrapz
 class Prior(object):
     """Prior class"""
 
-    def __init__(self, **kwargs):
-        return
+    def __init__(self, name=None, latex_label=None):
+        self.name = name
+        self.latex_label = latex_label
 
     def __call__(self):
         return self.sample(1)
@@ -32,12 +33,66 @@ class Prior(object):
             ['{}={}'.format(k, v) for k, v in self.__dict__.items()])
         return "{}({})".format(prior_name, prior_args)
 
+    @property
+    def is_fixed(self):
+        return isinstance(self, DeltaFunction)
+
+    @property
+    def latex_label(self):
+        return self.__latex_label
+
+    @latex_label.setter
+    def latex_label(self, latex_label=None):
+        if latex_label is None:
+            self.__latex_label = self.__default_latex_label
+        else:
+            self.__latex_label = latex_label
+
+    @property
+    def __default_latex_label(self):
+        if self.name == 'mass_1':
+            return '$m_1$'
+        elif self.name == 'mass_2':
+            return '$m_2$'
+        elif self.name == 'mchirp':
+            return '$\mathcal{M}$'
+        elif self.name == 'q':
+            return 'q'
+        elif self.name == 'a1':
+            return 'a_1'
+        elif self.name == 'a2':
+            return 'a_2'
+        elif self.name == 'tilt1':
+            return 'tilt_1'
+        elif self.name == 'tilt2':
+            return 'tilt_2'
+        elif self.name == 'phi1':
+            return '\phi_1'
+        elif self.name == 'phi2':
+            return '\phi_2'
+        elif self.name == 'luminosity_distance':
+            return 'd_L'
+        elif self.name == 'dec':
+            return '\mathrm{DEC}'
+        elif self.name == 'ra':
+            return '\mathrm{RA}'
+        elif self.name == 'iota':
+            return '\iota'
+        elif self.name == 'psi':
+            return '\psi'
+        elif self.name == 'phase':
+            return '\phi'
+        elif self.name == 'tc':
+            return 't_c'
+        else:
+            return self.name
+
 
 class Uniform(Prior):
     """Uniform prior"""
 
-    def __init__(self, lower, upper):
-        Prior.__init__(self)
+    def __init__(self, lower, upper, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label)
         self.lower = lower
         self.upper = upper
         self.support = upper - lower
@@ -56,8 +111,8 @@ class Uniform(Prior):
 class DeltaFunction(Prior):
     """Dirac delta function prior, this always returns peak."""
 
-    def __init__(self, peak):
-        Prior.__init__(self)
+    def __init__(self, peak, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label)
         self.peak = peak
 
     def rescale(self, val):
@@ -75,9 +130,9 @@ class DeltaFunction(Prior):
 class PowerLaw(Prior):
     """Power law prior distribution"""
 
-    def __init__(self, alpha, bounds):
+    def __init__(self, alpha, bounds, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
-        Prior.__init__(self)
+        Prior.__init__(self, name, latex_label)
         self.alpha = alpha
         self.low, self.high = bounds
 
@@ -101,8 +156,8 @@ class PowerLaw(Prior):
 
 class Cosine(Prior):
 
-    def __init__(self):
-        Prior.__init__(self)
+    def __init__(self, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label)
 
     def rescale(self, val):
         """
@@ -120,8 +175,8 @@ class Cosine(Prior):
 
 class Sine(Prior):
 
-    def __init__(self):
-        Prior.__init__(self)
+    def __init__(self, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label)
 
     def rescale(self, val):
         """
@@ -139,9 +194,9 @@ class Sine(Prior):
 
 class Interped(Prior):
 
-    def __init__(self, xx, yy):
+    def __init__(self, xx, yy, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
-        Prior.__init__(self)
+        Prior.__init__(self, name, latex_label)
         self.xx = xx
         self.low = min(self.xx)
         self.high = max(self.xx)
@@ -179,3 +234,71 @@ class FromFile(Interped):
             print("Can't load {}.".format(file_name))
             print("Format should be:")
             print(r"x\tp(x)")
+
+
+def fix(prior, value=None):
+    if value is None or np.isnan(value):
+        raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
+    prior = DeltaFunction(name=prior.name,
+                             latex_label=prior.latex_label,
+                             peak=value)
+    return prior
+
+
+def create_default_prior(name):
+    if name == 'mass_1':
+        prior = PowerLaw(alpha=0, bounds=(5, 100))
+    elif name == 'mass_2':
+        prior = PowerLaw(alpha=0, bounds=(5, 100))
+    elif name == 'mchirp':
+        prior = PowerLaw(alpha=0, bounds=(5, 100))
+    elif name == 'q':
+        prior = PowerLaw(alpha=0, bounds=(0, 1))
+    elif name == 'a1':
+        prior = PowerLaw(alpha=0, bounds=(0, 1))
+    elif name == 'a2':
+        prior = PowerLaw(alpha=0, bounds=(0, 1))
+    elif name == 'tilt1':
+        prior = Sine()
+    elif name == 'tilt2':
+        prior = Sine()
+    elif name == 'phi1':
+        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+    elif name == 'phi2':
+        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+    elif name == 'luminosity_distance':
+        prior = PowerLaw(alpha=2, bounds=(1e2, 5e3))
+    elif name == 'dec':
+        prior = Cosine()
+    elif name == 'ra':
+        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+    elif name == 'iota':
+        prior = Sine()
+    elif name == 'psi':
+        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+    elif name == 'phase':
+        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+    else:
+        prior = None
+    return prior
+
+
+def parse_floats_to_fixed_priors(old_parameters):
+    parameters = old_parameters.copy()
+    for key in parameters:
+        if type(parameters[key]) is not float and type(parameters[key]) is not int \
+                and type(parameters[key]) is not Prior:
+            print("Expected parameter " + str(key) + " to be a float or int but was " + str(type(parameters[key]))
+                  + " instead. Will not be converted.")
+            continue
+        elif type(parameters[key]) is Prior:
+            continue
+        parameters[key] = DeltaFunction(name=key, latex_label=None, peak=old_parameters[key])
+    return parameters
+
+
+def parse_keys_to_parameters(keys):
+    parameters = {}
+    for key in keys:
+        parameters[key] = create_default_prior(key)
+    return parameters

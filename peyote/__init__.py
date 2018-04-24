@@ -4,7 +4,6 @@ from __future__ import print_function, division
 from . import utils
 from . import detector
 from . import prior
-from . import parameter
 from . import source
 from . import likelihood
 from . import waveform_generator

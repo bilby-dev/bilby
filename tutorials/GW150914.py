@@ -108,14 +108,14 @@ prior = dict(spin11=0, spin12=0, spin13=0, spin21=0, spin22=0, spin23=0,
              waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
              ra=1.375, dec=-1.2108, geocent_time=time_of_event, psi=2.659,
              mass_1=36, mass_2=29)
-prior = peyote.parameter.Parameter.parse_floats_to_parameters(prior)
-prior['mass_1'] = peyote.parameter.Parameter(
+prior = peyote.parameter.PriorFactory.parse_floats_to_parameters(prior)
+prior['mass_1'] = peyote.parameter.PriorFactory(
     'mass_1', prior=peyote.prior.Uniform(lower=35, upper=41),
     latex_label='$m_1$')
-prior['mass_2'] = peyote.parameter.Parameter(
+prior['mass_2'] = peyote.parameter.PriorFactory(
     'mass_2', prior=peyote.prior.Uniform(lower=20, upper=35),
     latex_label='$m_2$')
-prior['geocent_time'] = peyote.parameter.Parameter(
+prior['geocent_time'] = peyote.parameter.PriorFactory(
     'mass_2', prior=peyote.prior.Uniform(
         lower=time_of_event-0.1, upper=time_of_event+0.1))
 

@@ -71,7 +71,7 @@ simulation_parameters = dict(amplitude=1e-21,
                              dec=-1.2108,
                              geocent_time=1126259642.413,
                              psi=2.659)
-sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
+sampling_parameters = peyote.parameter.PriorFactory.parse_floats_to_parameters(simulation_parameters)
 
 wg = peyote.waveform_generator.WaveformGenerator(
      source_model=gaussian_frequency_domain_strain,

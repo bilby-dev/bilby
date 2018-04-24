@@ -32,10 +32,10 @@ print(likelihood.log_likelihood())
 print(likelihood.log_likelihood_ratio())
 
 prior = source.copy()
-prior.mass_1 = peyote.parameter.Parameter('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
-                                          latex_label='$m_1$')
-prior.mass_2 = peyote.parameter.Parameter('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
-                                          latex_label='$m_2$')
+prior.mass_1 = peyote.parameter.PriorFactory('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
+                                             latex_label='$m_1$')
+prior.mass_2 = peyote.parameter.PriorFactory('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
+                                             latex_label='$m_2$')
 
 # result = peyote.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=100, print_progress=True)
 

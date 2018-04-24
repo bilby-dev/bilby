@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 from .result import Result
-from .parameter import Parameter
+from peyote import prior
 
 
 class Sampler(object):
@@ -98,18 +98,17 @@ class Sampler(object):
     def initialise_parameters(self):
 
         for key in self.priors:
-            if isinstance(self.priors[key], Parameter) \
-                    and self.priors[key].prior is not None \
+            if isinstance(self.priors[key], prior.Prior) is True \
                     and self.priors[key].is_fixed is False:
                 self.__search_parameter_keys.append(key)
-            elif isinstance(self.priors[key], Parameter) \
+            elif isinstance(self.priors[key], prior.Prior) \
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
                     self.priors[key].prior.sample()
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.priors[key].prior))
+            logging.info('  {} ~ {}'.format(key, self.priors[key]))
 
     def verify_parameters(self):
         required_keys = self.priors
@@ -119,7 +118,7 @@ class Sampler(object):
                 "Source model does not contain keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.priors[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
+        return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
