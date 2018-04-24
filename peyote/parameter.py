@@ -5,24 +5,15 @@ from . import prior
 
 class Parameter(object):
 
-    def __init__(self, name, prior=None, value=None, latex_label=None, is_fixed=False):
+    def __init__(self, name, prior=None, latex_label=None):
         self.name = name
 
         self.prior = prior
-        self.value = value
         self.latex_label = latex_label
-        self.is_fixed = is_fixed
 
     @property
     def prior(self):
         return self.__prior
-
-    @property
-    def value(self):
-        if self.__prior is not None:
-            return self.__prior.sample()
-        else:
-            return np.nan
 
     @property
     def latex_label(self):
@@ -39,13 +30,6 @@ class Parameter(object):
         else:
             self.__prior = prior
 
-    @value.setter
-    def value(self, value=None):
-        if value is not None:
-            self.__prior = prior.DeltaFunction(value)
-        else:
-            self.set_default_values()
-
     @latex_label.setter
     def latex_label(self, latex_label=None):
         if latex_label is None:
@@ -53,20 +37,11 @@ class Parameter(object):
         else:
             self.__latex_label = latex_label
 
-    @is_fixed.setter
-    def is_fixed(self, is_fixed):
-        if is_fixed is True:
-            self.__prior = prior.DeltaFunction(self.value)
-
     def fix(self, value=None):
         """
         Specify parameter as fixed, this will not be sampled.
         """
-        if value is None:
-            self.value = self.prior.sample()
-            return
-
-        if np.isnan(value):
+        if value is None or np.isnan(value):
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
         self.prior = prior.DeltaFunction(value)
 
@@ -172,7 +147,8 @@ class Parameter(object):
             elif type(parameters[key]) is Parameter:
                 continue
 
-            parameters[key] = Parameter(key, value=parameters[key])
+            parameters[key] = Parameter(key)
+            parameters[key].fix(old_parameters[key])
         return parameters
 
     @staticmethod
