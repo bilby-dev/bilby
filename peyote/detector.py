@@ -74,36 +74,45 @@ class Interferometer:
         detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
         return detector_tensor
 
-    def inject_signal(self, waveform_generator):
+    def get_detector_response(self, waveform_polarizations, parameters):
+        """
+        Get the detector response for a particular waveform
+
+        :param waveform_polarizations: dict, polarizations of the waveform
+        :param parameters: dict, parameters describing position and time of arrival of the signal
+        :return: detector_response: signal observed in the interferometer
+        """
+        signal = {}
+        for mode in waveform_polarizations.keys():
+            det_response = self.antenna_response(
+                parameters['ra'],
+                parameters['dec'],
+                parameters['geocent_time'],
+                parameters['psi'], mode)
+
+            signal[mode] = waveform_polarizations[mode] * det_response
+        signal_ifo = sum(signal.values())
+
+        time_shift = self.time_delay_from_geocenter(
+            parameters['ra'],
+            parameters['dec'],
+            parameters['geocent_time'])
+
+        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift + parameters['geocent_time'])
+                                         * self.frequency_array)
+
+        return signal_ifo
+
+    def inject_signal(self, waveform_polarizations, parameters):
         """
         Inject a signal into noise.
 
         Adds the requested signal to self.data
 
-        :param waveform_generator: waveform_generator type
-
+        :param waveform_polarizations: dict, polarizations of the waveform
+        :param parameters: dict, parameters describing position and time of arrival of the signal
         """
-        signal = waveform_generator.frequency_domain_strain()
-
-        for mode in signal.keys():
-            det_response = self.antenna_response(
-                waveform_generator.parameters['ra'],
-                waveform_generator.parameters['dec'],
-                waveform_generator.parameters['geocent_time'],
-                waveform_generator.parameters['psi'], mode)
-
-            signal[mode] *= det_response
-        signal_ifo = sum(signal.values())
-
-        time_shift = self.time_delay_from_geocenter(
-            waveform_generator.parameters['ra'],
-            waveform_generator.parameters['dec'],
-            waveform_generator.parameters['geocent_time'])
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift
-                                                            + waveform_generator.parameters['geocent_time'])
-                                         * waveform_generator.frequency_array)
-
-        self.data += signal_ifo
+        self.data += self.get_detector_response(waveform_polarizations, parameters)
 
     def unit_vector_along_arm(self, arm):
         """
