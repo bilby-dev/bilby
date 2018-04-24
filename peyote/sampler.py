@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 from .result import Result
-from peyote import prior
+from .prior import Prior
 
 
 class Sampler(object):
@@ -98,10 +98,10 @@ class Sampler(object):
     def initialise_parameters(self):
 
         for key in self.priors:
-            if isinstance(self.priors[key], prior.Prior) is True \
+            if isinstance(self.priors[key], Prior) is True \
                     and self.priors[key].is_fixed is False:
                 self.__search_parameter_keys.append(key)
-            elif isinstance(self.priors[key], prior.Prior) \
+            elif isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
                     self.priors[key].prior.sample()
