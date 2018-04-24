@@ -102,6 +102,10 @@ class Sampler(object):
                     and self.priors[key].prior is not None \
                     and self.priors[key].is_fixed is False:
                 self.__search_parameter_keys.append(key)
+            elif isinstance(self.priors[key], Parameter) \
+                    and self.priors[key].is_fixed is True:
+                self.likelihood.waveform_generator.parameters[key] = \
+                    self.priors[key].prior.sample()
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
