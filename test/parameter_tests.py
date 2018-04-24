@@ -146,11 +146,10 @@ class TestFixMethod(unittest.TestCase):
     def test_prior_attribute_after_fixing(self):
         arbitrary_float = 11.3
         self.parameter.fix(arbitrary_float)
-        self.assertIsNone(self.parameter.prior)
+        self.assertIsInstance(self.parameter.prior, peyote.prior.DeltaFunction)
 
     def test_raising_value_error_if_value_is_none(self):
-        self.parameter.value = np.nan
-        self.assertRaises(ValueError, self.parameter.fix)
+        self.assertRaises(ValueError, self.parameter.fix, np.nan)
 
     def test_fixing_existing_value(self):
         arbitrary_float = 11.3
@@ -168,7 +167,7 @@ class TestFixMethod(unittest.TestCase):
         arbitrary_float = 11.3
         self.parameter.value = arbitrary_float
         self.parameter.fix()
-        self.assertIsNone(self.parameter.prior)
+        self.assertIsInstance(self.parameter.prior, peyote.prior.DeltaFunction)
 
 
 if __name__ == '__main__':
