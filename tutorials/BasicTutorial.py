@@ -81,10 +81,10 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
-# sampling_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
-# sampling_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
-sampling_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"] - 0.1,
-                                                                  upper=injection_parameters["geocent_time"]+0.1)
+sampling_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
+sampling_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
+#sampling_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"] - 0.1,
+#                                                                  upper=injection_parameters["geocent_time"]+0.1)
 
 result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, sampler='nestle', verbose=True)
 print(result)
