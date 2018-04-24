@@ -33,17 +33,16 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, external_sampler='nestle',
+    def __init__(self, likelihood, priors, external_sampler='nestle',
                  outdir='outdir', label='label', result=None, **kwargs):
         self.likelihood = likelihood
-        self.parameters = likelihood.waveform_generator.parameters
+        self.priors = priors
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
         self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
-        self.__active_parameter_values = self.parameters.copy()
         self.initialise_parameters()
         self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
@@ -64,7 +63,7 @@ class Sampler(object):
         if result is None:
             self.__result = Result()
             self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.labels = [self.parameters[k].latex_label for k in self.__search_parameter_keys]
+            self.__result.labels = [self.priors[k].latex_label for k in self.__search_parameter_keys]
         elif type(result) is Result:
             self.__result = result
         else:
@@ -96,53 +95,35 @@ class Sampler(object):
     def kwargs(self, kwargs):
         self.__kwargs = kwargs
 
-    @property
-    def parameters(self):
-        return self.__parameters
-
-    @parameters.setter
-    def parameters(self, parameters):
-        self.__parameters = Parameter.parse_floats_to_parameters(parameters.copy())
-
     def initialise_parameters(self):
 
-        for key in self.likelihood.waveform_generator.parameters:
-            if key in self.parameters:
-                param = self.parameters[key]
-
-                if isinstance(param, Parameter) is False:
-                    # Acts as a catch all for now - in future we should remove this
-                    setattr(self.likelihood.waveform_generator, key, param)
-                elif param.is_fixed is False:
-                    self.__search_parameter_keys.append(key)
-                    self.__active_parameter_values[key] = np.nan
-                elif param.is_fixed:
-                    self.__active_parameter_values[key] = param.value
-
-            else:
-                self.parameters[key] = Parameter(key)
-                if self.parameters[key].prior is None:
-                    raise AttributeError(
-                        "No default prior known for parameter {}".format(key))
+        for key in self.priors:
+            if isinstance(self.priors[key], Parameter) \
+                    and self.priors[key].prior is not None \
+                    and self.priors[key].is_fixed is False:
                 self.__search_parameter_keys.append(key)
+            elif isinstance(self.priors[key], Parameter) \
+                    and self.priors[key].is_fixed is True:
+                self.likelihood.waveform_generator.parameters[key] = \
+                    self.priors[key].prior.sample()
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.parameters[key].prior))
+            logging.info('  {} ~ {}'.format(key, self.priors[key].prior))
 
     def verify_parameters(self):
-        required_keys = self.likelihood.waveform_generator.parameters
-        unmatched_keys = [r for r in required_keys if r not in self.parameters]
+        required_keys = self.priors
+        unmatched_keys = [r for r in required_keys if r not in self.likelihood.waveform_generator.parameters]
         if len(unmatched_keys) > 0:
-            raise ValueError(
-                "Input parameters are missing keys {}".format(unmatched_keys))
+            raise KeyError(
+                "Source model does not contain keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.parameters[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
+        return [self.priors[key].prior.rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.parameters[k].value = theta[i]
+            self.likelihood.waveform_generator.parameters[k] = theta[i]
         return self.likelihood.log_likelihood()
 
     def run_sampler(self):
@@ -228,13 +209,13 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, label='label', outdir='outdir',
+def run_sampler(likelihood, priors, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
-        sampler = sampler_class(likelihood, sampler, outdir=outdir,
+        sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood

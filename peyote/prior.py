@@ -14,7 +14,7 @@ class Prior(object):
     def __call__(self):
         return self.sample(1)
 
-    def sample(self, n_samples=1):
+    def sample(self, n_samples=None):
         """Draw a sample from the prior, this rescales a unit line element according to the rescaling function"""
         return self.rescale(np.random.uniform(0, 1, n_samples))
 

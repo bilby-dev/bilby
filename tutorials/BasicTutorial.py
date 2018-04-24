@@ -39,6 +39,13 @@ waveform_generator = peyote.waveform_generator.WaveformGenerator(
     parameters=simulation_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
+# sampling_parameters = peyote.parameter.Parameter.\
+#    parse_floats_to_parameters(simulation_parameters)
+
+# sampling_parameters = peyote.parameter.Parameter.\
+#    parse_keys_to_parameters(simulation_parameters.keys())
+
+
 # Simulate the data in H1
 H1 = peyote.detector.H1
 H1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
@@ -80,9 +87,9 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 simulation_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"]-0.1,
                                                                    upper=injection_parameters["geocent_time"]+0.1)
 
-result = peyote.sampler.run_sampler(likelihood, sampler='nestle', verbose=True)
+result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, sampler='nestle', verbose=True)
 print(result)
-truths = [simulation_parameters[x].value for x in result.search_parameter_keys]
+truths = [simulation_parameters[x] for x in result.search_parameter_keys]
 
 
 fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)

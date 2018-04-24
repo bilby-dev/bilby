@@ -19,7 +19,10 @@ class Parameter(object):
 
     @property
     def value(self):
-        return self.__value
+        if self.__prior is not None:
+            return self.__prior.sample()
+        else:
+            return np.nan
 
     @property
     def latex_label(self):
@@ -27,7 +30,7 @@ class Parameter(object):
 
     @property
     def is_fixed(self):
-        return self.__is_fixed
+        return isinstance(self.__prior, prior.DeltaFunction)
 
     @prior.setter
     def prior(self, prior=None):
@@ -35,14 +38,13 @@ class Parameter(object):
             self.set_default_prior()
         else:
             self.__prior = prior
-        self.__is_fixed = False
 
     @value.setter
     def value(self, value=None):
-        if value is None:
-            self.set_default_values()
+        if value is not None:
+            self.__prior = prior.DeltaFunction(value)
         else:
-            self.__value = value
+            self.set_default_values()
 
     @latex_label.setter
     def latex_label(self, latex_label=None):
@@ -53,22 +55,20 @@ class Parameter(object):
 
     @is_fixed.setter
     def is_fixed(self, is_fixed):
-        if is_fixed:
-            self.__is_fixed = True
-        else:
-            self.__is_fixed = False
+        if is_fixed is True:
+            self.__prior = prior.DeltaFunction(self.value)
 
     def fix(self, value=None):
         """
         Specify parameter as fixed, this will not be sampled.
         """
-        if value is not None:
-            self.value = value
+        if value is None:
+            self.value = self.prior.sample()
+            return
 
-        if np.isnan(self.value):
+        if np.isnan(value):
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
-        self.prior = None
-        self.is_fixed = True
+        self.prior = prior.DeltaFunction(value)
 
     def set_default_prior(self):
 
@@ -110,19 +110,17 @@ class Parameter(object):
     def set_default_values(self):
         # spins
         if self.name == 'a1':
-            self.__value = 0
+            self.__prior = prior.DeltaFunction(0)
         elif self.name == 'a2':
-            self.__value = 0
+            self.__prior = prior.DeltaFunction(0)
         elif self.name == 'tilt1':
-            self.__value = 0
+            self.__prior = prior.DeltaFunction(0)
         elif self.name == 'tilt2':
-            self.__value = 0
+            self.__prior = prior.DeltaFunction(0)
         elif self.name == 'phi1':
-            self.__value = 0
+            self.__prior = prior.DeltaFunction(0)
         elif self.name == 'phi2':
-            self.__value = 0
-        else:
-            self.__value = np.nan
+            self.__prior = prior.DeltaFunction(0)
 
     def set_default_latex_label(self):
         if self.name == 'mass_1':
@@ -163,7 +161,8 @@ class Parameter(object):
             self.__latex_label = self.name
 
     @staticmethod
-    def parse_floats_to_parameters(parameters):
+    def parse_floats_to_parameters(old_parameters):
+        parameters = old_parameters.copy()
         for key in parameters:
             if type(parameters[key]) is not float and type(parameters[key]) is not int \
                     and type(parameters[key]) is not Parameter:
@@ -173,5 +172,12 @@ class Parameter(object):
             elif type(parameters[key]) is Parameter:
                 continue
 
-            parameters[key] = Parameter(key, value=parameters[key], is_fixed=True)
+            parameters[key] = Parameter(key, value=parameters[key])
+        return parameters
+
+    @staticmethod
+    def parse_keys_to_parameters(keys):
+        parameters = {}
+        for key in keys:
+            parameters[key] = Parameter(key)
         return parameters
