@@ -41,6 +41,10 @@ hf_signal = waveform_generator.frequency_domain_strain()
 sampling_parameters = peyote.parameter.Parameter.\
     parse_floats_to_parameters(simulation_parameters)
 
+#sampling_parameters = peyote.parameter.Parameter.\
+#    parse_keys_to_parameters(simulation_parameters.keys())
+
+
 # Simulate the data in H1
 H1 = peyote.detector.H1
 H1.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
