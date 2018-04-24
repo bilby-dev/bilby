@@ -19,7 +19,10 @@ class Parameter(object):
 
     @property
     def value(self):
-        return self.__prior.sample()
+        if self.__prior is not None:
+            return self.__prior.sample()
+        else:
+            return np.nan
 
     @property
     def latex_label(self):
@@ -60,8 +63,11 @@ class Parameter(object):
         """
         Specify parameter as fixed, this will not be sampled.
         """
+        if value is None:
+            self.value = self.prior.sample()
+            return
 
-        if np.isnan(self.value):
+        if np.isnan(value):
             raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
         self.prior = prior.DeltaFunction(value)
 
