@@ -218,7 +218,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, **sampler_kwargs)
         result = sampler.run_sampler()
-        result.noise_logz = likelihood.noise_log_likelihood
+        result.noise_logz = likelihood.noise_log_likelihood()
         result.log_bayes_factor = result.logz - result.noise_logz
         print("")
         result.save_to_file(outdir=outdir, label=label)
