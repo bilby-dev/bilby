@@ -12,7 +12,7 @@ import peyote
 peyote.utils.setup_logger()
 
 
-def generate_and_plot_data(waveform_generator):
+def generate_and_plot_data(waveform_generator, injection_parameters):
     hf_signal = waveform_generator.frequency_domain_strain()
     # Simulate the data in H1
     H1 = peyote.detector.H1
@@ -22,7 +22,7 @@ def generate_and_plot_data(waveform_generator):
     H1.set_data(waveform_generator.sampling_frequency,
                 waveform_generator.time_duration,
                 frequency_domain_strain=H1_hf_noise)
-    H1.inject_signal(waveform_generator)
+    H1.inject_signal(hf_signal, injection_parameters)
     H1.set_spectral_densities()
     # Simulate the data in L1
     L1 = peyote.detector.L1
@@ -32,7 +32,7 @@ def generate_and_plot_data(waveform_generator):
     L1.set_data(waveform_generator.sampling_frequency,
                 waveform_generator.time_duration,
                 frequency_domain_strain=L1_hf_noise)
-    L1.inject_signal(waveform_generator)
+    L1.inject_signal(hf_signal, injection_parameters)
     L1.set_spectral_densities()
     IFOs = [H1, L1]
 
@@ -50,40 +50,40 @@ def generate_and_plot_data(waveform_generator):
 
 
 def delta_function_frequency_domain_strain(frequency_array, amplitude,
-                                           peak_time, phase, ra, dec,
-                                           geocent_time, psi):
+                                           peak_time, phase, **kwargs):
     ht = {'plus': amplitude * np.sin(2 * np.pi * peak_time * frequency_array + phase),
           'cross': amplitude * np.cos(2 * np.pi * peak_time * frequency_array + phase)}
     return ht
 
 
-def gaussian_frequency_domain_strain(frequency_array, amplitude, mu, sigma,
-                                     ra, dec, geocent_time, psi):
+def gaussian_frequency_domain_strain(frequency_array, amplitude, mu, sigma, **kwargs):
     ht = {'plus': amplitude * np.exp(-(mu - frequency_array) ** 2 / sigma ** 2 / 2),
           'cross': amplitude * np.exp(-(mu - frequency_array) ** 2 / sigma ** 2 / 2)}
     return ht
 
 
-simulation_parameters = dict(amplitude=1e-21,
-                             mu=100,
-                             sigma=1,
-                             ra=1.375,
-                             dec=-1.2108,
-                             geocent_time=1126259642.413,
-                             psi=2.659)
-sampling_parameters = peyote.parameter.PriorFactory.parse_floats_to_parameters(simulation_parameters)
+injection_parameters = dict(amplitude=1e-21,
+                            mu=100,
+                            sigma=1,
+                            ra=1.375,
+                            dec=-1.2108,
+                            geocent_time=1126259642.413,
+                            psi=2.659)
+
+sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
 
 wg = peyote.waveform_generator.WaveformGenerator(
      source_model=gaussian_frequency_domain_strain,
-     parameters=simulation_parameters)
+     parameters=injection_parameters
+     )
 
-IFOs = generate_and_plot_data(wg)
+IFOs = generate_and_plot_data(wg, injection_parameters)
 
 likelihood = peyote.likelihood.Likelihood(IFOs, wg)
 
-sampling_parameters['amplitude'].prior = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
-sampling_parameters['sigma'].prior = peyote.prior.Uniform(lower=0, upper=10)
-sampling_parameters['mu'].prior = peyote.prior.Uniform(lower=50, upper=200)
+sampling_parameters['amplitude'] = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
+sampling_parameters['sigma'] = peyote.prior.Uniform(lower=0, upper=10)
+sampling_parameters['mu'] = peyote.prior.Uniform(lower=50, upper=200)
 
 result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, verbose=True)
 
@@ -91,7 +91,7 @@ result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, verb
 # Make some nice plots
 #
 
-truths = [simulation_parameters[x] for x in result.search_parameter_keys]
+truths = [injection_parameters[x] for x in result.search_parameter_keys]
 corner_plot = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
 corner_plot.savefig('corner')
 
