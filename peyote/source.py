@@ -1,11 +1,6 @@
 from __future__ import division, print_function
 
 try:
-    import lal
-except ImportError:
-    raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
-                        "prebuilt functions.")
-try:
     import lalsimulation as lalsim
 except ImportError:
     raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
@@ -30,7 +25,7 @@ def lal_binary_black_hole(
     eccentricity = 0.0
     mean_per_ano = 0.0
 
-    waveform_dictionary = lal.CreateDict()
+    waveform_dictionary = None
 
     approximant = lalsim.GetApproximantFromString(waveform_approximant)
 
