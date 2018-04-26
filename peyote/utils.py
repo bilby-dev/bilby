@@ -5,7 +5,8 @@ from astropy.time import Time
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
-
+parsec = 3.085677581 * 1e16
+solar_mass = 1.98855 * 1e30
 
 def get_sampling_frequency(time_series):
     """
@@ -272,3 +273,14 @@ def setup_logger(log_level='info'):
     stream_handler.setLevel(LEVEL)
     logger.addHandler(stream_handler)
 
+def spherical_to_cartesian(radius, theta, phi):
+    """
+    Convert from spherical coordinates to cartesian.
+
+    :param radius: radial coordinate
+    :param theta: axial coordinate
+    :param phi: azimuthal coordinate
+    :return cartesian: cartesian vector
+    """
+    cartesian = [radius * np.sin(theta) * np.cos(phi), radius * np.sin(theta) * np.sin(phi), radius * np.cos(theta)]
+    return cartesian
