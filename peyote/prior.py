@@ -247,37 +247,37 @@ def fix(prior, value=None):
 
 def create_default_prior(name):
     if name == 'mass_1':
-        prior = PowerLaw(alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
     elif name == 'mass_2':
-        prior = PowerLaw(alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
     elif name == 'mchirp':
-        prior = PowerLaw(alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
     elif name == 'q':
-        prior = PowerLaw(alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
     elif name == 'a1':
-        prior = PowerLaw(alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
     elif name == 'a2':
-        prior = PowerLaw(alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
     elif name == 'tilt1':
-        prior = Sine()
+        prior = Sine(name=name)
     elif name == 'tilt2':
-        prior = Sine()
+        prior = Sine(name=name)
     elif name == 'phi1':
-        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'phi2':
-        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'luminosity_distance':
-        prior = PowerLaw(alpha=2, bounds=(1e2, 5e3))
+        prior = PowerLaw(name=name, alpha=2, bounds=(1e2, 5e3))
     elif name == 'dec':
-        prior = Cosine()
+        prior = Cosine(name=name)
     elif name == 'ra':
-        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'iota':
-        prior = Sine()
+        prior = Sine(name=name)
     elif name == 'psi':
-        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'phase':
-        prior = PowerLaw(alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     else:
         prior = None
     return prior
