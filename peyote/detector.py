@@ -317,8 +317,7 @@ L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), le
 V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
                     latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
                     elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
-# FIXME: Using initial LIGO noise curve for GEO600, do we really want GEO?
-GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(psd_file='LIGO_srd_psd.txt'),
+GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
                         length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
                         elevation=114.425,
                         xarm_azimuth=115.9431, yarm_azimuth=21.6117)
