@@ -1,7 +1,7 @@
 import inspect
 
 from . import utils
-from . import parameter
+
 
 class WaveformGenerator(object):
     """ A waveform generator

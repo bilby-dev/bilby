@@ -7,7 +7,7 @@ class TestParameterInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -32,7 +32,7 @@ class TestParameterName(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -46,7 +46,7 @@ class TestParameterPrior(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -66,7 +66,7 @@ class TestParameterPrior(unittest.TestCase):
 class TestParameterValue(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -89,7 +89,7 @@ class TestParameterValue(unittest.TestCase):
 class TestParameterLatexLabel(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -111,7 +111,7 @@ class TestParameterLatexLabel(unittest.TestCase):
 class TestParameterIsFixed(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter
@@ -128,7 +128,7 @@ class TestFixMethod(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.parameter = peyote.parameter.Parameter(self.test_name)
+        self.parameter = peyote.parameter.PriorFactory(self.test_name)
 
     def tearDown(self):
         del self.parameter

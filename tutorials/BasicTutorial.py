@@ -3,7 +3,7 @@ import pylab as plt
 
 import dynesty.plotting as dyplot
 import corner
-import peyote
+import peyote.prior
 
 peyote.utils.setup_logger()
 
@@ -38,11 +38,9 @@ waveform_generator = peyote.waveform_generator.WaveformGenerator(
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
-sampling_parameters = peyote.parameter.Parameter.\
-   parse_floats_to_parameters(injection_parameters)
+#sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
 
-# sampling_parameters = peyote.parameter.Parameter.\
-#    parse_keys_to_parameters(simulation_parameters.keys())
+sampling_parameters = peyote.prior.parse_keys_to_parameters(injection_parameters.keys())
 
 
 # Simulate the data in H1
@@ -81,8 +79,8 @@ fig.savefig('data')
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # New way way of doing it, still not perfect
-sampling_parameters['mass_1'].prior = peyote.prior.Uniform(lower=35, upper=37)
-sampling_parameters['luminosity_distance'].prior = peyote.prior.Uniform(lower=30, upper=200)
+sampling_parameters['mass_1'] = peyote.prior.Uniform(lower=35, upper=37, name='mass1')
+sampling_parameters['luminosity_distance'] = peyote.prior.Uniform(lower=30, upper=200, name='luminosity_distance')
 #sampling_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"] - 0.1,
 #                                                                  upper=injection_parameters["geocent_time"]+0.1)
 
