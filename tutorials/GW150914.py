@@ -13,7 +13,7 @@ from scipy import signal
 
 peyote.utils.setup_logger()
 
-outdir = 'GW150914_results'
+outdir = 'outdir/150914'
 time_of_event = 1126259462.422
 T = 4
 alpha = 0.1 / T  # Tukey window roll off
@@ -108,16 +108,13 @@ prior = dict(spin11=0, spin12=0, spin13=0, spin21=0, spin22=0, spin23=0,
              waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
              ra=1.375, dec=-1.2108, geocent_time=time_of_event, psi=2.659,
              mass_1=36, mass_2=29)
-prior = peyote.parameter.PriorFactory.parse_floats_to_parameters(prior)
-prior['mass_1'] = peyote.parameter.PriorFactory(
-    'mass_1', prior=peyote.prior.Uniform(lower=35, upper=41),
+prior = peyote.prior.parse_floats_to_fixed_priors(prior)
+prior['mass_1'] = peyote.prior.Uniform(lower=35, upper=41, name="mass_1",
     latex_label='$m_1$')
-prior['mass_2'] = peyote.parameter.PriorFactory(
-    'mass_2', prior=peyote.prior.Uniform(lower=20, upper=35),
+prior['mass_2'] = peyote.prior.Uniform(lower=20, upper=35, name="mass_2",
     latex_label='$m_2$')
-prior['geocent_time'] = peyote.parameter.PriorFactory(
-    'mass_2', prior=peyote.prior.Uniform(
-        lower=time_of_event-0.1, upper=time_of_event+0.1))
+prior['geocent_time'] = peyote.prior.Uniform(name="geocent_time",
+        lower=time_of_event-0.1, upper=time_of_event+0.1)
 
 # Create the waveformgenerator
 waveformgenerator = peyote.waveform_generator.WaveformGenerator(
@@ -129,7 +126,7 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 
 # Run the sampler
 result = peyote.sampler.run_sampler(
-    likelihood, sampler='pymultinest', n_live_points=200, verbose=True,
+    likelihood, prior, sampler='nestle', n_live_points=200, verbose=True,
     resume=False, outdir=outdir)
 
 fig = corner.corner(result.samples, labels=result.search_parameter_keys)
