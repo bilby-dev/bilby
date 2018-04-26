@@ -104,7 +104,7 @@ class Sampler(object):
             elif isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
-                    self.priors[key].prior.sample()
+                    self.priors[key].sample()
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
