@@ -27,23 +27,122 @@ class Interferometer:
         """
         self.name = name
         self.length = length
-        self.latitude = latitude * np.pi / 180  # convert to rads
-        self.longitude = longitude * np.pi / 180
+        self.latitude = latitude
+        self.longitude = longitude
         self.elevation = elevation
         self.xarm_azimuth = xarm_azimuth * np.pi / 180
         self.yarm_azimuth = yarm_azimuth * np.pi / 180
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
-        self.x = self.unit_vector_along_arm('x')
-        self.y = self.unit_vector_along_arm('y')
-        self.detector_tensor = self.detector_tensor()
-        self.vertex = self.vertex_position_geocentric()
         self.power_spectral_density = power_spectral_density
         self.power_spectral_density_array = np.array([])
         self.amplitude_spectral_density_array = np.array([])
         self.data = np.array([])
         self.whitened_data = np.array([])
         self.frequency_array = []
+        self.__x_update = True
+        self.__y_update = True
+        self.__vertex_update = True
+        self.__detector_tensor_update = True 
+
+
+    @property
+    def latitude(self):
+        return self.__latitude * 180 / np.pi
+
+    @latitude.setter 
+    def latitude(self,latitude):
+        self.__latitude = latitude * np.pi / 180
+        self.__x_update = False
+        self.__y_update = False
+        self.__vertex_update = False 
+
+    @property
+    def longitude(self):
+        return self.__longitude * 180 / np.pi
+
+    @longitude.setter
+    def longtiude(self,longitude):
+        self.__longitude = longitude * np.pi / 180
+        self.__x_update = False
+        self.__y_update = False
+        self.__vertex_update = False
+
+    @property 
+    def elevation(self):
+        return self.__elevation
+
+    @elevation.setter
+    def elevation(self,elevation):
+        self.__elevation = elevation
+        self.__vertex_update = False
+
+    @property 
+    def xarm_azimuth(self):
+        return self.__xarm_azimuth * 180 / np.pi
+
+    @xarm_azimuth.setter
+    def xarm_azimuth(self, xarm_azimuth):
+        self.__xarm_azimuth = xarm_azimuth * np.pi / 180
+        self.__x_update = False
+
+    @property
+    def yarm_azimuth(self):
+        return self.__yarm_azimuth * 180 / np.pi
+
+    @yarm_azimuth.setter
+    def yarm_azimuth(self, yarm_azimuth):
+        self.__yarm_azimuth = yarm_azimuth * np.pi / 180
+        self.__y_update = False
+
+    @property
+    def xarm_tilt(self):
+        return self.__xarm_tilt
+
+    @xarm_tilt.setter
+    def xarm_tilt(self,xarm_tilt):
+        self.__xarm_tilt = xarm_tilt
+        self.__x_update = False
+
+    @property
+    def yarm_tilt(self,yarm_tilt):
+        self.__yarm_tild = yarm_tilt
+        self.__y_update = False
+
+    @property  
+    def vertex(self):
+        if !self.__vertex_update:
+            self.__vertex = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+            self.__vertex_update = True
+        return self.__vertex
+
+    @property
+    def x(self):
+        if !self.__x_update:
+            self.__x = self.unit_vector_along_arm('x')
+            self.__x_update = True
+            self.__detector_tensor_update = False 
+        return self.__x
+
+    @property
+    def y(self):
+        if !self.__y_update:
+            self.__y = self.unit_vector_along_arm('y')
+            self.__y_update = True
+            self.__detector_tensor_update = False
+        return self.__y
+
+    @property
+    def detector_tensor(self):
+        """
+        Calculate the detector tensor from the unit vectors along each arm of the detector.
+
+        See Eq. B6 of arXiv:gr-qc/0008066
+        """
+        if !self.__detector_tensor_update:
+            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.__x, self.__x) - np.einsum('i,j->ij', self.__y, self.__y))
+            self.__detector_tensor_update = True
+        return self.__detector_tensor 
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -62,17 +161,8 @@ class Interferometer:
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
         polarization_tensor = utils.get_polarization_tensor(ra, dec, time, psi, mode)
-        detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
+        detector_response = np.einsum('ij,ij->', self.__detector_tensor, polarization_tensor)
         return detector_response
-
-    def detector_tensor(self):
-        """
-        Calculate the detector tensor from the unit vectors along each arm of the detector.
-
-        See Eq. B6 of arXiv:gr-qc/0008066
-        """
-        detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-        return detector_tensor
 
     def get_detector_response(self, waveform_polarizations, parameters):
         """
@@ -125,17 +215,17 @@ class Interferometer:
         Output:
         n - unit vector along arm in cartesian Earth-based coordinates
         """
-        e_long = np.array([-np.sin(self.longitude), np.cos(self.longitude), 0])
-        e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude),
-                          -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
-        e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude),
-                        np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
+        e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
+        e_lat = np.array([-np.sin(self.__latitude) * np.cos(self.__longitude),
+                          -np.sin(self.__latitude) * np.sin(self.__longitude), np.cos(self.__latitude)])
+        e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
+                        np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
         if arm == 'x':
-            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) \
-                * np.sin(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
+            n = np.cos(self.__xarm_tilt) * np.cos(self.__xarm_azimuth) * e_long + np.cos(self.__xarm_tilt) \
+                * np.sin(self.__xarm_azimuth) * e_lat + np.sin(self.__xarm_tilt) * e_h
         elif arm == 'y':
-            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) \
-                * np.sin(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
+            n = np.cos(self.__yarm_tilt) * np.cos(self.__yarm_azimuth) * e_long + np.cos(self.__yarm_tilt) \
+                * np.sin(self.__yarm_azimuth) * e_lat + np.sin(self.__yarm_tilt) * e_h
         else:
             print('Not a recognized arm, aborting!')
             return
@@ -194,7 +284,7 @@ class Interferometer:
         Output:
         delta_t - time delay from geocenter
         """
-        delta_t = utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        delta_t = utils.time_delay_geocentric(self.__vertex, np.array([0, 0, 0]), ra, dec, time)
         return delta_t
 
     def vertex_position_geocentric(self):
@@ -204,7 +294,7 @@ class Interferometer:
         Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
         See Section 2.1 of LIGO-T980044-10 for the correct expression
         """
-        vertex_position = utils.get_vertex_position_geocentric(self.latitude, self.longitude, self.elevation)
+        vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
     def whiten_data(self):
