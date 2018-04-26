@@ -11,15 +11,20 @@ except ImportError:
     raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
                         "prebuilt functions.")
 
+from . import utils
+
 
 def lal_binary_black_hole(
-        frequency_array, mass_1, mass_2, luminosity_distance, spin11, spin12, spin13, spin21, spin22, spin23,
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_1, a_2, tilt_2, phi_2,
         iota, phase, waveform_approximant, reference_frequency, ra, dec,
         geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
-    luminosity_distance = luminosity_distance * 1e6 * lal.PC_SI
-    mass_1 = mass_1 * lal.MSUN_SI
-    mass_2 = mass_2 * lal.MSUN_SI
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    spin_1x, spin_1y, spin_1z = utils.spherical_to_cartesian(a_1, tilt_1, phi_1)
+    spin_2x, spin_2y, spin_2z = utils.spherical_to_cartesian(a_2, tilt_2, phi_2)
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
@@ -34,8 +39,8 @@ def lal_binary_black_hole(
     delta_frequency = frequency_array[1] - frequency_array[0]
 
     hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
-        mass_1, mass_2, spin11, spin12, spin13, spin21, spin22,
-        spin23, luminosity_distance, iota, phase,
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         frequency_minimum, frequency_maximum, reference_frequency,
         waveform_dictionary, approximant)
