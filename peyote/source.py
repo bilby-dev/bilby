@@ -1,7 +1,5 @@
 from __future__ import division, print_function
 
-import os
-
 try:
     import lal
 except ImportError:
@@ -12,10 +10,6 @@ try:
 except ImportError:
     raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
                         "prebuilt functions.")
-
-from astropy.table import Table
-
-from utils import nfft, get_sampling_frequency
 
 
 def lal_binary_black_hole(
@@ -52,23 +46,23 @@ def lal_binary_black_hole(
     return {'plus': h_plus, 'cross': h_cross}
 
 
-class BinaryNeutronStarMergerNumericalRelativity:
-    """Loads in NR simulations of BNS merger
-    takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
-    returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
-    """
-    def model(self, parameters):
-        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
-        eos_string = parameters['equation_of_state']
-        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
-        directory_path = parameters['directory_path']
-        file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
-        full_filename = '{}/{}'.format(directory_path, file_name)
-        if not os.path.isfile(full_filename):
-            print('{} does not exist'.format(full_filename))  # add exception
-            return (-1)
-        else:  # ok file exists
-            strain_table = Table.read(full_filename)
-            Hplus, _ = nfft(strain_table["hplus"], get_sampling_frequency(strain_table['time']))
-            Hcross, frequency = nfft(strain_table["hcross"], get_sampling_frequency(strain_table['time']))
-            return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
+#class BinaryNeutronStarMergerNumericalRelativity:
+#    """Loads in NR simulations of BNS merger
+#    takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
+#    returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
+#    """
+#    def model(self, parameters):
+#        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
+#        eos_string = parameters['equation_of_state']
+#        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
+#        directory_path = parameters['directory_path']
+#        file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
+#        full_filename = '{}/{}'.format(directory_path, file_name)
+#        if not os.path.isfile(full_filename):
+#            print('{} does not exist'.format(full_filename))  # add exception
+#            return (-1)
+#        else:  # ok file exists
+#            strain_table = Table.read(full_filename)
+#            Hplus, _ = utils.nfft(strain_table["hplus"], utils.get_sampling_frequency(strain_table['time']))
+#            Hcross, frequency = utils.nfft(strain_table["hcross"], utils.get_sampling_frequency(strain_table['time']))
+#            return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)
