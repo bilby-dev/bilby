@@ -34,12 +34,14 @@ class Sampler(object):
     """
 
     def __init__(self, likelihood, priors, external_sampler='nestle',
-                 outdir='outdir', label='label', result=None, **kwargs):
+                 outdir='outdir', label='label', use_ratio=False, result=None,
+                 **kwargs):
         self.likelihood = likelihood
         self.priors = priors
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
+        self.use_ratio = use_ratio
         self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
@@ -123,7 +125,10 @@ class Sampler(object):
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.parameters[k] = theta[i]
-        return self.likelihood.log_likelihood()
+        if self.use_ratio:
+            return self.likelihood.log_likelihood_ratio()
+        else:
+            return self.likelihood.log_likelihood()
 
     def run_sampler(self):
         pass
@@ -209,7 +214,8 @@ class Pymultinest(Sampler):
 
 
 def run_sampler(likelihood, priors, label='label', outdir='outdir',
-                sampler='nestle', **sampler_kwargs):
+                sampler='nestle', use_ratio=False,
+                **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -226,6 +232,9 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         The name of the sampler to use - see
         `peyote.sampler.get_implemented_samplers()` for a list of available
         samplers
+    use_ratio: bool (False)
+        If True, use the likelihood's loglikelihood_ratio, rather than just
+        the loglikelhood.
     **sampler_kwargs:
         All kwargs are passed directly to the samplers `run` functino
     """
@@ -234,7 +243,8 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
-                                label=label, **sampler_kwargs)
+                                label=label, use_ratio=use_ratio,
+                                **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         result.log_bayes_factor = result.logz - result.noise_logz

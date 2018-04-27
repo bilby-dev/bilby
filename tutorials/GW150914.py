@@ -118,7 +118,7 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 # Run the sampler
 result = peyote.sampler.run_sampler(
     likelihood, prior, sampler='pymultinest', n_live_points=400, verbose=True,
-    resume=False, outdir=outdir)
+    resume=False, outdir=outdir, use_ratio=True)
 
 truths = [maximum_posterior_estimates[x] for x in result.search_parameter_keys]
 fig = corner.corner(result.samples, labels=result.search_parameter_keys,
