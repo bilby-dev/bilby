@@ -13,10 +13,11 @@ from scipy import signal
 
 peyote.utils.setup_logger()
 
-outdir = 'outdir/150914'
+outdir = 'outdir'
 time_of_event = 1126259462.422
+
 T = 4
-alpha = 0.1 / T  # Tukey window roll off
+alpha = 1. / T  # Tukey window roll off
 
 strain_H1 = TimeSeries.fetch_open_data(
         'H1', time_of_event-1100, time_of_event+5, cache=True, version=1)
@@ -34,8 +35,8 @@ strain_L1 = strain_L1.crop(*strain_L1.span.contract(1))
 
 # Create and save PSDs
 NFFT = T * sampling_frequency
-psd_start = time_of_event - 1024 - T
-psd_end = time_of_event - T
+psd_start = time_of_event - 1024
+psd_end = time_of_event - 1024 + 100
 window = signal.tukey(NFFT, alpha=alpha)
 sides = 'onesided'
 psd_H1, psd_frequencies = mlab.psd(strain_H1.crop(psd_start, psd_end).value,
@@ -61,18 +62,6 @@ N = len(time_series)
 strain_H1_crop = strain_H1_crop * signal.tukey(N, alpha=alpha)
 strain_L1_crop = strain_L1_crop * signal.tukey(N, alpha=alpha)
 
-# Plot time-domain data (shift and flip L1 to lie on top)
-fig, ax = plt.subplots()
-ax.plot(strain_H1_crop.times.value-time_of_event,
-        strain_H1_crop.value, label='H1')
-ax.plot(strain_L1_crop.times.value-time_of_event+0.0069,
-        -1*strain_L1_crop.value, label='L1')
-axS = ax.twinx()
-axS.plot(time_series-time_of_event, window, color='k')
-ax.legend()
-fig.savefig('{}/time_domain_data.png'.format(outdir))
-
-# Create IFOs with the data
 H1 = peyote.detector.H1
 H1.power_spectral_density = peyote.detector.PowerSpectralDensity(
     psd_file='{}/GW150914_PSD_H1.txt'.format(outdir))
@@ -102,19 +91,21 @@ for ax, IFO in zip(axes, IFOs):
     ax.legend(loc='best')
 fig.savefig('{}/frequency_domain_data.png'.format(outdir))
 
+maximum_posterior_estimates = dict(
+    spin11=0, spin12=0, spin13=0, spin21=0, spin22=0, spin23=0,
+    luminosity_distance=410., iota=2.97305, phase=1.145,
+    waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375,
+    dec=-1.2108, geocent_time=time_of_event, psi=2.659, mass_1=36, mass_2=29)
+
 # Define the prior
-prior = dict(spin11=0, spin12=0, spin13=0, spin21=0, spin22=0, spin23=0,
-             luminosity_distance=410., iota=2.97305, phase=1.145,
-             waveform_approximant='IMRPhenomPv2', reference_frequency=50.,
-             ra=1.375, dec=-1.2108, geocent_time=time_of_event, psi=2.659,
-             mass_1=36, mass_2=29)
-prior = peyote.prior.parse_floats_to_fixed_priors(prior)
-prior['mass_1'] = peyote.prior.Uniform(lower=35, upper=41, name="mass_1",
-    latex_label='$m_1$')
-prior['mass_2'] = peyote.prior.Uniform(lower=20, upper=35, name="mass_2",
-    latex_label='$m_2$')
-prior['geocent_time'] = peyote.prior.Uniform(name="geocent_time",
-        lower=time_of_event-0.1, upper=time_of_event+0.1)
+prior = peyote.prior.parse_floats_to_fixed_priors(maximum_posterior_estimates)
+prior['ra'] = peyote.prior.create_default_prior(name='ra')
+prior['dec'] = peyote.prior.create_default_prior(name='dec')
+prior['iota'] = peyote.prior.create_default_prior(name='iota')
+prior['mass_2'] = peyote.prior.create_default_prior(name='mass_2')
+prior['geocent_time'] = peyote.prior.Uniform(
+    time_of_event-2, time_of_event+2, name='geocent_time')
+prior['luminosity_distance'] = peyote.prior.create_default_prior(name='luminosity_distance')
 
 # Create the waveformgenerator
 waveformgenerator = peyote.waveform_generator.WaveformGenerator(
@@ -126,8 +117,10 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 
 # Run the sampler
 result = peyote.sampler.run_sampler(
-    likelihood, prior, sampler='nestle', n_live_points=200, verbose=True,
+    likelihood, prior, sampler='pymultinest', n_live_points=400, verbose=True,
     resume=False, outdir=outdir)
 
-fig = corner.corner(result.samples, labels=result.search_parameter_keys)
+truths = [maximum_posterior_estimates[x] for x in result.search_parameter_keys]
+fig = corner.corner(result.samples, labels=result.search_parameter_keys,
+                    truths=truths)
 fig.savefig('{}/corner.png'.format(outdir))
