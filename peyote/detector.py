@@ -351,7 +351,7 @@ GEO600 = get_empty_interferometer('GEO600')
 
 def get_inteferometer(
         name, epoch, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-        cache=True, outdir='outdir', plot=True, **kwargs):
+        cache=True, outdir='outdir', plot=True, filter_freq=1024, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an epoch
@@ -372,6 +372,10 @@ def get_inteferometer(
         `epoch+psd_offset` to `epoch+psd_offset + psd_duration`.
     outdir: str
         Directory where the psd files are saved
+    plot: bool
+        If true, create an ASD + strain plot
+    filter_freq: float
+        Low pass filter frequency
     **kwargs:
         All keyword arguments are passed to
         `gwpy.timeseries.TimeSeries.fetch_open_data()`.
@@ -381,33 +385,31 @@ def get_inteferometer(
     interferometer: `peyote.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
-    alpha = 1. / T
+
+    strain = TimeSeries.fetch_open_data(
+            name, epoch-T/2, epoch+T/2, cache=cache, **kwargs)
 
     strain_psd = TimeSeries.fetch_open_data(
             name, epoch+psd_offset, epoch+psd_offset+psd_duration,
             cache=cache, **kwargs)
 
-    strain = TimeSeries.fetch_open_data(
-            name, epoch+T/2, epoch+T/2, cache=cache, **kwargs)
-
     sampling_frequency = int(strain.sample_rate.value)
 
     # Low pass filter
-    #bp = filter_design.lowpass(2048.-1, strain_H1.sample_rate)
-    #strain_H1 = strain_H1.filter(bp, filtfilt=True)
-    #strain_H1 = strain_H1.crop(*strain_H1.span.contract(1))
-    #strain_L1 = strain_L1.filter(bp, filtfilt=True)
-    #strain_L1 = strain_L1.crop(*strain_L1.span.contract(1))
+    bp = filter_design.lowpass(filter_freq, strain.sample_rate)
+    strain = strain.filter(bp, filtfilt=True)
+    strain = strain.crop(*strain.span.contract(1))
+    strain_psd = strain_psd.filter(bp, filtfilt=True)
+    strain_psd = strain_psd.crop(*strain_psd.span.contract(1))
 
     # Create and save PSDs
-    NFFT = T * sampling_frequency
+    NFFT = int(sampling_frequency * T)
     window = signal.tukey(NFFT, alpha=alpha)
-    psd, psd_frequencies = mlab.psd(
-        strain_psd.value, Fs=sampling_frequency, NFFT=NFFT, window=window)
+    psd = strain_psd.psd(fftlength=T, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, psd_offset, psd_duration)
+        outdir, name, epoch+psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
-        for f, p in zip(psd_frequencies, psd):
+        for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
 
     time_series = strain.times.value
@@ -431,13 +433,13 @@ def get_inteferometer(
                   '-C0', label=name)
         ax.loglog(interferometer.frequency_array,
                   interferometer.amplitude_spectral_density_array,
-                  '-C1', lw=0.5, label=name+' PSD')
+                  '-C1', lw=0.5, label=name+' ASD')
         ax.grid('on')
-        ax.set_ylabel(r'amplitude spectral density [strain/$\sqrt{\rm Hz}$]')
+        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
         ax.set_xlim(20, 2000)
         ax.legend(loc='best')
-        fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir))
+        fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
-    return interferometer
+    return interferometer, sampling_frequency, time_duration
 
