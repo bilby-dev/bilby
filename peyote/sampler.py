@@ -210,6 +210,25 @@ class Pymultinest(Sampler):
 
 def run_sampler(likelihood, priors, label='label', outdir='outdir',
                 sampler='nestle', **sampler_kwargs):
+    """
+    The primary interface to easy parameter estimation
+
+    Parameters
+    ----------
+    likelihood: `peyote.likelihood.Likelihood`
+        A `Likelihood` instance
+    priors: dict
+        A dictionary of the priors for each parameter - missing parameters will
+        use default priors
+    label, outdir: str
+        A string used in defining output files
+    sampler: str
+        The name of the sampler to use - see
+        `peyote.sampler.get_implemented_samplers()` for a list of available
+        samplers
+    **sampler_kwargs:
+        All kwargs are passed directly to the samplers `run` functino
+    """
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
