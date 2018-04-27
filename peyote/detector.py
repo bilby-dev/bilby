@@ -3,6 +3,12 @@ import numpy as np
 import logging
 import os
 from scipy.interpolate import interp1d
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
+from scipy import signal
+from gwpy.timeseries import TimeSeries
+from gwpy.signal import filter_design
+
 from . import utils
 
 class Interferometer:
@@ -326,7 +332,7 @@ def get_empty_interferometer(name):
                             latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
                             elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
         return V1
-    elif name == 'GEO':
+    elif name == 'GEO600':
         GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
                                 length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
                                 elevation=114.425,
@@ -341,3 +347,97 @@ H1 = get_empty_interferometer('H1')
 L1 = get_empty_interferometer('L1')
 V1 = get_empty_interferometer('V1')
 GEO600 = get_empty_interferometer('GEO600')
+
+
+def get_inteferometer(
+        name, epoch, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+        cache=True, outdir='outdir', plot=True, **kwargs):
+    """
+    Helper function to obtain an Interferometer instance with appropriate
+    PSD and data, given an epoch
+
+    Parameters
+    ----------
+    name: str
+        Detector name, e.g., 'H1'.
+    epoch: float
+        GPS time of the epoch about which to perform the analysis. Note: the
+        analysis data is from `epoch-T/2` to `epoch+T/2`.
+    T: float
+        The total time (in seconds) to analyse. Defaults to 4s.
+    alpha: float
+        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    psd_offset, psd_duration: float
+        The power spectral density (psd) is estimated using data from
+        `epoch+psd_offset` to `epoch+psd_offset + psd_duration`.
+    outdir: str
+        Directory where the psd files are saved
+    **kwargs:
+        All keyword arguments are passed to
+        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+    Returns
+    -------
+    interferometer: `peyote.detector.Interferometer`
+        An Interferometer instance with a PSD and frequency-domain strain data.
+    """
+    alpha = 1. / T
+
+    strain_psd = TimeSeries.fetch_open_data(
+            name, epoch+psd_offset, epoch+psd_offset+psd_duration,
+            cache=cache, **kwargs)
+
+    strain = TimeSeries.fetch_open_data(
+            name, epoch+T/2, epoch+T/2, cache=cache, **kwargs)
+
+    sampling_frequency = int(strain.sample_rate.value)
+
+    # Low pass filter
+    #bp = filter_design.lowpass(2048.-1, strain_H1.sample_rate)
+    #strain_H1 = strain_H1.filter(bp, filtfilt=True)
+    #strain_H1 = strain_H1.crop(*strain_H1.span.contract(1))
+    #strain_L1 = strain_L1.filter(bp, filtfilt=True)
+    #strain_L1 = strain_L1.crop(*strain_L1.span.contract(1))
+
+    # Create and save PSDs
+    NFFT = T * sampling_frequency
+    window = signal.tukey(NFFT, alpha=alpha)
+    psd, psd_frequencies = mlab.psd(
+        strain_psd.value, Fs=sampling_frequency, NFFT=NFFT, window=window)
+    psd_file = '{}/{}_PSD_{}_{}.txt'.format(
+        outdir, name, psd_offset, psd_duration)
+    with open('{}'.format(psd_file), 'w+') as file:
+        for f, p in zip(psd_frequencies, psd):
+            file.write('{} {}\n'.format(f, p))
+
+    time_series = strain.times.value
+    time_duration = time_series[-1] - time_series[0]
+
+    # Apply Tukey window
+    N = len(time_series)
+    strain = strain * signal.tukey(N, alpha=alpha)
+
+    interferometer = get_empty_interferometer(name)
+    interferometer.power_spectral_density = PowerSpectralDensity(
+        psd_file=psd_file)
+    interferometer.set_data(
+        sampling_frequency, time_duration,
+        frequency_domain_strain=utils.nfft(
+            strain.value, sampling_frequency)[0])
+
+    if plot:
+        fig, ax = plt.subplots()
+        ax.loglog(interferometer.frequency_array, np.abs(interferometer.data),
+                  '-C0', label=name)
+        ax.loglog(interferometer.frequency_array,
+                  interferometer.amplitude_spectral_density_array,
+                  '-C1', lw=0.5, label=name+' PSD')
+        ax.grid('on')
+        ax.set_ylabel(r'amplitude spectral density [strain/$\sqrt{\rm Hz}$]')
+        ax.set_xlabel(r'frequency [Hz]')
+        ax.set_xlim(20, 2000)
+        ax.legend(loc='best')
+        fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir))
+
+    return interferometer
+
