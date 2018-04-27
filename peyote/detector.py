@@ -238,7 +238,7 @@ class PowerSpectralDensity:
             if min(self.power_spectral_density) < 1e30:
                 print("You specified an amplitude spectral density file.")
                 print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
+                print("The minimum of the provided curve is {:.2e}.".format(min(self.amplitude_spectral_density)))
                 print("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
