@@ -71,7 +71,7 @@ class Prior(object):
         elif self.name == 'phi2':
             return '$\phi_2$'
         elif self.name == 'luminosity_distance':
-            return 'd_L'
+            return '$d_L$'
         elif self.name == 'dec':
             return '$\mathrm{DEC}$'
         elif self.name == 'ra':
