@@ -46,6 +46,7 @@ class Sampler(object):
         self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
+        self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
@@ -108,10 +109,13 @@ class Sampler(object):
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
                     self.priors[key].sample()
+                self.__fixed_parameter_keys.append(key)
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.priors[key]))
+        for key in self.__fixed_parameter_keys:
+            logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
         required_keys = self.priors
