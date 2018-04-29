@@ -6,6 +6,7 @@ import os
 import sys
 
 import numpy as np
+from chainconsumer import ChainConsumer
 
 from .result import Result
 from .prior import Prior
@@ -46,6 +47,7 @@ class Sampler(object):
         self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
+        self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
@@ -108,10 +110,13 @@ class Sampler(object):
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
                     self.priors[key].sample()
+                self.__fixed_parameter_keys.append(key)
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.priors[key]))
+        for key in self.__fixed_parameter_keys:
+            logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
         required_keys = self.priors
@@ -156,6 +161,30 @@ class Sampler(object):
     def log_summary_for_sampler(self):
         logging.info("Using sampler {} with kwargs {}".format(
             self.__class__.__name__, self.kwargs))
+
+    def plot_corner(self, save=True, **kwargs):
+        """ Plot a corner-plot using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        kwargs['figsize'] = kwargs.get('figsize', 'GROW')
+        if save:
+            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
+            logging.info('Saving corner plot to {}'.format(kwargs['filename']))
+        c = ChainConsumer()
+        c.add_chain(self.result.samples, parameters=self.result.labels)
+        fig = c.plotter.plot(**kwargs)
+        return fig
 
 
 class Nestle(Sampler):
@@ -283,6 +312,12 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         the loglikelhood.
     **sampler_kwargs:
         All kwargs are passed directly to the samplers `run` functino
+
+    Returns
+    ------
+    result, sampler
+        An object containing the results, and the sampler instance (useful
+        for creating plots etc)
     """
     implemented_samplers = get_implemented_samplers()
 
@@ -296,7 +331,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         result.log_bayes_factor = result.logz - result.noise_logz
         print("")
         result.save_to_file(outdir=outdir, label=label)
-        return result
+        return result, sampler
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
