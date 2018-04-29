@@ -9,6 +9,7 @@ import numpy as np
 
 from .result import Result
 from .prior import Prior
+from . import utils
 
 
 class Sampler(object):
@@ -122,6 +123,11 @@ class Sampler(object):
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
+    def log_prior(self, theta):
+        return np.sum(
+            [np.log(self.priors[key].prob(t)) for key, t in
+                zip(self.__search_parameter_keys, theta)])
+
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.parameters[k] = theta[i]
@@ -129,6 +135,20 @@ class Sampler(object):
             return self.likelihood.log_likelihood_ratio()
         else:
             return self.likelihood.log_likelihood()
+
+    def get_random_draw_from_prior(self):
+        """ Get a random draw from the prior distribution
+
+        Returns
+        draw: array_like
+            An ndim-length array of values drawn from the prior. Parameters
+            with delta-function (or fixed) priors are not returned
+
+        """
+
+        return np.array(
+                [self.priors[key].rescale(np.random.uniform())
+                 for key in self.__search_parameter_keys])
 
     def run_sampler(self):
         pass
@@ -210,6 +230,32 @@ class Pymultinest(Sampler):
         self.result.logz = out['logZ']
         self.result.logzerr = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
+        return self.result
+
+
+class Ptemcee(Sampler):
+
+    def run_sampler(self, ntemps=2, nwalkers=100, nsteps=500, nburn=100,
+                    **kwargs):
+        ptemcee = self.external_sampler
+
+        sampler = ptemcee.Sampler(
+            ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
+            logl=self.log_likelihood, logp=self.log_prior, **kwargs)
+        pos0 = [[self.get_random_draw_from_prior()
+                 for i in range(nwalkers)]
+                for j in range(ntemps)]
+        tqdm = utils.get_progress_bar()
+        for result in tqdm(
+                sampler.sample(pos0, iterations=nsteps), total=nsteps):
+            pass
+
+        self.result.sampler_output = np.nan
+        self.result.samples = sampler.chain[0, :, nburn:, :].reshape(
+            (-1, self.ndim))
+        self.result.walkers = sampler.chain[0, :, :, :]
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
         return self.result
 
 

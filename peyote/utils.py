@@ -272,3 +272,12 @@ def setup_logger(log_level='info'):
     stream_handler.setLevel(LEVEL)
     logger.addHandler(stream_handler)
 
+def get_progress_bar(module='tqdm'):
+    if module in ['tqdm']:
+        try:
+            from tqdm import tqdm
+        except ImportError:
+            def tqdm(x, *args, **kwargs):
+                return x
+        return tqdm
+
