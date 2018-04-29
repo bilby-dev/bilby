@@ -241,7 +241,7 @@ class PowerSpectralDensity:
         if asd_file is not None:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
-            if min(self.power_spectral_density) < 1e30:
+            if min(self.amplitude_spectral_density) < 1e-30:
                 print("You specified an amplitude spectral density file.")
                 print("{} WARNING {}".format("*" * 30, "*" * 30))
                 print("The minimum of the provided curve is {:.2e}.".format(min(self.amplitude_spectral_density)))
@@ -249,7 +249,7 @@ class PowerSpectralDensity:
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
-            if min(self.power_spectral_density) > 1e30:
+            if min(self.power_spectral_density) > 1e-30:
                 print("You specified a power spectral density file.")
                 print("{} WARNING {}".format("*" * 30, "*" * 30))
                 print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
@@ -442,4 +442,3 @@ def get_inteferometer(
         fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
     return interferometer, sampling_frequency, time_duration
-
