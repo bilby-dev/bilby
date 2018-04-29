@@ -262,6 +262,12 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         the loglikelhood.
     **sampler_kwargs:
         All kwargs are passed directly to the samplers `run` functino
+
+    Returns
+    ------
+    result, sampler
+        An object containing the results, and the sampler instance (useful
+        for creating plots etc)
     """
     implemented_samplers = get_implemented_samplers()
 
