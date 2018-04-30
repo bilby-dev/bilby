@@ -3,7 +3,6 @@ import numpy as np
 import logging
 import os
 from scipy.interpolate import interp1d
-import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 from scipy import signal
 from gwpy.timeseries import TimeSeries
@@ -11,7 +10,8 @@ from gwpy.signal import filter_design
 
 from . import utils
 
-class Interferometer:
+
+class Interferometer(object):
     """Class for the Interferometer """
 
     def __init__(self, name, power_spectral_density, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
@@ -31,25 +31,125 @@ class Interferometer:
                           LIGO-T980044-08
         :param yarm_tilt: tilt of the y arm in radians above the horizontal
         """
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
+        self.__detector_tensor_update = False
+
         self.name = name
         self.length = length
-        self.latitude = latitude * np.pi / 180  # convert to rads
-        self.longitude = longitude * np.pi / 180
+        self.latitude = latitude
+        self.longitude = longitude
         self.elevation = elevation
-        self.xarm_azimuth = xarm_azimuth * np.pi / 180
-        self.yarm_azimuth = yarm_azimuth * np.pi / 180
+        self.xarm_azimuth = xarm_azimuth
+        self.yarm_azimuth = yarm_azimuth
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
-        self.x = self.unit_vector_along_arm('x')
-        self.y = self.unit_vector_along_arm('y')
-        self.detector_tensor = self.detector_tensor()
-        self.vertex = self.vertex_position_geocentric()
         self.power_spectral_density = power_spectral_density
-        self.power_spectral_density_array = np.array([])
-        self.amplitude_spectral_density_array = np.array([])
         self.data = np.array([])
-        self.whitened_data = np.array([])
         self.frequency_array = []
+
+    @property
+    def latitude(self):
+        return self.__latitude * 180 / np.pi
+
+    @latitude.setter
+    def latitude(self, latitude):
+        self.__latitude = latitude * np.pi / 180
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
+
+    @property
+    def longitude(self):
+        return self.__longitude * 180 / np.pi
+
+    @longitude.setter
+    def longitude(self, longitude):
+        self.__longitude = longitude * np.pi / 180
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
+
+    @property
+    def elevation(self):
+        return self.__elevation
+
+    @elevation.setter
+    def elevation(self, elevation):
+        self.__elevation = elevation
+        self.__vertex_updated = False
+
+    @property
+    def xarm_azimuth(self):
+        return self.__xarm_azimuth * 180 / np.pi
+
+    @xarm_azimuth.setter
+    def xarm_azimuth(self, xarm_azimuth):
+        self.__xarm_azimuth = xarm_azimuth * np.pi / 180
+        self.__x_updated = False
+
+    @property
+    def yarm_azimuth(self):
+        return self.__yarm_azimuth * 180 / np.pi
+
+    @yarm_azimuth.setter
+    def yarm_azimuth(self, yarm_azimuth):
+        self.__yarm_azimuth = yarm_azimuth * np.pi / 180
+        self.__y_updated = False
+
+    @property
+    def xarm_tilt(self):
+        return self.__xarm_tilt
+
+    @xarm_tilt.setter
+    def xarm_tilt(self, xarm_tilt):
+        self.__xarm_tilt = xarm_tilt
+        self.__x_updated = False
+
+    @property
+    def yarm_tilt(self):
+        return self.__yarm_tilt
+
+    @yarm_tilt.setter
+    def yarm_tilt(self, yarm_tilt):
+        self.__yarm_tilt = yarm_tilt
+        self.__y_updated = False
+
+    @property
+    def vertex(self):
+        if self.__vertex_updated is False:
+            self.__vertex = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
+            self.__vertex_updated = True
+        return self.__vertex
+
+    @property
+    def x(self):
+        if self.__x_updated is False:
+            self.__x = self.unit_vector_along_arm('x')
+            self.__x_updated = True
+            self.__detector_tensor_update = False
+        return self.__x
+
+    @property
+    def y(self):
+        if self.__y_updated is False:
+            self.__y = self.unit_vector_along_arm('y')
+            self.__y_updated = True
+            self.__detector_tensor_update = False
+        return self.__y
+
+    @property
+    def detector_tensor(self):
+        """
+        Calculate the detector tensor from the unit vectors along each arm of the detector.
+
+        See Eq. B6 of arXiv:gr-qc/0008066
+        """
+        if self.__detector_tensor_update is False:
+            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
+            self.__detector_tensor_update = True
+        return self.__detector_tensor
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -70,15 +170,6 @@ class Interferometer:
         polarization_tensor = utils.get_polarization_tensor(ra, dec, time, psi, mode)
         detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
-
-    def detector_tensor(self):
-        """
-        Calculate the detector tensor from the unit vectors along each arm of the detector.
-
-        See Eq. B6 of arXiv:gr-qc/0008066
-        """
-        detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-        return detector_tensor
 
     def get_detector_response(self, waveform_polarizations, parameters):
         """
@@ -104,8 +195,9 @@ class Interferometer:
             parameters['dec'],
             parameters['geocent_time'])
 
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift + parameters['geocent_time'])
-                                         * self.frequency_array)
+        dt = self.epoch - (parameters['geocent_time'] - time_shift)
+        signal_ifo = signal_ifo * np.exp(
+                -1j * 2 * np.pi * dt * self.frequency_array)
 
         return signal_ifo
 
@@ -131,46 +223,60 @@ class Interferometer:
         Output:
         n - unit vector along arm in cartesian Earth-based coordinates
         """
-        e_long = np.array([-np.sin(self.longitude), np.cos(self.longitude), 0])
-        e_lat = np.array([-np.sin(self.latitude) * np.cos(self.longitude),
-                          -np.sin(self.latitude) * np.sin(self.longitude), np.cos(self.latitude)])
-        e_h = np.array([np.cos(self.latitude) * np.cos(self.longitude),
-                        np.cos(self.latitude) * np.sin(self.longitude), np.sin(self.latitude)])
+        e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
+        e_lat = np.array([-np.sin(self.__latitude) * np.cos(self.__longitude),
+                          -np.sin(self.__latitude) * np.sin(self.__longitude), np.cos(self.__latitude)])
+        e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
+                        np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
         if arm == 'x':
-            n = np.cos(self.xarm_tilt) * np.cos(self.xarm_azimuth) * e_long + np.cos(self.xarm_tilt) \
-                * np.sin(self.xarm_azimuth) * e_lat + np.sin(self.xarm_tilt) * e_h
+            n = np.cos(self.__xarm_tilt) * np.cos(self.__xarm_azimuth) * e_long + np.cos(self.__xarm_tilt) \
+                * np.sin(self.__xarm_azimuth) * e_lat + np.sin(self.__xarm_tilt) * e_h
         elif arm == 'y':
-            n = np.cos(self.yarm_tilt) * np.cos(self.yarm_azimuth) * e_long + np.cos(self.yarm_tilt) \
-                * np.sin(self.yarm_azimuth) * e_lat + np.sin(self.yarm_tilt) * e_h
+            n = np.cos(self.__yarm_tilt) * np.cos(self.__yarm_azimuth) * e_long + np.cos(self.__yarm_tilt) \
+                * np.sin(self.__yarm_azimuth) * e_lat + np.sin(self.__yarm_tilt) * e_h
         else:
             print('Not a recognized arm, aborting!')
             return
         return n
 
-    def set_spectral_densities(self):
+    @property
+    def amplitude_spectral_density_array(self):
         """
         Set the PSD for the interferometer for a user-specified frequency series, this matches the data provided.
 
         """
-        self.power_spectral_density_array = \
-            self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
-        self.amplitude_spectral_density_array = self.power_spectral_density_array ** 0.5
+        return self.power_spectral_density_array ** 0.5
 
-    def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
+    @property
+    def power_spectral_density_array(self):
+        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
+
+    def set_data(self, sampling_frequency, duration, epoch=0,
+                 from_power_spectral_density=None,
                  frequency_domain_strain=None):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
 
-        :param sampling_frequency: sampling frequency
-        :param duration: duration of data
-        :param from_power_spectral_density: flag, use IFO's PSD object to generate noise
-        :param frequency_domain_strain: frequency-domain strain, requires frequencies is also specified
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency of the data
+        duration: float
+            Duration of data
+        epoch: float
+            The GPS time of the start of the data
+        frequency_domain_strain: array_like
+            The frequency-domain strain
+        from_power_spectral_density: bool
+            If frequency_domain_strain not given, use IFO's PSD object to
+            generate noise
         """
+
+        self.epoch = epoch
 
         if frequency_domain_strain is not None:
             logging.info(
-                'Setting {} data using provided frequency_domain_strain'
-                .format(self.name))
+                'Setting {} data using provided frequency_domain_strain'.format(self.name))
             frequencies = utils.create_fequency_series(sampling_frequency, duration)
         elif from_power_spectral_density is not None:
             logging.info(
@@ -183,7 +289,6 @@ class Interferometer:
 
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
-        self.set_spectral_densities()
 
         return
 
@@ -210,11 +315,13 @@ class Interferometer:
         Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
         See Section 2.1 of LIGO-T980044-10 for the correct expression
         """
-        vertex_position = utils.get_vertex_position_geocentric(self.latitude, self.longitude, self.elevation)
+        vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
-    def whiten_data(self):
-        self.whitened_data = self.data / self.amplitude_spectral_density_array
+
+    @property
+    def whitened_data(self):
+        return self.data / self.amplitude_spectral_density_array
 
 
 class PowerSpectralDensity:
@@ -350,26 +457,26 @@ GEO600 = get_empty_interferometer('GEO600')
 
 
 def get_inteferometer(
-        name, epoch, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+        name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
         cache=True, outdir='outdir', plot=True, filter_freq=1024, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an epoch
+    PSD and data, given an center_time
 
     Parameters
     ----------
     name: str
         Detector name, e.g., 'H1'.
-    epoch: float
-        GPS time of the epoch about which to perform the analysis. Note: the
-        analysis data is from `epoch-T/2` to `epoch+T/2`.
+    center_time: float
+        GPS time of the center_time about which to perform the analysis.
+        Note: the analysis data is from `center_time-T/2` to `center_time+T/2`.
     T: float
         The total time (in seconds) to analyse. Defaults to 4s.
     alpha: float
         The tukey window shape parameter passed to `scipy.signal.tukey`.
     psd_offset, psd_duration: float
         The power spectral density (psd) is estimated using data from
-        `epoch+psd_offset` to `epoch+psd_offset + psd_duration`.
+        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
     outdir: str
         Directory where the psd files are saved
     plot: bool
@@ -389,10 +496,10 @@ def get_inteferometer(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     strain = TimeSeries.fetch_open_data(
-            name, epoch-T/2, epoch+T/2, cache=cache, **kwargs)
+            name, center_time-T/2, center_time+T/2, cache=cache, **kwargs)
 
     strain_psd = TimeSeries.fetch_open_data(
-            name, epoch+psd_offset, epoch+psd_offset+psd_duration,
+            name, center_time+psd_offset, center_time+psd_offset+psd_duration,
             cache=cache, **kwargs)
 
     sampling_frequency = int(strain.sample_rate.value)
@@ -409,7 +516,7 @@ def get_inteferometer(
     window = signal.tukey(NFFT, alpha=alpha)
     psd = strain_psd.psd(fftlength=T, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, epoch+psd_offset, psd_duration)
+        outdir, name, center_time+psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
         for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
@@ -427,7 +534,8 @@ def get_inteferometer(
     interferometer.set_data(
         sampling_frequency, time_duration,
         frequency_domain_strain=utils.nfft(
-            strain.value, sampling_frequency)[0])
+            strain.value, sampling_frequency)[0],
+        epoch=strain.epoch.value)
 
     if plot:
         fig, ax = plt.subplots()

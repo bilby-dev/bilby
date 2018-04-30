@@ -38,9 +38,7 @@ class WaveformGenerator(object):
 
     @property
     def frequency_array(self):
-        if self.__frequency_array_updated:
-            return self.__frequency_array
-        else:
+        if self.__frequency_array_updated is False:
             self.__frequency_array = utils.create_fequency_series(
                                         self.sampling_frequency,
                                         self.time_duration)
@@ -49,9 +47,7 @@ class WaveformGenerator(object):
 
     @property
     def time_array(self):
-        if self.__time_array_updated:
-            return self.__time_array
-        else:
+        if self.__time_array_updated is False:
             self.__time_array = utils.create_time_series(
                                         self.sampling_frequency,
                                         self.time_duration)

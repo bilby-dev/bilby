@@ -36,9 +36,9 @@ waveform_generator = peyote.waveform_generator.WaveformGenerator(
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
-#sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
+sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
 
-sampling_parameters = peyote.prior.parse_keys_to_parameters(injection_parameters.keys())
+#sampling_parameters = peyote.prior.parse_keys_to_parameters(injection_parameters.keys())
 
 
 # Simulate the data in H1
@@ -84,6 +84,6 @@ sampling_parameters['luminosity_distance'] = peyote.prior.Uniform(lower=30, uppe
 
 result, sampler = peyote.sampler.run_sampler(
     likelihood, priors=sampling_parameters, label='BasicTutorial',
-    sampler='nestle', verbose=True)
+    sampler='nestle', verbose=True, injection_parameters=injection_parameters)
 sampler.plot_corner()
 print(result)
