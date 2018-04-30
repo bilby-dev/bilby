@@ -151,8 +151,11 @@ class PowerLaw(Prior):
     def prob(self, val):
         """Return the prior probability of val"""
         if (val > self.low) and (val < self.high):
-            return val ** self.alpha * (1 + self.alpha) / (self.high ** (1 + self.alpha) -
-                                                       self.low ** (1 + self.alpha))
+            if self.alpha == -1:
+                return 1 / val / np.log(self.high / self.low)
+            else:
+                return val ** self.alpha * (1 + self.alpha) / (self.high ** (1 + self.alpha)
+                                                               - self.low ** (1 + self.alpha))
         else:
             return 0
 
