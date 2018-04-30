@@ -14,6 +14,9 @@ def lal_binary_black_hole(
         iota, phase, waveform_approximant, reference_frequency, ra, dec,
         geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
+    if mass_2 > mass_1:
+        return {'plus': 0, 'cross': 0}
+
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
