@@ -1,8 +1,6 @@
 import numpy as np
 import pylab as plt
 
-import dynesty.plotting as dyplot
-import corner
 import peyote.prior
 
 peyote.utils.setup_logger()
@@ -84,13 +82,8 @@ sampling_parameters['luminosity_distance'] = peyote.prior.Uniform(lower=30, uppe
 #sampling_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"] - 0.1,
 #                                                                  upper=injection_parameters["geocent_time"]+0.1)
 
-result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, sampler='nestle', verbose=True)
+result, sampler = peyote.sampler.run_sampler(
+    likelihood, priors=sampling_parameters, label='BasicTutorial',
+    sampler='nestle', verbose=True)
+sampler.plot_corner()
 print(result)
-truths = [injection_parameters[x] for x in result.search_parameter_keys]
-
-
-fig = corner.corner(result.samples, truths=truths, labels=result.search_parameter_keys)
-fig.savefig('corner')
-
-fig, axes = dyplot.traceplot(result['sampler_output'])
-fig.savefig('trace')

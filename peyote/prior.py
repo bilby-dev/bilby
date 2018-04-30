@@ -67,23 +67,25 @@ class Prior(object):
         elif self.name == 'tilt2':
             return 'tilt_2'
         elif self.name == 'phi1':
-            return '\phi_1'
+            return '$\phi_1$'
         elif self.name == 'phi2':
-            return '\phi_2'
+            return '$\phi_2$'
         elif self.name == 'luminosity_distance':
-            return 'd_L'
+            return '$d_L$'
         elif self.name == 'dec':
-            return '\mathrm{DEC}'
+            return '$\mathrm{DEC}$'
         elif self.name == 'ra':
-            return '\mathrm{RA}'
+            return '$\mathrm{RA}$'
         elif self.name == 'iota':
-            return '\iota'
+            return '$\iota$'
         elif self.name == 'psi':
-            return '\psi'
+            return '$\psi$'
         elif self.name == 'phase':
-            return '\phi'
+            return '$\phi$'
         elif self.name == 'tc':
-            return 't_c'
+            return '$t_c$'
+        elif self.name == 'geocent_time':
+            return '$t_c$'
         else:
             return self.name
 

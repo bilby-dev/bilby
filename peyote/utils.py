@@ -1,5 +1,6 @@
 from __future__ import division
 import logging
+import os
 import numpy as np
 from astropy.time import Time
 
@@ -273,6 +274,7 @@ def setup_logger(log_level='info'):
     stream_handler.setLevel(LEVEL)
     logger.addHandler(stream_handler)
 
+
 def spherical_to_cartesian(radius, theta, phi):
     """
     Convert from spherical coordinates to cartesian.
@@ -284,3 +286,11 @@ def spherical_to_cartesian(radius, theta, phi):
     """
     cartesian = [radius * np.sin(theta) * np.cos(phi), radius * np.sin(theta) * np.sin(phi), radius * np.cos(theta)]
     return cartesian
+
+
+def check_directory_exists_and_if_not_mkdir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        logging.debug('Making directory {}'.format(directory))
+    else:
+        logging.debug('Directory {} exists'.format(directory))
