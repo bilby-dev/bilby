@@ -1,6 +1,5 @@
 from __future__ import division
 import peyote
-import corner
 
 peyote.utils.setup_logger()
 

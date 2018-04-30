@@ -3,13 +3,13 @@ import numpy as np
 import logging
 import os
 from scipy.interpolate import interp1d
-import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 from scipy import signal
 from gwpy.timeseries import TimeSeries
 from gwpy.signal import filter_design
 
 from . import utils
+
 
 class Interferometer:
     """Class for the Interferometer """
