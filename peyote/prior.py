@@ -143,7 +143,7 @@ class PowerLaw(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         if self.alpha == -1:
-            return self.low * np.exp(val * np.log(self.low / self.high))
+            return self.low * np.exp(val * np.log(self.high / self.low))
         else:
             return (self.low ** (1 + self.alpha) + val *
                     (self.high ** (1 + self.alpha) - self.low ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
