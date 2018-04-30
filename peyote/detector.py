@@ -195,8 +195,9 @@ class Interferometer(object):
             parameters['dec'],
             parameters['geocent_time'])
 
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * (time_shift + parameters['geocent_time'])
-                                         * self.frequency_array)
+        dt = self.epoch - (parameters['geocent_time'] - time_shift)
+        signal_ifo = signal_ifo * np.exp(
+                -1j * 2 * np.pi * dt * self.frequency_array)
 
         return signal_ifo
 
@@ -250,16 +251,28 @@ class Interferometer(object):
     def power_spectral_density_array(self):
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
-    def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
+    def set_data(self, sampling_frequency, duration, epoch=0,
+                 from_power_spectral_density=None,
                  frequency_domain_strain=None):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
 
-        :param sampling_frequency: sampling frequency
-        :param duration: duration of data
-        :param from_power_spectral_density: flag, use IFO's PSD object to generate noise
-        :param frequency_domain_strain: frequency-domain strain, requires frequencies is also specified
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency of the data
+        duration: float
+            Duration of data
+        epoch: float
+            The GPS time of the start of the data
+        frequency_domain_strain: array_like
+            The frequency-domain strain
+        from_power_spectral_density: bool
+            If frequency_domain_strain not given, use IFO's PSD object to
+            generate noise
         """
+
+        self.epoch = epoch
 
         if frequency_domain_strain is not None:
             logging.info(
@@ -444,26 +457,26 @@ GEO600 = get_empty_interferometer('GEO600')
 
 
 def get_inteferometer(
-        name, epoch, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+        name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
         cache=True, outdir='outdir', plot=True, filter_freq=1024, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an epoch
+    PSD and data, given an center_time
 
     Parameters
     ----------
     name: str
         Detector name, e.g., 'H1'.
-    epoch: float
-        GPS time of the epoch about which to perform the analysis. Note: the
-        analysis data is from `epoch-T/2` to `epoch+T/2`.
+    center_time: float
+        GPS time of the center_time about which to perform the analysis.
+        Note: the analysis data is from `center_time-T/2` to `center_time+T/2`.
     T: float
         The total time (in seconds) to analyse. Defaults to 4s.
     alpha: float
         The tukey window shape parameter passed to `scipy.signal.tukey`.
     psd_offset, psd_duration: float
         The power spectral density (psd) is estimated using data from
-        `epoch+psd_offset` to `epoch+psd_offset + psd_duration`.
+        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
     outdir: str
         Directory where the psd files are saved
     plot: bool
@@ -483,10 +496,10 @@ def get_inteferometer(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     strain = TimeSeries.fetch_open_data(
-            name, epoch-T/2, epoch+T/2, cache=cache, **kwargs)
+            name, center_time-T/2, center_time+T/2, cache=cache, **kwargs)
 
     strain_psd = TimeSeries.fetch_open_data(
-            name, epoch+psd_offset, epoch+psd_offset+psd_duration,
+            name, center_time+psd_offset, center_time+psd_offset+psd_duration,
             cache=cache, **kwargs)
 
     sampling_frequency = int(strain.sample_rate.value)
@@ -503,7 +516,7 @@ def get_inteferometer(
     window = signal.tukey(NFFT, alpha=alpha)
     psd = strain_psd.psd(fftlength=T, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, epoch+psd_offset, psd_duration)
+        outdir, name, center_time+psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
         for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
@@ -521,7 +534,8 @@ def get_inteferometer(
     interferometer.set_data(
         sampling_frequency, time_duration,
         frequency_domain_strain=utils.nfft(
-            strain.value, sampling_frequency)[0])
+            strain.value, sampling_frequency)[0],
+        epoch=strain.epoch.value)
 
     if plot:
         fig, ax = plt.subplots()
