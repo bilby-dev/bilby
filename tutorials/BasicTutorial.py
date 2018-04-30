@@ -38,9 +38,9 @@ waveform_generator = peyote.waveform_generator.WaveformGenerator(
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
-#sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
+sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
 
-sampling_parameters = peyote.prior.parse_keys_to_parameters(injection_parameters.keys())
+#sampling_parameters = peyote.prior.parse_keys_to_parameters(injection_parameters.keys())
 
 
 # Simulate the data in H1

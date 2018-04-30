@@ -273,7 +273,6 @@ class Interferometer(object):
 
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
-        self.set_spectral_densities()
 
         return
 
