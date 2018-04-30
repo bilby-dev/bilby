@@ -6,9 +6,11 @@ import os
 import sys
 
 import numpy as np
+from chainconsumer import ChainConsumer
 
 from .result import Result
 from .prior import Prior
+from . import utils
 
 
 class Sampler(object):
@@ -34,15 +36,18 @@ class Sampler(object):
     """
 
     def __init__(self, likelihood, priors, external_sampler='nestle',
-                 outdir='outdir', label='label', result=None, **kwargs):
+                 outdir='outdir', label='label', use_ratio=False, result=None,
+                 **kwargs):
         self.likelihood = likelihood
         self.priors = priors
         self.label = label
         self.outdir = outdir
         self.kwargs = kwargs
+        self.use_ratio = use_ratio
         self.external_sampler = external_sampler
 
         self.__search_parameter_keys = []
+        self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
@@ -105,10 +110,13 @@ class Sampler(object):
                     and self.priors[key].is_fixed is True:
                 self.likelihood.waveform_generator.parameters[key] = \
                     self.priors[key].sample()
+                self.__fixed_parameter_keys.append(key)
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.priors[key]))
+        for key in self.__fixed_parameter_keys:
+            logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
         required_keys = self.priors
@@ -123,7 +131,10 @@ class Sampler(object):
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.parameters[k] = theta[i]
-        return self.likelihood.log_likelihood()
+        if self.use_ratio:
+            return self.likelihood.log_likelihood_ratio()
+        else:
+            return self.likelihood.log_likelihood()
 
     def run_sampler(self):
         pass
@@ -131,6 +142,30 @@ class Sampler(object):
     def log_summary_for_sampler(self):
         logging.info("Using sampler {} with kwargs {}".format(
             self.__class__.__name__, self.kwargs))
+
+    def plot_corner(self, save=True, **kwargs):
+        """ Plot a corner-plot using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        kwargs['figsize'] = kwargs.get('figsize', 'GROW')
+        if save:
+            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
+            logging.info('Saving corner plot to {}'.format(kwargs['filename']))
+        c = ChainConsumer()
+        c.add_chain(self.result.samples, parameters=self.result.labels)
+        fig = c.plotter.plot(**kwargs)
+        return fig
 
 
 class Nestle(Sampler):
@@ -187,8 +222,11 @@ class Pymultinest(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict(importance_nested_sampling=False, resume=True, verbose=True,
-                             sampling_efficiency='parameter', outputfiles_basename=self.outdir)
+        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
+        self.__kwargs = dict(importance_nested_sampling=False, resume=True,
+                             verbose=True, sampling_efficiency='parameter',
+                             outputfiles_basename=outputfiles_basename)
         self.__kwargs.update(kwargs)
         if self.__kwargs['outputfiles_basename'].endswith('/') is False:
             self.__kwargs['outputfiles_basename'] = '{}/'.format(
@@ -209,19 +247,51 @@ class Pymultinest(Sampler):
 
 
 def run_sampler(likelihood, priors, label='label', outdir='outdir',
-                sampler='nestle', **sampler_kwargs):
+                sampler='nestle', use_ratio=False,
+                **sampler_kwargs):
+    """
+    The primary interface to easy parameter estimation
+
+    Parameters
+    ----------
+    likelihood: `peyote.likelihood.Likelihood`
+        A `Likelihood` instance
+    priors: dict
+        A dictionary of the priors for each parameter - missing parameters will
+        use default priors
+    label, outdir: str
+        A string used in defining output files
+    sampler: str
+        The name of the sampler to use - see
+        `peyote.sampler.get_implemented_samplers()` for a list of available
+        samplers
+    use_ratio: bool (False)
+        If True, use the likelihood's loglikelihood_ratio, rather than just
+        the loglikelhood.
+    **sampler_kwargs:
+        All kwargs are passed directly to the samplers `run` functino
+
+    Returns
+    ------
+    result, sampler
+        An object containing the results, and the sampler instance (useful
+        for creating plots etc)
+    """
+
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
-                                label=label, **sampler_kwargs)
+                                label=label, use_ratio=use_ratio,
+                                **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         result.log_bayes_factor = result.logz - result.noise_logz
         print("")
         result.save_to_file(outdir=outdir, label=label)
-        return result
+        return result, sampler
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
