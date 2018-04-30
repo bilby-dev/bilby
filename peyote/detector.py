@@ -5,7 +5,8 @@ import os
 from scipy.interpolate import interp1d
 from . import utils
 
-class Interferometer:
+
+class Interferometer(object):
     """Class for the Interferometer """
 
     def __init__(self, name, power_spectral_density, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
@@ -25,66 +26,64 @@ class Interferometer:
                           LIGO-T980044-08
         :param yarm_tilt: tilt of the y arm in radians above the horizontal
         """
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
+        self.__detector_tensor_update = False
+
         self.name = name
         self.length = length
         self.latitude = latitude
         self.longitude = longitude
         self.elevation = elevation
-        self.xarm_azimuth = xarm_azimuth * np.pi / 180
-        self.yarm_azimuth = yarm_azimuth * np.pi / 180
+        self.xarm_azimuth = xarm_azimuth
+        self.yarm_azimuth = yarm_azimuth
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
-        self.power_spectral_density_array = np.array([])
-        self.amplitude_spectral_density_array = np.array([])
         self.data = np.array([])
         self.whitened_data = np.array([])
         self.frequency_array = []
-        self.__x_update = True
-        self.__y_update = True
-        self.__vertex_update = True
-        self.__detector_tensor_update = True 
-
 
     @property
     def latitude(self):
         return self.__latitude * 180 / np.pi
 
-    @latitude.setter 
-    def latitude(self,latitude):
+    @latitude.setter
+    def latitude(self, latitude):
         self.__latitude = latitude * np.pi / 180
-        self.__x_update = False
-        self.__y_update = False
-        self.__vertex_update = False 
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
 
     @property
     def longitude(self):
         return self.__longitude * 180 / np.pi
 
     @longitude.setter
-    def longtiude(self,longitude):
+    def longitude(self, longitude):
         self.__longitude = longitude * np.pi / 180
-        self.__x_update = False
-        self.__y_update = False
-        self.__vertex_update = False
+        self.__x_updated = False
+        self.__y_updated = False
+        self.__vertex_updated = False
 
-    @property 
+    @property
     def elevation(self):
         return self.__elevation
 
     @elevation.setter
-    def elevation(self,elevation):
+    def elevation(self, elevation):
         self.__elevation = elevation
-        self.__vertex_update = False
+        self.__vertex_updated = False
 
-    @property 
+    @property
     def xarm_azimuth(self):
         return self.__xarm_azimuth * 180 / np.pi
 
     @xarm_azimuth.setter
     def xarm_azimuth(self, xarm_azimuth):
         self.__xarm_azimuth = xarm_azimuth * np.pi / 180
-        self.__x_update = False
+        self.__x_updated = False
 
     @property
     def yarm_azimuth(self):
@@ -93,7 +92,7 @@ class Interferometer:
     @yarm_azimuth.setter
     def yarm_azimuth(self, yarm_azimuth):
         self.__yarm_azimuth = yarm_azimuth * np.pi / 180
-        self.__y_update = False
+        self.__y_updated = False
 
     @property
     def xarm_tilt(self):
@@ -102,33 +101,37 @@ class Interferometer:
     @xarm_tilt.setter
     def xarm_tilt(self,xarm_tilt):
         self.__xarm_tilt = xarm_tilt
-        self.__x_update = False
+        self.__x_updated = False
 
     @property
-    def yarm_tilt(self,yarm_tilt):
-        self.__yarm_tild = yarm_tilt
-        self.__y_update = False
+    def yarm_tilt(self):
+        return self.__yarm_tilt
 
-    @property  
+    @yarm_tilt.setter
+    def yarm_tilt(self,yarm_tilt):
+        self.__yarm_tilt = yarm_tilt
+        self.__y_updated = False
+
+    @property
     def vertex(self):
-        if !self.__vertex_update:
-            self.__vertex = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
-            self.__vertex_update = True
+        if self.__vertex_updated is False:
+            self.__vertex = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
+            self.__vertex_updated = True
         return self.__vertex
 
     @property
     def x(self):
-        if !self.__x_update:
+        if self.__x_updated is False:
             self.__x = self.unit_vector_along_arm('x')
-            self.__x_update = True
-            self.__detector_tensor_update = False 
+            self.__x_updated = True
+            self.__detector_tensor_update = False
         return self.__x
 
     @property
     def y(self):
-        if !self.__y_update:
+        if self.__y_updated is False:
             self.__y = self.unit_vector_along_arm('y')
-            self.__y_update = True
+            self.__y_updated = True
             self.__detector_tensor_update = False
         return self.__y
 
@@ -139,10 +142,10 @@ class Interferometer:
 
         See Eq. B6 of arXiv:gr-qc/0008066
         """
-        if !self.__detector_tensor_update:
-            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.__x, self.__x) - np.einsum('i,j->ij', self.__y, self.__y))
+        if self.__detector_tensor_update is False:
+            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
             self.__detector_tensor_update = True
-        return self.__detector_tensor 
+        return self.__detector_tensor
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -161,7 +164,7 @@ class Interferometer:
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
         polarization_tensor = utils.get_polarization_tensor(ra, dec, time, psi, mode)
-        detector_response = np.einsum('ij,ij->', self.__detector_tensor, polarization_tensor)
+        detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
 
     def get_detector_response(self, waveform_polarizations, parameters):
@@ -231,14 +234,17 @@ class Interferometer:
             return
         return n
 
-    def set_spectral_densities(self):
+    @property
+    def amplitude_spectral_density_array(self):
         """
         Set the PSD for the interferometer for a user-specified frequency series, this matches the data provided.
 
         """
-        self.power_spectral_density_array = \
-            self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
-        self.amplitude_spectral_density_array = self.power_spectral_density_array ** 0.5
+        return self.power_spectral_density_array ** 0.5
+
+    @property
+    def power_spectral_density_array(self):
+        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, from_power_spectral_density=None,
                  frequency_domain_strain=None):
@@ -254,7 +260,7 @@ class Interferometer:
         if frequency_domain_strain is not None:
             logging.info(
                 'Setting {} data using provided frequency_domain_strain'
-                .format(self.name))
+                    .format(self.name))
             frequencies = utils.create_fequency_series(sampling_frequency, duration)
         elif from_power_spectral_density is not None:
             logging.info(
@@ -284,7 +290,7 @@ class Interferometer:
         Output:
         delta_t - time delay from geocenter
         """
-        delta_t = utils.time_delay_geocentric(self.__vertex, np.array([0, 0, 0]), ra, dec, time)
+        delta_t = utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
         return delta_t
 
     def vertex_position_geocentric(self):
