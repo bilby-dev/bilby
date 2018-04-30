@@ -7,8 +7,8 @@ outdir = 'outdir'
 label = 'GW150914'
 time_of_event = 1126259462.422
 
-H1, sampling_frequency, time_duration = peyote.detector.get_inteferometer('H1', epoch=time_of_event, version=1)
-L1, sampling_frequency, time_duration = peyote.detector.get_inteferometer('L1', epoch=time_of_event, version=1)
+H1, sampling_frequency, time_duration = peyote.detector.get_inteferometer('H1', time_of_event, version=1)
+L1, sampling_frequency, time_duration = peyote.detector.get_inteferometer('L1', time_of_event, version=1)
 IFOs = [H1, L1]
 
 maximum_posterior_estimates = dict(
