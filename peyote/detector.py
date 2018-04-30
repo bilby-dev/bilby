@@ -42,7 +42,6 @@ class Interferometer(object):
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.data = np.array([])
-        self.whitened_data = np.array([])
         self.frequency_array = []
 
     @property
@@ -99,7 +98,7 @@ class Interferometer(object):
         return self.__xarm_tilt
 
     @xarm_tilt.setter
-    def xarm_tilt(self,xarm_tilt):
+    def xarm_tilt(self, xarm_tilt):
         self.__xarm_tilt = xarm_tilt
         self.__x_updated = False
 
@@ -108,7 +107,7 @@ class Interferometer(object):
         return self.__yarm_tilt
 
     @yarm_tilt.setter
-    def yarm_tilt(self,yarm_tilt):
+    def yarm_tilt(self, yarm_tilt):
         self.__yarm_tilt = yarm_tilt
         self.__y_updated = False
 
@@ -259,8 +258,7 @@ class Interferometer(object):
 
         if frequency_domain_strain is not None:
             logging.info(
-                'Setting {} data using provided frequency_domain_strain'
-                    .format(self.name))
+                'Setting {} data using provided frequency_domain_strain'.format(self.name))
             frequencies = utils.create_fequency_series(sampling_frequency, duration)
         elif from_power_spectral_density is not None:
             logging.info(
@@ -302,8 +300,10 @@ class Interferometer(object):
         vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
-    def whiten_data(self):
-        self.whitened_data = self.data / self.amplitude_spectral_density_array
+
+    @property
+    def whitened_data(self):
+        return self.data / self.amplitude_spectral_density_array
 
 
 class PowerSpectralDensity:
