@@ -84,6 +84,6 @@ sampling_parameters['luminosity_distance'] = peyote.prior.Uniform(lower=30, uppe
 
 result, sampler = peyote.sampler.run_sampler(
     likelihood, priors=sampling_parameters, label='BasicTutorial',
-    sampler='nestle', verbose=True)
+    sampler='nestle', verbose=True, injection_parameters=injection_parameters)
 sampler.plot_corner()
 print(result)

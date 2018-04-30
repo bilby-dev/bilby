@@ -247,7 +247,7 @@ class Pymultinest(Sampler):
 
 
 def run_sampler(likelihood, priors, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=False,
+                sampler='nestle', use_ratio=False, injection_parameters=None,
                 **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
@@ -268,6 +268,9 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
     use_ratio: bool (False)
         If True, use the likelihood's loglikelihood_ratio, rather than just
         the loglikelhood.
+    injection_parameters: dict
+        A dictionary of injection parameters used in creating the data (if
+        using simulated data). Appended to the result object and saved.
     **sampler_kwargs:
         All kwargs are passed directly to the samplers `run` functino
 
@@ -289,7 +292,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         result.log_bayes_factor = result.logz - result.noise_logz
-        print("")
+        result.injection_parameters = injection_parameters
         result.save_to_file(outdir=outdir, label=label)
         return result, sampler
     else:
