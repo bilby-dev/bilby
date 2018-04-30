@@ -152,7 +152,7 @@ class Sampler(object):
         """
 
         return np.array(
-                [self.priors[key].rescale(np.random.uniform())
+                [self.priors[key].sample()
                  for key in self.__search_parameter_keys])
 
     def run_sampler(self):
@@ -267,17 +267,20 @@ class Pymultinest(Sampler):
 
 class Ptemcee(Sampler):
 
-    def run_sampler(self, ntemps=2, nwalkers=100, nsteps=500, nburn=100,
-                    **kwargs):
+    def run_sampler(self):
+        ntemps = self.kwargs.pop('ntemps', 2)
+        nwalkers = self.kwargs.pop('nwalkers', 100)
+        nsteps = self.kwargs.pop('nsteps', 100)
+        nburn = self.kwargs.pop('nburn', 50)
         ptemcee = self.external_sampler
 
         sampler = ptemcee.Sampler(
             ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
-            logl=self.log_likelihood, logp=self.log_prior, **kwargs)
+            logl=self.log_likelihood, logp=self.log_prior)
         pos0 = [[self.get_random_draw_from_prior()
                  for i in range(nwalkers)]
                 for j in range(ntemps)]
-        tqdm = utils.get_progress_bar()
+        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
         for result in tqdm(
                 sampler.sample(pos0, iterations=nsteps), total=nsteps):
             pass
