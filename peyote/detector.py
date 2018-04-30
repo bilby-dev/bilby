@@ -3,6 +3,11 @@ import numpy as np
 import logging
 import os
 from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
+from scipy import signal
+from gwpy.timeseries import TimeSeries
+from gwpy.signal import filter_design
+
 from . import utils
 
 
@@ -330,15 +335,15 @@ class PowerSpectralDensity:
         if asd_file is not None:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
-            if min(self.power_spectral_density) < 1e30:
+            if min(self.amplitude_spectral_density) < 1e-30:
                 print("You specified an amplitude spectral density file.")
                 print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
+                print("The minimum of the provided curve is {:.2e}.".format(min(self.amplitude_spectral_density)))
                 print("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
-            if min(self.power_spectral_density) > 1e30:
+            if min(self.power_spectral_density) > 1e-30:
                 print("You specified a power spectral density file.")
                 print("{} WARNING {}".format("*" * 30, "*" * 30))
                 print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
@@ -399,20 +404,137 @@ class PowerSpectralDensity:
         return frequency_domain_strain, frequency
 
 
-# Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/ GEO600
-H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4,
-                    latitude=46 + 27. / 60 + 18.528 / 3600,
-                    longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
-                    yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
-L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4,
-                    latitude=30 + 33. / 60 + 46.4196 / 3600,
-                    longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
-                    yarm_azimuth=287.7165,
-                    xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
-V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
-                    latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
-                    elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
-GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
-                        length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
-                        elevation=114.425,
-                        xarm_azimuth=115.9431, yarm_azimuth=21.6117)
+def get_empty_interferometer(name):
+    """ Detector positions taken from LIGO-T980044-10 for L1/H1 and from
+        arXiv:gr-qc/0008066 [45] for V1/ GEO600
+    """
+    if name == 'H1':
+        H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4,
+                            latitude=46 + 27. / 60 + 18.528 / 3600,
+                            longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
+                            yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
+        return H1
+    elif name == 'L1':
+        L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4,
+                            latitude=30 + 33. / 60 + 46.4196 / 3600,
+                            longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
+                            yarm_azimuth=287.7165,
+                            xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
+        return L1
+    elif name == 'V1':
+        V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
+                            latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
+                            elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
+        return V1
+    elif name == 'GEO600':
+        GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
+                                length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
+                                elevation=114.425,
+                                xarm_azimuth=115.9431, yarm_azimuth=21.6117)
+        return GEO600
+    else:
+        raise ValueError('Interferometer {} not implemented'.format(name))
+
+
+# Maintain backward compatibility - should be removed in the future
+H1 = get_empty_interferometer('H1')
+L1 = get_empty_interferometer('L1')
+V1 = get_empty_interferometer('V1')
+GEO600 = get_empty_interferometer('GEO600')
+
+
+def get_inteferometer(
+        name, epoch, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+        cache=True, outdir='outdir', plot=True, filter_freq=1024, **kwargs):
+    """
+    Helper function to obtain an Interferometer instance with appropriate
+    PSD and data, given an epoch
+
+    Parameters
+    ----------
+    name: str
+        Detector name, e.g., 'H1'.
+    epoch: float
+        GPS time of the epoch about which to perform the analysis. Note: the
+        analysis data is from `epoch-T/2` to `epoch+T/2`.
+    T: float
+        The total time (in seconds) to analyse. Defaults to 4s.
+    alpha: float
+        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    psd_offset, psd_duration: float
+        The power spectral density (psd) is estimated using data from
+        `epoch+psd_offset` to `epoch+psd_offset + psd_duration`.
+    outdir: str
+        Directory where the psd files are saved
+    plot: bool
+        If true, create an ASD + strain plot
+    filter_freq: float
+        Low pass filter frequency
+    **kwargs:
+        All keyword arguments are passed to
+        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+    Returns
+    -------
+    interferometer: `peyote.detector.Interferometer`
+        An Interferometer instance with a PSD and frequency-domain strain data.
+    """
+
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
+
+    strain = TimeSeries.fetch_open_data(
+            name, epoch-T/2, epoch+T/2, cache=cache, **kwargs)
+
+    strain_psd = TimeSeries.fetch_open_data(
+            name, epoch+psd_offset, epoch+psd_offset+psd_duration,
+            cache=cache, **kwargs)
+
+    sampling_frequency = int(strain.sample_rate.value)
+
+    # Low pass filter
+    bp = filter_design.lowpass(filter_freq, strain.sample_rate)
+    strain = strain.filter(bp, filtfilt=True)
+    strain = strain.crop(*strain.span.contract(1))
+    strain_psd = strain_psd.filter(bp, filtfilt=True)
+    strain_psd = strain_psd.crop(*strain_psd.span.contract(1))
+
+    # Create and save PSDs
+    NFFT = int(sampling_frequency * T)
+    window = signal.tukey(NFFT, alpha=alpha)
+    psd = strain_psd.psd(fftlength=T, window=window)
+    psd_file = '{}/{}_PSD_{}_{}.txt'.format(
+        outdir, name, epoch+psd_offset, psd_duration)
+    with open('{}'.format(psd_file), 'w+') as file:
+        for f, p in zip(psd.frequencies.value, psd.value):
+            file.write('{} {}\n'.format(f, p))
+
+    time_series = strain.times.value
+    time_duration = time_series[-1] - time_series[0]
+
+    # Apply Tukey window
+    N = len(time_series)
+    strain = strain * signal.tukey(N, alpha=alpha)
+
+    interferometer = get_empty_interferometer(name)
+    interferometer.power_spectral_density = PowerSpectralDensity(
+        psd_file=psd_file)
+    interferometer.set_data(
+        sampling_frequency, time_duration,
+        frequency_domain_strain=utils.nfft(
+            strain.value, sampling_frequency)[0])
+
+    if plot:
+        fig, ax = plt.subplots()
+        ax.loglog(interferometer.frequency_array, np.abs(interferometer.data),
+                  '-C0', label=name)
+        ax.loglog(interferometer.frequency_array,
+                  interferometer.amplitude_spectral_density_array,
+                  '-C1', lw=0.5, label=name+' ASD')
+        ax.grid('on')
+        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+        ax.set_xlabel(r'frequency [Hz]')
+        ax.set_xlim(20, 2000)
+        ax.legend(loc='best')
+        fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
+
+    return interferometer, sampling_frequency, time_duration
