@@ -23,10 +23,13 @@ prior['ra'] = peyote.prior.create_default_prior(name='ra')
 prior['dec'] = peyote.prior.create_default_prior(name='dec')
 prior['psi'] = peyote.prior.create_default_prior(name='psi')
 prior['phase'] = peyote.prior.create_default_prior(name='phase')
-prior['mass_1'] = peyote.prior.create_default_prior(name='mass_1')
-prior['mass_2'] = peyote.prior.create_default_prior(name='mass_2')
+prior['iota'] = peyote.prior.create_default_prior(name='iota')
+prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
+prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
 prior['geocent_time'] = peyote.prior.Uniform(
-    time_of_event-1e-1, time_of_event+1e-1, name='geocent_time')
+    time_of_event-0.1, time_of_event+0.1, name='geocent_time')
+prior['luminosity_distance'] = peyote.prior.create_default_prior(
+    name='luminosity_distance')
 
 # Create the waveformgenerator
 waveformgenerator = peyote.waveform_generator.WaveformGenerator(
@@ -39,7 +42,7 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 # Run the sampler
 result, sampler = peyote.sampler.run_sampler(
     likelihood, prior, label='GW150914', sampler='pymultinest',
-    n_live_points=1024, verbose=True, resume=False, outdir=outdir,
+    n_live_points=512, verbose=True, resume=False, outdir=outdir,
     use_ratio=True)
 truth = [maximum_posterior_estimates[x] for x in result.search_parameter_keys]
 sampler.plot_corner(truth=truth)
