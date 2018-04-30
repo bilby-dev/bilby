@@ -10,6 +10,7 @@ from chainconsumer import ChainConsumer
 
 from .result import Result
 from .prior import Prior
+from . import utils
 
 
 class Sampler(object):
@@ -273,6 +274,8 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         An object containing the results, and the sampler instance (useful
         for creating plots etc)
     """
+
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
