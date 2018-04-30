@@ -386,6 +386,8 @@ def get_inteferometer(
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
 
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
+
     strain = TimeSeries.fetch_open_data(
             name, epoch-T/2, epoch+T/2, cache=cache, **kwargs)
 

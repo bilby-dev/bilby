@@ -241,8 +241,11 @@ class Pymultinest(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict(importance_nested_sampling=False, resume=True, verbose=True,
-                             sampling_efficiency='parameter', outputfiles_basename=self.outdir)
+        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
+        self.__kwargs = dict(importance_nested_sampling=False, resume=True,
+                             verbose=True, sampling_efficiency='parameter',
+                             outputfiles_basename=outputfiles_basename)
         self.__kwargs.update(kwargs)
         if self.__kwargs['outputfiles_basename'].endswith('/') is False:
             self.__kwargs['outputfiles_basename'] = '{}/'.format(
@@ -319,6 +322,8 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         An object containing the results, and the sampler instance (useful
         for creating plots etc)
     """
+
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
     if implemented_samplers.__contains__(sampler.title()):
