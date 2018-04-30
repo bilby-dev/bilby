@@ -282,6 +282,13 @@ def get_progress_bar(module='tqdm'):
             def tqdm(x, *args, **kwargs):
                 return x
         return tqdm
+    elif module in ['tqdm_notebook']:
+        try:
+            from tqdm import tqdm_notebook as tqdm
+        except ImportError:
+            def tqdm(x, *args, **kwargs):
+                return x
+        return tqdm
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
