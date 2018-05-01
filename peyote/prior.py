@@ -57,15 +57,15 @@ class Prior(object):
         elif self.name == 'mchirp':
             return '$\mathcal{M}$'
         elif self.name == 'q':
-            return 'q'
+            return '$q$'
         elif self.name == 'a1':
-            return 'a_1'
+            return '$a_1$'
         elif self.name == 'a2':
-            return 'a_2'
+            return '$a_2$'
         elif self.name == 'tilt1':
-            return 'tilt_1'
+            return '$\\text{tilt}_1$'
         elif self.name == 'tilt2':
-            return 'tilt_2'
+            return '$\\text{tilt}_2$'
         elif self.name == 'phi1':
             return '$\phi_1$'
         elif self.name == 'phi2':
@@ -262,17 +262,17 @@ def create_default_prior(name):
         prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
     elif name == 'q':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
-    elif name == 'a1':
+    elif name == 'a_1':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
-    elif name == 'a2':
+    elif name == 'a_2':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
-    elif name == 'tilt1':
+    elif name == 'tilt_1':
         prior = Sine(name=name)
-    elif name == 'tilt2':
+    elif name == 'tilt_2':
         prior = Sine(name=name)
-    elif name == 'phi1':
+    elif name == 'phi_1':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
-    elif name == 'phi2':
+    elif name == 'phi_2':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'luminosity_distance':
         prior = PowerLaw(name=name, alpha=2, bounds=(1e2, 5e3))
