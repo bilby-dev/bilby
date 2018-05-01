@@ -332,14 +332,14 @@ class Ptemcee(Sampler):
         self.result.logz = np.nan
         self.result.logzerr = np.nan
         self.plot_walkers()
-        logging.info("Autocorr time = {}".format(sampler.get_autocorr_time()))
+        logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
         logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
         return self.result
 
     def plot_walkers(self, save=True, **kwargs):
         nwalkers, nsteps, ndim = self.result.walkers.shape
         idxs = np.arange(nsteps)
-        fig, axes = plt.subplots(nrows=ndim)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
         for i, ax in enumerate(axes):
             ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
             ax.set_ylabel(self.result.labels[i])
