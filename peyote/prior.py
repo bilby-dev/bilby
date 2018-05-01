@@ -310,3 +310,14 @@ def parse_keys_to_parameters(keys):
     for key in keys:
         parameters[key] = create_default_prior(key)
     return parameters
+
+def fill_priors(prior, waveform_generator, fixed=None):
+
+    if fixed is not None:
+        for key in fixed:
+            prior[key] = DeltaFunction(fixed[key])
+
+    missing_keys = set(waveform_generator.parameters) - set(prior.keys())
+
+    for missing_key in missing_keys:
+        prior[missing_key] = create_default_prior(missing_key)

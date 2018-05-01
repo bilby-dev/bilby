@@ -17,7 +17,7 @@ injection_parameters = dict(
     tilt_2=0,
     phi_1=0,
     phi_2=0,
-    luminosity_distance=100.,
+    luminosity_distance=1000.,
     iota=0.4,
     phase=1.3,
     waveform_approximant='IMRPhenomPv2',
@@ -76,14 +76,20 @@ fig.savefig('data')
 
 likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
-# New way way of doing it, still not perfect
-sampling_parameters['mass_1'] = peyote.prior.Uniform(lower=35, upper=37, name='mass1')
-sampling_parameters['luminosity_distance'] = peyote.prior.Uniform(lower=30, upper=200, name='luminosity_distance')
-#sampling_parameters["geocent_time"].prior = peyote.prior.Uniform(lower=injection_parameters["geocent_time"] - 0.1,
-#                                                                  upper=injection_parameters["geocent_time"]+0.1)
+# Define the prior
+# prior = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
+prior = {}
+prior['mass_1'] = peyote.prior.Uniform(30, 50, 'mass_1')
+prior['mass_2'] = peyote.prior.Uniform(20, 40, 'mass_2')
+prior['a_1'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
+prior['a_2'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
+prior['geocent_time'] = peyote.prior.Uniform(injection_parameters["geocent_time"] - 0.01,
+                                             injection_parameters["geocent_time"] + 0.01, name='geocent_time')
+
+fixed = {'tilt_1': 0, 'tilt_2': 0, 'phi_1': 0, 'phi_2': 0}
 
 result, sampler = peyote.sampler.run_sampler(
-    likelihood, priors=sampling_parameters, label='BasicTutorial',
-    sampler='nestle', verbose=True, injection_parameters=injection_parameters)
+    likelihood, priors=prior, fixed_parameters=fixed, label='BasicTutorial',
+    sampler='dynesty', verbose=True, injection_parameters=injection_parameters, use_ratio=True)
 sampler.plot_corner()
 print(result)
