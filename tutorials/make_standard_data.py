@@ -32,7 +32,7 @@ simulation_parameters = dict(
     psi=2.659
 )
 #sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
-waveform_generator = WaveformGenerator(source_model=peyote.source.lal_binary_black_hole,
+waveform_generator = WaveformGenerator(frequency_domain_source_model=peyote.source.lal_binary_black_hole,
                                        sampling_frequency=sampling_frequency,
                                        time_duration=time_duration,
                                        parameters=simulation_parameters)

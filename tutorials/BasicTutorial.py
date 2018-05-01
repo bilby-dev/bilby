@@ -32,7 +32,7 @@ injection_parameters = dict(
 waveform_generator = peyote.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency,
     time_duration=time_duration,
-    source_model=peyote.source.lal_binary_black_hole,
+    frequency_domain_source_model=peyote.source.lal_binary_black_hole,
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 

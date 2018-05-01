@@ -64,8 +64,8 @@ def gps_time_to_gmst(gps_time):
 
 def create_fequency_series(sampling_frequency, duration):
     """
-    Create a frequency series with the correct length and spacing. 
-    
+    Create a frequency series with the correct length and spacing.
+
     :param sampling_frequency: sampling frequency
     :param duration: duration of data
     :return: frequencies, frequency series
@@ -91,8 +91,8 @@ def create_fequency_series(sampling_frequency, duration):
 def create_white_noise(sampling_frequency, duration):
     """
     Create white_noise which is then coloured by a given PSD
-    
-    
+
+
     :param sampling_frequency: sampling frequency
     :param duration: duration of data
     """
@@ -303,3 +303,27 @@ def check_directory_exists_and_if_not_mkdir(directory):
         logging.debug('Making directory {}'.format(directory))
     else:
         logging.debug('Directory {} exists'.format(directory))
+
+def inner_product(aa, bb, frequency, PSD):
+    '''
+    Calculate the inner product defined in the matched filter statistic
+
+    arguments:
+    aai, bb: single-sided Fourier transform, created, e.g., by the nfft function above
+    frequency: an array of frequencies associated with aa, bb, also returned by nfft
+    PSD: PSD object
+
+    Returns:
+    The matched filter inner product for aa and bb
+    '''
+    PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+
+    # caluclate the inner product
+    integrand = np.conj(aa) * bb / PSD_interp
+
+    df = frequency[1] - frequency[0]
+    integral = np.sum(integrand) * df
+
+    product = 4. * np.real(integral)
+
+    return product

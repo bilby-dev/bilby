@@ -73,7 +73,7 @@ injection_parameters = dict(amplitude=1e-21,
 sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
 
 wg = peyote.waveform_generator.WaveformGenerator(
-     source_model=gaussian_frequency_domain_strain,
+     frequency_domain_source_model=gaussian_frequency_domain_strain,
      parameters=injection_parameters
      )
 
