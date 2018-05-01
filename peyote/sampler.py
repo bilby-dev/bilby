@@ -185,7 +185,9 @@ class Nestle(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = kwargs
+        self.__kwargs = dict(verbose=True, method='multi')
+        self.__kwargs.update(kwargs)
+
         if 'npoints' not in self.__kwargs:
             for equiv in ['nlive', 'nlives', 'n_live_points']:
                 if equiv in self.__kwargs:
