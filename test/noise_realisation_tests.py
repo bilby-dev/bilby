@@ -9,21 +9,21 @@ class TestNoiseRealisation(unittest.TestCase):
         sampling_frequency = 4096.
         factor = np.sqrt(2./time_duration)
         navg = 1000
+        psd_avg = 0
+        H1 = peyote.detector.H1
         for x in range(0, navg):
-            H1 = peyote.detector.H1
-            H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(sampling_frequency, time_duration)
-            H1.set_data(sampling_frequency, time_duration,frequency_domain_strain=H1_hf_noise)
+            H1_hf_noise, frequencies = H1.power_spectral_density.get_noise_realisation(sampling_frequency,
+                                                                                       time_duration)
+            H1.set_data(sampling_frequency, time_duration, frequency_domain_strain=H1_hf_noise)
             hf_tmp = H1.data
-            if x==0:
-                psd_avg = abs(hf_tmp)**2
-            else:
-                psd_avg = psd_avg + abs(hf_tmp)**2
+            psd_avg += abs(hf_tmp)**2
+
         psd_avg = psd_avg/navg
         asd_avg = np.sqrt(abs(psd_avg))
 
         a = H1.amplitude_spectral_density_array/factor
         b = asd_avg
-        self.assertTrue(np.isclose(a[2]/b[2], 1.00, atol=1e-2))
+        self.assertTrue(np.isclose(a[2]/b[2], 1.00, atol=1e-1))
 
     def test_noise_normalisation(self):
         time_duration = 1.
@@ -43,6 +43,5 @@ class TestNoiseRealisation(unittest.TestCase):
             hf_tmp = H1.data
             Sh = H1.power_spectral_density
             snr[x] = peyote.utils.inner_product(hf_tmp, muf, frequency_array, Sh) / np.sqrt(peyote.utils.inner_product(muf, muf, frequency_array, Sh))
-
 
         self.assertTrue(np.isclose(np.std(snr), 1.00, atol=1e-2))
