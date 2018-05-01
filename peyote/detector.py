@@ -495,12 +495,13 @@ def get_inteferometer(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    strain = TimeSeries.fetch_open_data(
-            name, center_time-T/2, center_time+T/2, cache=cache, **kwargs)
+    strain = get_open_strain_data(
+            name, center_time-T/2, center_time+T/2, outdir=outdir, cache=cache,
+            **kwargs)
 
-    strain_psd = TimeSeries.fetch_open_data(
+    strain_psd = get_open_strain_data(
             name, center_time+psd_offset, center_time+psd_offset+psd_duration,
-            cache=cache, **kwargs)
+            outdir=outdir, cache=cache, **kwargs)
 
     sampling_frequency = int(strain.sample_rate.value)
 
@@ -552,3 +553,17 @@ def get_inteferometer(
         fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
     return interferometer, sampling_frequency, time_duration
+
+
+def get_open_strain_data(name, t1, t2, outdir, cache=False, **kwargs):
+    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
+    if os.path.isfile(filename) and cache:
+        logging.info('Using cached data from {}'.format(filename))
+        strain = TimeSeries.read(filename)
+    else:
+        logging.info('Fetching open data ...')
+        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
+        logging.info('Saving data to {}'.format(filename))
+        strain.write(filename)
+    return strain
+

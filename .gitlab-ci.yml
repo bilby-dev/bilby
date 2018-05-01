@@ -24,6 +24,7 @@ exitcode-jessie:
     - coverage run test/prior_tests.py
     - coverage run test/tests.py
     - coverage run test/waveform_generator_tests.py
+    - coverage run test/noise_realisation_tests.py
     - coverage html --include=peyote/*
     - coverage-badge -o coverage.svg
   artifacts:

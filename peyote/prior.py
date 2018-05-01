@@ -57,15 +57,15 @@ class Prior(object):
         elif self.name == 'mchirp':
             return '$\mathcal{M}$'
         elif self.name == 'q':
-            return 'q'
+            return '$q$'
         elif self.name == 'a1':
-            return 'a_1'
+            return '$a_1$'
         elif self.name == 'a2':
-            return 'a_2'
+            return '$a_2$'
         elif self.name == 'tilt1':
-            return 'tilt_1'
+            return '$\\text{tilt}_1$'
         elif self.name == 'tilt2':
-            return 'tilt_2'
+            return '$\\text{tilt}_2$'
         elif self.name == 'phi1':
             return '$\phi_1$'
         elif self.name == 'phi2':
