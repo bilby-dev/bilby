@@ -6,7 +6,8 @@ from astropy.time import Time
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
-
+parsec = 3.085677581 * 1e16
+solar_mass = 1.98855 * 1e30
 
 def get_sampling_frequency(time_series):
     """
@@ -274,10 +275,22 @@ def setup_logger(log_level='info'):
     logger.addHandler(stream_handler)
 
 
+def spherical_to_cartesian(radius, theta, phi):
+    """
+    Convert from spherical coordinates to cartesian.
+
+    :param radius: radial coordinate
+    :param theta: axial coordinate
+    :param phi: azimuthal coordinate
+    :return cartesian: cartesian vector
+    """
+    cartesian = [radius * np.sin(theta) * np.cos(phi), radius * np.sin(theta) * np.sin(phi), radius * np.cos(theta)]
+    return cartesian
+
+
 def check_directory_exists_and_if_not_mkdir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
         logging.debug('Making directory {}'.format(directory))
     else:
         logging.debug('Directory {} exists'.format(directory))
-
