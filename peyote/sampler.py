@@ -7,6 +7,7 @@ import sys
 
 import numpy as np
 from chainconsumer import ChainConsumer
+import matplotlib.pyplot as plt
 
 from .result import Result
 from .prior import Prior
@@ -160,9 +161,20 @@ class Sampler(object):
 
         """
 
-        return np.array(
-                [self.priors[key].sample()
-                 for key in self.__search_parameter_keys])
+        draw = np.array([self.priors[key].sample()
+                        for key in self.__search_parameter_keys])
+        if ('mass_1' in self.__search_parameter_keys) \
+                and ('mass_2' in self.__search_parameter_keys):
+            i = [self.__search_parameter_keys.index('mass_1')]
+            j = [self.__search_parameter_keys.index('mass_2')]
+            if draw[j] > draw[i]:
+                draw[i], draw[j] = draw[j], draw[i]
+
+        if np.isinf(self.log_likelihood(draw)):
+            logging.info('Prior draw {} has inf likelihood'.format(draw))
+        if np.isinf(self.log_prior(draw)):
+            logging.info('Prior draw {} has inf prior'.format(draw))
+        return draw
 
     def run_sampler(self):
         pass
@@ -302,13 +314,15 @@ class Ptemcee(Sampler):
 
         sampler = ptemcee.Sampler(
             ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
-            logl=self.log_likelihood, logp=self.log_prior)
+            logl=self.log_likelihood, logp=self.log_prior,
+            **self.kwargs)
         pos0 = [[self.get_random_draw_from_prior()
                  for i in range(nwalkers)]
                 for j in range(ntemps)]
+
         tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
         for result in tqdm(
-                sampler.sample(pos0, iterations=nsteps), total=nsteps):
+                sampler.sample(pos0, iterations=nsteps, adapt=True), total=nsteps):
             pass
 
         self.result.sampler_output = np.nan
@@ -317,7 +331,23 @@ class Ptemcee(Sampler):
         self.result.walkers = sampler.chain[0, :, :, :]
         self.result.logz = np.nan
         self.result.logzerr = np.nan
+        self.plot_walkers()
+        logging.info("Autocorr time = {}".format(sampler.get_autocorr_time()))
+        logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
         return self.result
+
+    def plot_walkers(self, save=True, **kwargs):
+        nwalkers, nsteps, ndim = self.result.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim)
+        for i, ax in enumerate(axes):
+            ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
+            ax.set_ylabel(self.result.labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.info('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
 
 
 def run_sampler(likelihood, priors, label='label', outdir='outdir',
