@@ -264,9 +264,9 @@ def create_default_prior(name):
     elif name == 'q':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
     elif name == 'a_1':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 0.8))
     elif name == 'a_2':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, bounds=(0, 0.8))
     elif name == 'tilt_1':
         prior = Sine(name=name)
     elif name == 'tilt_2':
