@@ -2,7 +2,7 @@ from __future__ import division
 import logging
 import os
 import numpy as np
-from astropy.time import Time
+from math import fmod
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
@@ -40,23 +40,32 @@ def ra_dec_to_theta_phi(ra, dec, gmst):
     return theta, phi
 
 
-def gps_time_to_gmst(time):
+def gps_time_to_gmst(gps_time):
     """
     Convert gps time to Greenwich mean sidereal time in radians
+
+    This method assumes a constant rotation rate of earth since 00:00:00, 1 Jan. 2000
+    A correction has been applied to give the exact correct value for 00:00:00, 1 Jan. 2018
+    Error accumulates at a rate of ~0.0001 radians/decade.
+
     Input:
     time - gps time
     Output:
     gmst - Greenwich mean sidereal time in radians
     """
-    gps_time = Time(time, format='gps', scale='utc')
-    gmst = gps_time.sidereal_time('mean', 'greenwich').value * np.pi / 12
+    omega_earth = 2 * np.pi * (1 / 365.2425 + 1) / 86400.
+    gps_2000 = 630720013.
+    gmst_2000 = (6 + 39. / 60 + 51.251406103947375 / 3600) * np.pi / 12
+    correction_2018 = -0.00017782487379358614
+    sidereal_time = omega_earth * (gps_time - gps_2000) + gmst_2000 + correction_2018
+    gmst = fmod(sidereal_time, 2 * np.pi)
     return gmst
 
 
 def create_fequency_series(sampling_frequency, duration):
     """
-    Create a frequency series with the correct length and spacing. 
-    
+    Create a frequency series with the correct length and spacing.
+
     :param sampling_frequency: sampling frequency
     :param duration: duration of data
     :return: frequencies, frequency series
@@ -82,8 +91,8 @@ def create_fequency_series(sampling_frequency, duration):
 def create_white_noise(sampling_frequency, duration):
     """
     Create white_noise which is then coloured by a given PSD
-    
-    
+
+
     :param sampling_frequency: sampling frequency
     :param duration: duration of data
     """
@@ -311,3 +320,27 @@ def check_directory_exists_and_if_not_mkdir(directory):
         logging.debug('Making directory {}'.format(directory))
     else:
         logging.debug('Directory {} exists'.format(directory))
+
+def inner_product(aa, bb, frequency, PSD):
+    '''
+    Calculate the inner product defined in the matched filter statistic
+
+    arguments:
+    aai, bb: single-sided Fourier transform, created, e.g., by the nfft function above
+    frequency: an array of frequencies associated with aa, bb, also returned by nfft
+    PSD: PSD object
+
+    Returns:
+    The matched filter inner product for aa and bb
+    '''
+    PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+
+    # caluclate the inner product
+    integrand = np.conj(aa) * bb / PSD_interp
+
+    df = frequency[1] - frequency[0]
+    integral = np.sum(integrand) * df
+
+    product = 4. * np.real(integral)
+
+    return product
