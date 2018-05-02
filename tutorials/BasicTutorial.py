@@ -87,4 +87,6 @@ result = peyote.sampler.run_sampler(
     likelihood, priors=sampling_parameters, label='BasicTutorial',
     sampler='nestle', verbose=True, injection_parameters=injection_parameters)
 result.plot_corner()
+result.plot_walks()
+result.plot_distributions()
 print(result)

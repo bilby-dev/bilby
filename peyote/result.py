@@ -61,4 +61,50 @@ class Result(dict):
         fig = c.plotter.plot(**kwargs)
         return fig
 
+    def plot_walks(self, save=True, **kwargs):
+        """ Plot the chain walkst using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        if save:
+            kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
+            logging.info('Saving walker plot to {}'.format(kwargs['filename']))
+        c = ChainConsumer()
+        c.add_chain(self.samples, parameters=self.parameter_labels)
+        fig = c.plotter.plot_walks(**kwargs)
+        return fig
+
+    def plot_distributions(self, save=True, **kwargs):
+        """ Plot the chain walkst using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        if save:
+            kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
+            logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
+        c = ChainConsumer()
+        c.add_chain(self.samples, parameters=self.parameter_labels)
+        fig = c.plotter.plot_distributions(**kwargs)
+        return fig
+
 
