@@ -60,17 +60,17 @@ class Prior(object):
             return '$\mathcal{M}$'
         elif self.name == 'q':
             return '$q$'
-        elif self.name == 'a1':
+        elif self.name == 'a_1':
             return '$a_1$'
-        elif self.name == 'a2':
+        elif self.name == 'a_2':
             return '$a_2$'
-        elif self.name == 'tilt1':
-            return '$\\text{tilt}_1$'
-        elif self.name == 'tilt2':
-            return '$\\text{tilt}_2$'
-        elif self.name == 'phi1':
+        elif self.name == 'tilt_1':
+            return '$\\theta_1$'
+        elif self.name == 'tilt_2':
+            return '$\\theta_2$'
+        elif self.name == 'phi_1':
             return '$\phi_1$'
-        elif self.name == 'phi2':
+        elif self.name == 'phi_2':
             return '$\phi_2$'
         elif self.name == 'luminosity_distance':
             return '$d_L$'
