@@ -72,9 +72,9 @@ class WaveformGenerator(object):
             for key in self.__parameters.keys():
                 if key in parameters.keys():
                     self.__parameters[key] = parameters[key]
-                else:
-                    raise KeyError('The provided dictionary did not '
-                                   'contain key {}'.format(key))
+                # else:
+                #     raise KeyError('The provided dictionary did not '
+                #                    'contain key {}'.format(key))
         else:
             raise TypeError('Parameters must either be set as a list of keys or'
                             ' a dictionary of key-value pairs.')
