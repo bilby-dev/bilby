@@ -4,7 +4,7 @@ from __future__ import division
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
-from scipy.special import erfinv
+from scipy.special import erf, erfinv
 
 
 class Prior(object):
@@ -222,6 +222,39 @@ class Gaussian(Prior):
     def prob(self, val):
         """Return the prior probability of val"""
         return np.exp(-(self.mu - val)**2 / (2 * self.sigma**2)) / (2 * np.pi)**0.5 / self.sigma
+
+
+class TruncatedGaussian(Prior):
+    """
+    Truncated Gaussian prior
+
+    https://en.wikipedia.org/wiki/Truncated_normal_distribution
+    """
+
+    def __init__(self, mu, sigma, low, high, name=None, latex_label=None):
+        """Power law with bounds and alpha, spectral index"""
+        Prior.__init__(self, name, latex_label)
+        self.mu = mu
+        self.sigma = sigma
+        self.low = low
+        self.high = high
+
+        self.normalisation = (erf((self.high - self.mu) / 2 ** 0.5 / self.sigma) - erf(
+            (self.low - self.mu) / 2 ** 0.5 / self.sigma)) / 2
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate truncated Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        return erfinv(2 * val * self.normalisation + erf(
+            (self.low - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
+
+    def prob(self, val):
+        """Return the prior probability of val"""
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
+                    2 * np.pi) ** 0.5 / self.sigma / self.normalisation
 
 
 class Interped(Prior):
