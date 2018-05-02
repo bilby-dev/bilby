@@ -314,17 +314,19 @@ def parse_keys_to_parameters(keys):
 
 def fill_priors(prior, waveform_generator, fixed=None):
 
+    bad_keys = []
     for key in prior:
         if isinstance(prior[key], Prior):
             continue
+        elif isinstance(prior[key], float) or isinstance(prior[key], int):
+            prior[key] = DeltaFunction(prior[key])
+            print("{} converted to delta function prior.".format(key))
         else:
-            try:
-                prior[key] = DeltaFunction(prior[key])
-                print("{} converted to delta function prior.".format(key))
-            except ValueError:
-                print("{} cannot be converted to delta function prior.".format(key))
-                print("If required the default prior will be used.")
-                prior.pop(key)
+            print("{} cannot be converted to delta function prior.".format(key))
+            print("If required the default prior will be used.")
+            bad_keys.append(key)
+    for key in bad_keys:
+        prior.pop(key)
 
     missing_keys = set(waveform_generator.parameters) - set(prior.keys())
 
