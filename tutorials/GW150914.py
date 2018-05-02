@@ -43,8 +43,8 @@ waveformgenerator = peyote.waveform_generator.WaveformGenerator(
 likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 
 # Run the sampler
-result, sampler = peyote.sampler.run_sampler(
+result = peyote.sampler.run_sampler(
     likelihood, prior, label='GW150914', sampler='pymultinest',
     npoints=1024, resume=False, outdir=outdir, use_ratio=True)
 truth = [maximum_posterior_estimates[x] for x in result.search_parameter_keys]
-sampler.plot_corner(truth=truth)
+result.plot_corner(truth=truth)
