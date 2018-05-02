@@ -272,7 +272,7 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, priors, fixed_parameters=None, label='label', outdir='outdir',
+def run_sampler(likelihood, priors, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=False, injection_parameters=None,
                 **sampler_kwargs):
     """
@@ -310,7 +310,7 @@ def run_sampler(likelihood, priors, fixed_parameters=None, label='label', outdir
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
-    fill_priors(priors, likelihood.waveform_generator, fixed_parameters)
+    fill_priors(priors, likelihood.waveform_generator)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

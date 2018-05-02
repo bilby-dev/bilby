@@ -58,17 +58,17 @@ class Prior(object):
             return '$\mathcal{M}$'
         elif self.name == 'q':
             return '$q$'
-        elif self.name == 'a1':
+        elif self.name == 'a_1':
             return '$a_1$'
-        elif self.name == 'a2':
+        elif self.name == 'a_2':
             return '$a_2$'
-        elif self.name == 'tilt1':
-            return '$\\text{tilt}_1$'
-        elif self.name == 'tilt2':
-            return '$\\text{tilt}_2$'
-        elif self.name == 'phi1':
+        elif self.name == 'tilt_1':
+            return '$\\theta_1$'
+        elif self.name == 'tilt_2':
+            return '$\\theta_2$'
+        elif self.name == 'phi_1':
             return '$\phi_1$'
-        elif self.name == 'phi2':
+        elif self.name == 'phi_2':
             return '$\phi_2$'
         elif self.name == 'luminosity_distance':
             return '$d_L$'
@@ -311,11 +311,20 @@ def parse_keys_to_parameters(keys):
         parameters[key] = create_default_prior(key)
     return parameters
 
+
 def fill_priors(prior, waveform_generator, fixed=None):
 
-    if fixed is not None:
-        for key in fixed:
-            prior[key] = DeltaFunction(fixed[key])
+    for key in prior:
+        if isinstance(prior[key], Prior):
+            continue
+        else:
+            try:
+                prior[key] = DeltaFunction(prior[key])
+                print("{} converted to delta function prior.".format(key))
+            except ValueError:
+                print("{} cannot be converted to delta function prior.".format(key))
+                print("If required the default prior will be used.")
+                prior.pop(key)
 
     missing_keys = set(waveform_generator.parameters) - set(prior.keys())
 

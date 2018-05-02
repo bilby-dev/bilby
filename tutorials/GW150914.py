@@ -29,6 +29,8 @@ prior['phase'] = peyote.prior.Uniform(0, np.pi/2, 'phase')
 prior['iota'] = peyote.prior.create_default_prior(name='iota')
 prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
 prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
+prior['a_1'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
+prior['a_2'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
 prior['geocent_time'] = peyote.prior.Uniform(
     time_of_event-0.1, time_of_event+0.1, name='geocent_time')
 prior['luminosity_distance'] = peyote.prior.create_default_prior(
@@ -44,7 +46,7 @@ likelihood = peyote.likelihood.Likelihood(IFOs, waveformgenerator)
 
 # Run the sampler
 result, sampler = peyote.sampler.run_sampler(
-    likelihood, prior, label='GW150914', sampler='pymultinest',
-    npoints=1024, resume=False, outdir=outdir, use_ratio=True)
+    likelihood, prior, label='GW150914', sampler='dynesty',
+    npoints=500, resume=False, outdir=outdir, use_ratio=True)
 truth = [maximum_posterior_estimates[x] for x in result.search_parameter_keys]
 sampler.plot_corner(truth=truth)

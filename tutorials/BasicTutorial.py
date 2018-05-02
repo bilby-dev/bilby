@@ -85,11 +85,13 @@ prior['a_1'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
 prior['a_2'] = peyote.prior.Uniform(0, 0.3, 'mass_2')
 prior['geocent_time'] = peyote.prior.Uniform(injection_parameters["geocent_time"] - 0.01,
                                              injection_parameters["geocent_time"] + 0.01, name='geocent_time')
-
-fixed = {'tilt_1': 0, 'tilt_2': 0, 'phi_1': 0, 'phi_2': 0}
+prior['tilt_1'] = 0
+prior['tilt_2'] = 0
+prior['phi_1'] = 0
+prior['phi_2'] = 0
 
 result, sampler = peyote.sampler.run_sampler(
-    likelihood, priors=prior, fixed_parameters=fixed, label='BasicTutorial',
+    likelihood, priors=prior, label='BasicTutorial',
     sampler='dynesty', verbose=True, injection_parameters=injection_parameters, use_ratio=True)
 sampler.plot_corner()
 print(result)
