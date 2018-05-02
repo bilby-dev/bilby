@@ -15,12 +15,12 @@ sampling_frequency = 4096.
 simulation_parameters = dict(
     mass_1=36.,
     mass_2=29.,
-    spin11=0,
-    spin12=0,
-    spin13=0,
-    spin21=0,
-    spin22=0,
-    spin23=0,
+    a_1=0,
+    a_2=0,
+    tilt_1=0,
+    tilt_2=0,
+    phi_1=0,
+    phi_2=0,
     luminosity_distance=100.,
     iota=0.4,
     phase=1.3,
@@ -32,7 +32,7 @@ simulation_parameters = dict(
     psi=2.659
 )
 #sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
-waveform_generator = WaveformGenerator(source_model=peyote.source.lal_binary_black_hole,
+waveform_generator = WaveformGenerator(frequency_domain_source_model=peyote.source.lal_binary_black_hole,
                                        sampling_frequency=sampling_frequency,
                                        time_duration=time_duration,
                                        parameters=simulation_parameters)
