@@ -294,7 +294,11 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
                                 **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
-        result.log_bayes_factor = result.logz - result.noise_logz
+        if use_ratio:
+            result.log_bayes_factor = result.logz
+            result.logz = result.log_bayes_factor + result.noise_logz
+        else:
+            result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.save_to_file(outdir=outdir, label=label)
         return result
