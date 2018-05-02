@@ -4,9 +4,7 @@ import inspect
 import logging
 import os
 import sys
-
 import numpy as np
-from chainconsumer import ChainConsumer
 
 from .result import Result
 from .prior import Prior, fill_priors
@@ -68,7 +66,11 @@ class Sampler(object):
         if result is None:
             self.__result = Result()
             self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.labels = [self.priors[k].latex_label for k in self.__search_parameter_keys]
+            self.__result.parameter_labels = [
+                self.priors[k].latex_label for k in
+                self.__search_parameter_keys]
+            self.__result.label = self.label
+            self.__result.outdir = self.outdir
         elif type(result) is Result:
             self.__result = result
         else:
@@ -151,30 +153,6 @@ class Sampler(object):
     def log_summary_for_sampler(self):
         logging.info("Using sampler {} with kwargs {}".format(
             self.__class__.__name__, self.kwargs))
-
-    def plot_corner(self, save=True, **kwargs):
-        """ Plot a corner-plot using chain-consumer
-
-        Parameters
-        ----------
-        save: bool
-            If true, save the image using the given label and outdir
-
-        Returns
-        -------
-        fig:
-            A matplotlib figure instance
-        """
-
-        # Set some defaults (unless already set)
-        kwargs['figsize'] = kwargs.get('figsize', 'GROW')
-        if save:
-            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
-            logging.info('Saving corner plot to {}'.format(kwargs['filename']))
-        c = ChainConsumer()
-        c.add_chain(self.result.samples, parameters=self.result.labels)
-        fig = c.plotter.plot(**kwargs)
-        return fig
 
 
 class Nestle(Sampler):
@@ -302,9 +280,8 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
 
     Returns
     ------
-    result, sampler
-        An object containing the results, and the sampler instance (useful
-        for creating plots etc)
+    result
+        An object containing the results
     """
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
@@ -319,10 +296,14 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
                                 **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
-        result.log_bayes_factor = result.logz - result.noise_logz
+        if use_ratio:
+            result.log_bayes_factor = result.logz
+            result.logz = result.log_bayes_factor + result.noise_logz
+        else:
+            result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.save_to_file(outdir=outdir, label=label)
-        return result, sampler
+        return result
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))
