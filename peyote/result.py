@@ -56,6 +56,8 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
             logging.info('Saving corner plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels)
         fig = c.plotter.plot(**kwargs)
@@ -79,6 +81,8 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
             logging.info('Saving walker plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels)
         fig = c.plotter.plot_walks(**kwargs)
@@ -102,6 +106,8 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
             logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels)
         fig = c.plotter.plot_distributions(**kwargs)
