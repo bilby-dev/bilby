@@ -115,6 +115,17 @@ class Result(dict):
         fig = c.plotter.plot_distributions(**kwargs)
         return fig
 
+    def write_prior_to_file(self, outdir):
+        """
+        Write the prior distribution to file.
+
+        :return:
+        """
+        outfile = outdir + '.prior'
+        with open(outfile, "w") as prior_file:
+            for key in self.prior:
+                prior_file.write(self.prior[key])
+
     def samples_to_data_frame(self):
         """
         Convert array of samples to data frame.
