@@ -4,6 +4,7 @@ from __future__ import division
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
+from scipy.special import erfinv
 
 
 class Prior(object):
@@ -199,6 +200,28 @@ class Sine(Prior):
     def prob(val):
         """Return the prior probability of val"""
         return np.sin(val) / 2
+
+
+class Gaussian(Prior):
+    """Gaussian prior"""
+
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """Power law with bounds and alpha, spectral index"""
+        Prior.__init__(self, name, latex_label)
+        self.mu = mu
+        self.sigma = sigma
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        return self.mu + erfinv(2 * val - 1) * 2**0.5 * self.sigma
+
+    def prob(self, val):
+        """Return the prior probability of val"""
+        return np.exp(-(self.mu - val)**2 / (2 * self.sigma**2)) / (2 * np.pi)**0.5 / self.sigma
 
 
 class Interped(Prior):
