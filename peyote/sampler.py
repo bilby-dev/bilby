@@ -300,7 +300,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
-        result.prior = prior
+        result.prior = priors
         result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result
