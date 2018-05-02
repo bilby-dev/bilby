@@ -204,8 +204,8 @@ class Dynesty(Sampler):
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
-        self.result.logz = out.logz
-        self.result.logzerr = out.logzerr
+        self.result.logz = out.logz[-1]
+        self.result.logzerr = out.logzerr[-1]
         return self.result
 
 
