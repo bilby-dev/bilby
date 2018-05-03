@@ -1,44 +1,50 @@
 """
 Tutorial to show signal injection using new features of detector.py
 """
-from __future__ import print_function, division
-
-import corner
-
+from __future__ import division, print_function
+import numpy as np
 import peyote
 
-time_duration = 1.
-sampling_frequency = 4096.
+peyote.utils.setup_logger()
 
-source = peyote.source.BinaryBlackHole('BBH', sampling_frequency, time_duration, mass_1=36., mass_2=29., spin11=0,
-                                       spin12=0, spin13=0, spin21=0, spin22=0,
-                                       spin23=0, luminosity_distance=5000., iota=0., phase=0.,
-                                       waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=0, dec=1,
-                                       geocent_time=0, psi=1)
+outdir = 'outdir'
+label = 'injection'
 
-IFO_1 = peyote.detector.H1
-IFO_2 = peyote.detector.L1
-IFO_3 = peyote.detector.V1
-IFOs = [IFO_1, IFO_2, IFO_3]
-for IFO in IFOs:
-    IFO.set_data(from_power_spectral_density=True, sampling_frequency=sampling_frequency, duration=time_duration)
-    IFO.inject_signal(source)
+# Define the prior
+prior = dict()
+prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
+prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
+# Merger time is some time in 2018, shame LIGO will never see it...
+time_of_event = np.random.uniform(1198800018, 1230336018)
+prior['geocent_time'] = peyote.prior.Uniform(time_of_event-0.01, time_of_event+0.01, name='geocent_time')
+for name in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_1', 'phi_2', 'luminosity_distance', 'iota', 'psi', 'ra', 'dec',
+             'phase']:
+    prior[name] = peyote.prior.create_default_prior(name)
 
+# Create the waveform generator
+waveform_generator = peyote.waveform_generator.WaveformGenerator(
+    peyote.source.lal_binary_black_hole, sampling_frequency=4096, time_duration=4,
+    parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
 
-likelihood = peyote.likelihood.Likelihood(source=source, interferometers=IFOs)
+# Create signal injection
+injection_parameters = {name: prior[name].sample() for name in prior}
+print(injection_parameters)
+for parameter in injection_parameters:
+    waveform_generator.parameters[parameter] = injection_parameters[parameter]
+injection_polarizations = waveform_generator.frequency_domain_strain()
 
-print(likelihood.noise_log_likelihood())
-print(likelihood.log_likelihood())
-print(likelihood.log_likelihood_ratio())
+# Create interferometers and inject signal
+IFOs = [peyote.detector.get_inteferometer_with_fake_noise_and_injection(
+    name, injection_polarizations=injection_polarizations, injection_parameters=injection_parameters,
+    sampling_frequency=4096, time_duration=4, outdir=outdir) for name in ['H1', 'L1', 'V1', 'GEO600']]
 
-prior = source.copy()
-prior.mass_1 = peyote.parameter.PriorFactory('mass_1', prior=peyote.prior.Uniform(lower=35, upper=37),
-                                             latex_label='$m_1$')
-prior.mass_2 = peyote.parameter.PriorFactory('mass_2', prior=peyote.prior.Uniform(lower=28, upper=30),
-                                             latex_label='$m_2$')
+# Define a likelihood
+likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
-# result = peyote.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=100, print_progress=True)
-
-# truths = [source.__dict__[x] for x in result.search_parameter_keys]
-# fig = corner.corner(result.samples, labels=result.labels, truths=truths)
-# fig.savefig('Injection Test')
+# Run the sampler
+result = peyote.sampler.run_sampler(
+    likelihood, prior, label='injection', sampler='nestle',
+    npoints=200, resume=False, outdir=outdir, use_ratio=True, injection_parameters=injection_parameters)
+truth = [injection_parameters[parameter] for parameter in result.search_parameter_keys]
+result.plot_corner(truth=truth)
+print(result)
