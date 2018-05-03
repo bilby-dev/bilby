@@ -323,6 +323,14 @@ class Interferometer(object):
     def whitened_data(self):
         return self.data / self.amplitude_spectral_density_array
 
+    def save_data(self, outdir):
+        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name), [self.frequency_array,
+                                                                                 self.data.real, self.data.imag],
+                   header='f real_h(f) imag_h(f)')
+        np.savetxt('{}/{}_psd.dat'.format(outdir, self.name), [self.frequency_array,
+                                                               self.amplitude_spectral_density_array],
+                   header='f h(f)')
+
 
 class PowerSpectralDensity:
 
@@ -553,6 +561,68 @@ def get_inteferometer(
         fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
     return interferometer, sampling_frequency, time_duration
+
+
+def get_inteferometer_with_fake_noise_and_injection(
+        name, injection_polarizations, injection_parameters, sampling_frequency=4096, time_duration=4,
+        outdir='outdir', plot=True, save=True):
+    """
+    Helper function to obtain an Interferometer instance with appropriate
+    PSD and data, given an center_time
+
+    Parameters
+    ----------
+    name: str
+        Detector name, e.g., 'H1'.
+    injection_polarizations: dict
+        polarizations of waveform to inject, output of waveform_generator.get_frequency_domain_signal
+    injection_parameters: dict
+        injection parameters, needed for sky position and timing
+    sampling_frequency: float
+        sampling frequency for data, should match injection signal
+    time_duration: float
+        length of data, should be the same as used for signal generation
+    outdir: str
+        directory in which to store output
+    plot: bool
+        If true, create an ASD + strain plot
+    save: bool
+        If true, save frequency domain data and PSD to file
+
+    Returns
+    -------
+    interferometer: `peyote.detector.Interferometer`
+        An Interferometer instance with a PSD and frequency-domain strain data.
+    """
+
+    utils.check_directory_exists_and_if_not_mkdir(outdir)
+
+    interferometer = get_empty_interferometer(name)
+    interferometer.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
+                            from_power_spectral_density=True)
+    interferometer.inject_signal(waveform_polarizations=injection_polarizations, parameters=injection_parameters)
+
+    interferometer_signal = interferometer.get_detector_response(injection_polarizations, injection_parameters)
+
+    if plot:
+        fig, ax = plt.subplots()
+        ax.loglog(interferometer.frequency_array, np.abs(interferometer.data),
+                  '-C0', label=name)
+        ax.loglog(interferometer.frequency_array,
+                  interferometer.amplitude_spectral_density_array,
+                  '-C1', lw=0.5, label=name+' ASD')
+        ax.loglog(interferometer.frequency_array, abs(interferometer_signal), label='Signal')
+        ax.grid('on')
+        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+        ax.set_xlabel(r'frequency [Hz]')
+        ax.set_xlim(20, 2000)
+        ax.legend(loc='best')
+        fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
+
+    if save:
+        interferometer.save_data(outdir)
+
+    return interferometer
 
 
 def get_open_strain_data(name, t1, t2, outdir, cache=False, **kwargs):
