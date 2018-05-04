@@ -394,3 +394,22 @@ def fill_priors(prior, waveform_generator, fixed=None):
 
     for key in bad_keys:
         prior.pop(key)
+
+
+def write_priors_to_file(priors, outdir):
+    """
+    Write the prior distribtuion to file.
+
+    Parameters
+    ----------
+    priors: dict
+        priors used
+    outdir: str
+        output directory
+    """
+    if outdir[-1]!="/":
+        outdir += "/"
+    prior_file = outdir + "prior.txt"
+    with open(prior_file, "w") as outfile:
+        for key in priors:
+            outfile.write("prior[{}] = {}".format(key, priors[key]))
