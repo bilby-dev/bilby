@@ -68,10 +68,10 @@ class Prior(object):
             return '$\\theta_1$'
         elif self.name == 'tilt_2':
             return '$\\theta_2$'
-        elif self.name == 'phi_1':
-            return '$\phi_1$'
-        elif self.name == 'phi_2':
-            return '$\phi_2$'
+        elif self.name == 'phi_12':
+            return '$\Delta\phi$'
+        elif self.name == 'phi_jl':
+            return '$\phi_{JL}$'
         elif self.name == 'luminosity_distance':
             return '$d_L$'
         elif self.name == 'dec':
@@ -327,9 +327,9 @@ def create_default_prior(name):
         prior = Sine(name=name)
     elif name == 'tilt_2':
         prior = Sine(name=name)
-    elif name == 'phi_1':
+    elif name == 'phi_12':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
-    elif name == 'phi_2':
+    elif name == 'phi_jl':
         prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
     elif name == 'luminosity_distance':
         prior = PowerLaw(name=name, alpha=2, bounds=(1e2, 5e3))

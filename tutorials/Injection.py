@@ -17,7 +17,7 @@ prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
 # Merger time is some time in 2018, shame LIGO will never see it...
 time_of_event = np.random.uniform(1198800018, 1230336018)
 prior['geocent_time'] = peyote.prior.Uniform(time_of_event-0.01, time_of_event+0.01, name='geocent_time')
-for name in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_1', 'phi_2', 'luminosity_distance', 'iota', 'psi', 'ra', 'dec',
+for name in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'luminosity_distance', 'iota', 'psi', 'ra', 'dec',
              'phase']:
     prior[name] = peyote.prior.create_default_prior(name)
 
