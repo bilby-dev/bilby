@@ -10,6 +10,11 @@ peyote.utils.setup_logger()
 outdir = 'outdir'
 label = 'injection'
 
+# Create the waveform generator
+waveform_generator = peyote.waveform_generator.WaveformGenerator(
+    peyote.source.lal_binary_black_hole, sampling_frequency=4096, time_duration=4,
+    parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
+
 # Define the prior
 prior = dict()
 prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
@@ -17,11 +22,7 @@ prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
 # Merger time is some time in 2018, shame LIGO will never see it...
 time_of_event = np.random.uniform(1198800018, 1230336018)
 prior['geocent_time'] = peyote.prior.Uniform(time_of_event-0.01, time_of_event+0.01, name='geocent_time')
-
-# Create the waveform generator
-waveform_generator = peyote.waveform_generator.WaveformGenerator(
-    peyote.source.lal_binary_black_hole, sampling_frequency=4096, time_duration=4,
-    parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
+peyote.prior.fill_priors(prior, waveform_generator)
 
 # Create signal injection
 injection_parameters = {name: prior[name].sample() for name in prior}
