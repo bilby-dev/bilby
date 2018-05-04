@@ -410,6 +410,7 @@ def write_priors_to_file(priors, outdir):
     if outdir[-1]!="/":
         outdir += "/"
     prior_file = outdir + "prior.txt"
+    print("Writing priors to {}".format(prior_file))
     with open(prior_file, "w") as outfile:
         for key in priors:
-            outfile.write("prior[{}] = {}".format(key, priors[key]))
+            outfile.write("prior['{}'] = {}\n".format(key, priors[key]))
