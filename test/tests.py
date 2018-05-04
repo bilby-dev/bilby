@@ -52,13 +52,12 @@ class Test(unittest.TestCase):
         priors = {}
         for key in self.msd['simulation_parameters']:
             priors[key] = self.msd['simulation_parameters'][key]
-        # priors.pop('waveform_approximant')
 
         dL = self.msd['simulation_parameters']['luminosity_distance']
         priors['luminosity_distance'] = peyote.prior.Uniform(
             name='luminosity_distance', lower=dL - 10, upper=dL + 10)
 
-        result, sampler = peyote.sampler.run_sampler(
+        result = peyote.sampler.run_sampler(
                 likelihood, priors, sampler='nestle', verbose=False)
         self.assertAlmostEqual(np.mean(result.samples), dL,
                                delta=np.std(result.samples))
