@@ -30,9 +30,9 @@ class Prior(object):
         return None
 
     @staticmethod
-    def test_valid_for_rescaling(self, val):
+    def test_valid_for_rescaling(val):
         """Test if 0 < val < 1"""
-        if (val > 0) and (val < 1):
+        if (val < 0) or (val > 1):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
     def __repr__(self):
