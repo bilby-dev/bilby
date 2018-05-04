@@ -264,7 +264,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default
-    label, outdir: str
+    label: str
+        Name for the run, used in output files
+    outdir: str
         A string used in defining output files
     sampler: str
         The name of the sampler to use - see
