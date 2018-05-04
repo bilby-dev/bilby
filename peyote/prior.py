@@ -95,18 +95,18 @@ class Prior(object):
 class Uniform(Prior):
     """Uniform prior"""
 
-    def __init__(self, lower, upper, name=None, latex_label=None):
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label)
-        self.lower = lower
-        self.upper = upper
-        self.support = upper - lower
+        self.minimum = minimum
+        self.minimum = maximum
+        self.support = maximum - minimum
 
     def rescale(self, val):
-        return self.lower + val * self.support
+        return self.minimum + val * self.support
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (self.lower < val) and (val < self.upper):
+        if (self.minimum < val) and (val < self.minimum):
             return 1 / self.support
         else:
             return 0
@@ -134,11 +134,12 @@ class DeltaFunction(Prior):
 class PowerLaw(Prior):
     """Power law prior distribution"""
 
-    def __init__(self, alpha, bounds, name=None, latex_label=None):
+    def __init__(self, alpha, minimum, maximum, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
         Prior.__init__(self, name, latex_label)
         self.alpha = alpha
-        self.low, self.high = bounds
+        self.minimum = minimum
+        self.maximum = maximum
 
     def rescale(self, val):
         """
@@ -147,19 +148,19 @@ class PowerLaw(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         if self.alpha == -1:
-            return self.low * np.exp(val * np.log(self.high / self.low))
+            return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
-            return (self.low ** (1 + self.alpha) + val *
-                    (self.high ** (1 + self.alpha) - self.low ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
+            return (self.minimum ** (1 + self.alpha) + val *
+                    (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.low) and (val < self.high):
+        if (val > self.minimum) and (val < self.maximum):
             if self.alpha == -1:
-                return 1 / val / np.log(self.high / self.low)
+                return 1 / val / np.log(self.maximum / self.minimum)
             else:
-                return val ** self.alpha * (1 + self.alpha) / (self.high ** (1 + self.alpha)
-                                                               - self.low ** (1 + self.alpha))
+                return val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                                               - self.minimum ** (1 + self.alpha))
         else:
             return 0
 
@@ -312,37 +313,37 @@ def fix(prior, value=None):
 
 def create_default_prior(name):
     if name == 'mass_1':
-        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
     elif name == 'mass_2':
-        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
     elif name == 'mchirp':
-        prior = PowerLaw(name=name, alpha=0, bounds=(5, 100))
+        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
     elif name == 'q':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 1))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=1)
     elif name == 'a_1':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 0.8))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=0.8)
     elif name == 'a_2':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 0.8))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=0.8)
     elif name == 'tilt_1':
         prior = Sine(name=name)
     elif name == 'tilt_2':
         prior = Sine(name=name)
     elif name == 'phi_1':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
     elif name == 'phi_2':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
     elif name == 'luminosity_distance':
-        prior = PowerLaw(name=name, alpha=2, bounds=(1e2, 5e3))
+        prior = PowerLaw(name=name, alpha=2, minimum=1e2, maximum=5e3)
     elif name == 'dec':
         prior = Cosine(name=name)
     elif name == 'ra':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
     elif name == 'iota':
         prior = Sine(name=name)
     elif name == 'psi':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
     elif name == 'phase':
-        prior = PowerLaw(name=name, alpha=0, bounds=(0, 2 * np.pi))
+        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
     else:
         prior = None
     return prior
