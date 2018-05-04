@@ -252,7 +252,7 @@ class Pymultinest(Sampler):
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=False, injection_parameters=None,
+                sampler='nestle', use_ratio=True, injection_parameters=None,
                 **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
