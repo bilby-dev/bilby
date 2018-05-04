@@ -251,7 +251,7 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, priors, label='label', outdir='outdir',
+def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=False, injection_parameters=None,
                 **sampler_kwargs):
     """
@@ -263,7 +263,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         A `Likelihood` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
-        use default priors
+        use default priors, if None, all priors will be default
     label, outdir: str
         A string used in defining output files
     sampler: str
@@ -288,6 +288,8 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
+    if priors is None:
+        priors = dict()
     fill_priors(priors, likelihood.waveform_generator)
     peyote.prior.write_priors_to_file(priors, outdir)
 
