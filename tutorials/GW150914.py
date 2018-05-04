@@ -21,7 +21,7 @@ maximum_posterior_estimates = dict(
     dec=-1.2108, geocent_time=time_of_event, psi=2.659, mass_1=36, mass_2=29)
 
 # Define the prior
-prior = {}
+prior = dict()
 prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
 prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
 prior['geocent_time'] = peyote.prior.Uniform(time_of_event-0.1, time_of_event+0.1, name='geocent_time')
