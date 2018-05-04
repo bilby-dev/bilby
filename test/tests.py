@@ -49,10 +49,13 @@ class Test(unittest.TestCase):
         likelihood = peyote.likelihood.Likelihood(
             [self.msd['IFO']], self.msd['waveform_generator'])
 
+        priors = {}
+        for key in self.msd['simulation_parameters']:
+            priors[key] = self.msd['simulation_parameters'][key]
+
         dL = self.msd['simulation_parameters']['luminosity_distance']
-        priors = {'luminosity_distance' : peyote.prior.Uniform(
-            name='luminosity_distance', lower=dL - 10, upper=dL + 10)
-}
+        priors['luminosity_distance'] = peyote.prior.Uniform(
+            name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
 
         result = peyote.sampler.run_sampler(likelihood, priors, sampler='nestle', verbose=False)
         self.assertAlmostEqual(np.mean(result.samples), dL, delta=np.std(result.samples))
