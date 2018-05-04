@@ -9,6 +9,7 @@ import numpy as np
 from .result import Result
 from .prior import Prior, fill_priors
 from . import utils
+import peyote
 
 
 class Sampler(object):
@@ -288,6 +289,7 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
     implemented_samplers = get_implemented_samplers()
 
     fill_priors(priors, likelihood.waveform_generator)
+    peyote.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
