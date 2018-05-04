@@ -382,10 +382,15 @@ def fill_priors(prior, waveform_generator, fixed=None):
             print("{} cannot be converted to delta function prior.".format(key))
             print("If required the default prior will be used.")
             bad_keys.append(key)
-    for key in bad_keys:
-        prior.pop(key)
 
     missing_keys = set(waveform_generator.parameters) - set(prior.keys())
 
     for missing_key in missing_keys:
         prior[missing_key] = create_default_prior(missing_key)
+        if prior[missing_key] is None:
+            print("No default prior found for unspecified variable {}.".format(missing_key))
+            print("This variable will NOT be sampled.")
+            bad_keys.append(missing_key)
+
+    for key in bad_keys:
+        prior.pop(key)
