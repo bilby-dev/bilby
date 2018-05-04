@@ -81,9 +81,9 @@ IFOs = generate_and_plot_data(wg, injection_parameters)
 
 likelihood = peyote.likelihood.Likelihood(IFOs, wg)
 
-sampling_parameters['amplitude'] = peyote.prior.Uniform(lower=0.9 * 1e-21, upper=1.1 * 1e-21)
-sampling_parameters['sigma'] = peyote.prior.Uniform(lower=0, upper=10)
-sampling_parameters['mu'] = peyote.prior.Uniform(lower=50, upper=200)
+sampling_parameters['amplitude'] = peyote.prior.Uniform(minimum=0.9 * 1e-21, maximum=1.1 * 1e-21)
+sampling_parameters['sigma'] = peyote.prior.Uniform(minimum=0, maximum=10)
+sampling_parameters['mu'] = peyote.prior.Uniform(minimum=50, maximum=200)
 
 result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, verbose=True)
 
