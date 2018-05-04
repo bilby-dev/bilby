@@ -16,11 +16,9 @@ waveform_generator = peyote.waveform_generator.WaveformGenerator(
     parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
 
 # Define the prior
-prior = dict()
-prior['mass_1'] = peyote.prior.Uniform(10, 80, 'mass_1')
-prior['mass_2'] = peyote.prior.Uniform(10, 80, 'mass_2')
 # Merger time is some time in 2018, shame LIGO will never see it...
 time_of_event = np.random.uniform(1198800018, 1230336018)
+prior = dict()
 prior['geocent_time'] = peyote.prior.Uniform(time_of_event-0.01, time_of_event+0.01, name='geocent_time')
 peyote.prior.fill_priors(prior, waveform_generator)
 
