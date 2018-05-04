@@ -371,6 +371,18 @@ def parse_keys_to_parameters(keys):
 
 
 def fill_priors(prior, waveform_generator):
+    """
+    Fill dictionary of priors based on required parameters for waveform generator
+
+    Any floats in prior will be converted to delta function prior.
+    Any required, non-specified parameters will use the default.
+    Parameters
+    ----------
+    prior: dict
+        dictionary of prior objects and floats
+    waveform_generator: WaveformGenerator
+        waveform generator to be used for inference
+    """
     bad_keys = []
     for key in prior:
         if isinstance(prior[key], Prior):
