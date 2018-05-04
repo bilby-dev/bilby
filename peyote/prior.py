@@ -98,7 +98,7 @@ class Uniform(Prior):
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label)
         self.minimum = minimum
-        self.minimum = maximum
+        self.maximum = maximum
         self.support = maximum - minimum
 
     def rescale(self, val):
@@ -106,7 +106,7 @@ class Uniform(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (self.minimum < val) and (val < self.minimum):
+        if (self.minimum < val) and (val < self.maximum):
             return 1 / self.support
         else:
             return 0
@@ -370,8 +370,7 @@ def parse_keys_to_parameters(keys):
     return parameters
 
 
-def fill_priors(prior, waveform_generator, fixed=None):
-
+def fill_priors(prior, waveform_generator):
     bad_keys = []
     for key in prior:
         if isinstance(prior[key], Prior):
