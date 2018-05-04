@@ -317,33 +317,33 @@ def create_default_prior(name):
     elif name == 'mass_2':
         prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
     elif name == 'mchirp':
-        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
+        prior = Uniform(name=name, minimum=5, maximum=100)
     elif name == 'q':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=1)
+        prior = Uniform(name=name, minimum=0, maximum=1)
     elif name == 'a_1':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=0.8)
+        prior = Uniform(name=name, minimum=0, maximum=0.8)
     elif name == 'a_2':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=0.8)
+        prior = Uniform(name=name, minimum=0, maximum=0.8)
     elif name == 'tilt_1':
         prior = Sine(name=name)
     elif name == 'tilt_2':
         prior = Sine(name=name)
     elif name == 'phi_12':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi))
+        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'phi_jl':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi))
+        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'luminosity_distance':
         prior = PowerLaw(name=name, alpha=2, minimum=1e2, maximum=5e3)
     elif name == 'dec':
         prior = Cosine(name=name)
     elif name == 'ra':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
+        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'iota':
         prior = Sine(name=name)
     elif name == 'psi':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
+        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'phase':
-        prior = PowerLaw(name=name, alpha=0, minimum=0, maximum=2 * np.pi)
+        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     else:
         prior = None
     return prior
