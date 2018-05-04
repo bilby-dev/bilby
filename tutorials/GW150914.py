@@ -15,7 +15,7 @@ L1, sampling_frequency, time_duration = peyote.detector.get_inteferometer('L1', 
 IFOs = [H1, L1]
 
 maximum_posterior_estimates = dict(
-    a_1=0, a_2=0, tilt_1=0, tilt_2=0, phi_1=0, phi_2=0,
+    a_1=0, a_2=0, tilt_1=0, tilt_2=0, phi_12=0, phi_jl=0,
     luminosity_distance=410., iota=2.97305, phase=1.145,
     waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375,
     dec=-1.2108, geocent_time=time_of_event, psi=2.659, mass_1=36, mass_2=29)
