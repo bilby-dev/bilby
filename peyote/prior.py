@@ -23,11 +23,17 @@ class Prior(object):
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the prior, does nothing.
+        'Rescale' a sample from the unit line element to the prior.
 
-        This maps to the inverse CDF.
+        This should be overwritten by each subclass.
         """
-        return val
+        return None
+
+    @staticmethod
+    def test_valid_for_rescaling(self, val):
+        """Test if 0 < val < 1"""
+        if (val > 0) and (val < 1):
+            raise ValueError("Number to be rescaled should be in [0, 1]")
 
     def __repr__(self):
         prior_name = self.__class__.__name__
@@ -102,6 +108,7 @@ class Uniform(Prior):
         self.support = maximum - minimum
 
     def rescale(self, val):
+        Prior.test_valid_for_rescaling(val)
         return self.minimum + val * self.support
 
     def prob(self, val):
@@ -121,6 +128,7 @@ class DeltaFunction(Prior):
 
     def rescale(self, val):
         """Rescale everything to the peak with the correct shape."""
+        Prior.test_valid_for_rescaling(val)
         return self.peak * val ** 0
 
     def prob(self, val):
@@ -147,6 +155,7 @@ class PowerLaw(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
+        Prior.test_valid_for_rescaling(val)
         if self.alpha == -1:
             return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
@@ -176,12 +185,16 @@ class Cosine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
+        Prior.test_valid_for_rescaling(val)
         return np.arcsin(-1 + val * 2)
 
     @staticmethod
     def prob(val):
-        """Return the prior probability of val"""
-        return np.cos(val) / 2
+        """Return the prior probability of val, defined over [-pi/2, pi/2]"""
+        if (val > -np.pi / 2) and (val < np.pi / 2):
+            return np.cos(val) / 2
+        else:
+            return 0
 
 
 class Sine(Prior):
@@ -195,12 +208,16 @@ class Sine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
+        Prior.test_valid_for_rescaling(val)
         return np.arccos(-1 + val * 2)
 
     @staticmethod
     def prob(val):
-        """Return the prior probability of val"""
-        return np.sin(val) / 2
+        """Return the prior probability of val, defined over [0, pi]"""
+        if (val > 0) and (val < np.pi):
+            return np.sin(val) / 2
+        else:
+            return 0
 
 
 class Gaussian(Prior):
@@ -218,6 +235,7 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
+        Prior.test_valid_for_rescaling(val)
         return self.mu + erfinv(2 * val - 1) * 2**0.5 * self.sigma
 
     def prob(self, val):
@@ -232,16 +250,16 @@ class TruncatedGaussian(Prior):
     https://en.wikipedia.org/wiki/Truncated_normal_distribution
     """
 
-    def __init__(self, mu, sigma, low, high, name=None, latex_label=None):
+    def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
         Prior.__init__(self, name, latex_label)
         self.mu = mu
         self.sigma = sigma
-        self.low = low
-        self.high = high
+        self.minimum = minimum
+        self.maximum = maximum
 
-        self.normalisation = (erf((self.high - self.mu) / 2 ** 0.5 / self.sigma) - erf(
-            (self.low - self.mu) / 2 ** 0.5 / self.sigma)) / 2
+        self.normalisation = (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
+            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2
 
     def rescale(self, val):
         """
@@ -249,13 +267,17 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
+        Prior.test_valid_for_rescaling(val)
         return erfinv(2 * val * self.normalisation + erf(
-            (self.low - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
+            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
     def prob(self, val):
         """Return the prior probability of val"""
-        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-                    2 * np.pi) ** 0.5 / self.sigma / self.normalisation
+        if (val > self.minimum) & (val < self.maximum):
+            return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
+                        2 * np.pi) ** 0.5 / self.sigma / self.normalisation
+        else:
+            return 0
 
 
 class Interped(Prior):
@@ -271,7 +293,7 @@ class Interped(Prior):
             print('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
-        self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=min(self.yy))
+        self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=False,
                                                          fill_value=(min(self.xx), max(self.xx)))
@@ -280,13 +302,14 @@ class Interped(Prior):
         """Return the prior probability of val"""
         return self.probability_density(val)
 
-    def rescale(self, x):
+    def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the prior.
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        return self.invervse_cumulative_distribution(x)
+        Prior.test_valid_for_rescaling(val)
+        return self.invervse_cumulative_distribution(val)
 
 
 class FromFile(Interped):
