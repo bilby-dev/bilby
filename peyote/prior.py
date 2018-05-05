@@ -286,8 +286,8 @@ class Interped(Prior):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
         self.xx = xx
-        self.low = min(self.xx)
-        self.high = max(self.xx)
+        self.minimum = min(self.xx)
+        self.maximum = max(self.xx)
         self.yy = yy
         if np.trapz(self.yy, self.xx) != 0:
             print('Supplied PDF is not normalised, normalising.')
