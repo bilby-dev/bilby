@@ -327,3 +327,38 @@ def inner_product(aa, bb, frequency, PSD):
     product = 4. * np.real(integral)
 
     return product
+
+
+def noise_weighted_inner_product(aa, bb, power_spectral_density, time_duration):
+    """
+    Calculate the noise weighted inner product between two arrays.
+
+    Parameters
+    ----------
+    aa: array
+        Array to be complex conjugated
+    bb: array
+        Array not to be complex conjugated
+    power_spectral_density: array
+        Power spectral density
+    time_duration: float
+        time_duration of the data
+
+    Return
+    ------
+    Noise-weighted inner product.
+    """
+
+    # caluclate the inner product
+    integrand = np.conj(aa) * bb / power_spectral_density
+    product = 4 / time_duration * np.sum(integrand)
+    return product
+
+
+def matched_filter_snr_squared(signal, interferometer, time_duration):
+    return noise_weighted_inner_product(signal, interferometer.data, interferometer.power_spectral_density_array,
+                                        time_duration)
+
+
+def optimal_snr_squared(signal, interferometer, time_duration):
+    return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, time_duration)
