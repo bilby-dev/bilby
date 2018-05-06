@@ -56,14 +56,14 @@ class MarginalizedLikelihood(Likelihood):
             self.delta_distance = self.distance_array[1] - self.distance_array[0]
             self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                                   for distance in self.distance_array])
-            prior['luminosity_distance'] = 1000
+            prior['luminosity_distance'] = 100
         if self.phase_marginalization:
             if 'psi' not in self.prior.keys() or not isinstance(prior['psi'], peyote.prior.Prior):
                 logging.info('No prior provided for polarization, using default prior.')
                 self.prior['psi'] = peyote.prior.create_default_prior('psi')
             # self.phase_array = np.exp(1j * np.linspace(0, 2 * np.pi, 100))
-            self.bessel_function_interped = interp1d(np.linspace(1e-4, 1e3, 1e3),
-                                                     np.log([np.i0(snr) for snr in np.linspace(1e-4, 1e3, 1e3)]))
+            self.bessel_function_interped = interp1d(np.linspace(1e-8, 1e3, 1e3),
+                                                     np.log([np.i0(snr) for snr in np.linspace(1e-8, 1e3, 1e3)]))
             prior['psi'] = 0
 
     def noise_log_likelihood(self):
