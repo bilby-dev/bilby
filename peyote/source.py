@@ -15,7 +15,7 @@ def lal_binary_black_hole(
         geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
     if mass_2 > mass_1:
-        return {'plus': 0, 'cross': 0}
+        return None
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
