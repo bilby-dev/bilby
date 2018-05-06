@@ -5,6 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
+import logging
 
 
 class Prior(object):
@@ -290,7 +291,7 @@ class Interped(Prior):
         self.maximum = max(self.xx)
         self.yy = yy
         if np.trapz(self.yy, self.xx) != 0:
-            print('Supplied PDF is not normalised, normalising.')
+            logging.info('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
@@ -377,8 +378,8 @@ def parse_floats_to_fixed_priors(old_parameters):
     for key in parameters:
         if type(parameters[key]) is not float and type(parameters[key]) is not int \
                 and type(parameters[key]) is not Prior:
-            print("Expected parameter " + str(key) + " to be a float or int but was " + str(type(parameters[key]))
-                  + " instead. Will not be converted.")
+            logging.info("Expected parameter " + str(key) + " to be a float or int but was "
+                         + str(type(parameters[key])) + " instead. Will not be converted.")
             continue
         elif type(parameters[key]) is Prior:
             continue
@@ -412,10 +413,10 @@ def fill_priors(prior, waveform_generator):
             continue
         elif isinstance(prior[key], float) or isinstance(prior[key], int):
             prior[key] = DeltaFunction(prior[key])
-            print("{} converted to delta function prior.".format(key))
+            logging.info("{} converted to delta function prior.".format(key))
         else:
-            print("{} cannot be converted to delta function prior.".format(key))
-            print("If required the default prior will be used.")
+            logging.warning("{} cannot be converted to delta function prior.".format(key))
+            logging.warning("If required the default prior will be used.")
             bad_keys.append(key)
 
     missing_keys = set(waveform_generator.parameters) - set(prior.keys())
@@ -423,8 +424,8 @@ def fill_priors(prior, waveform_generator):
     for missing_key in missing_keys:
         prior[missing_key] = create_default_prior(missing_key)
         if prior[missing_key] is None:
-            print("No default prior found for unspecified variable {}.".format(missing_key))
-            print("This variable will NOT be sampled.")
+            logging.warning("No default prior found for unspecified variable {}.".format(missing_key))
+            logging.warning("This variable will NOT be sampled.")
             bad_keys.append(missing_key)
 
     for key in bad_keys:
