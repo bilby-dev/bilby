@@ -84,7 +84,7 @@ class MarginalizedLikelihood(Likelihood):
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
 
         if waveform_polarizations is None:
-            return -np.inf
+            return np.nan_to_num(-np.inf)
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
