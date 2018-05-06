@@ -53,11 +53,11 @@ class MarginalizedLikelihood(Likelihood):
                 logging.info('No prior provided for distance, using default prior.')
                 self.prior['luminosity_distance'] = peyote.prior.create_default_prior('luminosity_distance')
             self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
-                                              self.prior['luminosity_distance'].maximum, 1000)
+                                              self.prior['luminosity_distance'].maximum, 1e4)
             self.delta_distance = self.distance_array[1] - self.distance_array[0]
             self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                                   for distance in self.distance_array])
-            prior['luminosity_distance'] = 100
+            prior['luminosity_distance'] = 1
         if self.phase_marginalization:
             if 'psi' not in self.prior.keys() or not isinstance(prior['psi'], peyote.prior.Prior):
                 logging.info('No prior provided for polarization, using default prior.')
@@ -82,6 +82,9 @@ class MarginalizedLikelihood(Likelihood):
 
     def log_likelihood_ratio(self):
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
+
+        if waveform_polarizations is None:
+            return -np.inf
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
