@@ -4,7 +4,7 @@ try:
     from scipy.special import logsumexp
 except ImportError:
     from scipy.misc import logsumexp
-from scipy.special import i0
+from scipy.special import i0, i0e
 from scipy.interpolate import interp1d
 import peyote
 import logging
@@ -63,8 +63,13 @@ class MarginalizedLikelihood(Likelihood):
                 logging.info('No prior provided for polarization, using default prior.')
                 self.prior['psi'] = peyote.prior.create_default_prior('psi')
             # self.phase_array = np.exp(1j * np.linspace(0, 2 * np.pi, 100))
-            self.bessel_function_interped = interp1d(np.linspace(0, 1e3, 1e3),
-                                                     np.log([i0(snr) for snr in np.linspace(0, 1e3, 1e3)]))
+            self.bessel_function_interped = interp1d(np.linspace(0, 1e6, 1e5),
+                                                     np.log([i0e(snr) for snr in np.linspace(0, 1e6, 1e5)])
+                                                     + np.linspace(0, 1e6, 1e5),
+                                                     bounds_error=False, fill_value=-np.inf)
+            self.phase_array = np.exp(1j * np.linspace(self.prior['psi'].minimum, self.prior['psi'].maximum, 500))
+            self.delta_phase = self.phase_array[1] - self.phase_array[0]
+            self.phase_prior_array = np.array([self.prior['psi'].prob(phase) for phase in self.phase_array])
             prior['psi'] = 0
 
     def noise_log_likelihood(self):
@@ -91,6 +96,10 @@ class MarginalizedLikelihood(Likelihood):
 
         if self.phase_marginalization and not self.distance_marginalization:
             matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
+            # matched_filter_snr_squared = logsumexp([np.real(matched_filter_snr_squared * phase)
+            #                                         for phase in self.phase_array],
+            #                                        b=self.phase_prior_array * self.delta_phase)
+
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
 
         elif self.distance_marginalization and not self.phase_marginalization:
