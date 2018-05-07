@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import logging
+import os
 
 
 class Prior(object):
@@ -283,25 +284,33 @@ class TruncatedGaussian(Prior):
 
 class Interped(Prior):
 
-    def __init__(self, xx, yy, name=None, latex_label=None):
+    def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
-        self.xx = xx
-        self.minimum = min(self.xx)
-        self.maximum = max(self.xx)
-        self.yy = yy
-        if np.trapz(self.yy, self.xx) != 0:
+        if minimum is None or minimum < min(xx):
+            self.minimum = min(xx)
+        else:
+            self.minimum = minimum
+        if maximum is None or maximum > max(xx):
+            self.maximum = max(xx)
+        else:
+            self.maximum = maximum
+        self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
+        self.yy = yy[(xx > self.minimum) & (xx < self.maximum)]
+        if np.trapz(self.yy, self.xx) != 1:
             logging.info('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
-        self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=False,
-                                                         fill_value=(min(self.xx), max(self.xx)))
+        self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
     def prob(self, val):
         """Return the prior probability of val"""
-        return self.probability_density(val)
+        if (val > self.minimum) & (val < self.maximum):
+            return self.probability_density(val)
+        else:
+            return 0
 
     def rescale(self, val):
         """
@@ -310,20 +319,22 @@ class Interped(Prior):
         This maps to the inverse CDF. This is done using interpolation.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.invervse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)
 
 
 class FromFile(Interped):
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
         try:
             self.id = file_name
-            xx, yy = np.genfromtxt(file_name).T
-            Interped.__init__(self, xx, yy)
+            if '/' not in self.id:
+                self.id = '{}/peyote/prior_files/{}'.format(os.getcwd(), self.id)
+            xx, yy = np.genfromtxt(self.id).T
+            Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
-            print("Can't load {}.".format(file_name))
-            print("Format should be:")
-            print(r"x\tp(x)")
+            logging.warning("Can't load {}.".format(self.id))
+            logging.warning("Format should be:")
+            logging.warning(r"x\tp(x)")
 
 
 def fix(prior, value=None):
