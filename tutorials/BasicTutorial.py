@@ -33,6 +33,8 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
+priors['luminosity_distance'] = peyote.prior.FromFile(file_name='dL_MDC.txt', minimum=500, maximum=5000,
+                                                      name='luminosity_distance')
 
 # Run sampler
 result = peyote.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
