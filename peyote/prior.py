@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import logging
+import os
 
 
 class Prior(object):
@@ -286,12 +287,12 @@ class Interped(Prior):
     def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
-        if minimum is None or minimum < min(self.xx):
-            self.minimum = min(self.xx)
+        if minimum is None or minimum < min(xx):
+            self.minimum = min(xx)
         else:
             self.minimum = minimum
-        if maximum is None or maximum > max(self.xx):
-            self.maximum = max(self.xx)
+        if maximum is None or maximum > max(xx):
+            self.maximum = max(xx)
         else:
             self.maximum = maximum
         self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
@@ -326,10 +327,12 @@ class FromFile(Interped):
     def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
         try:
             self.id = file_name
-            xx, yy = np.genfromtxt(file_name).T
-            Interped.__init__(self, xx, yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
+            if '/' not in self.id:
+                self.id = '{}/peyote/prior_files/{}'.format(os.getcwd(), self.id)
+            xx, yy = np.genfromtxt(self.id).T
+            Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
-            print("Can't load {}.".format(file_name))
+            print("Can't load {}.".format(self.id))
             print("Format should be:")
             print(r"x\tp(x)")
 
