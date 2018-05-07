@@ -282,25 +282,33 @@ class TruncatedGaussian(Prior):
 
 class Interped(Prior):
 
-    def __init__(self, xx, yy, name=None, latex_label=None):
+    def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
-        self.xx = xx
-        self.low = min(self.xx)
-        self.high = max(self.xx)
-        self.yy = yy
+        if minimum is None or minimum < min(self.xx):
+            self.minimum = min(self.xx)
+        else:
+            self.minimum = minimum
+        if maximum is None or maximum > max(self.xx):
+            self.maximum = max(self.xx)
+        else:
+            self.maximum = maximum
+        self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
+        self.yy = yy[(xx > self.minimum) & (xx < self.maximum)]
         if np.trapz(self.yy, self.xx) != 0:
             print('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
-        self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=False,
-                                                         fill_value=(min(self.xx), max(self.xx)))
+        self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
     def prob(self, val):
         """Return the prior probability of val"""
-        return self.probability_density(val)
+        if (val > self.minimum) & (val < self.maximum):
+            return self.probability_density(val)
+        else:
+            return 0
 
     def rescale(self, val):
         """
@@ -314,11 +322,11 @@ class Interped(Prior):
 
 class FromFile(Interped):
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
         try:
             self.id = file_name
             xx, yy = np.genfromtxt(file_name).T
-            Interped.__init__(self, xx, yy)
+            Interped.__init__(self, xx, yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
             print("Can't load {}.".format(file_name))
             print("Format should be:")
