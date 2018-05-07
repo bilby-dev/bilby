@@ -301,7 +301,7 @@ class Interped(Prior):
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
-        self.invervse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
+        self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
     def prob(self, val):
         """Return the prior probability of val"""
@@ -317,7 +317,7 @@ class Interped(Prior):
         This maps to the inverse CDF. This is done using interpolation.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.invervse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)
 
 
 class FromFile(Interped):
