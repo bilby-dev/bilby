@@ -192,13 +192,31 @@ class Nestle(Sampler):
 
 
 class Dynesty(Sampler):
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
+        self.__kwargs = dict(dlogz=0.1, sample='rwalk', walks=100, bound='multi', update_interval=6000)
+        self.__kwargs.update(kwargs)
+        if 'npoints' not in self.__kwargs:
+            for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
+                if equiv in self.__kwargs:
+                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
+        if 'npoints' not in self.__kwargs:
+            self.__kwargs['npoints'] = 10000
+
     def run_sampler(self):
         dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested()
+        nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
         out = nested_sampler.results
 
         self.result.sampler_output = out
