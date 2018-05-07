@@ -29,4 +29,6 @@ likelihood = peyote.likelihood.Likelihood(interferometers, waveform_generator)
 # Run the sampler
 result = peyote.sampler.run_sampler(likelihood, prior, sampler='dynesty', outdir=outdir, label='label')
 result.plot_corner()
+result.plot_walks()
+result.plot_distributions()
 print(result)
