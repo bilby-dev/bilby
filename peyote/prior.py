@@ -5,6 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
+import logging
 
 
 class Prior(object):
@@ -295,8 +296,8 @@ class Interped(Prior):
             self.maximum = maximum
         self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
         self.yy = yy[(xx > self.minimum) & (xx < self.maximum)]
-        if np.trapz(self.yy, self.xx) != 0:
-            print('Supplied PDF is not normalised, normalising.')
+        if np.trapz(self.yy, self.xx) != 1:
+            logging.info('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
