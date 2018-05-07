@@ -5,11 +5,8 @@ import logging
 import os
 import sys
 import numpy as np
-<<<<<<< HEAD
 from chainconsumer import ChainConsumer
 import matplotlib.pyplot as plt
-=======
->>>>>>> master
 
 from .result import Result
 from .prior import Prior, fill_priors
@@ -310,6 +307,7 @@ class Ptemcee(Sampler):
         nsteps = self.kwargs.pop('nsteps', 100)
         nburn = self.kwargs.pop('nburn', 50)
         ptemcee = self.external_sampler
+        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
 
         sampler = ptemcee.Sampler(
             ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
@@ -319,7 +317,6 @@ class Ptemcee(Sampler):
                  for i in range(nwalkers)]
                 for j in range(ntemps)]
 
-        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
         for result in tqdm(
                 sampler.sample(pos0, iterations=nsteps, adapt=True), total=nsteps):
             pass
@@ -341,7 +338,7 @@ class Ptemcee(Sampler):
         fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
         for i, ax in enumerate(axes):
             ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
-            ax.set_ylabel(self.result.labels[i])
+            ax.set_ylabel(self.result.parameter_labels[i])
 
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
