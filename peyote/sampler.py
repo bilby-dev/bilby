@@ -236,7 +236,7 @@ class Pymultinest(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        outputfiles_basename = self.outdir + '/pymultinest_{}/'.format(self.label)
         utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
         self.__kwargs = dict(importance_nested_sampling=False, resume=True,
                              verbose=True, sampling_efficiency='parameter',
