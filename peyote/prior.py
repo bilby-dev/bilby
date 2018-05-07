@@ -340,9 +340,7 @@ class FromFile(Interped):
 def fix(prior, value=None):
     if value is None or np.isnan(value):
         raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
-    prior = DeltaFunction(name=prior.name,
-                             latex_label=prior.latex_label,
-                             peak=value)
+    prior = DeltaFunction(name=prior.name, latex_label=prior.latex_label, peak=value)
     return prior
 
 
@@ -454,7 +452,7 @@ def write_priors_to_file(priors, outdir):
     outdir: str
         output directory
     """
-    if outdir[-1]!="/":
+    if outdir[-1] != "/":
         outdir += "/"
     prior_file = outdir + "prior.txt"
     print("Writing priors to {}".format(prior_file))
