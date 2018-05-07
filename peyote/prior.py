@@ -321,6 +321,12 @@ class Interped(Prior):
         Prior.test_valid_for_rescaling(val)
         return self.inverse_cumulative_distribution(val)
 
+    def __repr__(self):
+        prior_name = self.__class__.__name__
+        prior_args = ', '.join(
+            ['{}={}'.format(key, self.__dict__[key]) for key in ['xx', 'yy', '_Prior__latex_label']])
+        return "{}({})".format(prior_name, prior_args)
+
 
 class FromFile(Interped):
 
@@ -335,6 +341,12 @@ class FromFile(Interped):
             logging.warning("Can't load {}.".format(self.id))
             logging.warning("Format should be:")
             logging.warning(r"x\tp(x)")
+
+    def __repr__(self):
+        prior_name = self.__class__.__name__
+        prior_args = ', '.join(
+            ['{}={}'.format(key, self.__dict__[key]) for key in ['id', 'minimum', 'maximum', '_Prior__latex_label']])
+        return "{}({})".format(prior_name, prior_args)
 
 
 def fix(prior, value=None):
