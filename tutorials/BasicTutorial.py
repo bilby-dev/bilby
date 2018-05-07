@@ -2,8 +2,8 @@
 """
 Tutorial to demonstrate running parameter estimation on a reduced parameter space for an injected signal.
 
-This example estimates the masses using a uniform prior in both component masses and distance using a distance prior
-informed by cosmological star formation rate, see  Regimbau et al. (2012) https://arxiv.org/pdf/1201.3563.pdf.
+This example estimates the masses using a uniform prior in both component masses and distance using a uniform in
+comoving volume prior on luminosity distance, the cosmology is WMAP7.
 """
 from __future__ import division, print_function
 import peyote
@@ -38,7 +38,7 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = peyote.prior.FromFile(file_name='sfr_tracking_dl.txt', minimum=500, maximum=5000,
+priors['luminosity_distance'] = peyote.prior.FromFile(file_name='comoving.txt', minimum=500, maximum=5000,
                                                       name='luminosity_distance')
 
 # Run sampler
