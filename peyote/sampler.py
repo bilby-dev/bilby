@@ -199,8 +199,6 @@ class Dynesty(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
-        utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
         self.__kwargs = dict(dlogz=0.1, sample='rwalk', walks=100, bound='multi', update_interval=6000)
         self.__kwargs.update(kwargs)
         if 'npoints' not in self.__kwargs:
