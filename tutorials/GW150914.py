@@ -1,3 +1,10 @@
+#!/bin/python
+"""
+Tutorial to demonstrate running parameter estimation on GW150914 using open data.
+
+This example estimates all 15 parameters of the binary black hole system using commonly used prior distributions.
+This will take a few hours to run.
+"""
 from __future__ import division, print_function
 import peyote
 
