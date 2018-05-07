@@ -4,14 +4,17 @@ import inspect
 import logging
 import os
 import sys
-
 import numpy as np
+<<<<<<< HEAD
 from chainconsumer import ChainConsumer
 import matplotlib.pyplot as plt
+=======
+>>>>>>> master
 
 from .result import Result
-from .prior import Prior
+from .prior import Prior, fill_priors
 from . import utils
+import peyote
 
 
 class Sampler(object):
@@ -69,7 +72,11 @@ class Sampler(object):
         if result is None:
             self.__result = Result()
             self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.labels = [self.priors[k].latex_label for k in self.__search_parameter_keys]
+            self.__result.parameter_labels = [
+                self.priors[k].latex_label for k in
+                self.__search_parameter_keys]
+            self.__result.label = self.label
+            self.__result.outdir = self.outdir
         elif type(result) is Result:
             self.__result = result
         else:
@@ -183,30 +190,6 @@ class Sampler(object):
         logging.info("Using sampler {} with kwargs {}".format(
             self.__class__.__name__, self.kwargs))
 
-    def plot_corner(self, save=True, **kwargs):
-        """ Plot a corner-plot using chain-consumer
-
-        Parameters
-        ----------
-        save: bool
-            If true, save the image using the given label and outdir
-
-        Returns
-        -------
-        fig:
-            A matplotlib figure instance
-        """
-
-        # Set some defaults (unless already set)
-        kwargs['figsize'] = kwargs.get('figsize', 'GROW')
-        if save:
-            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
-            logging.info('Saving corner plot to {}'.format(kwargs['filename']))
-        c = ChainConsumer()
-        c.add_chain(self.result.samples, parameters=self.result.labels)
-        fig = c.plotter.plot(**kwargs)
-        return fig
-
 
 class Nestle(Sampler):
 
@@ -244,21 +227,37 @@ class Nestle(Sampler):
 
 
 class Dynesty(Sampler):
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = dict(dlogz=0.1, sample='rwalk', walks=100, bound='multi', update_interval=6000)
+        self.__kwargs.update(kwargs)
+        if 'npoints' not in self.__kwargs:
+            for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
+                if equiv in self.__kwargs:
+                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
+        if 'npoints' not in self.__kwargs:
+            self.__kwargs['npoints'] = 10000
+
     def run_sampler(self):
         dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested()
+        nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
         out = nested_sampler.results
 
         self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
-        self.result.logz = out.logz
-        self.result.logzerr = out.logzerr
+        self.result.logz = out.logz[-1]
+        self.result.logzerr = out.logzerr[-1]
         return self.result
 
 
@@ -270,7 +269,7 @@ class Pymultinest(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        outputfiles_basename = self.outdir + '/pymultinest_{}/'.format(self.label)
         utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
         self.__kwargs = dict(importance_nested_sampling=False, resume=True,
                              verbose=True, sampling_efficiency='parameter',
@@ -350,8 +349,8 @@ class Ptemcee(Sampler):
         fig.savefig(filename)
 
 
-def run_sampler(likelihood, priors, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=False, injection_parameters=None,
+def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
+                sampler='nestle', use_ratio=True, injection_parameters=None,
                 **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
@@ -362,8 +361,10 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         A `Likelihood` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
-        use default priors
-    label, outdir: str
+        use default priors, if None, all priors will be default
+    label: str
+        Name for the run, used in output files
+    outdir: str
         A string used in defining output files
     sampler: str
         The name of the sampler to use - see
@@ -380,13 +381,17 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
 
     Returns
     ------
-    result, sampler
-        An object containing the results, and the sampler instance (useful
-        for creating plots etc)
+    result
+        An object containing the results
     """
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
+
+    if priors is None:
+        priors = dict()
+    fill_priors(priors, likelihood.waveform_generator)
+    peyote.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
@@ -395,10 +400,14 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
                                 **sampler_kwargs)
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
-        result.log_bayes_factor = result.logz - result.noise_logz
+        if use_ratio:
+            result.log_bayes_factor = result.logz
+            result.logz = result.log_bayes_factor + result.noise_logz
+        else:
+            result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.save_to_file(outdir=outdir, label=label)
-        return result, sampler
+        return result
     else:
         raise ValueError(
             "Sampler {} not yet implemented".format(sampler))

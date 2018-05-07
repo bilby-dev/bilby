@@ -79,7 +79,7 @@ class TestPriorIsFixed(unittest.TestCase):
         self.assertTrue(self.prior.is_fixed)
 
     def test_is_fixed_uniform_class(self):
-        self.prior = peyote.prior.Uniform(lower=0, upper=10)
+        self.prior = peyote.prior.Uniform(minimum=0, maximum=10)
         self.assertFalse(self.prior.is_fixed)
 
 

@@ -1,6 +1,7 @@
 import logging
 import os
 import deepdish
+from chainconsumer import ChainConsumer
 
 
 class Result(dict):
@@ -35,3 +36,81 @@ class Result(dict):
 
         logging.info("Saving result to {}".format(file_name))
         deepdish.io.save(file_name, self)
+
+    def plot_corner(self, save=True, **kwargs):
+        """ Plot a corner-plot using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        kwargs['figsize'] = kwargs.get('figsize', 'GROW')
+        if save:
+            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
+            logging.info('Saving corner plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
+        c = ChainConsumer()
+        c.add_chain(self.samples, parameters=self.parameter_labels)
+        fig = c.plotter.plot(**kwargs)
+        return fig
+
+    def plot_walks(self, save=True, **kwargs):
+        """ Plot the chain walkst using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        if save:
+            kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
+            logging.info('Saving walker plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
+        c = ChainConsumer()
+        c.add_chain(self.samples, parameters=self.parameter_labels)
+        fig = c.plotter.plot_walks(**kwargs)
+        return fig
+
+    def plot_distributions(self, save=True, **kwargs):
+        """ Plot the chain walkst using chain-consumer
+
+        Parameters
+        ----------
+        save: bool
+            If true, save the image using the given label and outdir
+
+        Returns
+        -------
+        fig:
+            A matplotlib figure instance
+        """
+
+        # Set some defaults (unless already set)
+        if save:
+            kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
+            logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
+        if self.injection_parameters is not None:
+            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
+        c = ChainConsumer()
+        c.add_chain(self.samples, parameters=self.parameter_labels)
+        fig = c.plotter.plot_distributions(**kwargs)
+        return fig
+
+
