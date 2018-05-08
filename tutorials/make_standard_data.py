@@ -4,8 +4,8 @@ import os
 
 import numpy as np
 
-import peyote
-from peyote.waveform_generator import WaveformGenerator
+import tupak
+from tupak.waveform_generator import WaveformGenerator
 
 np.random.seed(10)
 
@@ -32,18 +32,18 @@ simulation_parameters = dict(
     psi=2.659
 )
 #sampling_parameters = peyote.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
-waveform_generator = WaveformGenerator(frequency_domain_source_model=peyote.source.lal_binary_black_hole,
+waveform_generator = WaveformGenerator(frequency_domain_source_model=tupak.source.lal_binary_black_hole,
                                        sampling_frequency=sampling_frequency,
                                        time_duration=time_duration,
                                        parameters=simulation_parameters)
 
-IFO = peyote.detector.H1
+IFO = tupak.detector.H1
 IFO.set_data(
     from_power_spectral_density=True, sampling_frequency=sampling_frequency,
     duration=time_duration)
 IFO.inject_signal(waveform_polarizations=waveform_generator.frequency_domain_strain(), parameters=simulation_parameters)
 hf_signal_and_noise = IFO.data
-frequencies = peyote.utils.create_fequency_series(
+frequencies = tupak.utils.create_fequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == '__main__':

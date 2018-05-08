@@ -12,7 +12,7 @@ from .result import Result
 from .prior import Prior, fill_priors
 from . import utils
 from . import prior
-import peyote
+import tupak
 
 
 class Sampler(object):
@@ -382,7 +382,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if priors is None:
         priors = dict()
     fill_priors(priors, likelihood.waveform_generator)
-    peyote.prior.write_priors_to_file(priors, outdir)
+    tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

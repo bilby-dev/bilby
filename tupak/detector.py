@@ -1,6 +1,6 @@
 from __future__ import division, print_function, absolute_import
 import numpy as np
-import peyote
+import tupak
 import logging
 import os
 from scipy.interpolate import interp1d
@@ -213,11 +213,11 @@ class Interferometer(object):
         """
         signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
         self.data += signal_ifo
-        opt_snr = np.sqrt(peyote.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                           time_duration=1 / (self.frequency_array[1]
+        opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                          time_duration=1 / (self.frequency_array[1]
                                                                               - self.frequency_array[0])).real)
-        mf_snr = np.sqrt(peyote.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                 time_duration=1 / (self.frequency_array[1]
+        mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                time_duration=1 / (self.frequency_array[1]
                                                                                     - self.frequency_array[0])).real)
         logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
             opt_snr, mf_snr, self.name))

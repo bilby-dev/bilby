@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import os
 import shutil
-from context import peyote
+from context import tupak
 import logging
 from past.builtins import execfile
 
@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
         self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
-        likelihood = peyote.likelihood.Likelihood(
+        likelihood = tupak.likelihood.Likelihood(
             [self.msd['IFO']], self.msd['waveform_generator'])
 
         priors = {}
@@ -54,10 +54,10 @@ class Test(unittest.TestCase):
             priors[key] = self.msd['simulation_parameters'][key]
 
         dL = self.msd['simulation_parameters']['luminosity_distance']
-        priors['luminosity_distance'] = peyote.prior.Uniform(
+        priors['luminosity_distance'] = tupak.prior.Uniform(
             name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
 
-        result = peyote.sampler.run_sampler(likelihood, priors, sampler='nestle', verbose=False)
+        result = tupak.sampler.run_sampler(likelihood, priors, sampler='nestle', verbose=False)
         self.assertAlmostEqual(np.mean(result.samples), dL, delta=np.std(result.samples))
 
 

@@ -1,5 +1,5 @@
 import unittest
-from context import peyote
+from context import tupak
 import numpy as np
 
 
@@ -17,7 +17,7 @@ def gaussian_frequency_domain_strain_2(frequency_array, a, m, s, ra, dec, geocen
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = peyote.waveform_generator.WaveformGenerator(
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
@@ -52,7 +52,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 class TestParameterSetter(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = peyote.waveform_generator.WaveformGenerator(
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
@@ -91,7 +91,7 @@ class TestParameterSetter(unittest.TestCase):
 class TestSourceModelSetter(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = peyote.waveform_generator.WaveformGenerator(
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.waveform_generator.source_model = gaussian_frequency_domain_strain_2
         self.simulation_parameters = dict(a=1e-21, m=100, s=1,

@@ -1,4 +1,4 @@
-from context import peyote
+from context import tupak
 import unittest
 import numpy as np
 
@@ -6,7 +6,7 @@ import numpy as np
 class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
 
     def setUp(self):
-        self.prior = peyote.prior.Prior()
+        self.prior = tupak.prior.Prior()
 
     def tearDown(self):
         del self.prior
@@ -21,14 +21,14 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertFalse(self.prior.is_fixed)
 
     def test_class_instance(self):
-        self.assertIsInstance(self.prior, peyote.prior.Prior)
+        self.assertIsInstance(self.prior, tupak.prior.Prior)
 
 
 class TestPriorName(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.prior = peyote.prior.Prior(self.test_name)
+        self.prior = tupak.prior.Prior(self.test_name)
 
     def tearDown(self):
         del self.prior
@@ -42,7 +42,7 @@ class TestPriorName(unittest.TestCase):
 class TestPriorLatexLabel(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.prior = peyote.prior.Prior(self.test_name)
+        self.prior = tupak.prior.Prior(self.test_name)
 
     def tearDown(self):
         del self.test_name
@@ -71,15 +71,15 @@ class TestPriorIsFixed(unittest.TestCase):
         pass
 
     def test_is_fixed_parent_class(self):
-        self.prior = peyote.prior.Prior()
+        self.prior = tupak.prior.Prior()
         self.assertFalse(self.prior.is_fixed)
 
     def test_is_fixed_delta_function_class(self):
-        self.prior = peyote.prior.DeltaFunction(peak=0)
+        self.prior = tupak.prior.DeltaFunction(peak=0)
         self.assertTrue(self.prior.is_fixed)
 
     def test_is_fixed_uniform_class(self):
-        self.prior = peyote.prior.Uniform(minimum=0, maximum=10)
+        self.prior = tupak.prior.Uniform(minimum=0, maximum=10)
         self.assertFalse(self.prior.is_fixed)
 
 
@@ -87,28 +87,28 @@ class TestFixMethod(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.prior = peyote.prior.Prior(self.test_name)
+        self.prior = tupak.prior.Prior(self.test_name)
 
     def tearDown(self):
         del self.prior
 
     def test_is_fixed_attribute_after_fixing(self):
         arbitrary_float = 11.3
-        fixed_prior = peyote.prior.fix(self.prior, arbitrary_float)
+        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
         self.assertTrue(fixed_prior.is_fixed)
 
     def test_value_attribute_after_fixing(self):
         arbitrary_float = 11.3
-        fixed_prior = peyote.prior.fix(self.prior, arbitrary_float)
+        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
         self.assertEqual(fixed_prior.peak, arbitrary_float)
 
     def test_prior_attribute_after_fixing(self):
         arbitrary_float = 11.3
-        fixed_prior = peyote.prior.fix(self.prior, arbitrary_float)
-        self.assertIsInstance(fixed_prior, peyote.prior.DeltaFunction)
+        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
+        self.assertIsInstance(fixed_prior, tupak.prior.DeltaFunction)
 
     def test_raising_value_error_if_value_is_none(self):
-        self.assertRaises(ValueError, peyote.prior.fix, self.prior, np.nan)
+        self.assertRaises(ValueError, tupak.prior.fix, self.prior, np.nan)
 
 
 if __name__ == '__main__':
