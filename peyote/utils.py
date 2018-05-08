@@ -284,6 +284,23 @@ def setup_logger(log_level='info'):
     logger.addHandler(stream_handler)
 
 
+def get_progress_bar(module='tqdm'):
+    if module in ['tqdm']:
+        try:
+            from tqdm import tqdm
+        except ImportError:
+            def tqdm(x, *args, **kwargs):
+                return x
+        return tqdm
+    elif module in ['tqdm_notebook']:
+        try:
+            from tqdm import tqdm_notebook as tqdm
+        except ImportError:
+            def tqdm(x, *args, **kwargs):
+                return x
+        return tqdm
+
+
 def spherical_to_cartesian(radius, theta, phi):
     """
     Convert from spherical coordinates to cartesian.

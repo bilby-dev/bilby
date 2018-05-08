@@ -5,6 +5,8 @@ import logging
 import os
 import sys
 import numpy as np
+from chainconsumer import ChainConsumer
+import matplotlib.pyplot as plt
 
 from .result import Result
 from .prior import Prior, fill_priors
@@ -140,6 +142,11 @@ class Sampler(object):
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
+    def log_prior(self, theta):
+        return np.sum(
+            [np.log(self.priors[key].prob(t)) for key, t in
+                zip(self.__search_parameter_keys, theta)])
+
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.parameters[k] = theta[i]
@@ -147,6 +154,24 @@ class Sampler(object):
             return self.likelihood.log_likelihood_ratio()
         else:
             return self.likelihood.log_likelihood()
+
+    def get_random_draw_from_prior(self):
+        """ Get a random draw from the prior distribution
+
+        Returns
+        draw: array_like
+            An ndim-length array of values drawn from the prior. Parameters
+            with delta-function (or fixed) priors are not returned
+
+        """
+
+        draw = np.array([self.priors[key].sample()
+                        for key in self.__search_parameter_keys])
+        if np.isinf(self.log_likelihood(draw)):
+            logging.info('Prior draw {} has inf likelihood'.format(draw))
+        if np.isinf(self.log_prior(draw)):
+            logging.info('Prior draw {} has inf prior'.format(draw))
+        return draw
 
     def run_sampler(self):
         pass
@@ -265,6 +290,53 @@ class Pymultinest(Sampler):
         self.result.logzerr = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result
+
+
+class Ptemcee(Sampler):
+
+    def run_sampler(self):
+        ntemps = self.kwargs.pop('ntemps', 2)
+        nwalkers = self.kwargs.pop('nwalkers', 100)
+        nsteps = self.kwargs.pop('nsteps', 100)
+        nburn = self.kwargs.pop('nburn', 50)
+        ptemcee = self.external_sampler
+        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
+
+        sampler = ptemcee.Sampler(
+            ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
+            logl=self.log_likelihood, logp=self.log_prior,
+            **self.kwargs)
+        pos0 = [[self.get_random_draw_from_prior()
+                 for i in range(nwalkers)]
+                for j in range(ntemps)]
+
+        for result in tqdm(
+                sampler.sample(pos0, iterations=nsteps, adapt=True), total=nsteps):
+            pass
+
+        self.result.sampler_output = np.nan
+        self.result.samples = sampler.chain[0, :, nburn:, :].reshape(
+            (-1, self.ndim))
+        self.result.walkers = sampler.chain[0, :, :, :]
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
+        self.plot_walkers()
+        logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
+        logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
+        return self.result
+
+    def plot_walkers(self, save=True, **kwargs):
+        nwalkers, nsteps, ndim = self.result.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
+        for i, ax in enumerate(axes):
+            ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
+            ax.set_ylabel(self.result.parameter_labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.info('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
