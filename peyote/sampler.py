@@ -167,13 +167,6 @@ class Sampler(object):
 
         draw = np.array([self.priors[key].sample()
                         for key in self.__search_parameter_keys])
-        if ('mass_1' in self.__search_parameter_keys) \
-                and ('mass_2' in self.__search_parameter_keys):
-            i = [self.__search_parameter_keys.index('mass_1')]
-            j = [self.__search_parameter_keys.index('mass_2')]
-            if draw[j] > draw[i]:
-                draw[i], draw[j] = draw[j], draw[i]
-
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
