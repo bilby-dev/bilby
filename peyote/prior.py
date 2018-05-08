@@ -352,7 +352,8 @@ class FromFile(Interped):
 class UniformComovingVolume(FromFile):
 
     def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
-        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, name=name, latex_label=latex_label)
+        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
+                          latex_label=latex_label)
 
 
 def fix(prior, value=None):
