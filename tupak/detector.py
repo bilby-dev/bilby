@@ -508,7 +508,7 @@ def get_inteferometer(
 
     Returns
     -------
-    interferometer: `peyote.detector.Interferometer`
+    interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
 
@@ -603,7 +603,7 @@ def get_inteferometer_with_fake_noise_and_injection(
 
     Returns
     -------
-    interferometer: `peyote.detector.Interferometer`
+    interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
 

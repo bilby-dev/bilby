@@ -334,7 +334,7 @@ class FromFile(Interped):
         try:
             self.id = file_name
             if '/' not in self.id:
-                self.id = '{}/peyote/prior_files/{}'.format(os.getcwd(), self.id)
+                self.id = '{}/tupak/prior_files/{}'.format(os.getcwd(), self.id)
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
