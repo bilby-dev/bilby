@@ -110,7 +110,7 @@ venv.bak/
 
 #.txt files
 
-*.txt
+#*.txt
 
 # Images
 
