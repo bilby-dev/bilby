@@ -10,19 +10,20 @@ from . import utils
 
 
 def lal_binary_black_hole(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_1, a_2, tilt_2, phi_2,
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
         iota, phase, waveform_approximant, reference_frequency, ra, dec,
         geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
     if mass_2 > mass_1:
-        return {'plus': 0, 'cross': 0}
+        return None
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    spin_1x, spin_1y, spin_1z = utils.spherical_to_cartesian(a_1, tilt_1, phi_1)
-    spin_2x, spin_2y, spin_2z = utils.spherical_to_cartesian(a_2, tilt_2, phi_2)
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
+        lalsim.SimInspiralTransformPrecessingNewInitialConditions(iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2,
+                                                                  mass_1, mass_2, reference_frequency, phase)
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0

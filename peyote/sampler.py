@@ -5,11 +5,14 @@ import logging
 import os
 import sys
 import numpy as np
+from chainconsumer import ChainConsumer
+import matplotlib.pyplot as plt
 
 from .result import Result
-from .prior import Prior
+from .prior import Prior, fill_priors
 from . import utils
 from . import prior
+import peyote
 
 
 class Sampler(object):
@@ -140,6 +143,11 @@ class Sampler(object):
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
+    def log_prior(self, theta):
+        return np.sum(
+            [np.log(self.priors[key].prob(t)) for key, t in
+                zip(self.__search_parameter_keys, theta)])
+
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.waveform_generator.parameters[k] = theta[i]
@@ -147,6 +155,24 @@ class Sampler(object):
             return self.likelihood.log_likelihood_ratio()
         else:
             return self.likelihood.log_likelihood()
+
+    def get_random_draw_from_prior(self):
+        """ Get a random draw from the prior distribution
+
+        Returns
+        draw: array_like
+            An ndim-length array of values drawn from the prior. Parameters
+            with delta-function (or fixed) priors are not returned
+
+        """
+
+        draw = np.array([self.priors[key].sample()
+                        for key in self.__search_parameter_keys])
+        if np.isinf(self.log_likelihood(draw)):
+            logging.info('Prior draw {} has inf likelihood'.format(draw))
+        if np.isinf(self.log_prior(draw)):
+            logging.info('Prior draw {} has inf prior'.format(draw))
+        return draw
 
     def run_sampler(self):
         pass
@@ -192,13 +218,29 @@ class Nestle(Sampler):
 
 
 class Dynesty(Sampler):
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = dict(dlogz=0.1, sample='rwalk', walks=100, bound='multi', update_interval=6000)
+        self.__kwargs.update(kwargs)
+        if 'npoints' not in self.__kwargs:
+            for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
+                if equiv in self.__kwargs:
+                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
+        if 'npoints' not in self.__kwargs:
+            self.__kwargs['npoints'] = 10000
+
     def run_sampler(self):
         dynesty = self.external_sampler
         nested_sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested()
+        nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
         out = nested_sampler.results
 
         self.result.sampler_output = out
@@ -218,7 +260,7 @@ class Pymultinest(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        outputfiles_basename = self.outdir + '/pymultinest_{}_out/'.format(self.label)
+        outputfiles_basename = self.outdir + '/pymultinest_{}/'.format(self.label)
         utils.check_directory_exists_and_if_not_mkdir(outputfiles_basename)
         self.__kwargs = dict(importance_nested_sampling=False, resume=True,
                              verbose=True, sampling_efficiency='parameter',
@@ -251,8 +293,55 @@ class Pymultinest(Sampler):
         return self.result
 
 
-def run_sampler(likelihood, priors, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=False, injection_parameters=None,
+class Ptemcee(Sampler):
+
+    def run_sampler(self):
+        ntemps = self.kwargs.pop('ntemps', 2)
+        nwalkers = self.kwargs.pop('nwalkers', 100)
+        nsteps = self.kwargs.pop('nsteps', 100)
+        nburn = self.kwargs.pop('nburn', 50)
+        ptemcee = self.external_sampler
+        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
+
+        sampler = ptemcee.Sampler(
+            ntemps=ntemps, nwalkers=nwalkers, dim=self.ndim,
+            logl=self.log_likelihood, logp=self.log_prior,
+            **self.kwargs)
+        pos0 = [[self.get_random_draw_from_prior()
+                 for i in range(nwalkers)]
+                for j in range(ntemps)]
+
+        for result in tqdm(
+                sampler.sample(pos0, iterations=nsteps, adapt=True), total=nsteps):
+            pass
+
+        self.result.sampler_output = np.nan
+        self.result.samples = sampler.chain[0, :, nburn:, :].reshape(
+            (-1, self.ndim))
+        self.result.walkers = sampler.chain[0, :, :, :]
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
+        self.plot_walkers()
+        logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
+        logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
+        return self.result
+
+    def plot_walkers(self, save=True, **kwargs):
+        nwalkers, nsteps, ndim = self.result.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
+        for i, ax in enumerate(axes):
+            ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
+            ax.set_ylabel(self.result.parameter_labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.info('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
+
+
+def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
+                sampler='nestle', use_ratio=True, injection_parameters=None,
                 **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
@@ -263,8 +352,10 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
         A `Likelihood` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
-        use default priors
-    label, outdir: str
+        use default priors, if None, all priors will be default
+    label: str
+        Name for the run, used in output files
+    outdir: str
         A string used in defining output files
     sampler: str
         The name of the sampler to use - see
@@ -287,6 +378,11 @@ def run_sampler(likelihood, priors, label='label', outdir='outdir',
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
+
+    if priors is None:
+        priors = dict()
+    fill_priors(priors, likelihood.waveform_generator)
+    peyote.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
