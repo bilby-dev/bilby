@@ -349,6 +349,12 @@ class FromFile(Interped):
         return "{}({})".format(prior_name, prior_args)
 
 
+class UniformComovingVolume(FromFile):
+
+    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
+        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, name=name, latex_label=latex_label)
+
+
 def fix(prior, value=None):
     if value is None or np.isnan(value):
         raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
