@@ -7,6 +7,7 @@ comoving volume prior on luminosity distance, the cosmology is WMAP7.
 """
 from __future__ import division, print_function
 import peyote
+import numpy as np
 
 peyote.utils.setup_logger(log_level="info")
 
