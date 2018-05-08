@@ -25,6 +25,8 @@ class Likelihood(object):
     def log_likelihood(self):
         log_l = 0
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
+        if waveform_polarizations is None:
+            return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
             log_l += self.log_likelihood_interferometer(waveform_polarizations, interferometer)
         return log_l.real
@@ -77,7 +79,7 @@ class MarginalizedLikelihood(Likelihood):
                                               for distance in self.distance_array])
 
     def setup_phase_marginalization(self):
-        if 'psi' not in self.prior.keys() or not isinstance(prior['psi'], peyote.prior.Prior):
+        if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], peyote.prior.Prior):
             logging.info('No prior provided for polarization, using default prior.')
             self.prior['psi'] = peyote.prior.create_default_prior('psi')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, 1e5),
@@ -108,45 +110,30 @@ class MarginalizedLikelihood(Likelihood):
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
-            if self.time_marginalization:
-                signal_times_data += np.conj(signal_ifo) * interferometer.data\
-                                     / interferometer.power_spectral_density_array
-            else:
-                matched_filter_snr_squared += peyote.utils.matched_filter_snr_squared(
-                    signal_ifo, interferometer, self.waveform_generator.time_duration)
-            optimal_snr_squared += peyote.utils.optimal_snr_squared(signal_ifo, interferometer,
-                                                                    self.waveform_generator.time_duration)
+            matched_filter_snr_squared += peyote.utils.matched_filter_snr_squared(
+                signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-        if self.time_marginalization:
-            matched_filter_snr_squared = np.abs(np.fft.ifft(signal_times_data))\
-                                         * 4 / self.waveform_generator.time_duration
+            optimal_snr_squared += peyote.utils.optimal_snr_squared(
+                signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-        if self.phase_marginalization and not self.distance_marginalization and not self.time_marginalization:
+        if self.phase_marginalization:
             matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
 
-            log_l = matched_filter_snr_squared - optimal_snr_squared / 2
+        else:
+            matched_filter_snr_squared = matched_filter_snr_squared.real
 
-        elif self.distance_marginalization and not self.phase_marginalization and not self.time_marginalization:
-            log_l = logsumexp(matched_filter_snr_squared * self.waveform_generator.parameters['luminosity_distance']
-                              / self.distance_array
-                              - optimal_snr_squared * self.waveform_generator.parameters['luminosity_distance']**2
-                              / self.distance_array**2 / 2, b=self.distance_prior_array * self.delta_distance)
+        if self.distance_marginalization:
 
-        elif self.distance_marginalization and self.phase_marginalization and not self.time_marginalization:
-            log_l = logsumexp(self.bessel_function_interped(abs(matched_filter_snr_squared)
-                                                            * self.waveform_generator.parameters['luminosity_distance']
-                                                            / self.distance_array)
-                              - optimal_snr_squared * self.waveform_generator.parameters['luminosity_distance']**2
-                              / self.distance_array**2 / 2, b=self.distance_prior_array * self.delta_distance)
+            optimal_snr_squared_array = optimal_snr_squared \
+                                        * self.waveform_generator.parameters['luminosity_distance']**2 \
+                                        / self.distance_array**2
 
-        elif self.distance_marginalization and self.phase_marginalization and self.time_marginalization:
-            log_l = logsumexp(np.array([sum(self.bessel_function_interped(
-                matched_filter_snr_squared * self.waveform_generator.parameters['luminosity_distance']
-                / distance)) for distance in self.distance_array])
-                              - optimal_snr_squared * self.waveform_generator.parameters['luminosity_distance']**2
-                              / self.distance_array**2 / 2, b=self.distance_prior_array * self.delta_distance)\
-                    - np.log(self.waveform_generator.sampling_frequency)
-            print(log_l)
+            matched_filter_snr_squared_array = matched_filter_snr_squared\
+                                               * self.waveform_generator.parameters['luminosity_distance']\
+                                               / self.distance_array
+
+            log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
+                              b=self.distance_prior_array * self.delta_distance)
         else:
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
 
