@@ -476,7 +476,8 @@ GEO600 = get_empty_interferometer('GEO600')
 
 def get_inteferometer(
         name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-        cache=True, outdir='outdir', plot=True, filter_freq=1024, **kwargs):
+        cache=True, outdir='outdir', plot=True, filter_freq=1024,
+        raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time
@@ -515,10 +516,11 @@ def get_inteferometer(
 
     strain = get_open_strain_data(
             name, center_time-T/2, center_time+T/2, outdir=outdir, cache=cache,
-            **kwargs)
+            raw_data_file=raw_data_file, **kwargs)
 
     strain_psd = get_open_strain_data(
             name, center_time+psd_offset, center_time+psd_offset+psd_duration,
+            raw_data_file=raw_data_file,
             outdir=outdir, cache=cache, **kwargs)
 
     sampling_frequency = int(strain.sample_rate.value)
@@ -635,9 +637,18 @@ def get_inteferometer_with_fake_noise_and_injection(
     return interferometer
 
 
-def get_open_strain_data(name, t1, t2, outdir, cache=False, **kwargs):
+def get_open_strain_data(name, t1, t2, outdir, cache=False, raw_data_file=None,
+                         **kwargs):
     filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
-    if os.path.isfile(filename) and cache:
+    if raw_data_file:
+        logging.info('Attempting to use raw_data_file {}'.format(raw_data_file))
+        strain = TimeSeries.read(raw_data_file)
+        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
+            logging.info('Using supplied raw data file')
+            strain = strain.crop(t1, t2)
+        else:
+            raise ValueError('Supplied file does not contain requested data')
+    elif os.path.isfile(filename) and cache:
         logging.info('Using cached data from {}'.format(filename))
         strain = TimeSeries.read(filename)
     else:
@@ -646,4 +657,3 @@ def get_open_strain_data(name, t1, t2, outdir, cache=False, **kwargs):
         logging.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
-

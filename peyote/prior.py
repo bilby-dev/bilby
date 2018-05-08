@@ -321,6 +321,12 @@ class Interped(Prior):
         Prior.test_valid_for_rescaling(val)
         return self.inverse_cumulative_distribution(val)
 
+    def __repr__(self):
+        prior_name = self.__class__.__name__
+        prior_args = ', '.join(
+            ['{}={}'.format(key, self.__dict__[key]) for key in ['xx', 'yy', '_Prior__latex_label']])
+        return "{}({})".format(prior_name, prior_args)
+
 
 class FromFile(Interped):
 
@@ -336,13 +342,24 @@ class FromFile(Interped):
             logging.warning("Format should be:")
             logging.warning(r"x\tp(x)")
 
+    def __repr__(self):
+        prior_name = self.__class__.__name__
+        prior_args = ', '.join(
+            ['{}={}'.format(key, self.__dict__[key]) for key in ['id', 'minimum', 'maximum', '_Prior__latex_label']])
+        return "{}({})".format(prior_name, prior_args)
+
+
+class UniformComovingVolume(FromFile):
+
+    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
+        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
+                          latex_label=latex_label)
+
 
 def fix(prior, value=None):
     if value is None or np.isnan(value):
         raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
-    prior = DeltaFunction(name=prior.name,
-                             latex_label=prior.latex_label,
-                             peak=value)
+    prior = DeltaFunction(name=prior.name, latex_label=prior.latex_label, peak=value)
     return prior
 
 
@@ -454,7 +471,7 @@ def write_priors_to_file(priors, outdir):
     outdir: str
         output directory
     """
-    if outdir[-1]!="/":
+    if outdir[-1] != "/":
         outdir += "/"
     prior_file = outdir + "prior.txt"
     print("Writing priors to {}".format(prior_file))

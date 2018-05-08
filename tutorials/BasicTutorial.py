@@ -1,5 +1,11 @@
-import numpy as np
-import pylab as plt
+#!/bin/python
+"""
+Tutorial to demonstrate running parameter estimation on a reduced parameter space for an injected signal.
+
+This example estimates the masses using a uniform prior in both component masses and distance using a uniform in
+comoving volume prior on luminosity distance, the cosmology is WMAP7.
+"""
+from __future__ import division, print_function
 import peyote
 
 peyote.utils.setup_logger(log_level="info")
@@ -23,28 +29,20 @@ hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
 IFOs = [peyote.detector.get_inteferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters,
-    sampling_frequency=sampling_frequency, time_duration=time_duration, outdir=outdir)
-    for name in ['H1', 'L1', 'V1']]
+    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
+    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
 # Set up prior
 priors = dict()
-priors['luminosity_distance'] = peyote.prior.FromFile(file_name='dL_MDC.txt', minimum=500, maximum=30000,
+# These parameters will not be sampled
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
+    priors[key] = injection_parameters[key]
+priors['luminosity_distance'] = peyote.prior.FromFile(file_name='comoving.txt', minimum=500, maximum=5000,
                                                       name='luminosity_distance')
-priors['geocent_time'] = peyote.prior.Uniform(minimum=injection_parameters['geocent_time'] - 0.1,
-                                              maximum=injection_parameters['geocent_time'] + 0.1, name='geocent_time')
-
-# Set up likelihood
-likelihood = peyote.likelihood.MarginalizedLikelihood(IFOs, waveform_generator, prior=priors,
-                                                      distance_marginalization=True, phase_marginalization=True,
-                                                      time_marginalization=False)
-# likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # Run sampler
-result = peyote.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
-                                    label='BasicTutorial', use_ratio=True, verbose=True,
-                                    injection_parameters=injection_parameters, outdir=outdir, walks=25,
-                                    npoints=1000)
+result = peyote.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
+                                    injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
 result.plot_corner()
 result.plot_walks()
 result.plot_distributions()
