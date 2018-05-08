@@ -8,14 +8,16 @@ comoving volume prior on luminosity distance, the cosmology is WMAP7.
 from __future__ import division, print_function
 import peyote
 
-peyote.utils.setup_logger()
+peyote.utils.setup_logger(log_level="info")
 
 time_duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
 
-injection_parameters = dict(mass_1=36., mass_2=29., a_1=0, a_2=0, tilt_1=0, tilt_2=0, phi_12=0, phi_jl=0,
-                            luminosity_distance=2500., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
+np.random.seed(170809)
+
+injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
+                            luminosity_distance=4000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
@@ -29,9 +31,6 @@ hf_signal = waveform_generator.frequency_domain_strain()
 IFOs = [peyote.detector.get_inteferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
-
-# Set up likelihood
-likelihood = peyote.likelihood.Likelihood(IFOs, waveform_generator)
 
 # Set up prior
 priors = dict()
