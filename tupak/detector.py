@@ -49,6 +49,8 @@ class Interferometer(object):
         self.power_spectral_density = power_spectral_density
         self.data = np.array([])
         self.frequency_array = []
+        self.sampling_frequency = None
+        self.duration = None
 
     @property
     def latitude(self):
@@ -292,11 +294,14 @@ class Interferometer(object):
             logging.info(
                 'Setting {} data using noise realization from provided'
                 'power_spectal_density'.format(self.name))
-            frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
-                                                                                                     duration)
+            frequency_domain_strain, frequencies = \
+                self.power_spectral_density.get_noise_realisation(
+                    sampling_frequency, duration)
         else:
             raise ValueError("No method to set data provided.")
 
+        self.sampling_frequency = sampling_frequency
+        self.duration = duration
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
 
@@ -474,7 +479,7 @@ V1 = get_empty_interferometer('V1')
 GEO600 = get_empty_interferometer('GEO600')
 
 
-def get_inteferometer(
+def get_interferometer(
         name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
         cache=True, outdir='outdir', plot=True, filter_freq=1024,
         raw_data_file=None, **kwargs):
@@ -572,10 +577,10 @@ def get_inteferometer(
         ax.legend(loc='best')
         fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
-    return interferometer, sampling_frequency, time_duration
+    return interferometer
 
 
-def get_inteferometer_with_fake_noise_and_injection(
+def get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations, injection_parameters, sampling_frequency=4096, time_duration=4,
         outdir='outdir', plot=True, save=True):
     """
