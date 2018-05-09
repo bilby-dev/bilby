@@ -3,7 +3,7 @@
 Tutorial to demonstrate running parameter estimation on a reduced parameter space for an injected signal.
 
 This example estimates the masses using a uniform prior in both component masses and distance using a uniform in
-comoving volume prior on luminosity distance, the cosmology is WMAP7.
+comoving volume prior on luminosity distance between luminosity distances of 100Mpc and 5Gpc, the cosmology is WMAP7.
 """
 from __future__ import division, print_function
 import tupak
@@ -29,7 +29,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.detector.get_inteferometer_with_fake_noise_and_injection(
+IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
@@ -38,11 +38,13 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = tupak.prior.FromFile(file_name='comoving.txt', minimum=500, maximum=5000,
-                                                     name='luminosity_distance')
+priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
+
+# Initialise Likelihood
+likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
+result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100, walks=10,
                                    injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
 result.plot_corner()
 result.plot_walks()
