@@ -64,10 +64,14 @@ class Prior(object):
             return '$m_1$'
         elif self.name == 'mass_2':
             return '$m_2$'
-        elif self.name == 'mchirp':
+        elif self.name == 'chirp_mass':
             return '$\mathcal{M}$'
-        elif self.name == 'q':
+        elif self.name == 'total_mass':
+            return '$M$'
+        elif self.name == 'mass_ratio':
             return '$q$'
+        elif self.name == 'symmetric_mass_ratio':
+            return '$\eta$'
         elif self.name == 'a_1':
             return '$a_1$'
         elif self.name == 'a_2':
@@ -76,6 +80,10 @@ class Prior(object):
             return '$\\theta_1$'
         elif self.name == 'tilt_2':
             return '$\\theta_2$'
+        elif self.name == 'cos_tilt_1':
+            return '$\cos\\theta_1$'
+        elif self.name == 'cos_tilt_2':
+            return '$\cos\\theta_2$'
         elif self.name == 'phi_12':
             return '$\Delta\phi$'
         elif self.name == 'phi_jl':
@@ -88,6 +96,8 @@ class Prior(object):
             return '$\mathrm{RA}$'
         elif self.name == 'iota':
             return '$\iota$'
+        elif self.name == 'cos_iota':
+            return '$\cos\iota$'
         elif self.name == 'psi':
             return '$\psi$'
         elif self.name == 'phase':
@@ -368,10 +378,14 @@ def create_default_prior(name):
         prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
     elif name == 'mass_2':
         prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
-    elif name == 'mchirp':
+    elif name == 'chirp_mass':
         prior = Uniform(name=name, minimum=5, maximum=100)
-    elif name == 'q':
-        prior = Uniform(name=name, minimum=0, maximum=1)
+    elif name == 'total_mass':
+        prior = Uniform(name=name, minimum=10, maximum=200)
+    elif name == 'mass_ratio':
+        prior = Uniform(name=name, minimum=0.125, maximum=1)
+    elif name == 'symmetric_mass_ratio':
+        prior = Uniform(name=name, minimum=8 / 81, maximum=0.25)
     elif name == 'a_1':
         prior = Uniform(name=name, minimum=0, maximum=0.8)
     elif name == 'a_2':
@@ -380,6 +394,10 @@ def create_default_prior(name):
         prior = Sine(name=name)
     elif name == 'tilt_2':
         prior = Sine(name=name)
+    elif name == 'cos_tilt_1':
+        prior = Uniform(name=name, minimum=-1, maximum=1)
+    elif name == 'cos_tilt_2':
+        prior = Uniform(name=name, minimum=-1, maximum=1)
     elif name == 'phi_12':
         prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'phi_jl':
@@ -392,6 +410,8 @@ def create_default_prior(name):
         prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'iota':
         prior = Sine(name=name)
+    elif name == 'cos_iota':
+        prior = Uniform(name=name, minimum=-1, maximum=1)
     elif name == 'psi':
         prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'phase':
@@ -422,7 +442,7 @@ def parse_keys_to_parameters(keys):
     return parameters
 
 
-def fill_priors(prior, waveform_generator):
+def fill_priors(prior, waveform_generator=None, parameters=None):
     """
     Fill dictionary of priors based on required parameters for waveform generator
 
@@ -434,6 +454,9 @@ def fill_priors(prior, waveform_generator):
         dictionary of prior objects and floats
     waveform_generator: WaveformGenerator
         waveform generator to be used for inference
+    parameters: list
+        list of parameters to be sampled in, this can override the default
+        priors for the waveform generator
     """
     bad_keys = []
     for key in prior:
@@ -447,17 +470,71 @@ def fill_priors(prior, waveform_generator):
             logging.warning("If required the default prior will be used.")
             bad_keys.append(key)
 
-    missing_keys = set(waveform_generator.parameters) - set(prior.keys())
+    if parameters is not None:
+        for parameter in parameters:
+            prior[parameter] = create_default_prior(parameter)
 
-    for missing_key in missing_keys:
-        prior[missing_key] = create_default_prior(missing_key)
-        if prior[missing_key] is None:
-            logging.warning("No default prior found for unspecified variable {}.".format(missing_key))
-            logging.warning("This variable will NOT be sampled.")
-            bad_keys.append(missing_key)
+    if waveform_generator is not None:
+        missing_keys = set(waveform_generator.parameters) - set(prior.keys())
+
+        for missing_key in missing_keys:
+            if not test_redundancy(missing_key, prior):
+                prior[missing_key] = create_default_prior(missing_key)
+                if prior[missing_key] is None:
+                    logging.warning("No default prior found for unspecified variable {}.".format(missing_key))
+                    logging.warning("This variable will NOT be sampled.")
+                    bad_keys.append(missing_key)
 
     for key in bad_keys:
         prior.pop(key)
+
+
+def test_redundancy(key, prior):
+    """
+    Test whether adding the key would add be redundant.
+
+    Parameters
+    ----------
+    key: str
+        The string to test.
+    prior: dict
+        Current prior dictionary.
+
+    Return
+    ------
+    redundant: bool
+        Whether the key is redundant
+    """
+    redundant = False
+    mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
+    spin_magnitude_parameters = {'a_1', 'a_2'}
+    spin_tilt_parameters = {'tilt_1', 'tilt_2', 'cos_tilt_1', 'cos_tilt_2'}
+    spin_azimuth_parameters = {'phi_1', 'phi_2', 'phi_12', 'phi_jl'}
+    inclination_parameters = {'iota', 'cos_iota'}
+    distance_parameters = {'luminosity_distance', 'comoving_distance', 'redshift'}
+
+    for parameter_set in [mass_parameters, spin_magnitude_parameters, spin_tilt_parameters, spin_azimuth_parameters]:
+        if key in parameter_set:
+            if len(parameter_set.intersection(prior.keys())) > 2:
+                redundant = True
+                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    parameter_set.intersection(prior.keys())))
+                break
+            elif len(parameter_set.intersection(prior.keys())) == 2:
+                redundant = True
+                break
+    for parameter_set in [inclination_parameters, distance_parameters]:
+        if key in parameter_set:
+            if len(parameter_set.intersection(prior.keys())) > 1:
+                redundant = True
+                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    parameter_set.intersection(prior.keys())))
+                break
+            elif len(parameter_set.intersection(prior.keys())) == 1:
+                redundant = True
+                break
+
+    return redundant
 
 
 def write_priors_to_file(priors, outdir):
