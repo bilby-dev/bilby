@@ -29,7 +29,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.detector.get_inteferometer_with_fake_noise_and_injection(
+IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 

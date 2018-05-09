@@ -14,8 +14,8 @@ outdir = 'outdir'
 label = 'GW150914'
 time_of_event = 1126259462.422
 
-H1, sampling_frequency, time_duration = tupak.detector.get_inteferometer('H1', time_of_event, version=1, outdir=outdir)
-L1, _, _ = tupak.detector.get_inteferometer('L1', time_of_event, version=1, outdir=outdir)
+H1 = tupak.detector.get_interferometer('H1', time_of_event, version=1, outdir=outdir)
+L1 = tupak.detector.get_interferometer('L1', time_of_event, version=1, outdir=outdir)
 interferometers = [H1, L1]
 
 # Define the prior
@@ -27,7 +27,7 @@ prior['luminosity_distance'] = tupak.prior.PowerLaw(alpha=2, minimum=100, maximu
 
 # Create the waveform generator
 waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    tupak.source.lal_binary_black_hole, sampling_frequency, time_duration,
+    tupak.source.lal_binary_black_hole, H1.sampling_frequency, H1.duration,
     parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
 
 # Define a likelihood
