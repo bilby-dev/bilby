@@ -134,11 +134,12 @@ class Sampler(object):
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
-        required_keys = self.priors
-        unmatched_keys = [r for r in required_keys if r not in self.likelihood.waveform_generator.parameters]
-        if len(unmatched_keys) > 0:
-            raise KeyError(
-                "Source model does not contain keys {}".format(unmatched_keys))
+        for key in self.priors:
+            self.likelihood.waveform_generator.parameters[key] = self.priors[key].sample()
+        try:
+            self.likelihood.waveform_generator.frequency_domain_strain()
+        except TypeError:
+            raise TypeError('Waveform generation failed. Have you definitely specified all the parameters?')
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -342,7 +343,7 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-                **sampler_kwargs):
+                sampling_parameters=None, **sampler_kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -381,7 +382,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    fill_priors(priors, likelihood.waveform_generator)
+    fill_priors(priors, likelihood.waveform_generator, sampling_parameters)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
@@ -389,6 +390,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
                                 **sampler_kwargs)
+
+        likelihood.waveform_generator.search_parameter_keys = [
+            key for key in priors if not isinstance(priors[key], tupak.prior.DeltaFunction)]
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
