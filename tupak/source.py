@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+import numpy as np
+
 try:
     import lalsimulation as lalsim
 except ImportError:
@@ -9,10 +11,87 @@ except ImportError:
 from . import utils
 
 
+def convert_binary_black_hole_parameters(parameters, search_keys):
+    """
+    Convert parameters we have into parameters we need.
+
+    This is defined by the parameters of tupak.source.lal_binary_black_hole()
+
+
+    Mass: mass_1, mass_2
+    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
+    Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
+
+    This involves popping a lot of things from parameters.
+    The keys in ignored_keys should be popped after evaluating the waveform.
+
+    Parameters
+    ----------
+    parameters: dict
+        dictionary of parameter values to convert into the required parameters
+    search_keys: list
+        parameters which are needed for the waveform generation
+
+    Return
+    ------
+    ignored_keys: list
+        keys which are added to parameters during function call
+    """
+
+    ignored_keys = []
+
+    if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
+        if 'chirp_mass' in parameters.keys():
+            if 'total_mass' in parameters.keys():
+                parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
+                parameters.pop('total_mass')
+            if 'symmetric_mass_ratio' in parameters.keys():
+                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
+                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in parameters.keys():
+                parameters['mass_1'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**0.2\
+                                       / parameters['mass_ratio']**0.6
+                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters.pop('mass_ratio')
+            parameters.pop('chirp_mass')
+            ignored_keys.append('mass_1')
+            ignored_keys.append('mass_2')
+        elif 'total_mass' in parameters.keys():
+            if 'symmetric_mass_ratio' in parameters.keys():
+                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
+                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in parameters.keys():
+                parameters['chirp_mass'] = parameters['total_mass'] * parameters['symmetric_mass_ratio']**(3 / 5)
+                parameters.pop('total_mass')
+                parameters['mass_1'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**0.2 \
+                                       / parameters['mass_ratio']**0.6
+                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters.pop('mass_ratio')
+                parameters.pop('chirp_mass')
+            ignored_keys.append('mass_1')
+            ignored_keys.append('mass_2')
+
+    if 'cos_tilt_1' in parameters.keys():
+        ignored_keys.append('tilt_1')
+        parameters['tilt_1'] = np.arccos(parameters['cos_tilt_1'])
+        parameters.pop('cos_tilt_1')
+    if 'cos_tilt_2' in parameters.keys():
+        ignored_keys.append('tilt_2')
+        parameters['tilt_2'] = np.arccos(parameters['cos_tilt_2'])
+        parameters.pop('cos_tilt_2')
+
+    if 'cos_iota' in parameters.keys():
+        parameters['iota'] = np.arccos(parameters['cos_iota'])
+        parameters.pop('cos_iota')
+
+    return ignored_keys
+
+
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
-        iota, phase, waveform_approximant, reference_frequency, ra, dec,
-        geocent_time, psi):
+        iota, phase, waveform_approximant, reference_frequency, ra, dec, geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
     if mass_2 > mass_1:
         return None
