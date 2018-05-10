@@ -43,33 +43,34 @@ def convert_binary_black_hole_parameters(parameters, search_keys):
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
         if 'chirp_mass' in parameters.keys():
             if 'total_mass' in parameters.keys():
+                # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
                 parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
-                parameters.pop('total_mass')
+                parameters.pop('chirp_mass')
             if 'symmetric_mass_ratio' in parameters.keys():
+                # symmetric_mass_ratio to mass_ratio
                 temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
                 parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
                 parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
-                parameters['mass_1'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**0.2\
-                                       / parameters['mass_ratio']**0.6
+                # total_mass, mass_ratio to component masses
+                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
                 parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters.pop('total_mass')
                 parameters.pop('mass_ratio')
-            parameters.pop('chirp_mass')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
         elif 'total_mass' in parameters.keys():
             if 'symmetric_mass_ratio' in parameters.keys():
+                # symmetric_mass_ratio to mass_ratio
                 temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
                 parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
                 parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
-                parameters['chirp_mass'] = parameters['total_mass'] * parameters['symmetric_mass_ratio']**(3 / 5)
-                parameters.pop('total_mass')
-                parameters['mass_1'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**0.2 \
-                                       / parameters['mass_ratio']**0.6
+                # total_mass, mass_ratio to component masses
+                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
                 parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters.pop('total_mass')
                 parameters.pop('mass_ratio')
-                parameters.pop('chirp_mass')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
