@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
 
     # Run a script to produce standard data
     msd = {}  # A dictionary of variables saved in make_standard_data.py
-    execfile(dir_path + '/tutorials/make_standard_data.py', msd)
+    execfile(dir_path + '/test/make_standard_data.py', msd)
 
     @classmethod
     def setUpClass(self):
@@ -39,7 +39,7 @@ class Test(unittest.TestCase):
 
         # Load in the saved standard data
         frequencies_saved, hf_real_saved, hf_imag_saved = np.loadtxt(
-            self.dir_path + '/tutorials/standard_data.txt').T
+            self.dir_path + '/test/standard_data.txt').T
         hf_signal_and_noise_saved = hf_real_saved + 1j * hf_imag_saved
 
         self.assertTrue(np.array_equal(self.msd['frequencies'], frequencies_saved))
