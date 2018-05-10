@@ -36,7 +36,9 @@ prior['dec'] = 0
 prior['psi'] = 0
 
 waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    sine_gaussian, H1.sampling_frequency, H1.duration)
+    frequency_domain_source_model=sine_gaussian,
+    sampling_frequency=H1.sampling_frequency,
+    time_duration=H1.duration)
 
 likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
 
