@@ -12,7 +12,7 @@ from .result import Result
 from .prior import Prior, fill_priors
 from . import utils
 from . import prior
-import peyote
+import tupak
 
 
 class Sampler(object):
@@ -348,7 +348,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Parameters
     ----------
-    likelihood: `peyote.likelihood.Likelihood`
+    likelihood: `tupak.likelihood.Likelihood`
         A `Likelihood` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
@@ -359,7 +359,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         A string used in defining output files
     sampler: str
         The name of the sampler to use - see
-        `peyote.sampler.get_implemented_samplers()` for a list of available
+        `tupak.sampler.get_implemented_samplers()` for a list of available
         samplers
     use_ratio: bool (False)
         If True, use the likelihood's loglikelihood_ratio, rather than just
@@ -382,7 +382,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if priors is None:
         priors = dict()
     fill_priors(priors, likelihood.waveform_generator)
-    peyote.prior.write_priors_to_file(priors, outdir)
+    tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

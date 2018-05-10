@@ -7,15 +7,15 @@ import pylab as plt
 
 import dynesty.plotting as dyplot
 import corner
-import peyote
+import tupak
 
-peyote.utils.setup_logger()
+tupak.utils.setup_logger()
 
 
 def generate_and_plot_data(waveform_generator, injection_parameters):
     hf_signal = waveform_generator.frequency_domain_strain()
     # Simulate the data in H1
-    H1 = peyote.detector.H1
+    H1 = tupak.detector.H1
     H1_hf_noise, frequencies = H1.power_spectral_density. \
         get_noise_realisation(waveform_generator.sampling_frequency,
                               waveform_generator.time_duration)
@@ -25,7 +25,7 @@ def generate_and_plot_data(waveform_generator, injection_parameters):
     H1.inject_signal(hf_signal, injection_parameters)
     H1.set_spectral_densities()
     # Simulate the data in L1
-    L1 = peyote.detector.L1
+    L1 = tupak.detector.L1
     L1_hf_noise, frequencies = L1.power_spectral_density. \
         get_noise_realisation(waveform_generator.sampling_frequency,
                               waveform_generator.time_duration)
@@ -70,22 +70,22 @@ injection_parameters = dict(amplitude=1e-21,
                             geocent_time=1126259642.413,
                             psi=2.659)
 
-sampling_parameters = peyote.prior.parse_floats_to_fixed_priors(injection_parameters)
+sampling_parameters = tupak.prior.parse_floats_to_fixed_priors(injection_parameters)
 
-wg = peyote.waveform_generator.WaveformGenerator(
+wg = tupak.waveform_generator.WaveformGenerator(
      frequency_domain_source_model=gaussian_frequency_domain_strain,
      parameters=injection_parameters
      )
 
 IFOs = generate_and_plot_data(wg, injection_parameters)
 
-likelihood = peyote.likelihood.Likelihood(IFOs, wg)
+likelihood = tupak.likelihood.Likelihood(IFOs, wg)
 
-sampling_parameters['amplitude'] = peyote.prior.Uniform(minimum=0.9 * 1e-21, maximum=1.1 * 1e-21)
-sampling_parameters['sigma'] = peyote.prior.Uniform(minimum=0, maximum=10)
-sampling_parameters['mu'] = peyote.prior.Uniform(minimum=50, maximum=200)
+sampling_parameters['amplitude'] = tupak.prior.Uniform(minimum=0.9 * 1e-21, maximum=1.1 * 1e-21)
+sampling_parameters['sigma'] = tupak.prior.Uniform(minimum=0, maximum=10)
+sampling_parameters['mu'] = tupak.prior.Uniform(minimum=50, maximum=200)
 
-result = peyote.sampler.run_sampler(likelihood, priors=sampling_parameters, verbose=True)
+result = tupak.sampler.run_sampler(likelihood, priors=sampling_parameters, verbose=True)
 
 #
 # Make some nice plots

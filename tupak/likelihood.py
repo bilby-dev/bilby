@@ -6,7 +6,7 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0, i0e
 from scipy.interpolate import interp1d
-import peyote
+import tupak
 import logging
 
 
@@ -71,7 +71,7 @@ class MarginalizedLikelihood(Likelihood):
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
-            self.prior['luminosity_distance'] = peyote.prior.create_default_prior('luminosity_distance')
+            self.prior['luminosity_distance'] = tupak.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, 1e4)
         self.delta_distance = self.distance_array[1] - self.distance_array[0]
@@ -79,9 +79,9 @@ class MarginalizedLikelihood(Likelihood):
                                               for distance in self.distance_array])
 
     def setup_phase_marginalization(self):
-        if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], peyote.prior.Prior):
+        if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], tupak.prior.Prior):
             logging.info('No prior provided for polarization, using default prior.')
-            self.prior['psi'] = peyote.prior.create_default_prior('psi')
+            self.prior['psi'] = tupak.prior.create_default_prior('psi')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, 1e5),
                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, 1e5)])
                                                  + np.linspace(0, 1e6, 1e5),
@@ -90,9 +90,9 @@ class MarginalizedLikelihood(Likelihood):
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= peyote.utils.noise_weighted_inner_product(interferometer.data, interferometer.data,
-                                                               interferometer.power_spectral_density_array,
-                                                               self.waveform_generator.time_duration) / 2
+            log_l -= tupak.utils.noise_weighted_inner_product(interferometer.data, interferometer.data,
+                                                              interferometer.power_spectral_density_array,
+                                                              self.waveform_generator.time_duration) / 2
         return log_l.real
 
     def log_likelihood_ratio(self):
@@ -110,10 +110,10 @@ class MarginalizedLikelihood(Likelihood):
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
-            matched_filter_snr_squared += peyote.utils.matched_filter_snr_squared(
+            matched_filter_snr_squared += tupak.utils.matched_filter_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-            optimal_snr_squared += peyote.utils.optimal_snr_squared(
+            optimal_snr_squared += tupak.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
         if self.phase_marginalization:

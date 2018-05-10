@@ -1,6 +1,6 @@
 from __future__ import division, print_function, absolute_import
 import numpy as np
-import peyote
+import tupak
 import logging
 import os
 from scipy.interpolate import interp1d
@@ -49,6 +49,8 @@ class Interferometer(object):
         self.power_spectral_density = power_spectral_density
         self.data = np.array([])
         self.frequency_array = []
+        self.sampling_frequency = None
+        self.duration = None
 
     @property
     def latitude(self):
@@ -213,11 +215,11 @@ class Interferometer(object):
         """
         signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
         self.data += signal_ifo
-        opt_snr = np.sqrt(peyote.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                           time_duration=1 / (self.frequency_array[1]
+        opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                          time_duration=1 / (self.frequency_array[1]
                                                                               - self.frequency_array[0])).real)
-        mf_snr = np.sqrt(peyote.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                 time_duration=1 / (self.frequency_array[1]
+        mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                time_duration=1 / (self.frequency_array[1]
                                                                                     - self.frequency_array[0])).real)
         logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
             opt_snr, mf_snr, self.name))
@@ -292,11 +294,14 @@ class Interferometer(object):
             logging.info(
                 'Setting {} data using noise realization from provided'
                 'power_spectal_density'.format(self.name))
-            frequency_domain_strain, frequencies = self.power_spectral_density.get_noise_realisation(sampling_frequency,
-                                                                                                     duration)
+            frequency_domain_strain, frequencies = \
+                self.power_spectral_density.get_noise_realisation(
+                    sampling_frequency, duration)
         else:
             raise ValueError("No method to set data provided.")
 
+        self.sampling_frequency = sampling_frequency
+        self.duration = duration
         self.data = frequency_domain_strain
         self.frequency_array = frequencies
 
@@ -474,7 +479,7 @@ V1 = get_empty_interferometer('V1')
 GEO600 = get_empty_interferometer('GEO600')
 
 
-def get_inteferometer(
+def get_interferometer(
         name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
         cache=True, outdir='outdir', plot=True, filter_freq=1024,
         raw_data_file=None, **kwargs):
@@ -508,7 +513,7 @@ def get_inteferometer(
 
     Returns
     -------
-    interferometer: `peyote.detector.Interferometer`
+    interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
 
@@ -572,10 +577,10 @@ def get_inteferometer(
         ax.legend(loc='best')
         fig.savefig('{}/{}_frequency_domain_data.png'.format(outdir, name))
 
-    return interferometer, sampling_frequency, time_duration
+    return interferometer
 
 
-def get_inteferometer_with_fake_noise_and_injection(
+def get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations, injection_parameters, sampling_frequency=4096, time_duration=4,
         outdir='outdir', plot=True, save=True):
     """
@@ -603,7 +608,7 @@ def get_inteferometer_with_fake_noise_and_injection(
 
     Returns
     -------
-    interferometer: `peyote.detector.Interferometer`
+    interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
     """
 

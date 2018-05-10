@@ -3,12 +3,13 @@
 Tutorial to demonstrate running parameter estimation on a reduced parameter space for an injected signal.
 
 This example estimates the masses using a uniform prior in both component masses and distance using a uniform in
-comoving volume prior on luminosity distance, the cosmology is WMAP7.
+comoving volume prior on luminosity distance between luminosity distances of 100Mpc and 5Gpc, the cosmology is WMAP7.
 """
 from __future__ import division, print_function
-import peyote
+import tupak
+import numpy as np
 
-peyote.utils.setup_logger(log_level="info")
+tupak.utils.setup_logger(log_level="info")
 
 time_duration = 4.
 sampling_frequency = 2048.
@@ -21,14 +22,14 @@ injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = peyote.waveform_generator.WaveformGenerator(
+waveform_generator = tupak.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, time_duration=time_duration,
-    frequency_domain_source_model=peyote.source.lal_binary_black_hole,
+    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [peyote.detector.get_inteferometer_with_fake_noise_and_injection(
+IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
@@ -37,12 +38,14 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = peyote.prior.FromFile(file_name='comoving.txt', minimum=500, maximum=5000,
-                                                      name='luminosity_distance')
+priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
+
+# Initialise Likelihood
+likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
-result = peyote.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
-                                    injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
+result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100, walks=10,
+                                   injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
 result.plot_corner()
 result.plot_walks()
 result.plot_distributions()

@@ -1,8 +1,8 @@
-[![pipeline status](https://git.ligo.org/Monash/peyote/badges/master/pipeline.svg)](https://git.ligo.org/Monash/peyote/commits/master)
-[![coverage report](https://monash.docs.ligo.org/peyote/coverage.svg)](
-https://monash.docs.ligo.org/peyote/)
+[![pipeline status](https://git.ligo.org/Monash/tupak/badges/master/pipeline.svg)](https://git.ligo.org/Monash/tupak/commits/master)
+[![coverage report](https://monash.docs.ligo.org/tupak/coverage.svg)](
+https://monash.docs.ligo.org/tupak/)
 
-# PEYOte
+# Tupak
 
 Fulfilling all your GW dreams.
 
@@ -11,19 +11,19 @@ Fulfilling all your GW dreams.
 In the following, we assume you have installed
 [pip](https://pip.pypa.io/en/stable/installing/) and [git](https://git-scm.com/).
 
-### Install peyote
-Clone the repository, install the requirements, and then install `peyote`.
+### Install tupak
+Clone the repository, install the requirements, and then install `tupak`.
 ```bash
-$ git clone git@git.ligo.org:Monash/peyote.git
-$ cd peyote/
+$ git clone git@git.ligo.org:Monash/tupak.git
+$ cd tupak/
 $ pip install -r requirements.txt
 $ python setup.py install
 ```
 
-Once you have run these steps, you have `peyote` installed.
+Once you have run these steps, you have `tupak` installed.
 
 ### Install lalsuite
-Many of the `peyote` features rely on having a swig-wrapped `lalsuite`
+Many of the `tupak` features rely on having a swig-wrapped `lalsuite`
 installation. To install this head to
 [https://git.ligo.org/lscsoft/lalsuite](https://git.ligo.org/lscsoft/lalsuite)
 to check you have an account and SSH keys set up. Then,
@@ -66,9 +66,9 @@ $ coverage html
 ```
 
 This will generate a directory `htmlcov`, to see detailed coverage navigate
-from your browser to the file `peyote/htmlcov/index.html`.
+from your browser to the file `tupak/htmlcov/index.html`.
 
 The coverage report for master can be seen here:
-[https://monash.docs.ligo.org/peyote/](https://monash.docs.ligo.org/peyote/).
+[https://monash.docs.ligo.org/tupak/](https://monash.docs.ligo.org/tupak/).
 
 

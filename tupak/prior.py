@@ -334,7 +334,7 @@ class FromFile(Interped):
         try:
             self.id = file_name
             if '/' not in self.id:
-                self.id = '{}/peyote/prior_files/{}'.format(os.getcwd(), self.id)
+                self.id = '{}/tupak/prior_files/{}'.format(os.getcwd(), self.id)
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
@@ -385,7 +385,7 @@ def create_default_prior(name):
     elif name == 'phi_jl':
         prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
     elif name == 'luminosity_distance':
-        prior = PowerLaw(name=name, alpha=2, minimum=1e2, maximum=5e3)
+        prior = UniformComovingVolume(name=name, minimum=1e2, maximum=5e3)
     elif name == 'dec':
         prior = Cosine(name=name)
     elif name == 'ra':

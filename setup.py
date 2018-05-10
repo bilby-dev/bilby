@@ -2,9 +2,9 @@
 
 from distutils.core import setup
 
-setup(name='peyote',
+setup(name='tupak',
       version='0.1',
-      packages=['peyote'],
-      package_dir={'peyote': 'peyote'},
-      package_data={'peyote': ['noise_curves/*.txt']}
+      packages=['tupak'],
+      package_dir={'tupak': 'tupak'},
+      package_data={'tupak': ['noise_curves/*.txt']}
       )

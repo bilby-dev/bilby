@@ -23,18 +23,22 @@ class WaveformGenerator(object):
 
     """
 
-    def __init__(self, frequency_domain_source_model, sampling_frequency=4096, time_duration=1,
+    def __init__(self, frequency_domain_source_model=None, time_domain_source_model=None, sampling_frequency=4096, time_duration=1,
                  parameters=None):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
-        self.source_model = frequency_domain_source_model
+        self.frequency_domain_source_model = frequency_domain_source_model
+        self.time_domain_source_model = time_domain_source_model
         self.parameters = parameters
         self.__frequency_array_updated = False
         self.__time_array_updated = False
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
-        return self.source_model(self.frequency_array, **self.parameters)
+        return self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+
+    def time_domain_strain(self):
+        return self.time_domain_source_model(self.time_array, **self.parameters)
 
     @property
     def frequency_array(self):
@@ -62,7 +66,7 @@ class WaveformGenerator(object):
     @parameters.setter
     def parameters(self, parameters):
         if parameters is None:
-            parameters = inspect.getargspec(self.source_model).args
+            parameters = inspect.getargspec(self.frequency_domain_source_model).args
             parameters.pop(0)
             self.__parameters = dict.fromkeys(parameters)
         elif isinstance(parameters, list):
@@ -80,11 +84,11 @@ class WaveformGenerator(object):
                             ' a dictionary of key-value pairs.')
 
     @property
-    def source_model(self):
+    def frequency_domain_source_model(self):
         return self.__source_model
 
-    @source_model.setter
-    def source_model(self, source_model):
+    @frequency_domain_source_model.setter
+    def frequency_domain_source_model(self, source_model):
         self.__source_model = source_model
         self.parameters = inspect.getargspec(source_model).args
 
