@@ -462,7 +462,7 @@ def fill_priors(prior, waveform_generator):
 
 def write_priors_to_file(priors, outdir):
     """
-    Write the prior distribtuion to file.
+    Write the prior distribution to file.
 
     Parameters
     ----------
