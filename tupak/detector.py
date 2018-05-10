@@ -479,10 +479,9 @@ V1 = get_empty_interferometer('V1')
 GEO600 = get_empty_interferometer('GEO600')
 
 
-def get_interferometer(
-        name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-        cache=True, outdir='outdir', plot=True, filter_freq=1024,
-        raw_data_file=None, **kwargs):
+def get_interferometer_with_open_data(name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+                                      cache=True, outdir='outdir', plot=True, filter_freq=1024, raw_data_file=None,
+                                      **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time
@@ -662,3 +661,69 @@ def get_open_strain_data(name, t1, t2, outdir, cache=False, raw_data_file=None,
         logging.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
+
+
+def get_event_data(event, interferometer_names=None, time_duration=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+                   cache=True, outdir='outdir', plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
+    """
+    Get open data for a specified event.
+
+    We currently know about:
+        GW150914
+
+    Parameters
+    ----------
+    event: str
+        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+    interferometer_names: list, optional
+        List of interferometer identifiers, e.g., 'H1'.
+        If None will look for data in 'H1', 'V1', 'L1'
+    time_duration: float
+        Time duration to search for.
+    alpha: float
+        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    psd_offset, psd_duration: float
+        The power spectral density (psd) is estimated using data from
+        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
+    cache: bool
+        Whether or not to store the acquired data.
+    outdir: str
+        Directory where the psd files are saved
+    plot: bool
+        If true, create an ASD + strain plot
+    filter_freq: float
+        Low pass filter frequency
+    **kwargs:
+        All keyword arguments are passed to
+        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+    Return
+    ------
+    interferometers: list
+        A list of tupak.detector.Interferometer objects
+    """
+    event_times = {'150914': 1126259462.422}
+
+    if 'GW' in event or 'LVT' in event:
+        event = event[-6:]
+
+    try:
+        event_time = event_times[event[-6:]]
+    except KeyError:
+        print('Unknown event {}.'.format(event))
+        return None
+
+    interferometers = []
+
+    if interferometer_names is None:
+        interferometer_names = ['H1', 'L1', 'V1']
+
+    for name in interferometer_names:
+        try:
+            interferometers.append(get_interferometer_with_open_data(
+                name, event_time, T=time_duration, alpha=alpha, psd_offset=psd_offset, psd_duration=psd_duration,
+                cache=cache, outdir=outdir, plot=plot, filter_freq=filter_freq, raw_data_file=raw_data_file, **kwargs))
+        except ValueError:
+            logging.info('No data found for {}.'.format(name))
+
+    return interferometers
