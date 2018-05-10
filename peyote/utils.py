@@ -173,9 +173,9 @@ def infft(hf, Fs):
     return h
 
 
-def asd(freq_data,df):
+def asd_from_freq_series(freq_data, df):
     """
-    Renormalize the frequency domain output of gaussian_noise() so that |data| = ASD
+    Calculate the ASD from the frequency domain output of gaussian_noise()    
     Input:
     freq_data - array of complex frequency domain data
     df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
@@ -186,16 +186,17 @@ def asd(freq_data,df):
     return asd
 
 
-def psd(freq_data,df):
+def psd_from_freq_series(freq_data, df):
     """
     Calculate the PSD from the frequency domain output of gaussian_noise()
+    Calls asd_from_freq_series() and squares the output
     Input:
     freq_data - array of complex frequency domain data
     df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
     Output:
-    asd - array of real-valued normalized frequency domain ASD data
+    psd - array of real-valued normalized frequency domain PSD data
     """
-    psd = np.power(np.absolute(freq_data) * (2 * df)**0.5, 2)
+    psd = np.power(asd_from_freq_series(freq_data, df), 2)
     return psd
 
 
