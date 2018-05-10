@@ -94,7 +94,7 @@ class TestSourceModelSetter(unittest.TestCase):
         self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.waveform_generator.frequency_domain_source_model = gaussian_frequency_domain_strain_2
-        self.simulation_parameters = dict(a=1e-21, m=100, s=1,
+        self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
                                      dec=-1.2108,
                                      geocent_time=1126259642.413,
