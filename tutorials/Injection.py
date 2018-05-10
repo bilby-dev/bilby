@@ -16,7 +16,7 @@ def main():
 
     # Create the waveform generator
     waveform_generator = tupak.waveform_generator.WaveformGenerator(
-        tupak.source.lal_binary_black_hole, sampling_frequency=2048, time_duration=4,
+        frequency_domain_source_model=tupak.source.lal_binary_black_hole, sampling_frequency=2048, time_duration=4,
         parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
 
     # Define the prior
