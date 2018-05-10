@@ -66,7 +66,7 @@ class Result(dict):
         return fig
 
     def plot_walks(self, save=True, **kwargs):
-        """ Plot the chain walkst using chain-consumer
+        """ Plot the chain walks using chain-consumer
 
         Parameters
         ----------
@@ -91,7 +91,7 @@ class Result(dict):
         return fig
 
     def plot_distributions(self, save=True, **kwargs):
-        """ Plot the chain walkst using chain-consumer
+        """ Plot the chain walks using chain-consumer
 
         Parameters
         ----------
@@ -143,15 +143,15 @@ class Result(dict):
 
         :return:
         """
-        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2)**0.6 \
-                                       / (self.posterior.mass_1 + self.posterior.mass_2)**0.2
+        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
         self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
-        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) \
-                                / (self.posterior.mass_1 + self.posterior.mass_2)**2
+        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 2
 
         self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
-                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2))\
-                                    / (1 + self.posterior.q)
+                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
+                                                1 + self.posterior.q)
         self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
