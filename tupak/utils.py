@@ -144,7 +144,7 @@ def nfft(ht, Fs):
         ht = np.append(ht, 0)
     LL = len(ht)
     # frequency range
-    ff = Fs / 2 * np.linspace(0, 1, LL/2+1)
+    ff = Fs / 2 * np.linspace(0, 1, int(LL/2+1))
 
     # calculate FFT
     # rfft computes the fft for real inputs
@@ -349,8 +349,9 @@ def check_directory_exists_and_if_not_mkdir(directory):
     else:
         logging.debug('Directory {} exists'.format(directory))
 
+
 def inner_product(aa, bb, frequency, PSD):
-    '''
+    """
     Calculate the inner product defined in the matched filter statistic
 
     arguments:
@@ -360,10 +361,10 @@ def inner_product(aa, bb, frequency, PSD):
 
     Returns:
     The matched filter inner product for aa and bb
-    '''
+    """
     PSD_interp = PSD.power_spectral_density_interpolated(frequency)
 
-    # caluclate the inner product
+    # calculate the inner product
     integrand = np.conj(aa) * bb / PSD_interp
 
     df = frequency[1] - frequency[0]
@@ -465,8 +466,10 @@ def get_open_strain_data(
         If true, cache the data
     **kwargs:
         Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
+    raw_data_file
 
     Returns
+    -----------
     strain: gwpy.timeseries.TimeSeries
 
     """
