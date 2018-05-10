@@ -41,7 +41,7 @@ signal = waveform_generator.frequency_domain_strain()
 
 IFO = tupak.detector.get_interferometer_with_fake_noise_and_injection(name='H1', injection_polarizations=signal,
                                                                       injection_parameters=simulation_parameters,
-                                                                      time_duration=time_duration,
+                                                                      time_duration=time_duration, plot=False,
                                                                       sampling_frequency=sampling_frequency)
 
 hf_signal_and_noise = IFO.data

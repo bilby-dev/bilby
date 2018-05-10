@@ -57,7 +57,7 @@ class Test(unittest.TestCase):
         priors['luminosity_distance'] = tupak.prior.Uniform(
             name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
 
-        result = tupak.sampler.run_sampler(likelihood, priors, sampler='nestle', verbose=False)
+        result = tupak.sampler.run_sampler(likelihood, priors, sampler='nestle')
         self.assertAlmostEqual(np.mean(result.samples), dL, delta=np.std(result.samples))
 
 
