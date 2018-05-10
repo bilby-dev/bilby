@@ -702,16 +702,7 @@ def get_event_data(event, interferometer_names=None, time_duration=4, alpha=0.25
     interferometers: list
         A list of tupak.detector.Interferometer objects
     """
-    event_times = {'150914': 1126259462.422}
-
-    if 'GW' in event or 'LVT' in event:
-        event = event[-6:]
-
-    try:
-        event_time = event_times[event[-6:]]
-    except KeyError:
-        print('Unknown event {}.'.format(event))
-        return None
+    event_time = tupak.utils.get_event_time(event)
 
     interferometers = []
 
