@@ -100,8 +100,7 @@ class WaveformGenerator(object):
                 if key in parameters.keys():
                     self.__parameters[key] = parameters[key]
         else:
-            raise TypeError('Parameters must either be set as a list of keys or'
-                            ' a dictionary of key-value pairs.')
+            raise TypeError('Parameters must be a dictionary of key-value pairs.')
 
     def __parameters_from_source_model(self):
         if self.frequency_domain_source_model is not None:
