@@ -1,14 +1,21 @@
 #!/bin/python
 """
-
+A script to demonstrate how to use your own source model
 """
 from __future__ import division, print_function
 import tupak
 import numpy as np
 
+# First set up logging and some output directories and labels
 tupak.utils.setup_logger()
+outdir = 'outdir'
+label = 'create_your_own_source_model'
+sampling_frequency = 4096
+time_duration = 1
 
 
+# Here we define out source model - this is the sine-Gaussian model in the
+# frequency domain.
 def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
     arg = -(np.pi * tau * (f-f0))**2 + 1j * phi0
     plus = np.sqrt(np.pi) * A * tau * np.exp(arg) / 2.
@@ -16,35 +23,35 @@ def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
     return {'plus': plus, 'cross': cross}
 
 
-outdir = 'outdir'
-label = 'GW150914_sine_gaussian'
-time_of_event = 1126259462.422
-
-H1 = tupak.detector.get_interferometer('H1', time_of_event, version=1, outdir=outdir)
-L1 = tupak.detector.get_interferometer('L1', time_of_event, version=1, outdir=outdir)
-interferometers = [H1, L1]
-
-prior = dict()
-prior['A'] = tupak.prior.Uniform(0, 1e-20, 'A')
-prior['f0'] = tupak.prior.Uniform(0, 10, 'f')
-prior['tau'] = tupak.prior.Uniform(0, 10, 'tau')
-prior['geocent_time'] = tupak.prior.Uniform(
-    time_of_event-0.1, time_of_event+0.1, 'geocent_time')
-prior['phi0'] = 0 #tupak.prior.Uniform(0, 2*np.pi, 'phi')
-prior['ra'] = 0
-prior['dec'] = 0
-prior['psi'] = 0
-
+# We now define some parameters that we will inject and then a waveform generator
+injection_parameters = dict(A=1e-21, f0=10, tau=1, phi0=0, geocent_time=0,
+                            ra=0, dec=0, psi=0)
 waveform_generator = tupak.waveform_generator.WaveformGenerator(
     frequency_domain_source_model=sine_gaussian,
-    sampling_frequency=H1.sampling_frequency,
-    time_duration=H1.duration)
+    sampling_frequency=sampling_frequency,
+    time_duration=time_duration,
+    parameters=injection_parameters)
+hf_signal = waveform_generator.frequency_domain_strain()
 
-likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
+# Set up interferometers.
+IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
+    name, injection_polarizations=hf_signal,
+    injection_parameters=injection_parameters, time_duration=time_duration,
+    sampling_frequency=sampling_frequency, outdir=outdir)
+    for name in ['H1', 'L1', 'V1']]
+
+# Here we define the priors for the search. We use the injection parameters
+# except for the amplitude, f0, and geocent_time
+prior = injection_parameters.copy()
+prior['A'] = tupak.prior.Uniform(0, 1e-20, 'A')
+prior['f0'] = tupak.prior.Uniform(0, 20, 'f')
+prior['geocent_time'] = tupak.prior.Uniform(-0.01, 0.01, 'geocent_time')
+
+likelihood = tupak.likelihood.Likelihood(IFOs, waveform_generator)
 
 result = tupak.sampler.run_sampler(
-    likelihood, prior, sampler='pymultinest', outdir=outdir, label=label,
-    resume=False)
+    likelihood, prior, sampler='dynesty', outdir=outdir, label=label,
+    resume=False, sample='unif')
 result.plot_walks()
 result.plot_distributions()
 result.plot_corner()

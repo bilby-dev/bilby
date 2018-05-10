@@ -213,16 +213,19 @@ class Interferometer(object):
         :param waveform_polarizations: dict, polarizations of the waveform
         :param parameters: dict, parameters describing position and time of arrival of the signal
         """
-        signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
-        self.data += signal_ifo
-        opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                          time_duration=1 / (self.frequency_array[1]
-                                                                              - self.frequency_array[0])).real)
-        mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                time_duration=1 / (self.frequency_array[1]
-                                                                                    - self.frequency_array[0])).real)
-        logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
-            opt_snr, mf_snr, self.name))
+        if waveform_polarizations is None:
+            logging.warning('Trying to inject signal which is None.')
+        else:
+            signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
+            self.data += signal_ifo
+            opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                              time_duration=1 / (self.frequency_array[1]
+                                                                                 - self.frequency_array[0])).real)
+            mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                    time_duration=1 / (self.frequency_array[1]
+                                                                                       - self.frequency_array[0])).real)
+            logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
+                opt_snr, mf_snr, self.name))
 
     def unit_vector_along_arm(self, arm):
         """
@@ -247,7 +250,7 @@ class Interferometer(object):
             n = np.cos(self.__yarm_tilt) * np.cos(self.__yarm_azimuth) * e_long + np.cos(self.__yarm_tilt) \
                 * np.sin(self.__yarm_azimuth) * e_lat + np.sin(self.__yarm_tilt) * e_h
         else:
-            print('Not a recognized arm, aborting!')
+            logging.warning('Not a recognized arm, aborting!')
             return
         return n
 
@@ -372,18 +375,20 @@ class PowerSpectralDensity:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
             if min(self.amplitude_spectral_density) < 1e-30:
-                print("You specified an amplitude spectral density file.")
-                print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.amplitude_spectral_density)))
-                print("You may have intended to provide this as a power spectral density.")
+                logging.warning("You specified an amplitude spectral density file.")
+                logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+                logging.warning("The minimum of the provided curve is {:.2e}.".format(
+                    min(self.amplitude_spectral_density)))
+                logging.warning("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
             if min(self.power_spectral_density) > 1e-30:
-                print("You specified a power spectral density file.")
-                print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
-                print("You may have intended to provide this as an amplitude spectral density.")
+                logging.warning("You specified a power spectral density file.")
+                logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+                logging.warning("The minimum of the provided curve is {:.2e}.".format(
+                    min(self.power_spectral_density)))
+                logging.warning("You may have intended to provide this as an amplitude spectral density.")
 
     def import_amplitude_spectral_density(self):
         """
