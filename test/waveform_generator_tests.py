@@ -36,7 +36,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.assertEqual(self.waveform_generator.sampling_frequency, 4096)
 
     def test_source_model(self):
-        self.assertEqual(self.waveform_generator.source_model, gaussian_frequency_domain_strain)
+        self.assertEqual(self.waveform_generator.frequency_domain_source_model, gaussian_frequency_domain_strain)
 
     def test_frequency_array_type(self):
         self.assertIsInstance(self.waveform_generator.frequency_array, np.ndarray)
@@ -93,7 +93,7 @@ class TestSourceModelSetter(unittest.TestCase):
     def setUp(self):
         self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=gaussian_frequency_domain_strain)
-        self.waveform_generator.source_model = gaussian_frequency_domain_strain_2
+        self.waveform_generator.frequency_domain_source_model = gaussian_frequency_domain_strain_2
         self.simulation_parameters = dict(a=1e-21, m=100, s=1,
                                      ra=1.375,
                                      dec=-1.2108,
