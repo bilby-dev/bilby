@@ -104,14 +104,15 @@ class WaveformGenerator(object):
             parameters.pop(0)
             self.__parameters = dict.fromkeys(parameters)
         elif isinstance(parameters, dict):
-            self.__parameters = parameters
-            # for key in self.__parameters.keys():
-            #
-            #     if key in parameters.keys():
-            #         self.__parameters[key] = parameters[key]
-                # else:
-                #     raise KeyError('The provided dictionary did not '
-                #                    'contain key {}'.format(key))
+            if not hasattr(self, '_WaveformGenerator__parameters'):
+                self.__parameters = parameters
+            for key in self.__parameters.keys():
+
+                if key in parameters.keys():
+                    self.__parameters[key] = parameters[key]
+                else:
+                    raise KeyError('The provided dictionary did not '
+                                   'contain key {}'.format(key))
         else:
             raise TypeError('Parameters must either be set as a list of keys or'
                             ' a dictionary of key-value pairs.')
