@@ -336,17 +336,16 @@ class Interferometer(object):
         vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
-
     @property
     def whitened_data(self):
         return self.data / self.amplitude_spectral_density_array
 
     def save_data(self, outdir):
-        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name), [self.frequency_array,
-                                                                                 self.data.real, self.data.imag],
+        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
+                   [self.frequency_array, self.data.real, self.data.imag],
                    header='f real_h(f) imag_h(f)')
-        np.savetxt('{}/{}_psd.dat'.format(outdir, self.name), [self.frequency_array,
-                                                               self.amplitude_spectral_density_array],
+        np.savetxt('{}/{}_psd.dat'.format(outdir, self.name),
+                   [self.frequency_array, self.amplitude_spectral_density_array],
                    header='f h(f)')
 
 
