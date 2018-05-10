@@ -9,7 +9,7 @@ from tupak.waveform_generator import WaveformGenerator
 
 np.random.seed(10)
 
-time_duration = 1.
+time_duration = 4.
 sampling_frequency = 4096.
 
 simulation_parameters = dict(
@@ -31,17 +31,19 @@ simulation_parameters = dict(
     geocent_time=1126259642.413,
     psi=2.659
 )
-#sampling_parameters = tupak.parameter.Parameter.parse_floats_to_parameters(simulation_parameters)
+
 waveform_generator = WaveformGenerator(frequency_domain_source_model=tupak.source.lal_binary_black_hole,
                                        sampling_frequency=sampling_frequency,
                                        time_duration=time_duration,
                                        parameters=simulation_parameters)
 
-IFO = tupak.detector.H1
-IFO.set_data(
-    from_power_spectral_density=True, sampling_frequency=sampling_frequency,
-    duration=time_duration)
-IFO.inject_signal(waveform_polarizations=waveform_generator.frequency_domain_strain(), parameters=simulation_parameters)
+signal = waveform_generator.frequency_domain_strain()
+
+IFO = tupak.detector.get_interferometer_with_fake_noise_and_injection(name='H1', injection_polarizations=signal,
+                                                                      injection_parameters=simulation_parameters,
+                                                                      time_duration=time_duration,
+                                                                      sampling_frequency=sampling_frequency)
+
 hf_signal_and_noise = IFO.data
 frequencies = tupak.utils.create_fequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
