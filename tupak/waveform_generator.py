@@ -1,7 +1,7 @@
 import inspect
 
 from . import utils
-
+import numpy as np
 
 class WaveformGenerator(object):
     """ A waveform generator
@@ -39,8 +39,11 @@ class WaveformGenerator(object):
             return self.frequency_domain_source_model(self.frequency_array, **self.parameters)
         elif self.time_domain_source_model is not None:
             fft_data = dict()
-            fft_data['cross'], self.frequency_array = utils.nfft(self.time_domain_source_model(self.time_array, **self.parameters)['cross'], self.sampling_frequency)
-            fft_data['plus'], _ = utils.nfft(self.time_domain_source_model(self.time_array, **self.parameters)['plus'], self.sampling_frequency)
+            time_domain_strain = self.time_domain_source_model(self.time_array, **self.parameters)
+            if isinstance(time_domain_strain, np.ndarray):
+                return time_domain_strain
+            for key in time_domain_strain:
+                fft_data[key], self.frequency_array = utils.nfft(time_domain_strain[key], self.sampling_frequency)
             return fft_data
         else:
             raise RuntimeError("No source model given")
@@ -50,8 +53,11 @@ class WaveformGenerator(object):
             return self.time_domain_source_model(self.time_array, **self.parameters)
         elif self.frequency_domain_source_model is not None:
             ifft_data = dict()
-            ifft_data['cross'] = utils.infft(self.frequency_domain_source_model(self.frequency_array, **self.parameters)['cross'], self.sampling_frequency)
-            ifft_data['plus'] = utils.infft(self.frequency_domain_source_model(self.frequency_array, **self.parameters)['plus'], self.sampling_frequency)
+            frequency_domain_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+            if isinstance(frequency_domain_strain, np.ndarray):
+                return frequency_domain_strain
+            for key in frequency_domain_strain:
+                ifft_data = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
             return ifft_data
         else:
             raise RuntimeError("No source model given")
