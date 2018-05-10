@@ -379,3 +379,32 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
 
 def optimal_snr_squared(signal, interferometer, time_duration):
     return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, time_duration)
+
+
+def get_event_time(event):
+    """
+    Get the merger time for known GW events.
+
+    We currently know about:
+        GW150914
+
+    Parameters
+    ----------
+    event: str
+        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+
+    Return
+    ------
+    event_time: float
+        Merger time
+    """
+    event_times = {'150914': 1126259462.422}
+    if 'GW' or 'LVT' in event:
+        event = event[-6:]
+
+    try:
+        event_time = event_times[event[-6:]]
+        return event_time
+    except KeyError:
+        print('Unknown event {}.'.format(event))
+        return None
