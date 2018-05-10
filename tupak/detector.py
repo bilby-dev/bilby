@@ -213,16 +213,19 @@ class Interferometer(object):
         :param waveform_polarizations: dict, polarizations of the waveform
         :param parameters: dict, parameters describing position and time of arrival of the signal
         """
-        signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
-        self.data += signal_ifo
-        opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                          time_duration=1 / (self.frequency_array[1]
-                                                                              - self.frequency_array[0])).real)
-        mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                time_duration=1 / (self.frequency_array[1]
-                                                                                    - self.frequency_array[0])).real)
-        logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
-            opt_snr, mf_snr, self.name))
+        if waveform_polarizations is None:
+            logging.warning('Trying to inject signal which is None.')
+        else:
+            signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
+            self.data += signal_ifo
+            opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                              time_duration=1 / (self.frequency_array[1]
+                                                                                 - self.frequency_array[0])).real)
+            mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                    time_duration=1 / (self.frequency_array[1]
+                                                                                       - self.frequency_array[0])).real)
+            logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
+                opt_snr, mf_snr, self.name))
 
     def unit_vector_along_arm(self, arm):
         """
