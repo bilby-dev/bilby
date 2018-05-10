@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import numpy as np
+
 try:
     from scipy.special import logsumexp
 except ImportError:
@@ -67,12 +68,11 @@ class Likelihood(object):
         if self.distance_marginalization:
 
             optimal_snr_squared_array = optimal_snr_squared \
-                                        * self.waveform_generator.parameters['luminosity_distance']**2 \
-                                        / self.distance_array**2
+                                        * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
+                                        / self.distance_array ** 2
 
-            matched_filter_snr_squared_array = matched_filter_snr_squared\
-                                               * self.waveform_generator.parameters['luminosity_distance']\
-                                               / self.distance_array
+            matched_filter_snr_squared_array = matched_filter_snr_squared * \
+                self.waveform_generator.parameters['luminosity_distance'] / self.distance_array
 
             log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
                               b=self.distance_prior_array * self.delta_distance)
@@ -89,7 +89,7 @@ class Likelihood(object):
             logging.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
-                                          self.prior['luminosity_distance'].maximum, 1e4)
+                                          self.prior['luminosity_distance'].maximum, int(1e4))
         self.delta_distance = self.distance_array[1] - self.distance_array[0]
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self.distance_array])
@@ -98,9 +98,9 @@ class Likelihood(object):
         if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], tupak.prior.Prior):
             logging.info('No prior provided for polarization, using default prior.')
             self.prior['psi'] = tupak.prior.create_default_prior('psi')
-        self.bessel_function_interped = interp1d(np.linspace(0, 1e6, 1e5),
-                                                 np.log([i0e(snr) for snr in np.linspace(0, 1e6, 1e5)])
-                                                 + np.linspace(0, 1e6, 1e5),
+        self.bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
+                                                 np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])
+                                                 + np.linspace(0, 1e6, int(1e5)),
                                                  bounds_error=False, fill_value=-np.inf)
 
 
