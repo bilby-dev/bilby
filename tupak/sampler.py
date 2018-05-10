@@ -246,7 +246,7 @@ class Dynesty(Sampler):
         nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
         out = nested_sampler.results
 
-        self.result.sampler_output = out
+        # self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
