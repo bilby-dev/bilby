@@ -6,6 +6,24 @@ https://monash.docs.ligo.org/tupak/)
 
 Fulfilling all your GW dreams.
 
+## Example
+
+To get started with `tupak`, we have a few examples and tutorials:
+
+1. [Examples of injecting and recovering data](https://git.ligo.org/Monash/tupak/tree/master/examples/injection_examples)
+    * [A basic tutorial](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/basic_tutorial.py)
+    * [Create your own source model](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/create_your_own_source_model.py)
+    * [How to specify the prior](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/how_to_specify_the_prior.py)
+    * [Using a partially marginalized likelihood](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/marginalized_likelihood.py)
+
+2. [Examples using open data](https://git.ligo.org/Monash/tupak/tree/master/examples/open_data_examples)
+    * [Analysing the first Binary Black hole detection, GW150914](https://git.ligo.org/Monash/tupak/blob/master/examples/open_data_examples/GW150914.py)
+
+3. [Notebook-style tutorials](https://git.ligo.org/Monash/tupak/tree/master/examples/tutorials)
+    * [Comparing different samplers](https://git.ligo.org/Monash/tupak/blob/master/examples/tutorials/compare_samplers.ipynb)
+    * [Visualising the output](https://git.ligo.org/Monash/tupak/blob/master/examples/tutorials/visualising_the_results.ipynb)
+
+
 ## Installation
 
 In the following, we assume you have installed
