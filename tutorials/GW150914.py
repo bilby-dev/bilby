@@ -45,7 +45,7 @@ prior['luminosity_distance'] = tupak.prior.PowerLaw(
 # `lal_binary_black_hole model` source model. We also pass other parameters:
 # the waveform approximant and reference frequency.
 waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    tupak.source.lal_binary_black_hole,
+    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
     sampling_frequency=interferometers[0].sampling_frequency,
     time_duration=interferometers[0].duration,
     parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
