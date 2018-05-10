@@ -92,30 +92,26 @@ class WaveformGenerator(object):
     @parameters.setter
     def parameters(self, parameters):
         if parameters is None:
-            if self.frequency_domain_source_model is not None:
-                parameters = inspect.getargspec(self.frequency_domain_source_model).args
-                parameters.pop(0)
-                self.__parameters = dict.fromkeys(parameters)
-            elif self.time_domain_source_model is not None:
-                parameters = inspect.getargspec(self.time_domain_source_model).args
-                parameters.pop(0)
-                self.__parameters = dict.fromkeys(parameters)
-        elif isinstance(parameters, list):
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters_from_source_model()
         elif isinstance(parameters, dict):
             if not hasattr(self, '_WaveformGenerator__parameters'):
-                self.__parameters = parameters
+                self.__parameters_from_source_model()
             for key in self.__parameters.keys():
-
                 if key in parameters.keys():
                     self.__parameters[key] = parameters[key]
-                else:
-                    raise KeyError('The provided dictionary did not '
-                                   'contain key {}'.format(key))
         else:
             raise TypeError('Parameters must either be set as a list of keys or'
                             ' a dictionary of key-value pairs.')
+
+    def __parameters_from_source_model(self):
+        if self.frequency_domain_source_model is not None:
+            parameters = inspect.getargspec(self.frequency_domain_source_model).args
+            parameters.pop(0)
+            self.__parameters = dict.fromkeys(parameters)
+        elif self.time_domain_source_model is not None:
+            parameters = inspect.getargspec(self.time_domain_source_model).args
+            parameters.pop(0)
+            self.__parameters = dict.fromkeys(parameters)
 
     @property
     def time_duration(self):
