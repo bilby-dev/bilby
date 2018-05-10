@@ -180,6 +180,8 @@ class Cosine(Prior):
 
     def __init__(self, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label)
+        self.minimum = - np.pi / 2
+        self.maximum = np.pi / 2
 
     def rescale(self, val):
         """
@@ -203,6 +205,8 @@ class Sine(Prior):
 
     def __init__(self, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label)
+        self.minimum = 0
+        self.maximum = np.pi
 
     def rescale(self, val):
         """
