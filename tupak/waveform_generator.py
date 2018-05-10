@@ -35,10 +35,21 @@ class WaveformGenerator(object):
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
-        return self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+        if self.frequency_domain_source_model is not None:
+            return self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+        elif self.time_domain_source_model is not None:
+            fft_data, self.frequency_array = utils.nfft(self.time_domain_source_model(self.time_array, **self.parameters), self.sampling_frequency)
+            return fft_data
+        else:
+            raise RuntimeError("No source model given")
 
     def time_domain_strain(self):
-        return self.time_domain_source_model(self.time_array, **self.parameters)
+        if self.time_domain_source_model is not None:
+            return self.time_domain_source_model(self.time_array, **self.parameters)
+        elif self.frequency_domain_source_model is not None:
+            return utils.infft(self.frequency_domain_source_model(self.frequency_array, **self.parameters))
+        else:
+            raise RuntimeError("No source model given")
 
     @property
     def frequency_array(self):
@@ -48,6 +59,10 @@ class WaveformGenerator(object):
                                         self.time_duration)
             self.__frequency_array_updated = True
         return self.__frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self.__frequency_array = frequency_array
 
     @property
     def time_array(self):
