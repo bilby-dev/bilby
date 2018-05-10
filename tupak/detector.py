@@ -477,9 +477,10 @@ def get_empty_interferometer(name):
         raise ValueError('Interferometer {} not implemented'.format(name))
 
 
-def get_interferometer_with_open_data(name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-                                      cache=True, outdir='outdir', plot=True, filter_freq=1024, raw_data_file=None,
-                                      **kwargs):
+def get_interferometer_with_open_data(
+        name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
+        cache=True, outdir='outdir', plot=True, filter_freq=1024,
+        raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time
@@ -516,11 +517,11 @@ def get_interferometer_with_open_data(name, center_time, T=4, alpha=0.25, psd_of
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    strain = get_open_strain_data(
+    strain = utils.get_open_strain_data(
             name, center_time-T/2, center_time+T/2, outdir=outdir, cache=cache,
             raw_data_file=raw_data_file, **kwargs)
 
-    strain_psd = get_open_strain_data(
+    strain_psd = utils.get_open_strain_data(
             name, center_time+psd_offset, center_time+psd_offset+psd_duration,
             raw_data_file=raw_data_file,
             outdir=outdir, cache=cache, **kwargs)
@@ -578,8 +579,9 @@ def get_interferometer_with_open_data(name, center_time, T=4, alpha=0.25, psd_of
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations, injection_parameters, sampling_frequency=4096, time_duration=4,
-        outdir='outdir', plot=True, save=True):
+        name, injection_polarizations, injection_parameters,
+        sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
+        save=True):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time
@@ -612,11 +614,15 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     interferometer = get_empty_interferometer(name)
-    interferometer.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
-                            from_power_spectral_density=True)
-    interferometer.inject_signal(waveform_polarizations=injection_polarizations, parameters=injection_parameters)
+    interferometer.set_data(
+        sampling_frequency=sampling_frequency, duration=time_duration,
+        from_power_spectral_density=True)
+    interferometer.inject_signal(
+        waveform_polarizations=injection_polarizations,
+        parameters=injection_parameters)
 
-    interferometer_signal = interferometer.get_detector_response(injection_polarizations, injection_parameters)
+    interferometer_signal = interferometer.get_detector_response(
+        injection_polarizations, injection_parameters)
 
     if plot:
         fig, ax = plt.subplots()
@@ -625,7 +631,8 @@ def get_interferometer_with_fake_noise_and_injection(
         ax.loglog(interferometer.frequency_array,
                   interferometer.amplitude_spectral_density_array,
                   '-C1', lw=0.5, label=name+' ASD')
-        ax.loglog(interferometer.frequency_array, abs(interferometer_signal), label='Signal')
+        ax.loglog(interferometer.frequency_array, abs(interferometer_signal),
+                  label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
@@ -639,30 +646,10 @@ def get_interferometer_with_fake_noise_and_injection(
     return interferometer
 
 
-def get_open_strain_data(name, t1, t2, outdir, cache=False, raw_data_file=None,
-                         **kwargs):
-    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
-    if raw_data_file:
-        logging.info('Attempting to use raw_data_file {}'.format(raw_data_file))
-        strain = TimeSeries.read(raw_data_file)
-        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
-            logging.info('Using supplied raw data file')
-            strain = strain.crop(t1, t2)
-        else:
-            raise ValueError('Supplied file does not contain requested data')
-    elif os.path.isfile(filename) and cache:
-        logging.info('Using cached data from {}'.format(filename))
-        strain = TimeSeries.read(filename)
-    else:
-        logging.info('Fetching open data ...')
-        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
-        logging.info('Saving data to {}'.format(filename))
-        strain.write(filename)
-    return strain
-
-
-def get_event_data(event, interferometer_names=None, time_duration=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-                   cache=True, outdir='outdir', plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
+def get_event_data(
+        event, interferometer_names=None, time_duration=4, alpha=0.25,
+        psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
+        plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
     """
     Get open data for a specified event.
 
@@ -672,7 +659,8 @@ def get_event_data(event, interferometer_names=None, time_duration=4, alpha=0.25
     Parameters
     ----------
     event: str
-        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+        Event descriptor, this can deal with some prefixes, e.g., '150914',
+        'GW150914', 'LVT151012'
     interferometer_names: list, optional
         List of interferometer identifiers, e.g., 'H1'.
         If None will look for data in 'H1', 'V1', 'L1'
@@ -710,8 +698,10 @@ def get_event_data(event, interferometer_names=None, time_duration=4, alpha=0.25
     for name in interferometer_names:
         try:
             interferometers.append(get_interferometer_with_open_data(
-                name, event_time, T=time_duration, alpha=alpha, psd_offset=psd_offset, psd_duration=psd_duration,
-                cache=cache, outdir=outdir, plot=plot, filter_freq=filter_freq, raw_data_file=raw_data_file, **kwargs))
+                name, event_time, T=time_duration, alpha=alpha,
+                psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
+                outdir=outdir, plot=plot, filter_freq=filter_freq,
+                raw_data_file=raw_data_file, **kwargs))
         except ValueError:
             logging.info('No data found for {}.'.format(name))
 

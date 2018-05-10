@@ -3,6 +3,7 @@ import logging
 import os
 import numpy as np
 from math import fmod
+from gwpy.timeseries import TimeSeries
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
@@ -416,3 +417,50 @@ def get_event_time(event):
     except KeyError:
         print('Unknown event {}.'.format(event))
         return None
+
+
+def get_open_strain_data(
+        name, t1, t2, outdir, cache=False, raw_data_file=None, **kwargs):
+    """ A function which accesses the open strain data
+
+    This uses `gwpy` to download the open data and then saves a cached copy for
+    later use
+
+    Parameters
+    ----------
+    name: str
+        The name of the detector to get data for
+    t1, t2: float
+        The GPS time of the start and end of the data
+    outdir: str
+        The output directory to place data in
+    cache: bool
+        If true, cache the data
+    **kwargs:
+        Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
+
+    Returns
+    strain: gwpy.timeseries.TimeSeries
+
+    """
+    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
+    if raw_data_file:
+        logging.info('Using raw_data_file {}'.format(raw_data_file))
+        strain = TimeSeries.read(raw_data_file)
+        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
+            logging.info('Using supplied raw data file')
+            strain = strain.crop(t1, t2)
+        else:
+            raise ValueError('Supplied file does not contain requested data')
+    elif os.path.isfile(filename) and cache:
+        logging.info('Using cached data from {}'.format(filename))
+        strain = TimeSeries.read(filename)
+    else:
+        logging.info('Fetching open data ...')
+        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
+        logging.info('Saving data to {}'.format(filename))
+        strain.write(filename)
+    return strain
+
+
+
