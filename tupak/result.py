@@ -37,7 +37,12 @@ class Result(dict):
             os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
-        deepdish.io.save(file_name, self)
+        try:
+            deepdish.io.save(file_name, self)
+        except Exception as e:
+            logging.error(
+                "\n\n Saving the data has failed with the following message:\n {} \n\n"
+                .format(e))
 
     def plot_corner(self, save=True, **kwargs):
         """ Plot a corner-plot using chain-consumer
