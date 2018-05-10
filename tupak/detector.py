@@ -477,13 +477,6 @@ def get_empty_interferometer(name):
         raise ValueError('Interferometer {} not implemented'.format(name))
 
 
-# Maintain backward compatibility - should be removed in the future
-H1 = get_empty_interferometer('H1')
-L1 = get_empty_interferometer('L1')
-V1 = get_empty_interferometer('V1')
-GEO600 = get_empty_interferometer('GEO600')
-
-
 def get_interferometer_with_open_data(name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
                                       cache=True, outdir='outdir', plot=True, filter_freq=1024, raw_data_file=None,
                                       **kwargs):
