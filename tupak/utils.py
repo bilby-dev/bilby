@@ -174,6 +174,33 @@ def infft(hf, Fs):
     return h
 
 
+def asd_from_freq_series(freq_data, df):
+    """
+    Calculate the ASD from the frequency domain output of gaussian_noise()    
+    Input:
+    freq_data - array of complex frequency domain data
+    df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
+    Output:
+    asd = array of real-valued normalized frequency domain ASD data
+    """
+    asd = np.absolute(freq_data) * (2 * df)**0.5
+    return asd
+
+
+def psd_from_freq_series(freq_data, df):
+    """
+    Calculate the PSD from the frequency domain output of gaussian_noise()
+    Calls asd_from_freq_series() and squares the output
+    Input:
+    freq_data - array of complex frequency domain data
+    df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
+    Output:
+    psd - array of real-valued normalized frequency domain PSD data
+    """
+    psd = np.power(asd_from_freq_series(freq_data, df), 2)
+    return psd
+
+
 def time_delay_geocentric(detector1, detector2, ra, dec, time):
     """
     Calculate time delay between two detectors in geocentric coordinates based on XLALArrivaTimeDiff in TimeDelay.c
