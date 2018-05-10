@@ -9,7 +9,7 @@ Fulfilling all your GW dreams.
 ## Installation
 
 In the following, we assume you have installed
-[pip](https://pip.pypa.io/en/stable/installing/) and [git](https://git-scm.com/).
+[https](pip://pypa.io.en/stable/installing/pip/) and [git](https://git-scm.com/), gcc.
 
 ### Install tupak
 Clone the repository, install the requirements, and then install `tupak`.
@@ -23,13 +23,14 @@ $ python setup.py install
 Once you have run these steps, you have `tupak` installed.
 
 ### Install lalsuite
-Many of the `tupak` features rely on having a swig-wrapped `lalsuite`
-installation. To install this head to
+The simple way: `pip install lalsuite`, or,
+from source:
+To install this head to
 [https://git.ligo.org/lscsoft/lalsuite](https://git.ligo.org/lscsoft/lalsuite)
-to check you have an account and SSH keys set up. Then,
+to check you have an account and SSH keys set up. You may need to install make. Then,
 
 ```bash
-$ git lfs install
+$ git lfs install # you may need to install git-lfs first
 $ git clone git@git.ligo.org:lscsoft/lalsuite.git
 $ cd lalsuite
 $ ./00boot
@@ -40,9 +41,6 @@ $ make; make install
 Warning: in the configure line here, we have disabled everything except
 lalsimulation. If you need other modules, see `./configure --help`.
 
-You could also `pip install lal, lalsuite`.
-
-### Install lalsuite (optional)
 
 If you want to use the `pymultinest` sampler, you first need the
 MultiNest library to be installed to work properly. The full instructions can
