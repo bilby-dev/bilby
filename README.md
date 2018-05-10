@@ -9,7 +9,7 @@ Fulfilling all your GW dreams.
 ## Installation
 
 In the following, we assume you have installed
-[https](pip://pypa.io.en/stable/installing/pip/) and [git](https://git-scm.com/), gcc.
+[https](pip://pypa.io.en/stable/installing/pip/) and [git](https://git-scm.com/).
 
 ### Install tupak
 Clone the repository, install the requirements, and then install `tupak`.
@@ -25,9 +25,10 @@ Once you have run these steps, you have `tupak` installed.
 ### Install lalsuite
 The simple way: `pip install lalsuite`, or,
 from source:
-To install this head to
+
+Head to
 [https://git.ligo.org/lscsoft/lalsuite](https://git.ligo.org/lscsoft/lalsuite)
-to check you have an account and SSH keys set up. You may need to install make. Then,
+to check you have an account and SSH keys set up. Then,
 
 ```bash
 $ git lfs install # you may need to install git-lfs first
