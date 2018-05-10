@@ -401,7 +401,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
-        result.prior = priors
+        # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result
