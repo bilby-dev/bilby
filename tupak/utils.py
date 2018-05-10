@@ -387,6 +387,12 @@ def get_event_time(event):
 
     We currently know about:
         GW150914
+        LVT151012
+        GW151226
+        GW170104
+        GW170608
+        GW170814
+        GW170817
 
     Parameters
     ----------
@@ -398,7 +404,9 @@ def get_event_time(event):
     event_time: float
         Merger time
     """
-    event_times = {'150914': 1126259462.422}
+    event_times = {'150914': 1126259462.422, '151012': 1128678900.4443,  '151226': 1135136350.65,
+                   '170104': 1167559936.5991, '170608': 1180922494.4902, '170814': 1186741861.5268,
+                   '170817': 1187008882.4457}
     if 'GW' or 'LVT' in event:
         event = event[-6:]
 
