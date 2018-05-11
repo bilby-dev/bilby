@@ -11,7 +11,52 @@ except ImportError:
 from . import utils
 
 
-def convert_binary_black_hole_parameters(parameters, search_keys):
+def convert_from_lal_binary_black_hole_parameters(parameters, search_keys):
+    """
+    Convert parameters we have into parameters we need.
+
+    This is defined by the parameters of tupak.source.lal_binary_black_hole()
+
+
+    Mass: mass_1, mass_2
+    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
+    Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
+
+    This involves popping a lot of things from parameters.
+    The keys in ignored_keys should be popped after evaluating the waveform.
+
+    Parameters
+    ----------
+    parameters: dict
+        dictionary of parameter values to convert into the required parameters
+    search_keys: list
+        parameters which are needed for the waveform generation
+    """
+
+    if 'mass_1' in parameters.keys() and 'mass_2' in parameters.keys():
+        if 'chirp_mass' in search_keys:
+            parameters['chirp_mass'] = (parameters['mass_1'] * parameters['mass_2'])**0.6\
+                                       / (parameters['mass_1'] + parameters['mass_2'])**0.2
+        if 'total_mass' in search_keys:
+            parameters['total_mass'] = parameters['mass_1'] + parameters['mass_2']
+        if 'symmetric_mass_ratio' in search_keys:
+            parameters['symmetric_mass_ratio'] = (parameters['mass_1'] * parameters['mass_2'])\
+                                                 / (parameters['mass_1'] + parameters['mass_2'])**2
+        if 'mass_ratio' in search_keys:
+            parameters['mass_ratio'] = parameters['mass_2'] / parameters['mass_1']
+
+    if 'tilt_1' in parameters.keys():
+        if 'cos_tilt_1' in search_keys:
+            parameters['cos_tilt_1'] = np.cos(parameters['tilt_1'])
+    if 'tilt_2' in parameters.keys():
+        if 'cos_tilt_2' in search_keys:
+            parameters['cos_tilt_2'] = np.cos(parameters['tilt_2'])
+
+    if 'iota' in parameters.keys():
+        parameters['cos_iota'] = np.arccos(parameters['iota'])
+
+
+def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
     """
     Convert parameters we have into parameters we need.
 
@@ -52,6 +97,10 @@ def convert_binary_black_hole_parameters(parameters, search_keys):
                 parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
                 parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
+                if 'total_mass' not in parameters.keys():
+                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2\
+                                               / parameters['mass_ratio']**0.6
+                    parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
                 parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
                 parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
