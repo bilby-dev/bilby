@@ -344,7 +344,7 @@ class FromFile(Interped):
         try:
             self.id = file_name
             if '/' not in self.id:
-                self.id = '{}/tupak/prior_files/{}'.format(os.getcwd(), self.id)
+                self.id = os.path.join(os.path.dirname(__file__), 'prior_files', self.id)
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
@@ -539,7 +539,7 @@ def test_redundancy(key, prior):
 
 def write_priors_to_file(priors, outdir):
     """
-    Write the prior distribtuion to file.
+    Write the prior distribution to file.
 
     Parameters
     ----------
@@ -551,7 +551,7 @@ def write_priors_to_file(priors, outdir):
     if outdir[-1] != "/":
         outdir += "/"
     prior_file = outdir + "prior.txt"
-    print("Writing priors to {}".format(prior_file))
+    logging.info("Writing priors to {}".format(prior_file))
     with open(prior_file, "w") as outfile:
         for key in priors:
             outfile.write("prior['{}'] = {}\n".format(key, priors[key]))

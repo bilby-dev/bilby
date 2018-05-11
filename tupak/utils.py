@@ -3,6 +3,7 @@ import logging
 import os
 import numpy as np
 from math import fmod
+from gwpy.timeseries import TimeSeries
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
@@ -143,7 +144,7 @@ def nfft(ht, Fs):
         ht = np.append(ht, 0)
     LL = len(ht)
     # frequency range
-    ff = Fs / 2 * np.linspace(0, 1, LL/2+1)
+    ff = Fs / 2 * np.linspace(0, 1, int(LL/2+1))
 
     # calculate FFT
     # rfft computes the fft for real inputs
@@ -171,6 +172,33 @@ def infft(hf, Fs):
     h = h*Fs
 
     return h
+
+
+def asd_from_freq_series(freq_data, df):
+    """
+    Calculate the ASD from the frequency domain output of gaussian_noise()    
+    Input:
+    freq_data - array of complex frequency domain data
+    df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
+    Output:
+    asd = array of real-valued normalized frequency domain ASD data
+    """
+    asd = np.absolute(freq_data) * (2 * df)**0.5
+    return asd
+
+
+def psd_from_freq_series(freq_data, df):
+    """
+    Calculate the PSD from the frequency domain output of gaussian_noise()
+    Calls asd_from_freq_series() and squares the output
+    Input:
+    freq_data - array of complex frequency domain data
+    df - spacing of freq_data, 1/(segment length) used to generate the gaussian noise
+    Output:
+    psd - array of real-valued normalized frequency domain PSD data
+    """
+    psd = np.power(asd_from_freq_series(freq_data, df), 2)
+    return psd
 
 
 def time_delay_geocentric(detector1, detector2, ra, dec, time):
@@ -321,8 +349,9 @@ def check_directory_exists_and_if_not_mkdir(directory):
     else:
         logging.debug('Directory {} exists'.format(directory))
 
+
 def inner_product(aa, bb, frequency, PSD):
-    '''
+    """
     Calculate the inner product defined in the matched filter statistic
 
     arguments:
@@ -332,10 +361,10 @@ def inner_product(aa, bb, frequency, PSD):
 
     Returns:
     The matched filter inner product for aa and bb
-    '''
+    """
     PSD_interp = PSD.power_spectral_density_interpolated(frequency)
 
-    # caluclate the inner product
+    # calculate the inner product
     integrand = np.conj(aa) * bb / PSD_interp
 
     df = frequency[1] - frequency[0]
@@ -379,3 +408,89 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
 
 def optimal_snr_squared(signal, interferometer, time_duration):
     return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, time_duration)
+
+
+def get_event_time(event):
+    """
+    Get the merger time for known GW events.
+
+    We currently know about:
+        GW150914
+        LVT151012
+        GW151226
+        GW170104
+        GW170608
+        GW170814
+        GW170817
+
+    Parameters
+    ----------
+    event: str
+        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+
+    Return
+    ------
+    event_time: float
+        Merger time
+    """
+    event_times = {'150914': 1126259462.422, '151012': 1128678900.4443,  '151226': 1135136350.65,
+                   '170104': 1167559936.5991, '170608': 1180922494.4902, '170814': 1186741861.5268,
+                   '170817': 1187008882.4457}
+    if 'GW' or 'LVT' in event:
+        event = event[-6:]
+
+    try:
+        event_time = event_times[event[-6:]]
+        return event_time
+    except KeyError:
+        print('Unknown event {}.'.format(event))
+        return None
+
+
+def get_open_strain_data(
+        name, t1, t2, outdir, cache=False, raw_data_file=None, **kwargs):
+    """ A function which accesses the open strain data
+
+    This uses `gwpy` to download the open data and then saves a cached copy for
+    later use
+
+    Parameters
+    ----------
+    name: str
+        The name of the detector to get data for
+    t1, t2: float
+        The GPS time of the start and end of the data
+    outdir: str
+        The output directory to place data in
+    cache: bool
+        If true, cache the data
+    **kwargs:
+        Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
+    raw_data_file
+
+    Returns
+    -----------
+    strain: gwpy.timeseries.TimeSeries
+
+    """
+    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
+    if raw_data_file:
+        logging.info('Using raw_data_file {}'.format(raw_data_file))
+        strain = TimeSeries.read(raw_data_file)
+        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
+            logging.info('Using supplied raw data file')
+            strain = strain.crop(t1, t2)
+        else:
+            raise ValueError('Supplied file does not contain requested data')
+    elif os.path.isfile(filename) and cache:
+        logging.info('Using cached data from {}'.format(filename))
+        strain = TimeSeries.read(filename)
+    else:
+        logging.info('Fetching open data ...')
+        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
+        logging.info('Saving data to {}'.format(filename))
+        strain.write(filename)
+    return strain
+
+
+

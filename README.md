@@ -6,10 +6,28 @@ https://monash.docs.ligo.org/tupak/)
 
 Fulfilling all your GW dreams.
 
+## Example
+
+To get started with `tupak`, we have a few examples and tutorials:
+
+1. [Examples of injecting and recovering data](https://git.ligo.org/Monash/tupak/tree/master/examples/injection_examples)
+    * [A basic tutorial](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/basic_tutorial.py)
+    * [Create your own source model](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/create_your_own_source_model.py)
+    * [How to specify the prior](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/how_to_specify_the_prior.py)
+    * [Using a partially marginalized likelihood](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/marginalized_likelihood.py)
+
+2. [Examples using open data](https://git.ligo.org/Monash/tupak/tree/master/examples/open_data_examples)
+    * [Analysing the first Binary Black hole detection, GW150914](https://git.ligo.org/Monash/tupak/blob/master/examples/open_data_examples/GW150914.py)
+
+3. [Notebook-style tutorials](https://git.ligo.org/Monash/tupak/tree/master/examples/tutorials)
+    * [Comparing different samplers](https://git.ligo.org/Monash/tupak/blob/master/examples/tutorials/compare_samplers.ipynb)
+    * [Visualising the output](https://git.ligo.org/Monash/tupak/blob/master/examples/tutorials/visualising_the_results.ipynb)
+
+
 ## Installation
 
 In the following, we assume you have installed
-[pip](https://pip.pypa.io/en/stable/installing/) and [git](https://git-scm.com/).
+[https](pip://pypa.io.en/stable/installing/pip/) and [git](https://git-scm.com/).
 
 ### Install tupak
 Clone the repository, install the requirements, and then install `tupak`.
@@ -23,13 +41,15 @@ $ python setup.py install
 Once you have run these steps, you have `tupak` installed.
 
 ### Install lalsuite
-Many of the `tupak` features rely on having a swig-wrapped `lalsuite`
-installation. To install this head to
+The simple way: `pip install lalsuite`, or,
+from source:
+
+Head to
 [https://git.ligo.org/lscsoft/lalsuite](https://git.ligo.org/lscsoft/lalsuite)
 to check you have an account and SSH keys set up. Then,
 
 ```bash
-$ git lfs install
+$ git lfs install # you may need to install git-lfs first
 $ git clone git@git.ligo.org:lscsoft/lalsuite.git
 $ cd lalsuite
 $ ./00boot
@@ -40,9 +60,6 @@ $ make; make install
 Warning: in the configure line here, we have disabled everything except
 lalsimulation. If you need other modules, see `./configure --help`.
 
-You could also `pip install lal, lalsuite`.
-
-### Install lalsuite (optional)
 
 If you want to use the `pymultinest` sampler, you first need the
 MultiNest library to be installed to work properly. The full instructions can

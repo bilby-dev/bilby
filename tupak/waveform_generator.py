@@ -2,7 +2,7 @@ import inspect
 
 import tupak
 from . import utils
-
+import numpy as np
 
 class WaveformGenerator(object):
     """ A waveform generator
@@ -24,11 +24,12 @@ class WaveformGenerator(object):
 
     """
 
-    def __init__(self, frequency_domain_source_model, sampling_frequency=4096, time_duration=1,
-                 parameters=None, parameter_conversion=None):
+    def __init__(self, frequency_domain_source_model=None, time_domain_source_model=None,
+                 sampling_frequency=4096, time_duration=1, parameters=None, parameter_conversion=None):
+        self.frequency_domain_source_model = frequency_domain_source_model
+        self.time_domain_source_model = time_domain_source_model
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
-        self.source_model = frequency_domain_source_model
         self.parameter_conversion = parameter_conversion
         self.search_parameter_keys = []
         self.parameters = parameters
@@ -39,12 +40,42 @@ class WaveformGenerator(object):
         """ Wrapper to source_model """
         if self.parameter_conversion is not None:
             added_keys = self.parameter_conversion(self.parameters, self.search_parameter_keys)
-            model_frequency_strain = self.source_model(self.frequency_array, **self.parameters)
+            
+        if self.frequency_domain_source_model is not None:
+            model_frequency_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+        elif self.time_domain_source_model is not None:
+            model_frequency_strain = dict()
+            time_domain_strain = self.time_domain_source_model(self.time_array, **self.parameters)
+            if isinstance(time_domain_strain, np.ndarray):
+                return time_domain_strain
+            for key in time_domain_strain:
+                model_frequency_strain[key], self.frequency_array = utils.nfft(time_domain_strain[key],
+                                                                               self.sampling_frequency)
+        else:
+            raise RuntimeError("No source model given")
+        if self.parameter_conversion is not None:
             for key in added_keys:
                 self.parameters.pop(key)
-        else:
-            model_frequency_strain = self.source_model(self.frequency_array, **self.parameters)
         return model_frequency_strain
+
+    def time_domain_strain(self):
+        if self.parameter_conversion is not None:
+            added_keys = self.parameter_conversion(self.parameters, self.search_parameter_keys)
+        if self.time_domain_source_model is not None:
+            model_time_series = self.time_domain_source_model(self.time_array, **self.parameters)
+        elif self.frequency_domain_source_model is not None:
+            model_time_series = dict()
+            frequency_domain_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+            if isinstance(frequency_domain_strain, np.ndarray):
+                return frequency_domain_strain
+            for key in frequency_domain_strain:
+                model_time_series[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
+        else:
+            raise RuntimeError("No source model given")
+        if self.parameter_conversion is not None:
+            for key in added_keys:
+                self.parameters.pop(key)
+        return model_time_series[key]
 
     @property
     def frequency_array(self):
@@ -54,6 +85,10 @@ class WaveformGenerator(object):
                                         self.time_duration)
             self.__frequency_array_updated = True
         return self.__frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self.__frequency_array = frequency_array
 
     @property
     def time_array(self):
@@ -72,31 +107,22 @@ class WaveformGenerator(object):
     @parameters.setter
     def parameters(self, parameters):
         if parameters is None:
-            parameters = inspect.getargspec(self.source_model).args
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
-        elif isinstance(parameters, list):
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters_from_source_model()
         elif isinstance(parameters, dict):
             for key in parameters.keys():
-                # if key in parameters.keys():
                 self.__parameters[key] = parameters[key]
-                # else:
-                #     raise KeyError('The provided dictionary did not '
-                #                    'contain key {}'.format(key))
         else:
-            raise TypeError('Parameters must either be set as a list of keys or'
-                            ' a dictionary of key-value pairs.')
+            raise TypeError('Parameters must be a dictionary of key-value pairs.')
 
-    @property
-    def source_model(self):
-        return self.__source_model
-
-    @source_model.setter
-    def source_model(self, source_model):
-        self.__source_model = source_model
-        self.parameters = inspect.getargspec(source_model).args
+    def __parameters_from_source_model(self):
+        if self.frequency_domain_source_model is not None:
+            parameters = inspect.getargspec(self.frequency_domain_source_model).args
+            parameters.pop(0)
+            self.__parameters = dict.fromkeys(parameters)
+        elif self.time_domain_source_model is not None:
+            parameters = inspect.getargspec(self.time_domain_source_model).args
+            parameters.pop(0)
+            self.__parameters = dict.fromkeys(parameters)
 
     @property
     def time_duration(self):

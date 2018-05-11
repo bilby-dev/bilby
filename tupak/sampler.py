@@ -109,11 +109,14 @@ class Sampler(object):
     def verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
         for user_input in self.kwargs.keys():
+            bad_keys = []
             if user_input not in args:
                 logging.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
                     .format(user_input, self.external_sampler_function))
-                self.kwargs.pop(user_input)
+                bad_keys.append(user_input)
+        for key in bad_keys:
+            self.kwargs.pop(key)
 
     def initialise_parameters(self):
 
@@ -204,6 +207,7 @@ class Nestle(Sampler):
         self.external_sampler_function = nestle.sample
         if self.kwargs.get('verbose', True):
             self.kwargs['callback'] = nestle.print_progress
+            self.kwargs.pop('verbose')
         self.verify_kwargs_against_external_sampler_function()
 
         out = self.external_sampler_function(
@@ -244,7 +248,7 @@ class Dynesty(Sampler):
         nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
         out = nested_sampler.results
 
-        self.result.sampler_output = out
+        # self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
@@ -402,7 +406,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
-        result.prior = priors
+        # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result

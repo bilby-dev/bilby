@@ -5,7 +5,6 @@ data.
 
 This example estimates all 15 parameters of the binary black hole system using
 commonly used prior distributions.  This will take a few hours to run.
-
 """
 from __future__ import division, print_function
 import tupak
@@ -16,7 +15,7 @@ tupak.utils.setup_logger()
 # Define some convienence labels and the trigger time of the event
 outdir = 'outdir'
 label = 'GW150914'
-time_of_event = 1126259462.422
+time_of_event = tupak.utils.get_event_time(label)
 
 # Here we import the detector data. This step downloads data from the
 # LIGO/Virgo open data archives. The data is saved to an `Interferometer`
@@ -25,9 +24,7 @@ time_of_event = 1126259462.422
 # makes sense, for each detector a plot is created in the `outdir` called
 # H1_frequency_domain_data.png and LI_frequency_domain_data.png. The two
 # objects are then placed into a list.
-H1 = tupak.detector.get_interferometer('H1', time_of_event, version=1, outdir=outdir)
-L1 = tupak.detector.get_interferometer('L1', time_of_event, version=1, outdir=outdir)
-interferometers = [H1, L1]
+interferometers = tupak.detector.get_event_data(label)
 
 # We now define the prior. You'll notice we only do this for the two masses,
 # the merger time, and the distance; in each case choosing a prior which
@@ -48,14 +45,16 @@ prior['luminosity_distance'] = tupak.prior.PowerLaw(
 # `lal_binary_black_hole model` source model. We also pass other parameters:
 # the waveform approximant and reference frequency.
 waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    tupak.source.lal_binary_black_hole, H1.sampling_frequency, H1.duration,
+    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+    sampling_frequency=interferometers[0].sampling_frequency,
+    time_duration=interferometers[0].duration,
     parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
 
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
 likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
 
-# Finally, we run the sampler. This function takes the likelihood and prior
+# Finally, we run the sampler. This function takes the likelihood and prio
 # along with some options for how to do the sampling and how to save the data
 result = tupak.sampler.run_sampler(likelihood, prior, sampler='dynesty',
                                    outdir=outdir, label=label)

@@ -37,7 +37,25 @@ class Result(dict):
             os.rename(file_name, file_name + '.old')
 
         logging.info("Saving result to {}".format(file_name))
-        deepdish.io.save(file_name, self)
+        try:
+            deepdish.io.save(file_name, self)
+        except Exception as e:
+            logging.error(
+                "\n\n Saving the data has failed with the following message:\n {} \n\n"
+                .format(e))
+
+    def get_latex_labels_from_parameter_keys(self, keys):
+        return_list = []
+        for k in keys:
+            if k in self.search_parameter_keys:
+                idx = self.search_parameter_keys.index(k)
+                return_list.append(self.parameter_labels[idx])
+            elif k in self.parameter_labels:
+                return_list.append(k)
+            else:
+                raise ValueError('key {} not a parameter label or latex label'
+                                 .format(k))
+        return return_list
 
     def plot_corner(self, save=True, **kwargs):
         """ Plot a corner-plot using chain-consumer
@@ -56,17 +74,32 @@ class Result(dict):
         # Set some defaults (unless already set)
         kwargs['figsize'] = kwargs.get('figsize', 'GROW')
         if save:
-            kwargs['filename'] = '{}/{}_corner.png'.format(self.outdir, self.label)
+            filename = '{}/{}_corner.png'.format(self.outdir, self.label)
+            kwargs['filename'] = kwargs.get('filename', filename)
             logging.info('Saving corner plot to {}'.format(kwargs['filename']))
         if self.injection_parameters is not None:
-            kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
+            # If no truth argument given, set these to the injection params
+            injection_parameters = [self.injection_parameters[key]
+                                    for key in self.search_parameter_keys]
+            kwargs['truth'] = kwargs.get('truth', injection_parameters)
+
+        if type(kwargs.get('truth')) == dict:
+            old_keys = kwargs['truth'].keys()
+            new_keys = self.get_latex_labels_from_parameter_keys(old_keys)
+            for old, new in zip(old_keys, new_keys):
+                kwargs['truth'][new] = kwargs['truth'].pop(old)
+        if 'parameters' in kwargs:
+            kwargs['parameters'] = self.get_latex_labels_from_parameter_keys(
+                kwargs['parameters'])
+
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
+        c.add_chain(self.samples, parameters=self.parameter_labels,
+                    name=self.label)
         fig = c.plotter.plot(**kwargs)
         return fig
 
     def plot_walks(self, save=True, **kwargs):
-        """ Plot the chain walkst using chain-consumer
+        """ Plot the chain walks using chain-consumer
 
         Parameters
         ----------
@@ -91,7 +124,7 @@ class Result(dict):
         return fig
 
     def plot_distributions(self, save=True, **kwargs):
-        """ Plot the chain walkst using chain-consumer
+        """ Plot the chain walks using chain-consumer
 
         Parameters
         ----------
@@ -143,15 +176,15 @@ class Result(dict):
 
         :return:
         """
-        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2)**0.6 \
-                                       / (self.posterior.mass_1 + self.posterior.mass_2)**0.2
+        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
         self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
-        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) \
-                                / (self.posterior.mass_1 + self.posterior.mass_2)**2
+        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 2
 
         self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
-                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2))\
-                                    / (1 + self.posterior.q)
+                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
+                                                1 + self.posterior.q)
         self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))

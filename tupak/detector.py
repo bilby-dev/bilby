@@ -213,16 +213,19 @@ class Interferometer(object):
         :param waveform_polarizations: dict, polarizations of the waveform
         :param parameters: dict, parameters describing position and time of arrival of the signal
         """
-        signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
-        self.data += signal_ifo
-        opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                          time_duration=1 / (self.frequency_array[1]
-                                                                              - self.frequency_array[0])).real)
-        mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                time_duration=1 / (self.frequency_array[1]
-                                                                                    - self.frequency_array[0])).real)
-        logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
-            opt_snr, mf_snr, self.name))
+        if waveform_polarizations is None:
+            logging.warning('Trying to inject signal which is None.')
+        else:
+            signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
+            self.data += signal_ifo
+            opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                              time_duration=1 / (self.frequency_array[1]
+                                                                                 - self.frequency_array[0])).real)
+            mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                    time_duration=1 / (self.frequency_array[1]
+                                                                                       - self.frequency_array[0])).real)
+            logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
+                opt_snr, mf_snr, self.name))
 
     def unit_vector_along_arm(self, arm):
         """
@@ -247,7 +250,7 @@ class Interferometer(object):
             n = np.cos(self.__yarm_tilt) * np.cos(self.__yarm_azimuth) * e_long + np.cos(self.__yarm_tilt) \
                 * np.sin(self.__yarm_azimuth) * e_lat + np.sin(self.__yarm_tilt) * e_h
         else:
-            print('Not a recognized arm, aborting!')
+            logging.warning('Not a recognized arm, aborting!')
             return
         return n
 
@@ -333,17 +336,16 @@ class Interferometer(object):
         vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
-
     @property
     def whitened_data(self):
         return self.data / self.amplitude_spectral_density_array
 
     def save_data(self, outdir):
-        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name), [self.frequency_array,
-                                                                                 self.data.real, self.data.imag],
+        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
+                   [self.frequency_array, self.data.real, self.data.imag],
                    header='f real_h(f) imag_h(f)')
-        np.savetxt('{}/{}_psd.dat'.format(outdir, self.name), [self.frequency_array,
-                                                               self.amplitude_spectral_density_array],
+        np.savetxt('{}/{}_psd.dat'.format(outdir, self.name),
+                   [self.frequency_array, self.amplitude_spectral_density_array],
                    header='f h(f)')
 
 
@@ -372,18 +374,20 @@ class PowerSpectralDensity:
             self.amplitude_spectral_density_file = asd_file
             self.import_amplitude_spectral_density()
             if min(self.amplitude_spectral_density) < 1e-30:
-                print("You specified an amplitude spectral density file.")
-                print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.amplitude_spectral_density)))
-                print("You may have intended to provide this as a power spectral density.")
+                logging.warning("You specified an amplitude spectral density file.")
+                logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+                logging.warning("The minimum of the provided curve is {:.2e}.".format(
+                    min(self.amplitude_spectral_density)))
+                logging.warning("You may have intended to provide this as a power spectral density.")
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
             if min(self.power_spectral_density) > 1e-30:
-                print("You specified a power spectral density file.")
-                print("{} WARNING {}".format("*" * 30, "*" * 30))
-                print("The minimum of the provided curve is {:.2e}.".format(min(self.power_spectral_density)))
-                print("You may have intended to provide this as an amplitude spectral density.")
+                logging.warning("You specified a power spectral density file.")
+                logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+                logging.warning("The minimum of the provided curve is {:.2e}.".format(
+                    min(self.power_spectral_density)))
+                logging.warning("You may have intended to provide this as an amplitude spectral density.")
 
     def import_amplitude_spectral_density(self):
         """
@@ -472,14 +476,7 @@ def get_empty_interferometer(name):
         raise ValueError('Interferometer {} not implemented'.format(name))
 
 
-# Maintain backward compatibility - should be removed in the future
-H1 = get_empty_interferometer('H1')
-L1 = get_empty_interferometer('L1')
-V1 = get_empty_interferometer('V1')
-GEO600 = get_empty_interferometer('GEO600')
-
-
-def get_interferometer(
+def get_interferometer_with_open_data(
         name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
         cache=True, outdir='outdir', plot=True, filter_freq=1024,
         raw_data_file=None, **kwargs):
@@ -519,11 +516,11 @@ def get_interferometer(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    strain = get_open_strain_data(
+    strain = utils.get_open_strain_data(
             name, center_time-T/2, center_time+T/2, outdir=outdir, cache=cache,
             raw_data_file=raw_data_file, **kwargs)
 
-    strain_psd = get_open_strain_data(
+    strain_psd = utils.get_open_strain_data(
             name, center_time+psd_offset, center_time+psd_offset+psd_duration,
             raw_data_file=raw_data_file,
             outdir=outdir, cache=cache, **kwargs)
@@ -581,8 +578,9 @@ def get_interferometer(
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations, injection_parameters, sampling_frequency=4096, time_duration=4,
-        outdir='outdir', plot=True, save=True):
+        name, injection_polarizations, injection_parameters,
+        sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
+        save=True):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time
@@ -615,11 +613,15 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     interferometer = get_empty_interferometer(name)
-    interferometer.set_data(sampling_frequency=sampling_frequency, duration=time_duration,
-                            from_power_spectral_density=True)
-    interferometer.inject_signal(waveform_polarizations=injection_polarizations, parameters=injection_parameters)
+    interferometer.set_data(
+        sampling_frequency=sampling_frequency, duration=time_duration,
+        from_power_spectral_density=True)
+    interferometer.inject_signal(
+        waveform_polarizations=injection_polarizations,
+        parameters=injection_parameters)
 
-    interferometer_signal = interferometer.get_detector_response(injection_polarizations, injection_parameters)
+    interferometer_signal = interferometer.get_detector_response(
+        injection_polarizations, injection_parameters)
 
     if plot:
         fig, ax = plt.subplots()
@@ -628,7 +630,8 @@ def get_interferometer_with_fake_noise_and_injection(
         ax.loglog(interferometer.frequency_array,
                   interferometer.amplitude_spectral_density_array,
                   '-C1', lw=0.5, label=name+' ASD')
-        ax.loglog(interferometer.frequency_array, abs(interferometer_signal), label='Signal')
+        ax.loglog(interferometer.frequency_array, abs(interferometer_signal),
+                  label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
@@ -642,23 +645,63 @@ def get_interferometer_with_fake_noise_and_injection(
     return interferometer
 
 
-def get_open_strain_data(name, t1, t2, outdir, cache=False, raw_data_file=None,
-                         **kwargs):
-    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
-    if raw_data_file:
-        logging.info('Attempting to use raw_data_file {}'.format(raw_data_file))
-        strain = TimeSeries.read(raw_data_file)
-        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
-            logging.info('Using supplied raw data file')
-            strain = strain.crop(t1, t2)
-        else:
-            raise ValueError('Supplied file does not contain requested data')
-    elif os.path.isfile(filename) and cache:
-        logging.info('Using cached data from {}'.format(filename))
-        strain = TimeSeries.read(filename)
-    else:
-        logging.info('Fetching open data ...')
-        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
-        logging.info('Saving data to {}'.format(filename))
-        strain.write(filename)
-    return strain
+def get_event_data(
+        event, interferometer_names=None, time_duration=4, alpha=0.25,
+        psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
+        plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
+    """
+    Get open data for a specified event.
+
+    We currently know about:
+        GW150914
+
+    Parameters
+    ----------
+    event: str
+        Event descriptor, this can deal with some prefixes, e.g., '150914',
+        'GW150914', 'LVT151012'
+    interferometer_names: list, optional
+        List of interferometer identifiers, e.g., 'H1'.
+        If None will look for data in 'H1', 'V1', 'L1'
+    time_duration: float
+        Time duration to search for.
+    alpha: float
+        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    psd_offset, psd_duration: float
+        The power spectral density (psd) is estimated using data from
+        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
+    cache: bool
+        Whether or not to store the acquired data.
+    outdir: str
+        Directory where the psd files are saved
+    plot: bool
+        If true, create an ASD + strain plot
+    filter_freq: float
+        Low pass filter frequency
+    **kwargs:
+        All keyword arguments are passed to
+        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+    Return
+    ------
+    interferometers: list
+        A list of tupak.detector.Interferometer objects
+    """
+    event_time = tupak.utils.get_event_time(event)
+
+    interferometers = []
+
+    if interferometer_names is None:
+        interferometer_names = ['H1', 'L1', 'V1']
+
+    for name in interferometer_names:
+        try:
+            interferometers.append(get_interferometer_with_open_data(
+                name, event_time, T=time_duration, alpha=alpha,
+                psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
+                outdir=outdir, plot=plot, filter_freq=filter_freq,
+                raw_data_file=raw_data_file, **kwargs))
+        except ValueError:
+            logging.info('No data found for {}.'.format(name))
+
+    return interferometers
