@@ -106,9 +106,9 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
-        if parameters is None:
-            self.__parameters_from_source_model()
-        elif isinstance(parameters, dict):
+        # if parameters is None:
+        self.__parameters_from_source_model()
+        if isinstance(parameters, dict):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
         else:
