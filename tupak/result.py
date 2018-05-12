@@ -4,6 +4,7 @@ import numpy as np
 import deepdish
 from chainconsumer import ChainConsumer
 import pandas as pd
+import tupak
 
 
 class Result(dict):
@@ -159,13 +160,21 @@ class Result(dict):
             for key in self.prior:
                 prior_file.write(self.prior[key])
 
-    def samples_to_data_frame(self):
+    def samples_to_data_frame(self, waveform_generator=None, interferometers=None, priors=None):
         """
         Convert array of samples to data frame.
 
-        :return:
+        Parameters
+        ----------
+        waveform_generator: tupak.waveform_generator.WaveformGenerator, optional
+            If the waveform generator and interferometers are provided, the SNRs will be recorded.
+        interferometers: tupak.detector.Interferometer
+            If the waveform generator and interferometers are provided, the SNRs will be recorded.
+        priors: dict
+            Dictionary of prior object, used to fill in delta function priors.
         """
         data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        tupak.conversion.generate_all_bbh_parameters(data_frame, waveform_generator, interferometers, priors)
         self.posterior = data_frame
         for key in self.fixed_parameter_keys:
             self.posterior[key] = self.prior[key].sample(len(self.posterior))
