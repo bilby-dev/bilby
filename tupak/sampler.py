@@ -405,9 +405,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
+        tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
         # result.prior = prior  # Removed as this breaks the saving of the data
-        result.samples_to_data_frame()
+        result.samples_to_data_frame(waveform_generator=likelihood.waveform_generator,
+                                     interferometers=likelihood.interferometers, priors=priors)
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:
