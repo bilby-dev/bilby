@@ -60,54 +60,35 @@ class Prior(object):
 
     @property
     def __default_latex_label(self):
-        if self.name == 'mass_1':
-            return '$m_1$'
-        elif self.name == 'mass_2':
-            return '$m_2$'
-        elif self.name == 'chirp_mass':
-            return '$\mathcal{M}$'
-        elif self.name == 'total_mass':
-            return '$M$'
-        elif self.name == 'mass_ratio':
-            return '$q$'
-        elif self.name == 'symmetric_mass_ratio':
-            return '$\eta$'
-        elif self.name == 'a_1':
-            return '$a_1$'
-        elif self.name == 'a_2':
-            return '$a_2$'
-        elif self.name == 'tilt_1':
-            return '$\\theta_1$'
-        elif self.name == 'tilt_2':
-            return '$\\theta_2$'
-        elif self.name == 'cos_tilt_1':
-            return '$\cos\\theta_1$'
-        elif self.name == 'cos_tilt_2':
-            return '$\cos\\theta_2$'
-        elif self.name == 'phi_12':
-            return '$\Delta\phi$'
-        elif self.name == 'phi_jl':
-            return '$\phi_{JL}$'
-        elif self.name == 'luminosity_distance':
-            return '$d_L$'
-        elif self.name == 'dec':
-            return '$\mathrm{DEC}$'
-        elif self.name == 'ra':
-            return '$\mathrm{RA}$'
-        elif self.name == 'iota':
-            return '$\iota$'
-        elif self.name == 'cos_iota':
-            return '$\cos\iota$'
-        elif self.name == 'psi':
-            return '$\psi$'
-        elif self.name == 'phase':
-            return '$\phi$'
-        elif self.name == 'tc':
-            return '$t_c$'
-        elif self.name == 'geocent_time':
-            return '$t_c$'
+        default_labels = {
+            'mass_1': '$m_1$',
+            'mass_2': '$m_2$',
+            'total_mass': '$M$',
+            'chirp_mass': '$\mathcal{M}$',
+            'mass_ratio': '$q$',
+            'symmetric_mass_ratio': '$\eta$',
+            'a_1': '$a_1$',
+            'a_2': '$a_2$',
+            'tilt_1': '$\\theta_1$',
+            'tilt_2': '$\\theta_2$',
+            'cos_tilt_1': '$\cos\\theta_1$',
+            'cos_tilt_2': '$\cos\\theta_2$',
+            'phi_12': '$\Delta\phi$',
+            'phi_jl': '$\phi_{JL}$',
+            'luminosity_distance': '$d_L$',
+            'dec': '$\mathrm{DEC}$',
+            'ra': '$\mathrm{RA}$',
+            'iota': '$\iota$',
+            'cos_iota': '$\cos\iota$',
+            'psi': '$\psi$',
+            'phase': '$\phi$',
+            'geocent_time': '$t_c$'
+        }
+        if self.name in default_labels.keys():
+            label = default_labels[self.name]
         else:
-            return self.name
+            label = self.name
+        return label
 
 
 class Uniform(Prior):
@@ -374,48 +355,46 @@ def fix(prior, value=None):
 
 
 def create_default_prior(name):
-    if name == 'mass_1':
-        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
-    elif name == 'mass_2':
-        prior = PowerLaw(name=name, alpha=0, minimum=5, maximum=100)
-    elif name == 'chirp_mass':
-        prior = Uniform(name=name, minimum=5, maximum=100)
-    elif name == 'total_mass':
-        prior = Uniform(name=name, minimum=10, maximum=200)
-    elif name == 'mass_ratio':
-        prior = Uniform(name=name, minimum=0.125, maximum=1)
-    elif name == 'symmetric_mass_ratio':
-        prior = Uniform(name=name, minimum=8 / 81, maximum=0.25)
-    elif name == 'a_1':
-        prior = Uniform(name=name, minimum=0, maximum=0.8)
-    elif name == 'a_2':
-        prior = Uniform(name=name, minimum=0, maximum=0.8)
-    elif name == 'tilt_1':
-        prior = Sine(name=name)
-    elif name == 'tilt_2':
-        prior = Sine(name=name)
-    elif name == 'cos_tilt_1':
-        prior = Uniform(name=name, minimum=-1, maximum=1)
-    elif name == 'cos_tilt_2':
-        prior = Uniform(name=name, minimum=-1, maximum=1)
-    elif name == 'phi_12':
-        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
-    elif name == 'phi_jl':
-        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
-    elif name == 'luminosity_distance':
-        prior = UniformComovingVolume(name=name, minimum=1e2, maximum=5e3)
-    elif name == 'dec':
-        prior = Cosine(name=name)
-    elif name == 'ra':
-        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
-    elif name == 'iota':
-        prior = Sine(name=name)
-    elif name == 'cos_iota':
-        prior = Uniform(name=name, minimum=-1, maximum=1)
-    elif name == 'psi':
-        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
-    elif name == 'phase':
-        prior = Uniform(name=name, minimum=0, maximum=2 * np.pi)
+    """
+    Make a default prior for a parameter with a known name.
+
+    This is currently set up for binary black holes.
+
+    Parameters
+    ----------
+    name: str
+        Parameter name
+
+    Return
+    ------
+    prior: Prior
+        Default prior distribution for that parameter, if unknown None is returned.
+    """
+    default_priors = {
+        'mass_1': Uniform(name=name, minimum=5, maximum=100),
+        'mass_2': Uniform(name=name, minimum=5, maximum=100),
+        'chirp_mass': Uniform(name=name, minimum=5, maximum=100),
+        'total_mass': Uniform(name=name, minimum=10, maximum=200),
+        'mass_ratio': Uniform(name=name, minimum=0.125, maximum=1),
+        'symmetric_mass_ratio': Uniform(name=name, minimum=8 / 81, maximum=0.25),
+        'a_1': Uniform(name=name, minimum=0, maximum=0.8),
+        'a_2': Uniform(name=name, minimum=0, maximum=0.8),
+        'tilt_1': Sine(name=name),
+        'tilt_2': Sine(name=name),
+        'cos_tilt_1': Uniform(name=name, minimum=-1, maximum=1),
+        'cos_tilt_2': Uniform(name=name, minimum=-1, maximum=1),
+        'phi_12': Uniform(name=name, minimum=0, maximum=2 * np.pi),
+        'phi_jl': Uniform(name=name, minimum=0, maximum=2 * np.pi),
+        'luminosity_distance': UniformComovingVolume(name=name, minimum=1e2, maximum=5e3),
+        'dec': Cosine(name=name),
+        'ra': Uniform(name=name, minimum=0, maximum=2 * np.pi),
+        'iota': Sine(name=name),
+        'cos_iota': Uniform(name=name, minimum=-1, maximum=1),
+        'psi': Uniform(name=name, minimum=0, maximum=2 * np.pi),
+        'phase': Uniform(name=name, minimum=0, maximum=2 * np.pi)
+    }
+    if name in default_priors.keys():
+        prior = default_priors[name]
     else:
         prior = None
     return prior
