@@ -247,24 +247,20 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     n = -u * np.cos(psi) + v * np.sin(psi)
     omega = np.cross(m, n)
 
-    if mode == "plus":
-        # polarization_tensor = np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n)
-        polarization_tensor = np.array([[m[0]*m[0]-n[0]*n[0], m[0]*m[1]-n[0]*n[1], m[0]*m[2]-n[0]*n[2]],
-                                       [m[1]*m[0]-n[1]*n[0], m[1]*m[1]-n[1]*n[1], m[1]*m[2]-n[1]*n[2]],
-                                       [m[2]*m[0]-n[2]*n[0], m[2]*m[1]-n[2]*n[1], m[2]*m[2]-n[2]*n[2]]])
-    elif mode == "cross":
-        polarization_tensor = np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m)
-    elif mode == "breathing":
-        polarization_tensor = np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
-    elif mode == "longitudinal":
-        polarization_tensor = np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
-    elif mode == "x":
-        polarization_tensor = np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
-    elif mode == "y":
-        polarization_tensor = np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
+    polarization_tensors = {
+        "plus" : np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n),
+        "cross": np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m),
+        "breathing": np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n),
+        "longitudinal": np.sqrt(2) * np.einsum('i,j->ij', omega, omega),
+        "x": np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m),
+        "y": np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
+    }
+
+    if mode in polarization_tensors.keys():
+        polarization_tensor = polarization_tensors[mode]
     else:
-        print("Not a polarization mode!")
-        return None
+        logging.warning("{} not a polarization mode!".format(mode))
+        polarization_tensor = None
     return polarization_tensor
 
 
