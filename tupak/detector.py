@@ -15,22 +15,38 @@ from . import utils
 class Interferometer(object):
     """Class for the Interferometer """
 
-    def __init__(self, name, power_spectral_density, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
+                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
                  xarm_tilt=0., yarm_tilt=0.):
         """
-        Interferometer class
+        Instantiate an Interferometer object.
 
-        :param name: interferometer name, e.g., H1
-        :param power_spectral_density: PowerSpectralDensity object, default is aLIGO design sensitivity.
-        :param length: length of the interferometer
-        :param latitude: latitude North in degrees (South is negative)
-        :param longitude: longitude East in degrees (West is negative)
-        :param elevation: height above surface in meters
-        :param xarm_azimuth: orientation of the x arm in degrees North of East
-        :param yarm_azimuth: orientation of the y arm in degrees North of East
-        :param xarm_tilt: tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in
-                          LIGO-T980044-08
-        :param yarm_tilt: tilt of the y arm in radians above the horizontal
+        Parameters
+        ----------
+        name: str
+            Interferometer name, e.g., H1.
+        power_spectral_density: PowerSpectralDensity
+            Power spectral density determining the sensitivity of the detector.
+        minimum_frequency: float
+            Minimum frequency to analyse for detector.
+        maximum_frequency: float
+            Maximum frequency to analyse for detector.
+        length: float
+            Length of the interferometer in km.
+        latitude: float
+            Latitude North in degrees (South is negative).
+        longitude: float
+            Longitude East in degrees (West is negative).
+        elevation: float
+            Height above surface in metres.
+        xarm_azimuth: float
+            Orientation of the x arm in degrees North of East.
+        yarm_azimuth: float
+            Orientation of the y arm in degrees North of East.
+        xarm_tilt: float
+            Tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08.
+        yarm_tilt: float
+            Tilt of the y arm in radians above the horizontal.
         """
         self.__x_updated = False
         self.__y_updated = False
@@ -38,6 +54,8 @@ class Interferometer(object):
         self.__detector_tensor_update = False
 
         self.name = name
+        self.minimum_frequency = minimum_frequency
+        self.maximum_frequency = maximum_frequency
         self.length = length
         self.latitude = latitude
         self.longitude = longitude
@@ -51,6 +69,27 @@ class Interferometer(object):
         self.frequency_array = []
         self.sampling_frequency = None
         self.duration = None
+
+    @property
+    def minimum_frequency(self):
+        return self.__minimum_frequency
+
+    @minimum_frequency.setter
+    def minimum_frequency(self, minimum_frequency):
+        self.__minimum_frequency = minimum_frequency
+
+    @property
+    def maximum_frequency(self):
+        return self.__maximum_frequency
+
+    @maximum_frequency.setter
+    def maximum_frequency(self, maximum_frequency):
+        self.__maximum_frequency = maximum_frequency
+
+    @property
+    def frequency_mask(self):
+        """Masking array for limiting the frequency band."""
+        return (self.frequency_array > self.minimum_frequency) & (self.frequency_array < self.maximum_frequency)
 
     @property
     def latitude(self):
@@ -193,6 +232,8 @@ class Interferometer(object):
             signal[mode] = waveform_polarizations[mode] * det_response
         signal_ifo = sum(signal.values())
 
+        signal_ifo *= self.frequency_mask
+
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
@@ -305,8 +346,8 @@ class Interferometer(object):
 
         self.sampling_frequency = sampling_frequency
         self.duration = duration
-        self.data = frequency_domain_strain
         self.frequency_array = frequencies
+        self.data = frequency_domain_strain * self.frequency_mask
 
         return
 
@@ -449,25 +490,29 @@ def get_empty_interferometer(name):
         arXiv:gr-qc/0008066 [45] for V1/ GEO600
     """
     if name == 'H1':
-        H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(), length=4,
-                            latitude=46 + 27. / 60 + 18.528 / 3600,
+        H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(),
+                            minimum_frequency=20, maximum_frequency=2048,
+                            length=4, latitude=46 + 27. / 60 + 18.528 / 3600,
                             longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
                             yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
         return H1
     elif name == 'L1':
-        L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(), length=4,
-                            latitude=30 + 33. / 60 + 46.4196 / 3600,
+        L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(),
+                            minimum_frequency=20, maximum_frequency=2048,
+                            length=4, latitude=30 + 33. / 60 + 46.4196 / 3600,
                             longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
                             yarm_azimuth=287.7165,
                             xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
         return L1
     elif name == 'V1':
         V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
+                            minimum_frequency=20, maximum_frequency=2048,
                             latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
                             elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
         return V1
     elif name == 'GEO600':
         GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
+                                minimum_frequency=40, maximum_frequency=2048,
                                 length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
                                 elevation=114.425,
                                 xarm_azimuth=115.9431, yarm_azimuth=21.6117)
