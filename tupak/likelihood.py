@@ -135,3 +135,28 @@ class BasicLikelihood(object):
 
     def log_likelihood_ratio(self):
         return self.log_likelihood() - self.noise_log_likelihood()
+
+
+def get_binary_black_hole_likelihood(interferometers):
+    """ A rapper to quickly set up a likelihood for BBH parameter estimation
+
+    Parameters
+    ----------
+    interferometers: list
+        A list of `tupak.detector.Interferometer` instances, typically the
+        output of either `tupak.detector.get_interferometer_with_open_data`
+        or `tupak.detector.get_interferometer_with_fake_noise_and_injection`
+    Returns
+    likelihood: tupak.likelihood.Likelihood
+        The likelihood to pass to `run_sampler`
+    """
+    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+        frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+        sampling_frequency=interferometers[0].sampling_frequency,
+        time_duration=interferometers[0].duration,
+        parameters={'waveform_approximant': 'IMRPhenomPv2',
+                    'reference_frequency': 50})
+    likelihood = tupak.likelihood.Likelihood(
+        interferometers, waveform_generator)
+    return likelihood
+
