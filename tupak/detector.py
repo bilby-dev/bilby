@@ -305,8 +305,7 @@ class Interferometer(object):
 
     @property
     def power_spectral_density_array(self):
-        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)\
-               * self.frequency_mask
+        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
                  from_power_spectral_density=None,
