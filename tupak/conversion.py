@@ -1,7 +1,8 @@
+import tupak
 import numpy as np
 import lalsimulation as lalsim
+import pandas as pd
 import logging
-import tupak
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
@@ -121,8 +122,9 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
     sample['cos_tilt_1'] = np.cos(sample['tilt_1'])
     sample['cos_tilt_2'] = np.cos(sample['tilt_2'])
 
-    if all(key in sample.keys() for key in ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
-                                            'mass_2', 'reference_frequency', 'phase']) and isinstance(sample, dict):
+    spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
+                                  'mass_2', 'reference_frequency', 'phase']
+    if all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, dict):
         sample['iota'], sample['spin_1x'], sample['spin_1y'], sample['spin_1z'],sample['spin_2x'], \
             sample['spin_2y'], sample['spin_2z'] =\
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
@@ -133,8 +135,28 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
         sample['phi_1'] = np.arctan(sample['spin_1y'] / sample['spin_1x'])
         sample['phi_2'] = np.arctan(sample['spin_2y'] / sample['spin_2x'])
 
+    elif all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, pd.DataFrame):
+        logging.info('Extracting component spins.')
+        new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
+        new_spins = {name: np.zeros(len(sample)) for name in new_spin_parameters}
+
+        for ii in range(len(sample)):
+            new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii],\
+                new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
+                lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+                    sample['iota'][ii], sample['phi_jl'][ii], sample['tilt_1'][ii], sample['tilt_2'][ii],
+                    sample['phi_12'][ii], sample['a_1'][ii], sample['a_2'][ii],
+                    sample['mass_1'][ii] * tupak.utils.solar_mass, sample['mass_2'][ii] * tupak.utils.solar_mass,
+                    sample['reference_frequency'][ii], sample['phase'][ii])
+
+        for name in new_spin_parameters:
+            sample[name] = new_spins[name]
+
+        sample['phi_1'] = np.arctan(sample['spin_1y'] / sample['spin_1x'])
+        sample['phi_2'] = np.arctan(sample['spin_2y'] / sample['spin_2x'])
+
     else:
-        logging.warning("Component spin extraction is not yet implemented.")
+        logging.warning("Component spin extraction failed.")
 
     sample['cos_iota'] = np.cos(sample['iota'])
 
