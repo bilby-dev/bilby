@@ -214,6 +214,7 @@ class Nestle(Sampler):
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
+        print("")
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
@@ -246,6 +247,7 @@ class Dynesty(Sampler):
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
         nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
+        print("")
         out = nested_sampler.results
 
         # self.result.sampler_output = out
@@ -404,8 +406,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.logz = result.log_bayes_factor + result.noise_logz
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
-        result.injection_parameters = injection_parameters
-        tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
+        if injection_parameters is not None:
+            result.injection_parameters = injection_parameters
+            tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(waveform_generator=likelihood.waveform_generator,
