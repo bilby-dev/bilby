@@ -20,7 +20,7 @@ class TestNoiseRealisation(unittest.TestCase):
 
         a = interferometer.amplitude_spectral_density_array/factor
         b = asd_avg
-        self.assertTrue(np.isclose(a[2]/b[2], 1.00, atol=1e-1))
+        self.assertTrue(np.allclose(a, b, rtol=1e-1))
 
     def test_noise_normalisation(self):
         time_duration = 1.
