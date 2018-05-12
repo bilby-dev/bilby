@@ -98,9 +98,10 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
         Samples to fill in with extra parameters, this may be either an injection or posterior samples.
     waveform_generator: tupak.waveform_generator.WaveformGenerator, optional
         If the waveform generator and interferometers are provided, the SNRs will be recorded.
-    interferometers: tupak.detector.Interferometer
+    interferometers: list, optional
+        List of tupak.detector.Interferometer objects.
         If the waveform generator and interferometers are provided, the SNRs will be recorded.
-    priors: dict
+    priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """
     if priors is not None:
@@ -125,7 +126,7 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
     spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
                                   'mass_2', 'reference_frequency', 'phase']
     if all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, dict):
-        sample['iota'], sample['spin_1x'], sample['spin_1y'], sample['spin_1z'],sample['spin_2x'], \
+        sample['iota'], sample['spin_1x'], sample['spin_1y'], sample['spin_1z'], sample['spin_2x'], \
             sample['spin_2y'], sample['spin_2z'] =\
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
                 sample['iota'], sample['phi_jl'], sample['tilt_1'], sample['tilt_2'], sample['phi_12'], sample['a_1'],
