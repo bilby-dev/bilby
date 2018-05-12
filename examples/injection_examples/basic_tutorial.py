@@ -44,7 +44,7 @@ priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosit
 likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100, walks=10,
+result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
                                    injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
 result.plot_corner()
 result.plot_walks()
