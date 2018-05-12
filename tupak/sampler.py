@@ -44,7 +44,6 @@ class Sampler(object):
         self.priors = priors
         self.label = label
         self.outdir = outdir
-        self.kwargs = kwargs
         self.use_ratio = use_ratio
         self.external_sampler = external_sampler
 
@@ -53,6 +52,7 @@ class Sampler(object):
         self.initialise_parameters()
         self.verify_parameters()
         self.ndim = len(self.__search_parameter_keys)
+        self.kwargs = kwargs
 
         self.result = result
 
@@ -229,7 +229,7 @@ class Dynesty(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict(dlogz=0.1, sample='rwalk', walks=100, bound='multi', update_interval=6000)
+        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk', walks=self.ndim * 5)
         self.__kwargs.update(kwargs)
         if 'npoints' not in self.__kwargs:
             for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
@@ -237,6 +237,8 @@ class Dynesty(Sampler):
                     self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
         if 'npoints' not in self.__kwargs:
             self.__kwargs['npoints'] = 10000
+        if 'update_interval' not in self.__kwargs:
+            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['npoints'])
 
     def run_sampler(self):
         dynesty = self.external_sampler
