@@ -486,39 +486,54 @@ class PowerSpectralDensity:
 
 
 def get_empty_interferometer(name):
-    """ Detector positions taken from LIGO-T980044-10 for L1/H1 and from
-        arXiv:gr-qc/0008066 [45] for V1/ GEO600
     """
-    if name == 'H1':
-        H1 = Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(),
-                            minimum_frequency=20, maximum_frequency=2048,
-                            length=4, latitude=46 + 27. / 60 + 18.528 / 3600,
-                            longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
-                            yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5)
-        return H1
-    elif name == 'L1':
-        L1 = Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(),
-                            minimum_frequency=20, maximum_frequency=2048,
-                            length=4, latitude=30 + 33. / 60 + 46.4196 / 3600,
-                            longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
-                            yarm_azimuth=287.7165,
-                            xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4)
-        return L1
-    elif name == 'V1':
-        V1 = Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
-                            minimum_frequency=20, maximum_frequency=2048,
-                            latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
-                            elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674)
-        return V1
-    elif name == 'GEO600':
-        GEO600 = Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
-                                minimum_frequency=40, maximum_frequency=2048,
-                                length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
-                                elevation=114.425,
-                                xarm_azimuth=115.9431, yarm_azimuth=21.6117)
-        return GEO600
+    Get an interferometer with standard parameters for known detectors.
+
+    These objects do not have any noise instantiated.
+
+    The available instruments are:
+        H1, L1, V1, GEO600
+
+    Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/GEO600
+
+    Parameters
+    ----------
+    name: str
+        Interferometer identifier.
+
+    Return
+    ------
+    interferometer: Interferometer
+        Interferometer instance
+    """
+    known_interferometers = {
+        'H1': Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(),
+                             minimum_frequency=20, maximum_frequency=2048,
+                             length=4, latitude=46 + 27. / 60 + 18.528 / 3600,
+                             longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
+                             yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5),
+        'L1': Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(),
+                             minimum_frequency=20, maximum_frequency=2048,
+                             length=4, latitude=30 + 33. / 60 + 46.4196 / 3600,
+                             longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
+                             yarm_azimuth=287.7165,
+                             xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4),
+        'V1': Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
+                             minimum_frequency=20, maximum_frequency=2048,
+                             latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
+                             elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674),
+        'GEO600': Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
+                                 minimum_frequency=40, maximum_frequency=2048,
+                                 length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
+                                 elevation=114.425,
+                                 xarm_azimuth=115.9431, yarm_azimuth=21.6117)
+    }
+
+    if name in known_interferometers.keys():
+        interferometer = known_interferometers[name]
+        return interferometer
     else:
-        raise ValueError('Interferometer {} not implemented'.format(name))
+        logging.warning('Interferometer {} not implemented'.format(name))
 
 
 def get_interferometer_with_open_data(
