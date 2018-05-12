@@ -134,7 +134,7 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
         sample['phi_2'] = np.arctan(sample['spin_2y'] / sample['spin_2x'])
 
     else:
-        logging.warning("Cannot extract component spins.")
+        logging.warning("Component spin extraction is not yet implemented.")
 
     sample['cos_iota'] = np.cos(sample['iota'])
 
