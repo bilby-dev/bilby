@@ -229,16 +229,17 @@ class Dynesty(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk', walks=self.ndim * 5)
+        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk',
+                             walks=self.ndim * 5, verbose=True)
         self.__kwargs.update(kwargs)
-        if 'npoints' not in self.__kwargs:
-            for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
+        if 'nlive' not in self.__kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
                 if equiv in self.__kwargs:
-                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
-        if 'npoints' not in self.__kwargs:
-            self.__kwargs['npoints'] = 10000
+                    self.__kwargs['nlive'] = self.__kwargs.pop(equiv)
+        if 'nlive' not in self.__kwargs:
+            self.__kwargs['nlive'] = 250
         if 'update_interval' not in self.__kwargs:
-            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['npoints'])
+            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
 
     def run_sampler(self):
         dynesty = self.external_sampler
@@ -246,7 +247,8 @@ class Dynesty(Sampler):
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
+        nested_sampler.run_nested(
+            dlogz=self.kwargs['dlogz'], print_progress=self.kwargs['verbose'])
         out = nested_sampler.results
 
         # self.result.sampler_output = out
