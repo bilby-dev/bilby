@@ -398,7 +398,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    fill_priors(priors, likelihood.waveform_generator)
+    priors = fill_priors(priors, likelihood.waveform_generator)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):

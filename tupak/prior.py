@@ -449,6 +449,8 @@ def fill_priors(prior, waveform_generator):
     for key in bad_keys:
         prior.pop(key)
 
+    return prior
+
 
 def write_priors_to_file(priors, outdir):
     """
