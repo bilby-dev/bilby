@@ -34,8 +34,8 @@ class Prior(object):
     @staticmethod
     def test_valid_for_rescaling(val):
         """Test if 0 < val < 1"""
-        allowed = (val > 0) & (val < 1)
-        return allowed
+        if (val < 0) or (val > 1):
+            raise ValueError("Number to be rescaled should be in [0, 1]")
 
     def __repr__(self):
         prior_name = self.__class__.__name__
@@ -97,8 +97,7 @@ class Uniform(Prior):
         self.support = maximum - minimum
 
     def rescale(self, val):
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return self.minimum + val * self.support
 
     def prob(self, val):
@@ -118,8 +117,7 @@ class DeltaFunction(Prior):
 
     def rescale(self, val):
         """Rescale everything to the peak with the correct shape."""
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return self.peak * val ** 0
 
     def prob(self, val):
@@ -146,8 +144,7 @@ class PowerLaw(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         if self.alpha == -1:
             return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
@@ -177,8 +174,7 @@ class Cosine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return np.arcsin(-1 + val * 2)
 
     @staticmethod
@@ -201,8 +197,7 @@ class Sine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return np.arccos(-1 + val * 2)
 
     @staticmethod
@@ -229,8 +224,7 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return self.mu + erfinv(2 * val - 1) * 2**0.5 * self.sigma
 
     def prob(self, val):
@@ -262,8 +256,7 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return erfinv(2 * val * self.normalisation + erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
@@ -312,8 +305,7 @@ class Interped(Prior):
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        if not all(Prior.test_valid_for_rescaling(val)):
-            logging.warning('Values to be rescaled must lie in [0, 1].')
+        Prior.test_valid_for_rescaling(val)
         return self.inverse_cumulative_distribution(val)
 
     def __repr__(self):
