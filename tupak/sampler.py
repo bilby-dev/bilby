@@ -108,8 +108,8 @@ class Sampler(object):
 
     def verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
+        bad_keys = []
         for user_input in self.kwargs.keys():
-            bad_keys = []
             if user_input not in args:
                 logging.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
