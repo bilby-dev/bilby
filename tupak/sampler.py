@@ -243,12 +243,21 @@ class Dynesty(Sampler):
 
     def run_sampler(self):
         dynesty = self.external_sampler
-        nested_sampler = dynesty.NestedSampler(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested(
-            dlogz=self.kwargs['dlogz'], print_progress=self.kwargs['verbose'])
+
+        if self.kwargs.get('dynamic', False) is False:
+            nested_sampler = dynesty.NestedSampler(
+                loglikelihood=self.log_likelihood,
+                prior_transform=self.prior_transform,
+                ndim=self.ndim, **self.kwargs)
+            nested_sampler.run_nested(
+                dlogz=self.kwargs['dlogz'],
+                print_progress=self.kwargs['verbose'])
+        else:
+            nested_sampler = dynesty.DynamicNestedSampler(
+                loglikelihood=self.log_likelihood,
+                prior_transform=self.prior_transform,
+                ndim=self.ndim, **self.kwargs)
+            nested_sampler.run_nested(print_progress=self.kwargs['verbose'])
         out = nested_sampler.results
 
         # self.result.sampler_output = out
