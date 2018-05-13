@@ -108,8 +108,8 @@ class Sampler(object):
 
     def verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
+        bad_keys = []
         for user_input in self.kwargs.keys():
-            bad_keys = []
             if user_input not in args:
                 logging.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
@@ -231,24 +231,35 @@ class Dynesty(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk', walks=self.ndim * 5)
+        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk',
+                             walks=self.ndim * 5, verbose=True)
         self.__kwargs.update(kwargs)
-        if 'npoints' not in self.__kwargs:
-            for equiv in ['nlive', 'nlives', 'n_live_points', 'npoint']:
+        if 'nlive' not in self.__kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
                 if equiv in self.__kwargs:
-                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
-        if 'npoints' not in self.__kwargs:
-            self.__kwargs['npoints'] = 10000
+                    self.__kwargs['nlive'] = self.__kwargs.pop(equiv)
+        if 'nlive' not in self.__kwargs:
+            self.__kwargs['nlive'] = 250
         if 'update_interval' not in self.__kwargs:
-            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['npoints'])
+            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
 
     def run_sampler(self):
         dynesty = self.external_sampler
-        nested_sampler = dynesty.NestedSampler(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested(dlogz=self.kwargs['dlogz'])
+
+        if self.kwargs.get('dynamic', False) is False:
+            nested_sampler = dynesty.NestedSampler(
+                loglikelihood=self.log_likelihood,
+                prior_transform=self.prior_transform,
+                ndim=self.ndim, **self.kwargs)
+            nested_sampler.run_nested(
+                dlogz=self.kwargs['dlogz'],
+                print_progress=self.kwargs['verbose'])
+        else:
+            nested_sampler = dynesty.DynamicNestedSampler(
+                loglikelihood=self.log_likelihood,
+                prior_transform=self.prior_transform,
+                ndim=self.ndim, **self.kwargs)
+            nested_sampler.run_nested(print_progress=self.kwargs['verbose'])
         print("")
         out = nested_sampler.results
 

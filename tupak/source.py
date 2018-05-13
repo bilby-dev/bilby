@@ -1,11 +1,11 @@
 from __future__ import division, print_function
 
-import numpy as np
+import logging
 
 try:
     import lalsimulation as lalsim
 except ImportError:
-    raise ImportWarning("You do not have lalsuite installed currently. You will not be able to use some of the "
+    logging.warning("You do not have lalsuite installed currently. You will not be able to use some of the "
                         "prebuilt functions.")
 
 from . import utils

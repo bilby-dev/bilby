@@ -467,6 +467,8 @@ def fill_priors(prior, waveform_generator=None, parameters=None):
     for key in bad_keys:
         prior.pop(key)
 
+    return prior
+
 
 def test_redundancy(key, prior):
     """
