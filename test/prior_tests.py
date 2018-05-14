@@ -169,6 +169,17 @@ class TestPriorClasses(unittest.TestCase):
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
             prior.prob(surround_domain)
 
+    def test_normalized(self):
+        """Test that each of the priors are normalised, this needs care for delta function and Gaussian priors"""
+        for prior in self.priors:
+            if isinstance(prior, tupak.prior.DeltaFunction):
+                continue
+            elif isinstance(prior, tupak.prior.Gaussian):
+                domain = np.linspace(-1e2, 1e2, 1000)
+            else:
+                domain = np.linspace(prior.minimum, prior.maximum, 1000)
+            self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+
 
 if __name__ == '__main__':
     unittest.main()
