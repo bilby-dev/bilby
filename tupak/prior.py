@@ -132,10 +132,8 @@ class Uniform(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (self.minimum < val) & (val < self.maximum):
-            return 1 / self.support
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return 1 / self.support * in_prior
 
 
 class DeltaFunction(Prior):
@@ -181,14 +179,12 @@ class PowerLaw(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) and (val < self.maximum):
-            if self.alpha == -1:
-                return 1 / val / np.log(self.maximum / self.minimum)
-            else:
-                return val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                                               - self.minimum ** (1 + self.alpha))
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        if self.alpha == -1:
+            return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * in_prior
         else:
-            return 0
+            return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                                                         - self.minimum ** (1 + self.alpha))) * in_prior
 
 
 class Cosine(Prior):
@@ -205,13 +201,10 @@ class Cosine(Prior):
         Prior.test_valid_for_rescaling(val)
         return np.arcsin(-1 + val * 2)
 
-    @staticmethod
-    def prob(val):
+    def prob(self, val):
         """Return the prior probability of val, defined over [-pi/2, pi/2]"""
-        if (val > np.minimum) and (val < np.maximum):
-            return np.cos(val) / 2
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.cos(val) / 2 * in_prior
 
 
 class Sine(Prior):
@@ -226,15 +219,12 @@ class Sine(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return np.arccos(-1 + val * 2)
+        return np.arccos(1 - val * 2)
 
-    @staticmethod
-    def prob(val):
+    def prob(self, val):
         """Return the prior probability of val, defined over [0, pi]"""
-        if (val > 0) and (val < np.pi):
-            return np.sin(val) / 2
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.sin(val) / 2 * in_prior
 
 
 class Gaussian(Prior):
@@ -290,11 +280,9 @@ class TruncatedGaussian(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) & (val < self.maximum):
-            return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-                        2 * np.pi) ** 0.5 / self.sigma / self.normalisation
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
+                    2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
 
 class Interped(Prior):
@@ -302,6 +290,7 @@ class Interped(Prior):
     def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
+        all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         if minimum is None or minimum < min(xx):
             self.minimum = min(xx)
         else:
@@ -310,22 +299,21 @@ class Interped(Prior):
             self.maximum = max(xx)
         else:
             self.maximum = maximum
-        self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
-        self.yy = yy[(xx > self.minimum) & (xx < self.maximum)]
+        self.xx = np.linspace(self.minimum, self.maximum, len(xx))
+        self.yy = all_interpolated(self.xx)
         if np.trapz(self.yy, self.xx) != 1:
             logging.info('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
+        # Need last element of cumulative distribution to be exactly one.
+        self.YY[-1] = 1
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) & (val < self.maximum):
-            return self.probability_density(val)
-        else:
-            return 0
+        return self.probability_density(val)
 
     def rescale(self, val):
         """
