@@ -26,6 +26,7 @@ class GaussianLikelihood():
         self.y = y
         self.N = len(x)
         self.waveform_generator = waveform_generator
+        self.parameters = waveform_generator.parameters
 
     def log_likelihood(self):
         sigma = 1

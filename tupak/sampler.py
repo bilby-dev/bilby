@@ -126,7 +126,7 @@ class Sampler(object):
                 self.__search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is True:
-                self.likelihood.waveform_generator.parameters[key] = \
+                self.likelihood.parameters[key] = \
                     self.priors[key].sample()
                 self.__fixed_parameter_keys.append(key)
 
@@ -138,7 +138,7 @@ class Sampler(object):
 
     def verify_parameters(self):
         required_keys = self.priors
-        unmatched_keys = [r for r in required_keys if r not in self.likelihood.waveform_generator.parameters]
+        unmatched_keys = [r for r in required_keys if r not in self.likelihood.parameters]
         if len(unmatched_keys) > 0:
             raise KeyError(
                 "Source model does not contain keys {}".format(unmatched_keys))
@@ -153,7 +153,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.parameters[k] = theta[i]
+            self.likelihood.parameters[k] = theta[i]
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
         else:
@@ -398,7 +398,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood.waveform_generator)
+    priors = fill_priors(priors, likelihood)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
