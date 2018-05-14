@@ -9,11 +9,12 @@ from __future__ import division, print_function
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger(log_level="info")
 
 time_duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
+label = 'basic_tutorial'
+tupak.utils.setup_logger(outdir=outdir, label=label, log_level="info")
 
 np.random.seed(170809)
 
@@ -45,7 +46,7 @@ likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generato
 
 # Run sampler
 result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-                                   injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
+                                   injection_parameters=injection_parameters, outdir=outdir, label=label)
 result.plot_corner()
 result.plot_walks()
 result.plot_distributions()

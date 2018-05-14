@@ -9,13 +9,13 @@ commonly used prior distributions.  This will take a few hours to run.
 from __future__ import division, print_function
 import tupak
 
-# This sets up logging output to understand what tupak is doing
-tupak.utils.setup_logger()
-
 # Define some convienence labels and the trigger time of the event
 outdir = 'outdir'
 label = 'GW150914'
 time_of_event = tupak.utils.get_event_time(label)
+
+# This sets up logging output to understand what tupak is doing
+tupak.utils.setup_logger(outdir=outdir, label=label)
 
 # Here we import the detector data. This step downloads data from the
 # LIGO/Virgo open data archives. The data is saved to an `Interferometer`
