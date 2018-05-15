@@ -402,7 +402,7 @@ def create_default_prior(name):
     return prior
 
 
-def fill_priors(prior, waveform_generator):
+def fill_priors(prior, likelihood):
     """
     Fill dictionary of priors based on required parameters of likelihood
 
