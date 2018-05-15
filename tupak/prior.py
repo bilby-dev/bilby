@@ -404,7 +404,7 @@ def create_default_prior(name):
 
 def fill_priors(prior, waveform_generator):
     """
-    Fill dictionary of priors based on required parameters of waveform generator
+    Fill dictionary of priors based on required parameters of likelihood
 
     Any floats in prior will be converted to delta function prior. Any
     required, non-specified parameters will use the default.
@@ -413,8 +413,8 @@ def fill_priors(prior, waveform_generator):
     ----------
     prior: dict
         dictionary of prior objects and floats
-    waveform_generator: WaveformGenerator
-        waveform generator to be used for inference
+    likelihood: tupak.likelihood.Likelihood instance
+        Used to infer the set of parameters to fill the prior with
 
     Returns
     -------
@@ -434,12 +434,12 @@ def fill_priors(prior, waveform_generator):
             logging.info(
                 "{} cannot be converted to delta function prior.".format(key))
 
-    missing_keys = set(waveform_generator.parameters) - set(prior.keys())
+    missing_keys = set(likelihood.parameters) - set(prior.keys())
 
     for missing_key in missing_keys:
         default_prior = create_default_prior(missing_key)
         if default_prior is None:
-            set_val = waveform_generator.parameters[missing_key]
+            set_val = likelihood.parameters[missing_key]
             logging.warning(
                 "Parameter {} has no default prior and is set to {}, this will"
                 " not be sampled and may cause an error."

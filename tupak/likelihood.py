@@ -17,6 +17,7 @@ class Likelihood(object):
         # Likelihood.__init__(self, interferometers, waveform_generator)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
+        self.parameters = self.waveform_generator.parameters
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
