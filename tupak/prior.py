@@ -359,6 +359,13 @@ class UniformComovingVolume(FromFile):
                           latex_label=latex_label)
 
 
+def fix(prior, value=None):
+    if value is None or np.isnan(value):
+        raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
+    prior = DeltaFunction(name=prior.name, latex_label=prior.latex_label, peak=value)
+    return prior
+
+
 def create_default_prior(name):
     """
     Make a default prior for a parameter with a known name.
@@ -400,6 +407,27 @@ def create_default_prior(name):
             "No default prior found for variable {}.".format(name))
         prior = None
     return prior
+
+
+def parse_floats_to_fixed_priors(old_parameters):
+    parameters = old_parameters.copy()
+    for key in parameters:
+        if type(parameters[key]) is not float and type(parameters[key]) is not int \
+                and type(parameters[key]) is not Prior:
+            logging.info("Expected parameter " + str(key) + " to be a float or int but was "
+                         + str(type(parameters[key])) + " instead. Will not be converted.")
+            continue
+        elif type(parameters[key]) is Prior:
+            continue
+        parameters[key] = DeltaFunction(name=key, latex_label=None, peak=old_parameters[key])
+    return parameters
+
+
+def parse_keys_to_parameters(keys):
+    parameters = {}
+    for key in keys:
+        parameters[key] = create_default_prior(key)
+    return parameters
 
 
 def fill_priors(prior, waveform_generator):
