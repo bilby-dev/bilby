@@ -322,6 +322,11 @@ def setup_logger(outdir=None, label=None, log_level='info'):
         file_handler.setLevel(LEVEL)
         logger.addHandler(file_handler)
 
+    version_file = os.path.join(os.path.dirname(__file__), '.version')
+    with open(version_file, 'r') as f:
+        version = f.readline()
+    logging.info('Running tupak version: {}'.format(version))
+
 
 def get_progress_bar(module='tqdm'):
     if module in ['tqdm']:
