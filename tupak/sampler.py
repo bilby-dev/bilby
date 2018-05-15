@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .result import Result
+from .result import Result, read_in_result
 from .prior import Prior, fill_priors
 from . import utils
 from . import prior
@@ -54,6 +54,7 @@ class Sampler(object):
         self.kwargs = kwargs
 
         self.result = result
+        self.check_cached_result()
 
         self.log_summary_for_sampler()
 
@@ -178,6 +179,9 @@ class Sampler(object):
 
     def run_sampler(self):
         pass
+
+    def check_cached_result(self):
+        self.cached_result = read_in_result(self.outdir, self.label)
 
     def log_summary_for_sampler(self):
         logging.info("Using sampler {} with kwargs {}".format(
@@ -405,6 +409,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
                                 **sampler_kwargs)
+        if sampler.cached_result:
+            logging.info("Using cached result")
+            return sampler.cached_result
+
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:

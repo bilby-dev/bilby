@@ -12,7 +12,24 @@ except ImportError:
             "You do not have the optional module chainconsumer installed")
 
 
+def result_file_name(outdir, label):
+    """ Returns the standard filename used for a result file """
+    return '{}/{}_result.h5'.format(outdir, label)
+
+
+def read_in_result(outdir, label):
+    filename = result_file_name(outdir, label)
+    if os.path.isfile(filename):
+        return Result(deepdish.io.load(filename))
+    else:
+        return None
+
+
 class Result(dict):
+    def __init__(self, dictionary=None):
+        if type(dictionary) is dict:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
 
     def __getattr__(self, name):
         try:
@@ -33,7 +50,7 @@ class Result(dict):
                         self.logzerr))
 
     def save_to_file(self, outdir, label):
-        file_name = '{}/{}_result.h5'.format(outdir, label)
+        file_name = result_file_name(outdir, label)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
         if os.path.isfile(file_name):
