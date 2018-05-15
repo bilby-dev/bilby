@@ -30,7 +30,9 @@ parameters['ra'] = 0
 parameters['dec'] = 0
 parameters['psi'] = 0
 
-wg = tupak.waveform_generator.WaveformGenerator(time_domain_source_model=time_domain_sine_gaussian, time_duration=2000, sampling_frequency=1000, parameters=parameters)
+wg = tupak.waveform_generator.WaveformGenerator(time_duration=2000, sampling_frequency=1000,
+                                                time_domain_source_model=time_domain_sine_gaussian,
+                                                parameters=parameters)
 wg.parameters = parameters
 plt.plot(wg.frequency_array, wg.frequency_domain_strain()['plus'])
 plt.xlim(4, 6)

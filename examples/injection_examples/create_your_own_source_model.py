@@ -26,11 +26,10 @@ def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
 # We now define some parameters that we will inject and then a waveform generator
 injection_parameters = dict(A=1e-21, f0=10, tau=1, phi0=0, geocent_time=0,
                             ra=0, dec=0, psi=0)
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    frequency_domain_source_model=sine_gaussian,
-    sampling_frequency=sampling_frequency,
-    time_duration=time_duration,
-    parameters=injection_parameters)
+waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
+                                                                sampling_frequency=sampling_frequency,
+                                                                frequency_domain_source_model=sine_gaussian,
+                                                                parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
