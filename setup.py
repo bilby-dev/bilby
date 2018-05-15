@@ -4,9 +4,9 @@ from distutils.core import setup
 import subprocess
 
 # Write a version file containing the git hash and info
-git_log = subprocess.check_output(['git', 'log', '-1', '--pretty=%h %ai'])
+git_log = subprocess.check_output(['git', 'log', '-1', '--pretty=%h %ai']).decode('utf-8')
 git_diff = (subprocess.check_output(['git', 'diff', '.'])
-            + subprocess.check_output(['git', 'diff', '--cached', '.']))
+            + subprocess.check_output(['git', 'diff', '--cached', '.'])).decode('utf-8')
 if git_diff == '':
     status = '(CLEAN) ' + git_log
 else:
