@@ -15,10 +15,9 @@ def main():
     label = 'injection'
 
     # Create the waveform generator
-    waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=4, sampling_frequency=2048,
-                                                                    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-                                                                    parameters={'reference_frequency': 50.0,
-                                                                                'waveform_approximant': 'IMRPhenomPv2'})
+    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+        frequency_domain_source_model=tupak.source.lal_binary_black_hole, sampling_frequency=2048, time_duration=4,
+        parameters={'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2'})
 
     # Define the prior
     # Merger time is some time in 2018, shame LIGO will never see it...

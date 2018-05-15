@@ -17,8 +17,8 @@ def gaussian_frequency_domain_strain_2(frequency_array, a, m, s, ra, dec, geocen
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
                                      dec=-1.2108,
@@ -52,8 +52,8 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 class TestParameterSetter(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
                                      dec=-1.2108,
@@ -91,8 +91,8 @@ class TestParameterSetter(unittest.TestCase):
 class TestSourceModelSetter(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.waveform_generator.frequency_domain_source_model = gaussian_frequency_domain_strain_2
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                      ra=1.375,
