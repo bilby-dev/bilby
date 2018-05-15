@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .result import Result
+from .result import Result, read_in_result
 from .prior import Prior, fill_priors
 from . import utils
 from . import prior
@@ -54,6 +54,7 @@ class Sampler(object):
         self.kwargs = kwargs
 
         self.result = result
+        self.check_cached_result()
 
         self.log_summary_for_sampler()
 
@@ -188,9 +189,26 @@ class Sampler(object):
     def run_sampler(self):
         pass
 
+    def check_cached_result(self):
+        """ Check if the cached data file exists and can be used """
+        logging.debug("Checking cached data")
+        self.cached_result = read_in_result(self.outdir, self.label)
+        if self.cached_result:
+            check_keys = ['search_parameter_keys', 'fixed_parameter_keys',
+                          'kwargs']
+            use_cache = True
+            for key in check_keys:
+                if self.cached_result.check_attribute_match_to_other_object(
+                        key, self) is False:
+                    logging.debug("Cached value {} is unmatched".format(key))
+                    use_cache = False
+            if use_cache is False:
+                self.cached_result = None
+
     def log_summary_for_sampler(self):
-        logging.info("Using sampler {} with kwargs {}".format(
-            self.__class__.__name__, self.kwargs))
+        if self.cached_result is False:
+            logging.info("Using sampler {} with kwargs {}".format(
+                self.__class__.__name__, self.kwargs))
 
 
 class Nestle(Sampler):
@@ -367,7 +385,7 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-                **sampler_kwargs):
+                **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -392,7 +410,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
-    **sampler_kwargs:
+    **kwargs:
         All kwargs are passed directly to the samplers `run` functino
 
     Returns
@@ -413,7 +431,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
-                                **sampler_kwargs)
+                                **kwargs)
+        if sampler.cached_result:
+            logging.info("Using cached result")
+            return sampler.cached_result
+
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
@@ -423,7 +445,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
-        # result.prior = prior  # Removed as this breaks the saving of the data
+        result.priors = priors
+        result.kwargs = sampler.kwargs
         result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result
