@@ -83,34 +83,6 @@ class TestPriorIsFixed(unittest.TestCase):
         self.assertFalse(self.prior.is_fixed)
 
 
-class TestFixMethod(unittest.TestCase):
-
-    def setUp(self):
-        self.test_name = 'test_name'
-        self.prior = tupak.prior.Prior(self.test_name)
-
-    def tearDown(self):
-        del self.prior
-
-    def test_is_fixed_attribute_after_fixing(self):
-        arbitrary_float = 11.3
-        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
-        self.assertTrue(fixed_prior.is_fixed)
-
-    def test_value_attribute_after_fixing(self):
-        arbitrary_float = 11.3
-        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
-        self.assertEqual(fixed_prior.peak, arbitrary_float)
-
-    def test_prior_attribute_after_fixing(self):
-        arbitrary_float = 11.3
-        fixed_prior = tupak.prior.fix(self.prior, arbitrary_float)
-        self.assertIsInstance(fixed_prior, tupak.prior.DeltaFunction)
-
-    def test_raising_value_error_if_value_is_none(self):
-        self.assertRaises(ValueError, tupak.prior.fix, self.prior, np.nan)
-
-
 class TestPriorClasses(unittest.TestCase):
 
     def setUp(self):
