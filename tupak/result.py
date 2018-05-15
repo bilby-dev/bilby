@@ -42,12 +42,15 @@ class Result(dict):
 
     def __repr__(self):
         """Print a summary """
-        return ("nsamples: {:d}\n"
-                "noise_logz: {:6.3f}\n"
-                "logz: {:6.3f} +/- {:6.3f}\n"
-                "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                .format(len(self.samples), self.noise_logz, self.logz, self.logzerr, self.log_bayes_factor,
-                        self.logzerr))
+        if hasattr(self, 'samples'):
+            return ("nsamples: {:d}\n"
+                    "noise_logz: {:6.3f}\n"
+                    "logz: {:6.3f} +/- {:6.3f}\n"
+                    "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
+                    .format(len(self.samples), self.noise_logz, self.logz,
+                            self.logzerr, self.log_bayes_factor, self.logzerr))
+        else:
+            return ''
 
     def save_to_file(self, outdir, label):
         file_name = result_file_name(outdir, label)
@@ -211,3 +214,21 @@ class Result(dict):
         self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
+
+    def check_attribute_match_to_other_result(self, name, other_result):
+        """ Check attribute name exists in other_result and is the same """
+        A = getattr(self, name, False)
+        B = getattr(other_result, name, False)
+        logging.debug('Checking {} value: {}=={}'.format(name, A, B))
+        if (A is not False) and (B is not False):
+            typeA = type(A)
+            typeB = type(B)
+            if typeA == typeB:
+                if typeA in [str, float, int, dict, list]:
+                    return A == B
+                elif typeA in [np.ndarray]:
+                    return np.all(A == B)
+        return False
+
+
+
