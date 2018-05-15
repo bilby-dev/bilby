@@ -62,27 +62,6 @@ class TestPriorLatexLabel(unittest.TestCase):
         self.assertTrue(self.prior.latex_label, self.prior.name)
 
 
-class TestPriorIsFixed(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_is_fixed_parent_class(self):
-        self.prior = tupak.prior.Prior()
-        self.assertFalse(self.prior.is_fixed)
-
-    def test_is_fixed_delta_function_class(self):
-        self.prior = tupak.prior.DeltaFunction(peak=0)
-        self.assertTrue(self.prior.is_fixed)
-
-    def test_is_fixed_uniform_class(self):
-        self.prior = tupak.prior.Uniform(minimum=0, maximum=10)
-        self.assertFalse(self.prior.is_fixed)
-
-
 class TestFixMethod(unittest.TestCase):
 
     def setUp(self):
