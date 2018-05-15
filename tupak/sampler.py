@@ -206,8 +206,9 @@ class Sampler(object):
                 self.cached_result = None
 
     def log_summary_for_sampler(self):
-        logging.info("Using sampler {} with kwargs {}".format(
-            self.__class__.__name__, self.kwargs))
+        if self.cached_result is False:
+            logging.info("Using sampler {} with kwargs {}".format(
+                self.__class__.__name__, self.kwargs))
 
 
 class Nestle(Sampler):
