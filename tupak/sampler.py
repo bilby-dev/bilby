@@ -80,6 +80,15 @@ class Sampler(object):
             raise TypeError('result must either be a Result or None')
 
     @property
+    def search_parameter_keys(self):
+        return self.__search_parameter_keys
+
+    @property
+    def fixed_parameter_keys(self):
+        return self.__fixed_parameter_keys
+
+
+    @property
     def external_sampler(self):
         return self.__external_sampler
 
