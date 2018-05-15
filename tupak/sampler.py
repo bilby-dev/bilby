@@ -46,11 +46,11 @@ class Sampler(object):
         self.use_ratio = use_ratio
         self.external_sampler = external_sampler
 
-        self.search_parameter_keys = []
-        self.fixed_parameter_keys = []
+        self.__search_parameter_keys = []
+        self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
-        self.ndim = len(self.search_parameter_keys)
+        self.ndim = len(self.__search_parameter_keys)
         self.kwargs = kwargs
 
         self.result = result
@@ -69,10 +69,10 @@ class Sampler(object):
     def result(self, result):
         if result is None:
             self.__result = Result()
-            self.__result.search_parameter_keys = self.search_parameter_keys
+            self.__result.__search_parameter_keys = self.__search_parameter_keys
             self.__result.parameter_labels = [
                 self.priors[k].latex_label for k in
-                self.search_parameter_keys]
+                self.__search_parameter_keys]
             self.__result.label = self.label
             self.__result.outdir = self.outdir
         elif type(result) is Result:
@@ -123,17 +123,17 @@ class Sampler(object):
         for key in self.priors:
             if isinstance(self.priors[key], Prior) is True \
                     and self.priors[key].is_fixed is False:
-                self.search_parameter_keys.append(key)
+                self.__search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is True:
                 self.likelihood.parameters[key] = \
                     self.priors[key].sample()
-                self.fixed_parameter_keys.append(key)
+                self.__fixed_parameter_keys.append(key)
 
         logging.info("Search parameters:")
-        for key in self.search_parameter_keys:
+        for key in self.__search_parameter_keys:
             logging.info('  {} ~ {}'.format(key, self.priors[key]))
-        for key in self.fixed_parameter_keys:
+        for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
@@ -144,15 +144,15 @@ class Sampler(object):
                 "Source model does not contain keys {}".format(unmatched_keys))
 
     def prior_transform(self, theta):
-        return [self.priors[key].rescale(t) for key, t in zip(self.search_parameter_keys, theta)]
+        return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
 
     def log_prior(self, theta):
         return np.sum(
             [np.log(self.priors[key].prob(t)) for key, t in
-                zip(self.search_parameter_keys, theta)])
+                zip(self.__search_parameter_keys, theta)])
 
     def log_likelihood(self, theta):
-        for i, k in enumerate(self.search_parameter_keys):
+        for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.parameters[k] = theta[i]
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
@@ -170,7 +170,7 @@ class Sampler(object):
         """
 
         draw = np.array([self.priors[key].sample()
-                        for key in self.search_parameter_keys])
+                        for key in self.__search_parameter_keys])
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
@@ -433,7 +433,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
-        result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
+        result.__fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
         result.priors = priors
         result.kwargs = sampler.kwargs
         result.samples_to_data_frame()
