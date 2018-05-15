@@ -190,6 +190,7 @@ class Sampler(object):
         pass
 
     def check_cached_result(self):
+        """ Check if the cached data file exists and can be used """
         logging.debug("Checking cached data")
         self.cached_result = read_in_result(self.outdir, self.label)
         if self.cached_result:
@@ -197,7 +198,7 @@ class Sampler(object):
                           'kwargs']
             use_cache = True
             for key in check_keys:
-                if self.cached_result.check_attribute_match_to_other_result(
+                if self.cached_result.check_attribute_match_to_other_object(
                         key, self) is False:
                     logging.debug("Cached value {} is unmatched".format(key))
                     use_cache = False

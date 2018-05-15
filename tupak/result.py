@@ -18,6 +18,7 @@ def result_file_name(outdir, label):
 
 
 def read_in_result(outdir, label):
+    """ Read in a saved .h5 data file """
     filename = result_file_name(outdir, label)
     if os.path.isfile(filename):
         return Result(deepdish.io.load(filename))
@@ -53,6 +54,7 @@ class Result(dict):
             return ''
 
     def save_to_file(self, outdir, label):
+        """ Writes the Result to a deepdish h5 file """
         file_name = result_file_name(outdir, label)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
@@ -215,10 +217,10 @@ class Result(dict):
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
-    def check_attribute_match_to_other_result(self, name, other_result):
-        """ Check attribute name exists in other_result and is the same """
+    def check_attribute_match_to_other_object(self, name, other_object):
+        """ Check attribute name exists in other_object and is the same """
         A = getattr(self, name, False)
-        B = getattr(other_result, name, False)
+        B = getattr(other_object, name, False)
         logging.debug('Checking {} value: {}=={}'.format(name, A, B))
         if (A is not False) and (B is not False):
             typeA = type(A)
@@ -229,6 +231,4 @@ class Result(dict):
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
-
-
 
