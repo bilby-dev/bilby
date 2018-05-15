@@ -2,8 +2,14 @@ import logging
 import os
 import numpy as np
 import deepdish
-from chainconsumer import ChainConsumer
 import pandas as pd
+
+try:
+    from chainconsumer import ChainConsumer
+except ImportError:
+    def ChainConsumer():
+        raise ImportError(
+            "You do not have the optional module chainconsumer installed")
 
 
 class Result(dict):

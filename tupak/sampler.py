@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import numpy as np
-from chainconsumer import ChainConsumer
 import matplotlib.pyplot as plt
 
 from .result import Result

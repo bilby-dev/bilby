@@ -69,9 +69,9 @@ fig.savefig('{}/data.png'.format(outdir))
 # name doesn't make so much sense. But essentially this is an objects that
 # can generate a signal. We give it information on how to make the time series
 # and the model() we wrote earlier.
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    sampling_frequency=sampling_frequency, time_duration=time_duration,
-    time_domain_source_model=model)
+waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
+                                                                sampling_frequency=sampling_frequency,
+                                                                time_domain_source_model=model)
 
 
 # Now lets instantiate a version of out Likelihood, giving it the time, data

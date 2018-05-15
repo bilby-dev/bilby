@@ -281,19 +281,17 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     return np.array([x_comp, y_comp, z_comp])
 
 
-def setup_logger(log_level='info'):
+def setup_logger(outdir=None, label=None, log_level='info'):
     """ Setup logging output: call at the start of the script to use
 
     Parameters
     ----------
+    outdir, label: str
+        If supplied, write the logging output to outdir/label.log
     log_level = ['debug', 'info', 'warning']
         Either a string from the list above, or an interger as specified
         in https://docs.python.org/2/library/logging.html#logging-levels
     """
-    logger = logging.getLogger()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
 
     if type(log_level) is str:
         try:
@@ -303,9 +301,31 @@ def setup_logger(log_level='info'):
     else:
         LEVEL = int(log_level)
 
+    logger = logging.getLogger()
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
     logger.setLevel(LEVEL)
     stream_handler.setLevel(LEVEL)
     logger.addHandler(stream_handler)
+
+    if label:
+        if outdir:
+            check_directory_exists_and_if_not_mkdir(outdir)
+        else:
+            outdir = '.'
+        log_file = '{}/{}.log'.format(outdir, label)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+
+        file_handler.setLevel(LEVEL)
+        logger.addHandler(file_handler)
+
+    version_file = os.path.join(os.path.dirname(__file__), '.version')
+    with open(version_file, 'r') as f:
+        version = f.readline()
+    logging.info('Running tupak version: {}'.format(version))
 
 
 def get_progress_bar(module='tqdm'):
