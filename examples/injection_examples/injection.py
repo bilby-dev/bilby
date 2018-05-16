@@ -42,7 +42,7 @@ def main():
     injection_polarizations = waveform_generator.frequency_domain_strain()
 
     # Create interferometers and inject signal
-    interferometers = [tupak.detector.get_inteferometer_with_fake_noise_and_injection(
+    interferometers = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
             name, injection_polarizations=injection_polarizations, injection_parameters=injection_parameters,
             sampling_frequency=2048, time_duration=4, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
