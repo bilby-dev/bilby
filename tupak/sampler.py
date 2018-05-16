@@ -36,8 +36,7 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, priors, external_sampler='nestle',
-                 outdir='outdir', label='label', use_ratio=False, result=None,
+    def __init__(self, likelihood, priors, external_sampler='nestle', outdir='outdir', label='label', use_ratio=False,
                  **kwargs):
         self.likelihood = likelihood
         self.priors = priors
@@ -53,7 +52,6 @@ class Sampler(object):
         self.verify_parameters()
         self.kwargs = kwargs
 
-        self.result = result
         self.check_cached_result()
 
         self.log_summary_for_sampler()
@@ -63,23 +61,16 @@ class Sampler(object):
 
     @property
     def result(self):
-        return self.__result
-
-    @result.setter
-    def result(self, result):
-        if result is None:
-            self.__result = Result()
-            self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
-            self.__result.parameter_labels = [
-                self.priors[k].latex_label for k in
-                self.__search_parameter_keys]
-            self.__result.label = self.label
-            self.__result.outdir = self.outdir
-        elif type(result) is Result:
-            self.__result = result
-        else:
-            raise TypeError('result must either be a Result or None')
+        self.__result = Result()
+        self.__result.search_parameter_keys = self.__search_parameter_keys
+        self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
+        self.__result.parameter_labels = [
+            self.priors[k].latex_label for k in
+            self.__search_parameter_keys]
+        self.__result.label = self.label
+        self.__result.outdir = self.outdir
+        self.__result.priors = self.priors
+        self.__result.kwargs = self.kwargs
 
     @property
     def search_parameter_keys(self):
@@ -457,8 +448,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
-        result.priors = priors
-        result.kwargs = sampler.kwargs
         result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result
