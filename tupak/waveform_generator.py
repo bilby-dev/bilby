@@ -24,15 +24,10 @@ class WaveformGenerator(object):
 
     """
 
-# <<<<<<< HEAD
-#     def __init__(self, frequency_domain_source_model=None, time_domain_source_model=None,
-#                  sampling_frequency=4096, time_duration=1, parameters=None, parameter_conversion=None):
-# =======
     def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
-# >>>>>>> master
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.time_duration = time_duration
