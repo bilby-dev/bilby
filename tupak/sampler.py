@@ -50,7 +50,6 @@ class Sampler(object):
         self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
-        self.ndim = len(self.__search_parameter_keys)
         self.kwargs = kwargs
 
         self.result = result
@@ -88,6 +87,9 @@ class Sampler(object):
     def fixed_parameter_keys(self):
         return self.__fixed_parameter_keys
 
+    @property
+    def ndim(self):
+        return len(self.__search_parameter_keys)
 
     @property
     def external_sampler(self):
@@ -106,14 +108,6 @@ class Sampler(object):
         else:
             raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
                             'inherits from sampler')
-
-    @property
-    def kwargs(self):
-        return self.__kwargs
-
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        self.__kwargs = kwargs
 
     def verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
