@@ -172,10 +172,11 @@ class HyperparameterLikelihood():
 
     def log_likelihood(self):
         logl = []
+        self.log_hyper_prior.__dict__.update(self.parameters)
         for samp in self.samples:
             logl.append(
-                logsumexp(self.log_hyper_prior(samp, **self.parameters) -
-                          self.log_run_prior(samp)))
+                logsumexp(np.sum(np.log(self.log_hyper_prior.prob(samp))) -
+                          np.sum(np.log(self.log_run_prior.prob(samp)))))
         return np.sum(logl)
 
     def noise_log_likelihood(self):
