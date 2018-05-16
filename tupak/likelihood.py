@@ -9,6 +9,7 @@ from scipy.special import i0e
 from scipy.interpolate import interp1d
 import tupak
 import logging
+from scipy.misc import logsumexp
 
 
 class Likelihood(object):
@@ -163,18 +164,18 @@ def get_binary_black_hole_likelihood(interferometers):
 
 
 class HyperparameterLikelihood():
-    def __init__(self, samples, hyper_prior, run_prior, **hyperparameters):
+    def __init__(self, samples, log_hyper_prior, log_run_prior, **parameters):
         self.samples = samples
-        self.hyper_prior = hyper_prior
-        self.run_prior = run_prior
-        self.parameters = hyperparameters
+        self.log_hyper_prior = log_hyper_prior
+        self.log_run_prior = log_run_prior
+        self.parameters = parameters
 
     def log_likelihood(self):
         logl = []
         for samp in self.samples:
-            logl.append(np.log(
-                np.sum(self.hyper_prior(samp, **self.parameters) /
-                       self.run_prior(samp))))
+            logl.append(
+                logsumexp(self.log_hyper_prior(samp, **self.parameters) -
+                          self.log_run_prior(samp)))
         return np.sum(logl)
 
     def noise_log_likelihood(self):
