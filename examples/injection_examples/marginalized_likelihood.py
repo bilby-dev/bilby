@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger(log_level="info")
+tupak.utils.setup_logger()
 
 time_duration = 4.
 sampling_frequency = 2048.

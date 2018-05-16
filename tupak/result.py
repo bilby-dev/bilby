@@ -12,7 +12,25 @@ except ImportError:
             "You do not have the optional module chainconsumer installed")
 
 
+def result_file_name(outdir, label):
+    """ Returns the standard filename used for a result file """
+    return '{}/{}_result.h5'.format(outdir, label)
+
+
+def read_in_result(outdir, label):
+    """ Read in a saved .h5 data file """
+    filename = result_file_name(outdir, label)
+    if os.path.isfile(filename):
+        return Result(deepdish.io.load(filename))
+    else:
+        return None
+
+
 class Result(dict):
+    def __init__(self, dictionary=None):
+        if type(dictionary) is dict:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
 
     def __getattr__(self, name):
         try:
@@ -25,15 +43,19 @@ class Result(dict):
 
     def __repr__(self):
         """Print a summary """
-        return ("nsamples: {:d}\n"
-                "noise_logz: {:6.3f}\n"
-                "logz: {:6.3f} +/- {:6.3f}\n"
-                "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                .format(len(self.samples), self.noise_logz, self.logz, self.logzerr, self.log_bayes_factor,
-                        self.logzerr))
+        if hasattr(self, 'samples'):
+            return ("nsamples: {:d}\n"
+                    "noise_logz: {:6.3f}\n"
+                    "logz: {:6.3f} +/- {:6.3f}\n"
+                    "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
+                    .format(len(self.samples), self.noise_logz, self.logz,
+                            self.logzerr, self.log_bayes_factor, self.logzerr))
+        else:
+            return ''
 
     def save_to_file(self, outdir, label):
-        file_name = '{}/{}_result.h5'.format(outdir, label)
+        """ Writes the Result to a deepdish h5 file """
+        file_name = result_file_name(outdir, label)
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
         if os.path.isfile(file_name):
@@ -98,6 +120,10 @@ class Result(dict):
             kwargs['parameters'] = self.get_latex_labels_from_parameter_keys(
                 kwargs['parameters'])
 
+        # Check all parameter_labels are a valid string
+        for i, label in enumerate(self.parameter_labels):
+            if label is None:
+                self.parameter_labels[i] = 'Unknown'
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels,
                     name=self.label)
@@ -194,3 +220,19 @@ class Result(dict):
         self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
+
+    def check_attribute_match_to_other_object(self, name, other_object):
+        """ Check attribute name exists in other_object and is the same """
+        A = getattr(self, name, False)
+        B = getattr(other_object, name, False)
+        logging.debug('Checking {} value: {}=={}'.format(name, A, B))
+        if (A is not False) and (B is not False):
+            typeA = type(A)
+            typeB = type(B)
+            if typeA == typeB:
+                if typeA in [str, float, int, dict, list]:
+                    return A == B
+                elif typeA in [np.ndarray]:
+                    return np.all(A == B)
+        return False
+
