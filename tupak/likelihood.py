@@ -164,19 +164,19 @@ def get_binary_black_hole_likelihood(interferometers):
 
 
 class HyperparameterLikelihood():
-    def __init__(self, samples, log_hyper_prior, log_run_prior, **parameters):
+    def __init__(self, samples, hyper_prior, run_prior, **parameters):
         self.samples = samples
-        self.log_hyper_prior = log_hyper_prior
-        self.log_run_prior = log_run_prior
+        self.hyper_prior = hyper_prior
+        self.run_prior = run_prior
         self.parameters = parameters
 
     def log_likelihood(self):
         logl = []
-        self.log_hyper_prior.__dict__.update(self.parameters)
+        self.hyper_prior.__dict__.update(self.parameters)
         for samp in self.samples:
             logl.append(
-                logsumexp(np.sum(np.log(self.log_hyper_prior.prob(samp))) -
-                          np.sum(np.log(self.log_run_prior.prob(samp)))))
+                logsumexp(np.sum(np.log(self.hyper_prior.prob(samp))) -
+                          np.sum(np.log(self.run_prior.prob(samp)))))
         return np.sum(logl)
 
     def noise_log_likelihood(self):
