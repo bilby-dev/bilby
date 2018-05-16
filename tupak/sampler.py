@@ -147,7 +147,10 @@ class Sampler(object):
 
     def verify_parameters(self):
         for key in self.priors:
-            self.likelihood.waveform_generator.parameters[key] = self.priors[key].sample()
+            try:
+                self.likelihood.waveform_generator.parameters[key] = self.priors[key].sample()
+            except AttributeError as e:
+                logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
             self.likelihood.waveform_generator.frequency_domain_strain()
         except TypeError:
