@@ -543,6 +543,14 @@ def set_up_command_line_arguments():
 
 command_line_args = set_up_command_line_arguments()
 
+if 'DISPLAY' in os.environ:
+    pass
+else:
+    logging.info('No $DISPLAY environment variable found, so importing \
+                  matplotlib.pyplot with non-interactive "Agg" backend.')
+    import matplotlib
+    matplotlib.use('Agg')
+
 
 
 
