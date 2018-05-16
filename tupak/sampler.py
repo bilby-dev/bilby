@@ -70,6 +70,7 @@ class Sampler(object):
         if result is None:
             self.__result = Result()
             self.__result.search_parameter_keys = self.__search_parameter_keys
+            self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
             self.__result.parameter_labels = [
                 self.priors[k].latex_label for k in
                 self.__search_parameter_keys]
