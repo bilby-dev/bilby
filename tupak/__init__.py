@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-# import local files
+# import local files, utils should be imported first
 from . import utils
 from . import detector
 from . import prior

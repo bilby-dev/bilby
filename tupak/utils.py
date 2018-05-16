@@ -525,6 +525,10 @@ def set_up_command_line_arguments():
                         help="Force clean data, never use cached data")
     parser.add_argument("-u", "--use-cached", action="store_true",
                         help="Force cached data and do not check its validity")
+    parser.add_argument("-d", "--detectors",  nargs='+',
+                        default=['H1', 'L1', 'V1'],
+                        help=("List of detectors to use in open data calls, "
+                              "e.g. -d H1 L1 for H1 and L1"))
     args, _ = parser.parse_known_args()
 
     if args.quite:
@@ -538,6 +542,14 @@ def set_up_command_line_arguments():
 
 
 command_line_args = set_up_command_line_arguments()
+
+if 'DISPLAY' in os.environ:
+    pass
+else:
+    logging.info('No $DISPLAY environment variable found, so importing \
+                  matplotlib.pyplot with non-interactive "Agg" backend.')
+    import matplotlib
+    matplotlib.use('Agg')
 
 
 
