@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # A few simple setup steps
-tupak.utils.setup_logger(log_level="info")
+tupak.utils.setup_logger()
 label = 'test'
 outdir = 'outdir'
 

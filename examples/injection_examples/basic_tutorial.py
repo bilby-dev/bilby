@@ -14,7 +14,7 @@ time_duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
 label = 'basic_tutorial'
-tupak.utils.setup_logger(outdir=outdir, label=label, log_level="info")
+tupak.utils.setup_logger(outdir=outdir, label=label)
 
 np.random.seed(170809)
 
