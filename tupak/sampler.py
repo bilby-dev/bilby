@@ -93,6 +93,14 @@ class Sampler(object):
         return len(self.__search_parameter_keys)
 
     @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = kwargs
+
+    @property
     def external_sampler(self):
         return self.__external_sampler
 
