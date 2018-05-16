@@ -69,38 +69,15 @@ for i in range(Nevents):
     samples.append(result.samples)
 
 # Now run the hyperparameter inference
-
-
-def run_prior(val):
-    if np.all(val > -10) & np.all(val < 10):
-        return 1/20.
-    else:
-        return 0
-
-
-def hyper_prior(val, mu_m, sigma_m):
-    return np.exp(-(mu_m - val)**2 / 2 / sigma_m**2) / np.sqrt(2*np.pi*sigma_m**2)
-
-
-def log_run_prior(val):
-    if np.all(val > -10) & np.all(val < 10):
-        return len(val) * - np.log(20)
-    else:
-        return 0
-
-
-def log_hyper_prior(val, mu_m, sigma_m):
-    res = val - mu_m
-    return -0.5 * (np.sum((res / sigma_m)**2)
-                   + len(val)*np.log(2*np.pi*sigma_m**2))
-
+run_prior = tupak.prior.Uniform(minimum=-10, maximum=10, name='mu_m')
+hyper_prior = tupak.prior.Gaussian(mu=0, sigma=1, name='hyper')
 
 hp_likelihood = tupak.likelihood.HyperparameterLikelihood(
-        samples, log_hyper_prior, log_run_prior, mu_m=None, sigma_m=None)
+        samples, hyper_prior, run_prior, mu=None, sigma=None)
 
 hp_priors = dict(
-    mu_m=tupak.prior.Uniform(-10, 10, 'mu_m', '$\mu_m$'),
-    sigma_m=tupak.prior.Uniform(0, 10, 'sigma_m', '$\sigma_m$'))
+    mu=tupak.prior.Uniform(-10, 10, 'mu', '$\mu_m$'),
+    sigma=tupak.prior.Uniform(0, 10, 'sigma', '$\sigma_m$'))
 
 
 # And run sampler
