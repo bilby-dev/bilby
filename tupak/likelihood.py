@@ -161,3 +161,24 @@ def get_binary_black_hole_likelihood(interferometers):
         interferometers, waveform_generator)
     return likelihood
 
+
+class HyperparameterLikelihood():
+    def __init__(self, samples, hyper_prior, run_prior, **hyperparameters):
+        self.samples = samples
+        self.hyper_prior = hyper_prior
+        self.run_prior = run_prior
+        self.parameters = hyperparameters
+
+    def log_likelihood(self):
+        logl = []
+        for samp in self.samples:
+            logl.append(np.log(
+                np.sum(self.hyper_prior(samp, **self.parameters) /
+                       self.run_prior(samp))))
+        return np.sum(logl)
+
+    def noise_log_likelihood(self):
+        return np.nan
+
+
+
