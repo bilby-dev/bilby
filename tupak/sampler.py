@@ -146,20 +146,13 @@ class Sampler(object):
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
-# <<<<<<< HEAD
         for key in self.priors:
             self.likelihood.waveform_generator.parameters[key] = self.priors[key].sample()
         try:
             self.likelihood.waveform_generator.frequency_domain_strain()
         except TypeError:
-            raise TypeError('Waveform generation failed. Have you definitely specified all the parameters?')
-# =======
-#         required_keys = self.priors
-#         unmatched_keys = [r for r in required_keys if r not in self.likelihood.parameters]
-#         if len(unmatched_keys) > 0:
-#             raise KeyError(
-#                 "Source model does not contain keys {}".format(unmatched_keys))
-# >>>>>>> master
+            raise TypeError('Waveform generation failed. Have you definitely specified all the parameters?\n{}'.format(
+                self.likelihood.waveform_generator.parameters))
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -405,11 +398,7 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-# <<<<<<< HEAD
                 sampling_parameters=None, **kwargs):
-# =======
-#                 **kwargs):
-# >>>>>>> master
     """
     The primary interface to easy parameter estimation
 
@@ -448,29 +437,21 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-# <<<<<<< HEAD
-#     fill_priors(priors, likelihood.waveform_generator, sampling_parameters)
-# =======
-    priors = fill_priors(priors, likelihood)
-# >>>>>>> master
+    priors = fill_priors(priors, likelihood, sampling_parameters)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
-# <<<<<<< HEAD
                                 **kwargs)
 
         likelihood.waveform_generator.search_parameter_keys = [
             key for key in priors if not isinstance(priors[key], tupak.prior.DeltaFunction)]
-# =======
-#                                 **kwargs)
         if sampler.cached_result:
             logging.info("Using cached result")
             return sampler.cached_result
 
-# >>>>>>> master
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
@@ -482,15 +463,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters = injection_parameters
             tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
-# <<<<<<< HEAD
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(waveform_generator=likelihood.waveform_generator,
                                      interferometers=likelihood.interferometers, priors=priors)
-# =======
-#         result.priors = priors
         result.kwargs = sampler.kwargs
-        result.samples_to_data_frame()
-# >>>>>>> master
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:
