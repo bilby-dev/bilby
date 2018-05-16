@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger(log_level="info")
+tupak.utils.setup_logger()
 
 time_duration = 4.
 sampling_frequency = 2048.
@@ -20,10 +20,10 @@ injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    sampling_frequency=sampling_frequency, time_duration=time_duration,
-    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-    parameters=injection_parameters)
+waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
+                                                                sampling_frequency=sampling_frequency,
+                                                                frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+                                                                parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.

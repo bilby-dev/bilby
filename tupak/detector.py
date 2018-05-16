@@ -258,7 +258,11 @@ class Interferometer(object):
             logging.warning('Trying to inject signal which is None.')
         else:
             signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
-            self.data += signal_ifo
+            try:
+                self.data += signal_ifo
+            except TypeError:
+                logging.info('Injecting into zero noise.')
+                self.data = signal_ifo
             opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
                                                               time_duration=1 / (self.frequency_array[1]
                                                                                  - self.frequency_array[0])).real)

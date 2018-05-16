@@ -10,11 +10,41 @@ import os
 
 
 class Prior(object):
-    """Prior class"""
+    """
+    Prior class
 
-    def __init__(self, name=None, latex_label=None):
+    Methods
+    -------
+    __init__:
+        Instantiate a prior object.
+    __call__:
+        Draw a single sample from the prior.
+    __repr__:
+        Print prior type and parameters.
+    sample(size=None):
+        Draw samples of size size from the prior.
+    rescale(val):
+        Rescale samples from a uniform distribution on [0, 1] to samples from the prior.
+    test_valid_for_recaling(val):
+        Test whether val is in [0, 1] and hence valid for rescaling.
+
+    Parameters
+    ----------
+    name: str
+        Name associated with prior.
+    latex_label: str
+        Latex label associated with prior, used for plotting.
+    minimum: float, optional
+        Minimum of the domain, default=-np.inf
+    maximum: float, optional
+        Maximum of the domain, default=np.inf
+    """
+
+    def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
         self.name = name
         self.latex_label = latex_label
+        self.minimum = minimum
+        self.maximum = maximum
 
     def __call__(self):
         return self.sample()
@@ -97,9 +127,7 @@ class Uniform(Prior):
     """Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label)
-        self.minimum = minimum
-        self.maximum = maximum
+        Prior.__init__(self, name, latex_label, minimum, maximum)
         self.support = maximum - minimum
 
     def rescale(self, val):
@@ -108,17 +136,15 @@ class Uniform(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (self.minimum < val) and (val < self.maximum):
-            return 1 / self.support
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return 1 / self.support * in_prior
 
 
 class DeltaFunction(Prior):
     """Dirac delta function prior, this always returns peak."""
 
     def __init__(self, peak, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name, latex_label, minimum=peak, maximum=peak)
         self.peak = peak
 
     def rescale(self, val):
@@ -139,10 +165,8 @@ class PowerLaw(Prior):
 
     def __init__(self, alpha, minimum, maximum, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name, latex_label, minimum, maximum)
         self.alpha = alpha
-        self.minimum = minimum
-        self.maximum = maximum
 
     def rescale(self, val):
         """
@@ -159,20 +183,18 @@ class PowerLaw(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) and (val < self.maximum):
-            if self.alpha == -1:
-                return 1 / val / np.log(self.maximum / self.minimum)
-            else:
-                return val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                                               - self.minimum ** (1 + self.alpha))
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        if self.alpha == -1:
+            return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * in_prior
         else:
-            return 0
+            return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                                                         - self.minimum ** (1 + self.alpha))) * in_prior
 
 
 class Cosine(Prior):
 
-    def __init__(self, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label)
+    def __init__(self, name=None, latex_label=None, minimum=-np.pi / 2, maximum=np.pi / 2):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
 
     def rescale(self, val):
         """
@@ -183,19 +205,16 @@ class Cosine(Prior):
         Prior.test_valid_for_rescaling(val)
         return np.arcsin(-1 + val * 2)
 
-    @staticmethod
-    def prob(val):
+    def prob(self, val):
         """Return the prior probability of val, defined over [-pi/2, pi/2]"""
-        if (val > -np.pi / 2) and (val < np.pi / 2):
-            return np.cos(val) / 2
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.cos(val) / 2 * in_prior
 
 
 class Sine(Prior):
 
-    def __init__(self, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label)
+    def __init__(self, name=None, latex_label=None, minimum=0, maximum=np.pi):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
 
     def rescale(self, val):
         """
@@ -204,15 +223,12 @@ class Sine(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return np.arccos(-1 + val * 2)
+        return np.arccos(1 - val * 2)
 
-    @staticmethod
-    def prob(val):
+    def prob(self, val):
         """Return the prior probability of val, defined over [0, pi]"""
-        if (val > 0) and (val < np.pi):
-            return np.sin(val) / 2
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.sin(val) / 2 * in_prior
 
 
 class Gaussian(Prior):
@@ -268,11 +284,9 @@ class TruncatedGaussian(Prior):
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) & (val < self.maximum):
-            return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-                        2 * np.pi) ** 0.5 / self.sigma / self.normalisation
-        else:
-            return 0
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
+                    2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
 
 class Interped(Prior):
@@ -280,6 +294,7 @@ class Interped(Prior):
     def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         Prior.__init__(self, name, latex_label)
+        all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         if minimum is None or minimum < min(xx):
             self.minimum = min(xx)
         else:
@@ -288,22 +303,21 @@ class Interped(Prior):
             self.maximum = max(xx)
         else:
             self.maximum = maximum
-        self.xx = xx[(xx > self.minimum) & (xx < self.maximum)]
-        self.yy = yy[(xx > self.minimum) & (xx < self.maximum)]
+        self.xx = np.linspace(self.minimum, self.maximum, len(xx))
+        self.yy = all_interpolated(self.xx)
         if np.trapz(self.yy, self.xx) != 1:
             logging.info('Supplied PDF is not normalised, normalising.')
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
+        # Need last element of cumulative distribution to be exactly one.
+        self.YY[-1] = 1
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
     def prob(self, val):
         """Return the prior probability of val"""
-        if (val > self.minimum) & (val < self.maximum):
-            return self.probability_density(val)
-        else:
-            return 0
+        return self.probability_density(val)
 
     def rescale(self, val):
         """
@@ -349,13 +363,6 @@ class UniformComovingVolume(FromFile):
                           latex_label=latex_label)
 
 
-def fix(prior, value=None):
-    if value is None or np.isnan(value):
-        raise ValueError("You can't fix the value to be np.nan. You need to assign it a legal value")
-    prior = DeltaFunction(name=prior.name, latex_label=prior.latex_label, peak=value)
-    return prior
-
-
 def create_default_prior(name):
     """
     Make a default prior for a parameter with a known name.
@@ -398,6 +405,8 @@ def create_default_prior(name):
     if name in default_priors.keys():
         prior = default_priors[name]
     else:
+        logging.info(
+            "No default prior found for variable {}.".format(name))
         prior = None
     return prior
 
@@ -423,51 +432,50 @@ def parse_keys_to_parameters(keys):
     return parameters
 
 
-def fill_priors(prior, waveform_generator=None, parameters=None):
+def fill_priors(prior, likelihood):
     """
-    Fill dictionary of priors based on required parameters for waveform generator
+    Fill dictionary of priors based on required parameters of likelihood
 
-    Any floats in prior will be converted to delta function prior.
-    Any required, non-specified parameters will use the default.
+    Any floats in prior will be converted to delta function prior. Any
+    required, non-specified parameters will use the default.
+
     Parameters
     ----------
     prior: dict
         dictionary of prior objects and floats
-    waveform_generator: WaveformGenerator
-        waveform generator to be used for inference
-    parameters: list
-        list of parameters to be sampled in, this can override the default
-        priors for the waveform generator
+    likelihood: tupak.likelihood.Likelihood instance
+        Used to infer the set of parameters to fill the prior with
+
+    Returns
+    -------
+    prior: dict
+        The filled prior dictionary
+
     """
-    bad_keys = []
+
     for key in prior:
         if isinstance(prior[key], Prior):
             continue
         elif isinstance(prior[key], float) or isinstance(prior[key], int):
             prior[key] = DeltaFunction(prior[key])
-            logging.info("{} converted to delta function prior.".format(key))
+            logging.info(
+                "{} converted to delta function prior.".format(key))
         else:
-            logging.warning("{} cannot be converted to delta function prior.".format(key))
-            logging.warning("If required the default prior will be used.")
-            bad_keys.append(key)
+            logging.info(
+                "{} cannot be converted to delta function prior.".format(key))
 
-    if parameters is not None:
-        for parameter in parameters:
-            prior[parameter] = create_default_prior(parameter)
+    missing_keys = set(likelihood.parameters) - set(prior.keys())
 
-    if waveform_generator is not None:
-        missing_keys = set(waveform_generator.parameters) - set(prior.keys())
-
-        for missing_key in missing_keys:
-            if not test_redundancy(missing_key, prior):
-                prior[missing_key] = create_default_prior(missing_key)
-                if prior[missing_key] is None:
-                    logging.warning("No default prior found for unspecified variable {}.".format(missing_key))
-                    logging.warning("This variable will NOT be sampled.")
-                    bad_keys.append(missing_key)
-
-    for key in bad_keys:
-        prior.pop(key)
+    for missing_key in missing_keys:
+        default_prior = create_default_prior(missing_key)
+        if default_prior is None:
+            set_val = likelihood.parameters[missing_key]
+            logging.warning(
+                "Parameter {} has no default prior and is set to {}, this will"
+                " not be sampled and may cause an error."
+                .format(missing_key, set_val))
+        else:
+            prior[missing_key] = default_prior
 
     return prior
 

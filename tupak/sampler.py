@@ -5,10 +5,9 @@ import logging
 import os
 import sys
 import numpy as np
-from chainconsumer import ChainConsumer
 import matplotlib.pyplot as plt
 
-from .result import Result
+from .result import Result, read_in_result
 from .prior import Prior, fill_priors
 from . import utils
 from . import prior
@@ -55,6 +54,7 @@ class Sampler(object):
         self.kwargs = kwargs
 
         self.result = result
+        self.check_cached_result()
 
         self.log_summary_for_sampler()
 
@@ -79,6 +79,15 @@ class Sampler(object):
             self.__result = result
         else:
             raise TypeError('result must either be a Result or None')
+
+    @property
+    def search_parameter_keys(self):
+        return self.__search_parameter_keys
+
+    @property
+    def fixed_parameter_keys(self):
+        return self.__fixed_parameter_keys
+
 
     @property
     def external_sampler(self):
@@ -126,7 +135,7 @@ class Sampler(object):
                 self.__search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is True:
-                self.likelihood.waveform_generator.parameters[key] = \
+                self.likelihood.parameters[key] = \
                     self.priors[key].sample()
                 self.__fixed_parameter_keys.append(key)
 
@@ -137,12 +146,20 @@ class Sampler(object):
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def verify_parameters(self):
+# <<<<<<< HEAD
         for key in self.priors:
             self.likelihood.waveform_generator.parameters[key] = self.priors[key].sample()
         try:
             self.likelihood.waveform_generator.frequency_domain_strain()
         except TypeError:
             raise TypeError('Waveform generation failed. Have you definitely specified all the parameters?')
+# =======
+#         required_keys = self.priors
+#         unmatched_keys = [r for r in required_keys if r not in self.likelihood.parameters]
+#         if len(unmatched_keys) > 0:
+#             raise KeyError(
+#                 "Source model does not contain keys {}".format(unmatched_keys))
+# >>>>>>> master
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -154,7 +171,7 @@ class Sampler(object):
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.waveform_generator.parameters[k] = theta[i]
+            self.likelihood.parameters[k] = theta[i]
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
         else:
@@ -181,9 +198,35 @@ class Sampler(object):
     def run_sampler(self):
         pass
 
+    def check_cached_result(self):
+        """ Check if the cached data file exists and can be used """
+
+        if utils.command_line_args.clean:
+            logging.debug("Command line argument clean given, forcing rerun")
+            self.cached_result = None
+            return
+        self.cached_result = read_in_result(self.outdir, self.label)
+        if utils.command_line_args.use_cached:
+            logging.debug("Command line argument cached given, no cache check performed")
+            return
+
+        logging.debug("Checking cached data")
+        if self.cached_result:
+            check_keys = ['search_parameter_keys', 'fixed_parameter_keys',
+                          'kwargs']
+            use_cache = True
+            for key in check_keys:
+                if self.cached_result.check_attribute_match_to_other_object(
+                        key, self) is False:
+                    logging.debug("Cached value {} is unmatched".format(key))
+                    use_cache = False
+            if use_cache is False:
+                self.cached_result = None
+
     def log_summary_for_sampler(self):
-        logging.info("Using sampler {} with kwargs {}".format(
-            self.__class__.__name__, self.kwargs))
+        if self.cached_result is None:
+            logging.info("Using sampler {} with kwargs {}".format(
+                self.__class__.__name__, self.kwargs))
 
 
 class Nestle(Sampler):
@@ -362,7 +405,11 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-                sampling_parameters=None, **sampler_kwargs):
+# <<<<<<< HEAD
+                sampling_parameters=None, **kwargs):
+# =======
+#                 **kwargs):
+# >>>>>>> master
     """
     The primary interface to easy parameter estimation
 
@@ -387,7 +434,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
-    **sampler_kwargs:
+    **kwargs:
         All kwargs are passed directly to the samplers `run` functino
 
     Returns
@@ -401,17 +448,29 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    fill_priors(priors, likelihood.waveform_generator, sampling_parameters)
+# <<<<<<< HEAD
+#     fill_priors(priors, likelihood.waveform_generator, sampling_parameters)
+# =======
+    priors = fill_priors(priors, likelihood)
+# >>>>>>> master
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
-                                **sampler_kwargs)
+# <<<<<<< HEAD
+                                **kwargs)
 
         likelihood.waveform_generator.search_parameter_keys = [
             key for key in priors if not isinstance(priors[key], tupak.prior.DeltaFunction)]
+# =======
+#                                 **kwargs)
+        if sampler.cached_result:
+            logging.info("Using cached result")
+            return sampler.cached_result
+
+# >>>>>>> master
         result = sampler.run_sampler()
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
@@ -423,9 +482,15 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters = injection_parameters
             tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
         result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
+# <<<<<<< HEAD
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(waveform_generator=likelihood.waveform_generator,
                                      interferometers=likelihood.interferometers, priors=priors)
+# =======
+#         result.priors = priors
+        result.kwargs = sampler.kwargs
+        result.samples_to_data_frame()
+# >>>>>>> master
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:

@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # A few simple setup steps
-tupak.utils.setup_logger(log_level="info")
+tupak.utils.setup_logger()
 label = 'test'
 outdir = 'outdir'
 
@@ -26,6 +26,7 @@ class GaussianLikelihood():
         self.y = y
         self.N = len(x)
         self.waveform_generator = waveform_generator
+        self.parameters = waveform_generator.parameters
 
     def log_likelihood(self):
         sigma = 1
@@ -68,9 +69,9 @@ fig.savefig('{}/data.png'.format(outdir))
 # name doesn't make so much sense. But essentially this is an objects that
 # can generate a signal. We give it information on how to make the time series
 # and the model() we wrote earlier.
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    sampling_frequency=sampling_frequency, time_duration=time_duration,
-    time_domain_source_model=model)
+waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
+                                                                sampling_frequency=sampling_frequency,
+                                                                time_domain_source_model=model)
 
 
 # Now lets instantiate a version of out Likelihood, giving it the time, data

@@ -32,9 +32,8 @@ simulation_parameters = dict(
     psi=2.659
 )
 
-waveform_generator = WaveformGenerator(frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-                                       sampling_frequency=sampling_frequency,
-                                       time_duration=time_duration,
+waveform_generator = WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
+                                       frequency_domain_source_model=tupak.source.lal_binary_black_hole,
                                        parameters=simulation_parameters)
 
 signal = waveform_generator.frequency_domain_strain()
