@@ -1,5 +1,6 @@
 from context import tupak
 import unittest
+from mock import Mock
 import numpy as np
 
 
@@ -151,6 +152,42 @@ class TestPriorClasses(unittest.TestCase):
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+
+
+class TestFillPrior(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = Mock()
+        self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
+        self.priors = dict(a=1, b=1.1, c='string', d=tupak.prior.Uniform(0, 1))
+        self.priors = tupak.prior.fill_priors(self.priors, self.likelihood)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+
+    def test_prior_instances_are_not_changed_by_parsing(self):
+        self.assertIsInstance(self.priors['d'], tupak.prior.Uniform)
+
+    def test_parsing_ints_to_delta_priors_class(self):
+        self.assertIsInstance(self.priors['a'], tupak.prior.DeltaFunction)
+
+    def test_parsing_ints_to_delta_priors_with_right_value(self):
+        self.assertEqual(self.priors['a'].peak, 1)
+
+    def test_parsing_floats_to_delta_priors_class(self):
+        self.assertIsInstance(self.priors['b'], tupak.prior.DeltaFunction)
+
+    def test_parsing_floats_to_delta_priors_with_right_value(self):
+        self.assertAlmostEqual(self.priors['b'].peak, 1.1, 1e-8)
+
+    def test_without_available_default_priors_no_prior_is_set(self):
+        with self.assertRaises(KeyError):
+            print(self.priors['asdf'])
+
+    def test_with_available_default_priors_a_default_prior_is_set(self):
+        self.assertIsInstance(self.priors['ra'], tupak.prior.Uniform)
+
 
 
 if __name__ == '__main__':
