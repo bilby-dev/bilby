@@ -208,8 +208,6 @@ class Result(dict):
         data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
         tupak.conversion.generate_all_bbh_parameters(data_frame, waveform_generator, interferometers, priors)
         self.posterior = data_frame
-        for key in self.fixed_parameter_keys:
-            self.posterior[key] = self.prior[key].sample(len(self.posterior))
 
     def construct_cbc_derived_parameters(self):
         """
