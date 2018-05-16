@@ -45,12 +45,12 @@ class Sampler(object):
         self.outdir = outdir
         self.use_ratio = use_ratio
         self.external_sampler = external_sampler
+        self.external_sampler_function = None
 
         self.__search_parameter_keys = []
         self.__fixed_parameter_keys = []
         self.initialise_parameters()
         self.verify_parameters()
-        self.ndim = len(self.__search_parameter_keys)
         self.kwargs = kwargs
 
         self.result = result
@@ -70,6 +70,7 @@ class Sampler(object):
         if result is None:
             self.__result = Result()
             self.__result.search_parameter_keys = self.__search_parameter_keys
+            self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
             self.__result.parameter_labels = [
                 self.priors[k].latex_label for k in
                 self.__search_parameter_keys]
@@ -88,6 +89,17 @@ class Sampler(object):
     def fixed_parameter_keys(self):
         return self.__fixed_parameter_keys
 
+    @property
+    def ndim(self):
+        return len(self.__search_parameter_keys)
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        self.__kwargs = kwargs
 
     @property
     def external_sampler(self):
@@ -106,14 +118,6 @@ class Sampler(object):
         else:
             raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
                             'inherits from sampler')
-
-    @property
-    def kwargs(self):
-        return self.__kwargs
-
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        self.__kwargs = kwargs
 
     def verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
@@ -453,7 +457,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
         result.injection_parameters = injection_parameters
-        result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
         result.priors = priors
         result.kwargs = sampler.kwargs
         result.samples_to_data_frame()
