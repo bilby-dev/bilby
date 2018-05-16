@@ -45,6 +45,7 @@ class Sampler(object):
         self.outdir = outdir
         self.use_ratio = use_ratio
         self.external_sampler = external_sampler
+        self.external_sampler_function = None
 
         self.__search_parameter_keys = []
         self.__fixed_parameter_keys = []
