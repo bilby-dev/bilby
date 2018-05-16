@@ -15,10 +15,10 @@ time_duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
 
-np.random.seed(150914)
+np.random.seed(151226)
 
 injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
-                            luminosity_distance=4000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
+                            luminosity_distance=3000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
@@ -37,7 +37,7 @@ IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
 # Set up prior
 priors = dict()
 # These parameters will not be sampled
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'iota', 'ra', 'dec', 'geocent_time']:
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
 priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
 
@@ -45,9 +45,10 @@ priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosit
 likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100, walks=10,
+result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
                                    injection_parameters=injection_parameters, label='DifferentParameters',
-                                   sampling_parameters=['chirp_mass', 'mass_ratio', 'cos_iota'], outdir=outdir)
+                                   sampling_parameters=['chirp_mass', 'mass_ratio', 'cos_iota'],
+                                   outdir=outdir)
 result.plot_corner()
 result.plot_walks()
 result.plot_distributions()
