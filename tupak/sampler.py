@@ -191,8 +191,17 @@ class Sampler(object):
 
     def check_cached_result(self):
         """ Check if the cached data file exists and can be used """
-        logging.debug("Checking cached data")
+
+        if utils.command_line_args.clean:
+            logging.debug("Command line argument clean given, forcing rerun")
+            self.cached_result = None
+            return
         self.cached_result = read_in_result(self.outdir, self.label)
+        if utils.command_line_args.use_cached:
+            logging.debug("Command line argument cached given, no cache check performed")
+            return
+
+        logging.debug("Checking cached data")
         if self.cached_result:
             check_keys = ['search_parameter_keys', 'fixed_parameter_keys',
                           'kwargs']
@@ -206,7 +215,7 @@ class Sampler(object):
                 self.cached_result = None
 
     def log_summary_for_sampler(self):
-        if self.cached_result is False:
+        if self.cached_result is None:
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, self.kwargs))
 

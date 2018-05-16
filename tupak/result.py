@@ -120,6 +120,10 @@ class Result(dict):
             kwargs['parameters'] = self.get_latex_labels_from_parameter_keys(
                 kwargs['parameters'])
 
+        # Check all parameter_labels are a valid string
+        for i, label in enumerate(self.parameter_labels):
+            if label is None:
+                self.parameter_labels[i] = 'Unknown'
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels,
                     name=self.label)
