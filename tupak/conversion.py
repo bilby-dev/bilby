@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 
 
-def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
+def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=True):
     """
     Convert parameters we have into parameters we need.
 
@@ -25,6 +25,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
         dictionary of parameter values to convert into the required parameters
     search_keys: list
         parameters which are needed for the waveform generation
+    remove: bool, optional
+        Whether or not to remove the extra key, necessary for sampling, default=True.
 
     Return
     ------
@@ -39,22 +41,25 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
             if 'total_mass' in parameters.keys():
                 # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
                 parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
-                parameters.pop('chirp_mass')
+                if remove:
+                    parameters.pop('chirp_mass')
             if 'symmetric_mass_ratio' in parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
                 temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
                 parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
-                parameters.pop('symmetric_mass_ratio')
+                if remove:
+                    parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
                 if 'total_mass' not in parameters.keys():
-                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2\
+                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2 \
                                                / parameters['mass_ratio']**0.6
                     parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
                 parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
                 parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
-                parameters.pop('total_mass')
-                parameters.pop('mass_ratio')
+                if remove:
+                    parameters.pop('total_mass')
+                    parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
         elif 'total_mass' in parameters.keys():
@@ -62,28 +67,33 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys):
                 # symmetric_mass_ratio to mass_ratio
                 temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
                 parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
-                parameters.pop('symmetric_mass_ratio')
+                if remove:
+                    parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
                 # total_mass, mass_ratio to component masses
                 parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
                 parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
-                parameters.pop('total_mass')
-                parameters.pop('mass_ratio')
+                if remove:
+                    parameters.pop('total_mass')
+                    parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
     if 'cos_tilt_1' in parameters.keys():
         ignored_keys.append('tilt_1')
         parameters['tilt_1'] = np.arccos(parameters['cos_tilt_1'])
-        parameters.pop('cos_tilt_1')
+        if remove:
+            parameters.pop('cos_tilt_1')
     if 'cos_tilt_2' in parameters.keys():
         ignored_keys.append('tilt_2')
         parameters['tilt_2'] = np.arccos(parameters['cos_tilt_2'])
-        parameters.pop('cos_tilt_2')
+        if remove:
+            parameters.pop('cos_tilt_2')
 
     if 'cos_iota' in parameters.keys():
         parameters['iota'] = np.arccos(parameters['cos_iota'])
-        parameters.pop('cos_iota')
+        if remove:
+            parameters.pop('cos_iota')
 
     return ignored_keys
 
@@ -104,17 +114,33 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """
-    if priors is not None:
-        for name in priors:
-            if isinstance(priors[name], tupak.prior.DeltaFunction):
-                sample[name] = priors[name].peak
 
     if waveform_generator is not None:
         sample['reference_frequency'] = waveform_generator.parameters['reference_frequency']
         sample['waveform_approximant'] = waveform_generator.parameters['waveform_approximant']
 
-    convert_to_lal_binary_black_hole_parameters(sample, sample.keys())
+    fill_from_fixed_priors(sample, priors)
+    convert_to_lal_binary_black_hole_parameters(sample, [key for key in sample.keys()], remove=False)
+    generate_non_standard_parameters(sample)
+    generate_component_spins(sample)
+    compute_snrs(sample, waveform_generator, interferometers)
 
+
+def fill_from_fixed_priors(sample, priors):
+    """Add parameters with delta function prior to the data frame/dictionary."""
+    if priors is not None:
+        for name in priors:
+            if isinstance(priors[name], tupak.prior.DeltaFunction):
+                sample[name] = priors[name].peak
+
+
+def generate_non_standard_parameters(sample):
+    """
+    Add the known non-standard parameters to the data frame/dictionary.
+
+    We add:
+        chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1, cos tilt 2, cos iota
+    """
     sample['chirp_mass'] = (sample['mass_1'] * sample['mass_2'])**0.6 / (sample['mass_1'] + sample['mass_2'])**0.2
     sample['total_mass'] = sample['mass_1'] + sample['mass_2']
     sample['symmetric_mass_ratio'] = (sample['mass_1'] * sample['mass_2']) / (sample['mass_1'] + sample['mass_2'])**2
@@ -122,12 +148,20 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
 
     sample['cos_tilt_1'] = np.cos(sample['tilt_1'])
     sample['cos_tilt_2'] = np.cos(sample['tilt_2'])
+    sample['cos_iota'] = np.cos(sample['iota'])
 
+
+def generate_component_spins(sample):
+    """
+    Add the component spins to the data frame/dictionary.
+
+    This function uses a lalsimulation function to transform the spins.
+    """
     spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
                                   'mass_2', 'reference_frequency', 'phase']
     if all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, dict):
         sample['iota'], sample['spin_1x'], sample['spin_1y'], sample['spin_1z'], sample['spin_2x'], \
-            sample['spin_2y'], sample['spin_2z'] =\
+            sample['spin_2y'], sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
                 sample['iota'], sample['phi_jl'], sample['tilt_1'], sample['tilt_2'], sample['phi_12'], sample['a_1'],
                 sample['a_2'], sample['mass_1'] * tupak.utils.solar_mass, sample['mass_2'] * tupak.utils.solar_mass,
@@ -142,7 +176,7 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
         new_spins = {name: np.zeros(len(sample)) for name in new_spin_parameters}
 
         for ii in range(len(sample)):
-            new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii],\
+            new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
                 new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
                     sample['iota'][ii], sample['phi_jl'][ii], sample['tilt_1'][ii], sample['tilt_2'][ii],
@@ -159,29 +193,31 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
     else:
         logging.warning("Component spin extraction failed.")
 
-    sample['cos_iota'] = np.cos(sample['iota'])
 
+def compute_snrs(sample, waveform_generator, interferometers):
+    """Compute the optimal and matched filter snrs of all posterior samples."""
+    temp_sample = sample.copy()
     if waveform_generator is not None and interferometers is not None:
-        if isinstance(sample, dict):
+        if isinstance(temp_sample, dict):
             for key in waveform_generator.parameters.keys():
-                waveform_generator.parameters[key] = sample[key]
+                waveform_generator.parameters[key] = temp_sample[key]
             signal_polarizations = waveform_generator.frequency_domain_strain()
             for interferometer in interferometers:
                 signal = interferometer.get_detector_response(signal_polarizations, waveform_generator.parameters)
-                sample['{}_matched_filter_snr'.format(interferometer.name)] =\
+                sample['{}_matched_filter_snr'.format(interferometer.name)] = \
                     tupak.utils.matched_filter_snr_squared(signal, interferometer,
                                                            waveform_generator.time_duration)**0.5
                 sample['{}_optimal_snr'.format(interferometer.name)] = tupak.utils.optimal_snr_squared(
-                    signal, interferometer, waveform_generator.time_duration)**0.5
+                    signal, interferometer, waveform_generator.time_duration) ** 0.5
         else:
             logging.info('Computing SNRs for every sample, this may take some time.')
             matched_filter_snrs = {interferometer.name: [] for interferometer in interferometers}
             optimal_snrs = {interferometer.name: [] for interferometer in interferometers}
-            for ii in range(len(sample)):
-                for key in set(sample.keys()).intersection(waveform_generator.parameters.keys()):
-                    waveform_generator.parameters[key] = sample[key][ii]
+            for ii in range(len(temp_sample)):
+                for key in set(temp_sample.keys()).intersection(waveform_generator.parameters.keys()):
+                    waveform_generator.parameters[key] = temp_sample[key][ii]
                 for key in waveform_generator.search_parameter_keys:
-                    waveform_generator.parameters[key] = sample[key][ii]
+                    waveform_generator.parameters[key] = temp_sample[key][ii]
                 signal_polarizations = waveform_generator.frequency_domain_strain()
                 for interferometer in interferometers:
                     signal = interferometer.get_detector_response(signal_polarizations, waveform_generator.parameters)
@@ -192,3 +228,5 @@ def generate_all_bbh_parameters(sample, waveform_generator=None, interferometers
             for interferometer in interferometers:
                 sample['{}_matched_filter_snr'.format(interferometer.name)] = matched_filter_snrs[interferometer.name]
                 sample['{}_optimal_snr'.format(interferometer.name)] = optimal_snrs[interferometer.name]
+    else:
+        logging.info('Not computing SNRs.')
