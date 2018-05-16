@@ -4,6 +4,7 @@ import os
 import numpy as np
 from math import fmod
 from gwpy.timeseries import TimeSeries
+import argparse
 
 # Constants
 speed_of_light = 299792458.0  # speed of light in m/s
@@ -281,7 +282,7 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     return np.array([x_comp, y_comp, z_comp])
 
 
-def setup_logger(outdir=None, label=None, log_level='info'):
+def setup_logger(outdir=None, label=None, log_level=None):
     """ Setup logging output: call at the start of the script to use
 
     Parameters
@@ -298,6 +299,8 @@ def setup_logger(outdir=None, label=None, log_level='info'):
             LEVEL = getattr(logging, log_level.upper())
         except AttributeError:
             raise ValueError('log_level {} not understood'.format(log_level))
+    elif log_level is None:
+        LEVEL = command_line_args.log_level
     else:
         LEVEL = int(log_level)
 
@@ -507,6 +510,35 @@ def get_open_strain_data(
         logging.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
+
+
+def set_up_command_line_arguments():
+    parser = argparse.ArgumentParser(
+        description="Command line interface for tupak scripts")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help=("Increase output verbosity [logging.DEBUG]." +
+                              " Overridden by script level settings"))
+    parser.add_argument("-q", "--quite", action="store_true",
+                        help=("Decrease output verbosity [logging.WARNING]." +
+                              " Overridden by script level settings"))
+    parser.add_argument("-c", "--clean", action="store_true",
+                        help="Force clean data, never use cached data")
+    parser.add_argument("-u", "--use-cached", action="store_true",
+                        help="Force cached data and do not check its validity")
+    args, _ = parser.parse_known_args()
+
+    if args.quite:
+        args.log_level = logging.WARNING
+    elif args.verbose:
+        args.log_level = logging.DEBUG
+    else:
+        args.log_level = logging.INFO
+
+    return args
+
+
+command_line_args = set_up_command_line_arguments()
+
 
 
 
