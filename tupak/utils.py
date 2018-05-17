@@ -246,23 +246,24 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     v = np.array([-np.sin(phi), np.cos(phi), 0])
     m = -u * np.sin(psi) - v * np.cos(psi)
     n = -u * np.cos(psi) + v * np.sin(psi)
+
+    if mode.lower() == 'plus':
+        return np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n)
+    elif mode.lower() == 'cross':
+        return np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m)
+    elif mode.lower() == 'breathing':
+        return np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
+
     omega = np.cross(m, n)
-
-    polarization_tensors = {
-        "plus" : np.einsum('i,j->ij', m, m) - np.einsum('i,j->ij', n, n),
-        "cross": np.einsum('i,j->ij', m, n) + np.einsum('i,j->ij', n, m),
-        "breathing": np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n),
-        "longitudinal": np.sqrt(2) * np.einsum('i,j->ij', omega, omega),
-        "x": np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m),
-        "y": np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
-    }
-
-    if mode in polarization_tensors.keys():
-        polarization_tensor = polarization_tensors[mode]
+    if mode.lower() == 'longitudinal':
+        return np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
+    elif mode.lower() == 'x':
+        return np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
+    elif mode.lower() == 'y':
+        return np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
     else:
         logging.warning("{} not a polarization mode!".format(mode))
-        polarization_tensor = None
-    return polarization_tensor
+        return None
 
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
