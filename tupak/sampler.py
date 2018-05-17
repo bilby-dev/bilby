@@ -36,8 +36,7 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, priors, external_sampler='nestle',
-                 outdir='outdir', label='label', use_ratio=False, result=None,
+    def __init__(self, likelihood, priors, external_sampler='nestle', outdir='outdir', label='label', use_ratio=False,
                  **kwargs):
         self.likelihood = likelihood
         self.priors = priors
@@ -53,7 +52,6 @@ class Sampler(object):
         self.verify_parameters()
         self.kwargs = kwargs
 
-        self.result = result
         self.check_cached_result()
 
         self.log_summary_for_sampler()
@@ -61,25 +59,7 @@ class Sampler(object):
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
-    @property
-    def result(self):
-        return self.__result
-
-    @result.setter
-    def result(self, result):
-        if result is None:
-            self.__result = Result()
-            self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
-            self.__result.parameter_labels = [
-                self.priors[k].latex_label for k in
-                self.__search_parameter_keys]
-            self.__result.label = self.label
-            self.__result.outdir = self.outdir
-        elif type(result) is Result:
-            self.__result = result
-        else:
-            raise TypeError('result must either be a Result or None')
+        self.result = self.initialise_result()
 
     @property
     def search_parameter_keys(self):
@@ -148,6 +128,19 @@ class Sampler(object):
             logging.info('  {} ~ {}'.format(key, self.priors[key]))
         for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
+
+    def initialise_result(self):
+        result = Result()
+        result.search_parameter_keys = self.__search_parameter_keys
+        result.fixed_parameter_keys = self.__fixed_parameter_keys
+        result.parameter_labels = [
+            self.priors[k].latex_label for k in
+            self.__search_parameter_keys]
+        result.label = self.label
+        result.outdir = self.outdir
+        result.priors = self.priors
+        result.kwargs = self.kwargs
+        return result
 
     def verify_parameters(self):
         for key in self.priors:

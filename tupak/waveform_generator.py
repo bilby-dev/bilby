@@ -59,7 +59,7 @@ class WaveformGenerator(object):
             model_frequency_strain = dict()
             time_domain_strain = self.time_domain_source_model(self.time_array, **self.parameters)
             if isinstance(time_domain_strain, np.ndarray):
-                return time_domain_strain
+                return utils.nfft(time_domain_strain, self.sampling_frequency)
             for key in time_domain_strain:
                 model_frequency_strain[key], self.frequency_array = utils.nfft(time_domain_strain[key],
                                                                                self.sampling_frequency)
@@ -79,7 +79,7 @@ class WaveformGenerator(object):
             model_time_series = dict()
             frequency_domain_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
             if isinstance(frequency_domain_strain, np.ndarray):
-                return frequency_domain_strain
+                return utils.infft(frequency_domain_strain, self.sampling_frequency)
             for key in frequency_domain_strain:
                 model_time_series[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
         else:
