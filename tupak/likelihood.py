@@ -18,6 +18,7 @@ class Likelihood(object):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.parameters = self.waveform_generator.parameters
+        self.sampling_parameter_keys = self.waveform_generator.sampling_parameter_keys
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
@@ -151,13 +152,10 @@ def get_binary_black_hole_likelihood(interferometers):
     likelihood: tupak.likelihood.Likelihood
         The likelihood to pass to `run_sampler`
     """
-    waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=interferometers[0].duration,
-                                                                    sampling_frequency=interferometers[
-                                                                        0].sampling_frequency,
-                                                                    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-                                                                    parameters={'waveform_approximant': 'IMRPhenomPv2',
-                                                                                'reference_frequency': 50})
-    likelihood = tupak.likelihood.Likelihood(
-        interferometers, waveform_generator)
+    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+        time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
+        frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+        parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
+    likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
     return likelihood
 
