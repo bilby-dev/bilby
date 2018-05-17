@@ -106,7 +106,7 @@ class Sampler(object):
             if user_input not in args:
                 logging.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
-                        .format(user_input, self.external_sampler_function))
+                    .format(user_input, self.external_sampler_function))
                 bad_keys.append(user_input)
         for key in bad_keys:
             self.kwargs.pop(key)
@@ -155,7 +155,7 @@ class Sampler(object):
     def log_prior(self, theta):
         return np.sum(
             [np.log(self.priors[key].prob(t)) for key, t in
-             zip(self.__search_parameter_keys, theta)])
+                zip(self.__search_parameter_keys, theta)])
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
@@ -176,7 +176,7 @@ class Sampler(object):
         """
 
         draw = np.array([self.priors[key].sample()
-                         for key in self.__search_parameter_keys])
+                        for key in self.__search_parameter_keys])
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
