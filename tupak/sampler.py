@@ -193,7 +193,12 @@ class Sampler(object):
             logging.debug("Command line argument clean given, forcing rerun")
             self.cached_result = None
             return
-        self.cached_result = read_in_result(self.outdir, self.label)
+
+        try:
+            self.cached_result = read_in_result(self.outdir, self.label)
+        except ValueError:
+            self.cached_result = None
+
         if utils.command_line_args.use_cached:
             logging.debug("Command line argument cached given, no cache check performed")
             return

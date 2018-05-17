@@ -17,13 +17,26 @@ def result_file_name(outdir, label):
     return '{}/{}_result.h5'.format(outdir, label)
 
 
-def read_in_result(outdir, label):
-    """ Read in a saved .h5 data file """
-    filename = result_file_name(outdir, label)
+def read_in_result(outdir=None, label=None, filename=None):
+    """ Read in a saved .h5 data file
+
+    Parameters
+    ----------
+    outdir, label: str
+        If given, use the default naming convention for saved results file
+    filename: str
+        If given, try to load from this filename
+
+    Returns:
+    result: tupak.result.Result instance
+
+    """
+    if filename is None:
+        filename = result_file_name(outdir, label)
     if os.path.isfile(filename):
         return Result(deepdish.io.load(filename))
     else:
-        return None
+        raise ValueError("No information given to load file")
 
 
 class Result(dict):
