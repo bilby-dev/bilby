@@ -26,6 +26,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, time_duration=time_duration,
     frequency_domain_source_model=tupak.source.lal_binary_black_hole,
     parameter_conversion=tupak.conversion.convert_to_lal_binary_black_hole_parameters,
+    sampling_parameter_keys=['chirp_mass', 'mass_ratio', 'cos_iota'],
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
@@ -47,8 +48,7 @@ likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generato
 # Run sampler
 result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
                                    injection_parameters=injection_parameters, label='DifferentParameters',
-                                   sampling_parameters=['chirp_mass', 'mass_ratio', 'cos_iota'],
-                                   outdir=outdir)
+                                   outdir=outdir, conversion_function=tupak.conversion.generate_all_bbh_parameters)
 result.plot_corner()
 result.plot_walks()
 result.plot_distributions()
