@@ -138,7 +138,6 @@ class Sampler(object):
             self.__search_parameter_keys]
         result.label = self.label
         result.outdir = self.outdir
-        result.priors = self.priors
         result.kwargs = self.kwargs
         return result
 
