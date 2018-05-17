@@ -212,7 +212,6 @@ def compute_snrs(sample, likelihood):
             all_interferometers = likelihood.interferometers
             matched_filter_snrs = {interferometer.name: [] for interferometer in all_interferometers}
             optimal_snrs = {interferometer.name: [] for interferometer in all_interferometers}
-            likelihoods = {interferometer.name: [] for interferometer in all_interferometers}
             for ii in range(len(temp_sample)):
                 for key in set(temp_sample.keys()).intersection(likelihood.waveform_generator.parameters.keys()):
                     likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
