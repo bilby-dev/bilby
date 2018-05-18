@@ -27,11 +27,11 @@ exitcode-jessie:
     - coverage run -a test/waveform_generator_tests.py
     - coverage run -a test/noise_realisation_tests.py
     - coverage html --include=tupak/*
-    - coverage-badge -o coverage.svg -f
+    - coverage-badge -o coverage_badge.svg -f
   artifacts:
     paths:
       - htmlcov/
-      - coverage.svg
+      - coverage_badge.svg
 
 pages:
   stage: deploy
@@ -39,7 +39,7 @@ pages:
     - exitcode-jessie
   script:
     - mv htmlcov/ public/
-    - mv coverage.svg public/
+    - mv /builds/Monash/tupak/coverage_badge.svg public/
   artifacts:
     paths:
       - public
