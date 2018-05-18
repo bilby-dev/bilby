@@ -215,7 +215,7 @@ def compute_snrs(sample, likelihood):
             for ii in range(len(temp_sample)):
                 for key in set(temp_sample.keys()).intersection(likelihood.waveform_generator.parameters.keys()):
                     likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
-                for key in likelihood.waveform_generator.sampling_parameter_keys:
+                for key in likelihood.waveform_generator.non_standard_sampling_parameter_keys:
                     likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
                 signal_polarizations = likelihood.waveform_generator.frequency_domain_strain()
                 for interferometer in all_interferometers:

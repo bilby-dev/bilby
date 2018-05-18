@@ -18,7 +18,7 @@ class Likelihood(object):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.parameters = self.waveform_generator.parameters
-        self.sampling_parameter_keys = self.waveform_generator.sampling_parameter_keys
+        self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior

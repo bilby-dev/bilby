@@ -26,7 +26,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, time_duration=time_duration,
     frequency_domain_source_model=tupak.source.lal_binary_black_hole,
     parameter_conversion=tupak.conversion.convert_to_lal_binary_black_hole_parameters,
-    sampling_parameter_keys=['chirp_mass', 'mass_ratio', 'cos_iota'],
+    non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio', 'cos_iota'],
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 

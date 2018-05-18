@@ -444,7 +444,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood, parameters=likelihood.sampling_parameter_keys)
+    priors = fill_priors(priors, likelihood, parameters=likelihood.non_standard_sampling_parameter_keys)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
