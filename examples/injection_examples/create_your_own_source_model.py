@@ -46,7 +46,7 @@ prior['A'] = tupak.prior.Uniform(0, 1e-20, 'A')
 prior['f0'] = tupak.prior.Uniform(0, 20, 'f')
 prior['geocent_time'] = tupak.prior.Uniform(-0.01, 0.01, 'geocent_time')
 
-likelihood = tupak.likelihood.Likelihood(IFOs, waveform_generator)
+likelihood = tupak.likelihood.GravitationalWaveTransient(IFOs, waveform_generator)
 
 result = tupak.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,

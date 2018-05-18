@@ -47,7 +47,7 @@ def main():
             sampling_frequency=2048, time_duration=4, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
     # Define a likelihood
-    likelihood = tupak.likelihood.MarginalizedLikelihood(interferometers, waveform_generator, prior=prior,
+    likelihood = tupak.likelihood.MarginalizedGravitationalWaveTransient(interferometers, waveform_generator, prior=prior,
                                                          distance_marginalization=True, phase_marginalization=True)
 
     # Run the sampler

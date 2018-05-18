@@ -106,8 +106,8 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     ----------
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an injection or posterior samples.
-    likelihood: tupak.likelihood.Likelihood
-        Likelihood used for sampling, used for waveform and likelihood.interferometers.
+    likelihood: tupak.likelihood.GravitationalWaveTransient
+        GravitationalWaveTransient used for sampling, used for waveform and likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """

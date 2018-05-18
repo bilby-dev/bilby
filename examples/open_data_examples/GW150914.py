@@ -53,7 +53,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=in
 
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
-likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
 
 # Finally, we run the sampler. This function takes the likelihood and prio
 # along with some options for how to do the sampling and how to save the data
