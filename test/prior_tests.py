@@ -55,7 +55,7 @@ class TestPriorLatexLabel(unittest.TestCase):
         self.assertEqual(test_label, self.prior.latex_label)
 
     def test_default_label_assignment(self):
-        self.prior.name = 'mchirp'
+        self.prior.name = 'chirp_mass'
         self.prior.latex_label = None
         self.assertEqual(self.prior.latex_label, '$\mathcal{M}$')
 

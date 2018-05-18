@@ -3,6 +3,7 @@ import os
 import numpy as np
 import deepdish
 import pandas as pd
+import tupak
 
 try:
     from chainconsumer import ChainConsumer
@@ -204,16 +205,24 @@ class Result(dict):
             for key in self.prior:
                 prior_file.write(self.prior[key])
 
-    def samples_to_data_frame(self):
+    def samples_to_data_frame(self, likelihood=None, priors=None, conversion_function=None):
         """
         Convert array of samples to data frame.
 
-        :return:
+        Parameters
+        ----------
+        likelihood: tupak.likelihood.Likelihood
+            Likelihood used for sampling.
+        priors: dict
+            Dictionary of prior object, used to fill in delta function priors.
+        conversion_function: function
+            Function which adds in extra parameters to the data frame,
+            should take the data_frame, likelihood and prior as arguments.
         """
         data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        if conversion_function is not None:
+            conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
-        for key in self.fixed_parameter_keys:
-            self.posterior[key] = self.priors[key].sample(len(self.posterior))
 
     def construct_cbc_derived_parameters(self):
         """

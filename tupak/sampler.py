@@ -142,11 +142,16 @@ class Sampler(object):
         return result
 
     def verify_parameters(self):
-        required_keys = self.priors
-        unmatched_keys = [r for r in required_keys if r not in self.likelihood.parameters]
-        if len(unmatched_keys) > 0:
-            raise KeyError(
-                "Source model does not contain keys {}".format(unmatched_keys))
+        for key in self.priors:
+            try:
+                self.likelihood.parameters[key] = self.priors[key].sample()
+            except AttributeError as e:
+                logging.warning('Cannot sample from {}, {}'.format(key, e))
+        try:
+            self.likelihood.log_likelihood_ratio()
+        except TypeError:
+            raise TypeError('Likelihood evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
+                self.likelihood.parameters))
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -249,6 +254,7 @@ class Nestle(Sampler):
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
+        print("")
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
@@ -294,6 +300,7 @@ class Dynesty(Sampler):
                 prior_transform=self.prior_transform,
                 ndim=self.ndim, **self.kwargs)
             nested_sampler.run_nested(print_progress=self.kwargs['verbose'])
+        print("")
         out = nested_sampler.results
 
         # self.result.sampler_output = out
@@ -395,7 +402,7 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-                **kwargs):
+                conversion_function=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -416,12 +423,15 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         samplers
     use_ratio: bool (False)
         If True, use the likelihood's loglikelihood_ratio, rather than just
-        the loglikelhood.
+        the log likelhood.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
+
+    conversion_function: function, optional
+        Function to apply to posterior to generate additional parameters.
     **kwargs:
-        All kwargs are passed directly to the samplers `run` functino
+        All kwargs are passed directly to the samplers `run` function
 
     Returns
     ------
@@ -434,7 +444,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood)
+    priors = fill_priors(priors, likelihood, parameters=likelihood.non_standard_sampling_parameter_keys)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
@@ -442,6 +452,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
                                 **kwargs)
+
         if sampler.cached_result:
             logging.info("Using cached result")
             return sampler.cached_result
@@ -453,8 +464,13 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.logz = result.log_bayes_factor + result.noise_logz
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
-        result.injection_parameters = injection_parameters
-        result.samples_to_data_frame()
+        if injection_parameters is not None:
+            result.injection_parameters = injection_parameters
+            tupak.conversion.generate_all_bbh_parameters(result.injection_parameters)
+        result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
+        # result.prior = prior  # Removed as this breaks the saving of the data
+        result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
+        result.kwargs = sampler.kwargs
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:

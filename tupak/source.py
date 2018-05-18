@@ -13,8 +13,7 @@ from . import utils
 
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
-        iota, phase, waveform_approximant, reference_frequency, ra, dec,
-        geocent_time, psi):
+        iota, phase, waveform_approximant, reference_frequency, ra, dec, geocent_time, psi):
     """ A Binary Black Hole waveform model using lalsimulation """
     if mass_2 > mass_1:
         return None
