@@ -13,6 +13,7 @@ To get started with `tupak`, we have a few examples and tutorials:
 1. [Examples of injecting and recovering data](https://git.ligo.org/Monash/tupak/tree/master/examples/injection_examples)
     * [A basic tutorial](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/basic_tutorial.py)
     * [Create your own source model](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/create_your_own_source_model.py)
+    * [Create your own time-domain source model](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/create_your_own_time_domain_source_model.py)
     * [How to specify the prior](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/how_to_specify_the_prior.py)
     * [Using a partially marginalized likelihood](https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/marginalized_likelihood.py)
 
