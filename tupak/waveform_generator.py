@@ -1,8 +1,8 @@
 import inspect
 
-import tupak
 from . import utils
 import numpy as np
+
 
 class WaveformGenerator(object):
     """ A waveform generator
@@ -24,13 +24,15 @@ class WaveformGenerator(object):
     parameters: dict
         Initial values for the parameters
     parameter_conversion: func
-        Function to convert from sampled parameters to parameters of the waveform generator
+        Function to convert from sampled parameters to parameters of the
+        waveform generator
     non_standard_sampling_parameter_keys: list
         List of parameter name for *non-standard* sampling parameters.
 
-    Note: the arguments of frequency_domain_source_model (except the first, which is the
-    frequencies at which to compute the strain) will be added to the
-    WaveformGenerator object and initialised to `None`.
+    Note: the arguments of frequency_domain_source_model (except the first,
+    which is the frequencies at which to compute the strain) will be added to
+    the WaveformGenerator object and initialised to `None`.
+
     """
 
     def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
@@ -52,7 +54,7 @@ class WaveformGenerator(object):
         """ Wrapper to source_model """
         if self.parameter_conversion is not None:
             added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
-            
+
         if self.frequency_domain_source_model is not None:
             model_frequency_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
         elif self.time_domain_source_model is not None:

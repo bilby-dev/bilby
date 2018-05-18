@@ -398,7 +398,7 @@ class PowerSpectralDensity:
 
     def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
         """
-        Instantiate a new PSD object.
+        Instantiate a new PowerSpectralDensity object.
 
         Only one of the asd_file or psd_file needs to be specified.
         If multiple are given, the first will be used.
@@ -498,15 +498,16 @@ def get_empty_interferometer(name):
     The available instruments are:
         H1, L1, V1, GEO600
 
-    Detector positions taken from LIGO-T980044-10 for L1/H1 and from arXiv:gr-qc/0008066 [45] for V1/GEO600
+    Detector positions taken from LIGO-T980044-10 for L1/H1 and from
+    arXiv:gr-qc/0008066 [45] for V1/GEO600
 
     Parameters
     ----------
     name: str
         Interferometer identifier.
 
-    Return
-    ------
+    Returns
+    -------
     interferometer: Interferometer
         Interferometer instance
     """
@@ -546,7 +547,7 @@ def get_interferometer_with_open_data(
         raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an center_time
+    PSD and data, given an center_time.
 
     Parameters
     ----------
@@ -576,6 +577,7 @@ def get_interferometer_with_open_data(
     -------
     interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
+
     """
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
@@ -647,14 +649,15 @@ def get_interferometer_with_fake_noise_and_injection(
         save=True):
     """
     Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an center_time
+    power spectral density and data, given an center_time.
 
     Parameters
     ----------
     name: str
         Detector name, e.g., 'H1'.
     injection_polarizations: dict
-        polarizations of waveform to inject, output of waveform_generator.get_frequency_domain_signal
+        polarizations of waveform to inject, output of
+        `waveform_generator.get_frequency_domain_signal`
     injection_parameters: dict
         injection parameters, needed for sky position and timing
     sampling_frequency: float
@@ -672,6 +675,7 @@ def get_interferometer_with_fake_noise_and_injection(
     -------
     interferometer: `tupak.detector.Interferometer`
         An Interferometer instance with a PSD and frequency-domain strain data.
+
     """
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
@@ -715,9 +719,6 @@ def get_event_data(
         plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
     """
     Get open data for a specified event.
-
-    We currently know about:
-        GW150914
 
     Parameters
     ----------
