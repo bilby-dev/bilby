@@ -12,6 +12,36 @@ import logging
 
 
 class GravitationalWaveTransient(object):
+    """ A gravitational-wave transient likelihood object
+
+    This is the usual likelihood object to use for transient gravitational
+    wave parameter estimation. It computes the log-likelihood in the frequency
+    domain assuming a colored Gaussian noise model described by a power
+    spectral density
+
+
+    Parameters
+    ----------
+    interferometers: list
+        A list of `tupak.detector.Interferometer` instances - contains the
+        detector data and power spectral densities
+    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
+        An object which computes the frequency-domain strain of the signal,
+        given some set of parameters
+    distance_marginalization: bool
+        If true, analytic distance marginalization
+    phase_marginalization: bool
+        If true, analytic phase marginalization
+    prior: dict
+        If given, used in the distance and phase marginalization.
+
+    Returns
+    -------
+    Likelihood: `tupak.likelihood.Likelihood`
+        A likehood object, able to compute the likelihood of the data given
+        some model parameters
+
+    """
     def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
                  prior=None):
         # GravitationalWaveTransient.__init__(self, interferometers, waveform_generator)
@@ -148,7 +178,9 @@ def get_binary_black_hole_likelihood(interferometers):
         A list of `tupak.detector.Interferometer` instances, typically the
         output of either `tupak.detector.get_interferometer_with_open_data`
         or `tupak.detector.get_interferometer_with_fake_noise_and_injection`
+
     Returns
+    -------
     likelihood: tupak.likelihood.GravitationalWaveTransient
         The likelihood to pass to `run_sampler`
     """
