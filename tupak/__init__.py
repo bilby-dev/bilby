@@ -9,3 +9,4 @@ from . import likelihood
 from . import waveform_generator
 from . import result
 from . import sampler
+from . import conversion
