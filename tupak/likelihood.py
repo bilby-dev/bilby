@@ -11,10 +11,10 @@ import tupak
 import logging
 
 
-class Likelihood(object):
+class GravitationalWaveTransient(object):
     def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
                  prior=None):
-        # Likelihood.__init__(self, interferometers, waveform_generator)
+        # GravitationalWaveTransient.__init__(self, interferometers, waveform_generator)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.parameters = self.waveform_generator.parameters
@@ -106,7 +106,7 @@ class Likelihood(object):
                                                  bounds_error=False, fill_value=-np.inf)
 
 
-class BasicLikelihood(object):
+class BasicGravitationalWaveTransient(object):
     def __init__(self, interferometers, waveform_generator):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
@@ -149,13 +149,13 @@ def get_binary_black_hole_likelihood(interferometers):
         output of either `tupak.detector.get_interferometer_with_open_data`
         or `tupak.detector.get_interferometer_with_fake_noise_and_injection`
     Returns
-    likelihood: tupak.likelihood.Likelihood
+    likelihood: tupak.likelihood.GravitationalWaveTransient
         The likelihood to pass to `run_sampler`
     """
     waveform_generator = tupak.waveform_generator.WaveformGenerator(
         time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
         frequency_domain_source_model=tupak.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
-    likelihood = tupak.likelihood.Likelihood(interferometers, waveform_generator)
+    likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
 

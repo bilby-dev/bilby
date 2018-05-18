@@ -57,8 +57,8 @@ priors['a_2'] = tupak.prior.Interped(name='a_2', xx=a_2, yy=p_a_2, minimum=0, ma
 # Finally, if you don't specify any necessary parameters it will be filled in from the default when the sampler starts.
 # Enjoy.
 
-# Initialise Likelihood
-likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator)
+# Initialise GravitationalWaveTransient
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
 result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',

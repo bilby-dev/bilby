@@ -119,7 +119,7 @@ class Result(dict):
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             kwargs['filename'] = kwargs.get('filename', filename)
             logging.info('Saving corner plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             # If no truth argument given, set these to the injection params
             injection_parameters = [self.injection_parameters[key]
                                     for key in self.search_parameter_keys]
@@ -211,8 +211,8 @@ class Result(dict):
 
         Parameters
         ----------
-        likelihood: tupak.likelihood.Likelihood
-            Likelihood used for sampling.
+        likelihood: tupak.likelihood.GravitationalWaveTransient
+            GravitationalWaveTransient used for sampling.
         priors: dict
             Dictionary of prior object, used to fill in delta function priors.
         conversion_function: function

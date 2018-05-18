@@ -19,7 +19,7 @@ class Sampler(object):
 
     Parameters
     ----------
-    likelihood: likelihood.Likelihood
+    likelihood: likelihood.GravitationalWaveTransient
         A  object with a log_l method
     prior: dict
         The prior to be used in the search. Elements can either be floats
@@ -150,7 +150,7 @@ class Sampler(object):
         try:
             self.likelihood.log_likelihood_ratio()
         except TypeError:
-            raise TypeError('Likelihood evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
+            raise TypeError('GravitationalWaveTransient evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
                 self.likelihood.parameters))
 
     def prior_transform(self, theta):
@@ -408,8 +408,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Parameters
     ----------
-    likelihood: `tupak.likelihood.Likelihood`
-        A `Likelihood` instance
+    likelihood: `tupak.likelihood.GravitationalWaveTransient`
+        A `GravitationalWaveTransient` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default

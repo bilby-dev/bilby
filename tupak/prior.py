@@ -443,7 +443,7 @@ def fill_priors(prior, likelihood, parameters=None):
     ----------
     prior: dict
         dictionary of prior objects and floats
-    likelihood: tupak.likelihood.Likelihood instance
+    likelihood: tupak.likelihood.GravitationalWaveTransient instance
         Used to infer the set of parameters to fill the prior with
     parameters: list
         list of parameters to be sampled in, this can override the default
