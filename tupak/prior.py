@@ -123,23 +123,6 @@ class Prior(object):
         return label
 
 
-class Uniform(Prior):
-    """Uniform prior"""
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.support = maximum - minimum
-
-    def rescale(self, val):
-        Prior.test_valid_for_rescaling(val)
-        return self.minimum + val * self.support
-
-    def prob(self, val):
-        """Return the prior probability of val"""
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-        return 1 / self.support * in_prior
-
-
 class DeltaFunction(Prior):
     """Dirac delta function prior, this always returns peak."""
 
@@ -189,6 +172,24 @@ class PowerLaw(Prior):
         else:
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
+
+
+class Uniform(PowerLaw):
+    """Uniform prior"""
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
+        self.alpha = 0
+
+
+class LogUniform(PowerLaw):
+    """Uniform prior"""
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
+        self.alpha = -1
+        if self.minimum<=0:
+            logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
 
 class Cosine(Prior):
