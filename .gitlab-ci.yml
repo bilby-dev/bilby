@@ -27,7 +27,7 @@ exitcode-jessie:
     - coverage run -a test/waveform_generator_tests.py
     - coverage run -a test/noise_realisation_tests.py
     - coverage html --include=tupak/*
-    - coverage-badge -o coverage.svg
+    - coverage-badge -o coverage.svg -f
   artifacts:
     paths:
       - htmlcov/
