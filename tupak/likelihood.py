@@ -11,7 +11,20 @@ import tupak
 import logging
 
 
-class GravitationalWaveTransient(object):
+class Likelihood(object):
+    """ Empty likelihood class to be subclassed by other likelihoods """
+
+    def log_likelihood():
+        return np.nan
+
+    def noise_log_likelihood():
+        return np.nan
+
+    def log_likelihood_ratio(self):
+        return self.log_likelihood() - self.noise_log_likelihood()
+
+
+class GravitationalWaveTransient(Likelihood):
     """ A gravitational-wave transient likelihood object
 
     This is the usual likelihood object to use for transient gravitational
@@ -136,7 +149,7 @@ class GravitationalWaveTransient(object):
                                                  bounds_error=False, fill_value=-np.inf)
 
 
-class BasicGravitationalWaveTransient(object):
+class BasicGravitationalWaveTransient(Likelihood):
     """ A basic gravitaitonal wave transient likelihood
 
     The simplest frequency-domain gravitational wave transient likelihood. Does
@@ -190,9 +203,6 @@ class BasicGravitationalWaveTransient(object):
             (interferometer.data - signal_ifo)
             / interferometer.power_spectral_density_array)
         return log_l.real
-
-    def log_likelihood_ratio(self):
-        return self.log_likelihood() - self.noise_log_likelihood()
 
 
 def get_binary_black_hole_likelihood(interferometers):
