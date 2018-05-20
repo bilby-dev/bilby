@@ -127,7 +127,7 @@ class GravitationalWaveTransient(Likelihood):
         return log_l.real
 
     def log_likelihood(self):
-        return self.log_likelihood() + self.noise_log_likelihood()
+        return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
