@@ -245,8 +245,9 @@ class Nestle(Sampler):
     def run_sampler(self):
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
-        if self.kwargs.get('verbose', True):
-            self.kwargs['callback'] = nestle.print_progress
+        if 'verbose' in self.kwargs:
+            if self.kwargs['verbose']:
+                self.kwargs['callback'] = nestle.print_progress
             self.kwargs.pop('verbose')
         self.verify_kwargs_against_external_sampler_function()
 
