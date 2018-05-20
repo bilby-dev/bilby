@@ -1,5 +1,5 @@
 [![pipeline status](https://git.ligo.org/Monash/tupak/badges/master/pipeline.svg)](https://git.ligo.org/Monash/tupak/commits/master)
-[![coverage report](https://monash.docs.ligo.org/tupak/coverage_report.svg)](
+[![coverage report](https://monash.docs.ligo.org/tupak/coverage_badge.svg)](
 https://monash.docs.ligo.org/tupak/)
 
 # Tupak

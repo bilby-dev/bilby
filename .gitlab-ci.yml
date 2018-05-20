@@ -22,11 +22,11 @@ exitcode-jessie:
     - pip install coverage
     - pip install coverage-badge
     - coverage erase
-    - coverage run -a test/prior_tests.py
-    - coverage run -a test/tests.py
-    - coverage run -a test/waveform_generator_tests.py
-    - coverage run -a test/noise_realisation_tests.py
-    - coverage html --include=tupak/*
+    - coverage run --include=tupak/* -a test/prior_tests.py
+    - coverage run --include=tupak/* -a test/tests.py
+    - coverage run --include=tupak/* -a test/waveform_generator_tests.py
+    - coverage run --include=tupak/* -a test/noise_realisation_tests.py
+    - coverage html
     - coverage-badge -o coverage_badge.svg -f
   artifacts:
     paths:
