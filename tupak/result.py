@@ -67,6 +67,9 @@ class Result(dict):
         else:
             return ''
 
+    def get_result_dictionary(self):
+        return dict(self)
+
     def save_to_file(self, outdir, label):
         """ Writes the Result to a deepdish h5 file """
         file_name = result_file_name(outdir, label)
@@ -80,7 +83,7 @@ class Result(dict):
 
         logging.info("Saving result to {}".format(file_name))
         try:
-            deepdish.io.save(file_name, self)
+            deepdish.io.save(file_name, self.get_result_dictionary())
         except Exception as e:
             logging.error(
                 "\n\n Saving the data has failed with the following message:\n {} \n\n"
