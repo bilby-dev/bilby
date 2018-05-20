@@ -136,6 +136,39 @@ class GravitationalWaveTransient(object):
                                                  bounds_error=False, fill_value=-np.inf)
 
 
+class BasicGravitationalWaveTransient(object):
+    def __init__(self, interferometers, waveform_generator):
+        self.interferometers = interferometers
+        self.waveform_generator = waveform_generator
+
+    def noise_log_likelihood(self):
+        log_l = 0
+        for interferometer in self.interferometers:
+            log_l -= 2. / self.waveform_generator.time_duration * np.sum(
+                abs(interferometer.data) ** 2 / interferometer.power_spectral_density_array)
+        return log_l.real
+
+    def log_likelihood(self):
+        log_l = 0
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain()
+        if waveform_polarizations is None:
+            return np.nan_to_num(-np.inf)
+        for interferometer in self.interferometers:
+            log_l += self.log_likelihood_interferometer(waveform_polarizations, interferometer)
+        return log_l.real
+
+    def log_likelihood_interferometer(self, waveform_polarizations, interferometer):
+        signal_ifo = interferometer.get_detector_response(waveform_polarizations, self.waveform_generator.parameters)
+
+        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
+                                                                       (interferometer.data - signal_ifo)
+                                                                       / interferometer.power_spectral_density_array)
+        return log_l.real
+
+    def log_likelihood_ratio(self):
+        return self.log_likelihood() - self.noise_log_likelihood()
+
+
 def get_binary_black_hole_likelihood(interferometers):
     """ A rapper to quickly set up a likelihood for BBH parameter estimation
 
@@ -157,3 +190,4 @@ def get_binary_black_hole_likelihood(interferometers):
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
+
