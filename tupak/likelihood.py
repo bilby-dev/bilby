@@ -137,6 +137,27 @@ class GravitationalWaveTransient(object):
 
 
 class BasicGravitationalWaveTransient(object):
+    """ A basic gravitaitonal wave transient likelihood
+
+    The simplest frequency-domain gravitational wave transient likelihood. Does
+    not include distance/phase marginalization.
+
+    Parameters
+    ----------
+    interferometers: list
+        A list of `tupak.detector.Interferometer` instances - contains the
+        detector data and power spectral densities
+    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
+        An object which computes the frequency-domain strain of the signal,
+        given some set of parameters
+
+    Returns
+    -------
+    Likelihood: `tupak.likelihood.Likelihood`
+        A likehood object, able to compute the likelihood of the data given
+        some model parameters
+
+    """
     def __init__(self, interferometers, waveform_generator):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
@@ -145,7 +166,8 @@ class BasicGravitationalWaveTransient(object):
         log_l = 0
         for interferometer in self.interferometers:
             log_l -= 2. / self.waveform_generator.time_duration * np.sum(
-                abs(interferometer.data) ** 2 / interferometer.power_spectral_density_array)
+                abs(interferometer.data) ** 2 /
+                interferometer.power_spectral_density_array)
         return log_l.real
 
     def log_likelihood(self):
@@ -154,15 +176,19 @@ class BasicGravitationalWaveTransient(object):
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
-            log_l += self.log_likelihood_interferometer(waveform_polarizations, interferometer)
+            log_l += self.log_likelihood_interferometer(
+                waveform_polarizations, interferometer)
         return log_l.real
 
-    def log_likelihood_interferometer(self, waveform_polarizations, interferometer):
-        signal_ifo = interferometer.get_detector_response(waveform_polarizations, self.waveform_generator.parameters)
+    def log_likelihood_interferometer(self, waveform_polarizations,
+                                      interferometer):
+        signal_ifo = interferometer.get_detector_response(
+            waveform_polarizations, self.waveform_generator.parameters)
 
-        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
-                                                                       (interferometer.data - signal_ifo)
-                                                                       / interferometer.power_spectral_density_array)
+        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(
+            interferometer.data - signal_ifo,
+            (interferometer.data - signal_ifo)
+            / interferometer.power_spectral_density_array)
         return log_l.real
 
     def log_likelihood_ratio(self):
