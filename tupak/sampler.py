@@ -468,7 +468,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters = injection_parameters
             if conversion_function is not None:
                 conversion_function(result.injection_parameters)
-        result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
+        result.fixed_parameter_keys = sampler.fixed_parameter_keys
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
