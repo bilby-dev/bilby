@@ -21,7 +21,6 @@ exitcode-jessie:
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
-    - pip install chainconsumer  # Required by some of the example scripts
     - python setup.py install
     - coverage erase
     - coverage run --include=tupak/* -a test/prior_tests.py

@@ -3,14 +3,14 @@ import os
 import numpy as np
 import deepdish
 import pandas as pd
-import tupak
 
 try:
     from chainconsumer import ChainConsumer
 except ImportError:
     def ChainConsumer():
-        raise ImportError(
-            "You do not have the optional module chainconsumer installed")
+        logging.warning(
+            "You do not have the optional module chainconsumer installed"
+            " unable to generate a corner plot")
 
 
 def result_file_name(outdir, label):
