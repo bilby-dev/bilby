@@ -1,7 +1,7 @@
 future
 dynesty
 corner
-numpy>=1.9
+numpy
 matplotlib>=2.0
 scipy
 gwpy
