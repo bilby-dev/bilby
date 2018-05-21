@@ -142,10 +142,11 @@ class Result(dict):
             if label is None:
                 self.parameter_labels[i] = 'Unknown'
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels,
-                    name=self.label)
-        fig = c.plotter.plot(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels,
+                        name=self.label)
+            fig = c.plotter.plot(**kwargs)
+            return fig
 
     def plot_walks(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -168,9 +169,10 @@ class Result(dict):
         if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_walks(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_walks(**kwargs)
+            return fig
 
     def plot_distributions(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -193,9 +195,10 @@ class Result(dict):
         if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_distributions(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_distributions(**kwargs)
+            return fig
 
     def write_prior_to_file(self, outdir):
         """
