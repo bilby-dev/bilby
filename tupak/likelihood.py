@@ -9,7 +9,6 @@ from scipy.special import i0e
 from scipy.interpolate import interp1d
 import tupak
 import logging
-from scipy.misc import logsumexp
 
 
 class Likelihood(object):
@@ -171,13 +170,13 @@ class HyperparameterLikelihood():
         self.parameters = parameters
 
     def log_likelihood(self):
-        logl = []
+        L = []
         self.hyper_prior.__dict__.update(self.parameters)
         for samp in self.samples:
-            logl.append(
-                logsumexp(np.sum(self.hyper_prior.lnprob(samp)) -
-                          np.sum(self.run_prior.lnprob(samp))))
-        return np.sum(logl)
+            L.append(
+                np.sum(self.hyper_prior.prob(samp) /
+                       self.run_prior.prob(samp)))
+        return np.sum(np.log(L))
 
     def noise_log_likelihood(self):
         return np.nan
