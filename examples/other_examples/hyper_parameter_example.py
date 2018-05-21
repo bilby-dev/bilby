@@ -6,9 +6,7 @@ from __future__ import division
 import tupak
 import numpy as np
 
-# A few simple setup steps
 tupak.utils.setup_logger()
-label = 'hyperparameter'
 outdir = 'outdir'
 
 
@@ -60,11 +58,11 @@ for i in range(Nevents):
 
     priors = dict(m=tupak.prior.Uniform(-10, 10, 'm'))
 
-    # And run sampler
     result = tupak.sampler.run_sampler(
         likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-        injection_parameters=injection_parameters, outdir=outdir, verbose=False,
-        label=label + '_{}'.format(i), use_ratio=False, sample='unif')
+        injection_parameters=injection_parameters, outdir=outdir,
+        verbose=False, label='individual_{}'.format(i), use_ratio=False,
+        sample='unif')
     result.plot_corner()
     samples.append(result.samples)
 
@@ -79,10 +77,9 @@ hp_priors = dict(
     mu=tupak.prior.Uniform(-10, 10, 'mu', '$\mu_m$'),
     sigma=tupak.prior.Uniform(0, 10, 'sigma', '$\sigma_m$'))
 
-
 # And run sampler
 result = tupak.sampler.run_sampler(
-    likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty', npoints=1000,
-    outdir=outdir, label=label + '_hp', use_ratio=False, sample='unif', verbose=True)
-result.plot_corner()
-
+    likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty',
+    npoints=1000, outdir=outdir, label='hyperparameter', use_ratio=False,
+    sample='unif', verbose=True)
+result.plot_corner(truth=dict(mu=true_mu_m, sigma=true_sigma_m))
