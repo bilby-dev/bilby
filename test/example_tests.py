@@ -2,7 +2,13 @@ import unittest
 import os
 import shutil
 import logging
-import subprocess
+
+# Required to run the tests
+from past.builtins import execfile
+from context import tupak
+import numpy as np
+
+tupak.utils.command_line_args.test = True
 
 
 class Test(unittest.TestCase):
@@ -35,10 +41,11 @@ class Test(unittest.TestCase):
                     'examples/injection_examples/marginalized_likelihood.py',
                     'examples/injection_examples/create_your_own_time_domain_source_model.py',
                     'examples/other_examples/alternative_likelihoods.py',
+                    'examples/open_data_examples/GW150914.py',
                     ]
         for filename in examples:
             print("Testing {}".format(filename))
-            subprocess.check_call(['python', filename, '--test'])
+            execfile(filename)
 
 
 if __name__ == '__main__':
