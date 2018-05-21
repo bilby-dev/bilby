@@ -195,7 +195,7 @@ class PowerLaw(Prior):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         normalising = (1+self.alpha)/(self.maximum ** (1 + self.alpha)
                                       - self.minimum ** (1 + self.alpha))
-        return self.alpha * val * np.log(normalising) * in_prior
+        return self.alpha * np.log(val) * np.log(normalising) * in_prior
 
 
 class Cosine(Prior):
