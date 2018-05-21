@@ -433,7 +433,7 @@ def parse_keys_to_parameters(keys):
     return parameters
 
 
-def fill_priors(prior, likelihood, parameters=None):
+def fill_priors(prior, likelihood):
     """
     Fill dictionary of priors based on required parameters of likelihood
 
@@ -446,9 +446,9 @@ def fill_priors(prior, likelihood, parameters=None):
         dictionary of prior objects and floats
     likelihood: tupak.likelihood.GravitationalWaveTransient instance
         Used to infer the set of parameters to fill the prior with
-    parameters: list
-        list of parameters to be sampled in, this can override the default
-        priors for the waveform generator
+
+    Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then this
+    will set-up default priors for those as well.
 
     Returns
     -------
@@ -470,8 +470,8 @@ def fill_priors(prior, likelihood, parameters=None):
 
     missing_keys = set(likelihood.parameters) - set(prior.keys())
 
-    if parameters is not None:
-        for parameter in parameters:
+    if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
+        for parameter in likelihood.non_standard_sampling_parameter_keys:
             prior[parameter] = create_default_prior(parameter)
 
     for missing_key in missing_keys:

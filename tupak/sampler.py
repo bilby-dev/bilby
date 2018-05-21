@@ -245,8 +245,9 @@ class Nestle(Sampler):
     def run_sampler(self):
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
-        if self.kwargs.get('verbose', True):
-            self.kwargs['callback'] = nestle.print_progress
+        if 'verbose' in self.kwargs:
+            if self.kwargs['verbose']:
+                self.kwargs['callback'] = nestle.print_progress
             self.kwargs.pop('verbose')
         self.verify_kwargs_against_external_sampler_function()
 
@@ -444,7 +445,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood, parameters=likelihood.non_standard_sampling_parameter_keys)
+    priors = fill_priors(priors, likelihood)
     tupak.prior.write_priors_to_file(priors, outdir)
 
     if implemented_samplers.__contains__(sampler.title()):
@@ -468,7 +469,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters = injection_parameters
             if conversion_function is not None:
                 conversion_function(result.injection_parameters)
-        result.fixed_parameter_keys = [key for key in priors if isinstance(key, prior.DeltaFunction)]
+        result.fixed_parameter_keys = sampler.fixed_parameter_keys
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
         result.kwargs = sampler.kwargs

@@ -20,7 +20,7 @@ outdir = 'outdir'
 # use of the `tupak` waveform_generator to make the signal (more on this later)
 # But, one could make this work without the waveform generator.
 
-class GaussianGravitationalWaveTransient():
+class GaussianLikelihood():
     def __init__(self, x, y, waveform_generator):
         self.x = x
         self.y = y
@@ -76,7 +76,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=ti
 
 # Now lets instantiate a version of out GravitationalWaveTransient, giving it the time, data
 # and waveform_generator
-likelihood = GaussianGravitationalWaveTransient(time, data, waveform_generator)
+likelihood = GaussianLikelihood(time, data, waveform_generator)
 
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior

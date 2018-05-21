@@ -89,7 +89,7 @@ class WaveformGenerator(object):
         if self.parameter_conversion is not None:
             for key in added_keys:
                 self.parameters.pop(key)
-        return model_time_series[key]
+        return model_time_series
 
     @property
     def frequency_array(self):
