@@ -20,7 +20,7 @@ outdir = 'outdir'
 # use of the `tupak` waveform_generator to make the signal (more on this later)
 # But, one could make this work without the waveform generator.
 
-class GaussianLikelihood():
+class GaussianLikelihood(tupak.likelihood.Likelihood):
     def __init__(self, x, y, waveform_generator):
         self.x = x
         self.y = y

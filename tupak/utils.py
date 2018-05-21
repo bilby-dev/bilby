@@ -530,6 +530,9 @@ def set_up_command_line_arguments():
                         default=['H1', 'L1', 'V1'],
                         help=("List of detectors to use in open data calls, "
                               "e.g. -d H1 L1 for H1 and L1"))
+    parser.add_argument("-t", "--test", action="store_true",
+                        help=("Used for testing only: don't run full PE, but"
+                              " just check nothing breaks"))
     args, _ = parser.parse_known_args()
 
     if args.quite:

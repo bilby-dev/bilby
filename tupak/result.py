@@ -165,7 +165,7 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
             logging.info('Saving walker plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels)
@@ -190,7 +190,7 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
             logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
         c.add_chain(self.samples, parameters=self.parameter_labels)
