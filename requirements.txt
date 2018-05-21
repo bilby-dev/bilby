@@ -2,7 +2,7 @@ future
 dynesty
 corner
 numpy
-matplotlib>=1.4
+matplotlib>=2.0
 scipy
 gwpy
 pandas

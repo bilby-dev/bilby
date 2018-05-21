@@ -3,14 +3,14 @@ import os
 import numpy as np
 import deepdish
 import pandas as pd
-import tupak
 
 try:
     from chainconsumer import ChainConsumer
 except ImportError:
     def ChainConsumer():
-        raise ImportError(
-            "You do not have the optional module chainconsumer installed")
+        logging.warning(
+            "You do not have the optional module chainconsumer installed"
+            " unable to generate a corner plot")
 
 
 def result_file_name(outdir, label):
@@ -142,10 +142,11 @@ class Result(dict):
             if label is None:
                 self.parameter_labels[i] = 'Unknown'
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels,
-                    name=self.label)
-        fig = c.plotter.plot(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels,
+                        name=self.label)
+            fig = c.plotter.plot(**kwargs)
+            return fig
 
     def plot_walks(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -165,12 +166,13 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
             logging.info('Saving walker plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_walks(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_walks(**kwargs)
+            return fig
 
     def plot_distributions(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -190,12 +192,13 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
             logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_distributions(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_distributions(**kwargs)
+            return fig
 
     def write_prior_to_file(self, outdir):
         """

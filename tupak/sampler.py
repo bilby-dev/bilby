@@ -190,6 +190,9 @@ class Sampler(object):
     def run_sampler(self):
         pass
 
+    def _run_test(self):
+        raise ValueError("Method not yet implemented")
+
     def check_cached_result(self):
         """ Check if the cached data file exists and can be used """
 
@@ -263,6 +266,18 @@ class Nestle(Sampler):
         self.result.logzerr = out.logzerr
         return self.result
 
+    def _run_test(self):
+        nestle = self.external_sampler
+        self.external_sampler_function = nestle.sample
+        self.external_sampler_function(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, maxiter=10, **self.kwargs)
+        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
+        return self.result
+
 
 class Dynesty(Sampler):
 
@@ -310,6 +325,22 @@ class Dynesty(Sampler):
             out.samples, weights)
         self.result.logz = out.logz[-1]
         self.result.logzerr = out.logzerr[-1]
+        return self.result
+
+    def _run_test(self):
+        dynesty = self.external_sampler
+        nested_sampler = dynesty.NestedSampler(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, **self.kwargs)
+        nested_sampler.run_nested(
+            dlogz=self.kwargs['dlogz'],
+            print_progress=self.kwargs['verbose'],
+            maxiter=10)
+
+        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
         return self.result
 
 
@@ -458,7 +489,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             logging.info("Using cached result")
             return sampler.cached_result
 
-        result = sampler.run_sampler()
+        if utils.command_line_args.test:
+            result = sampler._run_test()
+        else:
+            result = sampler.run_sampler()
+
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
             result.log_bayes_factor = result.logz
