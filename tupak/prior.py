@@ -327,7 +327,10 @@ class Interped(Prior):
         This maps to the inverse CDF. This is done using interpolation.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.inverse_cumulative_distribution(val)
+        rescaled = self.inverse_cumulative_distribution(val)
+        if rescaled.shape == ():
+            rescaled = float(rescaled)
+        return rescaled
 
     def __repr__(self):
         prior_name = self.__class__.__name__
