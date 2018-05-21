@@ -1,9 +1,10 @@
 future
 dynesty
 corner
-numpy
-matplotlib>=1.4
-scipy
+patsy>=0.4
+numpy>=1.9
+matplotlib>=2.0
+scipy>=0.19
 gwpy
 pandas
 astropy

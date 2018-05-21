@@ -1,11 +1,8 @@
 import unittest
 import os
 import shutil
-from context import tupak
 import logging
-import glob
 import subprocess
-from past.builtins import execfile
 
 
 class Test(unittest.TestCase):
@@ -32,9 +29,9 @@ class Test(unittest.TestCase):
                     "{} not removed prior to tests".format(self.outdir))
 
     def test_examples(self):
-        """ Loop over all examples to check they run """
-        examples = glob.glob("examples/*/*.py")
+        """ Loop over examples to check they run """
         examples = ['examples/injection_examples/how_to_specify_the_prior.py',
+                    'examples/injection_examples/basic_tutorial.py',
                     'examples/injection_examples/change_sampled_parameters.py',
                     'examples/injection_examples/marginalized_likelihood.py',
                     'examples/injection_examples/create_your_own_source_model.py',
@@ -45,8 +42,7 @@ class Test(unittest.TestCase):
                     ]
         for filename in examples:
             print("Testing {}".format(filename))
-            out = subprocess.check_output(["python", filename, "--test"])
-            print(out)
+            subprocess.check_call(['python', filename, '--test'])
 
 
 if __name__ == '__main__':
