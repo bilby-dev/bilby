@@ -41,7 +41,6 @@ class Test(unittest.TestCase):
                     'examples/injection_examples/marginalized_likelihood.py',
                     'examples/injection_examples/create_your_own_time_domain_source_model.py',
                     'examples/other_examples/alternative_likelihoods.py',
-                    'examples/open_data_examples/GW150914.py',
                     ]
         for filename in examples:
             print("Testing {}".format(filename))
