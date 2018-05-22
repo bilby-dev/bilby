@@ -297,7 +297,8 @@ class Interped(Prior):
         self.xx = xx
         self.yy = yy
         self.all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
-        Prior.__init__(self, name, latex_label, minimum=np.nanmax(np.array((min(xx), minimum))),
+        Prior.__init__(self, name, latex_label,
+                       minimum=np.nanmax(np.array((min(xx), minimum))),
                        maximum=np.nanmin(np.array((max(xx), maximum))))
         self.__initialize_attributes()
 
