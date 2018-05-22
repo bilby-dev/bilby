@@ -14,6 +14,9 @@ import logging
 class Likelihood(object):
     """ Empty likelihood class to be subclassed by other likelihoods """
 
+    def __init__(self, parameters=None):
+        self.parameters = parameters
+
     def log_likelihood(self):
         return np.nan
 
@@ -51,16 +54,15 @@ class GravitationalWaveTransient(Likelihood):
     Returns
     -------
     Likelihood: `tupak.likelihood.Likelihood`
-        A likehood object, able to compute the likelihood of the data given
+        A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
     """
     def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
                  prior=None):
-        # GravitationalWaveTransient.__init__(self, interferometers, waveform_generator)
+        Likelihood.__init__(waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
-        self.parameters = self.waveform_generator.parameters
         self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -153,7 +155,7 @@ class GravitationalWaveTransient(Likelihood):
 
 
 class BasicGravitationalWaveTransient(Likelihood):
-    """ A basic gravitaitonal wave transient likelihood
+    """ A basic gravitational wave transient likelihood
 
     The simplest frequency-domain gravitational wave transient likelihood. Does
     not include distance/phase marginalization.
@@ -170,11 +172,12 @@ class BasicGravitationalWaveTransient(Likelihood):
     Returns
     -------
     Likelihood: `tupak.likelihood.Likelihood`
-        A likehood object, able to compute the likelihood of the data given
+        A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
     """
     def __init__(self, interferometers, waveform_generator):
+        Likelihood.__init__(waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
@@ -229,4 +232,3 @@ def get_binary_black_hole_likelihood(interferometers):
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
-
