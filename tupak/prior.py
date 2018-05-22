@@ -424,27 +424,6 @@ def create_default_prior(name):
     return prior
 
 
-def parse_floats_to_fixed_priors(old_parameters):
-    parameters = old_parameters.copy()
-    for key in parameters:
-        if type(parameters[key]) is not float and type(parameters[key]) is not int \
-                and type(parameters[key]) is not Prior:
-            logging.info("Expected parameter " + str(key) + " to be a float or int but was "
-                         + str(type(parameters[key])) + " instead. Will not be converted.")
-            continue
-        elif type(parameters[key]) is Prior:
-            continue
-        parameters[key] = DeltaFunction(name=key, latex_label=None, peak=old_parameters[key])
-    return parameters
-
-
-def parse_keys_to_parameters(keys):
-    parameters = {}
-    for key in keys:
-        parameters[key] = create_default_prior(key)
-    return parameters
-
-
 def fill_priors(prior, likelihood):
     """
     Fill dictionary of priors based on required parameters of likelihood
