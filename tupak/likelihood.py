@@ -267,7 +267,7 @@ class HyperparameterLikelihood(Likelihood):
             logging.info("Using probabilities in likelihood")
             self.log_likelihood = self.log_likelihood_using_prob
 
-    def log_likelihood_using_prob(self):
+    def log_likelihood_using_lnprob(self):
         L = []
         self.hyper_prior.__dict__.update(self.parameters)
         for samp in self.samples:
@@ -275,7 +275,7 @@ class HyperparameterLikelihood(Likelihood):
             L.append(logsumexp(f))
         return np.sum(L)
 
-    def log_likelihood_using_lnprob(self):
+    def log_likelihood_using_prob(self):
         L = []
         self.hyper_prior.__dict__.update(self.parameters)
         for samp in self.samples:
