@@ -256,7 +256,7 @@ class HyperparameterLikelihood(Likelihood):
     """
 
     def __init__(self, samples, hyper_prior, run_prior):
-        Likelihood.__init__(parameters=hyper_prior.__dict__)
+        Likelihood.__init__(self, parameters=hyper_prior.__dict__)
         self.samples = samples
         self.hyper_prior = hyper_prior
         self.run_prior = run_prior
