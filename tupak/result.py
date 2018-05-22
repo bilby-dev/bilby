@@ -122,37 +122,32 @@ class Result(dict):
             bins=50, smooth=0.9, label_kwargs=dict(fontsize=16),
             title_kwargs=dict(fontsize=16), color='#0072C1',
             truth_color='tab:orange', show_titles=True,
-            quantiles=[0.025, 0.975], levels=(0.39,0.8,0.97),
+            quantiles=[0.025, 0.975], levels=(0.39, 0.8, 0.97),
             plot_density=False, plot_datapoints=True, fill_contours=True,
             max_n_ticks=3)
 
         defaults_kwargs.update(kwargs)
         kwargs = defaults_kwargs
 
-        if getattr(self, 'injection_parameters', None) is not None:
-            injection_parameters = [self.injection_parameters[key]
-                                    for key in self.search_parameter_keys]
-            kwargs['truth'] = kwargs.get('truth', injection_parameters)
-
-        if type(kwargs.get('truth')) == dict:
-            old_keys = kwargs['truth'].keys()
-            new_keys = self.get_latex_labels_from_parameter_keys(old_keys)
-            for old, new in zip(old_keys, new_keys):
-                kwargs['truth'][new] = kwargs['truth'].pop(old)
-
         if 'truth' in kwargs:
             kwargs['truths'] = kwargs.pop('truth')
 
-        if parameters:
-            xs = self.posterior[parameters].values
-            kwargs['labels'] = kwargs.get(
-                'labels', self.get_latex_labels_from_parameter_keys(
-                    parameters))
-        else:
-            xs = self.posterior[self.search_parameter_keys]
-            kwargs['labels'] = kwargs.get(
-                'labels', self.get_latex_labels_from_parameter_keys(
-                    self.search_parameter_keys))
+        if getattr(self, 'injection_parameters', None) is not None:
+            injection_parameters = [self.injection_parameters[key]
+                                    for key in self.search_parameter_keys]
+            kwargs['truths'] = kwargs.get('truths', injection_parameters)
+
+        if parameters is None:
+            parameters = self.search_parameter_keys
+
+        xs = self.posterior[parameters].values
+        kwargs['labels'] = kwargs.get(
+            'labels', self.get_latex_labels_from_parameter_keys(
+                parameters))
+
+        if type(kwargs.get('truths')) == dict:
+            truths = [kwargs['truths'][k] for k in parameters]
+            kwargs['truths'] = truths
 
         fig = corner.corner(xs, **kwargs)
 
