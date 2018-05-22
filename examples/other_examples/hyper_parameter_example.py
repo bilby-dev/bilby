@@ -68,7 +68,7 @@ run_prior = tupak.prior.Uniform(minimum=-10, maximum=10, name='mu_m')
 hyper_prior = tupak.prior.Gaussian(mu=0, sigma=1, name='hyper')
 
 hp_likelihood = tupak.likelihood.HyperparameterLikelihood(
-        samples, hyper_prior, run_prior, mu=None, sigma=None)
+        samples, hyper_prior, run_prior)
 
 hp_priors = dict(
     mu=tupak.prior.Uniform(-10, 10, 'mu', '$\mu_m$'),
