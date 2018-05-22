@@ -150,7 +150,7 @@ class Sampler(object):
         try:
             self.likelihood.log_likelihood_ratio()
         except TypeError:
-            raise TypeError('GravitationalWaveTransient evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
+            raise TypeError('Likelihood evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
                 self.likelihood.parameters))
 
     def prior_transform(self, theta):
