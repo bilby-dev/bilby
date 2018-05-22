@@ -292,7 +292,7 @@ class TruncatedGaussian(Prior):
 
 class Interped(Prior):
 
-    def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
+    def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
         self.xx = xx
         self.yy = yy
@@ -307,14 +307,8 @@ class Interped(Prior):
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
-        if minimum is None or minimum < min(xx):
-            self.minimum = min(xx)
-        else:
-            self.minimum = minimum
-        if maximum is None or maximum > max(xx):
-            self.maximum = max(xx)
-        else:
-            self.maximum = maximum
+        self.minimum = np.nanmax(np.array((min(xx), minimum)))
+        self.maximum = np.nanmin(np.array((max(xx), maximum)))
 
     def prob(self, val):
         """Return the prior probability of val"""
