@@ -10,7 +10,7 @@ tupak.utils.setup_logger()
 outdir = 'outdir'
 
 
-class GaussianLikelihood():
+class GaussianLikelihood(tupak.likelihood.Likelihood):
     def __init__(self, x, y, waveform_generator):
         self.x = x
         self.y = y
@@ -23,9 +23,6 @@ class GaussianLikelihood():
         res = self.y - self.waveform_generator.time_domain_strain()
         return -0.5 * (np.sum((res / sigma)**2)
                        + self.N*np.log(2*np.pi*sigma**2))
-
-    def noise_log_likelihood(self):
-        return np.nan
 
 
 def model(time, m):

@@ -228,7 +228,29 @@ def get_binary_black_hole_likelihood(interferometers):
     return likelihood
 
 
-class HyperparameterLikelihood():
+class HyperparameterLikelihood(Likelihood):
+    """ A likelihood for infering hyperparameter posterior distributions
+
+    See Eq. (1) of https://arxiv.org/abs/1801.02699 for a definition.
+
+    Parameters
+    ----------
+    samples: list
+        An N-dimensional list of individual sets of samples. Each set may have
+        a different size.
+    hyper_prior: `tupak.prior.Prior`
+        A prior distribution with a `parameters` argument pointing to the
+        hyperparameters to infer from the samples. These may need to be
+        initialized to any arbitrary value, but this will not effect the
+        result.
+    run_prior: `tupak.prior.Prior`
+        The prior distribution used in the inidivudal inferences which resulted
+        in the set of samples.
+    **parameters:
+        The parameters to sample over, initialize with `None`.
+
+    """
+
     def __init__(self, samples, hyper_prior, run_prior, **parameters):
         self.samples = samples
         self.hyper_prior = hyper_prior
@@ -257,9 +279,3 @@ class HyperparameterLikelihood():
                 np.sum(self.hyper_prior.prob(samp) /
                        self.run_prior.prob(samp)))
         return np.sum(np.log(L))
-
-    def noise_log_likelihood(self):
-        return np.nan
-
-
-
