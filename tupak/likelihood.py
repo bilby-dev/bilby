@@ -14,10 +14,10 @@ import logging
 class Likelihood(object):
     """ Empty likelihood class to be subclassed by other likelihoods """
 
-    def log_likelihood():
+    def log_likelihood(self):
         return np.nan
 
-    def noise_log_likelihood():
+    def noise_log_likelihood(self):
         return np.nan
 
     def log_likelihood_ratio(self):
