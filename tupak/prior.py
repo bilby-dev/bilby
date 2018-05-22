@@ -297,10 +297,9 @@ class Interped(Prior):
         self.xx = xx
         self.yy = yy
         self.all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name, latex_label, minimum=np.nanmax(np.array((min(xx), minimum))),
+                       maximum=np.nanmin(np.array((max(xx), maximum))))
         self.__initialize_attributes()
-        self.minimum = np.nanmax(np.array((min(xx), minimum)))
-        self.maximum = np.nanmin(np.array((max(xx), maximum)))
 
     def prob(self, val):
         """Return the prior probability of val"""
@@ -378,7 +377,7 @@ class FromFile(Interped):
     def __repr__(self):
         prior_name = self.__class__.__name__
         prior_args = ', '.join(
-            ['{}={}'.format(key, self.__dict__[key]) for key in ['id', 'minimum', 'maximum', '_Prior__latex_label']])
+            ['{}={}'.format(key, self.__dict__[key]) for key in ['id', '_Interped__minimum', '_Interped__maximum', '_Prior__latex_label']])
         return "{}({})".format(prior_name, prior_args)
 
 
