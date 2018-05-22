@@ -294,18 +294,10 @@ class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=None, maximum=None, name=None, latex_label=None):
         """Initialise object from arrays of x and y=p(x)"""
+        self.xx = xx
+        self.yy = yy
+        self.all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         Prior.__init__(self, name, latex_label)
-        all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
-        if minimum is None or minimum < min(xx):
-            self.minimum = min(xx)
-        else:
-            self.minimum = minimum
-        if maximum is None or maximum > max(xx):
-            self.maximum = max(xx)
-        else:
-            self.maximum = maximum
-        self.xx = np.linspace(self.minimum, self.maximum, len(xx))
-        self.yy = all_interpolated(self.xx)
         if np.trapz(self.yy, self.xx) != 1:
             logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
@@ -315,6 +307,14 @@ class Interped(Prior):
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
+        if minimum is None or minimum < min(xx):
+            self.minimum = min(xx)
+        else:
+            self.minimum = minimum
+        if maximum is None or maximum > max(xx):
+            self.maximum = max(xx)
+        else:
+            self.maximum = maximum
 
     def prob(self, val):
         """Return the prior probability of val"""
@@ -337,6 +337,46 @@ class Interped(Prior):
         prior_args = ', '.join(
             ['{}={}'.format(key, self.__dict__[key]) for key in ['xx', 'yy', '_Prior__latex_label']])
         return "{}({})".format(prior_name, prior_args)
+
+    @property
+    def minimum(self):
+        return self.__minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self.__minimum = minimum
+        if '_Interped__maximum' in self.__dict__ and self._Interped__maximum < np.inf:
+            self.xx = np.linspace(minimum, self.maximum, len(self.xx))
+            self.yy = self.all_interpolated(self.xx)
+            if np.trapz(self.yy, self.xx) != 1:
+                logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
+            self.yy /= np.trapz(self.yy, self.xx)
+            self.YY = cumtrapz(self.yy, self.xx, initial=0)
+            # Need last element of cumulative distribution to be exactly one.
+            self.YY[-1] = 1
+            self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
+            self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
+            self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
+
+    @property
+    def maximum(self):
+        return self.__maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self.__maximum = maximum
+        if '_Interped__minimum' in self.__dict__ and self._Interped__minimum < np.inf:
+            self.xx = np.linspace(self.minimum, maximum, len(self.xx))
+            self.yy = self.all_interpolated(self.xx)
+            if np.trapz(self.yy, self.xx) != 1:
+                logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
+            self.yy /= np.trapz(self.yy, self.xx)
+            self.YY = cumtrapz(self.yy, self.xx, initial=0)
+            # Need last element of cumulative distribution to be exactly one.
+            self.YY[-1] = 1
+            self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
+            self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
+            self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
 
 class FromFile(Interped):
