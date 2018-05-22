@@ -148,10 +148,12 @@ class Sampler(object):
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
-            self.likelihood.log_likelihood_ratio()
-        except TypeError:
-            raise TypeError('GravitationalWaveTransient evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
-                self.likelihood.parameters))
+            self.likelihood.log_likelihood()
+        except TypeError as e:
+            raise TypeError(
+                "Likelihood evaluation failed with message: \n'{}'\n"
+                "Have you specified all the parameters:\n{}"
+                .format(e, self.likelihood.parameters))
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
