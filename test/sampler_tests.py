@@ -9,7 +9,7 @@ import os
 import copy
 
 
-class TestSamplerInstantiation(unittest.TestCase):
+class TestSampler(unittest.TestCase):
 
     def setUp(self):
         likelihood = tupak.likelihood.Likelihood()
