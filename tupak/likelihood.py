@@ -60,7 +60,7 @@ class GravitationalWaveTransient(Likelihood):
     """
     def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
                  prior=None):
-        Likelihood.__init__(waveform_generator.parameters)
+        Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
@@ -177,7 +177,7 @@ class BasicGravitationalWaveTransient(Likelihood):
 
     """
     def __init__(self, interferometers, waveform_generator):
-        Likelihood.__init__(waveform_generator.parameters)
+        Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
