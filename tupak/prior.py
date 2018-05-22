@@ -298,15 +298,7 @@ class Interped(Prior):
         self.yy = yy
         self.all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         Prior.__init__(self, name, latex_label)
-        if np.trapz(self.yy, self.xx) != 1:
-            logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
-        self.yy /= np.trapz(self.yy, self.xx)
-        self.YY = cumtrapz(self.yy, self.xx, initial=0)
-        # Need last element of cumulative distribution to be exactly one.
-        self.YY[-1] = 1
-        self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
-        self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
-        self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
+        self.__initialize_attributes()
         self.minimum = np.nanmax(np.array((min(xx), minimum)))
         self.maximum = np.nanmin(np.array((max(xx), maximum)))
 
@@ -355,6 +347,9 @@ class Interped(Prior):
     def __update_instance(self):
         self.xx = np.linspace(self.minimum, self.maximum, len(self.xx))
         self.yy = self.all_interpolated(self.xx)
+        self.__initialize_attributes()
+
+    def __initialize_attributes(self):
         if np.trapz(self.yy, self.xx) != 1:
             logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
