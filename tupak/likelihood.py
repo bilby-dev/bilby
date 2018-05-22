@@ -14,10 +14,10 @@ import logging
 class Likelihood(object):
     """ Empty likelihood class to be subclassed by other likelihoods """
 
-    def log_likelihood():
+    def log_likelihood(self):
         return np.nan
 
-    def noise_log_likelihood():
+    def noise_log_likelihood(self):
         return np.nan
 
     def log_likelihood_ratio(self):
@@ -119,10 +119,19 @@ class GravitationalWaveTransient(Likelihood):
             matched_filter_snr_squared_array = matched_filter_snr_squared * \
                 self.waveform_generator.parameters['luminosity_distance'] / self.distance_array
 
+            if self.phase_marginalization:
+                matched_filter_snr_squared_array = self.bessel_function_interped(abs(matched_filter_snr_squared_array))
+            else:
+                matched_filter_snr_squared_array = np.real(matched_filter_snr_squared_array)
+
             log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
                               b=self.distance_prior_array * self.delta_distance)
-        else:
+        elif self.phase_marginalization:
+            matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
+
+        else:
+            log_l = matched_filter_snr_squared.real - optimal_snr_squared / 2
 
         return log_l.real
 
