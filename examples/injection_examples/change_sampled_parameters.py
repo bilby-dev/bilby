@@ -50,6 +50,4 @@ result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler
                                    injection_parameters=injection_parameters, label='DifferentParameters',
                                    outdir=outdir, conversion_function=tupak.conversion.generate_all_bbh_parameters)
 result.plot_corner()
-result.plot_walks()
-result.plot_distributions()
 print(result)
