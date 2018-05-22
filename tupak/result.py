@@ -95,8 +95,10 @@ class Result(dict):
                                  .format(k))
         return return_list
 
-    def plot_corner(self, parameters=None, save=True, **kwargs):
-        """ Plot a corner-plot using chain-consumer
+    def plot_corner(self, parameters=None, save=True, dpi=300, **kwargs):
+        """ Plot a corner-plot using corner
+
+        See https://corner.readthedocs.io/en/latest/ for a detailed API.
 
         Parameters
         ----------
@@ -104,12 +106,28 @@ class Result(dict):
             If given, a list of the parameter names to include
         save: bool
             If true, save the image using the given label and outdir
+        **kwargs:
+            Other keyword arguments are passed to `corner.corner`. We set some
+            defaults to improve the basic look and feel, but these can all be
+            overridden.
 
         Returns
         -------
         fig:
             A matplotlib figure instance
+
         """
+
+        defaults_kwargs = dict(
+            bins=50, smooth=0.9, label_kwargs=dict(fontsize=16),
+            title_kwargs=dict(fontsize=16), color='#0072C1',
+            truth_color='tab:orange', show_titles=True,
+            quantiles=[0.025, 0.975], levels=(0.39,0.8,0.97),
+            plot_density=False, plot_datapoints=True, fill_contours=True,
+            max_n_ticks=3)
+
+        defaults_kwargs.update(kwargs)
+        kwargs = defaults_kwargs
 
         if getattr(self, 'injection_parameters', None) is not None:
             injection_parameters = [self.injection_parameters[key]
@@ -141,7 +159,7 @@ class Result(dict):
         if save:
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logging.info('Saving corner plot to {}'.format(filename))
-            fig.savefig(filename)
+            fig.savefig(filename, dpi=dpi)
 
         return fig
 
