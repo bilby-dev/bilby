@@ -104,12 +104,6 @@ class GravitationalWaveTransient(Likelihood):
             optimal_snr_squared += tupak.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-        if self.phase_marginalization:
-            matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
-
-        else:
-            matched_filter_snr_squared = matched_filter_snr_squared.real
-
         if self.distance_marginalization:
 
             optimal_snr_squared_array = optimal_snr_squared \
