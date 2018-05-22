@@ -249,16 +249,14 @@ class HyperparameterLikelihood(Likelihood):
     run_prior: `tupak.prior.Prior`
         The prior distribution used in the inidivudal inferences which resulted
         in the set of samples.
-    **parameters:
-        The parameters to sample over, initialize with `None`.
 
     """
 
-    def __init__(self, samples, hyper_prior, run_prior, **parameters):
+    def __init__(self, samples, hyper_prior, run_prior):
         self.samples = samples
         self.hyper_prior = hyper_prior
         self.run_prior = run_prior
-        self.parameters = parameters
+        self.parameters = hyper_prior.__dict__
         if hasattr(hyper_prior, 'lnprob') and hasattr(run_prior, 'lnprob'):
             logging.info("Using log-probabilities in likelihood")
             self.log_likelihood = self.log_likelihood_using_lnprob
