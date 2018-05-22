@@ -14,13 +14,13 @@ label = 'test'
 outdir = 'outdir'
 
 
-# Here is minimum requirement for a Likelihood class needed to run tupak. In
-# this case, we setup a GaussianLikelihood, which needs to have a
+# Here is minimum requirement for a GravitationalWaveTransient class needed to run tupak. In
+# this case, we setup a GaussianGravitationalWaveTransient, which needs to have a
 # log_likelihood and noise_log_likelihood method. Note, in this case we make
 # use of the `tupak` waveform_generator to make the signal (more on this later)
 # But, one could make this work without the waveform generator.
 
-class GaussianLikelihood():
+class GaussianLikelihood(tupak.likelihood.Likelihood):
     def __init__(self, x, y, waveform_generator):
         self.x = x
         self.y = y
@@ -74,7 +74,7 @@ waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=ti
                                                                 time_domain_source_model=model)
 
 
-# Now lets instantiate a version of out Likelihood, giving it the time, data
+# Now lets instantiate a version of out GravitationalWaveTransient, giving it the time, data
 # and waveform_generator
 likelihood = GaussianLikelihood(time, data, waveform_generator)
 

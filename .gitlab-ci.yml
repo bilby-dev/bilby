@@ -21,17 +21,19 @@ exitcode-jessie:
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
+    - python setup.py install
     - coverage erase
-    - coverage run -a test/prior_tests.py
-    - coverage run -a test/tests.py
-    - coverage run -a test/waveform_generator_tests.py
-    - coverage run -a test/noise_realisation_tests.py
-    - coverage html --include=tupak/*
-    - coverage-badge -o coverage.svg
+    - coverage run --include=tupak/* -a test/prior_tests.py
+    - coverage run --include=tupak/* -a test/tests.py
+    - coverage run --include=tupak/* -a test/waveform_generator_tests.py
+    - coverage run --include=tupak/* -a test/noise_realisation_tests.py
+    - coverage run --include=tupak/* -a test/example_tests.py
+    - coverage html
+    - coverage-badge -o coverage_badge.svg -f
   artifacts:
     paths:
       - htmlcov/
-      - coverage.svg
+      - coverage_badge.svg
 
 pages:
   stage: deploy
@@ -39,7 +41,7 @@ pages:
     - exitcode-jessie
   script:
     - mv htmlcov/ public/
-    - mv coverage.svg public/
+    - mv /builds/Monash/tupak/coverage_badge.svg public/
   artifacts:
     paths:
       - public

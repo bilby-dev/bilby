@@ -95,21 +95,25 @@ class Prior(object):
         default_labels = {
             'mass_1': '$m_1$',
             'mass_2': '$m_2$',
-            'mchirp': '$\mathcal{M}$',
-            'q': '$q$',
+            'total_mass': '$M$',
+            'chirp_mass': '$\mathcal{M}$',
+            'mass_ratio': '$q$',
+            'symmetric_mass_ratio': '$\eta$',
             'a_1': '$a_1$',
             'a_2': '$a_2$',
             'tilt_1': '$\\theta_1$',
             'tilt_2': '$\\theta_2$',
+            'cos_tilt_1': '$\cos\\theta_1$',
+            'cos_tilt_2': '$\cos\\theta_2$',
             'phi_12': '$\Delta\phi$',
             'phi_jl': '$\phi_{JL}$',
             'luminosity_distance': '$d_L$',
             'dec': '$\mathrm{DEC}$',
             'ra': '$\mathrm{RA}$',
             'iota': '$\iota$',
+            'cos_iota': '$\cos\iota$',
             'psi': '$\psi$',
             'phase': '$\phi$',
-            'tc': '$t_c$',
             'geocent_time': '$t_c$'
         }
         if self.name in default_labels.keys():
@@ -117,28 +121,6 @@ class Prior(object):
         else:
             label = self.name
         return label
-
-
-class Uniform(Prior):
-    """Uniform prior"""
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.support = maximum - minimum
-
-    def rescale(self, val):
-        Prior.test_valid_for_rescaling(val)
-        return self.minimum + val * self.support
-
-    def prob(self, val):
-        """Return the prior probability of val"""
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-        return 1 / self.support * in_prior
-
-    def lnprob(self, val):
-        """Return the log-prior probability of val"""
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-        return -np.log(self.support) * in_prior
 
 
 class DeltaFunction(Prior):
@@ -196,6 +178,24 @@ class PowerLaw(Prior):
         normalising = (1+self.alpha)/(self.maximum ** (1 + self.alpha)
                                       - self.minimum ** (1 + self.alpha))
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
+
+class Uniform(PowerLaw):
+    """Uniform prior"""
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
+        self.alpha = 0
+
+
+class LogUniform(PowerLaw):
+    """Uniform prior"""
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
+        Prior.__init__(self, name, latex_label, minimum, maximum)
+        self.alpha = -1
+        if self.minimum<=0:
+            logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
 
 class Cosine(Prior):
@@ -316,7 +316,7 @@ class Interped(Prior):
         self.xx = np.linspace(self.minimum, self.maximum, len(xx))
         self.yy = all_interpolated(self.xx)
         if np.trapz(self.yy, self.xx) != 1:
-            logging.info('Supplied PDF is not normalised, normalising.')
+            logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
@@ -336,7 +336,10 @@ class Interped(Prior):
         This maps to the inverse CDF. This is done using interpolation.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.inverse_cumulative_distribution(val)
+        rescaled = self.inverse_cumulative_distribution(val)
+        if rescaled.shape == ():
+            rescaled = float(rescaled)
+        return rescaled
 
     def __repr__(self):
         prior_name = self.__class__.__name__
@@ -390,20 +393,25 @@ def create_default_prior(name):
         Default prior distribution for that parameter, if unknown None is returned.
     """
     default_priors = {
-        'mass_1': PowerLaw(name=name, alpha=0, minimum=5, maximum=100),
-        'mass_2': PowerLaw(name=name, alpha=0, minimum=5, maximum=100),
-        'mchirp': Uniform(name=name, minimum=5, maximum=100),
-        'q': Uniform(name=name, minimum=0, maximum=1),
+        'mass_1': Uniform(name=name, minimum=5, maximum=100),
+        'mass_2': Uniform(name=name, minimum=5, maximum=100),
+        'chirp_mass': Uniform(name=name, minimum=5, maximum=100),
+        'total_mass': Uniform(name=name, minimum=10, maximum=200),
+        'mass_ratio': Uniform(name=name, minimum=0.125, maximum=1),
+        'symmetric_mass_ratio': Uniform(name=name, minimum=8 / 81, maximum=0.25),
         'a_1': Uniform(name=name, minimum=0, maximum=0.8),
         'a_2': Uniform(name=name, minimum=0, maximum=0.8),
         'tilt_1': Sine(name=name),
         'tilt_2': Sine(name=name),
+        'cos_tilt_1': Uniform(name=name, minimum=-1, maximum=1),
+        'cos_tilt_2': Uniform(name=name, minimum=-1, maximum=1),
         'phi_12': Uniform(name=name, minimum=0, maximum=2 * np.pi),
         'phi_jl': Uniform(name=name, minimum=0, maximum=2 * np.pi),
         'luminosity_distance': UniformComovingVolume(name=name, minimum=1e2, maximum=5e3),
         'dec': Cosine(name=name),
         'ra': Uniform(name=name, minimum=0, maximum=2 * np.pi),
         'iota': Sine(name=name),
+        'cos_iota': Uniform(name=name, minimum=-1, maximum=1),
         'psi': Uniform(name=name, minimum=0, maximum=2 * np.pi),
         'phase': Uniform(name=name, minimum=0, maximum=2 * np.pi)
     }
@@ -414,6 +422,27 @@ def create_default_prior(name):
             "No default prior found for variable {}.".format(name))
         prior = None
     return prior
+
+
+def parse_floats_to_fixed_priors(old_parameters):
+    parameters = old_parameters.copy()
+    for key in parameters:
+        if type(parameters[key]) is not float and type(parameters[key]) is not int \
+                and type(parameters[key]) is not Prior:
+            logging.info("Expected parameter " + str(key) + " to be a float or int but was "
+                         + str(type(parameters[key])) + " instead. Will not be converted.")
+            continue
+        elif type(parameters[key]) is Prior:
+            continue
+        parameters[key] = DeltaFunction(name=key, latex_label=None, peak=old_parameters[key])
+    return parameters
+
+
+def parse_keys_to_parameters(keys):
+    parameters = {}
+    for key in keys:
+        parameters[key] = create_default_prior(key)
+    return parameters
 
 
 def fill_priors(prior, likelihood):
@@ -427,8 +456,11 @@ def fill_priors(prior, likelihood):
     ----------
     prior: dict
         dictionary of prior objects and floats
-    likelihood: tupak.likelihood.Likelihood instance
+    likelihood: tupak.likelihood.GravitationalWaveTransient instance
         Used to infer the set of parameters to fill the prior with
+
+    Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then this
+    will set-up default priors for those as well.
 
     Returns
     -------
@@ -450,6 +482,10 @@ def fill_priors(prior, likelihood):
 
     missing_keys = set(likelihood.parameters) - set(prior.keys())
 
+    if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
+        for parameter in likelihood.non_standard_sampling_parameter_keys:
+            prior[parameter] = create_default_prior(parameter)
+
     for missing_key in missing_keys:
         default_prior = create_default_prior(missing_key)
         if default_prior is None:
@@ -459,9 +495,62 @@ def fill_priors(prior, likelihood):
                 " not be sampled and may cause an error."
                 .format(missing_key, set_val))
         else:
-            prior[missing_key] = default_prior
+            if not test_redundancy(missing_key, prior):
+                prior[missing_key] = default_prior
+
+    for key in prior:
+        test_redundancy(key, prior)
 
     return prior
+
+
+def test_redundancy(key, prior):
+    """
+    Test whether adding the key would add be redundant.
+
+    Parameters
+    ----------
+    key: str
+        The string to test.
+    prior: dict
+        Current prior dictionary.
+
+    Return
+    ------
+    redundant: bool
+        Whether the key is redundant
+    """
+    redundant = False
+    mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
+    spin_magnitude_parameters = {'a_1', 'a_2'}
+    spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
+    spin_tilt_2_parameters = {'tilt_2', 'cos_tilt_2'}
+    spin_azimuth_parameters = {'phi_1', 'phi_2', 'phi_12', 'phi_jl'}
+    inclination_parameters = {'iota', 'cos_iota'}
+    distance_parameters = {'luminosity_distance', 'comoving_distance', 'redshift'}
+
+    for parameter_set in [mass_parameters, spin_magnitude_parameters, spin_azimuth_parameters]:
+        if key in parameter_set:
+            if len(parameter_set.intersection(prior.keys())) > 2:
+                redundant = True
+                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    parameter_set.intersection(prior.keys())))
+                break
+            elif len(parameter_set.intersection(prior.keys())) == 2:
+                redundant = True
+                break
+    for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters, spin_tilt_2_parameters]:
+        if key in parameter_set:
+            if len(parameter_set.intersection(prior.keys())) > 1:
+                redundant = True
+                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    parameter_set.intersection(prior.keys())))
+                break
+            elif len(parameter_set.intersection(prior.keys())) == 1:
+                redundant = True
+                break
+
+    return redundant
 
 
 def write_priors_to_file(priors, outdir):

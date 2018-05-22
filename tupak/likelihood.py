@@ -12,12 +12,56 @@ import logging
 
 
 class Likelihood(object):
+    """ Empty likelihood class to be subclassed by other likelihoods """
+
+    def log_likelihood():
+        return np.nan
+
+    def noise_log_likelihood():
+        return np.nan
+
+    def log_likelihood_ratio(self):
+        return self.log_likelihood() - self.noise_log_likelihood()
+
+
+class GravitationalWaveTransient(Likelihood):
+    """ A gravitational-wave transient likelihood object
+
+    This is the usual likelihood object to use for transient gravitational
+    wave parameter estimation. It computes the log-likelihood in the frequency
+    domain assuming a colored Gaussian noise model described by a power
+    spectral density
+
+
+    Parameters
+    ----------
+    interferometers: list
+        A list of `tupak.detector.Interferometer` instances - contains the
+        detector data and power spectral densities
+    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
+        An object which computes the frequency-domain strain of the signal,
+        given some set of parameters
+    distance_marginalization: bool
+        If true, analytic distance marginalization
+    phase_marginalization: bool
+        If true, analytic phase marginalization
+    prior: dict
+        If given, used in the distance and phase marginalization.
+
+    Returns
+    -------
+    Likelihood: `tupak.likelihood.Likelihood`
+        A likehood object, able to compute the likelihood of the data given
+        some model parameters
+
+    """
     def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
                  prior=None):
-        # Likelihood.__init__(self, interferometers, waveform_generator)
+        # GravitationalWaveTransient.__init__(self, interferometers, waveform_generator)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.parameters = self.waveform_generator.parameters
+        self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
@@ -83,7 +127,7 @@ class Likelihood(object):
         return log_l.real
 
     def log_likelihood(self):
-        return self.log_likelihood() + self.noise_log_likelihood()
+        return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
@@ -105,7 +149,28 @@ class Likelihood(object):
                                                  bounds_error=False, fill_value=-np.inf)
 
 
-class BasicLikelihood(object):
+class BasicGravitationalWaveTransient(Likelihood):
+    """ A basic gravitaitonal wave transient likelihood
+
+    The simplest frequency-domain gravitational wave transient likelihood. Does
+    not include distance/phase marginalization.
+
+    Parameters
+    ----------
+    interferometers: list
+        A list of `tupak.detector.Interferometer` instances - contains the
+        detector data and power spectral densities
+    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
+        An object which computes the frequency-domain strain of the signal,
+        given some set of parameters
+
+    Returns
+    -------
+    Likelihood: `tupak.likelihood.Likelihood`
+        A likehood object, able to compute the likelihood of the data given
+        some model parameters
+
+    """
     def __init__(self, interferometers, waveform_generator):
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
@@ -114,7 +179,8 @@ class BasicLikelihood(object):
         log_l = 0
         for interferometer in self.interferometers:
             log_l -= 2. / self.waveform_generator.time_duration * np.sum(
-                abs(interferometer.data) ** 2 / interferometer.power_spectral_density_array)
+                abs(interferometer.data) ** 2 /
+                interferometer.power_spectral_density_array)
         return log_l.real
 
     def log_likelihood(self):
@@ -123,19 +189,20 @@ class BasicLikelihood(object):
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
-            log_l += self.log_likelihood_interferometer(waveform_polarizations, interferometer)
+            log_l += self.log_likelihood_interferometer(
+                waveform_polarizations, interferometer)
         return log_l.real
 
-    def log_likelihood_interferometer(self, waveform_polarizations, interferometer):
-        signal_ifo = interferometer.get_detector_response(waveform_polarizations, self.waveform_generator.parameters)
+    def log_likelihood_interferometer(self, waveform_polarizations,
+                                      interferometer):
+        signal_ifo = interferometer.get_detector_response(
+            waveform_polarizations, self.waveform_generator.parameters)
 
-        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(interferometer.data - signal_ifo,
-                                                                       (interferometer.data - signal_ifo)
-                                                                       / interferometer.power_spectral_density_array)
+        log_l = - 2. / self.waveform_generator.time_duration * np.vdot(
+            interferometer.data - signal_ifo,
+            (interferometer.data - signal_ifo)
+            / interferometer.power_spectral_density_array)
         return log_l.real
-
-    def log_likelihood_ratio(self):
-        return self.log_likelihood() - self.noise_log_likelihood()
 
 
 def get_binary_black_hole_likelihood(interferometers):
@@ -147,18 +214,17 @@ def get_binary_black_hole_likelihood(interferometers):
         A list of `tupak.detector.Interferometer` instances, typically the
         output of either `tupak.detector.get_interferometer_with_open_data`
         or `tupak.detector.get_interferometer_with_fake_noise_and_injection`
+
     Returns
-    likelihood: tupak.likelihood.Likelihood
+    -------
+    likelihood: tupak.likelihood.GravitationalWaveTransient
         The likelihood to pass to `run_sampler`
     """
-    waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=interferometers[0].duration,
-                                                                    sampling_frequency=interferometers[
-                                                                        0].sampling_frequency,
-                                                                    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-                                                                    parameters={'waveform_approximant': 'IMRPhenomPv2',
-                                                                                'reference_frequency': 50})
-    likelihood = tupak.likelihood.Likelihood(
-        interferometers, waveform_generator)
+    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+        time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
+        frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+        parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
+    likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
 
 

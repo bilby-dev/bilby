@@ -8,8 +8,9 @@ try:
     from chainconsumer import ChainConsumer
 except ImportError:
     def ChainConsumer():
-        raise ImportError(
-            "You do not have the optional module chainconsumer installed")
+        logging.warning(
+            "You do not have the optional module chainconsumer installed"
+            " unable to generate a corner plot")
 
 
 def result_file_name(outdir, label):
@@ -66,6 +67,9 @@ class Result(dict):
         else:
             return ''
 
+    def get_result_dictionary(self):
+        return dict(self)
+
     def save_to_file(self, outdir, label):
         """ Writes the Result to a deepdish h5 file """
         file_name = result_file_name(outdir, label)
@@ -79,7 +83,7 @@ class Result(dict):
 
         logging.info("Saving result to {}".format(file_name))
         try:
-            deepdish.io.save(file_name, self)
+            deepdish.io.save(file_name, self.get_result_dictionary())
         except Exception as e:
             logging.error(
                 "\n\n Saving the data has failed with the following message:\n {} \n\n"
@@ -118,7 +122,7 @@ class Result(dict):
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             kwargs['filename'] = kwargs.get('filename', filename)
             logging.info('Saving corner plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             # If no truth argument given, set these to the injection params
             injection_parameters = [self.injection_parameters[key]
                                     for key in self.search_parameter_keys]
@@ -138,10 +142,11 @@ class Result(dict):
             if label is None:
                 self.parameter_labels[i] = 'Unknown'
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels,
-                    name=self.label)
-        fig = c.plotter.plot(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels,
+                        name=self.label)
+            fig = c.plotter.plot(**kwargs)
+            return fig
 
     def plot_walks(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -161,12 +166,13 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_walks.png'.format(self.outdir, self.label)
             logging.info('Saving walker plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_walks(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_walks(**kwargs)
+            return fig
 
     def plot_distributions(self, save=True, **kwargs):
         """ Plot the chain walks using chain-consumer
@@ -186,12 +192,13 @@ class Result(dict):
         if save:
             kwargs['filename'] = '{}/{}_distributions.png'.format(self.outdir, self.label)
             logging.info('Saving distributions plot to {}'.format(kwargs['filename']))
-        if self.injection_parameters is not None:
+        if getattr(self, 'injection_parameters', None) is not None:
             kwargs['truth'] = [self.injection_parameters[key] for key in self.search_parameter_keys]
         c = ChainConsumer()
-        c.add_chain(self.samples, parameters=self.parameter_labels)
-        fig = c.plotter.plot_distributions(**kwargs)
-        return fig
+        if c:
+            c.add_chain(self.samples, parameters=self.parameter_labels)
+            fig = c.plotter.plot_distributions(**kwargs)
+            return fig
 
     def write_prior_to_file(self, outdir):
         """
@@ -204,16 +211,24 @@ class Result(dict):
             for key in self.prior:
                 prior_file.write(self.prior[key])
 
-    def samples_to_data_frame(self):
+    def samples_to_data_frame(self, likelihood=None, priors=None, conversion_function=None):
         """
         Convert array of samples to data frame.
 
-        :return:
+        Parameters
+        ----------
+        likelihood: tupak.likelihood.GravitationalWaveTransient
+            GravitationalWaveTransient used for sampling.
+        priors: dict
+            Dictionary of prior object, used to fill in delta function priors.
+        conversion_function: function
+            Function which adds in extra parameters to the data frame,
+            should take the data_frame, likelihood and prior as arguments.
         """
         data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        if conversion_function is not None:
+            conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
-        for key in self.fixed_parameter_keys:
-            self.posterior[key] = self.priors[key].sample(len(self.posterior))
 
     def construct_cbc_derived_parameters(self):
         """

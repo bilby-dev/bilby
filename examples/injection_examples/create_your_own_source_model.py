@@ -24,7 +24,7 @@ def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
 
 
 # We now define some parameters that we will inject and then a waveform generator
-injection_parameters = dict(A=1e-21, f0=10, tau=1, phi0=0, geocent_time=0,
+injection_parameters = dict(A=1e-23, f0=100, tau=1, phi0=0, geocent_time=0,
                             ra=0, dec=0, psi=0)
 waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
                                                                 sampling_frequency=sampling_frequency,
@@ -42,15 +42,14 @@ IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
 # Here we define the priors for the search. We use the injection parameters
 # except for the amplitude, f0, and geocent_time
 prior = injection_parameters.copy()
-prior['A'] = tupak.prior.Uniform(0, 1e-20, 'A')
-prior['f0'] = tupak.prior.Uniform(0, 20, 'f')
-prior['geocent_time'] = tupak.prior.Uniform(-0.01, 0.01, 'geocent_time')
+prior['A'] = tupak.prior.PowerLaw(alpha=-1, minimum=1e-25, maximum=1e-21, name='A')
+prior['f0'] = tupak.prior.Uniform(90, 110, 'f')
 
-likelihood = tupak.likelihood.Likelihood(IFOs, waveform_generator)
+likelihood = tupak.likelihood.GravitationalWaveTransient(IFOs, waveform_generator)
 
 result = tupak.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,
-    resume=False, sample='unif')
+    resume=False, sample='unif', injection_parameters=injection_parameters)
 result.plot_walks()
 result.plot_distributions()
 result.plot_corner()

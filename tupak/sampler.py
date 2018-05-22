@@ -19,7 +19,7 @@ class Sampler(object):
 
     Parameters
     ----------
-    likelihood: likelihood.Likelihood
+    likelihood: likelihood.GravitationalWaveTransient
         A  object with a log_l method
     prior: dict
         The prior to be used in the search. Elements can either be floats
@@ -36,8 +36,7 @@ class Sampler(object):
 
     """
 
-    def __init__(self, likelihood, priors, external_sampler='nestle',
-                 outdir='outdir', label='label', use_ratio=False, result=None,
+    def __init__(self, likelihood, priors, external_sampler='nestle', outdir='outdir', label='label', use_ratio=False,
                  **kwargs):
         self.likelihood = likelihood
         self.priors = priors
@@ -53,7 +52,6 @@ class Sampler(object):
         self.verify_parameters()
         self.kwargs = kwargs
 
-        self.result = result
         self.check_cached_result()
 
         self.log_summary_for_sampler()
@@ -61,25 +59,7 @@ class Sampler(object):
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
-    @property
-    def result(self):
-        return self.__result
-
-    @result.setter
-    def result(self, result):
-        if result is None:
-            self.__result = Result()
-            self.__result.search_parameter_keys = self.__search_parameter_keys
-            self.__result.fixed_parameter_keys = self.__fixed_parameter_keys
-            self.__result.parameter_labels = [
-                self.priors[k].latex_label for k in
-                self.__search_parameter_keys]
-            self.__result.label = self.label
-            self.__result.outdir = self.outdir
-        elif type(result) is Result:
-            self.__result = result
-        else:
-            raise TypeError('result must either be a Result or None')
+        self.result = self.initialise_result()
 
     @property
     def search_parameter_keys(self):
@@ -149,12 +129,29 @@ class Sampler(object):
         for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
+    def initialise_result(self):
+        result = Result()
+        result.search_parameter_keys = self.__search_parameter_keys
+        result.fixed_parameter_keys = self.__fixed_parameter_keys
+        result.parameter_labels = [
+            self.priors[k].latex_label for k in
+            self.__search_parameter_keys]
+        result.label = self.label
+        result.outdir = self.outdir
+        result.kwargs = self.kwargs
+        return result
+
     def verify_parameters(self):
-        required_keys = self.priors
-        unmatched_keys = [r for r in required_keys if r not in self.likelihood.parameters]
-        if len(unmatched_keys) > 0:
-            raise KeyError(
-                "Source model does not contain keys {}".format(unmatched_keys))
+        for key in self.priors:
+            try:
+                self.likelihood.parameters[key] = self.priors[key].sample()
+            except AttributeError as e:
+                logging.warning('Cannot sample from {}, {}'.format(key, e))
+        try:
+            self.likelihood.log_likelihood_ratio()
+        except TypeError:
+            raise TypeError('GravitationalWaveTransient evaluation failed. Have you definitely specified all the parameters?\n{}'.format(
+                self.likelihood.parameters))
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -192,6 +189,9 @@ class Sampler(object):
 
     def run_sampler(self):
         pass
+
+    def _run_test(self):
+        raise ValueError("Method not yet implemented")
 
     def check_cached_result(self):
         """ Check if the cached data file exists and can be used """
@@ -248,8 +248,9 @@ class Nestle(Sampler):
     def run_sampler(self):
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
-        if self.kwargs.get('verbose', True):
-            self.kwargs['callback'] = nestle.print_progress
+        if 'verbose' in self.kwargs:
+            if self.kwargs['verbose']:
+                self.kwargs['callback'] = nestle.print_progress
             self.kwargs.pop('verbose')
         self.verify_kwargs_against_external_sampler_function()
 
@@ -257,11 +258,24 @@ class Nestle(Sampler):
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
+        print("")
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
         self.result.logz = out.logz
         self.result.logzerr = out.logzerr
+        return self.result
+
+    def _run_test(self):
+        nestle = self.external_sampler
+        self.external_sampler_function = nestle.sample
+        self.external_sampler_function(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, maxiter=10, **self.kwargs)
+        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
         return self.result
 
 
@@ -302,6 +316,7 @@ class Dynesty(Sampler):
                 prior_transform=self.prior_transform,
                 ndim=self.ndim, **self.kwargs)
             nested_sampler.run_nested(print_progress=self.kwargs['verbose'])
+        print("")
         out = nested_sampler.results
 
         # self.result.sampler_output = out
@@ -310,6 +325,22 @@ class Dynesty(Sampler):
             out.samples, weights)
         self.result.logz = out.logz[-1]
         self.result.logzerr = out.logzerr[-1]
+        return self.result
+
+    def _run_test(self):
+        dynesty = self.external_sampler
+        nested_sampler = dynesty.NestedSampler(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, **self.kwargs)
+        nested_sampler.run_nested(
+            dlogz=self.kwargs['dlogz'],
+            print_progress=self.kwargs['verbose'],
+            maxiter=10)
+
+        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
+        self.result.logz = np.nan
+        self.result.logzerr = np.nan
         return self.result
 
 
@@ -403,14 +434,14 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=True, injection_parameters=None,
-                **kwargs):
+                conversion_function=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
     Parameters
     ----------
-    likelihood: `tupak.likelihood.Likelihood`
-        A `Likelihood` instance
+    likelihood: `tupak.likelihood.GravitationalWaveTransient`
+        A `GravitationalWaveTransient` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default
@@ -424,12 +455,15 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         samplers
     use_ratio: bool (False)
         If True, use the likelihood's loglikelihood_ratio, rather than just
-        the loglikelhood.
+        the log likelhood.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
+
+    conversion_function: function, optional
+        Function to apply to posterior to generate additional parameters.
     **kwargs:
-        All kwargs are passed directly to the samplers `run` functino
+        All kwargs are passed directly to the samplers `run` function
 
     Returns
     ------
@@ -450,21 +484,30 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio,
                                 **kwargs)
+
         if sampler.cached_result:
             logging.info("Using cached result")
             return sampler.cached_result
 
-        result = sampler.run_sampler()
+        if utils.command_line_args.test:
+            result = sampler._run_test()
+        else:
+            result = sampler.run_sampler()
+
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
             result.log_bayes_factor = result.logz
             result.logz = result.log_bayes_factor + result.noise_logz
         else:
             result.log_bayes_factor = result.logz - result.noise_logz
-        result.injection_parameters = injection_parameters
-        result.priors = priors
+        if injection_parameters is not None:
+            result.injection_parameters = injection_parameters
+            if conversion_function is not None:
+                conversion_function(result.injection_parameters)
+        result.fixed_parameter_keys = sampler.fixed_parameter_keys
+        # result.prior = prior  # Removed as this breaks the saving of the data
+        result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
-        result.samples_to_data_frame()
         result.save_to_file(outdir=outdir, label=label)
         return result
     else:

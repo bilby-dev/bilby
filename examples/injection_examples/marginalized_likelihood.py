@@ -37,9 +37,9 @@ priors = dict()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
 
-# Initialise Likelihood
+# Initialise GravitationalWaveTransient
 # Note that we now need to pass the: priors and flags for each thing that's being marginalised.
-likelihood = tupak.likelihood.Likelihood(interferometers=IFOs, waveform_generator=waveform_generator, prior=priors,
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, prior=priors,
                                          distance_marginalization=True, phase_marginalization=True)
 
 # Run sampler
