@@ -71,8 +71,5 @@ result = tupak.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints
                                     injection_parameters=injection_parameters,
                                     outdir=outdir, label=label)
 
-result.plot_walks()
-result.plot_distributions()
 result.plot_corner()
-
 print(result)

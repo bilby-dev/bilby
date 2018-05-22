@@ -63,6 +63,4 @@ result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler
 
 # make some plots of the outputs
 result.plot_corner()
-result.plot_walks()
-result.plot_distributions()
 print(result)

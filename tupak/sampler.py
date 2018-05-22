@@ -325,7 +325,15 @@ class Dynesty(Sampler):
             out.samples, weights)
         self.result.logz = out.logz[-1]
         self.result.logzerr = out.logzerr[-1]
+        self.generate_trace_plots(out)
         return self.result
+
+    def generate_trace_plots(self, dynesty_results):
+        from dynesty import plotting as dyplot
+        fig, axes = dyplot.traceplot(dynesty_results,
+                                     labels=self.result.parameter_labels)
+        fig.tight_layout()
+        fig.savefig('{}/{}_trace.png'.format(self.outdir, self.label))
 
     def _run_test(self):
         dynesty = self.external_sampler
