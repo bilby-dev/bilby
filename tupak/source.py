@@ -22,9 +22,17 @@ def lal_binary_black_hole(
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-        lalsim.SimInspiralTransformPrecessingNewInitialConditions(iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2,
-                                                                  mass_1, mass_2, reference_frequency, phase)
+    if tilt_1 == 0 and tilt_2 == 0:
+        spin_1x = 0
+        spin_1y = 0
+        spin_1z = a_1
+        spin_2x = 0
+        spin_2y = 0
+        spin_2z = a_2
+    else:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
+            lalsim.SimInspiralTransformPrecessingNewInitialConditions(iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2,
+                                                                      mass_1, mass_2, reference_frequency, phase)
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
