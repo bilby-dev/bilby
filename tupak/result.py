@@ -27,10 +27,12 @@ def read_in_result(outdir=None, label=None, filename=None):
     """
     if filename is None:
         filename = result_file_name(outdir, label)
+    elif (outdir is None or label is None) and filename is None:
+        raise ValueError("No information given to load file")
     if os.path.isfile(filename):
         return Result(deepdish.io.load(filename))
     else:
-        raise ValueError("No information given to load file")
+        raise ValueError("No result found")
 
 
 class Result(dict):
