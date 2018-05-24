@@ -321,7 +321,8 @@ class Interped(Prior):
     def __repr__(self):
         prior_name = self.__class__.__name__
         prior_args = ', '.join(
-            ['{}={}'.format(key, self.__dict__[key]) for key in ['xx', 'yy', '_Prior__latex_label']])
+            ['{}={}'.format(name, self.__dict__[key]) for key, name in zip(['xx', 'yy', 'name', '_Prior__latex_label'],
+                                                                          ['xx', 'yy', 'name', 'latex_label'])])
         return "{}({})".format(prior_name, prior_args)
 
     @property
@@ -378,7 +379,9 @@ class FromFile(Interped):
     def __repr__(self):
         prior_name = self.__class__.__name__
         prior_args = ', '.join(
-            ['{}={}'.format(key, self.__dict__[key]) for key in ['id', '_Interped__minimum', '_Interped__maximum', '_Prior__latex_label']])
+            ['{}={}'.format(name, self.__dict__[key])
+             for key, name in zip(['id', '_Interped__minimum', '_Interped__maximum', 'name', '_Prior__latex_label'],
+                                  ['id', 'minimum', 'maximum', 'name', 'latex_label'])])
         return "{}({})".format(prior_name, prior_args)
 
 
