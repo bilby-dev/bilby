@@ -1,3 +1,14 @@
+"""
+tupak
+=====
+
+Tupak is The User friendly Parameter estimAtion Kode
+
+FILL IN THE REST
+
+"""
+
+
 from __future__ import print_function, division
 
 # import local files, utils should be imported first

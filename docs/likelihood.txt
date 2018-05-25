@@ -1,0 +1,8 @@
+==========
+Likelihood
+==========
+
+.. automodule:: tupak.likelihood
+    :members:
+
+
