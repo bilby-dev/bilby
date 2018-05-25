@@ -64,6 +64,4 @@ likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, w
 result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
                                    injection_parameters=injection_parameters, outdir=outdir, label='specify_prior')
 result.plot_corner()
-result.plot_walks()
-result.plot_distributions()
 print(result)

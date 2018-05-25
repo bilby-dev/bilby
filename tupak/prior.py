@@ -173,6 +173,12 @@ class PowerLaw(Prior):
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
+    def lnprob(self, val):
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        normalising = (1+self.alpha)/(self.maximum ** (1 + self.alpha)
+                                      - self.minimum ** (1 + self.alpha))
+        return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
 
 class Uniform(PowerLaw):
     """Uniform prior"""
@@ -253,6 +259,9 @@ class Gaussian(Prior):
     def prob(self, val):
         """Return the prior probability of val"""
         return np.exp(-(self.mu - val)**2 / (2 * self.sigma**2)) / (2 * np.pi)**0.5 / self.sigma
+
+    def lnprob(self, val):
+        return -0.5*((self.mu - val)**2 / self.sigma**2 + np.log(2 * np.pi * self.sigma**2))
 
 
 class TruncatedGaussian(Prior):
