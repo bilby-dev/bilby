@@ -24,24 +24,33 @@ exitcode-jessie:
     - python setup.py install
     - coverage erase
     - coverage run --include=tupak/* -a test/prior_tests.py
-    - coverage run --include=tupak/* -a test/tests.py
-    - coverage run --include=tupak/* -a test/waveform_generator_tests.py
-    - coverage run --include=tupak/* -a test/noise_realisation_tests.py
-    - coverage run --include=tupak/* -a test/example_tests.py
+      #- coverage run --include=tupak/* -a test/tests.py
+      #- coverage run --include=tupak/* -a test/waveform_generator_tests.py
+      #- coverage run --include=tupak/* -a test/noise_realisation_tests.py
+      #- coverage run --include=tupak/* -a test/example_tests.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
+
+    # Make the documentation
+    - pip install -r docs/requirements.txt
+    - cd docs
+    - make html
+
   artifacts:
     paths:
       - htmlcov/
       - coverage_badge.svg
+      - docs/_build/html/
 
 pages:
   stage: deploy
   dependencies:
     - exitcode-jessie
   script:
+    - mkdir public/
     - mv htmlcov/ public/
     - mv /builds/Monash/tupak/coverage_badge.svg public/
+    - mv docs/_build/html/* public/
   artifacts:
     paths:
       - public
