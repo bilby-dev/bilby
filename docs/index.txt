@@ -9,6 +9,7 @@ Welcome to tupak's documentation!
    :caption: Contents:
 
    likelihood
+   samplers
 
 
 Indices and tables
