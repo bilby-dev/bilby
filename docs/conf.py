@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath('../tupak/'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'numpydoc',
-              'nbsphinx']
+              'nbsphinx', 'sphinx.ext.autosummary']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -39,7 +39,7 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
+source_suffix = ['.rst', '.md']
 source_suffix = '.txt'
 
 # The master toctree document.
@@ -69,7 +69,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'requirements.txt']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
