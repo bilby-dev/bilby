@@ -8,6 +8,7 @@ Welcome to tupak's documentation!
    :maxdepth: 3
    :caption: Contents:
 
+   basics-of-parameter-estimation
    likelihood
    samplers
    writing-documentation

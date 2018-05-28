@@ -48,7 +48,7 @@ ax.plot(time, model(time, **injection_parameters), '--r', label='signal')
 ax.set_xlabel('time')
 ax.set_ylabel('y')
 ax.legend()
-fig.savefig('{}/data.png'.format(outdir))
+fig.savefig('{}/{}_data.png'.format(outdir, label))
 
 
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
