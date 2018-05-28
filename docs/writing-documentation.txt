@@ -1,0 +1,100 @@
+=====================
+Writing documentation
+=====================
+
+This is a short tutorial on how to contribute to the documentation of ``tupak``.
+
+Writing the basics
+------------------
+
+First, open your terminal and head to the ``docs`` directory in your clone of
+`tupak`. Once here, you'll notice there are a number of `*txt` files. Each one
+is a page of the documentation.
+
+Let's say you want to write documentation about the your new feature (or update
+the existing documentation). Simply open a new file ``a-new-feature.txt`` in
+your text editor. Then add a title and some text::
+
+   ====================
+   A new tupak feature!
+   ====================
+
+   Here we'll put a description of the new feature
+
+Next, in order to get your new page known by the rest of the documentation,
+open ``index.rst`` and, under ``toctree`` add the name of your file (without
+the suffix). For the example above::
+
+   .. toctree::
+      :maxdepth: 3
+      :caption: Contents:
+
+      likelihood
+      samplers
+      writing-documentation
+      a-new-feature
+
+
+Checking the results
+--------------------
+
+You can check what this will look like by (whilst in the ``docs`` directory)
+running the command::
+
+   $ make html
+
+This will create a directory ``./_build/html`` with the documentation. To
+see the result, open the file ``./_build/html/index.html`` in your browser.
+
+
+Pushing your changes to master
+------------------------------
+
+To contribute your documentation changes, you should create a branch and add in
+all of the new/changed files::
+
+   $ git checkout -b adding-my-new-documentation
+   $ git add index.txt
+   $ git add a-new-feature.txt
+   $ git commit -m "Adding my documentation for the feature"
+   $ git push origin adding-my-new-documentation
+
+Then, on the web interface create an merge request.
+
+Using reStructured text
+-----------------------
+
+The help files are written in reStructured text format. To familiarise yourself
+with these features visit http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html.
+
+A useful feature is the ability to `format code examples <http://www.sphinx-doc.org/en/stable/markup/code.html>`_. This is done through the use of ``::`` and indendentation. For
+example, to make this code block::
+
+   import tupak
+
+You would write::
+
+   to make this code block::
+
+      import tupak
+
+reStructured text is very powerful, but can be quite particular. For example,
+**all code blocks must be indented by 3 spaces**.
+
+Sphinx autodoc
+--------------
+
+Most of the documentation for ``tupak`` should be written in the `docstrings
+<https://www.python.org/dev/peps/pep-0257/>`_ of the functions themselves. We
+can add these into the online documentation using `autodoc
+<http://www.sphinx-doc.org/en/master/ext/autodoc.html>`_. To add the documentation
+for a class, add a line such as::
+
+   .. autoclass:: tupak.likelihood.GravitationalWaveTransient
+       :members:
+
+into your documentation file. Similarly, to document a function::
+
+   .. autofunction:: tupak.sampler.run_sampler
+
+
