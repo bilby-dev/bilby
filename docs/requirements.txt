@@ -1,0 +1,6 @@
+html5lib==1.0b8  # Hack to ensure documentation generated
+sphinx
+numpydoc
+nbsphinx
+autodoc
+sphinx_rtd_theme

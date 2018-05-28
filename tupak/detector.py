@@ -527,11 +527,16 @@ def get_empty_interferometer(name):
                              minimum_frequency=20, maximum_frequency=2048,
                              latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
                              elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674),
-        'GEO600': Interferometer(name='GEO600', power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
-                                 minimum_frequency=40, maximum_frequency=2048,
-                                 length=0.6, latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
-                                 elevation=114.425,
-                                 xarm_azimuth=115.9431, yarm_azimuth=21.6117)
+        'GEO600': Interferometer(name='GEO600',
+                                 power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
+                                 minimum_frequency=40, maximum_frequency=2048, length=0.6,
+                                 latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
+                                 elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117),
+        'CE': Interferometer(name='CE', power_spectral_density=PowerSpectralDensity('CE_psd.txt'),
+                             minimum_frequency=10, maximum_frequency=2048,
+                             length=40, latitude=46 + 27. / 60 + 18.528 / 3600,
+                             longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
+                             yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5),
     }
 
     if name in known_interferometers.keys():
