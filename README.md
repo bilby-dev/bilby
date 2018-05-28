@@ -1,6 +1,6 @@
 [![pipeline status](https://git.ligo.org/Monash/tupak/badges/master/pipeline.svg)](https://git.ligo.org/Monash/tupak/commits/master)
 [![coverage report](https://monash.docs.ligo.org/tupak/coverage_badge.svg)](
-https://monash.docs.ligo.org/tupak/)
+https://monash.docs.ligo.org/tupak/htmlcov/)
 
 # Tupak
 
@@ -81,6 +81,6 @@ have also written [a shortened tl;dr here](./TLDR_MULTINEST.md).
 
 We have a variety of tests which can be found in the `tests` directory.  You
 can find a [current coverage report for master
-here.](https://monash.docs.ligo.org/tupak/).
+here.](https://monash.docs.ligo.org/tupak/htmlcov/).
 
 
