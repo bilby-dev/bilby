@@ -39,7 +39,7 @@ class Result(dict):
     def __init__(self, dictionary=None):
         if type(dictionary) is dict:
             for key in dictionary:
-                setattr(self, key, dictionary[key])
+                setattr(self, key, self._decode_object(dictionary[key]))
 
     def __getattr__(self, name):
         try:
@@ -61,6 +61,22 @@ class Result(dict):
                             self.logzerr, self.log_bayes_factor, self.logzerr))
         else:
             return ''
+
+    def _decode_object(self, item):
+        """ When reading in data, ensure all bytes are decoded to strings """
+        try:
+            return item.decode()
+        except AttributeError:
+            pass
+
+        try:
+            return [i.decode() for i in item]
+        except (AttributeError, TypeError):
+            pass
+
+        logging.debug("Unable to decode item")
+        return item
+
 
     def get_result_dictionary(self):
         return dict(self)
