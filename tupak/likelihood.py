@@ -73,12 +73,23 @@ class GravitationalWaveTransient(Likelihood):
             self.delta_distance = 0
             self.distance_prior_array = np.array([])
             self.setup_distance_marginalization()
-            prior['luminosity_distance'] = 1
+            self.prior['luminosity_distance'] = 1
 
         if self.phase_marginalization:
             self.bessel_function_interped = None
             self.setup_phase_marginalization()
-            prior['psi'] = 0
+            self.prior['psi'] = 0
+
+    @property
+    def prior(self):
+        return self.__prior
+
+    @prior.setter
+    def prior(self, prior):
+        if prior is not None:
+            self.__prior = prior
+        else:
+            self.__prior = dict()
 
     def noise_log_likelihood(self):
         log_l = 0
