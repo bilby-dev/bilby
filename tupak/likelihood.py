@@ -58,15 +58,21 @@ class GravitationalWaveTransient(Likelihood):
         some model parameters
 
     """
-    def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
-                 prior=None):
+    def __init__(self, interferometers, waveform_generator, time_marginalization=False, distance_marginalization=False,
+                 phase_marginalization=False, prior=None):
+
         Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
+        self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
+
+        if self.time_marginalization:
+            self.setup_time_marginalization()
+            self.prior['geocent_time'] = 1
 
         if self.distance_marginalization:
             self.distance_array = np.array([])
@@ -107,6 +113,7 @@ class GravitationalWaveTransient(Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
+        matched_filter_snr_squared_tc_array = None
 
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
@@ -117,7 +124,41 @@ class GravitationalWaveTransient(Likelihood):
             optimal_snr_squared += tupak.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-        if self.distance_marginalization:
+            if matched_filter_snr_squared_tc_array is None:
+
+                matched_filter_snr_squared_tc_array = 4. * (1./interferometer.duration) \
+                                                            * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
+                                                            / interferometer.power_spectral_density_array[0:-1]).real * len(interferometer.data[0:-1])
+            else:
+
+                matched_filter_snr_squared_tc_array += 4. * (1./interferometer.duration) \
+                                                        * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
+                                                        / interferometer.power_spectral_density_array[0:-1] ).real * len(interferometer.data[0:-1])
+
+        if self.time_marginalization:
+
+
+            delta_tc = self.waveform_generator.sampling_frequency
+            #print (1./delta_tc, (interferometer.duration) )
+            if self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
+
+                optimal_snr_squared_array = optimal_snr_squared \
+                                            * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
+                                            / self.distance_array ** 2
+
+                matched_filter_snr_squared_tc_dist_array = np.outer(matched_filter_snr_squared_tc_array \
+                                                            * self.waveform_generator.parameters['luminosity_distance'], \
+                                                            1./self.distance_array   )
+
+                matched_filter_snr_squared_array = logsumexp(matched_filter_snr_squared_tc_dist_array, axis=0, b=delta_tc)
+
+                log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2, \
+                                                        b=self.distance_prior_array * self.delta_distance).real
+            else:
+
+                log_l = logsumexp(matched_filter_snr_squared_tc_array, axis=0, b=delta_tc) - optimal_snr_squared / 2
+
+        elif self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
 
             optimal_snr_squared_array = optimal_snr_squared \
                                         * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
@@ -144,6 +185,11 @@ class GravitationalWaveTransient(Likelihood):
 
     def log_likelihood(self):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
+
+    def setup_time_marginalization(self):
+        if 'geocent_time' not in self.prior.keys() or not isinstance(self.prior['geocent_time'], tupak.prior.Prior):
+            logging.info('No prior provided for coalescence geocenter time, using default prior.')
+            self.prior['geocent_time'] = tupak.prior.create_default_prior('geocent_time')
 
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
