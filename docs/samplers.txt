@@ -1,0 +1,7 @@
+==========
+Samplers
+==========
+
+Given a `likelihood` and `prior`, we can run parameter estimation using `run_sampler` 
+
+.. autofunction:: tupak.sampler.run_sampler
