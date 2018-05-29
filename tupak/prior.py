@@ -69,7 +69,10 @@ class Prior(object):
         if np.any(tests):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+    def __repr__(self):
+        return self.subclass_repr_helper()
+
+    def subclass_repr_helper(self, subclass_keys=list(), subclass_names=list()):
         prior_name = self.__class__.__name__
         keys = ['name', '_Prior__latex_label', '_Interped__minimum', '_Interped__maximum']
         keys.extend(subclass_keys)
@@ -166,8 +169,8 @@ class DeltaFunction(Prior):
         else:
             return 0
 
-    def __repr__(self, subclass_keys=list(tuple('peak')), subclass_names=list(tuple('peak'))):
-        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_keys=['peak'], subclass_names=['peak'])
 
 
 class PowerLaw(Prior):
@@ -206,8 +209,8 @@ class PowerLaw(Prior):
                                           - self.minimum ** (1 + self.alpha))
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
 
-    def __repr__(self, subclass_keys=list(tuple('alpha')), subclass_names=list(tuple('alpha'))):
-        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_keys=['alpha'], subclass_names=['alpha'])
 
 
 class Uniform(PowerLaw):
@@ -254,7 +257,7 @@ class Cosine(Prior):
         return np.cos(val) / 2 * in_prior
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Prior.__repr__(self)
+        return Prior.subclass_repr_helper(self)
 
 
 class Sine(Prior):
@@ -277,7 +280,7 @@ class Sine(Prior):
         return np.sin(val) / 2 * in_prior
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Prior.__repr__(self)
+        return Prior.subclass_repr_helper(self)
 
 
 class Gaussian(Prior):
@@ -305,8 +308,8 @@ class Gaussian(Prior):
     def lnprob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
-    def __repr__(self, subclass_keys=list(('mu', 'sigma')), subclass_names=list(('mu', 'sigma'))):
-        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_keys=['mu', 'sigma'], subclass_names=['mu', 'sigma'])
 
 
 class TruncatedGaussian(Prior):
@@ -343,8 +346,8 @@ class TruncatedGaussian(Prior):
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
                 2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
-    def __repr__(self, subclass_keys=list(('mu', 'sigma')), subclass_names=list(('mu', 'sigma'))):
-        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_keys=['mu', 'sigma'], subclass_names=['mu', 'sigma'])
 
 
 class Interped(Prior):
@@ -375,8 +378,8 @@ class Interped(Prior):
             rescaled = float(rescaled)
         return rescaled
 
-    def __repr__(self, subclass_keys=list(('xx', 'yy')), subclass_names=list(('xx', 'yy'))):
-        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_keys=['xx', 'yy'], subclass_names=['xx', 'yy'])
 
     @property
     def minimum(self):
@@ -441,6 +444,7 @@ class UniformComovingVolume(FromFile):
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
         return FromFile.__repr__(self)
+
 
 def create_default_prior(name):
     """
