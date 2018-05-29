@@ -99,6 +99,10 @@ class Result(dict):
                 "\n\n Saving the data has failed with the following message:\n {} \n\n"
                 .format(e))
 
+    def save_posterior_samples(self):
+        filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
+        self.posterior.to_csv(filename, index=False, header=True)
+
     def get_latex_labels_from_parameter_keys(self, keys):
         return_list = []
         for k in keys:
