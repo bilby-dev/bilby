@@ -6,6 +6,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from .result import Result, read_in_result
 from .prior import Prior, fill_priors
@@ -151,7 +152,10 @@ class Sampler(object):
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
+            t1 = time.time()
             self.likelihood.log_likelihood()
+            logging.info(
+                "Single likelihood eval. took {} s".format(time.time() - t1))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
