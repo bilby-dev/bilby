@@ -69,10 +69,12 @@ class Prior(object):
         if np.any(tests):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
-    def __repr__(self):
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
         prior_name = self.__class__.__name__
         keys = ['name', '_Prior__latex_label', '_Interped__minimum', '_Interped__maximum']
+        keys.extend(subclass_keys)
         names = ['name', 'latex_label', 'minimum', 'maximum']
+        names.extend(subclass_names)
         args = self.repr_format_helper(keys, names)
         return "{}({})".format(prior_name, args)
 
@@ -82,7 +84,7 @@ class Prior(object):
         non_string_keys = []
         non_string_names = []
         for key, name in zip(keys, names):
-            if isinstance(self.__dict__[key], str): #TODO: check compatibility with Python 2
+            if isinstance(self.__dict__[key], str):  # TODO: check compatibility with Python 2
                 string_keys.append(key)
                 string_names.append(name)
             else:
@@ -94,7 +96,7 @@ class Prior(object):
         if len(string_keys) > 0:
             args = args + ', '
         args = args + ', '.join(['{}={}'.format(name, self.__dict__[key])
-                                        for key, name in zip(non_string_keys, non_string_names)])
+                                 for key, name in zip(non_string_keys, non_string_names)])
         return args
 
     @property
@@ -349,12 +351,11 @@ class Interped(Prior):
             rescaled = float(rescaled)
         return rescaled
 
-    def __repr__(self):
-        super_repr = Prior.__repr__(self).rstrip(')').__add__(', ')
-        args = ', '.join(['{}={}'.format(name, self.__dict__[key]) for key, name in zip(['xx', 'yy'], ['xx', 'yy'])])
-        args = Prior.repr_format_helper(self, keys=['xx', 'yy'], names=['xx', 'yy'])
-        return super_repr + args + ")"
-
+    def __repr__(self, subclass_keys=list(('xx', 'yy')), subclass_names=list(('xx', 'yy'))):
+        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+        # super_repr = Prior.__repr__(self).rstrip(')').__add__(', ')
+        # args = Prior.repr_format_helper(self, keys=['xx', 'yy'], names=['xx', 'yy'])
+        # return super_repr + args + ")"
 
     @property
     def minimum(self):
