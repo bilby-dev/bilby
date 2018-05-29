@@ -304,6 +304,39 @@ class Dynesty(Sampler):
         if 'update_interval' not in self.__kwargs:
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
 
+    def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
+        """ Replacing status update for dynesty.result.print_func """
+
+        # Extract results at the current iteration.
+        (worst, ustar, vstar, loglstar, logvol, logwt,
+         logz, logzvar, h, nc, worst_it, boundidx, bounditer,
+         eff, delta_logz) = results
+
+        # Adjusting outputs for printing.
+        if delta_logz > 1e6:
+            delta_logz = np.inf
+        if logzvar >= 0. and logzvar <= 1e6:
+            logzerr = np.sqrt(logzvar)
+        else:
+            logzerr = np.nan
+        if logz <= -1e6:
+            logz = -np.inf
+        if loglstar <= -1e6:
+            loglstar = -np.inf
+
+        if self.use_ratio:
+            key = 'logz ratio'
+        else:
+            key = 'logz'
+
+        # Constructing output.
+        print_str = "\r {}| {}={:6.3f} +/- {:6.3f} | dlogz: {:6.3f} > {:6.3f}".format(
+            niter, key, logz, logzerr, delta_logz, dlogz)
+
+        # Printing.
+        sys.stderr.write(print_str)
+        sys.stderr.flush()
+
     def _run_external_sampler(self):
         dynesty = self.external_sampler
 
@@ -314,7 +347,8 @@ class Dynesty(Sampler):
                 ndim=self.ndim, **self.kwargs)
             nested_sampler.run_nested(
                 dlogz=self.kwargs['dlogz'],
-                print_progress=self.kwargs['verbose'])
+                print_progress=self.kwargs['verbose'],
+                print_func=self._print_func)
         else:
             nested_sampler = dynesty.DynamicNestedSampler(
                 loglikelihood=self.log_likelihood,
