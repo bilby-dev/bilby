@@ -189,9 +189,10 @@ class Result(dict):
         """
         logging.warning("plot_distributions deprecated")
 
-    def samples_to_data_frame(self, likelihood=None, priors=None, conversion_function=None):
+    def samples_to_posterior(self, likelihood=None, priors=None,
+                             conversion_function=None):
         """
-        Convert array of samples to data frame.
+        Convert array of samples to posterior (a Pandas data frame).
 
         Parameters
         ----------
@@ -203,7 +204,8 @@ class Result(dict):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        data_frame = pd.DataFrame(
+            self.samples, columns=self.search_parameter_keys)
         if conversion_function is not None:
             conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame

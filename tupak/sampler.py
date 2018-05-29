@@ -524,7 +524,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 conversion_function(result.injection_parameters)
         result.fixed_parameter_keys = sampler.fixed_parameter_keys
         # result.prior = prior  # Removed as this breaks the saving of the data
-        result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
+        result.samples_to_posterior(likelihood=likelihood, priors=priors,
+                                    conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
         result.save_to_file()
         if plot:
