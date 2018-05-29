@@ -5,8 +5,8 @@ import logging
 try:
     import lalsimulation as lalsim
 except ImportError:
-    logging.warning("You do not have lalsuite installed currently. You will not be able to use some of the "
-                        "prebuilt functions.")
+    logging.warning("You do not have lalsuite installed currently. You will "
+                    " not be able to use some of the prebuilt functions.")
 
 from . import utils
 

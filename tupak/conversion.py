@@ -1,8 +1,13 @@
 import tupak
 import numpy as np
-import lalsimulation as lalsim
 import pandas as pd
 import logging
+
+try:
+    import lalsimulation as lalsim
+except ImportError:
+    logging.warning("You do not have lalsuite installed currently. You will "
+                    " not be able to use some of the prebuilt functions.")
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=True):

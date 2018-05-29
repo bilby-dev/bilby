@@ -1,0 +1,137 @@
+============
+Tupak output
+============
+
+In this document, we will describe what :code::code:`tupak` outputs, where it is stored,
+and how you can access it.
+
+When you call :code:`run_sampler`, there are two arguments :code:`outdir` and :code:`label` which
+are used in generating all the file names for saved data. In the rest of these
+documents, we'll assume the defaults where used (which are :code:`outdir` and
+:code:`label`).
+
+
+The raw data
+------------
+
+First off, the primary data dump of :code:`tupak` goes into :code:`outdir/label_result.h5`.
+This is a binary file, so isn't human readable, but you can use it using a
+command-line tool :code:`ddls` [#f1]_ (you have this installed already if you have installed
+the :code:`tupak` requirements). To have a look at what is inside run
+
+.. code-block:: console
+
+   $ ddls outdir/label_result.h5
+   /fixed_parameter_keys                       list
+   /fixed_parameter_keys/i0                    'dec' (3) [ascii]
+   /fixed_parameter_keys/i1                    'psi' (3) [ascii]
+   /fixed_parameter_keys/i2                    'a_2' (3) [ascii]
+   /fixed_parameter_keys/i3                    'a_1' (3) [ascii]
+   /fixed_parameter_keys/i4                    'geocent_time' (12) [ascii]
+   /fixed_parameter_keys/i5                    'phi_jl' (6) [ascii]
+   /fixed_parameter_keys/i6                    'ra' (2) [ascii]
+   /fixed_parameter_keys/i7                    'phase' (5) [ascii]
+   /fixed_parameter_keys/i8                    'phi_12' (6) [ascii]
+   /fixed_parameter_keys/i9                    'tilt_2' (6) [ascii]
+   /fixed_parameter_keys/i10                   'tilt_1' (6) [ascii]
+   /injection_parameters                       dict
+   /injection_parameters/a_1                   0.4 [float64]
+   /injection_parameters/a_2                   0.3 [float64]
+   /injection_parameters/dec                   -1.2108 [float64]
+   /injection_parameters/geocent_time          1126259642.413 [float64]
+   /injection_parameters/iota                  0.4 [float64]
+   /injection_parameters/luminosity_distance   4000.0 [float64]
+   /injection_parameters/mass_1                36.0 [float64]
+   /injection_parameters/mass_2                29.0 [float64]
+   /injection_parameters/phase                 1.3 [float64]
+   /injection_parameters/phi_12                1.7 [float64]
+   /injection_parameters/phi_jl                0.3 [float64]
+   /injection_parameters/psi                   2.659 [float64]
+   /injection_parameters/ra                    1.375 [float64]
+   /injection_parameters/reference_frequency   50.0 [float64]
+   /injection_parameters/tilt_1                0.5 [float64]
+   /injection_parameters/tilt_2                1.0 [float64]
+   /injection_parameters/waveform_approximant  'IMRPhenomPv2' (12) [ascii]
+   /kwargs                                     dict
+   /kwargs/bound                               'multi' (5) [ascii]
+   /kwargs/dlogz                               0.1 [float64]
+   /kwargs/nlive                               1000 [int64]
+   /kwargs/sample                              'rwalk' (5) [ascii]
+   /kwargs/update_interval                     600 [int64]
+   /kwargs/verbose                             True [bool]
+   /kwargs/walks                               20 [int64]
+   /label                                      'basic_tutorial' (14) [ascii]
+   /log_bayes_factor                           29.570224130853056 [float64]
+   /logz                                       -12042.875089354413 [float64]
+   /logzerr                                    0.040985337772488764 [float64]
+   /noise_logz                                 -12072.445313485267 [float64]
+   /outdir                                     'outdir' (6) [ascii]
+   /parameter_labels                           list
+   /parameter_labels/i0                        '$d_L$' (5) [ascii]
+   /parameter_labels/i1                        '$m_2$' (5) [ascii]
+   /parameter_labels/i2                        '$m_1$' (5) [ascii]
+   /parameter_labels/i3                        '$\\iota$' (7) [ascii]
+   /posterior                                  DataFrame (4, 15073)
+   /search_parameter_keys                      list
+   /search_parameter_keys/i0                   'luminosity_distance' (19) [ascii]
+   /search_parameter_keys/i1                   'mass_2' (6) [ascii]
+   /search_parameter_keys/i2                   'mass_1' (6) [ascii]
+   /search_parameter_keys/i3                   'iota' (4) [ascii]
+
+
+This shows the different data that is stored in the :code:`h5` file. You can think of
+the file like a python dictionary - its a bag with lots of different kind of
+data which can be accessed via a :code:`key` (a string). We use `deepdish
+<http://deepdish.io/>`_ to handle the saving of :code:`h5` files in :code:`tupak`. In python,
+can load any :code:`h5` file and access its contents like a dictionary::
+
+   >>> import deepdish
+   >>> output = deepdish.io.load('outdir/label_result.h5')
+   >>> print(output['logz'])
+   -146.23
+
+Here we printed the stored data for the :code:`'logz'` key, but you could equally get
+the :code:`posterior` or any other attribute. For a full list, print the
+`output.keys()`.
+
+Reading in a result file
+------------------------
+Rather than reading in the raw :code:`h5` file, may find it more convienient to
+instead load a :code:`*result.h5` as a :code:`tupak` :code:`result` object (i.e., like the output
+of :code:`run_sampler`. To do this::
+
+   >>> import tupak
+   >>> result = tupak.result.read_in_result(outdir=outdir, label=label)
+   >>> result = tupak.result.read_in_result(filename='outdir/label_result.h5)
+
+Note, these two lines are equivalent, but show two different ways to read in
+the data. Using this method, :code:`result` is now a :code:`tupak.result.Result` instance
+and has all the methods and attributes. So, for example, you could call
+`result.plot_corner()` to generate a corner plot.
+
+Accessing samples directly
+--------------------------
+
+To get the samples for a particular parameter, use::
+
+   >>> result.posterior.[key]
+
+where :code:`key` is a string of the parameter name you are interested in. The
+`posterior` attribute is a :code:`pandas.DataFrame`, so if you want to return just
+a :code:`numpy` array, use::
+
+   >>> result.posterior.[key].values
+
+Saving to ASCII text
+--------------------
+
+You may wish to get hold of the samples in a simple text file, this can be
+done via::
+
+   result.save_posterior_samples()
+
+which will generate a file :code:`outdir/label_posterior.txt`.
+
+
+.. rubric:: Footnotes
+.. [#f1] :code:`ddls` is an acronym for deep-dish ls

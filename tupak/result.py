@@ -39,7 +39,8 @@ class Result(dict):
     def __init__(self, dictionary=None):
         if type(dictionary) is dict:
             for key in dictionary:
-                setattr(self, key, self._decode_object(dictionary[key]))
+                val = self._standardise_strings(dictionary[key], key)
+                setattr(self, key, val)
 
     def __getattr__(self, name):
         try:
@@ -62,30 +63,27 @@ class Result(dict):
         else:
             return ''
 
-    def _decode_object(self, item):
-        """ When reading in data, ensure all bytes are decoded to strings """
-        try:
+    def _standardise_a_string(self, item):
+        """ When reading in data, ensure all strings are decoded correctly """
+        if type(item) in [bytes]:
             return item.decode()
-        except AttributeError:
-            pass
+        else:
+            return item
 
-        try:
-            return [i.decode() for i in item]
-        except (AttributeError, TypeError):
-            pass
-
-        logging.debug("Unable to decode item")
+    def _standardise_strings(self, item, name=None):
+        if type(item) in [list]:
+            item = [self._standardise_a_string(i) for i in item]
+        #logging.debug("Unable to decode item {}".format(name))
         return item
-
 
     def get_result_dictionary(self):
         return dict(self)
 
-    def save_to_file(self, outdir, label):
+    def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
-        file_name = result_file_name(outdir, label)
-        if os.path.isdir(outdir) is False:
-            os.makedirs(outdir)
+        file_name = result_file_name(self.outdir, self.label)
+        if os.path.isdir(self.outdir) is False:
+            os.makedirs(self.outdir)
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'.format(file_name,
@@ -99,6 +97,10 @@ class Result(dict):
             logging.error(
                 "\n\n Saving the data has failed with the following message:\n {} \n\n"
                 .format(e))
+
+    def save_posterior_samples(self):
+        filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
+        self.posterior.to_csv(filename, index=False, header=True)
 
     def get_latex_labels_from_parameter_keys(self, keys):
         return_list = []
@@ -186,20 +188,10 @@ class Result(dict):
         """
         logging.warning("plot_distributions deprecated")
 
-    def write_prior_to_file(self, outdir):
+    def samples_to_posterior(self, likelihood=None, priors=None,
+                             conversion_function=None):
         """
-        Write the prior distribution to file.
-
-        :return:
-        """
-        outfile = outdir + '.prior'
-        with open(outfile, "w") as prior_file:
-            for key in self.prior:
-                prior_file.write(self.prior[key])
-
-    def samples_to_data_frame(self, likelihood=None, priors=None, conversion_function=None):
-        """
-        Convert array of samples to data frame.
+        Convert array of samples to posterior (a Pandas data frame).
 
         Parameters
         ----------
@@ -211,7 +203,8 @@ class Result(dict):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        data_frame = pd.DataFrame(
+            self.samples, columns=self.search_parameter_keys)
         if conversion_function is not None:
             conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
@@ -235,7 +228,7 @@ class Result(dict):
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
-    def check_attribute_match_to_other_object(self, name, other_object):
+    def _check_attribute_match_to_other_object(self, name, other_object):
         """ Check attribute name exists in other_object and is the same """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
