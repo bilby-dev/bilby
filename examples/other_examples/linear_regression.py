@@ -55,7 +55,7 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # our model.
 
 
-class GaussianLikelihood(tupak.likelihood.Likelihood):
+class GaussianLikelihood(tupak.Likelihood):
     def __init__(self, x, y, sigma, waveform_generator):
         """
 
@@ -91,7 +91,7 @@ class GaussianLikelihood(tupak.likelihood.Likelihood):
 # can generate a signal. We give it information on how to make the time series
 # and the model() we wrote earlier.
 
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
+waveform_generator = tupak.WaveformGenerator(
     time_duration=time_duration, sampling_frequency=sampling_frequency,
     time_domain_source_model=model)
 
@@ -106,7 +106,7 @@ priors['m'] = tupak.prior.Uniform(0, 5, 'm')
 priors['c'] = tupak.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
-result = tupak.sampler.run_sampler(
+result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     walks=10, injection_parameters=injection_parameters, outdir=outdir,
     label=label, plot=True)
