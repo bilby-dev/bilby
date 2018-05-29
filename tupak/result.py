@@ -39,7 +39,8 @@ class Result(dict):
     def __init__(self, dictionary=None):
         if type(dictionary) is dict:
             for key in dictionary:
-                setattr(self, key, self._decode_object(dictionary[key], key))
+                val = self._standardise_strings(dictionary[key], key)
+                setattr(self, key, val)
 
     def __getattr__(self, name):
         try:
@@ -62,21 +63,17 @@ class Result(dict):
         else:
             return ''
 
-    def _decode_object(self, item, name=None):
-        """ When reading in data, ensure all bytes are decoded to strings """
-        if type(item) == pd.DataFrame:
-            return item
-        try:
+    def _standardise_a_string(self, item):
+        """ When reading in data, ensure all strings are decoded correctly """
+        if type(item) in [bytes]:
             return item.decode()
-        except AttributeError:
-            pass
+        else:
+            return item
 
-        try:
-            return [i.decode() for i in item]
-        except (AttributeError, TypeError):
-            pass
-
-        logging.debug("Unable to decode item {}".format(name))
+    def _standardise_strings(self, item, name=None):
+        if type(item) in [list]:
+            item = [self._standardise_a_string(i) for i in item]
+        #logging.debug("Unable to decode item {}".format(name))
         return item
 
     def get_result_dictionary(self):
