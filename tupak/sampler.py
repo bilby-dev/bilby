@@ -495,7 +495,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if priors is None:
         priors = dict()
     priors = fill_priors(priors, likelihood)
-    tupak.prior.write_priors_to_file(priors, outdir)
+    tupak.prior.write_priors_to_file(priors, outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

@@ -557,7 +557,7 @@ def test_redundancy(key, prior):
     return redundant
 
 
-def write_priors_to_file(priors, outdir):
+def write_priors_to_file(priors, outdir, label):
     """
     Write the prior distribution to file.
 
@@ -565,13 +565,12 @@ def write_priors_to_file(priors, outdir):
     ----------
     priors: dict
         priors used
-    outdir: str
-        output directory
+    outdir, label: str
+        output directory and label
     """
-    if outdir[-1] != "/":
-        outdir += "/"
-    prior_file = outdir + "prior.txt"
-    logging.info("Writing priors to {}".format(prior_file))
+
+    prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+    logging.debug("Writing priors to {}".format(prior_file))
     with open(prior_file, "w") as outfile:
         for key in priors:
             outfile.write("prior['{}'] = {}\n".format(key, priors[key]))

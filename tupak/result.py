@@ -186,17 +186,6 @@ class Result(dict):
         """
         logging.warning("plot_distributions deprecated")
 
-    def write_prior_to_file(self, outdir):
-        """
-        Write the prior distribution to file.
-
-        :return:
-        """
-        outfile = outdir + '.prior'
-        with open(outfile, "w") as prior_file:
-            for key in self.prior:
-                prior_file.write(self.prior[key])
-
     def samples_to_data_frame(self, likelihood=None, priors=None, conversion_function=None):
         """
         Convert array of samples to data frame.
