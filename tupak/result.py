@@ -64,6 +64,8 @@ class Result(dict):
 
     def _decode_object(self, item):
         """ When reading in data, ensure all bytes are decoded to strings """
+        if type(item) == pd.DataFrame:
+            return item
         try:
             return item.decode()
         except AttributeError:
