@@ -7,6 +7,8 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 from scipy.interpolate import interp1d
+from scipy.integrate import quad as gaussian_quadrature
+from scipy.interpolate import interp2d
 import tupak
 import logging
 
@@ -72,19 +74,19 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.time_marginalization:
             self.setup_time_marginalization()
-            self.prior['geocent_time'] = 1
+            prior['geocent_time'] = 0 #FIXME: should be fixed to injection value
 
         if self.distance_marginalization:
             self.distance_array = np.array([])
             self.delta_distance = 0
             self.distance_prior_array = np.array([])
             self.setup_distance_marginalization()
-            self.prior['luminosity_distance'] = 1
+            prior['luminosity_distance'] = 1 # this means the prior is a delta function fixed at the RHS value
 
         if self.phase_marginalization:
             self.bessel_function_interped = None
             self.setup_phase_marginalization()
-            self.prior['psi'] = 0
+            prior['psi'] = 0
 
     @property
     def prior(self):
@@ -137,7 +139,6 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.time_marginalization:
 
-
             delta_tc = self.waveform_generator.sampling_frequency
             #print (1./delta_tc, (interferometer.duration) )
             if self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
@@ -159,7 +160,7 @@ class GravitationalWaveTransient(Likelihood):
                 log_l = logsumexp(matched_filter_snr_squared_tc_array, axis=0, b=delta_tc) - optimal_snr_squared / 2
 
         elif self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
-
+            '''
             optimal_snr_squared_array = optimal_snr_squared \
                                         * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
                                         / self.distance_array ** 2
@@ -174,6 +175,21 @@ class GravitationalWaveTransient(Likelihood):
 
             log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
                               b=self.distance_prior_array * self.delta_distance)
+            '''
+            rho_opt_1 = optimal_snr_squared.real * \
+                         self.waveform_generator.parameters['luminosity_distance'] ** 2
+            rho_mf_1 = matched_filter_snr_squared.real * \
+                        self.waveform_generator.parameters['luminosity_distance']
+
+            #nearest_rho_opt_1_idx = np.argmin(abs(self.rho_opt_1_array-rho_opt_1))
+            #nearest_rho_mf_1_idx = np.argmin(abs(self.rho_mf_1_array-rho_mf_1))
+
+            #log_l = self.dist_margd_likelihood_array[nearest_rho_opt_1_idx][nearest_rho_mf_1_idx]
+            #print("SDG", self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1))
+            #print (self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1)[0], self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1))
+
+            log_l=self.interp_dist_margd_likelihood(rho_mf_1, rho_opt_1)[0]
+
         elif self.phase_marginalization:
             matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
@@ -200,6 +216,51 @@ class GravitationalWaveTransient(Likelihood):
         self.delta_distance = self.distance_array[1] - self.distance_array[0]
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self.distance_array])
+
+        ### Make the lookup table ###
+
+        self.dist_margd_likelihood_array = np.zeros((1000,1000))
+
+        self.rho_opt_1_array = np.linspace(1e-10,100000000,self.dist_margd_likelihood_array.shape[0]) # optimal filter snr at fiducial distance of 1 Mpc
+        self.rho_mf_1_array = np.linspace(-100000000,100000000,self.dist_margd_likelihood_array.shape[1])  # matched filter snr at fiducial distance of 1 Mpc
+        #print(min(self.rho_opt_1_array)/max(self.distance_array ** 2), max(self.rho_opt_1_array)/min(self.distance_array ** 2),\
+            #cmin(self.rho_mf_1_array)/max(self.distance_array), max(self.rho_mf_1_array)/min(self.distance_array))
+
+        integrand = lambda D, a: np.exp(a[0]/D - a[1]/D**2. / 2. - a[2]) *\
+                                            self.prior['luminosity_distance'].prob(D)
+
+        for ii, rho_opt_1 in enumerate(self.rho_opt_1_array):
+
+            for jj, rho_mf_1 in enumerate(self.rho_mf_1_array):
+
+                optimal_snr_squared_array = rho_opt_1 \
+                                            / self.distance_array ** 2
+
+                matched_filter_snr_squared_array = rho_mf_1 \
+                                                / self.distance_array
+
+                #regularizer = np.min(unmarged_log_l)'''
+                self.dist_margd_likelihood_array[ii][jj] = \
+                                                    logsumexp(matched_filter_snr_squared_array - \
+                                                     optimal_snr_squared_array / 2, \
+                                                     b=self.distance_prior_array * self.delta_distance)
+
+                #reg = np.max(rho_mf_1/(self.distance_array) - rho_opt_1/(self.distance_array)**2. / 2.)
+
+                #self.dist_margd_likelihood_array[ii][jj] = #np.log( gaussian_quadrature(integrand,
+                                                            #self.prior['luminosity_distance'].minimum,self.prior['luminosity_distance'].maximum,\
+                                                            #args=[rho_mf_1,rho_opt_1,reg])[0] ) + reg
+
+            #print(ii, self.dist_margd_likelihood_array[ii])
+        self.interp_dist_margd_likelihood = interp2d(self.rho_mf_1_array, self.rho_opt_1_array, self.dist_margd_likelihood_array)
+
+        #np.save("dist_margd_likelihood_array",self.dist_margd_likelihood_array)
+        #sys.exit()
+        '''self.dist_margd_likelihood_array[ii][jj] = \
+                                            logsumexp(matched_filter_snr_squared_array - \
+                                             optimal_snr_squared_array / 2, \
+                                             b=self.distance_prior_array * self.delta_distance)'''
+
 
     def setup_phase_marginalization(self):
         if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], tupak.prior.Prior):
