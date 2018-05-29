@@ -166,6 +166,9 @@ class DeltaFunction(Prior):
         else:
             return 0
 
+    def __repr__(self, subclass_keys=list(tuple('peak')), subclass_names=list(tuple('peak'))):
+        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+
 
 class PowerLaw(Prior):
     """Power law prior distribution"""
@@ -203,6 +206,9 @@ class PowerLaw(Prior):
                                           - self.minimum ** (1 + self.alpha))
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
 
+    def __repr__(self, subclass_keys=list(tuple('alpha')), subclass_names=list(tuple('alpha'))):
+        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+
 
 class Uniform(PowerLaw):
     """Uniform prior"""
@@ -210,6 +216,9 @@ class Uniform(PowerLaw):
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label, minimum, maximum)
         self.alpha = 0
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return PowerLaw.__repr__(self)
 
 
 class LogUniform(PowerLaw):
@@ -220,6 +229,9 @@ class LogUniform(PowerLaw):
         self.alpha = -1
         if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return PowerLaw.__repr__(self)
 
 
 class Cosine(Prior):
@@ -241,6 +253,9 @@ class Cosine(Prior):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.cos(val) / 2 * in_prior
 
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Prior.__repr__(self)
+
 
 class Sine(Prior):
 
@@ -260,6 +275,9 @@ class Sine(Prior):
         """Return the prior probability of val, defined over [0, pi]"""
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.sin(val) / 2 * in_prior
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Prior.__repr__(self)
 
 
 class Gaussian(Prior):
@@ -286,6 +304,9 @@ class Gaussian(Prior):
 
     def lnprob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+
+    def __repr__(self, subclass_keys=list(('mu', 'sigma')), subclass_names=list(('mu', 'sigma'))):
+        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
 
 
 class TruncatedGaussian(Prior):
@@ -322,6 +343,9 @@ class TruncatedGaussian(Prior):
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
                 2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
+    def __repr__(self, subclass_keys=list(('mu', 'sigma')), subclass_names=list(('mu', 'sigma'))):
+        return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
+
 
 class Interped(Prior):
 
@@ -353,9 +377,6 @@ class Interped(Prior):
 
     def __repr__(self, subclass_keys=list(('xx', 'yy')), subclass_names=list(('xx', 'yy'))):
         return Prior.__repr__(self, subclass_keys=subclass_keys, subclass_names=subclass_names)
-        # super_repr = Prior.__repr__(self).rstrip(')').__add__(', ')
-        # args = Prior.repr_format_helper(self, keys=['xx', 'yy'], names=['xx', 'yy'])
-        # return super_repr + args + ")"
 
     @property
     def minimum(self):
@@ -408,13 +429,8 @@ class FromFile(Interped):
             logging.warning("Format should be:")
             logging.warning(r"x\tp(x)")
 
-    def __repr__(self):
-        prior_name = self.__class__.__name__
-        prior_args = ', '.join(
-            ['{}={}'.format(name, self.__dict__[key])
-             for key, name in zip(['id', '_Interped__minimum', '_Interped__maximum', 'name', '_Prior__latex_label'],
-                                  ['id', 'minimum', 'maximum', 'name', 'latex_label'])])
-        return "{}({})".format(prior_name, prior_args)
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Interped.__repr__(self)
 
 
 class UniformComovingVolume(FromFile):
@@ -423,6 +439,8 @@ class UniformComovingVolume(FromFile):
         FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
                           latex_label=latex_label)
 
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return FromFile.__repr__(self)
 
 def create_default_prior(name):
     """
