@@ -39,7 +39,7 @@ class Result(dict):
     def __init__(self, dictionary=None):
         if type(dictionary) is dict:
             for key in dictionary:
-                setattr(self, key, self._decode_object(dictionary[key]))
+                setattr(self, key, self._decode_object(dictionary[key], key))
 
     def __getattr__(self, name):
         try:
@@ -62,7 +62,7 @@ class Result(dict):
         else:
             return ''
 
-    def _decode_object(self, item):
+    def _decode_object(self, item, name=None):
         """ When reading in data, ensure all bytes are decoded to strings """
         if type(item) == pd.DataFrame:
             return item
@@ -76,7 +76,7 @@ class Result(dict):
         except (AttributeError, TypeError):
             pass
 
-        logging.debug("Unable to decode item")
+        logging.debug("Unable to decode item {}".format(name))
         return item
 
     def get_result_dictionary(self):
