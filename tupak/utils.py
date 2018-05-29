@@ -11,6 +11,7 @@ speed_of_light = 299792458.0  # speed of light in m/s
 parsec = 3.085677581 * 1e16
 solar_mass = 1.98855 * 1e30
 
+
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
@@ -22,7 +23,7 @@ def get_sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
-def create_time_series(sampling_frequency, duration, starting_time = 0.):
+def create_time_series(sampling_frequency, duration, starting_time=0.):
     return np.arange(starting_time, duration, 1./sampling_frequency)
 
 

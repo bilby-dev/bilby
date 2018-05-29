@@ -51,18 +51,18 @@ class Sampler(object):
 
         self.__search_parameter_keys = []
         self.__fixed_parameter_keys = []
-        self.initialise_parameters()
-        self.verify_parameters()
+        self._initialise_parameters()
+        self._verify_parameters()
         self.kwargs = kwargs
 
-        self.check_cached_result()
+        self._check_cached_result()
 
-        self.log_summary_for_sampler()
+        self._log_summary_for_sampler()
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
-        self.result = self.initialise_result()
+        self.result = self._initialise_result()
 
     @property
     def search_parameter_keys(self):
@@ -102,7 +102,7 @@ class Sampler(object):
             raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
                             'inherits from sampler')
 
-    def verify_kwargs_against_external_sampler_function(self):
+    def _verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
         bad_keys = []
         for user_input in self.kwargs.keys():
@@ -114,7 +114,7 @@ class Sampler(object):
         for key in bad_keys:
             self.kwargs.pop(key)
 
-    def initialise_parameters(self):
+    def _initialise_parameters(self):
 
         for key in self.priors:
             if isinstance(self.priors[key], Prior) is True \
@@ -132,7 +132,7 @@ class Sampler(object):
         for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
-    def initialise_result(self):
+    def _initialise_result(self):
         result = Result()
         result.search_parameter_keys = self.__search_parameter_keys
         result.fixed_parameter_keys = self.__fixed_parameter_keys
@@ -144,7 +144,7 @@ class Sampler(object):
         result.kwargs = self.kwargs
         return result
 
-    def verify_parameters(self):
+    def _verify_parameters(self):
         for key in self.priors:
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
@@ -192,13 +192,13 @@ class Sampler(object):
             logging.info('Prior draw {} has inf prior'.format(draw))
         return draw
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         pass
 
     def _run_test(self):
         raise ValueError("Method not yet implemented")
 
-    def check_cached_result(self):
+    def _check_cached_result(self):
         """ Check if the cached data file exists and can be used """
 
         if utils.command_line_args.clean:
@@ -221,14 +221,14 @@ class Sampler(object):
                           'kwargs']
             use_cache = True
             for key in check_keys:
-                if self.cached_result.check_attribute_match_to_other_object(
+                if self.cached_result._check_attribute_match_to_other_object(
                         key, self) is False:
                     logging.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
             if use_cache is False:
                 self.cached_result = None
 
-    def log_summary_for_sampler(self):
+    def _log_summary_for_sampler(self):
         if self.cached_result is None:
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, self.kwargs))
@@ -250,14 +250,14 @@ class Nestle(Sampler):
                 if equiv in self.__kwargs:
                     self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
         if 'verbose' in self.kwargs:
             if self.kwargs['verbose']:
                 self.kwargs['callback'] = nestle.print_progress
             self.kwargs.pop('verbose')
-        self.verify_kwargs_against_external_sampler_function()
+        self._verify_kwargs_against_external_sampler_function()
 
         out = self.external_sampler_function(
             loglikelihood=self.log_likelihood,
@@ -304,7 +304,7 @@ class Dynesty(Sampler):
         if 'update_interval' not in self.__kwargs:
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         dynesty = self.external_sampler
 
         if self.kwargs.get('dynamic', False) is False:
@@ -383,10 +383,10 @@ class Pymultinest(Sampler):
                 if equiv in self.__kwargs:
                     self.__kwargs['n_live_points'] = self.__kwargs.pop(equiv)
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         pymultinest = self.external_sampler
         self.external_sampler_function = pymultinest.run
-        self.verify_kwargs_against_external_sampler_function()
+        self._verify_kwargs_against_external_sampler_function()
         # Note: pymultinest.solve adds some extra steps, but underneath
         # we are calling pymultinest.run - hence why it is used in checking
         # the arguments.
@@ -404,7 +404,7 @@ class Pymultinest(Sampler):
 
 class Ptemcee(Sampler):
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         ntemps = self.kwargs.pop('ntemps', 2)
         nwalkers = self.kwargs.pop('nwalkers', 100)
         nsteps = self.kwargs.pop('nsteps', 100)
@@ -510,7 +510,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         if utils.command_line_args.test:
             result = sampler._run_test()
         else:
-            result = sampler.run_sampler()
+            result = sampler._run_external_sampler()
 
         result.noise_logz = likelihood.noise_log_likelihood()
         if use_ratio:
