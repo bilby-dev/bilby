@@ -73,10 +73,10 @@ class Prior(object):
         prior_name = self.__class__.__name__
         keys = ['name', '_Prior__latex_label', '_Interped__minimum', '_Interped__maximum']
         names = ['name', 'latex_label', 'minimum', 'maximum']
-        args = self.__repr__format_helper(keys, names)
+        args = self.repr_format_helper(keys, names)
         return "{}({})".format(prior_name, args)
 
-    def __repr__format_helper(self, keys, names):
+    def repr_format_helper(self, keys, names):
         string_keys = []
         string_names = []
         non_string_keys = []
@@ -91,7 +91,9 @@ class Prior(object):
 
         args = ', '.join(['{}={}'.format(name, '\"' + self.__dict__[key] + '\"')
                           for key, name in zip(string_keys, string_names)])
-        args = args + ', ' + ', '.join(['{}={}'.format(name, self.__dict__[key])
+        if len(string_keys) > 0:
+            args = args + ', '
+        args = args + ', '.join(['{}={}'.format(name, self.__dict__[key])
                                         for key, name in zip(non_string_keys, non_string_names)])
         return args
 
@@ -348,9 +350,11 @@ class Interped(Prior):
         return rescaled
 
     def __repr__(self):
-        super_repr = Prior.__repr__(self).rstrip(')').__add__(',')
+        super_repr = Prior.__repr__(self).rstrip(')').__add__(', ')
         args = ', '.join(['{}={}'.format(name, self.__dict__[key]) for key, name in zip(['xx', 'yy'], ['xx', 'yy'])])
+        args = Prior.repr_format_helper(self, keys=['xx', 'yy'], names=['xx', 'yy'])
         return super_repr + args + ")"
+
 
     @property
     def minimum(self):
