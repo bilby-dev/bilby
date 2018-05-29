@@ -9,6 +9,7 @@ Welcome to tupak's documentation!
    :caption: Contents:
 
    basics-of-parameter-estimation
+   tupak-output
    likelihood
    samplers
    writing-documentation
