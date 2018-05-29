@@ -526,7 +526,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_data_frame(likelihood=likelihood, priors=priors, conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
-        result.save_to_file(outdir=outdir, label=label)
+        result.save_to_file()
         if plot:
             result.plot_corner()
         return result

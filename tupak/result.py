@@ -77,15 +77,14 @@ class Result(dict):
         logging.debug("Unable to decode item")
         return item
 
-
     def get_result_dictionary(self):
         return dict(self)
 
-    def save_to_file(self, outdir, label):
+    def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
-        file_name = result_file_name(outdir, label)
-        if os.path.isdir(outdir) is False:
-            os.makedirs(outdir)
+        file_name = result_file_name(self.outdir, self.label)
+        if os.path.isdir(self.outdir) is False:
+            os.makedirs(self.outdir)
         if os.path.isfile(file_name):
             logging.info(
                 'Renaming existing file {} to {}.old'.format(file_name,
