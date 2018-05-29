@@ -74,7 +74,7 @@ class Prior(object):
 
     def subclass_repr_helper(self, subclass_keys=list(), subclass_names=list()):
         prior_name = self.__class__.__name__
-        keys = ['name', '_Prior__latex_label', '_Interped__minimum', '_Interped__maximum']
+        keys = ['name', 'latex_label', 'minimum', 'maximum']
         keys.extend(subclass_keys)
         names = ['name', 'latex_label', 'minimum', 'maximum']
         names.extend(subclass_names)
@@ -86,19 +86,25 @@ class Prior(object):
         string_names = []
         non_string_keys = []
         non_string_names = []
+
+        property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+
         for key, name in zip(keys, names):
-            if isinstance(self.__dict__[key], str):  # TODO: check compatibility with Python 2
+            if isinstance(dict_with_properties[key], str):
                 string_keys.append(key)
                 string_names.append(name)
             else:
                 non_string_keys.append(key)
                 non_string_names.append(name)
 
-        args = ', '.join(['{}={}'.format(name, '\"' + self.__dict__[key] + '\"')
+        args = ', '.join(['{}={}'.format(name, '\"' + dict_with_properties[key] + '\"')
                           for key, name in zip(string_keys, string_names)])
         if len(string_keys) > 0:
             args = args + ', '
-        args = args + ', '.join(['{}={}'.format(name, self.__dict__[key])
+        args = args + ', '.join(['{}={}'.format(name, dict_with_properties[key])
                                  for key, name in zip(non_string_keys, non_string_names)])
         return args
 
@@ -116,6 +122,22 @@ class Prior(object):
             self.__latex_label = self.__default_latex_label
         else:
             self.__latex_label = latex_label
+
+    @property
+    def minimum(self):
+        return self.__minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self.__minimum = minimum
+
+    @property
+    def maximum(self):
+        return self.__maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self.__maximum = maximum
 
     @property
     def __default_latex_label(self):
