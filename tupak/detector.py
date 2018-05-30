@@ -351,6 +351,7 @@ class Interferometer(object):
         elif zero_noise is not None:
             logging.info('Setting zero noise in {}'.format(self.name))
             frequencies = utils.create_fequency_series(sampling_frequency, duration)
+            frequency_domain_strain = np.zeros_like(frequencies) * (1 + 1j)
         else:
             raise ValueError("No method to set data provided.")
 
