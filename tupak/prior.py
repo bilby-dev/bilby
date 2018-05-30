@@ -70,10 +70,20 @@ class Prior(object):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
     def __repr__(self):
+        return self.subclass_repr_helper()
+
+    def subclass_repr_helper(self, subclass_args=list()):
         prior_name = self.__class__.__name__
-        prior_args = ', '.join(
-            ['{}={}'.format(k, v) for k, v in self.__dict__.items()])
-        return "{}({})".format(prior_name, prior_args)
+        args = ['name', 'latex_label', 'minimum', 'maximum']
+        args.extend(subclass_args)
+
+        property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+
+        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in args])
+        return "{}({})".format(prior_name, args)
 
     @property
     def is_fixed(self):
@@ -89,6 +99,22 @@ class Prior(object):
             self.__latex_label = self.__default_latex_label
         else:
             self.__latex_label = latex_label
+
+    @property
+    def minimum(self):
+        return self.__minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self.__minimum = minimum
+
+    @property
+    def maximum(self):
+        return self.__maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self.__maximum = maximum
 
     @property
     def __default_latex_label(self):
@@ -142,6 +168,9 @@ class DeltaFunction(Prior):
         else:
             return 0
 
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_args=['peak'])
+
 
 class PowerLaw(Prior):
     """Power law prior distribution"""
@@ -175,9 +204,12 @@ class PowerLaw(Prior):
 
     def lnprob(self, val):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
-        normalising = (1+self.alpha)/(self.maximum ** (1 + self.alpha)
-                                      - self.minimum ** (1 + self.alpha))
+        normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                          - self.minimum ** (1 + self.alpha))
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_args=['alpha'])
 
 
 class Uniform(PowerLaw):
@@ -187,6 +219,9 @@ class Uniform(PowerLaw):
         Prior.__init__(self, name, latex_label, minimum, maximum)
         self.alpha = 0
 
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return PowerLaw.__repr__(self)
+
 
 class LogUniform(PowerLaw):
     """Uniform prior"""
@@ -194,8 +229,11 @@ class LogUniform(PowerLaw):
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label, minimum, maximum)
         self.alpha = -1
-        if self.minimum<=0:
+        if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return PowerLaw.__repr__(self)
 
 
 class Cosine(Prior):
@@ -217,6 +255,9 @@ class Cosine(Prior):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.cos(val) / 2 * in_prior
 
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Prior.subclass_repr_helper(self)
+
 
 class Sine(Prior):
 
@@ -237,6 +278,9 @@ class Sine(Prior):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.sin(val) / 2 * in_prior
 
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Prior.subclass_repr_helper(self)
+
 
 class Gaussian(Prior):
     """Gaussian prior"""
@@ -254,14 +298,17 @@ class Gaussian(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.mu + erfinv(2 * val - 1) * 2**0.5 * self.sigma
+        return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
     def prob(self, val):
         """Return the prior probability of val"""
-        return np.exp(-(self.mu - val)**2 / (2 * self.sigma**2)) / (2 * np.pi)**0.5 / self.sigma
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
     def lnprob(self, val):
-        return -0.5*((self.mu - val)**2 / self.sigma**2 + np.log(2 * np.pi * self.sigma**2))
+        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
 class TruncatedGaussian(Prior):
@@ -273,11 +320,9 @@ class TruncatedGaussian(Prior):
 
     def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum)
         self.mu = mu
         self.sigma = sigma
-        self.minimum = minimum
-        self.maximum = maximum
 
         self.normalisation = (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2
@@ -296,7 +341,10 @@ class TruncatedGaussian(Prior):
         """Return the prior probability of val"""
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-                    2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
+                2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
+
+    def __repr__(self):
+        return Prior.subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
 class Interped(Prior):
@@ -328,11 +376,7 @@ class Interped(Prior):
         return rescaled
 
     def __repr__(self):
-        prior_name = self.__class__.__name__
-        prior_args = ', '.join(
-            ['{}={}'.format(name, self.__dict__[key]) for key, name in zip(['xx', 'yy', 'name', '_Prior__latex_label'],
-                                                                          ['xx', 'yy', 'name', 'latex_label'])])
-        return "{}({})".format(prior_name, prior_args)
+        return Prior.subclass_repr_helper(self, subclass_args=['xx', 'yy'])
 
     @property
     def minimum(self):
@@ -385,13 +429,8 @@ class FromFile(Interped):
             logging.warning("Format should be:")
             logging.warning(r"x\tp(x)")
 
-    def __repr__(self):
-        prior_name = self.__class__.__name__
-        prior_args = ', '.join(
-            ['{}={}'.format(name, self.__dict__[key])
-             for key, name in zip(['id', '_Interped__minimum', '_Interped__maximum', 'name', '_Prior__latex_label'],
-                                  ['id', 'minimum', 'maximum', 'name', 'latex_label'])])
-        return "{}({})".format(prior_name, prior_args)
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return Prior.subclass_repr_helper(self, subclass_args=['xx', 'yy', 'id'])
 
 
 class UniformComovingVolume(FromFile):
@@ -399,6 +438,9 @@ class UniformComovingVolume(FromFile):
     def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
         FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
                           latex_label=latex_label)
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return FromFile.__repr__(self)
 
 
 def create_default_prior(name):
@@ -497,7 +539,7 @@ def fill_priors(prior, likelihood):
             logging.warning(
                 "Parameter {} has no default prior and is set to {}, this will"
                 " not be sampled and may cause an error."
-                .format(missing_key, set_val))
+                    .format(missing_key, set_val))
         else:
             if not test_redundancy(missing_key, prior):
                 prior[missing_key] = default_prior
