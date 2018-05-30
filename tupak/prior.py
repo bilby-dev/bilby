@@ -80,24 +80,12 @@ class Prior(object):
         return "{}({})".format(prior_name, args)
 
     def repr_format_helper(self, keys):
-        string_keys = []
-        non_string_keys = []
-
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
 
-        for key in keys:
-            if isinstance(dict_with_properties[key], str):
-                string_keys.append(key)
-            else:
-                non_string_keys.append(key)
-
-        args = ', '.join(['{}={}'.format(key, '\"' + dict_with_properties[key] + '\"') for key in string_keys])
-        if len(string_keys) > 0:
-            args = args + ', '
-        args = args + ', '.join(['{}={}'.format(key, dict_with_properties[key]) for key in non_string_keys])
+        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in keys])
         return args
 
     @property
