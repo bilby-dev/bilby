@@ -343,11 +343,9 @@ class TruncatedGaussian(Prior):
 
     def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
         """Power law with bounds and alpha, spectral index"""
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum)
         self.mu = mu
         self.sigma = sigma
-        self.minimum = minimum
-        self.maximum = maximum
 
         self.normalisation = (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2
@@ -455,7 +453,9 @@ class FromFile(Interped):
             logging.warning(r"x\tp(x)")
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Interped.__repr__(self)
+        return Prior.subclass_repr_helper(self,
+                                          subclass_keys=['xx', 'yy', 'id'],
+                                          subclass_names=['xx', 'yy', 'id'])
 
 
 class UniformComovingVolume(FromFile):
