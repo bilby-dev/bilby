@@ -19,7 +19,7 @@ label = 'basic_tutorial'
 tupak.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
-np.random.seed(170801)
+#np.random.seed(170)
 
 # We are going to inject a binary black hole waveform.  We first establish a dictionary of parameters that
 # includes all of the different waveform parameters, including masses of the two black holes (mass_1, mass_2),
@@ -39,7 +39,7 @@ hf_signal = waveform_generator.frequency_domain_strain()
 # and Virgo (V1)).  These default to their design sensitivity
 IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
 
 # Set up prior, which is a dictionary
 priors = dict()
@@ -47,7 +47,7 @@ priors = dict()
 # so for this example we will set almost all of the priors to be equall to their injected values.  This implies the
 # prior is a delta function at the true, injected value.  In reality, the sampler implementation is smart enough to
 # not sample any parameter that has a delta-function prior.
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'geocent_time']:
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
@@ -55,7 +55,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi'
 priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,time_marginalization=False, distance_marginalization=True, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

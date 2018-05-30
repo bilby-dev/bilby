@@ -72,9 +72,8 @@ class GravitationalWaveTransient(Likelihood):
         self.phase_marginalization = phase_marginalization
         self.prior = prior
 
-        if self.time_marginalization:
-            self.setup_time_marginalization()
-            prior['geocent_time'] = 0 #FIXME: should be fixed to injection value
+        #if self.time_marginalization:
+        #    prior['geocent_time'] = 0 #FIXME: should be fixed to injection value; probably easiest to pass in a delta function prior
 
         if self.distance_marginalization:
             self.distance_array = np.array([])
@@ -126,14 +125,16 @@ class GravitationalWaveTransient(Likelihood):
             optimal_snr_squared += tupak.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-            if matched_filter_snr_squared_tc_array is None:
+            if self.time_marginalization:
 
-                matched_filter_snr_squared_tc_array = 4. * (1./interferometer.duration) \
+                if matched_filter_snr_squared_tc_array is None:
+
+                    matched_filter_snr_squared_tc_array = 4. * (1./interferometer.duration) \
                                                             * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
                                                             / interferometer.power_spectral_density_array[0:-1]).real * len(interferometer.data[0:-1])
-            else:
+                else:
 
-                matched_filter_snr_squared_tc_array += 4. * (1./interferometer.duration) \
+                    matched_filter_snr_squared_tc_array += 4. * (1./interferometer.duration) \
                                                         * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
                                                         / interferometer.power_spectral_density_array[0:-1] ).real * len(interferometer.data[0:-1])
 
@@ -141,52 +142,36 @@ class GravitationalWaveTransient(Likelihood):
 
             delta_tc = self.waveform_generator.sampling_frequency
             #print (1./delta_tc, (interferometer.duration) )
-            if self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
+            if self.distance_marginalization:
 
-                optimal_snr_squared_array = optimal_snr_squared \
-                                            * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                                            / self.distance_array ** 2
+                rho_opt_1 = optimal_snr_squared.real * \
+                             self.waveform_generator.parameters['luminosity_distance'] ** 2
+                rho_mf_1_tc_array = matched_filter_snr_squared_tc_array.real * \
+                            self.waveform_generator.parameters['luminosity_distance']
 
-                matched_filter_snr_squared_tc_dist_array = np.outer(matched_filter_snr_squared_tc_array \
-                                                            * self.waveform_generator.parameters['luminosity_distance'], \
-                                                            1./self.distance_array   )
+                ## TRY time marg before dist marg:
+                #time_marged_log_l_dist_array = logsumexp(rho_mf_1_tc_array, b=delta_tc)
+                #log_l = self.interp_dist_margd_likelihood(rho_mf_1_tc_array, rho_opt_1)[0]
 
-                matched_filter_snr_squared_array = logsumexp(matched_filter_snr_squared_tc_dist_array, axis=0, b=delta_tc)
+                dist_marged_log_l_tc_array = self.interp_dist_margd_likelihood(rho_mf_1_tc_array, rho_opt_1)[0]
 
-                log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2, \
-                                                        b=self.distance_prior_array * self.delta_distance).real
+                log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
+            elif self.phase_marginalization:
+
+                phase_marged_log_l_tc_array = self.bessel_function_interped(abs(matched_filter_snr_squared_tc_array))
+                log_l = logsumexp(phase_marged_log_l_tc_array, axis=0, b=delta_tc)
+
             else:
 
                 log_l = logsumexp(matched_filter_snr_squared_tc_array, axis=0, b=delta_tc) - optimal_snr_squared / 2
 
-        elif self.distance_marginalization: #FIXME: This doens't implement the lookup-table method
-            '''
-            optimal_snr_squared_array = optimal_snr_squared \
-                                        * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                                        / self.distance_array ** 2
+        elif self.distance_marginalization:
+            #TODO: order should be:  (phase-> dist-> tc)
 
-            matched_filter_snr_squared_array = matched_filter_snr_squared * \
-                self.waveform_generator.parameters['luminosity_distance'] / self.distance_array
-
-            if self.phase_marginalization:
-                matched_filter_snr_squared_array = self.bessel_function_interped(abs(matched_filter_snr_squared_array))
-            else:
-                matched_filter_snr_squared_array = np.real(matched_filter_snr_squared_array)
-
-            log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
-                              b=self.distance_prior_array * self.delta_distance)
-            '''
             rho_opt_1 = optimal_snr_squared.real * \
                          self.waveform_generator.parameters['luminosity_distance'] ** 2
             rho_mf_1 = matched_filter_snr_squared.real * \
                         self.waveform_generator.parameters['luminosity_distance']
-
-            #nearest_rho_opt_1_idx = np.argmin(abs(self.rho_opt_1_array-rho_opt_1))
-            #nearest_rho_mf_1_idx = np.argmin(abs(self.rho_mf_1_array-rho_mf_1))
-
-            #log_l = self.dist_margd_likelihood_array[nearest_rho_opt_1_idx][nearest_rho_mf_1_idx]
-            #print("SDG", self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1))
-            #print (self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1)[0], self.interp_dist_margd_likelihood(rho_opt_1, rho_mf_1))
 
             log_l=self.interp_dist_margd_likelihood(rho_mf_1, rho_opt_1)[0]
 
@@ -202,11 +187,6 @@ class GravitationalWaveTransient(Likelihood):
     def log_likelihood(self):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
-    def setup_time_marginalization(self):
-        if 'geocent_time' not in self.prior.keys() or not isinstance(self.prior['geocent_time'], tupak.prior.Prior):
-            logging.info('No prior provided for coalescence geocenter time, using default prior.')
-            self.prior['geocent_time'] = tupak.prior.create_default_prior('geocent_time')
-
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
@@ -221,13 +201,9 @@ class GravitationalWaveTransient(Likelihood):
 
         self.dist_margd_likelihood_array = np.zeros((1000,1000))
 
-        self.rho_opt_1_array = np.linspace(1e-10,100000000,self.dist_margd_likelihood_array.shape[0]) # optimal filter snr at fiducial distance of 1 Mpc
-        self.rho_mf_1_array = np.linspace(-100000000,100000000,self.dist_margd_likelihood_array.shape[1])  # matched filter snr at fiducial distance of 1 Mpc
-        #print(min(self.rho_opt_1_array)/max(self.distance_array ** 2), max(self.rho_opt_1_array)/min(self.distance_array ** 2),\
-            #cmin(self.rho_mf_1_array)/max(self.distance_array), max(self.rho_mf_1_array)/min(self.distance_array))
+        self.rho_opt_1_array = np.linspace(5e5,7e8,self.dist_margd_likelihood_array.shape[0]) # optimal filter snr at fiducial distance of 1 Mpc
+        self.rho_mf_1_array = np.linspace(-45000,2e6,self.dist_margd_likelihood_array.shape[1])  # matched filter snr at fiducial distance of 1 Mpc
 
-        integrand = lambda D, a: np.exp(a[0]/D - a[1]/D**2. / 2. - a[2]) *\
-                                            self.prior['luminosity_distance'].prob(D)
 
         for ii, rho_opt_1 in enumerate(self.rho_opt_1_array):
 
@@ -239,27 +215,19 @@ class GravitationalWaveTransient(Likelihood):
                 matched_filter_snr_squared_array = rho_mf_1 \
                                                 / self.distance_array
 
-                #regularizer = np.min(unmarged_log_l)'''
                 self.dist_margd_likelihood_array[ii][jj] = \
                                                     logsumexp(matched_filter_snr_squared_array - \
                                                      optimal_snr_squared_array / 2, \
                                                      b=self.distance_prior_array * self.delta_distance)
 
-                #reg = np.max(rho_mf_1/(self.distance_array) - rho_opt_1/(self.distance_array)**2. / 2.)
+        log_norm = logsumexp(0 / self.distance_array  - 0/self.distance_array**2. / 2, b=self.distance_prior_array * self.delta_distance)
+        self.dist_margd_likelihood_array -= log_norm
 
-                #self.dist_margd_likelihood_array[ii][jj] = #np.log( gaussian_quadrature(integrand,
-                                                            #self.prior['luminosity_distance'].minimum,self.prior['luminosity_distance'].maximum,\
-                                                            #args=[rho_mf_1,rho_opt_1,reg])[0] ) + reg
 
-            #print(ii, self.dist_margd_likelihood_array[ii])
         self.interp_dist_margd_likelihood = interp2d(self.rho_mf_1_array, self.rho_opt_1_array, self.dist_margd_likelihood_array)
 
         #np.save("dist_margd_likelihood_array",self.dist_margd_likelihood_array)
         #sys.exit()
-        '''self.dist_margd_likelihood_array[ii][jj] = \
-                                            logsumexp(matched_filter_snr_squared_array - \
-                                             optimal_snr_squared_array / 2, \
-                                             b=self.distance_prior_array * self.delta_distance)'''
 
 
     def setup_phase_marginalization(self):
