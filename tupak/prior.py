@@ -72,40 +72,32 @@ class Prior(object):
     def __repr__(self):
         return self.subclass_repr_helper()
 
-    def subclass_repr_helper(self, subclass_keys=list(), subclass_names=list()):
+    def subclass_repr_helper(self, subclass_args=list(), subclass_names=list()):
         prior_name = self.__class__.__name__
-        keys = ['name', 'latex_label', 'minimum', 'maximum']
-        keys.extend(subclass_keys)
-        names = ['name', 'latex_label', 'minimum', 'maximum']
-        names.extend(subclass_names)
-        args = self.repr_format_helper(keys, names)
+        args = ['name', 'latex_label', 'minimum', 'maximum']
+        args.extend(subclass_args)
+        args = self.repr_format_helper(args)
         return "{}({})".format(prior_name, args)
 
-    def repr_format_helper(self, keys, names):
+    def repr_format_helper(self, keys):
         string_keys = []
-        string_names = []
         non_string_keys = []
-        non_string_names = []
 
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
 
-        for key, name in zip(keys, names):
+        for key in keys:
             if isinstance(dict_with_properties[key], str):
                 string_keys.append(key)
-                string_names.append(name)
             else:
                 non_string_keys.append(key)
-                non_string_names.append(name)
 
-        args = ', '.join(['{}={}'.format(name, '\"' + dict_with_properties[key] + '\"')
-                          for key, name in zip(string_keys, string_names)])
+        args = ', '.join(['{}={}'.format(key, '\"' + dict_with_properties[key] + '\"') for key in string_keys])
         if len(string_keys) > 0:
             args = args + ', '
-        args = args + ', '.join(['{}={}'.format(name, dict_with_properties[key])
-                                 for key, name in zip(non_string_keys, non_string_names)])
+        args = args + ', '.join(['{}={}'.format(key, dict_with_properties[key]) for key in non_string_keys])
         return args
 
     @property
@@ -192,7 +184,7 @@ class DeltaFunction(Prior):
             return 0
 
     def __repr__(self):
-        return Prior.subclass_repr_helper(self, subclass_keys=['peak'], subclass_names=['peak'])
+        return Prior.subclass_repr_helper(self, subclass_args=['peak'])
 
 
 class PowerLaw(Prior):
@@ -232,7 +224,7 @@ class PowerLaw(Prior):
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
 
     def __repr__(self):
-        return Prior.subclass_repr_helper(self, subclass_keys=['alpha'], subclass_names=['alpha'])
+        return Prior.subclass_repr_helper(self, subclass_args=['alpha'])
 
 
 class Uniform(PowerLaw):
@@ -331,7 +323,7 @@ class Gaussian(Prior):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):
-        return Prior.subclass_repr_helper(self, subclass_keys=['mu', 'sigma'], subclass_names=['mu', 'sigma'])
+        return Prior.subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
 class TruncatedGaussian(Prior):
@@ -367,7 +359,7 @@ class TruncatedGaussian(Prior):
                 2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
     def __repr__(self):
-        return Prior.subclass_repr_helper(self, subclass_keys=['mu', 'sigma'], subclass_names=['mu', 'sigma'])
+        return Prior.subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
 class Interped(Prior):
@@ -399,7 +391,7 @@ class Interped(Prior):
         return rescaled
 
     def __repr__(self):
-        return Prior.subclass_repr_helper(self, subclass_keys=['xx', 'yy'], subclass_names=['xx', 'yy'])
+        return Prior.subclass_repr_helper(self, subclass_args=['xx', 'yy'])
 
     @property
     def minimum(self):
@@ -453,9 +445,7 @@ class FromFile(Interped):
             logging.warning(r"x\tp(x)")
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Prior.subclass_repr_helper(self,
-                                          subclass_keys=['xx', 'yy', 'id'],
-                                          subclass_names=['xx', 'yy', 'id'])
+        return Prior.subclass_repr_helper(self, subclass_args=['xx', 'yy', 'id'])
 
 
 class UniformComovingVolume(FromFile):
