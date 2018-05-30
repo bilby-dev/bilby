@@ -72,21 +72,18 @@ class Prior(object):
     def __repr__(self):
         return self.subclass_repr_helper()
 
-    def subclass_repr_helper(self, subclass_args=list(), subclass_names=list()):
+    def subclass_repr_helper(self, subclass_args=list()):
         prior_name = self.__class__.__name__
         args = ['name', 'latex_label', 'minimum', 'maximum']
         args.extend(subclass_args)
-        args = self.repr_format_helper(args)
-        return "{}({})".format(prior_name, args)
 
-    def repr_format_helper(self, keys):
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
 
-        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in keys])
-        return args
+        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in args])
+        return "{}({})".format(prior_name, args)
 
     @property
     def is_fixed(self):
