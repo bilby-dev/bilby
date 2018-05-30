@@ -22,7 +22,7 @@ from . import result
 from . import sampler
 from . import conversion
 
-# import a few oft-used functions and classes to simplify scripts
-from likelihood import Likelihood, GravitationalWaveTransient
-from waveform_generator import WaveformGenerator
-from sampler import run_sampler
+# import a few often-used functions and classes to simplify scripts
+from .likelihood import Likelihood, GravitationalWaveTransient
+from .waveform_generator import WaveformGenerator
+from .sampler import run_sampler
