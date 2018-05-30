@@ -312,7 +312,7 @@ class Interferometer(object):
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
-                 from_power_spectral_density=None,
+                 from_power_spectral_density=None, zero_noise=None,
                  frequency_domain_strain=None):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
@@ -330,6 +330,9 @@ class Interferometer(object):
         from_power_spectral_density: bool
             If frequency_domain_strain not given, use IFO's PSD object to
             generate noise
+        zero_noise: bool
+            If true and frequency_domain_strain and from_power_spectral_density
+            are false, set the data to be zero.
         """
 
         self.epoch = epoch
@@ -345,6 +348,9 @@ class Interferometer(object):
             frequency_domain_strain, frequencies = \
                 self.power_spectral_density.get_noise_realisation(
                     sampling_frequency, duration)
+        elif zero_noise is not None:
+            logging.info('Setting zero noise in {}'.format(self.name))
+            frequencies = utils.create_fequency_series(sampling_frequency, duration)
         else:
             raise ValueError("No method to set data provided.")
 
