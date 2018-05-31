@@ -39,7 +39,7 @@ class Sampler(object):
 
     def __init__(
             self, likelihood, priors, external_sampler='nestle',
-            outdir='outdir', label='label', use_ratio=False, plot=False,
+            outdir='outdir', label='label', use_ratio=None, plot=False,
             **kwargs):
         self.likelihood = likelihood
         self.priors = priors
@@ -54,6 +54,7 @@ class Sampler(object):
         self.__fixed_parameter_keys = []
         self._initialise_parameters()
         self._verify_parameters()
+        self._verify_use_ratio()
         self.kwargs = kwargs
 
         self._check_cached_result()
@@ -161,6 +162,22 @@ class Sampler(object):
                 "Likelihood evaluation failed with message: \n'{}'\n"
                 "Have you specified all the parameters:\n{}"
                 .format(e, self.likelihood.parameters))
+
+    def _verify_use_ratio(self):
+        if self.use_ratio is False:
+            logging.debug("use_ratio set to False")
+            return
+
+        ratio_is_nan = np.isnan(self.likelihood.log_likelihood_ratio())
+
+        if self.use_ratio is True and ratio_is_nan:
+            logging.warning(
+                "You have requested to use the loglikelihood_ratio, but it "
+                " returns a NaN")
+        elif self.use_ratio is None and ~ratio_is_nan:
+            logging.debug(
+                "use_ratio not spec. but gives valid answer, setting True")
+            self.use_ratio = True
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -488,7 +505,7 @@ class Ptemcee(Sampler):
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=True, injection_parameters=None,
+                sampler='nestle', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, **kwargs):
     """
     The primary interface to easy parameter estimation
