@@ -1,0 +1,34 @@
+.. _priors:
+
+======
+Priors
+======
+
+The priors object passed to :ref:`run_sampler <run-sampler>` is just a regular
+`python dictionary <https://docs.python.org/2/tutorial/datastructures.html#dictionaries>`_.
+
+The keys of the priors objects should reference the model parameters (in
+particular, the :code:`parameters` attribute of the :ref:`likelihood`. Each key
+can be either
+
+- fixed number, in which case the value is held fixed at this value. In effect,
+  this is a Delta-function prior,
+- or a :code:`tupak.prior.Prior` instance.
+
+If the later, it will be sampled during the parameter estimation. Here is a
+simple example that sets a uniform prior for :code:`a`, and a fixed value for
+:code:`b`::
+
+   priors = {}
+   priors['a'] = tupak.prior.Uniform(minimum=0, maximum=10, name='a', latex_label='a')
+   priors['b'] = 5
+
+Notice, that the :code:`latex_label` is optional, but if given will be used
+when generating plots.
+
+We have provided a number of standard priors. Here is a complete list
+
+.. automodule:: tupak.prior
+   :members:
+
+

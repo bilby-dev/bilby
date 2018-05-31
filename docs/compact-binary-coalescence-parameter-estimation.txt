@@ -1,0 +1,27 @@
+===============================================
+Compact binary coalescence parameter estimation
+===============================================
+
+In this example, we demonstrate how to generate simulated data for a binary
+black hold coalescence observed by the two LGIO interferometers at Hanford,
+Livingston and the Virgo detector.
+
+.. literalinclude:: /../examples/injection_examples/basic_tutorial.py
+   :language: python
+   :linenos:
+
+Running this script will generate data then perform parameter estimation for
+the luminosity distance, masses and inclination angle :math:`\iota`. In doing
+all of this, it prints information about the matched-filter SNRs in each
+detector (saved to the log-file). Moreover, it generates a plot for each
+detector showing the data, amplitude spectral density (ASD) and the signal;
+here is an example for the Hanford detector:
+
+.. image:: images/H1_frequency_domain_data.png
+
+Finally, after running the parameter estimation. It generates a corner plot:
+
+.. image:: images/basic_tutorial_corner.png
+
+The solid lines indicate the injection parameters.
+
