@@ -704,7 +704,7 @@ def get_interferometer_with_fake_noise_and_injection(
                   interferometer.amplitude_spectral_density_array,
                   '-C1', lw=0.5, label=name+' ASD')
         ax.loglog(interferometer.frequency_array, abs(interferometer_signal),
-                  label='Signal')
+                  '-C2', label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
