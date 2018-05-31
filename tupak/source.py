@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 import logging
+import numpy as np
 
 try:
     import lalsimulation as lalsim
@@ -52,15 +53,16 @@ def lal_binary_black_hole(
 
 def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
 
+    pi = 3.14159 
     tau  = Q / (np.sqrt(2.0)*np.pi*frequency)
     temp = Q / (4.0*np.sqrt(np.pi)*frequency)
     t = geocent_time
     fm = frequency_array - frequency
     fp = frequency_array + frequency
 
-    h_plus = (hrss / np.sqrt(temp * (1+np.exp(-Q**2)))) * ((np.sqrt(np.pi)*tau)/2.0) * (np.exp(-fm**2 * np.pi**2 * tau**2) + np.exp(-fp**2 * np.pi**2 * tau**2))
+    h_plus = (hrss / np.sqrt(temp * (1+np.exp(-Q**2)))) * ((np.sqrt(np.pi)*tau)/2.0) * (np.exp(-fm**2 * np.pi**2 * tau**2) + np.exp(-fp**2 * pi**2 * tau**2))
     
-    h_cross = -1j*(hrss / np.sqrt(temp * (1-np.exp(-Q**2)))) * ((np.sqrt(np.pi)*tau)/2.0) * (np.exp(-fm**2 * np.pi**2 * tau**2) - np.exp(-fp**2 * np.pi**2 * tau**2))
+    h_cross = -1j*(hrss / np.sqrt(temp * (1-np.exp(-Q**2)))) * ((np.sqrt(pi)*tau)/2.0) * (np.exp(-fm**2 * pi**2 * tau**2) - np.exp(-fp**2 * pi**2 * tau**2))
 
     return{'plus': h_plus, 'cross': h_cross}
 
