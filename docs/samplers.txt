@@ -1,4 +1,4 @@
-.. run_sampler:
+.. _run_sampler:
 
 ========
 Sampling
