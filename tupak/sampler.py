@@ -164,6 +164,14 @@ class Sampler(object):
                 .format(e, self.likelihood.parameters))
 
     def _verify_use_ratio(self):
+
+        # This is repeated from verify_parameters
+        for key in self.priors:
+            try:
+                self.likelihood.parameters[key] = self.priors[key].sample()
+            except AttributeError as e:
+                logging.warning('Cannot sample from {}, {}'.format(key, e))
+
         if self.use_ratio is False:
             logging.debug("use_ratio set to False")
             return
