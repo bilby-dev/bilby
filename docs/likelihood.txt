@@ -1,3 +1,5 @@
+.. _likelihood:
+
 ==========
 Likelihood
 ==========
@@ -12,19 +14,12 @@ a `log_likelihood()` method.
 The default likelihood we use in the examples is `GravitationalWaveTransient`:
 
 .. autoclass:: tupak.likelihood.GravitationalWaveTransient
-    :members:
 
 We also provide a simpler likelihood
 
 .. autoclass:: tupak.likelihood.BasicGravitationalWaveTransient
-    :members:
 
 We provide an empty parent class which can be subclassed for alternative use
 cases
 
 .. autoclass:: tupak.likelihood.Likelihood
-    :members:
-
-
-
-

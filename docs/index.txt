@@ -11,6 +11,7 @@ Welcome to tupak's documentation!
    basics-of-parameter-estimation
    compact-binary-coalescence-parameter-estimation
    tupak-output
+   prior
    likelihood
    samplers
    writing-documentation
