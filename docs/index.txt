@@ -10,16 +10,10 @@ Welcome to tupak's documentation!
 
    basics-of-parameter-estimation
    compact-binary-coalescence-parameter-estimation
-   tupak-output
    prior
    likelihood
    samplers
+   tupak-output
    writing-documentation
 
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
