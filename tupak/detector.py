@@ -585,6 +585,11 @@ def get_interferometer_with_open_data(
 
     """
 
+    logging.warning(
+        "Parameter estimation for real interferometer data in tupak is in "
+        "alpha testing at the moment: the routines for windowing and filtering"
+        " have not been reviewed.")
+
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     strain = utils.get_open_strain_data(
