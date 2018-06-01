@@ -317,7 +317,7 @@ class Interferometer(object):
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
-                 from_power_spectral_density=None,
+                 from_power_spectral_density=False,
                  frequency_domain_strain=None):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
