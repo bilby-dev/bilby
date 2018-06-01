@@ -240,11 +240,11 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
-            self.epoch)#parameters['geocent_time'])
+            self.epoch)  # parameters['geocent_time'])
 
         if self.time_marginalization:
-            dt = time_shift # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-                            # all candidate coalescence times
+            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
+                             # all candidate coalescence times
         else:
             dt = self.epoch - (parameters['geocent_time'] - time_shift)
 
@@ -543,7 +543,7 @@ def get_empty_interferometer(name):
                                  minimum_frequency=40, maximum_frequency=2048, length=0.6,
                                  latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
                                  elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117),
-        'CE': Interferometer(name='CE', power_spectral_density=PowerSpectralDensity('CE_psd.txt'),
+        'CE': Interferometer(name='CE', power_spectral_density=PowerSpectralDensity(psd_file='CE_psd.txt'),
                              minimum_frequency=10, maximum_frequency=2048,
                              length=40, latitude=46 + 27. / 60 + 18.528 / 3600,
                              longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
