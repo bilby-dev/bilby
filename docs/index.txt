@@ -8,14 +8,12 @@ Welcome to tupak's documentation!
    :maxdepth: 3
    :caption: Contents:
 
+   basics-of-parameter-estimation
+   compact-binary-coalescence-parameter-estimation
+   prior
    likelihood
    samplers
+   tupak-output
    writing-documentation
 
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

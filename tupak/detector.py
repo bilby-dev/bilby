@@ -591,6 +591,11 @@ def get_interferometer_with_open_data(
 
     """
 
+    logging.warning(
+        "Parameter estimation for real interferometer data in tupak is in "
+        "alpha testing at the moment: the routines for windowing and filtering"
+        " have not been reviewed.")
+
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     strain = utils.get_open_strain_data(
@@ -710,7 +715,7 @@ def get_interferometer_with_fake_noise_and_injection(
                   interferometer.amplitude_spectral_density_array,
                   '-C1', lw=0.5, label=name+' ASD')
         ax.loglog(interferometer.frequency_array, abs(interferometer_signal),
-                  label='Signal')
+                  '-C2', label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')

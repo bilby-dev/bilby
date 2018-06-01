@@ -6,6 +6,14 @@ https://monash.docs.ligo.org/tupak/htmlcov/)
 
 Fulfilling all your gravitational wave dreams.
 
+Documentation can be found
+[here](https://monash.docs.ligo.org/tupak/index.html). This and the code in
+general are a work in progress. We encourage you to submit issues via are
+[issue tracker](https://git.ligo.org/Monash/tupak/issues) and contribute to the
+development via a merge request (for help in creating a merge request, see
+[this page](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html) or
+contact us directly.
+
 ## Example
 
 To get started with `tupak`, we have a few examples and tutorials:

@@ -198,7 +198,7 @@ class GravitationalWaveTransient(Likelihood):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
     def setup_distance_marginalization(self):
-        if 'luminosity_distance' not in self.prior.keys():
+        if 'fluminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
