@@ -4,7 +4,12 @@ tupak
 
 Tupak is The User friendly Parameter estimAtion Kode
 
-FILL IN THE REST
+The aim of tupak is to provide user friendly interface to perform parameter
+estimation. It is primarily designed and built for inference of compact
+binary coalesence events in interferometric data, but it can also be used for
+more general problems.
+
+For installation instructions see https://git.ligo.org/Monash/tupak
 
 """
 

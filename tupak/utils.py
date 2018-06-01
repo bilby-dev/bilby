@@ -65,7 +65,7 @@ def gps_time_to_gmst(gps_time):
     return gmst
 
 
-def create_fequency_series(sampling_frequency, duration):
+def create_frequency_series(sampling_frequency, duration):
     """
     Create a frequency series with the correct length and spacing.
 
@@ -105,7 +105,7 @@ def create_white_noise(sampling_frequency, duration):
 
     delta_freq = 1./duration
 
-    frequencies = create_fequency_series(sampling_frequency, duration)
+    frequencies = create_frequency_series(sampling_frequency, duration)
 
     norm1 = 0.5*(1./delta_freq)**0.5
     re1 = np.random.normal(0, norm1, len(frequencies))

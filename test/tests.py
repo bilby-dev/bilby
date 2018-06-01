@@ -60,7 +60,7 @@ class Test(unittest.TestCase):
         result = tupak.sampler.run_sampler(
             likelihood, priors, sampler='nestle', verbose=False, npoints=100)
         self.assertAlmostEqual(np.mean(result.samples), dL,
-                               delta=np.std(result.samples))
+                               delta=3*np.std(result.samples))
 
 
 if __name__ == '__main__':
