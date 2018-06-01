@@ -418,9 +418,9 @@ def create_default_prior(name):
         Default prior distribution for that parameter, if unknown None is returned.
     """
     default_priors = {
-        'mass_1': Uniform(name=name, minimum=5, maximum=100),
-        'mass_2': Uniform(name=name, minimum=5, maximum=100),
-        'chirp_mass': Uniform(name=name, minimum=5, maximum=100),
+        'mass_1': Uniform(name=name, minimum=20, maximum=100),
+        'mass_2': Uniform(name=name, minimum=20, maximum=100),
+        'chirp_mass': Uniform(name=name, minimum=25, maximum=100),
         'total_mass': Uniform(name=name, minimum=10, maximum=200),
         'mass_ratio': Uniform(name=name, minimum=0.125, maximum=1),
         'symmetric_mass_ratio': Uniform(name=name, minimum=8 / 81, maximum=0.25),

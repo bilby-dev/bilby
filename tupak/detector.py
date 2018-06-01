@@ -69,6 +69,7 @@ class Interferometer(object):
         self.frequency_array = []
         self.sampling_frequency = None
         self.duration = None
+        self.time_marginalization = False
 
     @property
     def minimum_frequency(self):
@@ -226,7 +227,7 @@ class Interferometer(object):
             det_response = self.antenna_response(
                 parameters['ra'],
                 parameters['dec'],
-                parameters['geocent_time'],
+                self.epoch,#parameters['geocent_time'],
                 parameters['psi'], mode)
 
             signal[mode] = waveform_polarizations[mode] * det_response
@@ -237,9 +238,14 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
-            parameters['geocent_time'])
+            self.epoch)#parameters['geocent_time'])
 
-        dt = self.epoch - (parameters['geocent_time'] - time_shift)
+        if self.time_marginalization:
+            dt = time_shift # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
+                            # all candidate coalescence times
+        else:
+            dt = self.epoch - (parameters['geocent_time'] - time_shift)
+
         signal_ifo = signal_ifo * np.exp(
                 -1j * 2 * np.pi * dt * self.frequency_array)
 
@@ -688,7 +694,7 @@ def get_interferometer_with_fake_noise_and_injection(
     interferometer = get_empty_interferometer(name)
     interferometer.set_data(
         sampling_frequency=sampling_frequency, duration=time_duration,
-        from_power_spectral_density=True)
+        from_power_spectral_density=True, epoch=(injection_parameters['geocent_time']+2)-time_duration)
     interferometer.inject_signal(
         waveform_polarizations=injection_polarizations,
         parameters=injection_parameters)

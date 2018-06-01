@@ -72,9 +72,6 @@ class GravitationalWaveTransient(Likelihood):
         self.phase_marginalization = phase_marginalization
         self.prior = prior
 
-        #if self.time_marginalization:
-        #    prior['geocent_time'] = 0 #FIXME: should be fixed to injection value; probably easiest to pass in a delta function prior
-
         if self.distance_marginalization:
             self.distance_array = np.array([])
             self.delta_distance = 0
@@ -127,45 +124,57 @@ class GravitationalWaveTransient(Likelihood):
 
             if self.time_marginalization:
 
+                interferometer.time_marginalization = self.time_marginalization
+
                 if matched_filter_snr_squared_tc_array is None:
 
                     matched_filter_snr_squared_tc_array = 4. * (1./interferometer.duration) \
                                                             * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
-                                                            / interferometer.power_spectral_density_array[0:-1]).real * len(interferometer.data[0:-1])
+                                                            / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.data[0:-1])
                 else:
 
                     matched_filter_snr_squared_tc_array += 4. * (1./interferometer.duration) \
                                                         * np.fft.ifft( signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1] \
-                                                        / interferometer.power_spectral_density_array[0:-1] ).real * len(interferometer.data[0:-1])
+                                                        / interferometer.power_spectral_density_array[0:-1] ) * len(interferometer.data[0:-1])
 
         if self.time_marginalization:
 
-            delta_tc = self.waveform_generator.sampling_frequency
+            delta_tc = 1./self.waveform_generator.sampling_frequency
+            tc_log_norm = np.log(interferometer.duration*delta_tc)
 
             if self.distance_marginalization:
 
                 rho_opt_ref = optimal_snr_squared.real * \
                              self.waveform_generator.parameters['luminosity_distance'] ** 2 \
                             / self.ref_dist**2.
-                rho_mf_ref_tc_array = matched_filter_snr_squared_tc_array.real * \
+                rho_mf_ref_tc_array = matched_filter_snr_squared_tc_array * \
                             self.waveform_generator.parameters['luminosity_distance'] \
                             / self.ref_dist
 
-                dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(rho_mf_ref_tc_array, rho_opt_ref)[0]
 
-                log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
+                if self.phase_marginalization:
+
+                    phase_margd_rho_mf_tc_array = self.bessel_function_interped(abs(rho_mf_ref_tc_array))
+
+                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(phase_margd_rho_mf_tc_array, rho_opt_ref)
+                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - tc_log_norm
+
+                else:
+
+                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(rho_mf_ref_tc_array.real, rho_opt_ref)
+
+                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - dist_margd_loglikelihood_array
 
             elif self.phase_marginalization:
 
                 log_l = logsumexp( self.bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc)\
-                                                    - optimal_snr_squared/2.
+                                                    - optimal_snr_squared/2. - tc_log_norm
 
             else:
 
-                log_l = logsumexp(matched_filter_snr_squared_tc_array, axis=0, b=delta_tc) - optimal_snr_squared / 2
+                log_l = logsumexp(matched_filter_snr_squared_tc_array.real, axis=0, b=delta_tc) - optimal_snr_squared / 2. - tc_log_norm
 
         elif self.distance_marginalization:
-            #TODO: order should be:  (phase-> dist-> tc)
 
             rho_opt_ref = optimal_snr_squared.real * \
                          self.waveform_generator.parameters['luminosity_distance'] ** 2 \
@@ -219,21 +228,15 @@ class GravitationalWaveTransient(Likelihood):
                 self.dist_margd_loglikelihood_array[ii][jj] = \
                                                     logsumexp(matched_filter_snr_squared_array - \
                                                      optimal_snr_squared_array / 2, \
-                                                     b=self.distance_prior_array * self.delta_distance)
+                                                     b= self.distance_prior_array * self.delta_distance)
 
-        log_norm = logsumexp(0 / self.distance_array  - 0/self.distance_array**2. / 2, b=self.distance_prior_array * self.delta_distance)
+        log_norm = logsumexp(0. / self.distance_array  - 0./self.distance_array**2.,\
+                            b=self.distance_prior_array* self.delta_distance)
         self.dist_margd_loglikelihood_array -= log_norm
 
 
         self.interp_dist_margd_loglikelihood = interp2d(self.rho_mf_ref_array, self.rho_opt_ref_array, self.dist_margd_loglikelihood_array)
 
-        #np.save("dist_margd_loglikelihood_array",self.dist_margd_loglikelihood_array)
-        #sys.exit()
-
-    '''def setupt_time_marginalization(self):
-        if 'geocent_time' not in self.prior.keys() or not isinstance(self.prior['geocent_time'], tupak.prior.Prior):
-            logging.info('No prior provided for geocent_time, using default prior.')
-            self.prior['geocent_time'] ='''
 
     def setup_phase_marginalization(self):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.prior.Prior):
