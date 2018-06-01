@@ -52,7 +52,7 @@ class Interferometer(object):
         self.__x_updated = False
         self.__y_updated = False
         self.__vertex_updated = False
-        self.__detector_tensor_update = False
+        self.__detector_tensor_updated = False
 
         self.name = name
         self.minimum_frequency = minimum_frequency
@@ -171,7 +171,7 @@ class Interferometer(object):
         if self.__x_updated is False:
             self.__x = self.unit_vector_along_arm('x')
             self.__x_updated = True
-            self.__detector_tensor_update = False
+            self.__detector_tensor_updated = False
         return self.__x
 
     @property
@@ -179,7 +179,7 @@ class Interferometer(object):
         if self.__y_updated is False:
             self.__y = self.unit_vector_along_arm('y')
             self.__y_updated = True
-            self.__detector_tensor_update = False
+            self.__detector_tensor_updated = False
         return self.__y
 
     @property
@@ -189,9 +189,9 @@ class Interferometer(object):
 
         See Eq. B6 of arXiv:gr-qc/0008066
         """
-        if self.__detector_tensor_update is False:
+        if self.__detector_tensor_updated is False:
             self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-            self.__detector_tensor_update = True
+            self.__detector_tensor_updated = True
         return self.__detector_tensor
 
     def antenna_response(self, ra, dec, time, psi, mode):
