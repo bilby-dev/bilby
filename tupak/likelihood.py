@@ -163,7 +163,7 @@ class GravitationalWaveTransient(Likelihood):
 
                     dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(rho_mf_ref_tc_array.real, rho_opt_ref)
 
-                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - dist_margd_loglikelihood_array
+                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) 
 
             elif self.phase_marginalization:
 
