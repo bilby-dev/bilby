@@ -1,14 +1,15 @@
 from __future__ import division, print_function, absolute_import
-import numpy as np
-import tupak
+
 import logging
 import os
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-from scipy import signal
-from gwpy.timeseries import TimeSeries
-from gwpy.signal import filter_design
 
+import matplotlib.pyplot as plt
+import numpy as np
+from gwpy.signal import filter_design
+from scipy import signal
+from scipy.interpolate import interp1d
+
+import tupak
 from . import utils
 
 
@@ -612,7 +613,7 @@ def get_interferometer_with_open_data(
 
     # Create and save PSDs
     NFFT = int(sampling_frequency * T)
-    window = signal.tukey(NFFT, alpha=alpha)
+    window = signal.windows.tukey(NFFT, alpha=alpha)
     psd = strain_psd.psd(fftlength=T, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
         outdir, name, center_time+psd_offset, psd_duration)
@@ -625,7 +626,7 @@ def get_interferometer_with_open_data(
 
     # Apply Tukey window
     N = len(time_series)
-    strain = strain * signal.tukey(N, alpha=alpha)
+    strain = strain * signal.windows.tukey(N, alpha=alpha)
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
