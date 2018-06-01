@@ -90,7 +90,11 @@ class Interferometer(object):
     @property
     def frequency_mask(self):
         """Masking array for limiting the frequency band."""
-        return (self.frequency_array > self.minimum_frequency) & (self.frequency_array < self.maximum_frequency)
+        frequencies_in_mask = []
+        for frequency in self.frequency_array:
+            if self.minimum_frequency < frequency < self.maximum_frequency:
+                frequencies_in_mask.append(frequency)
+        return frequencies_in_mask
 
     @property
     def latitude(self):
