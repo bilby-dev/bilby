@@ -342,7 +342,7 @@ class Interferometer(object):
         if frequency_domain_strain is not None:
             logging.info(
                 'Setting {} data using provided frequency_domain_strain'.format(self.name))
-            frequencies = utils.create_fequency_series(sampling_frequency, duration)
+            frequencies = utils.create_frequency_series(sampling_frequency, duration)
         elif from_power_spectral_density is not None:
             logging.info(
                 'Setting {} data using noise realization from provided'
