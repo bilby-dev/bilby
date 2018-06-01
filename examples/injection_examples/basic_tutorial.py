@@ -19,13 +19,13 @@ label = 'basic_tutorial'
 tupak.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
-np.random.seed(170801)
+np.random.seed(88170235)
 
 # We are going to inject a binary black hole waveform.  We first establish a dictionary of parameters that
 # includes all of the different waveform parameters, including masses of the two black holes (mass_1, mass_2),
 # spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
-                            luminosity_distance=4000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
+                            luminosity_distance=2000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
@@ -39,7 +39,7 @@ hf_signal = waveform_generator.frequency_domain_strain()
 # and Virgo (V1)).  These default to their design sensitivity
 IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
 
 # Set up prior, which is a dictionary
 priors = dict()
@@ -47,7 +47,11 @@ priors = dict()
 # so for this example we will set almost all of the priors to be equall to their injected values.  This implies the
 # prior is a delta function at the true, injected value.  In reality, the sampler implementation is smart enough to
 # not sample any parameter that has a delta-function prior.
+<<<<<<< HEAD
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'dec', 'geocent_time', 'phase']:
+=======
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'luminosity_distance', 'iota']:
+>>>>>>> e8b704afba65886f49cb448402a95ae90c468a24
     priors[key] = injection_parameters[key]
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
@@ -58,7 +62,11 @@ priors['geocent_time'] = tupak.prior.Uniform(injection_parameters['geocent_time'
                                             'geocent_time')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
+<<<<<<< HEAD
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,time_marginalization=False, phase_marginalization=False, distance_marginalization=False, prior=priors)
+=======
 likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+>>>>>>> e8b704afba65886f49cb448402a95ae90c468a24
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
