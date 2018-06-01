@@ -243,7 +243,7 @@ class Interferometer(object):
 
         dt = self.epoch - (parameters['geocent_time'] - time_shift)
         signal_ifo = signal_ifo * np.exp(
-                -1j * 2 * np.pi * dt * self.frequency_array)
+            -1j * 2 * np.pi * dt * self.frequency_array)
 
         return signal_ifo
 
@@ -285,21 +285,24 @@ class Interferometer(object):
         Output:
         n - unit vector along arm in cartesian Earth-based coordinates
         """
+        if arm == 'x':
+            return self.__calculate_arm(self.xarm_tilt, self.xarm_azimuth)
+        elif arm == 'y':
+            return self.__calculate_arm(self.yarm_tilt, self.yarm_azimuth)
+        else:
+            logging.warning('Not a recognized arm, aborting!')
+            return
+
+    def __calculate_arm(self, arm_tilt, arm_azimuth):
         e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
         e_lat = np.array([-np.sin(self.__latitude) * np.cos(self.__longitude),
                           -np.sin(self.__latitude) * np.sin(self.__longitude), np.cos(self.__latitude)])
         e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
                         np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
-        if arm == 'x':
-            n = np.cos(self.__xarm_tilt) * np.cos(self.__xarm_azimuth) * e_long + np.cos(self.__xarm_tilt) \
-                * np.sin(self.__xarm_azimuth) * e_lat + np.sin(self.__xarm_tilt) * e_h
-        elif arm == 'y':
-            n = np.cos(self.__yarm_tilt) * np.cos(self.__yarm_azimuth) * e_long + np.cos(self.__yarm_tilt) \
-                * np.sin(self.__yarm_azimuth) * e_lat + np.sin(self.__yarm_tilt) * e_h
-        else:
-            logging.warning('Not a recognized arm, aborting!')
-            return
-        return n
+
+        return np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +\
+               np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat + \
+               np.sin(arm_tilt) * e_h
 
     @property
     def amplitude_spectral_density_array(self):
@@ -595,13 +598,13 @@ def get_interferometer_with_open_data(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     strain = utils.get_open_strain_data(
-            name, center_time-T/2, center_time+T/2, outdir=outdir, cache=cache,
-            raw_data_file=raw_data_file, **kwargs)
+        name, center_time - T / 2, center_time + T / 2, outdir=outdir, cache=cache,
+        raw_data_file=raw_data_file, **kwargs)
 
     strain_psd = utils.get_open_strain_data(
-            name, center_time+psd_offset, center_time+psd_offset+psd_duration,
-            raw_data_file=raw_data_file,
-            outdir=outdir, cache=cache, **kwargs)
+        name, center_time + psd_offset, center_time + psd_offset + psd_duration,
+        raw_data_file=raw_data_file,
+        outdir=outdir, cache=cache, **kwargs)
 
     sampling_frequency = int(strain.sample_rate.value)
 
@@ -617,7 +620,7 @@ def get_interferometer_with_open_data(
     window = signal.windows.tukey(NFFT, alpha=alpha)
     psd = strain_psd.psd(fftlength=T, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, center_time+psd_offset, psd_duration)
+        outdir, name, center_time + psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
         for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
@@ -644,7 +647,7 @@ def get_interferometer_with_open_data(
                   '-C0', label=name)
         ax.loglog(interferometer.frequency_array,
                   interferometer.amplitude_spectral_density_array,
-                  '-C1', lw=0.5, label=name+' ASD')
+                  '-C1', lw=0.5, label=name + ' ASD')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
@@ -709,7 +712,7 @@ def get_interferometer_with_fake_noise_and_injection(
                   '-C0', label=name)
         ax.loglog(interferometer.frequency_array,
                   interferometer.amplitude_spectral_density_array,
-                  '-C1', lw=0.5, label=name+' ASD')
+                  '-C1', lw=0.5, label=name + ' ASD')
         ax.loglog(interferometer.frequency_array, abs(interferometer_signal),
                   '-C2', label='Signal')
         ax.grid('on')
