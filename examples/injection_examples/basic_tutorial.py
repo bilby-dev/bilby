@@ -49,9 +49,6 @@ priors = dict()
 # not sample any parameter that has a delta-function prior.
 <<<<<<< HEAD
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'dec', 'geocent_time', 'phase']:
-=======
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'luminosity_distance', 'iota']:
->>>>>>> e8b704afba65886f49cb448402a95ae90c468a24
     priors[key] = injection_parameters[key]
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
@@ -62,11 +59,7 @@ priors['geocent_time'] = tupak.prior.Uniform(injection_parameters['geocent_time'
                                             'geocent_time')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-<<<<<<< HEAD
 likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,time_marginalization=False, phase_marginalization=False, distance_marginalization=False, prior=priors)
-=======
-likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
->>>>>>> e8b704afba65886f49cb448402a95ae90c468a24
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
