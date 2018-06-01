@@ -211,8 +211,9 @@ class GravitationalWaveTransient(Likelihood):
         self.ref_dist = 1000 # 1000 Mpc
         self.dist_margd_loglikelihood_array = np.zeros((400,800))
 
-        self.rho_opt_ref_array = np.logspace(-3,4,self.dist_margd_loglikelihood_array.shape[0]) # optimal filter snr at fiducial distance of 1 Mpc
-        self.rho_mf_ref_array = np.hstack( (-np.logspace(2,-3,self.dist_margd_loglikelihood_array.shape[1]/2), np.logspace(-3,4,self.dist_margd_loglikelihood_array.shape[1]/2)) ) # matched filter snr at fiducial distance of 1 Mpc
+        self.rho_opt_ref_array = np.logspace(-3,4,self.dist_margd_loglikelihood_array.shape[0]) # optimal filter snr at fiducial distance of ref_dist Mpc
+        self.rho_mf_ref_array = np.hstack( (-np.logspace(2,-3,self.dist_margd_loglikelihood_array.shape[1]/2), \
+                                np.logspace(-3,4,self.dist_margd_loglikelihood_array.shape[1]/2)) ) # matched filter snr at fiducial distance of ref_dist Mpc
 
 
         for ii, rho_opt_ref in enumerate(self.rho_opt_ref_array):
