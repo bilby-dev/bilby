@@ -53,7 +53,6 @@ def lal_binary_black_hole(
 
 def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
 
-    pi = 3.14159 
     tau  = Q / (np.sqrt(2.0)*np.pi*frequency)
     temp = Q / (4.0*np.sqrt(np.pi)*frequency)
     t = geocent_time
@@ -62,35 +61,30 @@ def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi
 
     h_plus = (hrss / np.sqrt(temp * (1+np.exp(-Q**2)))) * ((np.sqrt(np.pi)*tau)/2.0) * (np.exp(-fm**2 * np.pi**2 * tau**2) + np.exp(-fp**2 * pi**2 * tau**2))
     
-    h_cross = -1j*(hrss / np.sqrt(temp * (1-np.exp(-Q**2)))) * ((np.sqrt(pi)*tau)/2.0) * (np.exp(-fm**2 * pi**2 * tau**2) - np.exp(-fp**2 * pi**2 * tau**2))
+    h_cross = -1j*(hrss / np.sqrt(temp * (1-np.exp(-Q**2)))) * ((np.sqrt(np.pi)*tau)/2.0) * (np.exp(-fm**2 * np.pi**2 * tau**2) - np.exp(-fp**2 * np.pi**2 * tau**2))
 
     return{'plus': h_plus, 'cross': h_cross}
 
-def supernova(frequency_array, file_path, luminosity_distance, ra, dec, geocent_time, psi):
+def supernova(frequency_array, realPCs, imagPCs, file_path, luminosity_distance, ra, dec, geocent_time, psi):
     """ A supernova NR simulation for injections """
 
-#    realhplus, imaghplus = np.loadtxt(file_path , usecols = (0,1), unpack=True)
-    realhplus, imaghplus, realhcross, imaghcross = np.loadtxt('MuellerL15_example_inj.txt', usecols = (0,1,2,3), unpack=True)
+    realhplus, imaghplus, realhcross, imaghcross = np.loadtxt(file_path, usecols = (0,1,2,3), unpack=True)
   
     # waveform in file at 10kpc
-    scaling = 10.0 / luminosity_distance  
+    scaling = 1e-2 * (10.0 / luminosity_distance)  
 
     h_plus = scaling * (realhplus + 1.0j*imaghplus)
     h_cross = scaling * (realhcross + 1.0j*imaghcross)
     return {'plus': h_plus, 'cross': h_cross}
 
-def supernova_pca_model(frequency_array, coeff1, coeff2, coeff3, coeff4, coeff5, luminosity_distance, ra, dec, geocent_time, psi):
+def supernova_pca_model(frequency_array, realPCs, imagPCs, coeff1, coeff2, coeff3, coeff4, coeff5, luminosity_distance, ra, dec, geocent_time, psi):
     """ Supernova signal model """
 
-    # this is slow reading in the file every time
-    realpc1, realpc2, realpc3, realpc4, realpc5 = np.loadtxt('SupernovaRealPCs.txt', usecols = (0,1,2,3,4), unpack=True)
-    imagpc1, imagpc2, imagpc3, imagpc4, imagpc5 = np.loadtxt('SupernovaImagPCs.txt', usecols = (0,1,2,3,4), unpack=True)
-
-    pc1 = realpc1 + 1.0j*imagpc1
-    pc2 = realpc2 + 1.0j*imagpc2
-    pc3 = realpc3 + 1.0j*imagpc3
-    pc4 = realpc4 + 1.0j*imagpc4
-    pc5 = realpc5 + 1.0j*imagpc5
+    pc1 = realPCs[:,0] + 1.0j*imagPCs[:,0]
+    pc2 = realPCs[:,1] + 1.0j*imagPCs[:,1]
+    pc3 = realPCs[:,2] + 1.0j*imagPCs[:,2]
+    pc4 = realPCs[:,3] + 1.0j*imagPCs[:,3]
+    pc5 = realPCs[:,4] + 1.0j*imagPCs[:,5]
 
     # file at 10kpc
     scaling = 1e-22 * (10.0 / luminosity_distance)  
