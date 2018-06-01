@@ -44,7 +44,7 @@ IFO = tupak.detector.get_interferometer_with_fake_noise_and_injection(name='H1',
                                                                       sampling_frequency=sampling_frequency)
 
 hf_signal_and_noise = IFO.data
-frequencies = tupak.utils.create_fequency_series(
+frequencies = tupak.utils.create_frequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == '__main__':
