@@ -70,6 +70,7 @@ class Interferometer(object):
         self.frequency_array = np.array([])
         self.sampling_frequency = None
         self.duration = None
+        self.epoch = 0
 
     @property
     def minimum_frequency(self):
