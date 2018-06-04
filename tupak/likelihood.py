@@ -112,10 +112,8 @@ class GravitationalWaveTransient(Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers[0].data.shape)
-        duration = 0
+        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers[0].data[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
-            duration = interferometer.duration
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
             matched_filter_snr_squared += tupak.utils.matched_filter_snr_squared(
@@ -132,22 +130,18 @@ class GravitationalWaveTransient(Likelihood):
         if self.time_marginalization:
 
             delta_tc = 1. / self.waveform_generator.sampling_frequency
-            tc_log_norm = np.log(duration * delta_tc)
+            tc_log_norm = np.log(self.interferometers[0].duration * delta_tc)
 
             if self.distance_marginalization:
 
-                rho_opt_ref = optimal_snr_squared.real * \
-                              self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                              / self.ref_dist ** 2.
-                rho_mf_ref_tc_array = matched_filter_snr_squared_tc_array * \
-                                      self.waveform_generator.parameters['luminosity_distance'] \
-                                      / self.ref_dist
+                rho_mf_ref_tc_array, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared_tc_array,
+                                                                    optimal_snr_squared)
 
                 if self.phase_marginalization:
 
-                    phase_margd_rho_mf_tc_array = self.bessel_function_interped(abs(rho_mf_ref_tc_array))
+                    phase_marged_rho_mf_tc_array = self.bessel_function_interped(abs(rho_mf_ref_tc_array))
 
-                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(phase_margd_rho_mf_tc_array,
+                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(phase_marged_rho_mf_tc_array,
                                                                                       rho_opt_ref)
                     log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - tc_log_norm
 
@@ -159,8 +153,7 @@ class GravitationalWaveTransient(Likelihood):
                     log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
 
             elif self.phase_marginalization:
-
-                log_l = logsumexp(self.bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc) \
+                log_l = logsumexp(self.bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc)\
                         - optimal_snr_squared / 2. - tc_log_norm
 
             else:
@@ -170,12 +163,8 @@ class GravitationalWaveTransient(Likelihood):
 
         elif self.distance_marginalization:
 
-            rho_opt_ref = optimal_snr_squared.real * \
-                          self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                          / self.ref_dist ** 2.
-            rho_mf_ref = matched_filter_snr_squared.real * \
-                         self.waveform_generator.parameters['luminosity_distance'] \
-                         / self.ref_dist
+            rho_mf_ref, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared.real,
+                                                       optimal_snr_squared)
 
             log_l = self.interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
 
@@ -187,6 +176,15 @@ class GravitationalWaveTransient(Likelihood):
             log_l = matched_filter_snr_squared.real - optimal_snr_squared / 2
 
         return log_l.real
+
+    def __setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
+        rho_opt_ref = optimal_snr_squared.real * \
+                      self.waveform_generator.parameters['luminosity_distance'] ** 2 \
+                      / self.ref_dist ** 2.
+        rho_mf_ref = matched_filter_snr_squared * \
+                     self.waveform_generator.parameters['luminosity_distance'] \
+                     / self.ref_dist
+        return rho_mf_ref, rho_opt_ref
 
     def log_likelihood(self):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
