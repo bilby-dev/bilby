@@ -39,7 +39,7 @@ class Sampler(object):
 
     def __init__(
             self, likelihood, priors, external_sampler='nestle',
-            outdir='outdir', label='label', use_ratio=None, plot=False,
+            outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
         self.priors = priors
