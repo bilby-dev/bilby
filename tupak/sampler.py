@@ -576,7 +576,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result = sampler._run_external_sampler()
 
         result.log_noise_evidence = likelihood.noise_log_likelihood()
-        if use_ratio:
+        if sampler.use_ratio:
             result.log_bayes_factor = result.log_evidence
             result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
         else:
