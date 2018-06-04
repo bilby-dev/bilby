@@ -674,7 +674,7 @@ def get_interferometer_with_open_data(
 def get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations, injection_parameters,
         sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
-        save=True):
+        save=True, zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -698,6 +698,8 @@ def get_interferometer_with_fake_noise_and_injection(
         If true, create an ASD + strain plot
     save: bool
         If true, save frequency domain data and PSD to file
+    zero_noise: bool
+        If true, set noise to zero.
 
     Returns
     -------
@@ -709,9 +711,16 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     interferometer = get_empty_interferometer(name)
-    interferometer.set_data(
-        sampling_frequency=sampling_frequency, duration=time_duration,
-        from_power_spectral_density=True, epoch=(injection_parameters['geocent_time']+2)-time_duration)
+    if zero_noise:
+        interferometer.set_data(
+            sampling_frequency=sampling_frequency, duration=time_duration,
+            zero_noise=True,
+            epoch=(injection_parameters['geocent_time']+2)-time_duration)
+    else:
+        interferometer.set_data(
+            sampling_frequency=sampling_frequency, duration=time_duration,
+            from_power_spectral_density=True,
+            epoch=(injection_parameters['geocent_time']+2)-time_duration)
     interferometer.inject_signal(
         waveform_polarizations=injection_polarizations,
         parameters=injection_parameters)
