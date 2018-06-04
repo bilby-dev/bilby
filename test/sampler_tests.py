@@ -126,5 +126,5 @@ class TestSampler(unittest.TestCase):
 
     def test_base_run_sampler(self):
         sampler_copy = copy.copy(self.sampler)
-        self.sampler.run_sampler()
+        self.sampler._run_external_sampler()
         self.assertDictEqual(sampler_copy.__dict__, self.sampler.__dict__)

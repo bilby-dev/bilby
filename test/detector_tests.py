@@ -381,7 +381,7 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.time_delay_from_geocenter(1, 2, 3), 1)
 
     def test_vertex_position_geocentric(self):
-        with mock.patch('tupak.utils.vertex_position_geocentric') as m:
+        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 
