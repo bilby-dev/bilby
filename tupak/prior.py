@@ -430,7 +430,7 @@ class FromFile(Interped):
             logging.warning(r"x\tp(x)")
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Prior._subclass_repr_helper(self, subclass_args=['xx', 'yy', 'id'])
+        return Prior._subclass_repr_helper(self, subclass_args=['id'])
 
 
 class UniformComovingVolume(FromFile):
