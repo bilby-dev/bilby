@@ -60,12 +60,9 @@ class Test(unittest.TestCase):
 
         result = tupak.sampler.run_sampler(
             likelihood, priors, sampler='nestle', verbose=False, npoints=100)
-        #self.assertAlmostEqual(np.mean(result.samples), dL,
-        #                       delta=np.std(result.samples))
-        result.label='corner.png'
-        result.outdir='./outdir'
-        result.plot_corner()
+        self.assertAlmostEqual(np.mean(result.samples), dL,
+                               delta=3*np.std(result.samples))
+
+
 if __name__ == '__main__':
     unittest.main()
-
-
