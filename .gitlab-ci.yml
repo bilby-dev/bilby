@@ -30,7 +30,7 @@ exitcode-jessie:
     - coverage run --include=tupak/* -a test/sampler_tests.py
     - coverage run --include=tupak/* -a test/tests.py
     - coverage run --include=tupak/* -a test/waveform_generator_tests.py
-    - coverage html
+    - coverage html --omit=test/example_tests.py, noise_realisation_tests.py, tests.py
     - coverage-badge -o coverage_badge.svg -f
 
     # Make the documentation
