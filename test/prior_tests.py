@@ -24,6 +24,18 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
     def test_class_instance(self):
         self.assertIsInstance(self.prior, tupak.prior.Prior)
 
+    def test_magic_call_is_the_same_as_sampling(self):
+        self.prior = Mock(return_value=0.5)
+        self.assertEqual(self.prior.sample(), self.p())
+
+    def test_base_rescale_method(self):
+        self.assertIsNone(self.prior.rescale())
+
+    def test_base_repr(self):
+        self.prior = tupak.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1)
+        expected_string = "Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1)"
+        self.assertEqual(expected_string, self.prior.__repr__())
+
 
 class TestPriorName(unittest.TestCase):
 
