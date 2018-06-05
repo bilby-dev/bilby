@@ -73,6 +73,8 @@ class GaussianLikelihood(tupak.Likelihood):
         self.sigma = sigma
         self.N = len(x)
         self.function = function
+
+        # These lines of code infer the parameters from the provided function
         parameters = inspect.getargspec(function).args
         parameters.pop(0)
         self.parameters = dict.fromkeys(parameters)
