@@ -389,3 +389,7 @@ class TestDetector(unittest.TestCase):
         self.ifo.data = np.array([2])
         self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1]))
         self.assertTrue(np.array_equal(self.ifo.whitened_data, np.array([2])))
+
+
+if __name__ == '__main__':
+    unittest.main()
