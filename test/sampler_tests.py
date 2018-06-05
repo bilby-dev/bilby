@@ -1,6 +1,4 @@
 from context import tupak
-from tupak import prior
-from tupak.result import Result
 import unittest
 from mock import MagicMock
 import numpy as np
@@ -14,12 +12,12 @@ class TestSampler(unittest.TestCase):
     def setUp(self):
         likelihood = tupak.likelihood.Likelihood()
         likelihood.parameters = dict(a=1, b=2, c=3)
-        delta_prior = prior.DeltaFunction(peak=0)
-        delta_prior.rescale = MagicMock(return_value=prior.DeltaFunction(peak=1))
+        delta_prior = tupak.prior.DeltaFunction(peak=0)
+        delta_prior.rescale = MagicMock(return_value=tupak.prior.DeltaFunction(peak=1))
         delta_prior.prob = MagicMock(return_value=1)
         delta_prior.sample = MagicMock(return_value=0)
-        uniform_prior = prior.Uniform(0, 1)
-        uniform_prior.rescale = MagicMock(return_value=prior.Uniform(0, 2))
+        uniform_prior = tupak.prior.Uniform(0, 1)
+        uniform_prior.rescale = MagicMock(return_value=tupak.prior.Uniform(0, 2))
         uniform_prior.prob = MagicMock(return_value=1)
         uniform_prior.sample = MagicMock(return_value=0.5)
 
@@ -78,7 +76,7 @@ class TestSampler(unittest.TestCase):
             self.sampler.external_sampler = object()
 
     def test_result(self):
-        expected_result = Result()
+        expected_result = tupak.result.Result()
         expected_result.search_parameter_keys = ['c']
         expected_result.fixed_parameter_keys = ['a']
         expected_result.parameter_labels = ['c']
@@ -92,7 +90,7 @@ class TestSampler(unittest.TestCase):
 
     def test_prior_transform_transforms_search_parameter_keys(self):
         self.sampler.prior_transform([0])
-        expected_prior = prior.Uniform(0, 1)
+        expected_prior = tupak.prior.Uniform(0, 1)
         self.assertListEqual([self.sampler.priors['c'].minimum,
                               self.sampler.priors['c'].maximum],
                              [expected_prior.minimum,
@@ -101,7 +99,7 @@ class TestSampler(unittest.TestCase):
     def test_prior_transform_does_not_transform_fixed_parameter_keys(self):
         self.sampler.prior_transform([0])
         self.assertEqual(self.sampler.priors['a'].peak,
-                         prior.DeltaFunction(peak=0).peak)
+                         tupak.prior.DeltaFunction(peak=0).peak)
 
     def test_log_prior(self):
         self.assertEqual(self.sampler.log_prior({1}), 0.0)
