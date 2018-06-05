@@ -9,7 +9,6 @@ from gwpy.signal import filter_design
 from scipy import signal
 from scipy.interpolate import interp1d
 
-import tupak
 from . import utils
 
 
@@ -271,10 +270,10 @@ class Interferometer(object):
             else:
                 logging.info('Injecting into zero noise.')
                 self.data = signal_ifo
-            opt_snr = np.sqrt(tupak.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+            opt_snr = np.sqrt(utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
                                                               time_duration=1 / (self.frequency_array[1]
                                                                                  - self.frequency_array[0])).real)
-            mf_snr = np.sqrt(tupak.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+            mf_snr = np.sqrt(utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
                                                                     time_duration=1 / (self.frequency_array[1]
                                                                                        - self.frequency_array[0])).real)
             logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
@@ -773,7 +772,7 @@ def get_event_data(
     interferometers: list
         A list of tupak.detector.Interferometer objects
     """
-    event_time = tupak.utils.get_event_time(event)
+    event_time = utils.get_event_time(event)
 
     interferometers = []
 
