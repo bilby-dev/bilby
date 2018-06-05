@@ -29,9 +29,9 @@ exitcode-jessie:
     - coverage run --include=tupak/* -a test/waveform_generator_tests.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
-    - coverage run --omit=* -a test/example_tests.py
-    - coverage run --omit=* -a test/noise_realisation_tests.py
-    - coverage run --omit=* -a test/tests.py
+#    - coverage run --omit=* -a test/example_tests.py
+#    - coverage run --omit=* -a test/noise_realisation_tests.py
+#    - coverage run --omit=* -a test/tests.py
 
     # Make the documentation
     - pip install -r docs/requirements.txt
