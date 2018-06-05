@@ -364,12 +364,12 @@ class Interferometer(object):
                     sampling_frequency, duration)
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
-            strain = tupak.utils.read_frame_file(frame_file, t1=epoch, t2=epoch+duration, channel=channel_name,
-                                                 resample=sampling_frequency)
+            strain = tupak.utils.read_frame_file(
+                frame_file, t1=epoch, t2=epoch+duration, channel=channel_name, resample=sampling_frequency)
             frequency_domain_strain, frequencies = tupak.utils.process_strain_data(strain, **kwargs)
             frequencies = utils.create_frequency_series(sampling_frequency, duration)
-            self.power_spectral_density = PowerSpectralDensity(frame_file=frame_file, channel_name=channel_name,
-                                                               **kwargs)
+            self.power_spectral_density = PowerSpectralDensity(
+                frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
         else:
             raise ValueError("No method to set data provided.")
 
