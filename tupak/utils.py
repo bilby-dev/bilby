@@ -617,9 +617,9 @@ def process_strain_data(
     N = len(time_series)
     strain = strain * signal.windows.tukey(N, alpha=alpha)
 
-    frequency_domain_strain = nfft(strain.value, sampling_frequency)[0]
+    frequency_domain_strain, frequencies = nfft(strain.value, sampling_frequency)
 
-    return frequency_domain_strain
+    return frequency_domain_strain, frequencies
 
 
 def set_up_command_line_arguments():
