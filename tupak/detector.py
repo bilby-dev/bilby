@@ -368,6 +368,8 @@ class Interferometer(object):
                                                  resample=sampling_frequency)
             frequency_domain_strain = tupak.utils.process_strain_data(strain, **kwargs)
             frequencies = utils.create_frequency_series(sampling_frequency, duration)
+            self.power_spectral_density = PowerSpectralDensity(frame_file=frame_file, channel_name=channel_name,
+                                                               **kwargs)
         else:
             raise ValueError("No method to set data provided.")
 
