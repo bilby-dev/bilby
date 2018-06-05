@@ -547,15 +547,17 @@ def read_frame_file(file_name, t1, t2, channel=None, **kwargs):
             logging.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
             logging.warning('Channel {} not found. Trying preset channel names'.format(channel))
-    for channel in ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02']:
-        if loaded:
-            continue
-        try:
-            strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
-            loaded = True
-            logging.info('Successfully loaded {}.'.format(channel))
-        except RuntimeError:
-            None
+    for channel_type in ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02']:
+        for ifo_name in ['H1', 'L1']:
+            channel = '{}:{}'.format(ifo_name, channel_type)
+            if loaded:
+                continue
+            try:
+                strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
+                loaded = True
+                logging.info('Successfully loaded {}.'.format(channel))
+            except RuntimeError:
+                None
 
     if loaded:
         return strain
