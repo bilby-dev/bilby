@@ -324,7 +324,7 @@ class Interferometer(object):
 
     def set_data(self, sampling_frequency, duration, epoch=0,
                  from_power_spectral_density=False, frame_file=None,
-                 frequency_domain_strain=None, channel_name=None, **kwargs):
+                 frequency_domain_strain=None, channel_name=None, overwrite_psd=True, **kwargs):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
 
@@ -345,6 +345,9 @@ class Interferometer(object):
             File from which to load data.
         channel_name: str
             Channel to read from frame.
+        overwrite_psd: bool
+            Whether to overwrite the psd in the interferometer with one calculated
+            from the loaded data, default=True.
         kwargs: dict
             Additional arguments for loading data.
         """
@@ -367,8 +370,9 @@ class Interferometer(object):
             strain = tupak.utils.read_frame_file(
                 frame_file, t1=epoch, t2=epoch+duration, channel=channel_name, resample=sampling_frequency)
             frequency_domain_strain, frequencies = tupak.utils.process_strain_data(strain, **kwargs)
-            self.power_spectral_density = PowerSpectralDensity(
-                frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
+            if overwrite_psd:
+                self.power_spectral_density = PowerSpectralDensity(
+                    frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
         else:
             raise ValueError("No method to set data provided.")
 
