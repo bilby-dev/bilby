@@ -323,8 +323,9 @@ class Interferometer(object):
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
-                 from_power_spectral_density=False, frame_file=None,
-                 frequency_domain_strain=None, channel_name=None, overwrite_psd=True, **kwargs):
+                 from_power_spectral_density=False, zero_noise=False,
+                 frequency_domain_strain=None, frame_file=None,
+                 channel_name=None, overwrite_psd=True, **kwargs):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
 
@@ -341,6 +342,9 @@ class Interferometer(object):
         from_power_spectral_density: bool
             If frequency_domain_strain not given, use IFO's PSD object to
             generate noise
+        zero_noise: bool
+            If true and frequency_domain_strain and from_power_spectral_density
+            are false, set the data to be zero.
         frame_file: str
             File from which to load data.
         channel_name: str
@@ -358,13 +362,17 @@ class Interferometer(object):
             logging.info(
                 'Setting {} data using provided frequency_domain_strain'.format(self.name))
             frequencies = utils.create_frequency_series(sampling_frequency, duration)
-        elif from_power_spectral_density is True:
+        elif from_power_spectral_density:
             logging.info(
                 'Setting {} data using noise realization from provided'
                 'power_spectal_density'.format(self.name))
             frequency_domain_strain, frequencies = \
                 self.power_spectral_density.get_noise_realisation(
                     sampling_frequency, duration)
+        elif zero_noise:
+            logging.info('Setting zero noise in {}'.format(self.name))
+            frequencies = utils.create_fequency_series(sampling_frequency, duration)
+            frequency_domain_strain = np.zeros_like(frequencies) * (1 + 1j)
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
             strain = tupak.utils.read_frame_file(
@@ -719,7 +727,7 @@ def get_interferometer_with_open_data(
 def get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations, injection_parameters,
         sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
-        save=True):
+        save=True, zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -743,6 +751,8 @@ def get_interferometer_with_fake_noise_and_injection(
         If true, create an ASD + strain plot
     save: bool
         If true, save frequency domain data and PSD to file
+    zero_noise: bool
+        If true, set noise to zero.
 
     Returns
     -------
@@ -754,9 +764,16 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     interferometer = get_empty_interferometer(name)
-    interferometer.set_data(
-        sampling_frequency=sampling_frequency, duration=time_duration,
-        from_power_spectral_density=True, epoch=(injection_parameters['geocent_time']+2)-time_duration)
+    if zero_noise:
+        interferometer.set_data(
+            sampling_frequency=sampling_frequency, duration=time_duration,
+            zero_noise=True,
+            epoch=(injection_parameters['geocent_time']+2)-time_duration)
+    else:
+        interferometer.set_data(
+            sampling_frequency=sampling_frequency, duration=time_duration,
+            from_power_spectral_density=True,
+            epoch=(injection_parameters['geocent_time']+2)-time_duration)
     interferometer.inject_signal(
         waveform_polarizations=injection_polarizations,
         parameters=injection_parameters)
