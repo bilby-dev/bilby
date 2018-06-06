@@ -438,15 +438,7 @@ def create_default_prior(name):
         'iota': Sine(name=name),
         'cos_iota': Uniform(name=name, minimum=-1, maximum=1),
         'psi': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'phase': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'hrss': Uniform(name=name, minimum=1e-23, maximum=1e-21),
-        'Q': Uniform(name=name, minimum=2.0, maximum=50.0),
-        'frequency': Uniform(name=name, minimum=30.0, maximum=2000.0),
-        'coeff1': Uniform(name=name, minimum=-1.0, maximum=1.0),
-        'coeff2': Uniform(name=name, minimum=-1.0, maximum=1.0),
-        'coeff3': Uniform(name=name, minimum=-1.0, maximum=1.0),
-        'coeff4': Uniform(name=name, minimum=-1.0, maximum=1.0),
-        'coeff5': Uniform(name=name, minimum=-1.0, maximum=1.0)
+        'phase': Uniform(name=name, minimum=0, maximum=2 * np.pi)
     }
     if name in default_priors.keys():
         prior = default_priors[name]

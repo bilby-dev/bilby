@@ -43,13 +43,16 @@ priors = dict()
 # so for this example we will set almost all of the priors to be equall to their injected values.  This implies the
 # prior is a delta function at the true, injected value.  In reality, the sampler implementation is smart enough to
 # not sample any parameter that has a delta-function prior.
-for key in ['hrss', 'psi', 'ra', 'dec', 'geocent_time']:
+for key in ['psi', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
 
 # The above list does *not* include frequency and Q, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors['Q'] = tupak.prior.create_default_prior(name='Q')
-priors['frequency'] = tupak.prior.create_default_prior(name='frequency')
+#priors['Q'] = tupak.prior.create_default_prior(name='Q')
+#priors['frequency'] = tupak.prior.create_default_prior(name='frequency')
+priors['Q'] = tupak.prior.Uniform(2, 50, 'Q')
+priors['frequency'] = tupak.prior.Uniform(30, 1000, 'frequency')
+priors['hrss'] = tupak.prior.Uniform(1e-23, 1e-21, 'hrss')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
 likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)

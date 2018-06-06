@@ -23,7 +23,7 @@ np.random.seed(170801)
 
 # We are going to inject a supernova waveform.  We first establish a dictionary of parameters that
 # includes all of the different waveform parameters. It will read in a signal to inject from a txt file.
-injection_parameters = dict(file_path = 'MuellerL15_example_inj.txt', luminosity_distance = 60.0, ra = 1.375,
+injection_parameters = dict(file_path = 'MuellerL15_example_inj.txt', luminosity_distance = 10.0, ra = 1.375,
                              dec = -1.2108, geocent_time = 1126259642.413, psi= 2.659)
 
 # Create the waveform_generator using a supernova source function
@@ -44,8 +44,8 @@ realPCs = np.loadtxt('SupernovaRealPCs.txt')
 imagPCs = np.loadtxt('SupernovaImagPCs.txt')
 
 # now we have to do the waveform_generator again because the signal model is not the same as the injection in this case.
-simulation_parameters = dict(realPCs=realPCs, imagPCs=imagPCs, coeff1 = 0.1, coeff2 = 0.1, 
-                            coeff3 = 0.1, coeff4 = 0.1, coeff5 = 0.1, luminosity_distance = 60.0,
+simulation_parameters = dict(realPCs=realPCs, imagPCs=imagPCs, pc_coeff1 = 0.1, pc_coeff2 = 0.1, 
+                            pc_coeff3 = 0.1, pc_coeff4 = 0.1, pc_coeff5 = 0.1, luminosity_distance = 10.0,
                             ra = 1.375, dec = -1.2108, geocent_time = 1126259642.413, psi=2.659)
 
 waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
@@ -62,14 +62,13 @@ priors = dict()
 for key in ['psi', 'geocent_time']:
     priors[key] = injection_parameters[key]
 
-# The above list does *not* include frequency and Q, which means those are the parameters
-# that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
-priors['coeff1'] = tupak.prior.create_default_prior(name='coeff1')
-priors['coeff2'] = tupak.prior.create_default_prior(name='coeff2')
-priors['coeff3'] = tupak.prior.create_default_prior(name='coeff3')
-priors['coeff4'] = tupak.prior.create_default_prior(name='coeff4')
-priors['coeff5'] = tupak.prior.create_default_prior(name='coeff5')
+# don't use default for luminosity distance because we want kpc not Mpc
+priors['luminosity_distance'] = tupak.prior.Uniform(2, 20, 'luminosity_distance') 
+priors['pc_coeff1'] = tupak.prior.Uniform(-100, 100, 'pc_coeff1')
+priors['pc_coeff2'] = tupak.prior.Uniform(-100, 100, 'pc_coeff2')
+priors['pc_coeff3'] = tupak.prior.Uniform(-100, 100, 'pc_coeff3')
+priors['pc_coeff4'] = tupak.prior.Uniform(-100, 100, 'pc_coeff4')
+priors['pc_coeff5'] = tupak.prior.Uniform(-100, 100, 'pc_coeff5')
 priors['ra'] = tupak.prior.create_default_prior(name='ra')
 priors['dec'] = tupak.prior.create_default_prior(name='dec')
 
