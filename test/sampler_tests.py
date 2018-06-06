@@ -1,4 +1,5 @@
-from context import tupak
+from __future__ import absolute_import
+from test.context import tupak
 from tupak import prior
 from tupak.result import Result
 import unittest

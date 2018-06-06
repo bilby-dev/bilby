@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-import tupak
+from test.context import tupak
 from tupak.waveform_generator import WaveformGenerator
 
 np.random.seed(10)

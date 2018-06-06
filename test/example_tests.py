@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 import os
 import shutil
@@ -5,7 +6,7 @@ import logging
 
 # Required to run the tests
 from past.builtins import execfile
-from context import tupak
+from test.context import tupak
 import numpy as np
 
 tupak.utils.command_line_args.test = True

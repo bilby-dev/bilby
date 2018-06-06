@@ -1,5 +1,5 @@
-from context import tupak
-from tupak import detector
+from __future__ import absolute_import
+from test.context import tupak
 import unittest
 import mock
 from mock import MagicMock
@@ -23,7 +23,7 @@ class TestDetector(unittest.TestCase):
         self.xarm_tilt = 0.
         self.yarm_tilt = 0.
         # noinspection PyTypeChecker
-        self.ifo = detector.Interferometer(name=self.name, power_spectral_density=self.power_spectral_density,
+        self.ifo = tupak.detector.Interferometer(name=self.name, power_spectral_density=self.power_spectral_density,
                                            minimum_frequency=self.minimum_frequency,
                                            maximum_frequency=self.maximum_frequency, length=self.length,
                                            latitude=self.latitude, longitude=self.longitude, elevation=self.elevation,

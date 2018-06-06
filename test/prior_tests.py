@@ -1,4 +1,5 @@
-from context import tupak
+from __future__ import absolute_import
+from test.context import tupak
 import unittest
 from mock import Mock
 import numpy as np

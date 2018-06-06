@@ -1,10 +1,12 @@
-import unittest
-import numpy as np
+from __future__ import absolute_import
+
 import os
-import shutil
-from context import tupak
-import logging
+import unittest
+
+import numpy as np
 from past.builtins import execfile
+
+from test.context import tupak
 
 
 class Test(unittest.TestCase):
