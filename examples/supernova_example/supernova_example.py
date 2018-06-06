@@ -76,11 +76,11 @@ priors['dec'] = tupak.prior.create_default_prior(name='dec')
 likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-                                   injection_parameters=injection_parameters, outdir=outdir, label=label)
+result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100,
+                                   outdir=outdir, label=label)
 
 # make some plots of the outputs
-#result.plot_corner()
+result.plot_corner()
 print(result)
 
 
