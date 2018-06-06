@@ -39,7 +39,7 @@ class Sampler(object):
 
     def __init__(
             self, likelihood, priors, external_sampler='nestle',
-            outdir='outdir', label='label', use_ratio=None, plot=False,
+            outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
         self.priors = priors
@@ -296,8 +296,8 @@ class Nestle(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
-        self.result.logz = out.logz
-        self.result.logzerr = out.logzerr
+        self.result.log_evidence = out.logz
+        self.result.log_evidence_err = out.logzerr
         return self.result
 
     def _run_test(self):
@@ -308,8 +308,8 @@ class Nestle(Sampler):
             prior_transform=self.prior_transform,
             ndim=self.ndim, maxiter=10, **self.kwargs)
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         return self.result
 
 
@@ -391,8 +391,8 @@ class Dynesty(Sampler):
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
-        self.result.logz = out.logz[-1]
-        self.result.logzerr = out.logzerr[-1]
+        self.result.log_evidence = out.logz[-1]
+        self.result.log_evidence_err = out.logzerr[-1]
 
         if self.plot:
             self.generate_trace_plots(out)
@@ -419,8 +419,8 @@ class Dynesty(Sampler):
             maxiter=10)
 
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         return self.result
 
 
@@ -459,8 +459,8 @@ class Pymultinest(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = out['samples']
-        self.result.logz = out['logZ']
-        self.result.logzerr = out['logZerr']
+        self.result.log_evidence = out['logZ']
+        self.result.log_evidence_err = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result
 
@@ -491,8 +491,8 @@ class Ptemcee(Sampler):
         self.result.samples = sampler.chain[0, :, nburn:, :].reshape(
             (-1, self.ndim))
         self.result.walkers = sampler.chain[0, :, :, :]
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         self.plot_walkers()
         logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
         logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
@@ -575,12 +575,12 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result = sampler._run_external_sampler()
 
-        result.noise_logz = likelihood.noise_log_likelihood()
-        if use_ratio:
-            result.log_bayes_factor = result.logz
-            result.logz = result.log_bayes_factor + result.noise_logz
+        result.log_noise_evidence = likelihood.noise_log_likelihood()
+        if sampler.use_ratio:
+            result.log_bayes_factor = result.log_evidence
+            result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
         else:
-            result.log_bayes_factor = result.logz - result.noise_logz
+            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
         if injection_parameters is not None:
             result.injection_parameters = injection_parameters
             if conversion_function is not None:

@@ -55,11 +55,12 @@ class Result(dict):
         """Print a summary """
         if hasattr(self, 'samples'):
             return ("nsamples: {:d}\n"
-                    "noise_logz: {:6.3f}\n"
-                    "logz: {:6.3f} +/- {:6.3f}\n"
+                    "log_noise_evidence: {:6.3f}\n"
+                    "log_evidence: {:6.3f} +/- {:6.3f}\n"
                     "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                    .format(len(self.samples), self.noise_logz, self.logz,
-                            self.logzerr, self.log_bayes_factor, self.logzerr))
+                    .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
+                            self.log_evidence_err, self.log_bayes_factor,
+                            self.log_evidence_err))
         else:
             return ''
 
@@ -73,7 +74,7 @@ class Result(dict):
     def _standardise_strings(self, item, name=None):
         if type(item) in [list]:
             item = [self._standardise_a_string(i) for i in item]
-        #logging.debug("Unable to decode item {}".format(name))
+        # logging.debug("Unable to decode item {}".format(name))
         return item
 
     def get_result_dictionary(self):
@@ -153,7 +154,7 @@ class Result(dict):
             kwargs['truths'] = kwargs.pop('truth')
 
         if getattr(self, 'injection_parameters', None) is not None:
-            injection_parameters = [self.injection_parameters[key]
+            injection_parameters = [self.injection_parameters.get(key, None)
                                     for key in self.search_parameter_keys]
             kwargs['truths'] = kwargs.get('truths', injection_parameters)
 

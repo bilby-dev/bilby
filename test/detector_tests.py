@@ -381,7 +381,7 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.time_delay_from_geocenter(1, 2, 3), 1)
 
     def test_vertex_position_geocentric(self):
-        with mock.patch('tupak.utils.vertex_position_geocentric') as m:
+        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 
@@ -389,3 +389,7 @@ class TestDetector(unittest.TestCase):
         self.ifo.data = np.array([2])
         self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1]))
         self.assertTrue(np.array_equal(self.ifo.whitened_data, np.array([2])))
+
+
+if __name__ == '__main__':
+    unittest.main()

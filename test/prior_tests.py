@@ -189,7 +189,6 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(-1e2, 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
-            print(prior.minimum, prior.maximum)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
 
 
