@@ -323,8 +323,8 @@ class Interferometer(object):
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
-                 from_power_spectral_density=False,
-                 frequency_domain_strain=None):
+                 from_power_spectral_density=False, frame_file=None,
+                 frequency_domain_strain=None, channel_name=None, overwrite_psd=True, **kwargs):
         """
         Set the interferometer frequency-domain stain and accompanying PSD values.
 
@@ -341,6 +341,15 @@ class Interferometer(object):
         from_power_spectral_density: bool
             If frequency_domain_strain not given, use IFO's PSD object to
             generate noise
+        frame_file: str
+            File from which to load data.
+        channel_name: str
+            Channel to read from frame.
+        overwrite_psd: bool
+            Whether to overwrite the psd in the interferometer with one calculated
+            from the loaded data, default=True.
+        kwargs: dict
+            Additional arguments for loading data.
         """
 
         self.epoch = epoch
@@ -356,6 +365,14 @@ class Interferometer(object):
             frequency_domain_strain, frequencies = \
                 self.power_spectral_density.get_noise_realisation(
                     sampling_frequency, duration)
+        elif frame_file is not None:
+            logging.info('Reading data from frame, {}.'.format(self.name))
+            strain = tupak.utils.read_frame_file(
+                frame_file, t1=epoch, t2=epoch+duration, channel=channel_name, resample=sampling_frequency)
+            frequency_domain_strain, frequencies = tupak.utils.process_strain_data(strain, **kwargs)
+            if overwrite_psd:
+                self.power_spectral_density = PowerSpectralDensity(
+                    frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
         else:
             raise ValueError("No method to set data provided.")
 
@@ -407,16 +424,33 @@ class Interferometer(object):
 
 class PowerSpectralDensity:
 
-    def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt'):
+    def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, epoch=0,
+                 psd_duration=1024, psd_offset=16, channel_name=None, filter_freq=1024, alpha=0.25, fft_length=4):
         """
         Instantiate a new PowerSpectralDensity object.
 
         Only one of the asd_file or psd_file needs to be specified.
         If multiple are given, the first will be used.
-        FIXME: Allow reading a frame and then FFT to get PSD, use gwpy?
 
-        :param asd_file: amplitude spectral density, format 'f h_f'
-        :param psd_file: power spectral density, format 'f h_f'
+        Parameters:
+        asd_file: str
+            File containing amplitude spectral density, format 'f h_f'
+        psd_file: str
+            File containing power spectral density, format 'f h_f'
+        frame_file: str
+            Frame file to read data from.
+        epoch: float
+            Beginning of segment to analyse.
+        psd_duration: float
+            Duration of data to generate PSD from.
+        psd_offset: float
+            Offset of data from beginning of analysed segment.
+        channel_name: str
+            Name of channel to use to generate PSD.
+        alpha: float
+            Parameter for Tukey window.
+        fft_length: float
+            Number of seconds in a single fft.
         """
 
         self.frequencies = []
@@ -435,6 +469,24 @@ class PowerSpectralDensity:
                 logging.warning("The minimum of the provided curve is {:.2e}.".format(
                     min(self.amplitude_spectral_density)))
                 logging.warning("You may have intended to provide this as a power spectral density.")
+        elif frame_file is not None:
+            strain = tupak.utils.read_frame_file(frame_file, t1=epoch - psd_duration - psd_offset,
+                                                 t2=epoch - psd_duration, channel=channel_name)
+            sampling_frequency = int(strain.sample_rate.value)
+
+            # Low pass filter
+            bp = filter_design.lowpass(filter_freq, strain.sample_rate)
+            strain = strain.filter(bp, filtfilt=True)
+            strain = strain.crop(*strain.span.contract(1))
+
+            # Create and save PSDs
+            NFFT = int(sampling_frequency * fft_length)
+            window = signal.windows.tukey(NFFT, alpha=alpha)
+            psd = strain.psd(fftlength=fft_length, window=window)
+            self.frequencies = psd.frequencies
+            self.power_spectral_density = psd.value
+            self.amplitude_spectral_density = self.power_spectral_density**0.5
+            self.interpolate_power_spectral_density()
         else:
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
