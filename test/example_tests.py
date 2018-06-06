@@ -9,10 +9,8 @@ from past.builtins import execfile
 from test.context import tupak
 
 # Imported to ensure the examples run
-import numpy as np
-import inspect
 
-tupak.utils.command_line_args.test = True
+tupak.core.utils.command_line_args.test = True
 
 
 class Test(unittest.TestCase):

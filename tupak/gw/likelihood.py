@@ -1,32 +1,12 @@
-from __future__ import division, print_function
-
-import numpy as np
-
-try:
-    from scipy.special import logsumexp
-except ImportError:
-    from scipy.misc import logsumexp
-from scipy.special import i0e
-from scipy.interpolate import interp1d
-from scipy.interpolate import interp2d
-import tupak
 import logging
 
+import numpy as np
+from scipy.interpolate import interp2d, interp1d
+from scipy.special import logsumexp
+from scipy.special._ufuncs import i0e
 
-class Likelihood(object):
-    """ Empty likelihood class to be subclassed by other likelihoods """
-
-    def __init__(self, parameters=None):
-        self.parameters = parameters
-
-    def log_likelihood(self):
-        return np.nan
-
-    def noise_log_likelihood(self):
-        return np.nan
-
-    def log_likelihood_ratio(self):
-        return self.log_likelihood() - self.noise_log_likelihood()
+import tupak
+from tupak import Likelihood
 
 
 class GravitationalWaveTransient(Likelihood):
@@ -99,9 +79,9 @@ class GravitationalWaveTransient(Likelihood):
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= tupak.utils.noise_weighted_inner_product(interferometer.data, interferometer.data,
-                                                              interferometer.power_spectral_density_array,
-                                                              self.waveform_generator.time_duration) / 2
+            log_l -= tupak.core.utils.noise_weighted_inner_product(interferometer.data, interferometer.data,
+                                                                   interferometer.power_spectral_density_array,
+                                                                   self.waveform_generator.time_duration) / 2
         return log_l.real
 
     def log_likelihood_ratio(self):
@@ -116,10 +96,10 @@ class GravitationalWaveTransient(Likelihood):
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
-            matched_filter_snr_squared += tupak.utils.matched_filter_snr_squared(
+            matched_filter_snr_squared += tupak.core.utils.matched_filter_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
 
-            optimal_snr_squared += tupak.utils.optimal_snr_squared(
+            optimal_snr_squared += tupak.core.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
             if self.time_marginalization:
                 interferometer.time_marginalization = self.time_marginalization
@@ -192,7 +172,7 @@ class GravitationalWaveTransient(Likelihood):
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
-            self.prior['luminosity_distance'] = tupak.prior.create_default_prior('luminosity_distance')
+            self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
         self.delta_distance = self.distance_array[1] - self.distance_array[0]
@@ -231,9 +211,9 @@ class GravitationalWaveTransient(Likelihood):
                                                         self.dist_margd_loglikelihood_array)
 
     def setup_phase_marginalization(self):
-        if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.prior.Prior):
+        if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
             logging.info('No prior provided for phase at coalescence, using default prior.')
-            self.prior['phase'] = tupak.prior.create_default_prior('phase')
+            self.prior['phase'] = tupak.core.prior.create_default_prior('phase')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])
                                                  + np.linspace(0, 1e6, int(1e5)),
@@ -310,14 +290,14 @@ def get_binary_black_hole_likelihood(interferometers):
 
     Returns
     -------
-    likelihood: tupak.likelihood.GravitationalWaveTransient
+    likelihood: tupak.GravitationalWaveTransient
         The likelihood to pass to `run_sampler`
     """
-    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+    waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
         time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
-        frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+        frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
-    likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
+    likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
 
 

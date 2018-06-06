@@ -1,6 +1,6 @@
 import inspect
 
-from . import utils
+from tupak.core import utils
 import numpy as np
 
 

@@ -8,10 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from .result import Result, read_in_result
-from .prior import Prior, fill_priors
-from . import utils
-from . import prior
+from tupak.core.result import Result, read_in_result
+from tupak.core.prior import Prior, fill_priors
+from tupak.core import utils
 import tupak
 
 
@@ -520,7 +519,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Parameters
     ----------
-    likelihood: `tupak.likelihood.GravitationalWaveTransient`
+    likelihood: `tupak.GravitationalWaveTransient`
         A `GravitationalWaveTransient` instance
     priors: dict
         A dictionary of the priors for each parameter - missing parameters will
@@ -558,7 +557,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if priors is None:
         priors = dict()
     priors = fill_priors(priors, likelihood)
-    tupak.prior.write_priors_to_file(priors, outdir, label)
+    tupak.core.prior.write_priors_to_file(priors, outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from test.context import tupak
-from tupak import prior
-from tupak.result import Result
+from tupak.core import prior
+from tupak.core.result import Result
 import unittest
 from mock import MagicMock
 import numpy as np
@@ -13,7 +13,7 @@ import copy
 class TestSampler(unittest.TestCase):
 
     def setUp(self):
-        likelihood = tupak.likelihood.Likelihood()
+        likelihood = tupak.core.likelihood.Likelihood()
         likelihood.parameters = dict(a=1, b=2, c=3)
         delta_prior = prior.DeltaFunction(peak=0)
         delta_prior.rescale = MagicMock(return_value=prior.DeltaFunction(peak=1))
@@ -30,11 +30,11 @@ class TestSampler(unittest.TestCase):
         test_directory = 'test_directory'
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
-        self.sampler = tupak.sampler.Sampler(likelihood=likelihood,
-                                             priors=priors,
-                                             external_sampler='nestle',
-                                             outdir=test_directory,
-                                             use_ratio=False)
+        self.sampler = tupak.core.sampler.Sampler(likelihood=likelihood,
+                                                  priors=priors,
+                                                  external_sampler='nestle',
+                                                  outdir=test_directory,
+                                                  use_ratio=False)
 
     def tearDown(self):
         os.rmdir(self.sampler.outdir)
@@ -69,8 +69,8 @@ class TestSampler(unittest.TestCase):
             self.sampler.external_sampler = 'unexpected_sampler'
 
     def test_setting_custom_sampler(self):
-        other_sampler = tupak.sampler.Sampler(self.sampler.likelihood,
-                                             self.sampler.priors)
+        other_sampler = tupak.core.sampler.Sampler(self.sampler.likelihood,
+                                                   self.sampler.priors)
         self.sampler.external_sampler = other_sampler
         self.assertEqual(self.sampler.external_sampler, other_sampler)
 

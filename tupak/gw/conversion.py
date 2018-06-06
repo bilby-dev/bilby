@@ -111,7 +111,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     ----------
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an injection or posterior samples.
-    likelihood: tupak.likelihood.GravitationalWaveTransient
+    likelihood: tupak.GravitationalWaveTransient
         GravitationalWaveTransient used for sampling, used for waveform and likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
@@ -132,7 +132,7 @@ def fill_from_fixed_priors(sample, priors):
     """Add parameters with delta function prior to the data frame/dictionary."""
     if priors is not None:
         for name in priors:
-            if isinstance(priors[name], tupak.prior.DeltaFunction):
+            if isinstance(priors[name], tupak.core.prior.DeltaFunction):
                 sample[name] = priors[name].peak
 
 
@@ -166,7 +166,7 @@ def generate_component_spins(sample):
             sample['spin_2y'], sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
                 sample['iota'], sample['phi_jl'], sample['tilt_1'], sample['tilt_2'], sample['phi_12'], sample['a_1'],
-                sample['a_2'], sample['mass_1'] * tupak.utils.solar_mass, sample['mass_2'] * tupak.utils.solar_mass,
+                sample['a_2'], sample['mass_1'] * tupak.core.utils.solar_mass, sample['mass_2'] * tupak.core.utils.solar_mass,
                 sample['reference_frequency'], sample['phase'])
 
         sample['phi_1'] = np.arctan(sample['spin_1y'] / sample['spin_1x'])
@@ -183,7 +183,7 @@ def generate_component_spins(sample):
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
                     sample['iota'][ii], sample['phi_jl'][ii], sample['tilt_1'][ii], sample['tilt_2'][ii],
                     sample['phi_12'][ii], sample['a_1'][ii], sample['a_2'][ii],
-                    sample['mass_1'][ii] * tupak.utils.solar_mass, sample['mass_2'][ii] * tupak.utils.solar_mass,
+                    sample['mass_1'][ii] * tupak.core.utils.solar_mass, sample['mass_2'][ii] * tupak.core.utils.solar_mass,
                     sample['reference_frequency'][ii], sample['phase'][ii])
 
         for name in new_spin_parameters:
@@ -208,9 +208,9 @@ def compute_snrs(sample, likelihood):
                 signal = interferometer.get_detector_response(signal_polarizations,
                                                               likelihood.waveform_generator.parameters)
                 sample['{}_matched_filter_snr'.format(interferometer.name)] = \
-                    tupak.utils.matched_filter_snr_squared(signal, interferometer,
-                                                           likelihood.waveform_generator.time_duration)**0.5
-                sample['{}_optimal_snr'.format(interferometer.name)] = tupak.utils.optimal_snr_squared(
+                    tupak.core.utils.matched_filter_snr_squared(signal, interferometer,
+                                                                likelihood.waveform_generator.time_duration) ** 0.5
+                sample['{}_optimal_snr'.format(interferometer.name)] = tupak.core.utils.optimal_snr_squared(
                     signal, interferometer, likelihood.waveform_generator.time_duration) ** 0.5
         else:
             logging.info('Computing SNRs for every sample, this may take some time.')
@@ -226,9 +226,9 @@ def compute_snrs(sample, likelihood):
                 for interferometer in all_interferometers:
                     signal = interferometer.get_detector_response(signal_polarizations,
                                                                   likelihood.waveform_generator.parameters)
-                    matched_filter_snrs[interferometer.name].append(tupak.utils.matched_filter_snr_squared(
-                        signal, interferometer, likelihood.waveform_generator.time_duration)**0.5)
-                    optimal_snrs[interferometer.name].append(tupak.utils.optimal_snr_squared(
+                    matched_filter_snrs[interferometer.name].append(tupak.core.utils.matched_filter_snr_squared(
+                        signal, interferometer, likelihood.waveform_generator.time_duration) ** 0.5)
+                    optimal_snrs[interferometer.name].append(tupak.core.utils.optimal_snr_squared(
                         signal, interferometer, likelihood.waveform_generator.time_duration) ** 0.5)
 
             for interferometer in likelihood.interferometers:

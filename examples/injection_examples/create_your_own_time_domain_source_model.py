@@ -8,7 +8,7 @@ and then recovered.
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger()
+tupak.core.utils.setup_logger()
 
 
 # define the time-domain model
@@ -33,9 +33,9 @@ outdir='outdir'
 label='time_domain_source_model'
 
 # call the waveform_generator to create our waveform model.
-waveform = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
-                                                    time_domain_source_model=time_domain_damped_sinusoid,
-                                                    parameters=injection_parameters)
+waveform = tupak.gw.waveform_generator.WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
+                                                         time_domain_source_model=time_domain_damped_sinusoid,
+                                                         parameters=injection_parameters)
 
 hf_signal = waveform.frequency_domain_strain()
 #note we could plot the time domain signal with the following code
@@ -48,7 +48,7 @@ hf_signal = waveform.frequency_domain_strain()
 
 
 # inject the signal into three interferometers
-IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations=hf_signal,
         injection_parameters=injection_parameters, time_duration=time_duration,
         sampling_frequency=sampling_frequency, outdir=outdir)
@@ -57,19 +57,19 @@ IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
 
 #  create the priors
 prior = injection_parameters.copy()
-prior['amplitude'] = tupak.prior.Uniform(1e-23, 1e-21, r'$h_0$')
-prior['damping_time'] = tupak.prior.Uniform(0, 1, r'damping time')
-prior['frequency'] = tupak.prior.Uniform(0, 200, r'frequency')
-prior['phase'] = tupak.prior.Uniform(-np.pi/2, np.pi/2, r'$\phi$')
+prior['amplitude'] = tupak.core.prior.Uniform(1e-23, 1e-21, r'$h_0$')
+prior['damping_time'] = tupak.core.prior.Uniform(0, 1, r'damping time')
+prior['frequency'] = tupak.core.prior.Uniform(0, 200, r'frequency')
+prior['phase'] = tupak.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 
 
 # define likelihood
-likelihood = tupak.likelihood.GravitationalWaveTransient(IFOs, waveform)
+likelihood = tupak.core.likelihood.GravitationalWaveTransient(IFOs, waveform)
 
 # launch sampler
-result = tupak.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,
-                                    injection_parameters=injection_parameters,
-                                    outdir=outdir, label=label)
+result = tupak.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,
+                                        injection_parameters=injection_parameters,
+                                        outdir=outdir, label=label)
 
 result.plot_corner()
 print(result)
