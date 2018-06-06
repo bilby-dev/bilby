@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from context import tupak
+import tupak
 import unittest
 import mock
 from mock import MagicMock

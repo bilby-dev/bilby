@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
 import unittest
-from test.context import tupak
+import tupak
 
 
 class TestNoiseRealisation(unittest.TestCase):

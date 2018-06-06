@@ -6,7 +6,7 @@ import logging
 
 # Required to run the tests
 from past.builtins import execfile
-from test.context import tupak
+import tupak
 
 # Imported to ensure the examples run
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import unittest
-from test.context import tupak
+import tupak
 import numpy as np
 
 

@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 from past.builtins import execfile
 
-from test.context import tupak
+import tupak
 
 
 class Test(unittest.TestCase):
