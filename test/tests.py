@@ -48,7 +48,7 @@ class Test(unittest.TestCase):
         self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
-        likelihood = tupak.core.likelihood.GravitationalWaveTransient(
+        likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
             [self.msd['IFO']], self.msd['waveform_generator'])
 
         priors = {}
@@ -58,7 +58,6 @@ class Test(unittest.TestCase):
         dL = self.msd['simulation_parameters']['luminosity_distance']
         priors['luminosity_distance'] = tupak.core.prior.Uniform(
             name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
-
 
         result = tupak.core.sampler.run_sampler(
             likelihood, priors, sampler='nestle', verbose=False, npoints=100)

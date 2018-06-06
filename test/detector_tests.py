@@ -101,24 +101,24 @@ class TestDetector(unittest.TestCase):
 
     def test_vertex_without_update(self):
         _ = self.ifo.vertex
-        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.assertFalse(np.array_equal(self.ifo.vertex, np.array([1])))
 
     def test_vertex_with_latitude_update(self):
-        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.latitude = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
 
     def test_vertex_with_longitude_update(self):
-        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.longitude = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
 
     def test_vertex_with_elevation_update(self):
-        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.elevation = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
@@ -212,14 +212,14 @@ class TestDetector(unittest.TestCase):
         self.assertTrue(np.array_equal(self.ifo.power_spectral_density_array, np.array([1, 4])))
 
     def test_antenna_response_default(self):
-        with mock.patch('tupak.utils.get_polarization_tensor') as m:
+        with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
             with mock.patch('numpy.einsum') as n:
                 m.return_value = 0
                 n.return_value = 1
                 self.assertEqual(self.ifo.antenna_response(234, 52, 54, 76, 'plus'), 1)
 
     def test_antenna_response_einsum(self):
-        with mock.patch('tupak.utils.get_polarization_tensor') as m:
+        with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
             m.return_value = np.ones((3, 3))
             self.assertAlmostEqual(self.ifo.antenna_response(234, 52, 54, 76, 'plus'), self.ifo.detector_tensor.sum())
 
@@ -272,8 +272,8 @@ class TestDetector(unittest.TestCase):
     def test_inject_signal_sets_data_with_existing_data_array(self):
         self.ifo.get_detector_response = MagicMock(return_value=np.array([1]))
         self.ifo.frequency_array = np.array([0, 1])
-        with mock.patch('tupak.utils.optimal_snr_squared') as m:
-            with mock.patch('tupak.utils.matched_filter_snr_squared') as n:
+        with mock.patch('tupak.gw.utils.optimal_snr_squared') as m:
+            with mock.patch('tupak.gw.utils.matched_filter_snr_squared') as n:
                 m.return_value = 0
                 n.return_value = 0
                 self.ifo.data = np.array([1])
@@ -283,8 +283,8 @@ class TestDetector(unittest.TestCase):
     def test_inject_signal_sets_data_without_data_array(self):
         self.ifo.get_detector_response = MagicMock(return_value=np.array([1]))
         self.ifo.frequency_array = np.array([0, 1])
-        with mock.patch('tupak.utils.optimal_snr_squared') as m:
-            with mock.patch('tupak.utils.matched_filter_snr_squared') as n:
+        with mock.patch('tupak.gw.utils.optimal_snr_squared') as m:
+            with mock.patch('tupak.gw.utils.matched_filter_snr_squared') as n:
                 m.return_value = 0
                 n.return_value = 0
                 self.ifo.data = 1
@@ -321,7 +321,7 @@ class TestDetector(unittest.TestCase):
             self.ifo.set_data(sampling_frequency=1, duration=1)
 
     def test_set_data_sets_data_from_frequency_domain_strain(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3
@@ -330,7 +330,7 @@ class TestDetector(unittest.TestCase):
             self.assertTrue(np.array_equal(self.ifo.data, np.array([1])))
 
     def test_set_data_sets_frequencies_from_frequency_domain_strain(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3
@@ -339,7 +339,7 @@ class TestDetector(unittest.TestCase):
             self.assertTrue(np.array_equal(self.ifo.frequency_array, np.array([1])))
 
     def test_set_data_sets_frequencies_from_spectral_density(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3
@@ -357,7 +357,7 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.epoch, 4)
 
     def test_set_data_sets_sampling_frequency(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3
@@ -366,7 +366,7 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.sampling_frequency, 1)
 
     def test_set_data_sets_duration(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3
@@ -375,12 +375,12 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.duration, 1)
 
     def test_time_delay_from_geocenter(self):
-        with mock.patch('tupak.utils.time_delay_geocentric') as m:
+        with mock.patch('tupak.gw.utils.time_delay_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.time_delay_from_geocenter(1, 2, 3), 1)
 
     def test_vertex_position_geocentric(self):
-        with mock.patch('tupak.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 

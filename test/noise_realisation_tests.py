@@ -38,8 +38,8 @@ class TestNoiseRealisation(unittest.TestCase):
             interferometer.set_data(sampling_frequency, time_duration, from_power_spectral_density=True)
             hf_tmp = interferometer.data
             psd = interferometer.power_spectral_density
-            snr[x] = tupak.core.utils.inner_product(hf_tmp, muf, frequency_array, psd) \
-                     / np.sqrt(tupak.core.utils.inner_product(muf, muf, frequency_array, psd))
+            snr[x] = tupak.gw.utils.inner_product(hf_tmp, muf, frequency_array, psd) \
+                     / np.sqrt(tupak.gw.utils.inner_product(muf, muf, frequency_array, psd))
 
         self.assertTrue(np.isclose(np.std(snr), 1.00, atol=1e-1))
 
