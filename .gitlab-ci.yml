@@ -23,10 +23,10 @@ exitcode-jessie:
     - pip install coverage-badge
     - python setup.py install
     - coverage erase
-    - coverage run --include=tupak/* -a test/detector_tests.py
-    - coverage run --include=tupak/* -a test/prior_tests.py
-    - coverage run --include=tupak/* -a test/sampler_tests.py
-    - coverage run --include=tupak/* -a test/waveform_generator_tests.py
+    - coverage run --source=tupak/ -a test/detector_tests.py
+    - coverage run --source=tupak/ -a test/prior_tests.py
+    - coverage run --source=tupak/ -a test/sampler_tests.py
+    - coverage run --source=tupak/ -a test/waveform_generator_tests.py
     - coverage run --omit=* -a test/example_tests.py
     - coverage run --omit=* -a test/noise_realisation_tests.py
     - coverage run --omit=* -a test/tests.py
