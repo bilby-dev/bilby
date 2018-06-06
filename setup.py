@@ -26,6 +26,7 @@ setup(name='tupak',
       version='0.1',
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
-      package_data={'tupak': ['noise_curves/*.txt', 'prior_files/*.txt',
-                              version_file]}
+      package_data={'tupak.core': 'noise_curves/*.txt',
+                    'tupak.gw': 'prior_files/*.txt',
+                    'tupak': version_file}
       )
