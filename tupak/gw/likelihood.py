@@ -2,7 +2,10 @@ import logging
 
 import numpy as np
 from scipy.interpolate import interp2d, interp1d
-from scipy.special import logsumexp
+try:
+    from scipy.special import logsumexp
+except ImportError:
+    from scipy.misc import logsumexp
 from scipy.special._ufuncs import i0e
 
 import tupak
