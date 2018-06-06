@@ -154,7 +154,7 @@ class Result(dict):
             kwargs['truths'] = kwargs.pop('truth')
 
         if getattr(self, 'injection_parameters', None) is not None:
-            injection_parameters = [self.injection_parameters[key]
+            injection_parameters = [self.injection_parameters.get(key, None)
                                     for key in self.search_parameter_keys]
             kwargs['truths'] = kwargs.get('truths', injection_parameters)
 
