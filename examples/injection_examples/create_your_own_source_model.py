@@ -45,7 +45,7 @@ prior = injection_parameters.copy()
 prior['A'] = tupak.core.prior.PowerLaw(alpha=-1, minimum=1e-25, maximum=1e-21, name='A')
 prior['f0'] = tupak.core.prior.Uniform(90, 110, 'f')
 
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(IFOs, waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(IFOs, waveform_generator)
 
 result = tupak.core.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,

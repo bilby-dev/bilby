@@ -94,14 +94,3 @@ result = tupak.run_sampler(
 # make some plots of the outputs
 result.plot_corner()
 print(result)
-
-
-
-
-
-
-
-
-
-
-

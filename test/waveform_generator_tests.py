@@ -48,7 +48,8 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.assertIsInstance(self.waveform_generator.time_array, np.ndarray)
 
     def test_source_model_parameters(self):
-        self.assertListEqual(list(self.waveform_generator.parameters.keys()), list(self.simulation_parameters.keys()))
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
 
 class TestParameterSetter(unittest.TestCase):
@@ -74,7 +75,8 @@ class TestParameterSetter(unittest.TestCase):
 
     def test_parameter_setter_none_handling(self):
         self.waveform_generator.parameters = None
-        self.assertSequenceEqual(self.waveform_generator.parameters.keys(), self.simulation_parameters.keys())
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
 
 class TestSourceModelSetter(unittest.TestCase):
@@ -94,7 +96,8 @@ class TestSourceModelSetter(unittest.TestCase):
         del self.simulation_parameters
 
     def test_parameters_are_set_correctly(self):
-        self.assertListEqual(list(self.waveform_generator.parameters.keys()), list(self.simulation_parameters.keys()))
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
 
 if __name__ == '__main__':

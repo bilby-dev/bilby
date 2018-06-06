@@ -64,7 +64,7 @@ prior['phase'] = tupak.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 
 
 # define likelihood
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(IFOs, waveform)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(IFOs, waveform)
 
 # launch sampler
 result = tupak.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,

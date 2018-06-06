@@ -59,7 +59,7 @@ priors['geocent_time'] = tupak.core.prior.Uniform(injection_parameters['geocent_
                                             'geocent_time')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, time_marginalization=False, phase_marginalization=False, distance_marginalization=False, prior=priors)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, time_marginalization=False, phase_marginalization=False, distance_marginalization=False, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

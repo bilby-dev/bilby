@@ -38,7 +38,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota
 
 # Initialise GravitationalWaveTransient
 # Note that we now need to pass the: priors and flags for each thing that's being marginalised.
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
     interferometers=IFOs, waveform_generator=waveform_generator, prior=priors,
     distance_marginalization=True, phase_marginalization=True)
 

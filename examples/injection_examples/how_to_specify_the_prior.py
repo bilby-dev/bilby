@@ -58,7 +58,7 @@ priors['a_2'] = tupak.core.prior.Interped(name='a_2', xx=a_2, yy=p_a_2, minimum=
 # Enjoy.
 
 # Initialise GravitationalWaveTransient
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
 result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',

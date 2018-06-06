@@ -55,7 +55,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'd
 priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, time_marginalization=True, phase_marginalization=True, distance_marginalization=True, prior=priors)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, time_marginalization=True, phase_marginalization=True, distance_marginalization=True, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

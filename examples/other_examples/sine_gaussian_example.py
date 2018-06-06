@@ -55,7 +55,7 @@ priors['frequency'] = tupak.core.prior.Uniform(30, 1000, 'frequency')
 priors['hrss'] = tupak.core.prior.Uniform(1e-23, 1e-21, 'hrss')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

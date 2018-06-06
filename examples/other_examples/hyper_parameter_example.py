@@ -67,7 +67,7 @@ for i in range(Nevents):
 run_prior = tupak.core.prior.Uniform(minimum=-10, maximum=10, name='mu_m')
 hyper_prior = tupak.core.prior.Gaussian(mu=0, sigma=1, name='hyper')
 
-hp_likelihood = tupak.core.likelihood.HyperparameterLikelihood(
+hp_likelihood = tupak.gw.likelihood.HyperparameterLikelihood(
         samples, hyper_prior, run_prior)
 
 hp_priors = dict(
