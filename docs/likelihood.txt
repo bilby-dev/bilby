@@ -9,15 +9,178 @@ for some specific set of parameters. In mathematical notation, the likelihood
 can be generically written as :math:`\mathcal{L}(d| \theta)`. How this is
 coded up will depend on the problem, but `tupak` expects all likelihood
 objects to have a `parameters` attribute (a dictionary of key-value pairs) and
-a `log_likelihood()` method.
+a `log_likelihood()` method. In thie page, we'll discuss how to write your own
+Likelihood, and the standard likelihoods in :code:`tupak`.
 
-The default likelihood we use in the examples is `GravitationalWaveTransient`:
+The simplest likelihood
+-----------------------
+
+To start with let's consider perhaps the simplest likelihood we could write
+down, namely a Gaussian likelihood for a set of data :math:`\vec{x}=[x_1, x_2,
+\ldots, x_N]`. The likelihood for a single data point, given the mean
+:math:`\mu` and standard-deviation :math:`\sigma` is given by
+
+.. math::
+
+   \mathcal{L}(x_i| \mu, \sigma) =
+   \frac{1}{\sqrt{2\pi\sigma^2}}\mathrm{exp}\left(
+   \frac{-(x_i - \mu)^2}{2\sigma^2}\right)
+
+Then, the likelihood for all :math:`N` data points is
+
+.. math::
+
+   \mathcal{L}(\vec{x}| \mu, \sigma) = \prod_{i=1}^N
+   \mathcal{L}(x_i| \mu, \sigma)
+
+In practise, we implement the log-likelihood to avoid numerical overflow
+errors. To code this up in :code:`tupak`, we would write a class like this::
+
+   class GaussianLikelihood(tupak.Likelihood):
+       def __init__(self, data):
+           """
+           A very simple Gaussian likelihood
+
+           Parameters
+           ----------
+           data: array_like
+               The data to analyse
+           """
+           self.data = data
+           self.N = len(data)
+           self.parameters = {'mu': None, 'sigma': None}
+
+       def log_likelihood(self):
+           mu = self.parameters['mu']
+           sigma = self.parameters['sigma']
+           res = self.data - mu
+           return -0.5 * (np.sum((res / sigma)**2)
+                          + self.N*np.log(2*np.pi*sigma**2))
+
+
+This demonstrates the two required features of a :code:`tupak`
+:code:`Likelihood` object:
+
+#. It has a `parameters` attribute (a dictionary with
+   keys for all the parameters, in this case, initialised to :code:`None`)
+
+#. It has a :code:`log_likelihood` method which, when called returns the log
+   likelihood for all the data.
+
+You can find an example that uses this likelihood `here <https://git.ligo.org/Monash/tupak/blob/master/examples/other_examples/gaussian_example.py>`_.
+
+.. tip::
+
+   Note that the example above subclasses the :code:`tupak.Likelihood` base
+   class, this simply provides a few in built functions. We recommend you also
+   do this when writing your own likelihood.
+
+
+General likelihood for fitting a function :math:`y(x)` to some data with known noise
+------------------------------------------------------------------------------------
+
+The previous example was rather simplistic, Let's now consider that we have some
+dependent data :math:`\vec{y}=y_1, y_2, \ldots y_N$` measured at
+:math:`\vec{x}=x_1, x_2, \ldots, x_N`. We believe that the data is generated
+by additive Gaussian noise with a known variance :math:`sigma^2` and a function
+:math:`y(x; \theta)` where :math:`\theta`  are some unknown parameters; that is
+
+.. math::
+
+   y_i = y(x_i; \theta) + n_i
+
+where :math:`n_i` is drawn from a normal distribution with zero mean and
+standard deviation :math:`sigma`. As such, :math:`y_i - y(x_i; \theta)`
+itself will have a likelihood
+
+.. math::
+
+   \mathcal{L}(y_i; x_i, \theta) =
+   \frac{1}{\sqrt{2\pi\sigma^{2}}}
+   \mathrm{exp}\left(\frac{-(y_i - y(x_i; \theta))^2}{2\sigma^2}\right)
+
+
+As with the previous case, the likelihood for all the data is the produce over
+the likelihood for each data point.
+
+In :code:`tupak`, we can code this up as a likelihood in the following way::
+
+   class GaussianLikelihood(tupak.Likelihood):
+       def __init__(self, x, y, sigma, function):
+           """
+           A general Gaussian likelihood - the parameters are inferred from the
+           arguments of function
+
+           Parameters
+           ----------
+           x, y: array_like
+               The data to analyse
+           sigma: float
+               The standard deviation of the noise
+           function:
+               The python function to fit to the data. Note, this must take the
+               dependent variable as its first argument. The other arguments are
+               will require a prior and will be sampled over (unless a fixed
+               value is given).
+           """
+           self.x = x
+           self.y = y
+           self.sigma = sigma
+           self.N = len(x)
+           self.function = function
+
+           # These lines of code infer the parameters from the provided function
+           parameters = inspect.getargspec(function).args
+           parameters.pop(0)
+           self.parameters = dict.fromkeys(parameters)
+
+       def log_likelihood(self):
+           res = self.y - self.function(self.x, **self.parameters)
+           return -0.5 * (np.sum((res / self.sigma)**2)
+                          + self.N*np.log(2*np.pi*self.sigma**2))
+
+       def noise_log_likelihood(self):
+           return -0.5 * (np.sum((self.y / self.sigma)**2)
+                          + self.N*np.log(2*np.pi*self.sigma**2))
+
+
+This likelihood can be given any python function, the data (in the form of
+:code:`x` and :code:`y`) and the standard deviation of the noise. The
+parameters are inferred from the arguments to the :code:`function` argument,
+for example if, when instatiating the likelihood you passed in a the following
+function::
+
+   def f(x, a, b):
+       return x**2 + b
+
+Then you would also need to provide priors for :code:`a` and :code:`b`. For
+this likelihood, the first argument to :code:`function` is always assumed to
+be the dependent variable.
+
+.. note::
+    Here we have explicitly defined the :code:`noise_log_likelihood` method
+    as the case when there is no signal (i.e., :math:`y(x; \theta)=0`).
+
+You can see an example of this likelihood in the `linear regression example
+<https://git.ligo.org/Monash/tupak/blob/master/examples/other_examples/linear_regression.py>`_.
+
+
+Likelihood for transient gravitational waves
+--------------------------------------------
+
+In the examples above, we show how to write your own likelihood. However, for
+routine gravitational wave data analysis of transient events, we have in built
+likelihoods.  The default likelihood we use in the examples is
+`GravitationalWaveTransient`:
 
 .. autoclass:: tupak.likelihood.GravitationalWaveTransient
 
 We also provide a simpler likelihood
 
 .. autoclass:: tupak.likelihood.BasicGravitationalWaveTransient
+
+Empty likelihood for subclassing
+--------------------------------
 
 We provide an empty parent class which can be subclassed for alternative use
 cases
