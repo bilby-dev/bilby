@@ -2,7 +2,7 @@
 """
 An example of how to use tupak to perform paramater estimation for
 non-gravitational wave data. In this case, fitting a linear function to
-data with background Gaussian noise
+data with background Gaussian noise with unknown variance.
 
 """
 from __future__ import division
@@ -13,7 +13,7 @@ import inspect
 
 # A few simple setup steps
 tupak.utils.setup_logger()
-label = 'linear_regression'
+label = 'linear_regression_unknown_noise'
 outdir = 'outdir'
 
 
@@ -25,7 +25,7 @@ def model(time, m, c):
 # New we define the injection parameters which we make simulated data with
 injection_parameters = dict(m=0.5, c=0.2)
 
-# For this example, we'll use standard Gaussian noise
+# For this example, we'll inject standard Gaussian noise
 sigma = 1
 
 # These lines of code generate the fake data. Note the ** just unpacks the
@@ -49,28 +49,30 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
 # our model.
 
-
 class GaussianLikelihood(tupak.Likelihood):
-    def __init__(self, x, y, sigma, function):
+    def __init__(self, x, y, function, sigma=None):
         """
-        A general Gaussian likelihood - the parameters are inferred from the
-        arguments of function
+        A general Gaussian likelihood for known or unknown noise - the model
+        parameters are inferred from the arguments of function
 
         Parameters
         ----------
         x, y: array_like
             The data to analyse
-        sigma: float
-            The standard deviation of the noise
         function:
             The python function to fit to the data. Note, this must take the
             dependent variable as its first argument. The other arguments are
             will require a prior and will be sampled over (unless a fixed
             value is given).
+        sigma: None, float, array_like
+            If None, the standard deviation of the noise is unknown and will be
+            estimated (note: this requires a prior to be given for sigma). If
+            not None, this defined the standard-deviation of the data points.
+            This can either be a single float, or an array with length equal
+            to that for `x` and `y`.
         """
         self.x = x
         self.y = y
-        self.sigma = sigma
         self.N = len(x)
         self.function = function
 
@@ -78,26 +80,33 @@ class GaussianLikelihood(tupak.Likelihood):
         parameters = inspect.getargspec(function).args
         parameters.pop(0)
         self.parameters = dict.fromkeys(parameters)
+        self.function_keys = self.parameters.keys()
+        self.parameters['sigma'] = None
 
     def log_likelihood(self):
-        res = self.y - self.function(self.x, **self.parameters)
-        return -0.5 * (np.sum((res / self.sigma)**2)
-                       + self.N*np.log(2*np.pi*self.sigma**2))
+        model_parameters = {k: self.parameters[k] for k in self.function_keys}
+        res = self.y - self.function(self.x, **model_parameters)
+        sigma = self.parameters['sigma']
+        return -0.5 * (np.sum((res / sigma)**2)
+                       + self.N*np.log(2*np.pi*sigma**2))
 
     def noise_log_likelihood(self):
-        return -0.5 * (np.sum((self.y / self.sigma)**2)
-                       + self.N*np.log(2*np.pi*self.sigma**2))
+        return np.nan
+        sigma = self.parameters['sigma']
+        return -0.5 * (np.sum((self.y / sigma)**2)
+                       + self.N*np.log(2*np.pi*sigma**2))
 
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
-likelihood = GaussianLikelihood(time, data, sigma, model)
+likelihood = GaussianLikelihood(time, data, model)
 
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior
 priors = {}
 priors['m'] = tupak.prior.Uniform(0, 5, 'm')
 priors['c'] = tupak.prior.Uniform(-2, 2, 'c')
+priors['sigma'] = tupak.prior.Uniform(0, 10, 'sigma')
 
 # And run sampler
 result = tupak.run_sampler(
