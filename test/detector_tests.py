@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import tupak
 import unittest
 import mock
@@ -348,7 +349,7 @@ class TestDetector(unittest.TestCase):
             self.assertTrue(np.array_equal(self.ifo.frequency_array, np.array([2])))
 
     def test_set_data_sets_epoch(self):
-        with mock.patch('tupak.utils.create_frequency_series') as m:
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
             m.return_value = np.array([1])
             self.ifo.minimum_frequency = 0
             self.ifo.maximum_frequency = 3

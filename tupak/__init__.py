@@ -17,6 +17,7 @@ For installation instructions see https://git.ligo.org/Monash/tupak
 from __future__ import print_function, division, absolute_import
 
 # import local files, utils should be imported first
+import tupak
 from tupak.gw import detector, conversion, source, waveform_generator
 from tupak.core import likelihood, prior, result, sampler, utils
 

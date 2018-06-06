@@ -6,7 +6,7 @@ import logging
 
 # Required to run the tests
 from past.builtins import execfile
-import tupak
+import tupak.core.utils
 
 # Imported to ensure the examples run
 
@@ -38,11 +38,11 @@ class Test(unittest.TestCase):
 
     def test_examples(self):
         """ Loop over examples to check they run """
-        examples = ['examples/injection_examples/basic_tutorial.py',
-                    'examples/injection_examples/change_sampled_parameters.py',
-                    'examples/injection_examples/marginalized_likelihood.py',
-                    'examples/injection_examples/create_your_own_time_domain_source_model.py',
-                    'examples/other_examples/linear_regression.py',
+        examples = ['../examples/injection_examples/basic_tutorial.py',
+                    '../examples/injection_examples/change_sampled_parameters.py',
+                    '../examples/injection_examples/marginalized_likelihood.py',
+                    '../examples/injection_examples/create_your_own_time_domain_source_model.py',
+                    '../examples/other_examples/linear_regression.py',
                     ]
         for filename in examples:
             print("Testing {}".format(filename))

@@ -10,6 +10,8 @@ import tupak
 import numpy as np
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
+import tupak.gw.prior
+
 time_duration = 4.
 sampling_frequency = 2048.
 
@@ -52,10 +54,12 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'd
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
+priors['luminosity_distance'] = tupak.gw.prior.create_default_prior(name='luminosity_distance')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator, time_marginalization=True, phase_marginalization=True, distance_marginalization=False, prior=priors)
+likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,
+                                              time_marginalization=True, phase_marginalization=True,
+                                              distance_marginalization=False, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
