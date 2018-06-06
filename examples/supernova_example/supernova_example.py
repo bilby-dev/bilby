@@ -64,11 +64,11 @@ for key in ['psi', 'geocent_time']:
 
 # don't use default for luminosity distance because we want kpc not Mpc
 priors['luminosity_distance'] = tupak.prior.Uniform(2, 20, 'luminosity_distance') 
-priors['pc_coeff1'] = tupak.prior.Uniform(-100, 100, 'pc_coeff1')
-priors['pc_coeff2'] = tupak.prior.Uniform(-100, 100, 'pc_coeff2')
-priors['pc_coeff3'] = tupak.prior.Uniform(-100, 100, 'pc_coeff3')
-priors['pc_coeff4'] = tupak.prior.Uniform(-100, 100, 'pc_coeff4')
-priors['pc_coeff5'] = tupak.prior.Uniform(-100, 100, 'pc_coeff5')
+priors['pc_coeff1'] = tupak.prior.Uniform(-1, 1, 'pc_coeff1')
+priors['pc_coeff2'] = tupak.prior.Uniform(-1, 1, 'pc_coeff2')
+priors['pc_coeff3'] = tupak.prior.Uniform(-1, 1, 'pc_coeff3')
+priors['pc_coeff4'] = tupak.prior.Uniform(-1, 1, 'pc_coeff4')
+priors['pc_coeff5'] = tupak.prior.Uniform(-1, 1, 'pc_coeff5')
 priors['ra'] = tupak.prior.create_default_prior(name='ra')
 priors['dec'] = tupak.prior.create_default_prior(name='dec')
 
