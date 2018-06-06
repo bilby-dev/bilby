@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+
 import numpy as np
 
 try:
@@ -7,6 +8,7 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 from scipy.interpolate import interp1d
+from scipy.interpolate import interp2d
 import tupak
 import logging
 
@@ -58,12 +60,15 @@ class GravitationalWaveTransient(Likelihood):
         some model parameters
 
     """
-    def __init__(self, interferometers, waveform_generator, distance_marginalization=False, phase_marginalization=False,
-                 prior=None):
+
+    def __init__(self, interferometers, waveform_generator, time_marginalization=False, distance_marginalization=False,
+                 phase_marginalization=False, prior=None):
+
         Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
         self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
+        self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
@@ -73,12 +78,12 @@ class GravitationalWaveTransient(Likelihood):
             self.delta_distance = 0
             self.distance_prior_array = np.array([])
             self.setup_distance_marginalization()
-            prior['luminosity_distance'] = 1
+            prior['luminosity_distance'] = 1  # this means the prior is a delta function fixed at the RHS value
 
         if self.phase_marginalization:
             self.bessel_function_interped = None
             self.setup_phase_marginalization()
-            prior['psi'] = 0
+            prior['phase'] = 0
 
     @property
     def prior(self):
@@ -107,7 +112,7 @@ class GravitationalWaveTransient(Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-
+        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers[0].data[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
@@ -116,23 +121,53 @@ class GravitationalWaveTransient(Likelihood):
 
             optimal_snr_squared += tupak.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.time_duration)
+            if self.time_marginalization:
+                interferometer.time_marginalization = self.time_marginalization
+                matched_filter_snr_squared_tc_array += 4. * (1. / interferometer.duration) * np.fft.ifft(
+                    signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1]
+                    / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.data[0:-1])
 
-        if self.distance_marginalization:
+        if self.time_marginalization:
 
-            optimal_snr_squared_array = optimal_snr_squared \
-                                        * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                                        / self.distance_array ** 2
+            delta_tc = 1. / self.waveform_generator.sampling_frequency
+            tc_log_norm = np.log(self.interferometers[0].duration * delta_tc)
 
-            matched_filter_snr_squared_array = matched_filter_snr_squared * \
-                self.waveform_generator.parameters['luminosity_distance'] / self.distance_array
+            if self.distance_marginalization:
 
-            if self.phase_marginalization:
-                matched_filter_snr_squared_array = self.bessel_function_interped(abs(matched_filter_snr_squared_array))
+                rho_mf_ref_tc_array, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared_tc_array,
+                                                                    optimal_snr_squared)
+
+                if self.phase_marginalization:
+
+                    phase_marged_rho_mf_tc_array = self.bessel_function_interped(abs(rho_mf_ref_tc_array))
+
+                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(phase_marged_rho_mf_tc_array,
+                                                                                      rho_opt_ref)
+                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - tc_log_norm
+
+                else:
+
+                    dist_marged_log_l_tc_array = self.interp_dist_margd_loglikelihood(rho_mf_ref_tc_array.real,
+                                                                                      rho_opt_ref)
+
+                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
+
+            elif self.phase_marginalization:
+                log_l = logsumexp(self.bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc)\
+                        - optimal_snr_squared / 2. - tc_log_norm
+
             else:
-                matched_filter_snr_squared_array = np.real(matched_filter_snr_squared_array)
 
-            log_l = logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
-                              b=self.distance_prior_array * self.delta_distance)
+                log_l = logsumexp(matched_filter_snr_squared_tc_array.real, axis=0,
+                                  b=delta_tc) - optimal_snr_squared / 2. - tc_log_norm
+
+        elif self.distance_marginalization:
+
+            rho_mf_ref, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared.real,
+                                                       optimal_snr_squared)
+
+            log_l = self.interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
+
         elif self.phase_marginalization:
             matched_filter_snr_squared = self.bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
@@ -142,11 +177,20 @@ class GravitationalWaveTransient(Likelihood):
 
         return log_l.real
 
+    def __setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
+        rho_opt_ref = optimal_snr_squared.real * \
+                      self.waveform_generator.parameters['luminosity_distance'] ** 2 \
+                      / self.ref_dist ** 2.
+        rho_mf_ref = matched_filter_snr_squared * \
+                     self.waveform_generator.parameters['luminosity_distance'] \
+                     / self.ref_dist
+        return rho_mf_ref, rho_opt_ref
+
     def log_likelihood(self):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
     def setup_distance_marginalization(self):
-        if 'fluminosity_distance' not in self.prior.keys():
+        if 'luminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
@@ -155,10 +199,41 @@ class GravitationalWaveTransient(Likelihood):
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self.distance_array])
 
+        ### Make the lookup table ###
+        self.ref_dist = 1000  # 1000 Mpc
+        self.dist_margd_loglikelihood_array = np.zeros((400, 800))
+
+        self.rho_opt_ref_array = np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
+            0])  # optimal filter snr at fiducial distance of ref_dist Mpc
+        self.rho_mf_ref_array = np.hstack((-np.logspace(2, -3, self.dist_margd_loglikelihood_array.shape[1] / 2), \
+                                           np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
+                                               1] / 2)))  # matched filter snr at fiducial distance of ref_dist Mpc
+
+        for ii, rho_opt_ref in enumerate(self.rho_opt_ref_array):
+
+            for jj, rho_mf_ref in enumerate(self.rho_mf_ref_array):
+                optimal_snr_squared_array = rho_opt_ref * self.ref_dist ** 2. \
+                                            / self.distance_array ** 2
+
+                matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist \
+                                                   / self.distance_array
+
+                self.dist_margd_loglikelihood_array[ii][jj] = \
+                    logsumexp(matched_filter_snr_squared_array - \
+                              optimal_snr_squared_array / 2, \
+                              b=self.distance_prior_array * self.delta_distance)
+
+        log_norm = logsumexp(0. / self.distance_array - 0. / self.distance_array ** 2., \
+                             b=self.distance_prior_array * self.delta_distance)
+        self.dist_margd_loglikelihood_array -= log_norm
+
+        self.interp_dist_margd_loglikelihood = interp2d(self.rho_mf_ref_array, self.rho_opt_ref_array,
+                                                        self.dist_margd_loglikelihood_array)
+
     def setup_phase_marginalization(self):
-        if 'psi' not in self.prior.keys() or not isinstance(self.prior['psi'], tupak.prior.Prior):
-            logging.info('No prior provided for polarization, using default prior.')
-            self.prior['psi'] = tupak.prior.create_default_prior('psi')
+        if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.prior.Prior):
+            logging.info('No prior provided for phase at coalescence, using default prior.')
+            self.prior['phase'] = tupak.prior.create_default_prior('phase')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])
                                                  + np.linspace(0, 1e6, int(1e5)),
@@ -187,6 +262,7 @@ class BasicGravitationalWaveTransient(Likelihood):
         some model parameters
 
     """
+
     def __init__(self, interferometers, waveform_generator):
         Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers

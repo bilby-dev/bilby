@@ -39,7 +39,8 @@ class Result(dict):
     def __init__(self, dictionary=None):
         if type(dictionary) is dict:
             for key in dictionary:
-                setattr(self, key, self._decode_object(dictionary[key]))
+                val = self._standardise_strings(dictionary[key], key)
+                setattr(self, key, val)
 
     def __getattr__(self, name):
         try:
@@ -54,29 +55,26 @@ class Result(dict):
         """Print a summary """
         if hasattr(self, 'samples'):
             return ("nsamples: {:d}\n"
-                    "noise_logz: {:6.3f}\n"
-                    "logz: {:6.3f} +/- {:6.3f}\n"
+                    "log_noise_evidence: {:6.3f}\n"
+                    "log_evidence: {:6.3f} +/- {:6.3f}\n"
                     "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                    .format(len(self.samples), self.noise_logz, self.logz,
-                            self.logzerr, self.log_bayes_factor, self.logzerr))
+                    .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
+                            self.log_evidence_err, self.log_bayes_factor,
+                            self.log_evidence_err))
         else:
             return ''
 
-    def _decode_object(self, item):
-        """ When reading in data, ensure all bytes are decoded to strings """
-        if type(item) == pd.DataFrame:
-            return item
-        try:
+    def _standardise_a_string(self, item):
+        """ When reading in data, ensure all strings are decoded correctly """
+        if type(item) in [bytes]:
             return item.decode()
-        except AttributeError:
-            pass
+        else:
+            return item
 
-        try:
-            return [i.decode() for i in item]
-        except (AttributeError, TypeError):
-            pass
-
-        logging.debug("Unable to decode item")
+    def _standardise_strings(self, item, name=None):
+        if type(item) in [list]:
+            item = [self._standardise_a_string(i) for i in item]
+        # logging.debug("Unable to decode item {}".format(name))
         return item
 
     def get_result_dictionary(self):
@@ -231,7 +229,7 @@ class Result(dict):
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
-    def check_attribute_match_to_other_object(self, name, other_object):
+    def _check_attribute_match_to_other_object(self, name, other_object):
         """ Check attribute name exists in other_object and is the same """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)

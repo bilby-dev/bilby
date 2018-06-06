@@ -1,7 +1,11 @@
-==========
-Samplers
-==========
+.. _run_sampler:
 
-Given a `likelihood` and `prior`, we can run parameter estimation using `run_sampler` 
+========
+Sampling
+========
+
+Given a :ref:`likelihood` and :ref:`priors`, we can run parameter estimation using the
+`run_sampler` function. This can be accessed via :code:`tupak.run_sampler` or
+:code:`tupak.sampler.run_sampler`. Here is the detailed API:
 
 .. autofunction:: tupak.sampler.run_sampler

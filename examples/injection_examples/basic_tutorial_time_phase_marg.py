@@ -15,7 +15,7 @@ sampling_frequency = 2048.
 
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
-label = 'basic_tutorial'
+label = 'basic_tutorial_time_phase_marg'
 tupak.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
@@ -47,19 +47,15 @@ priors = dict()
 # so for this example we will set almost all of the priors to be equall to their injected values.  This implies the
 # prior is a delta function at the true, injected value.  In reality, the sampler implementation is smart enough to
 # not sample any parameter that has a delta-function prior.
-
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
 priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
-priors['geocent_time'] = tupak.prior.Uniform(injection_parameters['geocent_time'] - 1,
-                                            injection_parameters['geocent_time'] + 1,
-                                            'geocent_time')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,time_marginalization=False, phase_marginalization=False, distance_marginalization=False, prior=priors)
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,time_marginalization=True, phase_marginalization=True, distance_marginalization=False, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

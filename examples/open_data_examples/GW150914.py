@@ -37,6 +37,7 @@ prior['mass_1'] = tupak.prior.Uniform(30, 50, 'mass_1')
 prior['mass_2'] = tupak.prior.Uniform(20, 40, 'mass_2')
 prior['geocent_time'] = tupak.prior.Uniform(
     time_of_event - 0.1, time_of_event + 0.1, name='geocent_time')
+#prior['geocent_time'] = time_of_event
 prior['luminosity_distance'] = tupak.prior.PowerLaw(
     alpha=2, minimum=100, maximum=1000)
 
@@ -44,20 +45,23 @@ prior['luminosity_distance'] = tupak.prior.PowerLaw(
 # creates the frequency-domain strain. In this instance, we are using the
 # `lal_binary_black_hole model` source model. We also pass other parameters:
 # the waveform approximant and reference frequency.
-waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=interferometers[0].duration,
-                                                                sampling_frequency=interferometers[
-                                                                    0].sampling_frequency,
-                                                                frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-                                                                parameters={'waveform_approximant': 'IMRPhenomPv2',
-                                                                            'reference_frequency': 50})
+waveform_generator = tupak.WaveformGenerator(time_duration=interferometers[0].duration,
+                                             sampling_frequency=interferometers[0].sampling_frequency,
+                                             frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+                                             parameters={'waveform_approximant': 'IMRPhenomPv2',
+                                                         'reference_frequency': 50})
 
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
-likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
+<<<<<<< HEAD
+likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers, waveform_generator, time_marginalization=False, distance_marginalization=True, prior=prior)
+=======
+likelihood = tupak.GravitationalWaveTransient(interferometers, waveform_generator)
+>>>>>>> e8b704afba65886f49cb448402a95ae90c468a24
 
 # Finally, we run the sampler. This function takes the likelihood and prio
 # along with some options for how to do the sampling and how to save the data
-result = tupak.sampler.run_sampler(likelihood, prior, sampler='dynesty',
-                                   outdir=outdir, label=label)
+result = tupak.run_sampler(likelihood, prior, sampler='dynesty',
+                           outdir=outdir, label=label)
 result.plot_corner()
 print(result)

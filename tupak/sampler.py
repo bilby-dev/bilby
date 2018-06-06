@@ -6,6 +6,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from .result import Result, read_in_result
 from .prior import Prior, fill_priors
@@ -51,18 +52,19 @@ class Sampler(object):
 
         self.__search_parameter_keys = []
         self.__fixed_parameter_keys = []
-        self.initialise_parameters()
-        self.verify_parameters()
+        self._initialise_parameters()
+        self._verify_parameters()
+        self._verify_use_ratio()
         self.kwargs = kwargs
 
-        self.check_cached_result()
+        self._check_cached_result()
 
-        self.log_summary_for_sampler()
+        self._log_summary_for_sampler()
 
         if os.path.isdir(outdir) is False:
             os.makedirs(outdir)
 
-        self.result = self.initialise_result()
+        self.result = self._initialise_result()
 
     @property
     def search_parameter_keys(self):
@@ -102,7 +104,7 @@ class Sampler(object):
             raise TypeError('sampler must either be a string referring to built in sampler or a custom made class that '
                             'inherits from sampler')
 
-    def verify_kwargs_against_external_sampler_function(self):
+    def _verify_kwargs_against_external_sampler_function(self):
         args = inspect.getargspec(self.external_sampler_function).args
         bad_keys = []
         for user_input in self.kwargs.keys():
@@ -114,7 +116,7 @@ class Sampler(object):
         for key in bad_keys:
             self.kwargs.pop(key)
 
-    def initialise_parameters(self):
+    def _initialise_parameters(self):
 
         for key in self.priors:
             if isinstance(self.priors[key], Prior) is True \
@@ -132,7 +134,7 @@ class Sampler(object):
         for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
-    def initialise_result(self):
+    def _initialise_result(self):
         result = Result()
         result.search_parameter_keys = self.__search_parameter_keys
         result.fixed_parameter_keys = self.__fixed_parameter_keys
@@ -144,19 +146,46 @@ class Sampler(object):
         result.kwargs = self.kwargs
         return result
 
-    def verify_parameters(self):
+    def _verify_parameters(self):
         for key in self.priors:
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
+            t1 = time.time()
             self.likelihood.log_likelihood()
+            logging.info(
+                "Single likelihood eval. took {} s".format(time.time() - t1))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
                 "Have you specified all the parameters:\n{}"
                 .format(e, self.likelihood.parameters))
+
+    def _verify_use_ratio(self):
+
+        # This is repeated from verify_parameters
+        for key in self.priors:
+            try:
+                self.likelihood.parameters[key] = self.priors[key].sample()
+            except AttributeError as e:
+                logging.warning('Cannot sample from {}, {}'.format(key, e))
+
+        if self.use_ratio is False:
+            logging.debug("use_ratio set to False")
+            return
+
+        ratio_is_nan = np.isnan(self.likelihood.log_likelihood_ratio())
+
+        if self.use_ratio is True and ratio_is_nan:
+            logging.warning(
+                "You have requested to use the loglikelihood_ratio, but it "
+                " returns a NaN")
+        elif self.use_ratio is None and ~ratio_is_nan:
+            logging.debug(
+                "use_ratio not spec. but gives valid answer, setting True")
+            self.use_ratio = True
 
     def prior_transform(self, theta):
         return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
@@ -192,13 +221,13 @@ class Sampler(object):
             logging.info('Prior draw {} has inf prior'.format(draw))
         return draw
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         pass
 
     def _run_test(self):
         raise ValueError("Method not yet implemented")
 
-    def check_cached_result(self):
+    def _check_cached_result(self):
         """ Check if the cached data file exists and can be used """
 
         if utils.command_line_args.clean:
@@ -221,14 +250,14 @@ class Sampler(object):
                           'kwargs']
             use_cache = True
             for key in check_keys:
-                if self.cached_result.check_attribute_match_to_other_object(
+                if self.cached_result._check_attribute_match_to_other_object(
                         key, self) is False:
                     logging.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
             if use_cache is False:
                 self.cached_result = None
 
-    def log_summary_for_sampler(self):
+    def _log_summary_for_sampler(self):
         if self.cached_result is None:
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, self.kwargs))
@@ -250,14 +279,14 @@ class Nestle(Sampler):
                 if equiv in self.__kwargs:
                     self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
         if 'verbose' in self.kwargs:
             if self.kwargs['verbose']:
                 self.kwargs['callback'] = nestle.print_progress
             self.kwargs.pop('verbose')
-        self.verify_kwargs_against_external_sampler_function()
+        self._verify_kwargs_against_external_sampler_function()
 
         out = self.external_sampler_function(
             loglikelihood=self.log_likelihood,
@@ -267,8 +296,8 @@ class Nestle(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
-        self.result.logz = out.logz
-        self.result.logzerr = out.logzerr
+        self.result.log_evidence = out.logz
+        self.result.log_evidence_err = out.logzerr
         return self.result
 
     def _run_test(self):
@@ -279,8 +308,8 @@ class Nestle(Sampler):
             prior_transform=self.prior_transform,
             ndim=self.ndim, maxiter=10, **self.kwargs)
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         return self.result
 
 
@@ -304,7 +333,40 @@ class Dynesty(Sampler):
         if 'update_interval' not in self.__kwargs:
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
 
-    def run_sampler(self):
+    def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
+        """ Replacing status update for dynesty.result.print_func """
+
+        # Extract results at the current iteration.
+        (worst, ustar, vstar, loglstar, logvol, logwt,
+         logz, logzvar, h, nc, worst_it, boundidx, bounditer,
+         eff, delta_logz) = results
+
+        # Adjusting outputs for printing.
+        if delta_logz > 1e6:
+            delta_logz = np.inf
+        if logzvar >= 0. and logzvar <= 1e6:
+            logzerr = np.sqrt(logzvar)
+        else:
+            logzerr = np.nan
+        if logz <= -1e6:
+            logz = -np.inf
+        if loglstar <= -1e6:
+            loglstar = -np.inf
+
+        if self.use_ratio:
+            key = 'logz ratio'
+        else:
+            key = 'logz'
+
+        # Constructing output.
+        print_str = "\r {}| {}={:6.3f} +/- {:6.3f} | dlogz: {:6.3f} > {:6.3f}".format(
+            niter, key, logz, logzerr, delta_logz, dlogz)
+
+        # Printing.
+        sys.stderr.write(print_str)
+        sys.stderr.flush()
+
+    def _run_external_sampler(self):
         dynesty = self.external_sampler
 
         if self.kwargs.get('dynamic', False) is False:
@@ -314,7 +376,8 @@ class Dynesty(Sampler):
                 ndim=self.ndim, **self.kwargs)
             nested_sampler.run_nested(
                 dlogz=self.kwargs['dlogz'],
-                print_progress=self.kwargs['verbose'])
+                print_progress=self.kwargs['verbose'],
+                print_func=self._print_func)
         else:
             nested_sampler = dynesty.DynamicNestedSampler(
                 loglikelihood=self.log_likelihood,
@@ -328,8 +391,8 @@ class Dynesty(Sampler):
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
-        self.result.logz = out.logz[-1]
-        self.result.logzerr = out.logzerr[-1]
+        self.result.log_evidence = out.logz[-1]
+        self.result.log_evidence_err = out.logzerr[-1]
 
         if self.plot:
             self.generate_trace_plots(out)
@@ -356,8 +419,8 @@ class Dynesty(Sampler):
             maxiter=10)
 
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         return self.result
 
 
@@ -383,10 +446,10 @@ class Pymultinest(Sampler):
                 if equiv in self.__kwargs:
                     self.__kwargs['n_live_points'] = self.__kwargs.pop(equiv)
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         pymultinest = self.external_sampler
         self.external_sampler_function = pymultinest.run
-        self.verify_kwargs_against_external_sampler_function()
+        self._verify_kwargs_against_external_sampler_function()
         # Note: pymultinest.solve adds some extra steps, but underneath
         # we are calling pymultinest.run - hence why it is used in checking
         # the arguments.
@@ -396,15 +459,15 @@ class Pymultinest(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = out['samples']
-        self.result.logz = out['logZ']
-        self.result.logzerr = out['logZerr']
+        self.result.log_evidence = out['logZ']
+        self.result.log_evidence_err = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result
 
 
 class Ptemcee(Sampler):
 
-    def run_sampler(self):
+    def _run_external_sampler(self):
         ntemps = self.kwargs.pop('ntemps', 2)
         nwalkers = self.kwargs.pop('nwalkers', 100)
         nsteps = self.kwargs.pop('nsteps', 100)
@@ -428,8 +491,8 @@ class Ptemcee(Sampler):
         self.result.samples = sampler.chain[0, :, nburn:, :].reshape(
             (-1, self.ndim))
         self.result.walkers = sampler.chain[0, :, :, :]
-        self.result.logz = np.nan
-        self.result.logzerr = np.nan
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         self.plot_walkers()
         logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
         logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
@@ -450,7 +513,7 @@ class Ptemcee(Sampler):
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=True, injection_parameters=None,
+                sampler='nestle', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, **kwargs):
     """
     The primary interface to easy parameter estimation
@@ -510,14 +573,14 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         if utils.command_line_args.test:
             result = sampler._run_test()
         else:
-            result = sampler.run_sampler()
+            result = sampler._run_external_sampler()
 
-        result.noise_logz = likelihood.noise_log_likelihood()
-        if use_ratio:
-            result.log_bayes_factor = result.logz
-            result.logz = result.log_bayes_factor + result.noise_logz
+        result.log_noise_evidence = likelihood.noise_log_likelihood()
+        if sampler.use_ratio:
+            result.log_bayes_factor = result.log_evidence
+            result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
         else:
-            result.log_bayes_factor = result.logz - result.noise_logz
+            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
         if injection_parameters is not None:
             result.injection_parameters = injection_parameters
             if conversion_function is not None:

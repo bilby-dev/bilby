@@ -1,28 +1,23 @@
 #!/bin/python
 """
 An example of how to use tupak to perform paramater estimation for
-non-gravitational wave data
+non-gravitational wave data. In this case, fitting a linear function to
+data with background Gaussian noise
+
 """
 from __future__ import division
 import tupak
 import numpy as np
 import matplotlib.pyplot as plt
+import inspect
 
 # A few simple setup steps
 tupak.utils.setup_logger()
-label = 'linear-regression'
+label = 'linear_regression'
 outdir = 'outdir'
 
-# Here is minimum requirement for a Likelihood class to run linear regression
-# with tupak. In this case, we setup a GaussianLikelihood, which needs to have
-# a log_likelihood method. Note, in this case we make use of the `tupak`
-# waveform_generator to make the signal (more on this later) But, one could
-# make this work without the waveform generator.
 
-# Making simulated data
-
-
-# First, we define our signal model, in this case a simple linear function
+# First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
     return time * m + c
 
@@ -55,9 +50,11 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # our model.
 
 
-class GaussianLikelihood(tupak.likelihood.Likelihood):
-    def __init__(self, x, y, sigma, waveform_generator):
+class GaussianLikelihood(tupak.Likelihood):
+    def __init__(self, x, y, sigma, function):
         """
+        A general Gaussian likelihood - the parameters are inferred from the
+        arguments of function
 
         Parameters
         ----------
@@ -65,19 +62,25 @@ class GaussianLikelihood(tupak.likelihood.Likelihood):
             The data to analyse
         sigma: float
             The standard deviation of the noise
-        waveform_generator: `tupak.waveform_generator.WaveformGenerator`
-            An object which can generate the 'waveform', which in this case is
-            any arbitrary function
+        function:
+            The python function to fit to the data. Note, this must take the
+            dependent variable as its first argument. The other arguments are
+            will require a prior and will be sampled over (unless a fixed
+            value is given).
         """
         self.x = x
         self.y = y
         self.sigma = sigma
         self.N = len(x)
-        self.waveform_generator = waveform_generator
-        self.parameters = waveform_generator.parameters
+        self.function = function
+
+        # These lines of code infer the parameters from the provided function
+        parameters = inspect.getargspec(function).args
+        parameters.pop(0)
+        self.parameters = dict.fromkeys(parameters)
 
     def log_likelihood(self):
-        res = self.y - self.waveform_generator.time_domain_strain()
+        res = self.y - self.function(self.x, **self.parameters)
         return -0.5 * (np.sum((res / self.sigma)**2)
                        + self.N*np.log(2*np.pi*self.sigma**2))
 
@@ -86,18 +89,9 @@ class GaussianLikelihood(tupak.likelihood.Likelihood):
                        + self.N*np.log(2*np.pi*self.sigma**2))
 
 
-# Here, we make a `tupak` waveform_generator. In this case, of course, the
-# name doesn't make so much sense. But essentially this is an objects that
-# can generate a signal. We give it information on how to make the time series
-# and the model() we wrote earlier.
-
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
-    time_duration=time_duration, sampling_frequency=sampling_frequency,
-    time_domain_source_model=model)
-
-# Now lets instantiate a version of out GravitationalWaveTransient, giving it
-# the time, data and waveform_generator
-likelihood = GaussianLikelihood(time, data, sigma, waveform_generator)
+# Now lets instantiate a version of our GaussianLikelihood, giving it
+# the time, data and signal model
+likelihood = GaussianLikelihood(time, data, sigma, model)
 
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior
@@ -106,8 +100,9 @@ priors['m'] = tupak.prior.Uniform(0, 5, 'm')
 priors['c'] = tupak.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
-result = tupak.sampler.run_sampler(
+result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     walks=10, injection_parameters=injection_parameters, outdir=outdir,
-    label=label, plot=True)
+    label=label)
+result.plot_corner()
 print(result)
