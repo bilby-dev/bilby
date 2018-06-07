@@ -81,20 +81,18 @@ class GaussianLikelihood(tupak.Likelihood):
         parameters.pop(0)
         self.parameters = dict.fromkeys(parameters)
         self.function_keys = self.parameters.keys()
-        self.parameters['sigma'] = None
+        if sigma is None:
+            self.parameters['sigma'] = None
+            self.sigma = self.parameters['sigma']
+        else:
+            self.sigma = sigma
 
     def log_likelihood(self):
+        self.sigma = self.parameters['sigma']
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
         res = self.y - self.function(self.x, **model_parameters)
-        sigma = self.parameters['sigma']
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N*np.log(2*np.pi*sigma**2))
-
-    def noise_log_likelihood(self):
-        return np.nan
-        sigma = self.parameters['sigma']
-        return -0.5 * (np.sum((self.y / sigma)**2)
-                       + self.N*np.log(2*np.pi*sigma**2))
+        return -0.5 * (np.sum((res / self.sigma)**2)
+                       + self.N*np.log(2*np.pi*self.sigma**2))
 
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it

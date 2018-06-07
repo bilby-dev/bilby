@@ -36,7 +36,7 @@ Then, the likelihood for all :math:`N` data points is
 In practise, we implement the log-likelihood to avoid numerical overflow
 errors. To code this up in :code:`tupak`, we would write a class like this::
 
-   class GaussianLikelihood(tupak.Likelihood):
+   class SimpleGaussianLikelihood(tupak.Likelihood):
        def __init__(self, data):
            """
            A very simple Gaussian likelihood
@@ -105,7 +105,7 @@ the likelihood for each data point.
 
 In :code:`tupak`, we can code this up as a likelihood in the following way::
 
-   class GaussianLikelihood(tupak.Likelihood):
+   class GaussianLikelihoodKnownNoise(tupak.Likelihood):
        def __init__(self, x, y, sigma, function):
            """
            A general Gaussian likelihood - the parameters are inferred from the
@@ -137,10 +137,6 @@ In :code:`tupak`, we can code this up as a likelihood in the following way::
        def log_likelihood(self):
            res = self.y - self.function(self.x, **self.parameters)
            return -0.5 * (np.sum((res / self.sigma)**2)
-                          + self.N*np.log(2*np.pi*self.sigma**2))
-
-       def noise_log_likelihood(self):
-           return -0.5 * (np.sum((self.y / self.sigma)**2)
                           + self.N*np.log(2*np.pi*self.sigma**2))
 
 
@@ -214,11 +210,6 @@ instatiating the likelihood::
            return -0.5 * (np.sum((res / sigma)**2)
                           + self.N*np.log(2*np.pi*sigma**2))
 
-       def noise_log_likelihood(self):
-           return np.nan
-           sigma = self.parameters['sigma']
-           return -0.5 * (np.sum((self.y / sigma)**2)
-                          + self.N*np.log(2*np.pi*sigma**2))
 
 An example using this likelihood can be found `on this page <https://git.ligo.org/Monash/tupak/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_.
 
