@@ -11,6 +11,31 @@ import os
 from tupak.gw.prior import create_default_prior, test_redundancy
 
 
+class PriorSet(dict):
+    def __init__(self, dictionary=None):
+        if type(dictionary) is dict:
+            self.update(dictionary)
+
+    def write_to_file(self, outdir, label):
+        """
+        Write the prior distribution to file.
+
+        Parameters
+        ----------
+        priors: dict
+            priors used
+        outdir, label: str
+            output directory and label
+        """
+
+        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        logging.debug("Writing priors to {}".format(prior_file))
+        with open(prior_file, "w") as outfile:
+            for key in self.keys():
+                outfile.write(
+                    "prior['{}'] = {}\n".format(key, self[key]))
+
+
 class Prior(object):
     """
     Prior class
@@ -503,21 +528,3 @@ def fill_priors(prior, likelihood):
 
     return prior
 
-
-def write_priors_to_file(priors, outdir, label):
-    """
-    Write the prior distribution to file.
-
-    Parameters
-    ----------
-    priors: dict
-        priors used
-    outdir, label: str
-        output directory and label
-    """
-
-    prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
-    logging.debug("Writing priors to {}".format(prior_file))
-    with open(prior_file, "w") as outfile:
-        for key in priors:
-            outfile.write("prior['{}'] = {}\n".format(key, priors[key]))
