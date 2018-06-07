@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+import matplotlib
+matplotlib.use('Agg')
+
 import unittest
 import os
 import shutil
@@ -5,13 +9,13 @@ import logging
 
 # Required to run the tests
 from past.builtins import execfile
-from context import tupak
+import tupak.core.utils
 
 # Imported to ensure the examples run
 import numpy as np
 import inspect
 
-tupak.utils.command_line_args.test = True
+tupak.core.utils.command_line_args.test = True
 
 
 class Test(unittest.TestCase):

@@ -9,7 +9,7 @@ except ImportError:
     logging.warning("You do not have lalsuite installed currently. You will "
                     " not be able to use some of the prebuilt functions.")
 
-from . import utils
+from tupak.core import utils
 
 
 def lal_binary_black_hole(

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import inspect
 
 # A few simple setup steps
-tupak.utils.setup_logger()
+tupak.core.utils.setup_logger()
 label = 'linear_regression'
 outdir = 'outdir'
 
@@ -96,8 +96,8 @@ likelihood = GaussianLikelihood(time, data, sigma, model)
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior
 priors = {}
-priors['m'] = tupak.prior.Uniform(0, 5, 'm')
-priors['c'] = tupak.prior.Uniform(-2, 2, 'c')
+priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
+priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
 result = tupak.run_sampler(

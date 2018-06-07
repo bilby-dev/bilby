@@ -8,17 +8,19 @@ factor. (See https://arxiv.org/pdf/1202.3256.pdf)
 
 """
 from __future__ import division, print_function
-import tupak
 import numpy as np
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
+import tupak.gw.likelihood
+import tupak.gw.prior
+
 time_duration = 3.
 sampling_frequency = 4096.
 
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
 label = 'supernova'
-tupak.utils.setup_logger(outdir=outdir, label=label)
+tupak.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
 np.random.seed(170801)
@@ -33,16 +35,16 @@ injection_parameters = dict(file_path='MuellerL15_example_inj.txt',
                             psi=2.659)
 
 # Create the waveform_generator using a supernova source function
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
+waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     time_duration=time_duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.source.supernova,
+    frequency_domain_source_model=tupak.gw.source.supernova,
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers
 # (LIGO-Hanford (H1), LIGO-Livingston (L1), and Virgo (V1)).  These default to
 # their design sensitivity
-IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal,
     injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir)
@@ -57,32 +59,32 @@ imagPCs = np.loadtxt('SupernovaImagPCs.txt')
 simulation_parameters = dict(
     realPCs=realPCs, imagPCs=imagPCs)
 
-search_waveform_generator = tupak.waveform_generator.WaveformGenerator(
+search_waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     time_duration=time_duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.source.supernova_pca_model,
+    frequency_domain_source_model=tupak.gw.source.supernova_pca_model,
     parameters=simulation_parameters)
 
 # Set up prior
 priors = dict()
 for key in ['psi', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = tupak.prior.Uniform(
+priors['luminosity_distance'] = tupak.core.prior.Uniform(
     2, 20, 'luminosity_distance')
-priors['pc_coeff1'] = tupak.prior.Uniform(-1, 1, 'pc_coeff1')
-priors['pc_coeff2'] = tupak.prior.Uniform(-1, 1, 'pc_coeff2')
-priors['pc_coeff3'] = tupak.prior.Uniform(-1, 1, 'pc_coeff3')
-priors['pc_coeff4'] = tupak.prior.Uniform(-1, 1, 'pc_coeff4')
-priors['pc_coeff5'] = tupak.prior.Uniform(-1, 1, 'pc_coeff5')
-priors['ra'] = tupak.prior.create_default_prior(name='ra')
-priors['dec'] = tupak.prior.create_default_prior(name='dec')
-priors['geocent_time'] = tupak.prior.Uniform(
+priors['pc_coeff1'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff1')
+priors['pc_coeff2'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff2')
+priors['pc_coeff3'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff3')
+priors['pc_coeff4'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff4')
+priors['pc_coeff5'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff5')
+priors['ra'] = tupak.gw.prior.create_default_prior(name='ra')
+priors['dec'] = tupak.gw.prior.create_default_prior(name='dec')
+priors['geocent_time'] = tupak.core.prior.Uniform(
     injection_parameters['geocent_time'] - 1,
     injection_parameters['geocent_time'] + 1,
     'geocent_time')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveoform generator
-likelihood = tupak.GravitationalWaveTransient(
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
     interferometers=IFOs, waveform_generator=search_waveform_generator)
 
 # Run sampler.
@@ -93,14 +95,3 @@ result = tupak.run_sampler(
 # make some plots of the outputs
 result.plot_corner()
 print(result)
-
-
-
-
-
-
-
-
-
-
-

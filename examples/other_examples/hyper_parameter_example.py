@@ -6,11 +6,11 @@ from __future__ import division
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger()
+tupak.core.utils.setup_logger()
 outdir = 'outdir'
 
 
-class GaussianLikelihood(tupak.likelihood.Likelihood):
+class GaussianLikelihood(tupak.core.likelihood.Likelihood):
     def __init__(self, x, y, waveform_generator):
         self.x = x
         self.y = y
@@ -47,15 +47,15 @@ for i in range(Nevents):
     N = len(time)
     data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
-    waveform_generator = tupak.waveform_generator.WaveformGenerator(
+    waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
         time_duration=time_duration, sampling_frequency=sampling_frequency,
         time_domain_source_model=model)
 
     likelihood = GaussianLikelihood(time, data, waveform_generator)
 
-    priors = dict(m=tupak.prior.Uniform(-10, 10, 'm'))
+    priors = dict(m=tupak.core.prior.Uniform(-10, 10, 'm'))
 
-    result = tupak.sampler.run_sampler(
+    result = tupak.core.sampler.run_sampler(
         likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
         injection_parameters=injection_parameters, outdir=outdir,
         verbose=False, label='individual_{}'.format(i), use_ratio=False,
@@ -64,18 +64,18 @@ for i in range(Nevents):
     samples.append(result.samples)
 
 # Now run the hyperparameter inference
-run_prior = tupak.prior.Uniform(minimum=-10, maximum=10, name='mu_m')
-hyper_prior = tupak.prior.Gaussian(mu=0, sigma=1, name='hyper')
+run_prior = tupak.core.prior.Uniform(minimum=-10, maximum=10, name='mu_m')
+hyper_prior = tupak.core.prior.Gaussian(mu=0, sigma=1, name='hyper')
 
-hp_likelihood = tupak.likelihood.HyperparameterLikelihood(
+hp_likelihood = tupak.gw.likelihood.HyperparameterLikelihood(
         samples, hyper_prior, run_prior)
 
 hp_priors = dict(
-    mu=tupak.prior.Uniform(-10, 10, 'mu', '$\mu_m$'),
-    sigma=tupak.prior.Uniform(0, 10, 'sigma', '$\sigma_m$'))
+    mu=tupak.core.prior.Uniform(-10, 10, 'mu', '$\mu_m$'),
+    sigma=tupak.core.prior.Uniform(0, 10, 'sigma', '$\sigma_m$'))
 
 # And run sampler
-result = tupak.sampler.run_sampler(
+result = tupak.core.sampler.run_sampler(
     likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty',
     npoints=1000, outdir=outdir, label='hyperparameter', use_ratio=False,
     sample='unif', verbose=True)

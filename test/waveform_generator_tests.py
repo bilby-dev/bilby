@@ -1,5 +1,6 @@
+from __future__ import absolute_import
 import unittest
-from context import tupak
+import tupak
 import numpy as np
 
 
@@ -18,13 +19,14 @@ def gaussian_frequency_domain_strain_2(frequency_array, a, m, s, ra, dec, geocen
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = \
+            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                          frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
-                                     ra=1.375,
-                                     dec=-1.2108,
-                                     geocent_time=1126259642.413,
-                                     psi=2.659)
+                                          ra=1.375,
+                                          dec=-1.2108,
+                                          geocent_time=1126259642.413,
+                                          psi=2.659)
 
     def tearDown(self):
         del self.waveform_generator
@@ -46,20 +48,21 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.assertIsInstance(self.waveform_generator.time_array, np.ndarray)
 
     def test_source_model_parameters(self):
-        params = self.simulation_parameters.keys()
-        self.assertItemsEqual(self.waveform_generator.parameters, params)
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
 
-class TestParameterSetter(unittest.TestCase):
+class TestSetters(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = \
+            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                          frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
-                                     ra=1.375,
-                                     dec=-1.2108,
-                                     geocent_time=1126259642.413,
-                                     psi=2.659)
+                                          ra=1.375,
+                                          dec=-1.2108,
+                                          geocent_time=1126259642.413,
+                                          psi=2.659)
 
     def tearDown(self):
         del self.waveform_generator
@@ -72,27 +75,34 @@ class TestParameterSetter(unittest.TestCase):
 
     def test_parameter_setter_none_handling(self):
         self.waveform_generator.parameters = None
-        self.assertItemsEqual(self.waveform_generator.parameters.keys(), self.simulation_parameters.keys())
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
+
+    def test_frequency_array_setter(self):
+        new_frequency_array = np.arange(1, 100)
+        self.waveform_generator.frequency_array = new_frequency_array
+        self.assertTrue(np.array_equal(new_frequency_array, self.waveform_generator.frequency_array))
 
 
 class TestSourceModelSetter(unittest.TestCase):
 
     def setUp(self):
-        self.waveform_generator = tupak.waveform_generator.WaveformGenerator(1, 4096,
-                                                                             frequency_domain_source_model=gaussian_frequency_domain_strain)
+        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                                                frequency_domain_source_model=gaussian_frequency_domain_strain)
         self.waveform_generator.frequency_domain_source_model = gaussian_frequency_domain_strain_2
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
-                                     ra=1.375,
-                                     dec=-1.2108,
-                                     geocent_time=1126259642.413,
-                                     psi=2.659)
+                                          ra=1.375,
+                                          dec=-1.2108,
+                                          geocent_time=1126259642.413,
+                                          psi=2.659)
 
     def tearDown(self):
         del self.waveform_generator
         del self.simulation_parameters
 
     def test_parameters_are_set_correctly(self):
-        self.assertItemsEqual(self.waveform_generator.parameters, self.simulation_parameters.keys())
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
 
 if __name__ == '__main__':

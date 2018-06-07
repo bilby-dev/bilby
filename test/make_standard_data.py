@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 import tupak
-from tupak.waveform_generator import WaveformGenerator
+from tupak.gw.waveform_generator import WaveformGenerator
 
 np.random.seed(10)
 
@@ -33,18 +33,18 @@ simulation_parameters = dict(
 )
 
 waveform_generator = WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
-                                       frequency_domain_source_model=tupak.source.lal_binary_black_hole,
+                                       frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
                                        parameters=simulation_parameters)
 
 signal = waveform_generator.frequency_domain_strain()
 
-IFO = tupak.detector.get_interferometer_with_fake_noise_and_injection(name='H1', injection_polarizations=signal,
-                                                                      injection_parameters=simulation_parameters,
-                                                                      time_duration=time_duration, plot=False,
-                                                                      sampling_frequency=sampling_frequency)
+IFO = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(name='H1', injection_polarizations=signal,
+                                                                         injection_parameters=simulation_parameters,
+                                                                         time_duration=time_duration, plot=False,
+                                                                         sampling_frequency=sampling_frequency)
 
 hf_signal_and_noise = IFO.data
-frequencies = tupak.utils.create_frequency_series(
+frequencies = tupak.core.utils.create_frequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == '__main__':
