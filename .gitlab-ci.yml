@@ -18,7 +18,7 @@ exitcode-jessie:
   stage: test
   image: ligo/software:jessie
   script:
-    - sudo pip install --upgrade pip
+    - pip install --upgrade pip --user
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
