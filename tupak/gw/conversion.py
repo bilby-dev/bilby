@@ -37,70 +37,72 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     ------
     ignored_keys: list
         keys which are added to parameters during function call
+    converted_parameters: dict
+        Dictionary with the new sampling parameters
     """
 
     ignored_keys = []
-
+    converted_parameters = parameters.copy()
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
-        if 'chirp_mass' in parameters.keys():
-            if 'total_mass' in parameters.keys():
+        if 'chirp_mass' in converted_parameters.keys():
+            if 'total_mass' in converted_parameters.keys():
                 # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
-                parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
+                converted_parameters['symmetric_mass_ratio'] = (converted_parameters['chirp_mass'] / converted_parameters['total_mass'])**(5 / 3)
                 if remove:
-                    parameters.pop('chirp_mass')
-            if 'symmetric_mass_ratio' in parameters.keys():
+                    converted_parameters.pop('chirp_mass')
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                temp = (1 / converted_parameters['symmetric_mass_ratio'] / 2 - 1)
+                converted_parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
-                if 'total_mass' not in parameters.keys():
-                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2 \
-                                               / parameters['mass_ratio']**0.6
-                    parameters.pop('chirp_mass')
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
+                if 'total_mass' not in converted_parameters.keys():
+                    converted_parameters['total_mass'] = converted_parameters['chirp_mass'] * (1 + converted_parameters['mass_ratio'])**1.2 \
+                                               / converted_parameters['mass_ratio']**0.6
+                    converted_parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                converted_parameters['mass_1'] = converted_parameters['total_mass'] / (1 + converted_parameters['mass_ratio'])
+                converted_parameters['mass_2'] = converted_parameters['mass_1'] * converted_parameters['mass_ratio']
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
-        elif 'total_mass' in parameters.keys():
-            if 'symmetric_mass_ratio' in parameters.keys():
+        elif 'total_mass' in converted_parameters.keys():
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                temp = (1 / converted_parameters['symmetric_mass_ratio'] / 2 - 1)
+                converted_parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                converted_parameters['mass_1'] = converted_parameters['total_mass'] / (1 + converted_parameters['mass_ratio'])
+                converted_parameters['mass_2'] = converted_parameters['mass_1'] * converted_parameters['mass_ratio']
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
-    if 'cos_tilt_1' in parameters.keys():
+    if 'cos_tilt_1' in converted_parameters.keys():
         ignored_keys.append('tilt_1')
-        parameters['tilt_1'] = np.arccos(parameters['cos_tilt_1'])
+        converted_parameters['tilt_1'] = np.arccos(converted_parameters['cos_tilt_1'])
         if remove:
-            parameters.pop('cos_tilt_1')
-    if 'cos_tilt_2' in parameters.keys():
+            converted_parameters.pop('cos_tilt_1')
+    if 'cos_tilt_2' in converted_parameters.keys():
         ignored_keys.append('tilt_2')
-        parameters['tilt_2'] = np.arccos(parameters['cos_tilt_2'])
+        converted_parameters['tilt_2'] = np.arccos(converted_parameters['cos_tilt_2'])
         if remove:
-            parameters.pop('cos_tilt_2')
+            converted_parameters.pop('cos_tilt_2')
 
-    if 'cos_iota' in parameters.keys():
-        parameters['iota'] = np.arccos(parameters['cos_iota'])
+    if 'cos_iota' in converted_parameters.keys():
+        converted_parameters['iota'] = np.arccos(converted_parameters['cos_iota'])
         if remove:
-            parameters.pop('cos_iota')
+            converted_parameters.pop('cos_iota')
 
-    return ignored_keys
+    return converted_parameters, ignored_keys
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
@@ -122,7 +124,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
         sample['waveform_approximant'] = likelihood.waveform_generator.parameters['waveform_approximant']
 
     fill_from_fixed_priors(sample, priors)
-    convert_to_lal_binary_black_hole_parameters(sample, [key for key in sample.keys()], remove=False)
+    sample, _ = convert_to_lal_binary_black_hole_parameters(sample, [key for key in sample.keys()], remove=False)
     generate_non_standard_parameters(sample)
     generate_component_spins(sample)
     compute_snrs(sample, likelihood)
