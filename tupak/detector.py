@@ -370,7 +370,7 @@ class Interferometer(object):
                     sampling_frequency, duration)
         elif zero_noise:
             logging.info('Setting zero noise in {}'.format(self.name))
-            frequencies = utils.create_fequency_series(sampling_frequency, duration)
+            frequencies = utils.create_frequency_series(sampling_frequency, duration)
             frequency_domain_strain = np.zeros_like(frequencies) * (1 + 1j)
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
