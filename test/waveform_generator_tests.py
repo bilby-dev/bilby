@@ -52,7 +52,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                              sorted(list(self.simulation_parameters.keys())))
 
 
-class TestParameterSetter(unittest.TestCase):
+class TestSetters(unittest.TestCase):
 
     def setUp(self):
         self.waveform_generator = \
@@ -77,6 +77,11 @@ class TestParameterSetter(unittest.TestCase):
         self.waveform_generator.parameters = None
         self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
                              sorted(list(self.simulation_parameters.keys())))
+
+    def test_frequency_array_setter(self):
+        new_frequency_array = np.arange(1, 100)
+        self.waveform_generator.frequency_array = new_frequency_array
+        self.assertTrue(np.array_equal(new_frequency_array, self.waveform_generator.frequency_array))
 
 
 class TestSourceModelSetter(unittest.TestCase):
