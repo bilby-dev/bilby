@@ -74,6 +74,7 @@ class GaussianLikelihood(tupak.Likelihood):
         self.x = x
         self.y = y
         self.N = len(x)
+        self.sigma = sigma
         self.function = function
 
         # These lines of code infer the parameters from the provided function
@@ -81,18 +82,15 @@ class GaussianLikelihood(tupak.Likelihood):
         parameters.pop(0)
         self.parameters = dict.fromkeys(parameters)
         self.function_keys = self.parameters.keys()
-        if sigma is None:
+        if self.sigma is None:
             self.parameters['sigma'] = None
-            self.sigma = self.parameters['sigma']
-        else:
-            self.sigma = sigma
 
     def log_likelihood(self):
-        self.sigma = self.parameters['sigma']
+        sigma = self.parameters.get('sigma', self.sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
         res = self.y - self.function(self.x, **model_parameters)
-        return -0.5 * (np.sum((res / self.sigma)**2)
-                       + self.N*np.log(2*np.pi*self.sigma**2))
+        return -0.5 * (np.sum((res / sigma)**2)
+                       + self.N*np.log(2*np.pi*sigma**2))
 
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
