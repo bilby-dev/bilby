@@ -29,4 +29,4 @@ for letter in ['t', 'u', 'p', 'a', 'k']:
     result = tupak.run_sampler(
         likelihood=likelihood, priors=priors, sampler='nestle', npoints=5000,
         label=letter)
-    fig = result.plot_corner(quantiles=None, smooth=1)
+    fig = result.plot_corner(quantiles=None, smooth1d=4)
