@@ -164,6 +164,63 @@ be the dependent variable.
 You can see an example of this likelihood in the `linear regression example
 <https://git.ligo.org/Monash/tupak/blob/master/examples/other_examples/linear_regression.py>`_.
 
+General likelihood for fitting a function :math:`y(x)` to some data with unknown noise
+--------------------------------------------------------------------------------------
+
+In the last example, we considered only cases with known noise (e.g., a
+prespecified standard deviation. We now present a general function which can
+handle unknown noise (in which case you need to specify a prior for
+:math:`\sigma`, or known noise (in which case you pass the known noise in when
+instatiating the likelihood::
+
+   class GaussianLikelihood(tupak.Likelihood):
+       def __init__(self, x, y, function, sigma=None):
+           """
+           A general Gaussian likelihood for known or unknown noise - the model
+           parameters are inferred from the arguments of function
+
+           Parameters
+           ----------
+           x, y: array_like
+               The data to analyse
+           function:
+               The python function to fit to the data. Note, this must take the
+               dependent variable as its first argument. The other arguments are
+               will require a prior and will be sampled over (unless a fixed
+               value is given).
+           sigma: None, float, array_like
+               If None, the standard deviation of the noise is unknown and will be
+               estimated (note: this requires a prior to be given for sigma). If
+               not None, this defined the standard-deviation of the data points.
+               This can either be a single float, or an array with length equal
+               to that for `x` and `y`.
+           """
+           self.x = x
+           self.y = y
+           self.N = len(x)
+           self.function = function
+
+           # These lines of code infer the parameters from the provided function
+           parameters = inspect.getargspec(function).args
+           parameters.pop(0)
+           self.parameters = dict.fromkeys(parameters)
+           self.function_keys = self.parameters.keys()
+           self.parameters['sigma'] = None
+
+       def log_likelihood(self):
+           model_parameters = {k: self.parameters[k] for k in self.function_keys}
+           res = self.y - self.function(self.x, **model_parameters)
+           sigma = self.parameters['sigma']
+           return -0.5 * (np.sum((res / sigma)**2)
+                          + self.N*np.log(2*np.pi*sigma**2))
+
+       def noise_log_likelihood(self):
+           return np.nan
+           sigma = self.parameters['sigma']
+           return -0.5 * (np.sum((self.y / sigma)**2)
+                          + self.N*np.log(2*np.pi*sigma**2))
+
+An example using this likelihood can be found `on this page <https://git.ligo.org/Monash/tupak/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_.
 
 Likelihood for transient gravitational waves
 --------------------------------------------
