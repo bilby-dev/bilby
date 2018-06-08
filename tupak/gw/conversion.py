@@ -89,7 +89,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         if str(cos_angle) in converted_parameters.keys():
             cos_angle_to_angle(cos_angle)
             if remove:
-                converted_parameters.pop(cos_angle)
+                converted_parameters.pop(cos_angle[4:])
 
     return converted_parameters, ignored_keys
 
