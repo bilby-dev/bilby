@@ -84,22 +84,18 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
-    if 'cos_tilt_1' in parameters.keys():
-        ignored_keys.append('tilt_1')
-        parameters['tilt_1'] = np.arccos(parameters['cos_tilt_1'])
-        if remove:
-            parameters.pop('cos_tilt_1')
-    if 'cos_tilt_2' in parameters.keys():
-        ignored_keys.append('tilt_2')
-        parameters['tilt_2'] = np.arccos(parameters['cos_tilt_2'])
-        if remove:
-            parameters.pop('cos_tilt_2')
-    if 'cos_iota' in parameters.keys():
+    _cos_angle_to_angle('tilt_1', parameters, remove)
+    _cos_angle_to_angle('tilt_2', parameters, remove)
+    _cos_angle_to_angle('iota', parameters, remove)
+
+    return ignored_keys
+
+
+def _cos_angle_to_angle(angle, parameters, remove):
+    if str('cos_' + angle) in parameters.keys():
         parameters['iota'] = np.arccos(parameters['cos_iota'])
         if remove:
             parameters.pop('cos_iota')
-
-    return ignored_keys
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
@@ -120,10 +116,10 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
         output_sample['reference_frequency'] = likelihood.waveform_generator.parameters['reference_frequency']
         output_sample['waveform_approximant'] = likelihood.waveform_generator.parameters['waveform_approximant']
 
-    fill_from_fixed_priors(output_sample, priors)
-    convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
-    generate_non_standard_parameters(output_sample)
-    generate_component_spins(output_sample)
+    output_sample = fill_from_fixed_priors(output_sample, priors)
+    output_sample = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
+    output_sample = generate_non_standard_parameters(output_sample)
+    output_sample = generate_component_spins(output_sample)
     compute_snrs(output_sample, likelihood)
     return output_sample
 
