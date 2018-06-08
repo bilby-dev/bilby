@@ -14,4 +14,3 @@ nestle
 deepdish
 ptemcee
 mock
-lalsuite
