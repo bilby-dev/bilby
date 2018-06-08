@@ -45,23 +45,23 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         if 'chirp_mass' in parameters.keys():
             if 'total_mass' in parameters.keys():
                 # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
-                parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
+                parameters['symmetric_mass_ratio'] = _chirp_mass_and_total_mass_to_symmetric_mass_ratio(
+                    parameters['chirp_mass'], parameters['total_mass'])
                 if remove:
                     parameters.pop('chirp_mass')
             if 'symmetric_mass_ratio' in parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
                 if remove:
                     parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
                 if 'total_mass' not in parameters.keys():
-                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2 \
-                                               / parameters['mass_ratio']**0.6
+                    parameters['total_mass'] = _chirp_mass_and_mass_ratio_to_total_mass(parameters['chirp_mass'],
+                                                                                        parameters['mass_ratio'])
                     parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters['mass_1'], parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(
+                    parameters['mass_ratio'], parameters['total_mass'])
                 if remove:
                     parameters.pop('total_mass')
                     parameters.pop('mass_ratio')
@@ -70,32 +70,68 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         elif 'total_mass' in parameters.keys():
             if 'symmetric_mass_ratio' in parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
                 if remove:
                     parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in parameters.keys():
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                parameters['mass_1'], parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(parameters)
                 if remove:
                     parameters.pop('total_mass')
                     parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
-    _cos_angle_to_angle('tilt_1', parameters, remove)
-    _cos_angle_to_angle('tilt_2', parameters, remove)
-    _cos_angle_to_angle('iota', parameters, remove)
+    for cos_angle in ['cos_tilt_1', 'cos_tilt_2', 'cos_iota']:
+        if str(cos_angle) in parameters.keys():
+            _cos_angle_to_angle(cos_angle)
+            if remove:
+                parameters.pop(cos_angle)
 
     return ignored_keys
 
 
-def _cos_angle_to_angle(angle, parameters, remove):
-    if str('cos_' + angle) in parameters.keys():
-        parameters['iota'] = np.arccos(parameters['cos_iota'])
-        if remove:
-            parameters.pop('cos_iota')
+def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
+    mass_1 = total_mass / (1 + mass_ratio)
+    mass_2 = mass_1 * mass_ratio
+    return mass_1, mass_2
+
+
+def _symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
+    temp = (1 / symmetric_mass_ratio / 2 - 1)
+    return temp - (temp ** 2 - 1) ** 0.5
+
+
+def _chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
+    return (chirp_mass / total_mass) ** (5 / 3)
+
+
+def _chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
+    return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
+
+
+def _component_masses_to_chirp_mass(mass_1, mass_2):
+    return (mass_1 * mass_2) ** 0.6 / (_component_masses_to_total_mass(mass_1, mass_2)) ** 0.2
+
+
+def _component_masses_to_total_mass(mass_1, mass_2):
+    return mass_1 + mass_2
+
+
+def _component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
+    return (mass_1 * mass_2) / (mass_1 + mass_2) ** 2
+
+
+def _component_masses_to_mass_ratio(mass_1, mass_2):
+    return mass_2 / mass_1
+
+
+def _cos_angle_to_angle(cos_angle):
+    return np.arccos(cos_angle)
+
+
+def _angle_to_cos_angle(angle):
+    return np.cos(angle)
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
@@ -142,15 +178,16 @@ def generate_non_standard_parameters(sample):
         chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1, cos tilt 2, cos iota
     """
     output_sample = sample.copy()
-    output_sample['chirp_mass'] = (output_sample['mass_1'] * output_sample['mass_2']) ** 0.6 / (output_sample['mass_1'] + output_sample['mass_2']) ** 0.2
-    output_sample['total_mass'] = output_sample['mass_1'] + output_sample['mass_2']
-    output_sample['symmetric_mass_ratio'] = (output_sample['mass_1'] * output_sample['mass_2']) / (output_sample['mass_1'] + output_sample['mass_2']) ** 2
-    output_sample['mass_ratio'] = output_sample['mass_2'] / output_sample['mass_1']
+    output_sample['chirp_mass'] = _component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['total_mass'] = _component_masses_to_total_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['symmetric_mass_ratio'] = _component_masses_to_symmetric_mass_ratio(sample['mass_1'],
+                                                                                      sample['mass_2'])
+    output_sample['mass_ratio'] = _component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
-    output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
-    output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
-    output_sample['cos_iota'] = np.cos(output_sample['iota'])
-    return sample
+    output_sample['cos_tilt_1'] = _angle_to_cos_angle(output_sample['tilt_1'])
+    output_sample['cos_tilt_2'] = _angle_to_cos_angle(output_sample['tilt_2'])
+    output_sample['cos_iota'] = _angle_to_cos_angle(output_sample['iota'])
+    return output_sample
 
 
 def generate_component_spins(sample):
