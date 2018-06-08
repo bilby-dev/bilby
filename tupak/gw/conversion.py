@@ -62,8 +62,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                     converted_parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
                 converted_parameters['mass_1'], converted_parameters['mass_2'] = \
-                    _total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
-                                                                   converted_parameters['total_mass'])
+                    total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
+                                                                  converted_parameters['total_mass'])
                 if remove:
                     converted_parameters.pop('total_mass')
                     converted_parameters.pop('mass_ratio')
@@ -77,7 +77,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                     converted_parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys():
                 # total_mass, mass_ratio to component masses
-                converted_parameters['mass_1'], converted_parameters['mass_2'] = _total_mass_and_mass_ratio_to_component_masses(converted_parameters)
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(converted_parameters)
                 if remove:
                     converted_parameters.pop('total_mass')
                     converted_parameters.pop('mass_ratio')
@@ -93,7 +93,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     return converted_paramters, ignored_keys
 
 
-def _total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
+def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     mass_1 = total_mass / (1 + mass_ratio)
     mass_2 = mass_1 * mass_ratio
     return mass_1, mass_2
