@@ -8,12 +8,12 @@ import numpy as np
 class TestBasicConversions(unittest.TestCase):
 
     def setUp(self):
-        self.mass_1 = 20.
-        self.mass_2 = 10.
+        self.mass_1 = 20
+        self.mass_2 = 10
         self.mass_ratio = 0.5
-        self.total_mass = 30.
-        self.chirp_mass = 200.**0.6 / 30.**0.2
-        self.symmetric_mass_ratio = 2./9.
+        self.total_mass = 30
+        self.chirp_mass = 200**0.6 / 30**0.2
+        self.symmetric_mass_ratio = 2/9
         self.cos_angle = -1
         self.angle = np.pi
 
@@ -26,7 +26,7 @@ class TestBasicConversions(unittest.TestCase):
         del self.symmetric_mass_ratio
 
     def test_total_mass_and_mass_ratio_to_component_masses(self):
-        mass_1, mass_2 = tupak.conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_1, self.mass_2)
+        mass_1, mass_2 = tupak.conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_ratio, self.total_mass)
         self.assertTupleEqual((mass_1, mass_2), (self.mass_1, self.mass_2))
 
     def test_symmetric_mass_ratio_to_mass_ratio(self):
