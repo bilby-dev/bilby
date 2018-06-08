@@ -91,7 +91,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             if remove:
                 converted_parameters.pop(cos_angle)
 
-    return converted_paramters, ignored_keys
+    return converted_parameters, ignored_keys
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
