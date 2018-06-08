@@ -183,11 +183,11 @@ routine gravitational wave data analysis of transient events, we have in built
 likelihoods.  The default likelihood we use in the examples is
 `GravitationalWaveTransient`:
 
-.. autoclass:: tupak.likelihood.GravitationalWaveTransient
+.. autoclass:: tupak.GravitationalWaveTransient
 
 We also provide a simpler likelihood
 
-.. autoclass:: tupak.likelihood.BasicGravitationalWaveTransient
+.. autoclass:: tupak.gw.likelihood.BasicGravitationalWaveTransient
 
 Empty likelihood for subclassing
 --------------------------------
@@ -195,4 +195,4 @@ Empty likelihood for subclassing
 We provide an empty parent class which can be subclassed for alternative use
 cases
 
-.. autoclass:: tupak.likelihood.Likelihood
+.. autoclass:: tupak.Likelihood

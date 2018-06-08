@@ -4,7 +4,7 @@
 Priors
 ======
 
-The priors object passed to :ref:`run_sampler <run-sampler>` is just a regular
+The priors object passed to :ref:`run_sampler <run_sampler>` is just a regular
 `python dictionary <https://docs.python.org/2/tutorial/datastructures.html#dictionaries>`_.
 
 The keys of the priors objects should reference the model parameters (in
@@ -28,7 +28,7 @@ when generating plots.
 
 We have provided a number of standard priors. Here is a complete list
 
-.. automodule:: tupak.prior
+.. automodule:: tupak.core.prior
    :members:
 
 
