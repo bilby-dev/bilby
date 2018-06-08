@@ -583,7 +583,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         if injection_parameters is not None:
             result.injection_parameters = injection_parameters
             if conversion_function is not None:
-                conversion_function(result.injection_parameters)
+                result.injection_parameters = conversion_function(result.injection_parameters)
         result.fixed_parameter_keys = sampler.fixed_parameter_keys
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_posterior(likelihood=likelihood, priors=priors,

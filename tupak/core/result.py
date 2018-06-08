@@ -207,7 +207,7 @@ class Result(dict):
         data_frame = pd.DataFrame(
             self.samples, columns=self.search_parameter_keys)
         if conversion_function is not None:
-            conversion_function(data_frame, likelihood, priors)
+            data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
 
     def construct_cbc_derived_parameters(self):
