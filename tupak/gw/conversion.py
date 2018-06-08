@@ -40,58 +40,60 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     """
 
     ignored_keys = []
+    converted_parameters = parameters.copy()
 
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
-        if 'chirp_mass' in parameters.keys():
-            if 'total_mass' in parameters.keys():
+        if 'chirp_mass' in converted_parameters.keys():
+            if 'total_mass' in converted_parameters.keys():
                 # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
-                parameters['symmetric_mass_ratio'] = _chirp_mass_and_total_mass_to_symmetric_mass_ratio(
-                    parameters['chirp_mass'], parameters['total_mass'])
+                converted_parameters['symmetric_mass_ratio'] = _chirp_mass_and_total_mass_to_symmetric_mass_ratio(
+                    converted_parameters['chirp_mass'], converted_parameters['total_mass'])
                 if remove:
-                    parameters.pop('chirp_mass')
-            if 'symmetric_mass_ratio' in parameters.keys():
+                    converted_parameters.pop('chirp_mass')
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
-                if 'total_mass' not in parameters.keys():
-                    parameters['total_mass'] = _chirp_mass_and_mass_ratio_to_total_mass(parameters['chirp_mass'],
-                                                                                        parameters['mass_ratio'])
-                    parameters.pop('chirp_mass')
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
+                if 'total_mass' not in converted_parameters.keys():
+                    converted_parameters['total_mass'] = _chirp_mass_and_mass_ratio_to_total_mass(
+                        converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
+                    converted_parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'], parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(
-                    parameters['mass_ratio'], parameters['total_mass'])
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = \
+                    _total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
+                                                                   converted_parameters['total_mass'])
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
-        elif 'total_mass' in parameters.keys():
-            if 'symmetric_mass_ratio' in parameters.keys():
+        elif 'total_mass' in converted_parameters.keys():
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
                 # total_mass, mass_ratio to component masses
-                parameters['mass_1'], parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(parameters)
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = _total_mass_and_mass_ratio_to_component_masses(converted_parameters)
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
     for cos_angle in ['cos_tilt_1', 'cos_tilt_2', 'cos_iota']:
-        if str(cos_angle) in parameters.keys():
+        if str(cos_angle) in converted_parameters.keys():
             _cos_angle_to_angle(cos_angle)
             if remove:
-                parameters.pop(cos_angle)
+                converted_parameters.pop(cos_angle)
 
-    return ignored_keys
+    return converted_paramters, ignored_keys
 
 
-def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
+def _total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     mass_1 = total_mass / (1 + mass_ratio)
     mass_2 = mass_1 * mass_ratio
     return mass_1, mass_2
@@ -153,7 +155,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
         output_sample['waveform_approximant'] = likelihood.waveform_generator.parameters['waveform_approximant']
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
+    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
     output_sample = generate_non_standard_parameters(output_sample)
     output_sample = generate_component_spins(output_sample)
     compute_snrs(output_sample, likelihood)
