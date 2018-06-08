@@ -46,18 +46,18 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         if 'chirp_mass' in converted_parameters.keys():
             if 'total_mass' in converted_parameters.keys():
                 # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
-                converted_parameters['symmetric_mass_ratio'] = _chirp_mass_and_total_mass_to_symmetric_mass_ratio(
+                converted_parameters['symmetric_mass_ratio'] = chirp_mass_and_total_mass_to_symmetric_mass_ratio(
                     converted_parameters['chirp_mass'], converted_parameters['total_mass'])
                 if remove:
                     converted_parameters.pop('chirp_mass')
             if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                converted_parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     converted_parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys():
                 if 'total_mass' not in converted_parameters.keys():
-                    converted_parameters['total_mass'] = _chirp_mass_and_mass_ratio_to_total_mass(
+                    converted_parameters['total_mass'] = chirp_mass_and_mass_ratio_to_total_mass(
                         converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
                     converted_parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
@@ -72,7 +72,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         elif 'total_mass' in converted_parameters.keys():
             if 'symmetric_mass_ratio' in converted_parameters.keys():
                 # symmetric_mass_ratio to mass_ratio
-                converted_parameters['mass_ratio'] = _symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     converted_parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys():
@@ -86,7 +86,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     for cos_angle in ['cos_tilt_1', 'cos_tilt_2', 'cos_iota']:
         if str(cos_angle) in converted_parameters.keys():
-            _cos_angle_to_angle(cos_angle)
+            cos_angle_to_angle(cos_angle)
             if remove:
                 converted_parameters.pop(cos_angle)
 
@@ -99,40 +99,40 @@ def _total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     return mass_1, mass_2
 
 
-def _symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
+def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
     temp = (1 / symmetric_mass_ratio / 2 - 1)
     return temp - (temp ** 2 - 1) ** 0.5
 
 
-def _chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
+def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
     return (chirp_mass / total_mass) ** (5 / 3)
 
 
-def _chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
+def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
     return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
 
 
-def _component_masses_to_chirp_mass(mass_1, mass_2):
-    return (mass_1 * mass_2) ** 0.6 / (_component_masses_to_total_mass(mass_1, mass_2)) ** 0.2
+def component_masses_to_chirp_mass(mass_1, mass_2):
+    return (mass_1 * mass_2) ** 0.6 / (component_masses_to_total_mass(mass_1, mass_2)) ** 0.2
 
 
-def _component_masses_to_total_mass(mass_1, mass_2):
+def component_masses_to_total_mass(mass_1, mass_2):
     return mass_1 + mass_2
 
 
-def _component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
+def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
     return (mass_1 * mass_2) / (mass_1 + mass_2) ** 2
 
 
-def _component_masses_to_mass_ratio(mass_1, mass_2):
+def component_masses_to_mass_ratio(mass_1, mass_2):
     return mass_2 / mass_1
 
 
-def _cos_angle_to_angle(cos_angle):
+def cos_angle_to_angle(cos_angle):
     return np.arccos(cos_angle)
 
 
-def _angle_to_cos_angle(angle):
+def angle_to_cos_angle(angle):
     return np.cos(angle)
 
 
@@ -180,15 +180,15 @@ def generate_non_standard_parameters(sample):
         chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1, cos tilt 2, cos iota
     """
     output_sample = sample.copy()
-    output_sample['chirp_mass'] = _component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
-    output_sample['total_mass'] = _component_masses_to_total_mass(sample['mass_1'], sample['mass_2'])
-    output_sample['symmetric_mass_ratio'] = _component_masses_to_symmetric_mass_ratio(sample['mass_1'],
-                                                                                      sample['mass_2'])
-    output_sample['mass_ratio'] = _component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
+    output_sample['chirp_mass'] = component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['total_mass'] = component_masses_to_total_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['symmetric_mass_ratio'] = component_masses_to_symmetric_mass_ratio(sample['mass_1'],
+                                                                                     sample['mass_2'])
+    output_sample['mass_ratio'] = component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
-    output_sample['cos_tilt_1'] = _angle_to_cos_angle(output_sample['tilt_1'])
-    output_sample['cos_tilt_2'] = _angle_to_cos_angle(output_sample['tilt_2'])
-    output_sample['cos_iota'] = _angle_to_cos_angle(output_sample['iota'])
+    output_sample['cos_tilt_1'] = angle_to_cos_angle(output_sample['tilt_1'])
+    output_sample['cos_tilt_2'] = angle_to_cos_angle(output_sample['tilt_2'])
+    output_sample['cos_iota'] = angle_to_cos_angle(output_sample['iota'])
     return output_sample
 
 
