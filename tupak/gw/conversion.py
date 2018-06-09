@@ -89,7 +89,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
-            converted_parameters[angle] = cos_angle_to_angle(converted_parameters[cos_angle])
+            converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
             if remove:
                 converted_parameters.pop(cos_angle)
             ignored_keys.append(angle)
@@ -98,46 +98,175 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
+
+    """
+    Convert total mass and mass ratio of a binary to its component masses.
+
+    Parameters
+    ----------
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+    total_mass: float
+        Total mass of the binary
+
+    Return
+    ------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+    """
+
     mass_1 = total_mass / (1 + mass_ratio)
     mass_2 = mass_1 * mass_ratio
     return mass_1, mass_2
 
 
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
+
+    """
+    Convert the symmetric mass ratio to the normal mass ratio.
+
+    Parameters
+    ----------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+
     temp = (1 / symmetric_mass_ratio / 2 - 1)
     return temp - (temp ** 2 - 1) ** 0.5
 
 
 def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
+
+    """
+    Convert chirp mass and total mass of a binary to its symmetric mass ratio.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    total_mass: float
+        Total mass of the binary
+
+    Return
+    ------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+    """
+
     return (chirp_mass / total_mass) ** (5 / 3)
 
 
 def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
+
+    """
+    Convert chirp mass and mass ratio of a binary to its total mass.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+
+    Return
+    ------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+    """
+
     return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
 
 
 def component_masses_to_chirp_mass(mass_1, mass_2):
+
+    """
+    Convert the component masses of a binary to its chirp mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    chirp_mass: float
+        Chirp mass of the binary
+    """
+
     return (mass_1 * mass_2) ** 0.6 / (component_masses_to_total_mass(mass_1, mass_2)) ** 0.2
 
 
 def component_masses_to_total_mass(mass_1, mass_2):
+    """
+    Convert the component masses of a binary to its total mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    total_mass: float
+        Total mass of the binary
+    """
+
     return mass_1 + mass_2
 
 
 def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
+
+    """
+    Convert the component masses of a binary to its symmetric mass ratio.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+    """
+
     return (mass_1 * mass_2) / (mass_1 + mass_2) ** 2
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):
+
+    """
+    Convert the component masses of a binary to its chirp mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+
     return mass_2 / mass_1
-
-
-def cos_angle_to_angle(cos_angle):
-    return np.arccos(cos_angle)
-
-
-def angle_to_cos_angle(angle):
-    return np.cos(angle)
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
@@ -190,9 +319,9 @@ def generate_non_standard_parameters(sample):
                                                                                      sample['mass_2'])
     output_sample['mass_ratio'] = component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
-    output_sample['cos_tilt_1'] = angle_to_cos_angle(output_sample['tilt_1'])
-    output_sample['cos_tilt_2'] = angle_to_cos_angle(output_sample['tilt_2'])
-    output_sample['cos_iota'] = angle_to_cos_angle(output_sample['iota'])
+    output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
+    output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
+    output_sample['cos_iota'] = np.cos(output_sample['iota'])
     return output_sample
 
 

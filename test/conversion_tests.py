@@ -57,10 +57,3 @@ class TestBasicConversions(unittest.TestCase):
         mass_ratio = tupak.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
-    def test_cos_angle_to_angle(self):
-        angle = tupak.conversion.cos_angle_to_angle(self.cos_angle)
-        self.assertAlmostEqual(self.angle, angle)
-
-    def test_angle_to_cos_angle(self):
-        cos_angle = tupak.conversion.angle_to_cos_angle(self.angle)
-        self.assertAlmostEqual(self.cos_angle, cos_angle)
