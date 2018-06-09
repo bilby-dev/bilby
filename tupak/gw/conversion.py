@@ -36,6 +36,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     Return
     ------
+    converted_parameters: dict
+        dict of the required parameters
     ignored_keys: list
         keys which are added to parameters during function call
     """
