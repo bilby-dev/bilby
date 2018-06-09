@@ -19,18 +19,10 @@ def lal_binary_black_hole(
 
     waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
                            minimum_frequency=20.0)
-    try:
-        waveform_approximant = kwargs['waveform_approximant']
-    except KeyError:
-        waveform_approximant = waveform_kwargs['waveform_approximant']
-    try:
-        reference_frequency = kwargs['reference_frequency']
-    except KeyError:
-        reference_frequency = waveform_kwargs['reference_frequency']
-    try:
-        minimum_frequency = kwargs['minimum_frequency']
-    except KeyError:
-        minimum_frequency = waveform_kwargs['minimum_frequency']
+    waveform_kwargs.update(kwargs)
+    waveform_approximant = waveform_kwargs['waveform_approximant']
+    reference_frequency = waveform_kwargs['reference_frequency']
+    minimum_frequency = waveform_kwargs['minimum_frequency']
 
     if mass_2 > mass_1:
         return None
