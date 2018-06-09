@@ -102,7 +102,7 @@ class Result(dict):
         except Exception as e:
             logging.error(
                 "\n\n Saving the data has failed with the following message:\n {} \n\n"
-                .format(e))
+                    .format(e))
 
     def save_posterior_samples(self):
         filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
@@ -165,6 +165,10 @@ class Result(dict):
 
         if parameters is None:
             parameters = self.search_parameter_keys
+
+        if 'lionize' in kwargs and kwargs['lionize'] is True:
+            defaults_kwargs['truth_color'] = 'tab:blue'
+            defaults_kwargs['color'] = '#FF8C00'
 
         xs = self.posterior[parameters].values
         kwargs['labels'] = kwargs.get(
@@ -229,7 +233,7 @@ class Result(dict):
 
         self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
                                      + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
-                                                1 + self.posterior.q)
+                                            1 + self.posterior.q)
         self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
@@ -248,4 +252,3 @@ class Result(dict):
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
-
