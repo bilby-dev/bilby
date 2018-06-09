@@ -9,7 +9,8 @@ from gwpy.signal import filter_design
 from scipy import signal
 from scipy.interpolate import interp1d
 
-from . import utils
+import tupak.gw.utils
+from tupak.core import utils
 
 
 class Interferometer(object):
@@ -163,7 +164,7 @@ class Interferometer(object):
     @property
     def vertex(self):
         if self.__vertex_updated is False:
-            self.__vertex = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
+            self.__vertex = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
             self.__vertex_updated = True
         return self.__vertex
 
@@ -211,7 +212,7 @@ class Interferometer(object):
         :param mode: polarisation mode
         :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
         """
-        polarization_tensor = utils.get_polarization_tensor(ra, dec, time, psi, mode)
+        polarization_tensor = tupak.gw.utils.get_polarization_tensor(ra, dec, time, psi, mode)
         detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
         return detector_response
 
@@ -270,11 +271,11 @@ class Interferometer(object):
             else:
                 logging.info('Injecting into zero noise.')
                 self.data = signal_ifo
-            opt_snr = np.sqrt(utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                              time_duration=1 / (self.frequency_array[1]
+            opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                 time_duration=1 / (self.frequency_array[1]
                                                                                  - self.frequency_array[0])).real)
-            mf_snr = np.sqrt(utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                    time_duration=1 / (self.frequency_array[1]
+            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
+                                                                       time_duration=1 / (self.frequency_array[1]
                                                                                        - self.frequency_array[0])).real)
             logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
                 opt_snr, mf_snr, self.name))
@@ -374,9 +375,9 @@ class Interferometer(object):
             frequency_domain_strain = np.zeros_like(frequencies) * (1 + 1j)
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
-            strain = tupak.utils.read_frame_file(
+            strain = tupak.gw.utils.read_frame_file(
                 frame_file, t1=epoch, t2=epoch+duration, channel=channel_name, resample=sampling_frequency)
-            frequency_domain_strain, frequencies = tupak.utils.process_strain_data(strain, **kwargs)
+            frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
             if overwrite_psd:
                 self.power_spectral_density = PowerSpectralDensity(
                     frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
@@ -403,7 +404,7 @@ class Interferometer(object):
         Output:
         delta_t - time delay from geocenter
         """
-        delta_t = utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        delta_t = tupak.gw.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
         return delta_t
 
     def vertex_position_geocentric(self):
@@ -413,7 +414,7 @@ class Interferometer(object):
         Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
         See Section 2.1 of LIGO-T980044-10 for the correct expression
         """
-        vertex_position = utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+        vertex_position = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
         return vertex_position
 
     @property
@@ -477,8 +478,8 @@ class PowerSpectralDensity:
                     min(self.amplitude_spectral_density)))
                 logging.warning("You may have intended to provide this as a power spectral density.")
         elif frame_file is not None:
-            strain = tupak.utils.read_frame_file(frame_file, t1=epoch - psd_duration - psd_offset,
-                                                 t2=epoch - psd_duration, channel=channel_name)
+            strain = tupak.gw.utils.read_frame_file(frame_file, t1=epoch - psd_duration - psd_offset,
+                                                    t2=epoch - psd_duration, channel=channel_name)
             sampling_frequency = int(strain.sample_rate.value)
 
             # Low pass filter
@@ -662,11 +663,11 @@ def get_interferometer_with_open_data(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    strain = utils.get_open_strain_data(
+    strain = tupak.gw.utils.get_open_strain_data(
         name, center_time - T / 2, center_time + T / 2, outdir=outdir, cache=cache,
         raw_data_file=raw_data_file, **kwargs)
 
-    strain_psd = utils.get_open_strain_data(
+    strain_psd = tupak.gw.utils.get_open_strain_data(
         name, center_time + psd_offset, center_time + psd_offset + psd_duration,
         raw_data_file=raw_data_file,
         outdir=outdir, cache=cache, **kwargs)
@@ -841,7 +842,7 @@ def get_event_data(
     interferometers: list
         A list of tupak.detector.Interferometer objects
     """
-    event_time = utils.get_event_time(event)
+    event_time = tupak.gw.utils.get_event_time(event)
 
     interferometers = []
 

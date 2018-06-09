@@ -54,13 +54,18 @@ class Result(dict):
     def __repr__(self):
         """Print a summary """
         if hasattr(self, 'samples'):
-            return ("nsamples: {:d}\n"
-                    "log_noise_evidence: {:6.3f}\n"
-                    "log_evidence: {:6.3f} +/- {:6.3f}\n"
-                    "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                    .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
-                            self.log_evidence_err, self.log_bayes_factor,
-                            self.log_evidence_err))
+            if hasattr(self, 'log_noise_evidence'):
+                return ("nsamples: {:d}\n"
+                        "log_noise_evidence: {:6.3f}\n"
+                        "log_evidence: {:6.3f} +/- {:6.3f}\n"
+                        "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
+                        .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
+                                self.log_evidence_err, self.log_bayes_factor,
+                                self.log_evidence_err))
+            else:
+                return ("nsamples: {:d}\n"
+                        "log_evidence: {:6.3f} +/- {:6.3f}\n"
+                        .format(len(self.samples), self.log_evidence, self.log_evidence_err))
         else:
             return ''
 

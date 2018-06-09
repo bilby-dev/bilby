@@ -8,7 +8,7 @@ import tupak
 import numpy as np
 
 # A few simple setup steps
-tupak.utils.setup_logger()
+tupak.core.utils.setup_logger()
 label = 'gaussian_example'
 outdir = 'outdir'
 
@@ -22,7 +22,7 @@ outdir = 'outdir'
 data = np.random.normal(3, 4, 100)
 
 
-class GaussianLikelihood(tupak.Likelihood):
+class SimpleGaussianLikelihood(tupak.Likelihood):
     def __init__(self, data):
         """
         A very simple Gaussian likelihood
@@ -44,9 +44,9 @@ class GaussianLikelihood(tupak.Likelihood):
                        + self.N*np.log(2*np.pi*sigma**2))
 
 
-likelihood = GaussianLikelihood(data)
-priors = dict(mu=tupak.prior.Uniform(0, 5, 'mu'),
-              sigma=tupak.prior.Uniform(0, 10, 'sigma'))
+likelihood = SimpleGaussianLikelihood(data)
+priors = dict(mu=tupak.core.prior.Uniform(0, 5, 'mu'),
+              sigma=tupak.core.prior.Uniform(0, 10, 'sigma'))
 
 # And run sampler
 result = tupak.run_sampler(

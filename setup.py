@@ -24,8 +24,9 @@ with open('tupak/' + version_file, 'w+') as f:
 
 setup(name='tupak',
       version='0.1',
-      packages=['tupak'],
+      packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
-      package_data={'tupak': ['noise_curves/*.txt', 'prior_files/*.txt',
-                              version_file]}
+      package_data={'tupak.core': ['prior_files/*.txt'],
+                    'tupak.gw': ['noise_curves/*.txt'],
+                    'tupak': [version_file]}
       )

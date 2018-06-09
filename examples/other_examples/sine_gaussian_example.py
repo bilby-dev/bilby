@@ -14,7 +14,7 @@ sampling_frequency = 2048.
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
 label = 'sine_gaussian'
-tupak.utils.setup_logger(outdir=outdir, label=label)
+tupak.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
 np.random.seed(170801)
@@ -25,15 +25,15 @@ injection_parameters = dict(hrss = 1e-22, Q = 5.0, frequency = 200.0, ra = 1.375
                              geocent_time = 1126259642.413, psi= 2.659)
 
 # Create the waveform_generator using a sine Gaussian source function
-waveform_generator = tupak.waveform_generator.WaveformGenerator(time_duration=time_duration,
-                                                                sampling_frequency=sampling_frequency,
-                                                                frequency_domain_source_model=tupak.source.sinegaussian,
-                                                                parameters=injection_parameters)
+waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(time_duration=time_duration,
+                                                                   sampling_frequency=sampling_frequency,
+                                                                   frequency_domain_source_model=tupak.gw.source.sinegaussian,
+                                                                   parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity
-IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
@@ -50,16 +50,16 @@ for key in ['psi', 'ra', 'dec', 'geocent_time']:
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
 #priors['Q'] = tupak.prior.create_default_prior(name='Q')
 #priors['frequency'] = tupak.prior.create_default_prior(name='frequency')
-priors['Q'] = tupak.prior.Uniform(2, 50, 'Q')
-priors['frequency'] = tupak.prior.Uniform(30, 1000, 'frequency')
-priors['hrss'] = tupak.prior.Uniform(1e-23, 1e-21, 'hrss')
+priors['Q'] = tupak.core.prior.Uniform(2, 50, 'Q')
+priors['frequency'] = tupak.core.prior.Uniform(30, 1000, 'frequency')
+priors['hrss'] = tupak.core.prior.Uniform(1e-23, 1e-21, 'hrss')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-                                   injection_parameters=injection_parameters, outdir=outdir, label=label)
+result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
+                                        injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # make some plots of the outputs
 result.plot_corner()

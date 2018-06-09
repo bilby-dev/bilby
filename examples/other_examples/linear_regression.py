@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import inspect
 
 # A few simple setup steps
-tupak.utils.setup_logger()
+tupak.core.utils.setup_logger()
 label = 'linear_regression'
 outdir = 'outdir'
 
@@ -50,7 +50,7 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # our model.
 
 
-class GaussianLikelihood(tupak.Likelihood):
+class GaussianLikelihoodKnownNoise(tupak.Likelihood):
     def __init__(self, x, y, sigma, function):
         """
         A general Gaussian likelihood - the parameters are inferred from the
@@ -84,20 +84,16 @@ class GaussianLikelihood(tupak.Likelihood):
         return -0.5 * (np.sum((res / self.sigma)**2)
                        + self.N*np.log(2*np.pi*self.sigma**2))
 
-    def noise_log_likelihood(self):
-        return -0.5 * (np.sum((self.y / self.sigma)**2)
-                       + self.N*np.log(2*np.pi*self.sigma**2))
-
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
-likelihood = GaussianLikelihood(time, data, sigma, model)
+likelihood = GaussianLikelihoodKnownNoise(time, data, sigma, model)
 
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior
 priors = {}
-priors['m'] = tupak.prior.Uniform(0, 5, 'm')
-priors['c'] = tupak.prior.Uniform(-2, 2, 'c')
+priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
+priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
 result = tupak.run_sampler(

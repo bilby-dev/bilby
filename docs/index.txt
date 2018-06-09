@@ -15,5 +15,6 @@ Welcome to tupak's documentation!
    samplers
    tupak-output
    writing-documentation
+   hyperparameters
 
 

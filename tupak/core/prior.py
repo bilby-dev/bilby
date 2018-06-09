@@ -8,6 +8,8 @@ from scipy.special import erf, erfinv
 import logging
 import os
 
+from tupak.gw.prior import create_default_prior, test_redundancy
+
 
 class Prior(object):
     """
@@ -443,54 +445,6 @@ class UniformComovingVolume(FromFile):
         return FromFile.__repr__(self)
 
 
-def create_default_prior(name):
-    """
-    Make a default prior for a parameter with a known name.
-
-    This is currently set up for binary black holes.
-
-    Parameters
-    ----------
-    name: str
-        Parameter name
-
-    Return
-    ------
-    prior: Prior
-        Default prior distribution for that parameter, if unknown None is returned.
-    """
-    default_priors = {
-        'mass_1': Uniform(name=name, minimum=20, maximum=100),
-        'mass_2': Uniform(name=name, minimum=20, maximum=100),
-        'chirp_mass': Uniform(name=name, minimum=25, maximum=100),
-        'total_mass': Uniform(name=name, minimum=10, maximum=200),
-        'mass_ratio': Uniform(name=name, minimum=0.125, maximum=1),
-        'symmetric_mass_ratio': Uniform(name=name, minimum=8 / 81, maximum=0.25),
-        'a_1': Uniform(name=name, minimum=0, maximum=0.8),
-        'a_2': Uniform(name=name, minimum=0, maximum=0.8),
-        'tilt_1': Sine(name=name),
-        'tilt_2': Sine(name=name),
-        'cos_tilt_1': Uniform(name=name, minimum=-1, maximum=1),
-        'cos_tilt_2': Uniform(name=name, minimum=-1, maximum=1),
-        'phi_12': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'phi_jl': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'luminosity_distance': UniformComovingVolume(name=name, minimum=1e2, maximum=5e3),
-        'dec': Cosine(name=name),
-        'ra': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'iota': Sine(name=name),
-        'cos_iota': Uniform(name=name, minimum=-1, maximum=1),
-        'psi': Uniform(name=name, minimum=0, maximum=2 * np.pi),
-        'phase': Uniform(name=name, minimum=0, maximum=2 * np.pi)
-    }
-    if name in default_priors.keys():
-        prior = default_priors[name]
-    else:
-        logging.info(
-            "No default prior found for variable {}.".format(name))
-        prior = None
-    return prior
-
-
 def fill_priors(prior, likelihood):
     """
     Fill dictionary of priors based on required parameters of likelihood
@@ -548,55 +502,6 @@ def fill_priors(prior, likelihood):
         test_redundancy(key, prior)
 
     return prior
-
-
-def test_redundancy(key, prior):
-    """
-    Test whether adding the key would add be redundant.
-
-    Parameters
-    ----------
-    key: str
-        The string to test.
-    prior: dict
-        Current prior dictionary.
-
-    Return
-    ------
-    redundant: bool
-        Whether the key is redundant
-    """
-    redundant = False
-    mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
-    spin_magnitude_parameters = {'a_1', 'a_2'}
-    spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
-    spin_tilt_2_parameters = {'tilt_2', 'cos_tilt_2'}
-    spin_azimuth_parameters = {'phi_1', 'phi_2', 'phi_12', 'phi_jl'}
-    inclination_parameters = {'iota', 'cos_iota'}
-    distance_parameters = {'luminosity_distance', 'comoving_distance', 'redshift'}
-
-    for parameter_set in [mass_parameters, spin_magnitude_parameters, spin_azimuth_parameters]:
-        if key in parameter_set:
-            if len(parameter_set.intersection(prior.keys())) > 2:
-                redundant = True
-                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                    parameter_set.intersection(prior.keys())))
-                break
-            elif len(parameter_set.intersection(prior.keys())) == 2:
-                redundant = True
-                break
-    for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters, spin_tilt_2_parameters]:
-        if key in parameter_set:
-            if len(parameter_set.intersection(prior.keys())) > 1:
-                redundant = True
-                logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                    parameter_set.intersection(prior.keys())))
-                break
-            elif len(parameter_set.intersection(prior.keys())) == 1:
-                redundant = True
-                break
-
-    return redundant
 
 
 def write_priors_to_file(priors, outdir, label):

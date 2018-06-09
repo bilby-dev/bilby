@@ -9,7 +9,8 @@ from __future__ import division, print_function
 import tupak
 import numpy as np
 
-tupak.utils.setup_logger(log_level="info")
+
+tupak.core.utils.setup_logger(log_level="info")
 
 time_duration = 4.
 sampling_frequency = 2048.
@@ -22,16 +23,16 @@ injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5
                             waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.waveform_generator.WaveformGenerator(
+waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, time_duration=time_duration,
-    frequency_domain_source_model=tupak.source.lal_binary_black_hole,
-    parameter_conversion=tupak.conversion.convert_to_lal_binary_black_hole_parameters,
+    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    parameter_conversion=tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio', 'cos_iota'],
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.detector.get_interferometer_with_fake_noise_and_injection(
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
@@ -40,14 +41,14 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = tupak.prior.create_default_prior(name='luminosity_distance')
+priors['luminosity_distance'] = tupak.gw.prior.create_default_prior(name='luminosity_distance')
 
 # Initialise GravitationalWaveTransient
-likelihood = tupak.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
 
 # Run sampler
-result = tupak.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
-                                   injection_parameters=injection_parameters, label='DifferentParameters',
-                                   outdir=outdir, conversion_function=tupak.conversion.generate_all_bbh_parameters)
+result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
+                                        injection_parameters=injection_parameters, label='DifferentParameters',
+                                        outdir=outdir, conversion_function=tupak.gw.conversion.generate_all_bbh_parameters)
 result.plot_corner()
 print(result)

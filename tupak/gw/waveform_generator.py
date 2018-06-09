@@ -1,6 +1,6 @@
 import inspect
 
-from . import utils
+from tupak.core import utils
 import numpy as np
 
 
@@ -94,15 +94,15 @@ class WaveformGenerator(object):
     @property
     def frequency_array(self):
         if self.__frequency_array_updated is False:
-            self.__frequency_array = utils.create_frequency_series(
+            self.frequency_array = utils.create_frequency_series(
                                         self.sampling_frequency,
                                         self.time_duration)
-            self.__frequency_array_updated = True
         return self.__frequency_array
 
     @frequency_array.setter
     def frequency_array(self, frequency_array):
         self.__frequency_array = frequency_array
+        self.__frequency_array_updated = True
 
     @property
     def time_array(self):
