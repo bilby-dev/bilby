@@ -317,8 +317,7 @@ def generate_non_standard_parameters(sample):
     output_sample = sample.copy()
     output_sample['chirp_mass'] = component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
     output_sample['total_mass'] = component_masses_to_total_mass(sample['mass_1'], sample['mass_2'])
-    output_sample['symmetric_mass_ratio'] = component_masses_to_symmetric_mass_ratio(sample['mass_1'],
-                                                                                     sample['mass_2'])
+    output_sample['symmetric_mass_ratio'] = component_masses_to_symmetric_mass_ratio(sample['mass_1'], sample['mass_2'])
     output_sample['mass_ratio'] = component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
     output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
