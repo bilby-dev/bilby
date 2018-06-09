@@ -60,7 +60,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                 if 'total_mass' not in converted_parameters.keys():
                     converted_parameters['total_mass'] = chirp_mass_and_mass_ratio_to_total_mass(
                         converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
-                    converted_parameters.pop('chirp_mass')
+                    if remove:
+                        converted_parameters.pop('chirp_mass')
                 # total_mass, mass_ratio to component masses
                 converted_parameters['mass_1'], converted_parameters['mass_2'] = \
                     total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
@@ -85,11 +86,13 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
-    for cos_angle in ['cos_tilt_1', 'cos_tilt_2', 'cos_iota']:
-        if str(cos_angle) in converted_parameters.keys():
-            cos_angle_to_angle(cos_angle)
+    for angle in ['tilt_1', 'tilt_2', 'iota']:
+        cos_angle = str('cos_' + angle)
+        if cos_angle in converted_parameters.keys():
+            converted_parameters[angle] = cos_angle_to_angle(converted_parameters[cos_angle])
             if remove:
-                converted_parameters.pop(cos_angle[4:])
+                converted_parameters.pop(cos_angle)
+            ignored_keys.append(angle)
 
     return converted_parameters, ignored_keys
 
