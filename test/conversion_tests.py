@@ -57,3 +57,31 @@ class TestBasicConversions(unittest.TestCase):
         mass_ratio = tupak.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
+
+class TestConvertToLALBBHParams(unittest.TestCase):
+
+    def setUp(self):
+        self.search_keys = []
+        self.parameters = dict()
+        self.remove = True
+
+    def tearDown(self):
+        del self.search_keys
+        del self.parameters
+        del self.remove
+
+    def test_cos_angle_to_angle_conversion(self):
+        with mock.patch('numpy.arccos') as m:
+            m.return_value = 42
+            self.search_keys.append('cos_tilt_1')
+            self.parameters['cos_tilt_1'] = 1
+            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys)
+            self.assertEqual(42, self.parameters['tilt_1'])
+
+    def test_cos_angle_to_angle_conversion_removal(self):
+        with mock.patch('numpy.arccos') as m:
+            m.return_value = 42
+            self.search_keys.append('cos_tilt_1')
+            self.parameters['cos_tilt_1'] = 1
+            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys, remove=True)
+            self.assertDictEqual(self.parameters, dict(tilt_1 = 42))
