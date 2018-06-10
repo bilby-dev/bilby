@@ -586,12 +586,14 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         else:
             result = sampler._run_external_sampler()
 
-        result.log_noise_evidence = likelihood.noise_log_likelihood()
         if sampler.use_ratio:
+            result.log_noise_evidence = likelihood.noise_log_likelihood()
             result.log_bayes_factor = result.log_evidence
             result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
         else:
-            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+            if likelihood.noise_log_likelihood() is not np.nan:
+                result.log_noise_evidence = likelihood.noise_log_likelihood()
+                result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
         if injection_parameters is not None:
             result.injection_parameters = injection_parameters
             if conversion_function is not None:

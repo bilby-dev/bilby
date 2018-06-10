@@ -22,7 +22,7 @@ outdir = 'outdir'
 data = np.random.normal(3, 4, 100)
 
 
-class GaussianLikelihood(tupak.Likelihood):
+class SimpleGaussianLikelihood(tupak.Likelihood):
     def __init__(self, data):
         """
         A very simple Gaussian likelihood
@@ -44,7 +44,7 @@ class GaussianLikelihood(tupak.Likelihood):
                        + self.N*np.log(2*np.pi*sigma**2))
 
 
-likelihood = GaussianLikelihood(data)
+likelihood = SimpleGaussianLikelihood(data)
 priors = dict(mu=tupak.core.prior.Uniform(0, 5, 'mu'),
               sigma=tupak.core.prior.Uniform(0, 10, 'sigma'))
 
