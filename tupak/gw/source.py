@@ -14,8 +14,16 @@ from tupak.core import utils
 
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
-        iota, phase, waveform_approximant, reference_frequency, ra, dec, geocent_time, psi):
+        iota, phase, ra, dec, geocent_time, psi, **kwargs):
     """ A Binary Black Hole waveform model using lalsimulation """
+
+    waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
+                           minimum_frequency=20.0)
+    waveform_kwargs.update(kwargs)
+    waveform_approximant = waveform_kwargs['waveform_approximant']
+    reference_frequency = waveform_kwargs['reference_frequency']
+    minimum_frequency = waveform_kwargs['minimum_frequency']
+
     if mass_2 > mass_1:
         return None
 
@@ -32,8 +40,8 @@ def lal_binary_black_hole(
         spin_2z = a_2
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2,
-                                                                      mass_1, mass_2, reference_frequency, phase)
+            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2, reference_frequency, phase)
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
@@ -43,15 +51,14 @@ def lal_binary_black_hole(
 
     approximant = lalsim.GetApproximantFromString(waveform_approximant)
 
-    frequency_minimum = 20
-    frequency_maximum = frequency_array[-1]
+    maximum_frequency = frequency_array[-1]
     delta_frequency = frequency_array[1] - frequency_array[0]
 
     hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
-        frequency_minimum, frequency_maximum, reference_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
     h_plus = hplus.data.data
