@@ -12,9 +12,21 @@ from tupak.gw.prior import create_default_prior, test_redundancy
 
 
 class PriorSet(dict):
-    def __init__(self, dictionary=None):
+    def __init__(self, dictionary=None, filename=None):
+        """ A set of priors
+
+        Parameters
+        ----------
+        dictionary: dict, None
+            If given, a dictionary to generate the prior set.
+        filename: str, None
+            If given, a file containing the prior to generate the prior set.
+        """
+
         if type(dictionary) is dict:
             self.update(dictionary)
+        elif filename:
+            self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
         """
@@ -33,7 +45,21 @@ class PriorSet(dict):
         with open(prior_file, "w") as outfile:
             for key in self.keys():
                 outfile.write(
-                    "prior['{}'] = {}\n".format(key, self[key]))
+                    "{} = {}\n".format(key, self[key]))
+
+    def read_in_file(self, filename):
+        """
+        Reads in a prior from a file specification
+        """
+
+        prior = {}
+        with open(filename, 'r') as f:
+            for line in f:
+                elements = line.split('=')
+                key = elements[0].replace(' ', '')
+                val = '='.join(elements[1:])
+                prior[key] = eval(val)
+        self.update(prior)
 
 
 class Prior(object):
