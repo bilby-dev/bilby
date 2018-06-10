@@ -57,6 +57,10 @@ class TestBasicConversions(unittest.TestCase):
         mass_ratio = tupak.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
+    def test_mass_1_and_chirp_mass_to_mass_ratio(self):
+        mass_ratio = tupak.conversion.mass_1_and_chirp_mass_to_mass_ratio(self.mass_1, self.chirp_mass)
+        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+
 
 class TestConvertToLALBBHParams(unittest.TestCase):
 
@@ -85,3 +89,7 @@ class TestConvertToLALBBHParams(unittest.TestCase):
             self.parameters['cos_tilt_1'] = 1
             self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys, remove=True)
             self.assertDictEqual(self.parameters, dict(tilt_1 = 42))
+
+
+if __name__=='__main__':
+    unittest.main()
