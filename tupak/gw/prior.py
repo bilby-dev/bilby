@@ -1,7 +1,5 @@
 import logging
 
-import tupak.core.prior
-
 
 def test_redundancy(key, prior):
     """

@@ -12,7 +12,6 @@ import numpy as np
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
 import tupak.gw.likelihood
-import tupak.gw.prior
 
 time_duration = 3.
 sampling_frequency = 4096.
