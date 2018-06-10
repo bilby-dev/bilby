@@ -62,7 +62,7 @@ class PriorSet(dict):
                 prior[key] = eval(val)
         self.update(prior)
 
-    def fill_priors(self, likelihood):
+    def fill_priors(self, likelihood, default_priors_file=None):
         """
         Fill dictionary of priors based on required parameters of likelihood
 
@@ -75,6 +75,10 @@ class PriorSet(dict):
             dictionary of prior objects and floats
         likelihood: tupak.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
+        default_priors_file: str
+            If given, a file containing the default priors; otherwise defaults
+            to the tupak defaults for a binary black hole.
+
 
         Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
         this will set-up default priors for those as well.
@@ -120,7 +124,7 @@ class PriorSet(dict):
             test_redundancy(key, self)
 
 
-def create_default_prior(name, default_prior_file=None):
+def create_default_prior(name, default_priors_file=None):
     """
     Make a default prior for a parameter with a known name.
 
@@ -128,8 +132,9 @@ def create_default_prior(name, default_prior_file=None):
     ----------
     name: str
         Parameter name
-    default_prior_file: str
-        If given, the file where default priors are stored.
+    default_priors_file: str
+        If given, a file containing the default priors; otherwise defaults to
+        the tupak defaults for a binary black hole.
 
     Return
     ------
@@ -138,12 +143,11 @@ def create_default_prior(name, default_prior_file=None):
         returned.
     """
 
-    if default_prior_file is None:
-        default_prior_file = 'binary_black_holes.prior'
-        default_prior_file = os.path.join(os.path.dirname(__file__),
-                                          'prior_files',
-                                          'binary_black_holes.prior')
-    default_priors = PriorSet(filename=default_prior_file)
+    if default_priors_file is None:
+        default_priors_file = os.path.join(os.path.dirname(__file__),
+                                           'prior_files',
+                                           'binary_black_holes.prior')
+    default_priors = PriorSet(filename=default_priors_file)
     if name in default_priors.keys():
         prior = default_priors[name]
     else:

@@ -513,7 +513,8 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=None, injection_parameters=None,
-                conversion_function=None, plot=False, **kwargs):
+                conversion_function=None, plot=False, default_priors_file=None,
+                **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -542,6 +543,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
+    default_priors_file: str
+        If given, a file containing the default priors; otherwise defaults to
+        the tupak defaults for a binary black hole.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
