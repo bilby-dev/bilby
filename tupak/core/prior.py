@@ -5,6 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
+import scipy.stats
 import logging
 import os
 
@@ -265,15 +266,19 @@ class PowerLaw(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['alpha'])
 
 
-class Uniform(PowerLaw):
+class Uniform(Prior):
     """Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.alpha = 0
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return PowerLaw.__repr__(self)
+    def rescale(self, val):
+        Prior.test_valid_for_rescaling(val)
+        return self.minimum + val * (self.maximum - self.minimum)
+
+    def prob(self, val):
+        return scipy.stats.uniform.pdf(val, loc=self.minimum,
+                                       scale=self.maximum-self.minimum)
 
 
 class LogUniform(PowerLaw):
