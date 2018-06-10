@@ -212,7 +212,8 @@ class TestFillPrior(unittest.TestCase):
         self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
         self.priors = dict(a=1, b=1.1, c='string', d=tupak.core.prior.Uniform(0, 1))
-        self.priors = tupak.core.prior.fill_priors(self.priors, self.likelihood)
+        self.priors = tupak.core.prior.PriorSet(self.priors)
+        self.priors.fill_priors(self.likelihood)
 
     def tearDown(self):
         del self.likelihood
