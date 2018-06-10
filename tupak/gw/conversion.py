@@ -48,14 +48,13 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
         if 'chirp_mass' in converted_parameters.keys():
             if 'total_mass' in converted_parameters.keys():
-                # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
                 converted_parameters['symmetric_mass_ratio'] = chirp_mass_and_total_mass_to_symmetric_mass_ratio(
                     converted_parameters['chirp_mass'], converted_parameters['total_mass'])
                 if remove:
                     converted_parameters.pop('chirp_mass')
             if 'symmetric_mass_ratio' in converted_parameters.keys():
-                # symmetric_mass_ratio to mass_ratio
-                converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] =\
+                    symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     converted_parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys():
@@ -64,7 +63,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                         converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
                     if remove:
                         converted_parameters.pop('chirp_mass')
-                # total_mass, mass_ratio to component masses
                 converted_parameters['mass_1'], converted_parameters['mass_2'] = \
                     total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
                                                                   converted_parameters['total_mass'])
@@ -75,17 +73,41 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             ignored_keys.append('mass_2')
         elif 'total_mass' in converted_parameters.keys():
             if 'symmetric_mass_ratio' in converted_parameters.keys():
-                # symmetric_mass_ratio to mass_ratio
-                converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
+                converted_parameters['mass_ratio'] =\
+                    symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     converted_parameters.pop('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys():
-                # total_mass, mass_ratio to component masses
-                converted_parameters['mass_1'], converted_parameters['mass_2'] = total_mass_and_mass_ratio_to_component_masses(converted_parameters)
+                converted_parameters['mass_1'], converted_parameters['mass_2'] =\
+                    total_mass_and_mass_ratio_to_component_masses(converted_parameters)
                 if remove:
                     converted_parameters.pop('total_mass')
                     converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
+            ignored_keys.append('mass_2')
+
+    elif 'mass_1' in search_keys and 'mass_2' not in search_keys:
+        if 'chirp_mass' in converted_parameters.keys():
+            converted_parameters['mass_ratio'] =\
+                mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
+            temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
+            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3)\
+                                       + (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
+            if remove:
+                converted_parameters.pop('chirp_mass')
+        elif 'symmetric_mass_ratio' in converted_parameters.keys():
+            converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
+            if remove:
+                converted_parameters.pop('symmetric_mass_ratio')
+        if 'mass_ratio' in converted_parameters.keys():
+            converted_parameters['mass_2'] = converted_parameters['mass_1'] * converted_parameters['mass_ratio']
+            if remove:
+                converted_parameters.pop('mass_ratio')
+            ignored_keys.append('mass_2')
+        elif 'total_mass' in converted_parameters.keys():
+            converted_parameters['mass_2'] = parameters['total_mass'] - parameters['mass_1']
+            if remove:
+                converted_parameters.pop('total_mass')
             ignored_keys.append('mass_2')
 
     for angle in ['tilt_1', 'tilt_2', 'iota']:
@@ -100,7 +122,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
-
     """
     Convert total mass and mass ratio of a binary to its component masses.
 
@@ -145,7 +166,6 @@ def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
 
 
 def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
-
     """
     Convert chirp mass and total mass of a binary to its symmetric mass ratio.
 
@@ -166,7 +186,6 @@ def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
 
 
 def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
-
     """
     Convert chirp mass and mass ratio of a binary to its total mass.
 
@@ -189,7 +208,6 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
 
 
 def component_masses_to_chirp_mass(mass_1, mass_2):
-
     """
     Convert the component masses of a binary to its chirp mass.
 
@@ -230,7 +248,6 @@ def component_masses_to_total_mass(mass_1, mass_2):
 
 
 def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
-
     """
     Convert the component masses of a binary to its symmetric mass ratio.
 
@@ -251,7 +268,6 @@ def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):
-
     """
     Convert the component masses of a binary to its chirp mass.
 
@@ -269,6 +285,30 @@ def component_masses_to_mass_ratio(mass_1, mass_2):
     """
 
     return mass_2 / mass_1
+
+
+def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
+    """
+    Calculate mass ratio from mass_1 and chirp_mass.
+
+    This involves solving mc = m1 * q**(3/5) / (1 + q)**(1/5).
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    chirp_mass: float
+        Mass of the lighter object
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+    temp = (chirp_mass / mass_1)**5
+    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp \
+                 + ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
+    return mass_ratio
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
