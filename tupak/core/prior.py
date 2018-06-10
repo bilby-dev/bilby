@@ -9,7 +9,7 @@ import scipy.stats
 import logging
 import os
 
-from tupak.gw.prior import create_default_prior, test_redundancy
+from tupak.gw.prior import test_redundancy
 
 
 class PriorSet(dict):
@@ -61,6 +61,96 @@ class PriorSet(dict):
                 val = '='.join(elements[1:])
                 prior[key] = eval(val)
         self.update(prior)
+
+    def fill_priors(self, likelihood):
+        """
+        Fill dictionary of priors based on required parameters of likelihood
+
+        Any floats in prior will be converted to delta function prior. Any
+        required, non-specified parameters will use the default.
+
+        Parameters
+        ----------
+        prior: dict
+            dictionary of prior objects and floats
+        likelihood: tupak.likelihood.GravitationalWaveTransient instance
+            Used to infer the set of parameters to fill the prior with
+
+        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
+        this will set-up default priors for those as well.
+
+        Returns
+        -------
+        prior: dict
+            The filled prior dictionary
+
+        """
+
+        for key in self:
+            if isinstance(self[key], Prior):
+                continue
+            elif isinstance(self[key], float) or isinstance(self[key], int):
+                self[key] = DeltaFunction(self[key])
+                logging.info(
+                    "{} converted to delta function prior.".format(key))
+            else:
+                logging.info(
+                    "{} cannot be converted to delta function prior."
+                    .format(key))
+
+        missing_keys = set(likelihood.parameters) - set(self.keys())
+
+        if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
+            for parameter in likelihood.non_standard_sampling_parameter_keys:
+                self[parameter] = create_default_prior(parameter)
+
+        for missing_key in missing_keys:
+            default_prior = create_default_prior(missing_key)
+            if default_prior is None:
+                set_val = likelihood.parameters[missing_key]
+                logging.warning(
+                    "Parameter {} has no default prior and is set to {}, this"
+                    " will not be sampled and may cause an error."
+                    .format(missing_key, set_val))
+            else:
+                if not test_redundancy(missing_key, self):
+                    self[missing_key] = default_prior
+
+        for key in self:
+            test_redundancy(key, self)
+
+
+def create_default_prior(name, default_prior_file=None):
+    """
+    Make a default prior for a parameter with a known name.
+
+    Parameters
+    ----------
+    name: str
+        Parameter name
+    default_prior_file: str
+        If given, the file where default priors are stored.
+
+    Return
+    ------
+    prior: Prior
+        Default prior distribution for that parameter, if unknown None is
+        returned.
+    """
+
+    if default_prior_file is None:
+        default_prior_file = 'binary_black_holes.prior'
+        default_prior_file = os.path.join(os.path.dirname(__file__),
+                                          'prior_files',
+                                          'binary_black_holes.prior')
+    default_priors = PriorSet(filename=default_prior_file)
+    if name in default_priors.keys():
+        prior = default_priors[name]
+    else:
+        logging.info(
+            "No default prior found for variable {}.".format(name))
+        prior = None
+    return prior
 
 
 class Prior(object):
@@ -501,61 +591,4 @@ class UniformComovingVolume(FromFile):
         return FromFile.__repr__(self)
 
 
-def fill_priors(prior, likelihood):
-    """
-    Fill dictionary of priors based on required parameters of likelihood
-
-    Any floats in prior will be converted to delta function prior. Any
-    required, non-specified parameters will use the default.
-
-    Parameters
-    ----------
-    prior: dict
-        dictionary of prior objects and floats
-    likelihood: tupak.likelihood.GravitationalWaveTransient instance
-        Used to infer the set of parameters to fill the prior with
-
-    Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then this
-    will set-up default priors for those as well.
-
-    Returns
-    -------
-    prior: dict
-        The filled prior dictionary
-
-    """
-
-    for key in prior:
-        if isinstance(prior[key], Prior):
-            continue
-        elif isinstance(prior[key], float) or isinstance(prior[key], int):
-            prior[key] = DeltaFunction(prior[key])
-            logging.info(
-                "{} converted to delta function prior.".format(key))
-        else:
-            logging.info(
-                "{} cannot be converted to delta function prior.".format(key))
-
-    missing_keys = set(likelihood.parameters) - set(prior.keys())
-
-    if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
-        for parameter in likelihood.non_standard_sampling_parameter_keys:
-            prior[parameter] = create_default_prior(parameter)
-
-    for missing_key in missing_keys:
-        default_prior = create_default_prior(missing_key)
-        if default_prior is None:
-            set_val = likelihood.parameters[missing_key]
-            logging.warning(
-                "Parameter {} has no default prior and is set to {}, this will"
-                " not be sampled and may cause an error."
-                    .format(missing_key, set_val))
-        else:
-            if not test_redundancy(missing_key, prior):
-                prior[missing_key] = default_prior
-
-    for key in prior:
-        test_redundancy(key, prior)
-
-    return prior
 

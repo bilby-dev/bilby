@@ -41,7 +41,7 @@ priors = dict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = tupak.gw.prior.create_default_prior(name='luminosity_distance')
+priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
 
 # Initialise GravitationalWaveTransient
 likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)

@@ -38,7 +38,7 @@ priors = dict()
 for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time', 'psi']:
     priors[key] = injection_parameters[key]
 # We can assign a default prior distribution, note this only works for certain parameters.
-priors['mass_1'] = tupak.gw.prior.create_default_prior(name='mass_1')
+priors['mass_1'] = tupak.core.prior.create_default_prior(name='mass_1')
 # We can make uniform distributions.
 priors['mass_2'] = tupak.core.prior.Uniform(name='mass_2', minimum=20, maximum=40)
 # We can load a prior distribution from a file, e.g., a uniform in comoving volume distribution.

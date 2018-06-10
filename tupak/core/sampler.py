@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import time
 
 from tupak.core.result import Result, read_in_result
-from tupak.core.prior import Prior, fill_priors
+from tupak.core.prior import Prior
 from tupak.core import utils
 import tupak
 
@@ -556,7 +556,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood)
 
     if type(priors) == dict:
         priors = tupak.core.prior.PriorSet(priors)
@@ -565,6 +564,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         raise ValueError
 
+    priors.fill_priors(likelihood)
     priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
