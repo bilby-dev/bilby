@@ -3,6 +3,7 @@ import tupak
 import unittest
 from mock import Mock
 import numpy as np
+import os
 
 
 class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
@@ -108,7 +109,7 @@ class TestPriorClasses(unittest.TestCase):
             tupak.core.prior.PowerLaw(name='test', alpha=2, minimum=1, maximum=1e2),
             tupak.core.prior.Uniform(name='test', minimum=0, maximum=1),
             tupak.core.prior.LogUniform(name='test', minimum=5e0, maximum=1e2),
-            tupak.core.prior.UniformComovingVolume(name='test', minimum=2e2, maximum=5e3),
+            tupak.gw.prior.UniformComovingVolume(name='test', minimum=2e2, maximum=5e3),
             tupak.core.prior.Sine(name='test'),
             tupak.core.prior.Cosine(name='test'),
             tupak.core.prior.Interped(name='test', xx=np.linspace(0, 10, 1000), yy=np.linspace(0, 10, 1000) ** 4,
@@ -213,7 +214,9 @@ class TestFillPrior(unittest.TestCase):
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
         self.priors = dict(a=1, b=1.1, c='string', d=tupak.core.prior.Uniform(0, 1))
         self.priors = tupak.core.prior.PriorSet(self.priors)
-        self.priors.fill_priors(self.likelihood)
+        self.default_prior_file = os.path.join('/'.join(os.path.dirname(__file__).split('/')[:-1]), 'tupak', 'gw',
+                                               'prior_files', 'binary_black_holes.prior')
+        self.priors.fill_priors(self.likelihood, self.default_prior_file)
 
     def tearDown(self):
         del self.likelihood
