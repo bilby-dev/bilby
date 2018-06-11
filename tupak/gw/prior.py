@@ -1,10 +1,12 @@
-import logging
-from tupak.core import prior
+from tupak.core.prior import *
 
 
-class CBCPriorSet(prior.PriorSet):
+class BBHPriorSet(PriorSet):
     def __init__(self, dictionary=None, filename=None):
-        prior.PriorSet.__init__(dictionary=dictionary, filename=filename)
+        if dictionary is None and filename is None:
+            filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_black_holes.prior')
+            logging.info('No prior given, using default BBH priors in {}.'.format(filename))
+        PriorSet.__init__(dictionary=dictionary, filename=filename)
         self.test_redundancy = test_cbc_redundancy
 
 
