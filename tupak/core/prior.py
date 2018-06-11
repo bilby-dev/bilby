@@ -142,11 +142,11 @@ class PriorSet(dict):
         return samples
 
     def prob(self, sample):
-        probability = np.product([self[key].prob(sample[key]) for key in self])
+        probability = np.product([self[key].prob(sample[key]) for key in sample])
         return probability
 
     def ln_prob(self, sample):
-        ln_probability = np.sum([self[key].ln_prob(sample[key]) for key in self])
+        ln_probability = np.sum([self[key].ln_prob(sample[key]) for key in sample])
         return ln_probability
 
     def rescale(self, keys, theta):
