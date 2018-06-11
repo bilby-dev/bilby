@@ -311,35 +311,13 @@ class Prior(object):
 
     @property
     def __default_latex_label(self):
-        default_labels = {
-            'mass_1': '$m_1$',
-            'mass_2': '$m_2$',
-            'total_mass': '$M$',
-            'chirp_mass': '$\mathcal{M}$',
-            'mass_ratio': '$q$',
-            'symmetric_mass_ratio': '$\eta$',
-            'a_1': '$a_1$',
-            'a_2': '$a_2$',
-            'tilt_1': '$\\theta_1$',
-            'tilt_2': '$\\theta_2$',
-            'cos_tilt_1': '$\cos\\theta_1$',
-            'cos_tilt_2': '$\cos\\theta_2$',
-            'phi_12': '$\Delta\phi$',
-            'phi_jl': '$\phi_{JL}$',
-            'luminosity_distance': '$d_L$',
-            'dec': '$\mathrm{DEC}$',
-            'ra': '$\mathrm{RA}$',
-            'iota': '$\iota$',
-            'cos_iota': '$\cos\iota$',
-            'psi': '$\psi$',
-            'phase': '$\phi$',
-            'geocent_time': '$t_c$'
-        }
-        if self.name in default_labels.keys():
-            label = default_labels[self.name]
+        if self.name in self._default_latex_labels.keys():
+            label = self._default_latex_labels[self.name]
         else:
             label = self.name
         return label
+
+    _default_latex_labels = dict()
 
 
 class DeltaFunction(Prior):
