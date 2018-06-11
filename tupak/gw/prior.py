@@ -44,22 +44,22 @@ class BBHPriorSet(PriorSet):
 
         for parameter_set in [mass_parameters, spin_magnitude_parameters, spin_azimuth_parameters]:
             if key in parameter_set:
-                if len(parameter_set.intersection(self.__dict__)) > 2:
+                if len(parameter_set.intersection(self)) > 2:
                     redundant = True
                     logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                        parameter_set.intersection(self.__dict__)))
+                        parameter_set.intersection(self)))
                     break
-            elif len(parameter_set.intersection(self.__dict__)) == 2:
+            elif len(parameter_set.intersection(self)) == 2:
                 redundant = True
                 break
         for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters, spin_tilt_2_parameters]:
             if key in parameter_set:
-                if len(parameter_set.intersection(self.__dict__)) > 1:
+                if len(parameter_set.intersection(self)) > 1:
                     redundant = True
                     logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                        parameter_set.intersection(self.__dict__)))
+                        parameter_set.intersection(self)))
                     break
-                elif len(parameter_set.intersection(self.__dict__)) == 1:
+                elif len(parameter_set.intersection(self)) == 1:
                     redundant = True
                     break
 
