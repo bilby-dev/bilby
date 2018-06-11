@@ -131,6 +131,24 @@ class PriorSet(dict):
                 samples[key] = self[key].sample(size=size)
         return samples
 
+    def sample_subset(self, keys=list(), size=None):
+        """Draw samples from the prior set for parameters which are not a DeltaFunction"""
+        samples = dict()
+        for key in keys:
+            if isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
+            else:
+                logging.info('{} not a known prior.'.format(key))
+        return samples
+
+    def prob(self, sample):
+        probability = np.product([self[key].prob(sample[key]) for key in self])
+        return probability
+
+    def ln_prob(self, sample):
+        ln_probability = np.sum([self[key].ln_prob(sample[key]) for key in self])
+        return ln_probability
+
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior"""
         rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
