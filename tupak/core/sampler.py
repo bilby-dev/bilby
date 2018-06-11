@@ -6,7 +6,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import datetime
 
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
@@ -153,10 +153,10 @@ class Sampler(object):
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
-            t1 = time.time()
+            t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
             logging.info(
-                "Single likelihood eval. took {} s".format(time.time() - t1))
+                "Single likelihood eval. took {:.3e} s".format((datetime.datetime.now() - t1).total_seconds()))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
@@ -578,10 +578,17 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             logging.info("Using cached result")
             return sampler.cached_result
 
+        start_time = datetime.datetime.now()
+
         if utils.command_line_args.test:
             result = sampler._run_test()
         else:
             result = sampler._run_external_sampler()
+
+        end_time = datetime.datetime.now()
+        result.sampling_time = (end_time - start_time).total_seconds()
+        logging.info('')
+        logging.info('Sampling time: {}'.format(end_time - start_time))
 
         if sampler.use_ratio:
             result.log_noise_evidence = likelihood.noise_log_likelihood()
