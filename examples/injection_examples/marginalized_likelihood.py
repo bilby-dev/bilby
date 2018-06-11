@@ -31,7 +31,7 @@ IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
 # Set up prior
-priors = dict()
+priors = tupak.gw.prior.BBHPriorSet()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
