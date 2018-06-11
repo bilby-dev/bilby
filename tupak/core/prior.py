@@ -131,6 +131,11 @@ class PriorSet(dict):
                 samples[key] = self[key].sample(size=size)
         return samples
 
+    def rescale(self, keys, theta):
+        """Rescale samples from unit cube to prior"""
+        rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+        return rescaled_sample
+
 
 def create_default_prior(name, default_priors_file=None):
     """
