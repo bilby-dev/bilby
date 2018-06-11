@@ -72,8 +72,6 @@ class PriorSet(dict):
 
         Parameters
         ----------
-        prior: dict
-            dictionary of prior objects and floats
         likelihood: tupak.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
         default_priors_file: str
