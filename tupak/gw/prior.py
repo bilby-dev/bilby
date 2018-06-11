@@ -1,6 +1,16 @@
 from tupak.core.prior import *
 
 
+class UniformComovingVolume(FromFile):
+
+    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
+        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
+                          latex_label=latex_label)
+
+    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+        return FromFile.__repr__(self)
+
+
 class BBHPriorSet(PriorSet):
     def __init__(self, dictionary=None, filename=None):
         if dictionary is None and filename is None:

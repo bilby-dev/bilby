@@ -607,6 +607,3 @@ class UniformComovingVolume(FromFile):
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
         return FromFile.__repr__(self)
-
-
-
