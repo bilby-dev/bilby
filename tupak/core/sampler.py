@@ -511,7 +511,7 @@ class Ptemcee(Sampler):
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                **kwargs):
+                clean=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -543,6 +543,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the tupak defaults for a binary black hole.
+    clean: bool
+        If given, override the command line interface `clean` option.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -551,6 +553,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     result
         An object containing the results
     """
+
+    if clean:
+        utils.command_line_args.clean = clean
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
