@@ -376,16 +376,15 @@ class Uniform(Prior):
 
 
 class LogUniform(PowerLaw):
-    """Uniform prior"""
+    """Log Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.alpha = -1
+        PowerLaw.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return PowerLaw.__repr__(self)
+        return Prior._subclass_repr_helper(self)
 
 
 class Cosine(Prior):
