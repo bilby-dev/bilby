@@ -9,8 +9,6 @@ import scipy.stats
 import logging
 import os
 
-from tupak.gw.prior import test_redundancy
-
 
 class PriorSet(dict):
     def __init__(self, dictionary=None, filename=None):
@@ -117,11 +115,11 @@ class PriorSet(dict):
                     " will not be sampled and may cause an error."
                     .format(missing_key, set_val))
             else:
-                if not test_redundancy(missing_key, self):
+                if not self.test_redundancy(missing_key):
                     self[missing_key] = default_prior
 
         for key in self:
-            test_redundancy(key, self)
+            self.test_redundancy(key)
 
     def sample(self, size=None):
         """Draw samples from the prior set"""
@@ -135,6 +133,10 @@ class PriorSet(dict):
         """Rescale samples from unit cube to prior"""
         rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
         return rescaled_sample
+
+    def test_redundancy(self, key):
+        """Empty redundancy test, should be overwritten"""
+        return False
 
 
 def create_default_prior(name, default_priors_file=None):
