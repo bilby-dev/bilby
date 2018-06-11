@@ -123,6 +123,14 @@ class PriorSet(dict):
         for key in self:
             test_redundancy(key, self)
 
+    def sample(self, size=None):
+        """Draw samples from the prior set"""
+        samples = dict()
+        for key in self:
+            if isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
+        return samples
+
 
 def create_default_prior(name, default_priors_file=None):
     """
