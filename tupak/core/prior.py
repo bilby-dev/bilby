@@ -105,18 +105,20 @@ class PriorSet(dict):
 
         if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
             for parameter in likelihood.non_standard_sampling_parameter_keys:
+                if parameter in self:
+                    continue
                 self[parameter] = create_default_prior(parameter, default_priors_file)
 
         for missing_key in missing_keys:
-            default_prior = create_default_prior(missing_key, default_priors_file)
-            if default_prior is None:
-                set_val = likelihood.parameters[missing_key]
-                logging.warning(
-                    "Parameter {} has no default prior and is set to {}, this"
-                    " will not be sampled and may cause an error."
-                    .format(missing_key, set_val))
-            else:
-                if not self.test_redundancy(missing_key):
+            if not self.test_redundancy(missing_key):
+                default_prior = create_default_prior(missing_key, default_priors_file)
+                if default_prior is None:
+                    set_val = likelihood.parameters[missing_key]
+                    logging.warning(
+                        "Parameter {} has no default prior and is set to {}, this"
+                        " will not be sampled and may cause an error."
+                        .format(missing_key, set_val))
+                else:
                     self[missing_key] = default_prior
 
         for key in self:
