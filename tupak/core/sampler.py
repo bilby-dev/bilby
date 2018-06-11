@@ -207,8 +207,7 @@ class Sampler(object):
             with delta-function (or fixed) priors are not returned
 
         """
-
-        draw = np.array(self.priors.sample_subset(self.__search_parameter_keys).items())
+        draw = np.array(list(self.priors.sample_subset(self.__search_parameter_keys).values()))
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
