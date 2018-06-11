@@ -1,7 +1,14 @@
 import logging
+from tupak.core import prior
 
 
-def test_redundancy(key, prior):
+class CBCPriorSet(prior.PriorSet):
+    def __init__(self, dictionary=None, filename=None):
+        prior.PriorSet.__init__(dictionary=dictionary, filename=filename)
+        self.test_redundancy = test_cbc_redundancy
+
+
+def test_cbc_redundancy(key, prior):
     """
     Test whether adding the key would add be redundant.
 
