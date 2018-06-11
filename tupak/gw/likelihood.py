@@ -178,7 +178,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logging.info('No prior provided for distance, using default prior.')
-            self.prior['luminosity_distance'] = tupak.gw.prior.create_default_prior('luminosity_distance')
+            self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
         self.delta_distance = self.distance_array[1] - self.distance_array[0]
@@ -219,7 +219,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def setup_phase_marginalization(self):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
             logging.info('No prior provided for phase at coalescence, using default prior.')
-            self.prior['phase'] = tupak.gw.prior.create_default_prior('phase')
+            self.prior['phase'] = tupak.core.prior.create_default_prior('phase')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])
                                                  + np.linspace(0, 1e6, int(1e5)),

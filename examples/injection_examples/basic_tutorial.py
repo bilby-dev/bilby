@@ -56,7 +56,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'd
 
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors['luminosity_distance'] = tupak.gw.prior.create_default_prior(name='luminosity_distance')
+priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
 priors['geocent_time'] = tupak.core.prior.Uniform(injection_parameters['geocent_time'] - 1,
                                                   injection_parameters['geocent_time'] + 1,
                                             'geocent_time')

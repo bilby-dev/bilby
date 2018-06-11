@@ -5,10 +5,169 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
+import scipy.stats
 import logging
 import os
 
-from tupak.gw.prior import create_default_prior, test_redundancy
+from tupak.gw.prior import test_redundancy
+
+
+class PriorSet(dict):
+    def __init__(self, dictionary=None, filename=None):
+        """ A set of priors
+
+        Parameters
+        ----------
+        dictionary: dict, None
+            If given, a dictionary to generate the prior set.
+        filename: str, None
+            If given, a file containing the prior to generate the prior set.
+        """
+
+        if type(dictionary) is dict:
+            self.update(dictionary)
+        elif filename:
+            self.read_in_file(filename)
+
+    def write_to_file(self, outdir, label):
+        """
+        Write the prior distribution to file.
+
+        Parameters
+        ----------
+        priors: dict
+            priors used
+        outdir, label: str
+            output directory and label
+        """
+
+        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        logging.debug("Writing priors to {}".format(prior_file))
+        with open(prior_file, "w") as outfile:
+            for key in self.keys():
+                outfile.write(
+                    "{} = {}\n".format(key, self[key]))
+
+    def read_in_file(self, filename):
+        """
+        Reads in a prior from a file specification
+        """
+
+        prior = {}
+        with open(filename, 'r') as f:
+            for line in f:
+                elements = line.split('=')
+                key = elements[0].replace(' ', '')
+                val = '='.join(elements[1:])
+                prior[key] = eval(val)
+        self.update(prior)
+
+    def fill_priors(self, likelihood, default_priors_file=None):
+        """
+        Fill dictionary of priors based on required parameters of likelihood
+
+        Any floats in prior will be converted to delta function prior. Any
+        required, non-specified parameters will use the default.
+
+        Parameters
+        ----------
+        prior: dict
+            dictionary of prior objects and floats
+        likelihood: tupak.likelihood.GravitationalWaveTransient instance
+            Used to infer the set of parameters to fill the prior with
+        default_priors_file: str
+            If given, a file containing the default priors; otherwise defaults
+            to the tupak defaults for a binary black hole.
+
+
+        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
+        this will set-up default priors for those as well.
+
+        Returns
+        -------
+        prior: dict
+            The filled prior dictionary
+
+        """
+
+        for key in self:
+            if isinstance(self[key], Prior):
+                continue
+            elif isinstance(self[key], float) or isinstance(self[key], int):
+                self[key] = DeltaFunction(self[key])
+                logging.info(
+                    "{} converted to delta function prior.".format(key))
+            else:
+                logging.info(
+                    "{} cannot be converted to delta function prior."
+                    .format(key))
+
+        missing_keys = set(likelihood.parameters) - set(self.keys())
+
+        if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
+            for parameter in likelihood.non_standard_sampling_parameter_keys:
+                self[parameter] = create_default_prior(parameter)
+
+        for missing_key in missing_keys:
+            default_prior = create_default_prior(missing_key)
+            if default_prior is None:
+                set_val = likelihood.parameters[missing_key]
+                logging.warning(
+                    "Parameter {} has no default prior and is set to {}, this"
+                    " will not be sampled and may cause an error."
+                    .format(missing_key, set_val))
+            else:
+                if not test_redundancy(missing_key, self):
+                    self[missing_key] = default_prior
+
+        for key in self:
+            test_redundancy(key, self)
+
+    def sample(self, size=None):
+        """Draw samples from the prior set"""
+        samples = dict()
+        for key in self:
+            if isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
+        return samples
+
+    def rescale(self, keys, theta):
+        """Rescale samples from unit cube to prior"""
+        rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+        return rescaled_sample
+
+
+def create_default_prior(name, default_priors_file=None):
+    """
+    Make a default prior for a parameter with a known name.
+
+    Parameters
+    ----------
+    name: str
+        Parameter name
+    default_priors_file: str
+        If given, a file containing the default priors; otherwise defaults to
+        the tupak defaults for a binary black hole.
+
+    Return
+    ------
+    prior: Prior
+        Default prior distribution for that parameter, if unknown None is
+        returned.
+    """
+
+    if default_priors_file is None:
+        default_priors_file = os.path.join(os.path.dirname(__file__),
+                                           'prior_files',
+                                           'binary_black_holes.prior')
+    default_priors = PriorSet(filename=default_priors_file)
+    if name in default_priors.keys():
+        prior = default_priors[name]
+    else:
+        logging.info(
+            "No default prior found for variable {}.".format(name))
+        prior = None
+    return prior
 
 
 class Prior(object):
@@ -214,28 +373,31 @@ class PowerLaw(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['alpha'])
 
 
-class Uniform(PowerLaw):
+class Uniform(Prior):
     """Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.alpha = 0
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return PowerLaw.__repr__(self)
+    def rescale(self, val):
+        Prior.test_valid_for_rescaling(val)
+        return self.minimum + val * (self.maximum - self.minimum)
+
+    def prob(self, val):
+        return scipy.stats.uniform.pdf(val, loc=self.minimum,
+                                       scale=self.maximum-self.minimum)
 
 
 class LogUniform(PowerLaw):
-    """Uniform prior"""
+    """Log Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
-        Prior.__init__(self, name, latex_label, minimum, maximum)
-        self.alpha = -1
+        PowerLaw.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return PowerLaw.__repr__(self)
+        return Prior._subclass_repr_helper(self)
 
 
 class Cosine(Prior):
@@ -445,79 +607,4 @@ class UniformComovingVolume(FromFile):
         return FromFile.__repr__(self)
 
 
-def fill_priors(prior, likelihood):
-    """
-    Fill dictionary of priors based on required parameters of likelihood
 
-    Any floats in prior will be converted to delta function prior. Any
-    required, non-specified parameters will use the default.
-
-    Parameters
-    ----------
-    prior: dict
-        dictionary of prior objects and floats
-    likelihood: tupak.likelihood.GravitationalWaveTransient instance
-        Used to infer the set of parameters to fill the prior with
-
-    Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then this
-    will set-up default priors for those as well.
-
-    Returns
-    -------
-    prior: dict
-        The filled prior dictionary
-
-    """
-
-    for key in prior:
-        if isinstance(prior[key], Prior):
-            continue
-        elif isinstance(prior[key], float) or isinstance(prior[key], int):
-            prior[key] = DeltaFunction(prior[key])
-            logging.info(
-                "{} converted to delta function prior.".format(key))
-        else:
-            logging.info(
-                "{} cannot be converted to delta function prior.".format(key))
-
-    missing_keys = set(likelihood.parameters) - set(prior.keys())
-
-    if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
-        for parameter in likelihood.non_standard_sampling_parameter_keys:
-            prior[parameter] = create_default_prior(parameter)
-
-    for missing_key in missing_keys:
-        default_prior = create_default_prior(missing_key)
-        if default_prior is None:
-            set_val = likelihood.parameters[missing_key]
-            logging.warning(
-                "Parameter {} has no default prior and is set to {}, this will"
-                " not be sampled and may cause an error."
-                    .format(missing_key, set_val))
-        else:
-            if not test_redundancy(missing_key, prior):
-                prior[missing_key] = default_prior
-
-    for key in prior:
-        test_redundancy(key, prior)
-
-    return prior
-
-
-def write_priors_to_file(priors, outdir, label):
-    """
-    Write the prior distribution to file.
-
-    Parameters
-    ----------
-    priors: dict
-        priors used
-    outdir, label: str
-        output directory and label
-    """
-
-    prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
-    logging.debug("Writing priors to {}".format(prior_file))
-    with open(prior_file, "w") as outfile:
-        for key in priors:
-            outfile.write("prior['{}'] = {}\n".format(key, priors[key]))

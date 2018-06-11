@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import time
 
 from tupak.core.result import Result, read_in_result
-from tupak.core.prior import Prior, fill_priors
+from tupak.core.prior import Prior
 from tupak.core import utils
 import tupak
 
@@ -513,7 +513,8 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=None, injection_parameters=None,
-                conversion_function=None, plot=False, **kwargs):
+                conversion_function=None, plot=False, default_priors_file=None,
+                **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -542,6 +543,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
+    default_priors_file: str
+        If given, a file containing the default priors; otherwise defaults to
+        the tupak defaults for a binary black hole.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -556,8 +560,16 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if priors is None:
         priors = dict()
-    priors = fill_priors(priors, likelihood)
-    tupak.core.prior.write_priors_to_file(priors, outdir, label)
+
+    if type(priors) == dict:
+        priors = tupak.core.prior.PriorSet(priors)
+    elif type(priors) == tupak.core.prior.PriorSet:
+        pass
+    else:
+        raise ValueError
+
+    priors.fill_priors(likelihood)
+    priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]

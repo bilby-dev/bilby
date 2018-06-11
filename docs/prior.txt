@@ -4,8 +4,13 @@
 Priors
 ======
 
-The priors object passed to :ref:`run_sampler <run_sampler>` is just a regular
-`python dictionary <https://docs.python.org/2/tutorial/datastructures.html#dictionaries>`_.
+Defining priors
+---------------
+
+Priors refer to the prior probability distributions for each model parameter.
+Typically, these are passed into :ref:`run_sampler <run_sampler>` as a regular
+`python dictionary
+<https://docs.python.org/2/tutorial/datastructures.html#dictionaries>`_.
 
 The keys of the priors objects should reference the model parameters (in
 particular, the :code:`parameters` attribute of the :ref:`likelihood`. Each key
@@ -26,7 +31,25 @@ simple example that sets a uniform prior for :code:`a`, and a fixed value for
 Notice, that the :code:`latex_label` is optional, but if given will be used
 when generating plots.
 
-We have provided a number of standard priors. Here is a complete list
+Default priors
+--------------
+
+If any model parameter required by the :ref:`likelihood` are not defined in the
+`priors` dictionary passed to :ref:`run_sampler <run_sampler>` then the code
+will try to use a default prior. By default, these are setup for a binary black
+hole and defined in a file like this
+
+.. literalinclude:: /../tupak/core/prior_files/binary_black_holes.prior
+
+You can define your own default prior and pass a string pointing to that file
+to :ref:`run_sampler <run_sampler>`.
+
+Complete list of available prior classes
+----------------------------------------
+
+We have provided a number of standard priors. You can define your own by
+subclassing the :code:`tupak.prior.Prior` class. Here is the complete list of
+those implemented:
 
 .. automodule:: tupak.core.prior
    :members:
