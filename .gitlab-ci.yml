@@ -27,6 +27,7 @@ exitcode-jessie:
   script:
     - python setup.py install
     - coverage erase
+    - coverage run --source=tupak/ -a test/conversion_tests.py
     - coverage run --source=tupak/ -a test/detector_tests.py
     - coverage run --source=tupak/ -a test/prior_tests.py
     - coverage run --source=tupak/ -a test/sampler_tests.py
