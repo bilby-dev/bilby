@@ -39,9 +39,10 @@ class Sampler(object):
             outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
-        if type(priors == dict):
-            priors = tupak.prior.PriorSet(priors)
-        self.priors = priors
+        if isinstance(priors, tupak.prior.PriorSet):
+            self.priors = priors
+        else:
+            self.priors = tupak.prior.PriorSet(priors)
         self.label = label
         self.outdir = outdir
         self.use_ratio = use_ratio
@@ -559,7 +560,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if type(priors) == dict:
         priors = tupak.core.prior.PriorSet(priors)
-    elif type(priors) == tupak.core.prior.PriorSet:
+    elif isinstance(priors, tupak.core.prior.PriorSet):
         pass
     else:
         raise ValueError
@@ -569,7 +570,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
-        sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
+        sampler = sampler_class(likelihood, priors=priors, external_sampler=sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio, plot=plot,
                                 **kwargs)
 
