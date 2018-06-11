@@ -54,6 +54,8 @@ class PriorSet(dict):
         prior = {}
         with open(filename, 'r') as f:
             for line in f:
+                if line[0] == '#':
+                    continue
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
                 val = '='.join(elements[1:])
