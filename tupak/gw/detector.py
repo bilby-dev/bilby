@@ -432,7 +432,8 @@ class Interferometer(object):
 
 class PowerSpectralDensity:
 
-    def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, epoch=0,
+    def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, asd_array=None,
+                 psd_array=None, frequencies=None, epoch=0,
                  psd_duration=1024, psd_offset=16, channel_name=None, filter_freq=1024, alpha=0.25, fft_length=4):
         """
         Instantiate a new PowerSpectralDensity object.
@@ -447,6 +448,14 @@ class PowerSpectralDensity:
             File containing power spectral density, format 'f h_f'
         frame_file: str
             Frame file to read data from.
+        asd_array: array-like
+            List of amplitude spectral density values corresponding to frequency_array,
+            requires frequency_array to be specified.
+        psd_array: array-like
+            List of power spectral density values corresponding to frequency_array,
+            requires frequency_array to be specified.
+        frequencies: array-like
+            List of frequency values corresponding to asd_array/psd_array,
         epoch: float
             Beginning of segment to analyse.
         psd_duration: float
@@ -495,7 +504,14 @@ class PowerSpectralDensity:
             self.power_spectral_density = psd.value
             self.amplitude_spectral_density = self.power_spectral_density**0.5
             self.interpolate_power_spectral_density()
+        elif frequencies is not None:
+            if asd_array is not None:
+                self._set_from_amplitude_spectral_density(frequencies, asd_array)
+            elif psd_array is not None:
+                self._set_from_amplitude_spectral_density(frequencies, psd_array)
         else:
+            if psd_file is None:
+                logging.info("No power spectral density provided, using aLIGO, zero detuning, high power.")
             self.power_spectral_density_file = psd_file
             self.import_power_spectral_density()
             if min(self.power_spectral_density) > 1e-30:
@@ -516,10 +532,7 @@ class PowerSpectralDensity:
             self.amplitude_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                                 self.amplitude_spectral_density_file)
         spectral_density = np.genfromtxt(self.amplitude_spectral_density_file)
-        self.frequencies = spectral_density[:, 0]
-        self.amplitude_spectral_density = spectral_density[:, 1]
-        self.power_spectral_density = self.amplitude_spectral_density ** 2
-        self.interpolate_power_spectral_density()
+        self._set_from_amplitude_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
 
     def import_power_spectral_density(self):
         """
@@ -532,9 +545,18 @@ class PowerSpectralDensity:
             self.power_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                             self.power_spectral_density_file)
         spectral_density = np.genfromtxt(self.power_spectral_density_file)
-        self.frequencies = spectral_density[:, 0]
-        self.power_spectral_density = spectral_density[:, 1]
-        self.amplitude_spectral_density = np.sqrt(self.power_spectral_density)
+        self._set_from_power_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+
+    def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
+        self.frequencies = frequencies
+        self.amplitude_spectral_density = amplitude_spectral_density
+        self.power_spectral_density = self.amplitude_spectral_density ** 2
+        self.interpolate_power_spectral_density()
+
+    def _set_from_power_spectral_density(self, frequencies, power_spectral_density):
+        self.frequencies = frequencies
+        self.power_spectral_density = power_spectral_density
+        self.amplitude_spectral_density = self.power_spectral_density ** 0.5
         self.interpolate_power_spectral_density()
 
     def interpolate_power_spectral_density(self):
@@ -583,12 +605,14 @@ def get_empty_interferometer(name):
         Interferometer instance
     """
     known_interferometers = {
-        'H1': Interferometer(name='H1', power_spectral_density=PowerSpectralDensity(),
+        'H1': Interferometer(name='H1',
+                             power_spectral_density=PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt'),
                              minimum_frequency=20, maximum_frequency=2048,
                              length=4, latitude=46 + 27. / 60 + 18.528 / 3600,
                              longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
                              yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5),
-        'L1': Interferometer(name='L1', power_spectral_density=PowerSpectralDensity(),
+        'L1': Interferometer(name='L1',
+                             power_spectral_density=PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt'),
                              minimum_frequency=20, maximum_frequency=2048,
                              length=4, latitude=30 + 33. / 60 + 46.4196 / 3600,
                              longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
