@@ -21,13 +21,11 @@ class Sampler(object):
     ----------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    prior: dict
-        The prior to be used in the search. Elements can either be floats
-        (indicating a fixed value or delta function prior) or they can be
-        of type parameter.Parameter with an associated prior
+    prior: tupak.core.prior.PriorSet
+        Prior to be used in the search.
+        This has attributes for each parameter to be sampled.
     sampler_string: str
         A string containing the module name of the sampler
-
 
     Returns
     -------
