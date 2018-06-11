@@ -39,6 +39,8 @@ class Sampler(object):
             outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
+        if type(priors == dict):
+            priors = tupak.prior.PriorSet(priors)
         self.priors = priors
         self.label = label
         self.outdir = outdir
