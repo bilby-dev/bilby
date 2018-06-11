@@ -7,13 +7,11 @@ This example estimates all 15 parameters of the binary black hole system using
 commonly used prior distributions.  This will take a few hours to run.
 """
 from __future__ import division, print_function
-
-# Define some convienence labels and the trigger time of the event
-import tupak.gw.likelihood
+import tupak
 
 outdir = 'outdir'
 label = 'GW150914'
-time_of_event = tupak.core.utils.get_event_time(label)
+time_of_event = tupak.gw.utils.get_event_time(label)
 
 # This sets up logging output to understand what tupak is doing
 tupak.core.utils.setup_logger(outdir=outdir, label=label)
@@ -27,20 +25,12 @@ tupak.core.utils.setup_logger(outdir=outdir, label=label)
 # objects are then placed into a list.
 interferometers = tupak.gw.detector.get_event_data(label)
 
-# We now define the prior. You'll notice we only do this for the two masses,
-# the merger time, and the distance; in each case choosing a prior which
-# roughly bounds the known values. All other parameters will use a default
-# prior (this is printed to the terminal at run-time). You can overwrite this
-# using the syntax below, or choose a fixed value by just providing a float
-# value as the prior.
-prior = dict()
-prior['mass_1'] = tupak.core.prior.Uniform(30, 50, 'mass_1')
-prior['mass_2'] = tupak.core.prior.Uniform(20, 40, 'mass_2')
-prior['geocent_time'] = tupak.core.prior.Uniform(
-    time_of_event - 0.1, time_of_event + 0.1, name='geocent_time')
-#prior['geocent_time'] = time_of_event
-prior['luminosity_distance'] = tupak.core.prior.PowerLaw(
-    alpha=2, minimum=100, maximum=1000)
+# We now define the prior.
+# We have defined our prior distribution in a file packaged with TUPAK.
+# The prior is printed to the terminal at run-time.
+# You can overwrite this using the syntax below in the file,
+# or choose a fixed value by just providing a float value as the prior.
+prior = tupak.gw.prior.BBHPriorSet(filename='GW150914.prior')
 
 # In this step we define a `waveform_generator`. This is out object which
 # creates the frequency-domain strain. In this instance, we are using the
@@ -56,7 +46,7 @@ waveform_generator = tupak.WaveformGenerator(time_duration=interferometers[0].du
 # function, passing it the data and the waveform generator.
 likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
 
-# Finally, we run the sampler. This function takes the likelihood and prio
+# Finally, we run the sampler. This function takes the likelihood and prior
 # along with some options for how to do the sampling and how to save the data
 result = tupak.run_sampler(likelihood, prior, sampler='dynesty',
                            outdir=outdir, label=label)
