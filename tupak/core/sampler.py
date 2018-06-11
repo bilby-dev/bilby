@@ -190,9 +190,7 @@ class Sampler(object):
         return self.priors.rescale(self.__search_parameter_keys, theta)
 
     def log_prior(self, theta):
-        return np.sum(
-            [np.log(self.priors[key].prob(t)) for key, t in
-                zip(self.__search_parameter_keys, theta)])
+        return self.priors.ln_prob({key: t for key, t in zip(self.__search_parameter_keys, theta)})
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
@@ -212,8 +210,7 @@ class Sampler(object):
 
         """
 
-        draw = np.array([self.priors[key].sample()
-                        for key in self.__search_parameter_keys])
+        draw = np.array(self.priors.sample_subset(self.__search_parameter_keys).items())
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
