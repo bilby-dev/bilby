@@ -517,10 +517,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Parameters
     ----------
-    likelihood: `tupak.GravitationalWaveTransient`
-        A `GravitationalWaveTransient` instance
-    priors: dict
-        A dictionary of the priors for each parameter - missing parameters will
+    likelihood: `tupak.Likelihood`
+        A `Likelihood` instance
+    priors: `tupak.PriorSet`
+        A PriorSet/dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default
     label: str
         Name for the run, used in output files
