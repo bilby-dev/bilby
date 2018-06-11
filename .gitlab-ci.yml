@@ -17,10 +17,14 @@ stages:
 exitcode-jessie:
   stage: test
   image: ligo/software:jessie
-  script:
+  before_script:
+    # Remove lalsuite from requirements for CI tests - the pip version in the
+    # CI is too old and fails when trying to install lalsuite
+    - sed -i '/lalsuite/d' requirements.txt
     - pip install -r requirements.txt
     - pip install coverage
     - pip install coverage-badge
+  script:
     - python setup.py install
     - coverage erase
     - coverage run --source=tupak/ -a test/detector_tests.py
