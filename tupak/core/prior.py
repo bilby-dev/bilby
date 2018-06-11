@@ -245,6 +245,14 @@ class Prior(object):
         """
         return None
 
+    def prob(self, val):
+        """Return the prior probability of val, this should be overwritten"""
+        return np.nan
+
+    def ln_prob(self, val):
+        """Return the prior ln probability of val, this should ideally be overwritten"""
+        return np.log(self.prob(val))
+
     @staticmethod
     def test_valid_for_rescaling(val):
         """Test if 0 < val < 1"""
