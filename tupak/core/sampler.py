@@ -6,7 +6,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import datetime
 
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
@@ -21,13 +21,11 @@ class Sampler(object):
     ----------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    prior: dict
-        The prior to be used in the search. Elements can either be floats
-        (indicating a fixed value or delta function prior) or they can be
-        of type parameter.Parameter with an associated prior
+    prior: tupak.core.prior.PriorSet
+        Prior to be used in the search.
+        This has attributes for each parameter to be sampled.
     sampler_string: str
         A string containing the module name of the sampler
-
 
     Returns
     -------
@@ -41,7 +39,10 @@ class Sampler(object):
             outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
-        self.priors = priors
+        if isinstance(priors, tupak.prior.PriorSet):
+            self.priors = priors
+        else:
+            self.priors = tupak.prior.PriorSet(priors)
         self.label = label
         self.outdir = outdir
         self.use_ratio = use_ratio
@@ -152,10 +153,10 @@ class Sampler(object):
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
         try:
-            t1 = time.time()
+            t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
             logging.info(
-                "Single likelihood eval. took {} s".format(time.time() - t1))
+                "Single likelihood eval. took {:.3e} s".format((datetime.datetime.now() - t1).total_seconds()))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
@@ -187,12 +188,10 @@ class Sampler(object):
             self.use_ratio = True
 
     def prior_transform(self, theta):
-        return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
+        return self.priors.rescale(self.__search_parameter_keys, theta)
 
     def log_prior(self, theta):
-        return np.sum(
-            [np.log(self.priors[key].prob(t)) for key, t in
-                zip(self.__search_parameter_keys, theta)])
+        return self.priors.ln_prob({key: t for key, t in zip(self.__search_parameter_keys, theta)})
 
     def log_likelihood(self, theta):
         for i, k in enumerate(self.__search_parameter_keys):
@@ -211,9 +210,7 @@ class Sampler(object):
             with delta-function (or fixed) priors are not returned
 
         """
-
-        draw = np.array([self.priors[key].sample()
-                        for key in self.__search_parameter_keys])
+        draw = np.array(list(self.priors.sample_subset(self.__search_parameter_keys).values()))
         if np.isinf(self.log_likelihood(draw)):
             logging.info('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
@@ -563,7 +560,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if type(priors) == dict:
         priors = tupak.core.prior.PriorSet(priors)
-    elif type(priors) == tupak.core.prior.PriorSet:
+    elif isinstance(priors, tupak.core.prior.PriorSet):
         pass
     else:
         raise ValueError
@@ -573,7 +570,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
-        sampler = sampler_class(likelihood, priors, sampler, outdir=outdir,
+        sampler = sampler_class(likelihood, priors=priors, external_sampler=sampler, outdir=outdir,
                                 label=label, use_ratio=use_ratio, plot=plot,
                                 **kwargs)
 
@@ -581,10 +578,17 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             logging.info("Using cached result")
             return sampler.cached_result
 
+        start_time = datetime.datetime.now()
+
         if utils.command_line_args.test:
             result = sampler._run_test()
         else:
             result = sampler._run_external_sampler()
+
+        end_time = datetime.datetime.now()
+        result.sampling_time = (end_time - start_time).total_seconds()
+        logging.info('')
+        logging.info('Sampling time: {}'.format(end_time - start_time))
 
         if sampler.use_ratio:
             result.log_noise_evidence = likelihood.noise_log_likelihood()

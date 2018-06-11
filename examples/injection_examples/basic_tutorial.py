@@ -45,21 +45,18 @@ IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
 
 # Set up prior, which is a dictionary
-priors = dict()
 # By default we will sample all terms in the signal models.  However, this will take a long time for the calculation,
 # so for this example we will set almost all of the priors to be equall to their injected values.  This implies the
 # prior is a delta function at the true, injected value.  In reality, the sampler implementation is smart enough to
 # not sample any parameter that has a delta-function prior.
-
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl','psi', 'ra', 'dec', 'geocent_time', 'phase']:
-    priors[key] = injection_parameters[key]
-
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
-priors['geocent_time'] = tupak.core.prior.Uniform(injection_parameters['geocent_time'] - 1,
-                                                  injection_parameters['geocent_time'] + 1,
-                                            'geocent_time')
+priors = tupak.gw.prior.BBHPriorSet()
+priors['geocent_time'] = tupak.core.prior.Uniform(
+    minimum=injection_parameters['geocent_time'] - 1, maximum=injection_parameters['geocent_time'] + 1,
+    name='geocent_time', latex_label='$t_c$')
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra', 'dec', 'geocent_time', 'phase']:
+    priors[key] = injection_parameters[key]
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
 likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,

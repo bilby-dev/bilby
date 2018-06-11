@@ -30,11 +30,9 @@ class TestSampler(unittest.TestCase):
         test_directory = 'test_directory'
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
-        self.sampler = tupak.core.sampler.Sampler(likelihood=likelihood,
-                                                  priors=priors,
-                                                  external_sampler='nestle',
-                                                  outdir=test_directory,
-                                                  use_ratio=False)
+        self.sampler = tupak.core.sampler.Sampler(
+            likelihood=likelihood, priors=priors, external_sampler='nestle',
+            outdir=test_directory, use_ratio=False)
 
     def tearDown(self):
         os.rmdir(self.sampler.outdir)

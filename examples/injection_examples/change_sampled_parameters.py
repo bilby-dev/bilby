@@ -27,7 +27,7 @@ waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, time_duration=time_duration,
     frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
     parameter_conversion=tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-    non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio', 'cos_iota'],
+    non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio'],
     parameters=injection_parameters)
 hf_signal = waveform_generator.frequency_domain_strain()
 
@@ -37,11 +37,15 @@ IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
 # Set up prior
-priors = dict()
+priors = tupak.gw.prior.BBHPriorSet()
+priors.pop('mass_1')
+priors.pop('mass_2')
+priors['chirp_mass'] = tupak.prior.Uniform(name='chirp_mass', latex_label='$m_c$', minimum=13, maximum=45)
+priors['mass_ratio'] = tupak.prior.Uniform(name='mass_ratio', latex_label='$q$', minimum=0.1, maximum=1)
 # These parameters will not be sampled
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'psi', 'ra', 'dec', 'geocent_time']:
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra', 'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
-priors['luminosity_distance'] = tupak.core.prior.create_default_prior(name='luminosity_distance')
+print(priors)
 
 # Initialise GravitationalWaveTransient
 likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)

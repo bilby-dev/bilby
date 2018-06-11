@@ -1,6 +1,7 @@
 #!/bin/python
 from __future__ import division
 
+import tupak
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
@@ -8,8 +9,6 @@ from scipy.special import erf, erfinv
 import scipy.stats
 import logging
 import os
-
-from tupak.gw.prior import test_redundancy
 
 
 class PriorSet(dict):
@@ -56,6 +55,8 @@ class PriorSet(dict):
         prior = {}
         with open(filename, 'r') as f:
             for line in f:
+                if line[0] == '#':
+                    continue
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
                 val = '='.join(elements[1:])
@@ -71,8 +72,6 @@ class PriorSet(dict):
 
         Parameters
         ----------
-        prior: dict
-            dictionary of prior objects and floats
         likelihood: tupak.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
         default_priors_file: str
@@ -106,22 +105,24 @@ class PriorSet(dict):
 
         if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
             for parameter in likelihood.non_standard_sampling_parameter_keys:
-                self[parameter] = create_default_prior(parameter)
+                if parameter in self:
+                    continue
+                self[parameter] = create_default_prior(parameter, default_priors_file)
 
         for missing_key in missing_keys:
-            default_prior = create_default_prior(missing_key)
-            if default_prior is None:
-                set_val = likelihood.parameters[missing_key]
-                logging.warning(
-                    "Parameter {} has no default prior and is set to {}, this"
-                    " will not be sampled and may cause an error."
-                    .format(missing_key, set_val))
-            else:
-                if not test_redundancy(missing_key, self):
+            if not self.test_redundancy(missing_key):
+                default_prior = create_default_prior(missing_key, default_priors_file)
+                if default_prior is None:
+                    set_val = likelihood.parameters[missing_key]
+                    logging.warning(
+                        "Parameter {} has no default prior and is set to {}, this"
+                        " will not be sampled and may cause an error."
+                        .format(missing_key, set_val))
+                else:
                     self[missing_key] = default_prior
 
         for key in self:
-            test_redundancy(key, self)
+            self.test_redundancy(key)
 
     def sample(self, size=None):
         """Draw samples from the prior set"""
@@ -131,10 +132,32 @@ class PriorSet(dict):
                 samples[key] = self[key].sample(size=size)
         return samples
 
+    def sample_subset(self, keys=list(), size=None):
+        """Draw samples from the prior set for parameters which are not a DeltaFunction"""
+        samples = dict()
+        for key in keys:
+            if isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
+            else:
+                logging.info('{} not a known prior.'.format(key))
+        return samples
+
+    def prob(self, sample):
+        probability = np.product([self[key].prob(sample[key]) for key in sample])
+        return probability
+
+    def ln_prob(self, sample):
+        ln_probability = np.sum([self[key].ln_prob(sample[key]) for key in sample])
+        return ln_probability
+
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior"""
         rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
         return rescaled_sample
+
+    def test_redundancy(self, key):
+        """Empty redundancy test, should be overwritten"""
+        return False
 
 
 def create_default_prior(name, default_priors_file=None):
@@ -157,16 +180,17 @@ def create_default_prior(name, default_priors_file=None):
     """
 
     if default_priors_file is None:
-        default_priors_file = os.path.join(os.path.dirname(__file__),
-                                           'prior_files',
-                                           'binary_black_holes.prior')
-    default_priors = PriorSet(filename=default_priors_file)
-    if name in default_priors.keys():
-        prior = default_priors[name]
-    else:
         logging.info(
-            "No default prior found for variable {}.".format(name))
+            "No prior file given.")
         prior = None
+    else:
+        default_priors = PriorSet(filename=default_priors_file)
+        if name in default_priors.keys():
+            prior = default_priors[name]
+        else:
+            logging.info(
+                "No default prior found for variable {}.".format(name))
+            prior = None
     return prior
 
 
@@ -221,6 +245,14 @@ class Prior(object):
         This should be overwritten by each subclass.
         """
         return None
+
+    def prob(self, val):
+        """Return the prior probability of val, this should be overwritten"""
+        return np.nan
+
+    def ln_prob(self, val):
+        """Return the prior ln probability of val, this should ideally be overwritten"""
+        return np.log(self.prob(val))
 
     @staticmethod
     def test_valid_for_rescaling(val):
@@ -279,35 +311,13 @@ class Prior(object):
 
     @property
     def __default_latex_label(self):
-        default_labels = {
-            'mass_1': '$m_1$',
-            'mass_2': '$m_2$',
-            'total_mass': '$M$',
-            'chirp_mass': '$\mathcal{M}$',
-            'mass_ratio': '$q$',
-            'symmetric_mass_ratio': '$\eta$',
-            'a_1': '$a_1$',
-            'a_2': '$a_2$',
-            'tilt_1': '$\\theta_1$',
-            'tilt_2': '$\\theta_2$',
-            'cos_tilt_1': '$\cos\\theta_1$',
-            'cos_tilt_2': '$\cos\\theta_2$',
-            'phi_12': '$\Delta\phi$',
-            'phi_jl': '$\phi_{JL}$',
-            'luminosity_distance': '$d_L$',
-            'dec': '$\mathrm{DEC}$',
-            'ra': '$\mathrm{RA}$',
-            'iota': '$\iota$',
-            'cos_iota': '$\cos\iota$',
-            'psi': '$\psi$',
-            'phase': '$\phi$',
-            'geocent_time': '$t_c$'
-        }
-        if self.name in default_labels.keys():
-            label = default_labels[self.name]
+        if self.name in self._default_latex_labels.keys():
+            label = self._default_latex_labels[self.name]
         else:
             label = self.name
         return label
+
+    _default_latex_labels = dict()
 
 
 class DeltaFunction(Prior):
@@ -584,8 +594,6 @@ class FromFile(Interped):
     def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
         try:
             self.id = file_name
-            if '/' not in self.id:
-                self.id = os.path.join(os.path.dirname(__file__), 'prior_files', self.id)
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
@@ -595,16 +603,3 @@ class FromFile(Interped):
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
         return Prior._subclass_repr_helper(self, subclass_args=['id'])
-
-
-class UniformComovingVolume(FromFile):
-
-    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
-        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label)
-
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return FromFile.__repr__(self)
-
-
-

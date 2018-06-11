@@ -303,7 +303,7 @@ def get_binary_black_hole_likelihood(interferometers):
         time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
         frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
-    likelihood = tupak.core.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
+    likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
     return likelihood
 
 
