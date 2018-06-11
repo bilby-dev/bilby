@@ -4,8 +4,8 @@ from tupak.core.prior import *
 class UniformComovingVolume(FromFile):
 
     def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
-        self.__file__ = __file__
-        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
+        file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
+        FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
                           latex_label=latex_label)
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
