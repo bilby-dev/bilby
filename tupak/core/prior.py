@@ -104,10 +104,10 @@ class PriorSet(dict):
 
         if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
             for parameter in likelihood.non_standard_sampling_parameter_keys:
-                self[parameter] = create_default_prior(parameter)
+                self[parameter] = create_default_prior(parameter, default_priors_file)
 
         for missing_key in missing_keys:
-            default_prior = create_default_prior(missing_key)
+            default_prior = create_default_prior(missing_key, default_priors_file)
             if default_prior is None:
                 set_val = likelihood.parameters[missing_key]
                 logging.warning(
@@ -159,16 +159,17 @@ def create_default_prior(name, default_priors_file=None):
     """
 
     if default_priors_file is None:
-        default_priors_file = os.path.join(os.path.dirname(__file__),
-                                           'prior_files',
-                                           'binary_black_holes.prior')
-    default_priors = PriorSet(filename=default_priors_file)
-    if name in default_priors.keys():
-        prior = default_priors[name]
-    else:
         logging.info(
-            "No default prior found for variable {}.".format(name))
+            "No prior file given.")
         prior = None
+    else:
+        default_priors = PriorSet(filename=default_priors_file)
+        if name in default_priors.keys():
+            prior = default_priors[name]
+        else:
+            logging.info(
+                "No default prior found for variable {}.".format(name))
+            prior = None
     return prior
 
 
