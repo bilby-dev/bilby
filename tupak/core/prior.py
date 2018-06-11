@@ -1,6 +1,7 @@
 #!/bin/python
 from __future__ import division
 
+import tupak
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
@@ -615,8 +616,6 @@ class FromFile(Interped):
     def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
         try:
             self.id = file_name
-            if '/' not in self.id:
-                self.id = os.path.join(os.path.dirname(__file__), 'prior_files', self.id)
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
@@ -626,13 +625,3 @@ class FromFile(Interped):
 
     def __repr__(self, subclass_keys=list(), subclass_names=list()):
         return Prior._subclass_repr_helper(self, subclass_args=['id'])
-
-
-class UniformComovingVolume(FromFile):
-
-    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
-        FromFile.__init__(self, file_name='comoving.txt', minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label)
-
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return FromFile.__repr__(self)
