@@ -187,7 +187,7 @@ class Sampler(object):
             self.use_ratio = True
 
     def prior_transform(self, theta):
-        return [self.priors[key].rescale(t) for key, t in zip(self.__search_parameter_keys, theta)]
+        return self.priors.rescale(self.__search_parameter_keys, theta)
 
     def log_prior(self, theta):
         return np.sum(
