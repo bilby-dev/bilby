@@ -28,6 +28,9 @@ class WaveformGenerator(object):
         waveform generator
     non_standard_sampling_parameter_keys: list
         List of parameter name for *non-standard* sampling parameters.
+    waveform_arguments: dict
+        A dictionary of fixed keyword arguments to pass to either
+        `frequency_domain_source_model` or `time_domain_source_model`.
 
     Note: the arguments of frequency_domain_source_model (except the first,
     which is the frequencies at which to compute the strain) will be added to
@@ -37,7 +40,8 @@ class WaveformGenerator(object):
 
     def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None,
-                 non_standard_sampling_parameter_keys=None):
+                 non_standard_sampling_parameter_keys=None,
+                 waveform_arguments=dict()):
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
         self.frequency_domain_source_model = frequency_domain_source_model
@@ -47,8 +51,11 @@ class WaveformGenerator(object):
         self.parameter_conversion = parameter_conversion
         self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
         self.parameters = parameters
+        self.waveform_arguments = waveform_arguments
         self.__frequency_array_updated = False
         self.__time_array_updated = False
+        self.__full_source_model_keyword_arguments = {}
+        self.__full_source_model_keyword_arguments.update(waveform_arguments)
 
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
@@ -57,10 +64,15 @@ class WaveformGenerator(object):
                                                                     self.non_standard_sampling_parameter_keys)
 
         if self.frequency_domain_source_model is not None:
-            model_frequency_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+            self.__full_source_model_keyword_arguments.update(self.parameters)
+            model_frequency_strain = self.frequency_domain_source_model(
+                self.frequency_array,
+                **self.__full_source_model_keyword_arguments)
         elif self.time_domain_source_model is not None:
             model_frequency_strain = dict()
-            time_domain_strain = self.time_domain_source_model(self.time_array, **self.parameters)
+            self.__full_source_model_keyword_arguments.update(self.parameters)
+            time_domain_strain = self.time_domain_source_model(
+                self.time_array, **self.__full_source_model_keyword_arguments)
             if isinstance(time_domain_strain, np.ndarray):
                 return utils.nfft(time_domain_strain, self.sampling_frequency)
             for key in time_domain_strain:
@@ -77,10 +89,14 @@ class WaveformGenerator(object):
         if self.parameter_conversion is not None:
             self.parameters, added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
         if self.time_domain_source_model is not None:
-            model_time_series = self.time_domain_source_model(self.time_array, **self.parameters)
+            self.__full_source_model_keyword_arguments.update(self.parameters)
+            model_time_series = self.time_domain_source_model(
+                self.time_array, **self.__full_source_model_keyword_arguments)
         elif self.frequency_domain_source_model is not None:
             model_time_series = dict()
-            frequency_domain_strain = self.frequency_domain_source_model(self.frequency_array, **self.parameters)
+            self.__full_source_model_keyword_arguments.update(self.parameters)
+            frequency_domain_strain = self.frequency_domain_source_model(
+                self.frequency_array, **self.__full_source_model_keyword_arguments)
             if isinstance(frequency_domain_strain, np.ndarray):
                 return utils.infft(frequency_domain_strain, self.sampling_frequency)
             for key in frequency_domain_strain:

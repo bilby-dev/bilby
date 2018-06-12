@@ -327,8 +327,8 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     """
     output_sample = sample.copy()
     if likelihood is not None:
-        output_sample['reference_frequency'] = likelihood.waveform_generator.parameters['reference_frequency']
-        output_sample['waveform_approximant'] = likelihood.waveform_generator.parameters['waveform_approximant']
+        output_sample['reference_frequency'] = likelihood.waveform_generator.waveform_arguments['reference_frequency']
+        output_sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)

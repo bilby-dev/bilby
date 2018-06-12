@@ -27,13 +27,17 @@ np.random.seed(88170235)
 # spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
                             luminosity_distance=2000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
-                            waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
+                            ra=1.375, dec=-1.2108)
+
+waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
+                          reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = tupak.WaveformGenerator(time_duration=time_duration,
                                              sampling_frequency=sampling_frequency,
                                              frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                             parameters=injection_parameters)
+                                             parameters=injection_parameters,
+                                             waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),

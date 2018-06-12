@@ -39,8 +39,8 @@ prior = tupak.gw.prior.BBHPriorSet(filename='GW150914.prior')
 waveform_generator = tupak.WaveformGenerator(time_duration=interferometers[0].duration,
                                              sampling_frequency=interferometers[0].sampling_frequency,
                                              frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                             parameters={'waveform_approximant': 'IMRPhenomPv2',
-                                                         'reference_frequency': 50})
+                                             waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
+                                                                 'reference_frequency': 50})
 
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
