@@ -33,9 +33,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         An object which computes the frequency-domain strain of the signal,
         given some set of parameters
     distance_marginalization: bool
-        If true, analytic distance marginalization
+        If true, marginalize over distance in the likelihood.
+        This uses a look up table calculated at run time.
+    time_marginalization: bool
+        If true, marginalize over time in the likelihood.
+        This uses a FFT.
     phase_marginalization: bool
-        If true, analytic phase marginalization
+        If true, marginalize over phase in the likelihood.
+        This is done analytically using a Bessel function.
     prior: dict
         If given, used in the distance and phase marginalization.
 
@@ -50,10 +55,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def __init__(self, interferometers, waveform_generator, time_marginalization=False, distance_marginalization=False,
                  phase_marginalization=False, prior=None):
 
+        self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
-        self.waveform_generator = waveform_generator
-        self.non_standard_sampling_parameter_keys = self.waveform_generator.non_standard_sampling_parameter_keys
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -81,6 +85,18 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self.__prior = prior
         else:
             self.__prior = dict()
+
+    @property
+    def non_standard_sampling_parameter_keys(self):
+        return self.waveform_generator.non_standard_sampling_parameter_keys
+
+    @property
+    def parameters(self):
+        return self.waveform_generator.parameters
+
+    @parameters.setter
+    def parameters(self, parameters):
+        self.waveform_generator.parameters = parameters
 
     def noise_log_likelihood(self):
         log_l = 0

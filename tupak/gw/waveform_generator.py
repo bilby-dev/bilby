@@ -60,7 +60,8 @@ class WaveformGenerator(object):
     def frequency_domain_strain(self):
         """ Wrapper to source_model """
         if self.parameter_conversion is not None:
-            added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
+            self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                    self.non_standard_sampling_parameter_keys)
 
         if self.frequency_domain_source_model is not None:
             self.__full_source_model_keyword_arguments.update(self.parameters)
@@ -86,7 +87,7 @@ class WaveformGenerator(object):
 
     def time_domain_strain(self):
         if self.parameter_conversion is not None:
-            added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
+            self.parameters, added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
         if self.time_domain_source_model is not None:
             self.__full_source_model_keyword_arguments.update(self.parameters)
             model_time_series = self.time_domain_source_model(

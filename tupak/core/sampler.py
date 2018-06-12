@@ -509,18 +509,18 @@ class Ptemcee(Sampler):
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=None, injection_parameters=None,
+                sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                **kwargs):
+                clean=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
     Parameters
     ----------
-    likelihood: `tupak.GravitationalWaveTransient`
-        A `GravitationalWaveTransient` instance
-    priors: dict
-        A dictionary of the priors for each parameter - missing parameters will
+    likelihood: `tupak.Likelihood`
+        A `Likelihood` instance
+    priors: `tupak.PriorSet`
+        A PriorSet/dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default
     label: str
         Name for the run, used in output files
@@ -543,6 +543,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the tupak defaults for a binary black hole.
+    clean: bool
+        If given, override the command line interface `clean` option.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -551,6 +553,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     result
         An object containing the results
     """
+
+    if clean:
+        utils.command_line_args.clean = clean
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
@@ -565,7 +570,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         raise ValueError
 
-    priors.fill_priors(likelihood)
+    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
     priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
@@ -601,7 +606,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         if injection_parameters is not None:
             result.injection_parameters = injection_parameters
             if conversion_function is not None:
-                conversion_function(result.injection_parameters)
+                result.injection_parameters = conversion_function(result.injection_parameters)
         result.fixed_parameter_keys = sampler.fixed_parameter_keys
         # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_posterior(likelihood=likelihood, priors=priors,

@@ -1,3 +1,4 @@
+from __future__ import division
 import tupak
 import numpy as np
 import pandas as pd
@@ -35,72 +36,280 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     Return
     ------
+    converted_parameters: dict
+        dict of the required parameters
     ignored_keys: list
         keys which are added to parameters during function call
     """
 
     ignored_keys = []
+    converted_parameters = parameters.copy()
 
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
-        if 'chirp_mass' in parameters.keys():
-            if 'total_mass' in parameters.keys():
-                # chirp_mass, total_mass to total_mass, symmetric_mass_ratio
-                parameters['symmetric_mass_ratio'] = (parameters['chirp_mass'] / parameters['total_mass'])**(5 / 3)
+        if 'chirp_mass' in converted_parameters.keys():
+            if 'total_mass' in converted_parameters.keys():
+                converted_parameters['symmetric_mass_ratio'] = chirp_mass_and_total_mass_to_symmetric_mass_ratio(
+                    converted_parameters['chirp_mass'], converted_parameters['total_mass'])
                 if remove:
-                    parameters.pop('chirp_mass')
-            if 'symmetric_mass_ratio' in parameters.keys():
-                # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+                    converted_parameters.pop('chirp_mass')
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
+                converted_parameters['mass_ratio'] =\
+                    symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
-                if 'total_mass' not in parameters.keys():
-                    parameters['total_mass'] = parameters['chirp_mass'] * (1 + parameters['mass_ratio'])**1.2 \
-                                               / parameters['mass_ratio']**0.6
-                    parameters.pop('chirp_mass')
-                # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
+                if 'total_mass' not in converted_parameters.keys():
+                    converted_parameters['total_mass'] = chirp_mass_and_mass_ratio_to_total_mass(
+                        converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
+                    if remove:
+                        converted_parameters.pop('chirp_mass')
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = \
+                    total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
+                                                                  converted_parameters['total_mass'])
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
-        elif 'total_mass' in parameters.keys():
-            if 'symmetric_mass_ratio' in parameters.keys():
-                # symmetric_mass_ratio to mass_ratio
-                temp = (1 / parameters['symmetric_mass_ratio'] / 2 - 1)
-                parameters['mass_ratio'] = temp - (temp**2 - 1)**0.5
+        elif 'total_mass' in converted_parameters.keys():
+            if 'symmetric_mass_ratio' in converted_parameters.keys():
+                converted_parameters['mass_ratio'] =\
+                    symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in parameters.keys():
-                # total_mass, mass_ratio to component masses
-                parameters['mass_1'] = parameters['total_mass'] / (1 + parameters['mass_ratio'])
-                parameters['mass_2'] = parameters['mass_1'] * parameters['mass_ratio']
+                    converted_parameters.pop('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys():
+                converted_parameters['mass_1'], converted_parameters['mass_2'] =\
+                    total_mass_and_mass_ratio_to_component_masses(
+                        converted_parameters['mass_ratio'], converted_parameters['total_mass'])
                 if remove:
-                    parameters.pop('total_mass')
-                    parameters.pop('mass_ratio')
+                    converted_parameters.pop('total_mass')
+                    converted_parameters.pop('mass_ratio')
             ignored_keys.append('mass_1')
             ignored_keys.append('mass_2')
 
-    if 'cos_tilt_1' in parameters.keys():
-        ignored_keys.append('tilt_1')
-        parameters['tilt_1'] = np.arccos(parameters['cos_tilt_1'])
-        if remove:
-            parameters.pop('cos_tilt_1')
-    if 'cos_tilt_2' in parameters.keys():
-        ignored_keys.append('tilt_2')
-        parameters['tilt_2'] = np.arccos(parameters['cos_tilt_2'])
-        if remove:
-            parameters.pop('cos_tilt_2')
+    elif 'mass_1' in search_keys and 'mass_2' not in search_keys:
+        if 'chirp_mass' in converted_parameters.keys():
+            converted_parameters['mass_ratio'] =\
+                mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
+            temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
+            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3)\
+                                       + (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
+            if remove:
+                converted_parameters.pop('chirp_mass')
+        elif 'symmetric_mass_ratio' in converted_parameters.keys():
+            converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
+            if remove:
+                converted_parameters.pop('symmetric_mass_ratio')
+        if 'mass_ratio' in converted_parameters.keys():
+            converted_parameters['mass_2'] = converted_parameters['mass_1'] * converted_parameters['mass_ratio']
+            if remove:
+                converted_parameters.pop('mass_ratio')
+            ignored_keys.append('mass_2')
+        elif 'total_mass' in converted_parameters.keys():
+            converted_parameters['mass_2'] = parameters['total_mass'] - parameters['mass_1']
+            if remove:
+                converted_parameters.pop('total_mass')
+            ignored_keys.append('mass_2')
 
-    if 'cos_iota' in parameters.keys():
-        parameters['iota'] = np.arccos(parameters['cos_iota'])
-        if remove:
-            parameters.pop('cos_iota')
+    for angle in ['tilt_1', 'tilt_2', 'iota']:
+        cos_angle = str('cos_' + angle)
+        if cos_angle in converted_parameters.keys():
+            converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
+            if remove:
+                converted_parameters.pop(cos_angle)
+            ignored_keys.append(angle)
 
-    return ignored_keys
+    return converted_parameters, ignored_keys
+
+
+def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
+    """
+    Convert total mass and mass ratio of a binary to its component masses.
+
+    Parameters
+    ----------
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+    total_mass: float
+        Total mass of the binary
+
+    Return
+    ------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+    """
+
+    mass_1 = total_mass / (1 + mass_ratio)
+    mass_2 = mass_1 * mass_ratio
+    return mass_1, mass_2
+
+
+def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
+
+    """
+    Convert the symmetric mass ratio to the normal mass ratio.
+
+    Parameters
+    ----------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+
+    temp = (1 / symmetric_mass_ratio / 2 - 1)
+    return temp - (temp ** 2 - 1) ** 0.5
+
+
+def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
+    """
+    Convert chirp mass and total mass of a binary to its symmetric mass ratio.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    total_mass: float
+        Total mass of the binary
+
+    Return
+    ------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+    """
+
+    return (chirp_mass / total_mass) ** (5 / 3)
+
+
+def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
+    """
+    Convert chirp mass and mass ratio of a binary to its total mass.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+
+    Return
+    ------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+    """
+
+    return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
+
+
+def component_masses_to_chirp_mass(mass_1, mass_2):
+    """
+    Convert the component masses of a binary to its chirp mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    chirp_mass: float
+        Chirp mass of the binary
+    """
+
+    return (mass_1 * mass_2) ** 0.6 / (component_masses_to_total_mass(mass_1, mass_2)) ** 0.2
+
+
+def component_masses_to_total_mass(mass_1, mass_2):
+    """
+    Convert the component masses of a binary to its total mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    total_mass: float
+        Total mass of the binary
+    """
+
+    return mass_1 + mass_2
+
+
+def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
+    """
+    Convert the component masses of a binary to its symmetric mass ratio.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    symmetric_mass_ratio: float
+        Symmetric mass ratio of the binary
+    """
+
+    return (mass_1 * mass_2) / (mass_1 + mass_2) ** 2
+
+
+def component_masses_to_mass_ratio(mass_1, mass_2):
+    """
+    Convert the component masses of a binary to its chirp mass.
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    mass_2: float
+        Mass of the lighter object
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+
+    return mass_2 / mass_1
+
+
+def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
+    """
+    Calculate mass ratio from mass_1 and chirp_mass.
+
+    This involves solving mc = m1 * q**(3/5) / (1 + q)**(1/5).
+
+    Parameters
+    ----------
+    mass_1: float
+        Mass of the heavier object
+    chirp_mass: float
+        Mass of the lighter object
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio of the binary
+    """
+    temp = (chirp_mass / mass_1)**5
+    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp \
+                 + ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
+    return mass_ratio
 
 
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
@@ -116,24 +325,27 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """
-
+    output_sample = sample.copy()
     if likelihood is not None:
-        sample['reference_frequency'] = likelihood.waveform_generator.waveform_arguments['reference_frequency']
-        sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
+        output_sample['reference_frequency'] = likelihood.waveform_generator.waveform_arguments['reference_frequency']
+        output_sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
 
-    fill_from_fixed_priors(sample, priors)
-    convert_to_lal_binary_black_hole_parameters(sample, [key for key in sample.keys()], remove=False)
-    generate_non_standard_parameters(sample)
-    generate_component_spins(sample)
-    compute_snrs(sample, likelihood)
+    output_sample = fill_from_fixed_priors(output_sample, priors)
+    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
+    output_sample = generate_non_standard_parameters(output_sample)
+    output_sample = generate_component_spins(output_sample)
+    compute_snrs(output_sample, likelihood)
+    return output_sample
 
 
 def fill_from_fixed_priors(sample, priors):
     """Add parameters with delta function prior to the data frame/dictionary."""
+    output_sample = sample.copy()
     if priors is not None:
         for name in priors:
             if isinstance(priors[name], tupak.core.prior.DeltaFunction):
-                sample[name] = priors[name].peak
+                output_sample[name] = priors[name].peak
+    return output_sample
 
 
 def generate_non_standard_parameters(sample):
@@ -143,14 +355,16 @@ def generate_non_standard_parameters(sample):
     We add:
         chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1, cos tilt 2, cos iota
     """
-    sample['chirp_mass'] = (sample['mass_1'] * sample['mass_2'])**0.6 / (sample['mass_1'] + sample['mass_2'])**0.2
-    sample['total_mass'] = sample['mass_1'] + sample['mass_2']
-    sample['symmetric_mass_ratio'] = (sample['mass_1'] * sample['mass_2']) / (sample['mass_1'] + sample['mass_2'])**2
-    sample['mass_ratio'] = sample['mass_2'] / sample['mass_1']
+    output_sample = sample.copy()
+    output_sample['chirp_mass'] = component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['total_mass'] = component_masses_to_total_mass(sample['mass_1'], sample['mass_2'])
+    output_sample['symmetric_mass_ratio'] = component_masses_to_symmetric_mass_ratio(sample['mass_1'], sample['mass_2'])
+    output_sample['mass_ratio'] = component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
-    sample['cos_tilt_1'] = np.cos(sample['tilt_1'])
-    sample['cos_tilt_2'] = np.cos(sample['tilt_2'])
-    sample['cos_iota'] = np.cos(sample['iota'])
+    output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
+    output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
+    output_sample['cos_iota'] = np.cos(output_sample['iota'])
+    return output_sample
 
 
 def generate_component_spins(sample):
@@ -159,41 +373,44 @@ def generate_component_spins(sample):
 
     This function uses a lalsimulation function to transform the spins.
     """
+    output_sample = sample.copy()
     spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
                                   'mass_2', 'reference_frequency', 'phase']
-    if all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, dict):
-        sample['iota'], sample['spin_1x'], sample['spin_1y'], sample['spin_1z'], sample['spin_2x'], \
-            sample['spin_2y'], sample['spin_2z'] = \
+    if all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, dict):
+        output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], output_sample['spin_2x'], \
+        output_sample['spin_2y'], output_sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                sample['iota'], sample['phi_jl'], sample['tilt_1'], sample['tilt_2'], sample['phi_12'], sample['a_1'],
-                sample['a_2'], sample['mass_1'] * tupak.core.utils.solar_mass, sample['mass_2'] * tupak.core.utils.solar_mass,
-                sample['reference_frequency'], sample['phase'])
+                output_sample['iota'], output_sample['phi_jl'], output_sample['tilt_1'], output_sample['tilt_2'], output_sample['phi_12'], output_sample['a_1'],
+                output_sample['a_2'], output_sample['mass_1'] * tupak.core.utils.solar_mass, output_sample['mass_2'] * tupak.core.utils.solar_mass,
+                output_sample['reference_frequency'], output_sample['phase'])
 
-        sample['phi_1'] = np.arctan(sample['spin_1y'] / sample['spin_1x'])
-        sample['phi_2'] = np.arctan(sample['spin_2y'] / sample['spin_2x'])
+        output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
+        output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
-    elif all(key in sample.keys() for key in spin_conversion_parameters) and isinstance(sample, pd.DataFrame):
+    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
         logging.info('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
-        new_spins = {name: np.zeros(len(sample)) for name in new_spin_parameters}
+        new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
 
-        for ii in range(len(sample)):
+        for ii in range(len(output_sample)):
             new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
                 new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    sample['iota'][ii], sample['phi_jl'][ii], sample['tilt_1'][ii], sample['tilt_2'][ii],
-                    sample['phi_12'][ii], sample['a_1'][ii], sample['a_2'][ii],
-                    sample['mass_1'][ii] * tupak.core.utils.solar_mass, sample['mass_2'][ii] * tupak.core.utils.solar_mass,
-                    sample['reference_frequency'][ii], sample['phase'][ii])
+                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
+                    output_sample['phi_12'][ii], output_sample['a_1'][ii], output_sample['a_2'][ii],
+                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass, output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['reference_frequency'][ii], output_sample['phase'][ii])
 
         for name in new_spin_parameters:
-            sample[name] = new_spins[name]
+            output_sample[name] = new_spins[name]
 
-        sample['phi_1'] = np.arctan(sample['spin_1y'] / sample['spin_1x'])
-        sample['phi_2'] = np.arctan(sample['spin_2y'] / sample['spin_2x'])
+        output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
+        output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
     else:
         logging.warning("Component spin extraction failed.")
+
+    return output_sample
 
 
 def compute_snrs(sample, likelihood):

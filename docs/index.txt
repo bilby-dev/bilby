@@ -8,6 +8,7 @@ Welcome to tupak's documentation!
    :maxdepth: 3
    :caption: Contents:
 
+   installation
    basics-of-parameter-estimation
    compact-binary-coalescence-parameter-estimation
    prior
