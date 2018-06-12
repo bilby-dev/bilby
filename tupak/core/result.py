@@ -37,7 +37,7 @@ def read_in_result(outdir=None, label=None, filename=None):
     -------
     result: tupak.core.result.Result
 
-    Raises:
+    Raises
     -------
     ValueError: If no filename is given and either outdir or label is None
                 If no tupak.core.result.Result is found in the path
