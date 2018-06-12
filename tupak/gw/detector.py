@@ -642,9 +642,9 @@ def get_empty_interferometer(name):
 
 
 def get_interferometer_with_open_data(
-        name, center_time, T=4, alpha=0.25, psd_offset=-1024, psd_duration=100,
-        cache=True, outdir='outdir', plot=True, filter_freq=1024,
-        raw_data_file=None, **kwargs):
+    name, trigger_time, time_duration=4, epoch=None, alpha=0.25, psd_offset=-1024,
+    psd_duration=100, cache=True, outdir='outdir', plot=True, filter_freq=1024,
+    raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
@@ -653,11 +653,13 @@ def get_interferometer_with_open_data(
     ----------
     name: str
         Detector name, e.g., 'H1'.
-    center_time: float
-        GPS time of the center_time about which to perform the analysis.
-        Note: the analysis data is from `center_time-T/2` to `center_time+T/2`.
-    T: float
+    trigger_time: float
+        Trigger GPS time.
+    time_duration: float (optional)
         The total time (in seconds) to analyse. Defaults to 4s.
+    epoch: float (optional)
+        Beginning of the segment, if None, the trigger is placed 2s before the end
+        of the segment.
     alpha: float
         The tukey window shape parameter passed to `scipy.signal.tukey`.
     psd_offset, psd_duration: float
@@ -679,7 +681,6 @@ def get_interferometer_with_open_data(
         An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
-
     logging.warning(
         "Parameter estimation for real interferometer data in tupak is in "
         "alpha testing at the moment: the routines for windowing and filtering"
@@ -687,12 +688,16 @@ def get_interferometer_with_open_data(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
+    if epoch is None:
+        epoch = trigger_time + 2 - time_duration
+
     strain = tupak.gw.utils.get_open_strain_data(
-        name, center_time - T / 2, center_time + T / 2, outdir=outdir, cache=cache,
+        name, epoch, epoch + time_duration, outdir=outdir, cache=cache,
         raw_data_file=raw_data_file, **kwargs)
 
     strain_psd = tupak.gw.utils.get_open_strain_data(
-        name, center_time + psd_offset, center_time + psd_offset + psd_duration,
+        name, epoch + time_duration + psd_offset,
+        epoch + time_duration + psd_offset + psd_duration,
         raw_data_file=raw_data_file,
         outdir=outdir, cache=cache, **kwargs)
 
@@ -706,11 +711,11 @@ def get_interferometer_with_open_data(
     strain_psd = strain_psd.crop(*strain_psd.span.contract(1))
 
     # Create and save PSDs
-    NFFT = int(sampling_frequency * T)
+    NFFT = int(sampling_frequency * time_duration)
     window = signal.windows.tukey(NFFT, alpha=alpha)
-    psd = strain_psd.psd(fftlength=T, window=window)
+    psd = strain_psd.psd(fftlength=time_duration, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, center_time + psd_offset, psd_duration)
+        outdir, name, epoch + time_duration + psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
         for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
@@ -749,9 +754,9 @@ def get_interferometer_with_open_data(
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations, injection_parameters,
-        sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
-        save=True, zero_noise=False):
+    name, injection_polarizations, injection_parameters,
+    sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
+    save=True, zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -879,7 +884,7 @@ def get_event_data(
     for name in interferometer_names:
         try:
             interferometers.append(get_interferometer_with_open_data(
-                name, event_time, T=time_duration, alpha=alpha,
+                name, event_time, time_duration=time_duration, alpha=alpha,
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
