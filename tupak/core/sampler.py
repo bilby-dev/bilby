@@ -289,7 +289,7 @@ class Sampler(object):
         """ Get a random draw from the prior distribution
 
         Returns
-        draw: numpy.array
+        draw: array_like
             An ndim-length array of values drawn from the prior. Parameters
             with delta-function (or fixed) priors are not returned
 
