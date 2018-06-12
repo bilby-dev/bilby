@@ -150,21 +150,34 @@ class Result(dict):
                           "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
+        """Saves posterior samples to a file"""
         filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
         self.posterior.to_csv(filename, index=False, header=True)
 
     def get_latex_labels_from_parameter_keys(self, keys):
-        return_list = []
+        """ Returns a list of latex_labels corresponding to the given keys
+
+        Parameters
+        ----------
+        keys: list
+            List of strings corresponding to the desired latex_labels
+
+        Returns
+        -------
+        list: The desired latex_labels
+
+        """
+        latex_labels = []
         for k in keys:
             if k in self.search_parameter_keys:
                 idx = self.search_parameter_keys.index(k)
-                return_list.append(self.parameter_labels[idx])
+                latex_labels.append(self.parameter_labels[idx])
             elif k in self.parameter_labels:
-                return_list.append(k)
+                latex_labels.append(k)
             else:
                 raise ValueError('key {} not a parameter label or latex label'
                                  .format(k))
-        return return_list
+        return latex_labels
 
     def plot_corner(self, parameters=None, save=True, dpi=300, **kwargs):
         """ Plot a corner-plot using corner
@@ -173,10 +186,12 @@ class Result(dict):
 
         Parameters
         ----------
-        parameters: list
+        parameters: list, optional
             If given, a list of the parameter names to include
-        save: bool
+        save: bool, optional
             If true, save the image using the given label and outdir
+        dpi: int, optional
+            Dots per inch resolution of the plot
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
@@ -234,13 +249,11 @@ class Result(dict):
         return fig
 
     def plot_walks(self, save=True, **kwargs):
-        """
-        """
+        """DEPRECATED"""
         logging.warning("plot_walks deprecated")
 
     def plot_distributions(self, save=True, **kwargs):
-        """
-        """
+        """DEPRECATED"""
         logging.warning("plot_distributions deprecated")
 
     def samples_to_posterior(self, likelihood=None, priors=None,
@@ -250,11 +263,11 @@ class Result(dict):
 
         Parameters
         ----------
-        likelihood: tupak.likelihood.GravitationalWaveTransient
-            GravitationalWaveTransient used for sampling.
-        priors: dict
+        likelihood: tupak.likelihood.GravitationalWaveTransient, optional
+            GravitationalWaveTransient likelihood used for sampling.
+        priors: dict, optional
             Dictionary of prior object, used to fill in delta function priors.
-        conversion_function: function
+        conversion_function: function, optional
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
@@ -265,11 +278,7 @@ class Result(dict):
         self.posterior = data_frame
 
     def construct_cbc_derived_parameters(self):
-        """
-        Construct widely used derived parameters of CBCs
-
-        :return:
-        """
+        """ Construct widely used derived parameters of CBCs """
         self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
                 self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
         self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
@@ -284,7 +293,20 @@ class Result(dict):
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
     def check_attribute_match_to_other_object(self, name, other_object):
-        """ Check attribute name exists in other_object and is the same """
+        """ Check attribute name exists in other_object and is the same
+
+        Parameters
+        ----------
+        name: str
+            Name of the attribute in this instance
+        other_object: object
+            Other object with attributes to compare with
+
+        Returns
+        -------
+        bool: True if attribute name matches with an attribute of other_object, False otherwise
+
+        """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
         logging.debug('Checking {} value: {}=={}'.format(name, A, B))
