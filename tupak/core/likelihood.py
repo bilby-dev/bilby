@@ -14,28 +14,36 @@ class Likelihood(object):
     def __init__(self, parameters=None):
         """
 
-        :param parameters:
+        Parameters
+        ----------
+        parameters:
         """
         self.parameters = parameters
 
     def log_likelihood(self):
         """
 
-        :return:
+        Returns
+        -------
+
         """
         return np.nan
 
     def noise_log_likelihood(self):
         """
 
-        :return:
+        Returns
+        -------
+
         """
         return np.nan
 
     def log_likelihood_ratio(self):
         """
 
-        :return:
+        Returns
+        -------
+
         """
         return self.log_likelihood() - self.noise_log_likelihood()
 
