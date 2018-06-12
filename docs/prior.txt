@@ -39,7 +39,7 @@ If any model parameter required by the :ref:`likelihood` are not defined in the
 will try to use a default prior. By default, these are setup for a binary black
 hole and defined in a file like this
 
-.. literalinclude:: /../tupak/core/prior_files/binary_black_holes.prior
+.. literalinclude:: /../tupak/gw/prior_files/binary_black_holes.prior
 
 You can define your own default prior and pass a string pointing to that file
 to :ref:`run_sampler <run_sampler>`.
