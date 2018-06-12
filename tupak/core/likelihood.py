@@ -9,10 +9,9 @@ except ImportError:
 
 
 class Likelihood(object):
-    """ Empty likelihood class to be subclassed by other likelihoods """
 
     def __init__(self, parameters=None):
-        """
+        """Empty likelihood class to be subclassed by other likelihoods
 
         Parameters
         ----------
@@ -25,7 +24,7 @@ class Likelihood(object):
 
         Returns
         -------
-
+        float
         """
         return np.nan
 
@@ -34,16 +33,16 @@ class Likelihood(object):
 
         Returns
         -------
-
+        float
         """
         return np.nan
 
     def log_likelihood_ratio(self):
-        """
+        """Difference between log likelihood and noise log likelihood
 
         Returns
         -------
-
+        float
         """
         return self.log_likelihood() - self.noise_log_likelihood()
 
