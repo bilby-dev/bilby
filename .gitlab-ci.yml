@@ -39,7 +39,7 @@ exitcode-jessie:
     # Run all other tests (no coverage data collected)
     - python test/example_tests.py
     - python test/noise_realisation_tests.py
-    - python test/tests.py
+    - python test/other_tests.py
 
     # Make the documentation
     - pip install -r docs/requirements.txt
