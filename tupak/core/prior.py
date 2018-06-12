@@ -13,7 +13,7 @@ import os
 
 class PriorSet(dict):
     def __init__(self, dictionary=None, filename=None):
-        """ A set of priors
+        """A set of priors
 
         Parameters
         ----------
@@ -22,22 +22,21 @@ class PriorSet(dict):
         filename: str, None
             If given, a file containing the prior to generate the prior set.
         """
-
+        dict.__init__(self)
         if type(dictionary) is dict:
             self.update(dictionary)
         elif filename:
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
-        """
-        Write the prior distribution to file.
+        """Write the prior distribution to file.
 
         Parameters
         ----------
-        priors: dict
-            priors used
-        outdir, label: str
-            output directory and label
+        outdir: str
+            output directory name
+        label: str
+            Output file naming scheme
         """
 
         prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
@@ -48,8 +47,12 @@ class PriorSet(dict):
                     "{} = {}\n".format(key, self[key]))
 
     def read_in_file(self, filename):
-        """
-        Reads in a prior from a file specification
+        """Reads in a prior from a file specification
+
+        Parameters
+        -------
+        filename: str
+            Name of the file to be read in
         """
 
         prior = {}
@@ -70,17 +73,17 @@ class PriorSet(dict):
         Any floats in prior will be converted to delta function prior. Any
         required, non-specified parameters will use the default.
 
+        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
+        this will set-up default priors for those as well.
+
         Parameters
         ----------
         likelihood: tupak.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
-        default_priors_file: str
+        default_priors_file: str, optional
             If given, a file containing the default priors; otherwise defaults
             to the tupak defaults for a binary black hole.
 
-
-        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
-        this will set-up default priors for those as well.
 
         Returns
         -------
@@ -125,7 +128,17 @@ class PriorSet(dict):
             self.test_redundancy(key)
 
     def sample(self, size=None):
-        """Draw samples from the prior set"""
+        """Draw samples from the prior set
+
+        Parameters
+        ----------
+        size: int or tuple of ints, optional
+            See numpy.random.uniform docs
+
+        Returns
+        -------
+        dict: Dictionary of the samples
+        """
         samples = dict()
         for key in self:
             if isinstance(self[key], Prior):
@@ -133,7 +146,19 @@ class PriorSet(dict):
         return samples
 
     def sample_subset(self, keys=list(), size=None):
-        """Draw samples from the prior set for parameters which are not a DeltaFunction"""
+        """Draw samples from the prior set for parameters which are not a DeltaFunction
+
+        Parameters
+        ----------
+        keys: list
+            List of prior keys to draw samples from
+        size: int or tuple of ints, optional
+            See numpy.random.uniform docs
+
+        Returns
+        -------
+        dict: Dictionary of the drawn samples
+        """
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
@@ -143,17 +168,50 @@ class PriorSet(dict):
         return samples
 
     def prob(self, sample):
-        probability = np.product([self[key].prob(sample[key]) for key in sample])
-        return probability
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the probability of
+
+        Returns
+        -------
+        float: Joint probability of all individual sample probabilities
+
+        """
+        return np.product([self[key].prob(sample[key]) for key in sample])
 
     def ln_prob(self, sample):
-        ln_probability = np.sum([self[key].ln_prob(sample[key]) for key in sample])
-        return ln_probability
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the log probability of
+
+        Returns
+        -------
+        float: Joint log probability of all the individual sample probabilities
+
+        """
+        return np.sum([self[key].ln_prob(sample[key]) for key in sample])
 
     def rescale(self, keys, theta):
-        """Rescale samples from unit cube to prior"""
-        rescaled_sample = [self[key].rescale(sample) for key, sample in zip(keys, theta)]
-        return rescaled_sample
+        """Rescale samples from unit cube to prior
+
+        Parameters
+        ----------
+        keys: list
+            List of prior keys to be rescaled
+        theta: list
+            List of randomly drawn values on a unit cube associated with the prior keys
+
+        Returns
+        -------
+        list: List of floats containing the rescaled sample
+        """
+        return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
 
     def test_redundancy(self, key):
         """Empty redundancy test, should be overwritten"""
@@ -161,14 +219,13 @@ class PriorSet(dict):
 
 
 def create_default_prior(name, default_priors_file=None):
-    """
-    Make a default prior for a parameter with a known name.
+    """Make a default prior for a parameter with a known name.
 
     Parameters
     ----------
     name: str
         Parameter name
-    default_priors_file: str
+    default_priors_file: str, optional
         If given, a file containing the default priors; otherwise defaults to
         the tupak defaults for a binary black hole.
 
@@ -195,47 +252,49 @@ def create_default_prior(name, default_priors_file=None):
 
 
 class Prior(object):
-    """
-    Prior class
-
-    Methods
-    -------
-    __init__:
-        Instantiate a prior object.
-    __call__:
-        Draw a single sample from the prior.
-    __repr__:
-        Print prior type and parameters.
-    sample(size=None):
-        Draw samples of size size from the prior.
-    rescale(val):
-        Rescale samples from a uniform distribution on [0, 1] to samples from the prior.
-    test_valid_for_recaling(val):
-        Test whether val is in [0, 1] and hence valid for rescaling.
-
-    Parameters
-    ----------
-    name: str
-        Name associated with prior.
-    latex_label: str
-        Latex label associated with prior, used for plotting.
-    minimum: float, optional
-        Minimum of the domain, default=-np.inf
-    maximum: float, optional
-        Maximum of the domain, default=np.inf
-    """
 
     def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
+        """Implements a Prior object
+
+        Parameters
+        ----------
+        name: str, optional
+            Name associated with prior.
+        latex_label: str, optional
+            Latex label associated with prior, used for plotting.
+        minimum: float, optional
+            Minimum of the domain, default=-np.inf
+        maximum: float, optional
+            Maximum of the domain, default=np.inf
+
+        """
         self.name = name
         self.latex_label = latex_label
         self.minimum = minimum
         self.maximum = maximum
 
     def __call__(self):
+        """Overrides the __call__ special method. Calls the sample method.
+
+        Returns
+        -------
+        float: The return value of the sample method.
+        """
         return self.sample()
 
     def sample(self, size=None):
-        """Draw a sample from the prior """
+        """Draw a sample from the prior
+
+        Parameters
+        ----------
+        size: int or tuple of ints, optional
+            See numpy.random.uniform docs
+
+        Returns
+        -------
+        float: A random number between 0 and 1, rescaled to match the distribution of this Prior
+
+        """
         return self.rescale(np.random.uniform(0, 1, size))
 
     def rescale(self, val):
@@ -243,29 +302,89 @@ class Prior(object):
         'Rescale' a sample from the unit line element to the prior.
 
         This should be overwritten by each subclass.
+
+        Parameters
+        ----------
+        val: float
+            A random number between 0 and 1
+
+        Returns
+        -------
+        None
+
         """
         return None
 
     def prob(self, val):
-        """Return the prior probability of val, this should be overwritten"""
+        """Return the prior probability of val, this should be overwritten
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        np.nan
+
+        """
         return np.nan
 
     def ln_prob(self, val):
-        """Return the prior ln probability of val, this should ideally be overwritten"""
+        """Return the prior ln probability of val, this should be overwritten
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        np.nan
+
+        """
         return np.log(self.prob(val))
 
     @staticmethod
     def test_valid_for_rescaling(val):
-        """Test if 0 < val < 1"""
+        """Test if 0 < val < 1
+
+        Parameters
+        -------
+        val: float
+
+        Raises
+        -------
+        ValueError: If val is not between 0 and 1
+        """
         val = np.atleast_1d(val)
         tests = (val < 0) + (val > 1)
         if np.any(tests):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
     def __repr__(self):
+        """Overrides the special method __repr__.
+
+        Should return a representation of this instance that resembles how it is instantiated
+
+        Returns
+        -------
+        str: A string representation of this instance
+
+        """
         return self._subclass_repr_helper()
 
     def _subclass_repr_helper(self, subclass_args=list()):
+        """Helps out subclass _repr__ methods by creating a common template
+
+        Parameters
+        ----------
+        subclass_args: list, optional
+            List of attributes in the subclass instance
+
+        Returns
+        -------
+        str: A string representation for this subclass instance.
+
+        """
         prior_name = self.__class__.__name__
         args = ['name', 'latex_label', 'minimum', 'maximum']
         args.extend(subclass_args)
@@ -280,10 +399,28 @@ class Prior(object):
 
     @property
     def is_fixed(self):
+        """
+        Returns True if the prior is fixed and should not be used in the sampler. Does this by checking if this instance
+        is an instance of DeltaFunction.
+
+
+        Returns
+        -------
+        bool:
+        """
         return isinstance(self, DeltaFunction)
 
     @property
     def latex_label(self):
+        """Latex label that can be used for plots.
+
+        Draws from a set of default labels if no label is given
+
+        Returns
+        -------
+        str: A latex representation for this prior
+
+        """
         return self.__latex_label
 
     @latex_label.setter
@@ -321,33 +458,77 @@ class Prior(object):
 
 
 class DeltaFunction(Prior):
-    """Dirac delta function prior, this always returns peak."""
 
     def __init__(self, peak, name=None, latex_label=None):
+        """Dirac delta function prior, this always returns peak.
+
+        Parameters
+        ----------
+        peak: float
+            Peak value of the delta function
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+
+        """
         Prior.__init__(self, name, latex_label, minimum=peak, maximum=peak)
         self.peak = peak
 
     def rescale(self, val):
-        """Rescale everything to the peak with the correct shape."""
+        """Rescale everything to the peak with the correct shape.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Rescaled probability, equivalent to peak
+        """
         Prior.test_valid_for_rescaling(val)
         return self.peak * val ** 0
 
     def prob(self, val):
-        """Return the prior probability of val"""
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: np.inf if val = peak, 0 otherwise
+
+        """
         if self.peak == val:
             return np.inf
         else:
             return 0
 
     def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['peak'])
 
 
 class PowerLaw(Prior):
-    """Power law prior distribution"""
 
     def __init__(self, alpha, minimum, maximum, name=None, latex_label=None):
-        """Power law with bounds and alpha, spectral index"""
+        """Power law with bounds and alpha, spectral index
+
+        Parameters
+        ----------
+        alpha: float
+            Power law exponent parameter
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name, latex_label, minimum, maximum)
         self.alpha = alpha
 
@@ -356,6 +537,15 @@ class PowerLaw(Prior):
         'Rescale' a sample from the unit line element to the power-law prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Parameters
+        ----------
+        val: float
+            Uniform probability
+
+        Returns
+        -------
+        float: Rescaled probability
         """
         Prior.test_valid_for_rescaling(val)
         if self.alpha == -1:
@@ -365,7 +555,16 @@ class PowerLaw(Prior):
                     (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
 
     def prob(self, val):
-        """Return the prior probability of val"""
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         if self.alpha == -1:
             return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * in_prior
@@ -374,12 +573,24 @@ class PowerLaw(Prior):
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
     def lnprob(self, val):
+        """Return the logarithmic prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float:
+
+        """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                           - self.minimum ** (1 + self.alpha))
         return self.alpha * np.log(val) * np.log(normalising) * in_prior
 
     def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['alpha'])
 
 
@@ -394,8 +605,22 @@ class Uniform(Prior):
         return self.minimum + val * (self.maximum - self.minimum)
 
     def prob(self, val):
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         return scipy.stats.uniform.pdf(val, loc=self.minimum,
                                        scale=self.maximum-self.minimum)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self)
 
 
 class LogUniform(PowerLaw):
@@ -405,9 +630,6 @@ class LogUniform(PowerLaw):
         PowerLaw.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
-
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return Prior._subclass_repr_helper(self)
 
 
 class Cosine(Prior):
@@ -425,11 +647,21 @@ class Cosine(Prior):
         return np.arcsin(-1 + val * 2)
 
     def prob(self, val):
-        """Return the prior probability of val, defined over [-pi/2, pi/2]"""
+        """Return the prior probability of val. Defined over [-pi/2, pi/2].
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.cos(val) / 2 * in_prior
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+    def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self)
 
 
@@ -448,11 +680,21 @@ class Sine(Prior):
         return np.arccos(1 - val * 2)
 
     def prob(self, val):
-        """Return the prior probability of val, defined over [0, pi]"""
+        """Return the prior probability of val. Defined over [0, pi].
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.sin(val) / 2 * in_prior
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+    def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self)
 
 
@@ -475,13 +717,23 @@ class Gaussian(Prior):
         return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
     def prob(self, val):
-        """Return the prior probability of val"""
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
     def lnprob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
@@ -512,12 +764,22 @@ class TruncatedGaussian(Prior):
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
     def prob(self, val):
-        """Return the prior probability of val"""
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
                 2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
     def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
@@ -534,7 +796,16 @@ class Interped(Prior):
         self.__initialize_attributes()
 
     def prob(self, val):
-        """Return the prior probability of val"""
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
         return self.probability_density(val)
 
     def rescale(self, val):
@@ -550,6 +821,7 @@ class Interped(Prior):
         return rescaled
 
     def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['xx', 'yy'])
 
     @property
@@ -601,5 +873,6 @@ class FromFile(Interped):
             logging.warning("Format should be:")
             logging.warning(r"x\tp(x)")
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
+    def __repr__(self):
+        """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['id'])
