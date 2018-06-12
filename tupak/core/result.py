@@ -37,6 +37,7 @@ def read_in_result(outdir=None, label=None, filename=None):
 
 class Result(dict):
     def __init__(self, dictionary=None):
+        dict.__init__(self)
         if type(dictionary) is dict:
             for key in dictionary:
                 val = self._standardise_strings(dictionary[key], key)
