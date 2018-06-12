@@ -642,9 +642,9 @@ def get_empty_interferometer(name):
 
 
 def get_interferometer_with_open_data(
-    name, trigger_time, time_duration=4, epoch=None, alpha=0.25, psd_offset=-1024,
-    psd_duration=100, cache=True, outdir='outdir', plot=True, filter_freq=1024,
-    raw_data_file=None, **kwargs):
+        name, trigger_time, time_duration=4, epoch=None, alpha=0.25, psd_offset=-1024,
+        psd_duration=100, cache=True, outdir='outdir', plot=True, filter_freq=1024,
+        raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
@@ -754,9 +754,9 @@ def get_interferometer_with_open_data(
 
 
 def get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations, injection_parameters,
-    sampling_frequency=4096, time_duration=4, outdir='outdir', plot=True,
-    save=True, zero_noise=False):
+        name, injection_polarizations, injection_parameters,
+        sampling_frequency=4096, time_duration=4, epoch=None,
+        outdir='outdir', plot=True, save=True, zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -774,6 +774,9 @@ def get_interferometer_with_fake_noise_and_injection(
         sampling frequency for data, should match injection signal
     time_duration: float
         length of data, should be the same as used for signal generation
+    epoch: float
+        Beginning of data segment, if None, injection is placed 2s before
+        end of segment.
     outdir: str
         directory in which to store output
     plot: bool
@@ -792,17 +795,21 @@ def get_interferometer_with_fake_noise_and_injection(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
+    if epoch is None:
+        epoch = injection_parameters['geocent_time'] + 2 - time_duration
+    if injection_parameters['geocent_time'] < epoch or injection_parameters['geocent_time'] > epoch - time_duration:
+        logging.warning('Injecting signal outside segment, epoch={}, merger time={}.'.format(
+            epoch, injection_parameters['geocent_time']))
+
     interferometer = get_empty_interferometer(name)
     if zero_noise:
         interferometer.set_data(
             sampling_frequency=sampling_frequency, duration=time_duration,
-            zero_noise=True,
-            epoch=(injection_parameters['geocent_time']+2)-time_duration)
+            zero_noise=True, epoch=epoch)
     else:
         interferometer.set_data(
             sampling_frequency=sampling_frequency, duration=time_duration,
-            from_power_spectral_density=True,
-            epoch=(injection_parameters['geocent_time']+2)-time_duration)
+            from_power_spectral_density=True, epoch=epoch)
     interferometer.inject_signal(
         waveform_polarizations=injection_polarizations,
         parameters=injection_parameters)
@@ -884,7 +891,7 @@ def get_event_data(
     for name in interferometer_names:
         try:
             interferometers.append(get_interferometer_with_open_data(
-                name, event_time, time_duration=time_duration, alpha=alpha,
+                name, trigger_time=event_time, time_duration=time_duration, alpha=alpha,
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
