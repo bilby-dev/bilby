@@ -509,7 +509,7 @@ class Ptemcee(Sampler):
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=None, injection_parameters=None,
+                sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
                 clean=None, **kwargs):
     """
