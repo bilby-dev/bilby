@@ -22,17 +22,18 @@ exitcode-jessie:
     # CI is too old and fails when trying to install lalsuite
     - sed -i '/lalsuite/d' requirements.txt
     - pip install -r requirements.txt
-    - pip install coverage
+    - pip install 'coverage>=4.5'
     - pip install coverage-badge
   script:
     - python setup.py install
     # Run tests and collect coverage data
+    - coverage --version
     - coverage erase
-    - coverage run --source=tupak/core/,tupak/gw/ -a test/conversion_tests.py
-    - coverage run --source=tupak/core/,tupak/gw/ -a test/detector_tests.py
-    - coverage run --source=tupak/core/,tupak/gw/ -a test/prior_tests.py
-    - coverage run --source=tupak/core/,tupak/gw/ -a test/sampler_tests.py
-    - coverage run --source=tupak/core/,tupak/gw/ -a test/waveform_generator_tests.py
+    - coverage run --source=tupak/ -a test/conversion_tests.py
+    - coverage run --source=tupak/ -a test/detector_tests.py
+    - coverage run --source=tupak/ -a test/prior_tests.py
+    - coverage run --source=tupak/ -a test/sampler_tests.py
+    - coverage run --source=tupak/ -a test/waveform_generator_tests.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
     # Run all other tests (no coverage data collected)
