@@ -646,7 +646,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         samplers
     use_ratio: bool (False)
         If True, use the likelihood's log_likelihood_ratio, rather than just
-        the log likelihood.
+        the log_likelihood.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
