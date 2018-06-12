@@ -33,9 +33,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         An object which computes the frequency-domain strain of the signal,
         given some set of parameters
     distance_marginalization: bool
-        If true, analytic distance marginalization
+        If true, marginalize over distance in the likelihood.
+        This uses a look up table calculated at run time.
+    time_marginalization: bool
+        If true, marginalize over time in the likelihood.
+        This uses a FFT.
     phase_marginalization: bool
-        If true, analytic phase marginalization
+        If true, marginalize over phase in the likelihood.
+        This is done analytically using a Bessel function.
     prior: dict
         If given, used in the distance and phase marginalization.
 
