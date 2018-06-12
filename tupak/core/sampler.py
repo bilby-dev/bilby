@@ -570,7 +570,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         raise ValueError
 
-    priors.fill_priors(likelihood)
+    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
     priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
