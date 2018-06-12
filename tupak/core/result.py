@@ -66,7 +66,7 @@ class Result(dict):
         dict.__init__(self)
         if type(dictionary) is dict:
             for key in dictionary:
-                val = self._standardise_strings(dictionary[key], key)
+                val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
     def __getattr__(self, name):
@@ -98,20 +98,38 @@ class Result(dict):
 
     @staticmethod
     def _standardise_a_string(item):
-        """ When reading in data, ensure all strings are decoded correctly """
+        """ When reading in data, ensure all strings are decoded correctly
+
+        Parameters
+        ----------
+        item: str
+
+        Returns
+        -------
+        str: decoded string
+        """
         if type(item) in [bytes]:
             return item.decode()
         else:
             return item
 
-    def _standardise_strings(self, item, name=None):
-        if type(item) in [list]:
-            item = [self._standardise_a_string(i) for i in item]
-        # logging.debug("Unable to decode item {}".format(name))
-        return item
+    @staticmethod
+    def _standardise_strings(item):
+        """
 
-    def get_result_dictionary(self):
-        return dict(self)
+        Parameters
+        ----------
+        item: list
+            List of strings to be decoded
+
+        Returns
+        -------
+        list: list of decoded strings in item
+
+        """
+        if type(item) in [list]:
+            item = [_standardise_a_string(i) for i in item]
+        return item
 
     def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
@@ -126,11 +144,10 @@ class Result(dict):
 
         logging.info("Saving result to {}".format(file_name))
         try:
-            deepdish.io.save(file_name, self.get_result_dictionary())
+            deepdish.io.save(file_name, self.__dict__)
         except Exception as e:
-            logging.error(
-                "\n\n Saving the data has failed with the following message:\n {} \n\n"
-                    .format(e))
+            logging.error("\n\n Saving the data has failed with the "
+                          "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
         filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
