@@ -15,6 +15,15 @@ solar_mass = 1.98855 * 1e30
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
+
+    Returns
+    -------
+    float: Sampling frequency of the time series
+
+    Raises
+    -------
+    ValueError:
+        If the time series is not evenly sampled.
     """
     tol = 1e-10
     if np.ptp(np.diff(time_series)) > tol:
