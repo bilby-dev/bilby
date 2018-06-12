@@ -110,7 +110,7 @@ def create_frequency_series(sampling_frequency, duration):
 
     Returns
     -------
-    numpy.array: frequency series
+    array_like: frequency series
 
     """
     number_of_samples = duration * sampling_frequency
@@ -142,8 +142,8 @@ def create_white_noise(sampling_frequency, duration):
 
     Returns
     -------
-    numpy.array: white noise
-    numpy.array: frequency array
+    array_like: white noise
+    array_like: frequency array
     """
 
     number_of_samples = duration * sampling_frequency
@@ -181,15 +181,15 @@ def nfft(ht, Fs):
 
     Parameters
     -------
-    ht: numpy.array
+    ht: array_like
         Time series
     Fs: float
         Sampling frequency
 
     Returns
     -------
-    numpy.array: Single-sided FFT of ft normalised to units of strain / sqrt(Hz) (hf)
-    numpy.array: Frequencies associated with hf
+    array_like: Single-sided FFT of ft normalised to units of strain / sqrt(Hz) (hf)
+    array_like: Frequencies associated with hf
     """
     # add one zero padding if time series does not have even number of sampling times
     if np.mod(len(ht), 2) == 1:
@@ -213,14 +213,14 @@ def infft(hf, Fs):
 
     Parameters
     -------
-    hf: numpy.array
+    hf: array_like
         single-side FFT calculated by fft_eht
     Fs: float
         sampling frequency
 
     Returns
     -------
-    numpy.array: time series
+    array_like: time series
     """
     # use irfft to work with positive frequencies only
     h = np.fft.irfft(hf)
