@@ -7,7 +7,19 @@ import corner
 
 
 def result_file_name(outdir, label):
-    """ Returns the standard filename used for a result file """
+    """ Returns the standard filename used for a result file
+
+    Parameters
+    ----------
+    outdir: str
+        Name of the output directory
+    label: str
+        Naming scheme of the output file
+
+    Returns
+    -------
+    str: File name of the output file
+    """
     return '{}/{}_result.h5'.format(outdir, label)
 
 
@@ -21,8 +33,14 @@ def read_in_result(outdir=None, label=None, filename=None):
     filename: str
         If given, try to load from this filename
 
-    Returns:
-    result: tupak.result.Result instance
+    Returns
+    -------
+    result: tupak.core.result.Result
+
+    Raises:
+    -------
+    ValueError: If no filename is given and either outdir or label is None
+                If no tupak.core.result.Result is found in the path
 
     """
     if filename is None:
@@ -37,6 +55,14 @@ def read_in_result(outdir=None, label=None, filename=None):
 
 class Result(dict):
     def __init__(self, dictionary=None):
+        """ A class to save the results of the sampling run.
+
+        Parameters
+        ----------
+        dictionary: dict
+            A dictionary containing values to be set in this instance
+        """
+
         dict.__init__(self)
         if type(dictionary) is dict:
             for key in dictionary:
@@ -70,7 +96,8 @@ class Result(dict):
         else:
             return ''
 
-    def _standardise_a_string(self, item):
+    @staticmethod
+    def _standardise_a_string(item):
         """ When reading in data, ensure all strings are decoded correctly """
         if type(item) in [bytes]:
             return item.decode()
