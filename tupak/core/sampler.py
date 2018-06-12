@@ -624,8 +624,7 @@ class Ptemcee(Sampler):
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='nestle', use_ratio=None, injection_parameters=None,
-                conversion_function=None, plot=False, default_priors_file=None,
-                **kwargs):
+                conversion_function=None, plot=False, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -645,8 +644,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         `tupak.sampler.get_implemented_samplers()` for a list of available
         samplers
     use_ratio: bool (False)
-        If True, use the likelihood's loglikelihood_ratio, rather than just
-        the log likelhood.
+        If True, use the likelihood's log_likelihood_ratio, rather than just
+        the log likelihood.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
@@ -654,9 +653,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
-    default_priors_file: str
-        If given, a file containing the default priors; otherwise defaults to
-        the tupak defaults for a binary black hole.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -731,6 +727,13 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
 
 def get_implemented_samplers():
+    """ Does some introspection magic to figure out which samplers have been implemented yet.
+
+    Returns
+    -------
+    list: A list of strings with the names of the implemented samplers
+
+    """
     implemented_samplers = []
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj):

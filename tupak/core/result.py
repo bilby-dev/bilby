@@ -238,7 +238,7 @@ class Result(dict):
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
-    def _check_attribute_match_to_other_object(self, name, other_object):
+    def check_attribute_match_to_other_object(self, name, other_object):
         """ Check attribute name exists in other_object and is the same """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
