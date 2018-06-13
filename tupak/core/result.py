@@ -69,6 +69,9 @@ class Result(dict):
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
     def __getattr__(self, name):
         try:
             return self[name]
