@@ -2,13 +2,22 @@
 Installation
 ============
 
+The lastes stable release of Tupak can be installed simply from
+
+.. code-block: console
+
+   $ pip install tupak
+
+If you would like to install the development version, see the instructions
+below.
+
+Install tupak from source
+-------------------------
+
 :code:`tupak` is developed to work with both Python 2.7+ and Python 3+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_.
-
-Install tupak
--------------
 
 Clone the repository, install the requirements, and then install the software:
 
