@@ -18,7 +18,7 @@ try:
     else:
         status = '(UNCLEAN) ' + git_log
 except subprocess.CalledProcessError:
-    status = "NO VERSION INFORMATION"
+    status = ""
 
 version_file = '.version'
 with open('tupak/' + version_file, 'w+') as f:
