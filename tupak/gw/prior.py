@@ -1,7 +1,7 @@
 import tupak.core.prior
 
 
-class UniformComovingVolume(FromFile):
+class UniformComovingVolume(tupak.core.prior.FromFile):
 
     def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
         """
@@ -18,15 +18,11 @@ class UniformComovingVolume(FromFile):
             See superclass
         """
         file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
-        FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label)
-
-    def __repr__(self):
-        """Call to superclass repr method"""
-        return FromFile.__repr__(self)
+        tupak.core.prior.FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
+                                           latex_label=latex_label)
 
 
-class BBHPriorSet(PriorSet):
+class BBHPriorSet(tupak.core.prior.PriorSet):
     def __init__(self, dictionary=None, filename=None):
         """ Initialises a Prior set for Binary Black holes
 
@@ -42,7 +38,7 @@ class BBHPriorSet(PriorSet):
             logging.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif not os.path.isfile(filename):
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorSet.__init__(self, dictionary=dictionary, filename=filename)
+            tupak.core.prior.PriorSet.__init__(self, dictionary=dictionary, filename=filename)
 
     def test_redundancy(self, key):
         """
@@ -92,7 +88,7 @@ class BBHPriorSet(PriorSet):
         return redundant
 
 
-Prior._default_latex_labels = {
+tupak.core.prior.Prior._default_latex_labels = {
     'mass_1': '$m_1$',
     'mass_2': '$m_2$',
     'total_mass': '$M$',
