@@ -630,10 +630,6 @@ class Uniform(Prior):
         return scipy.stats.uniform.pdf(val, loc=self.minimum,
                                        scale=self.maximum-self.minimum)
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self)
-
 
 class LogUniform(PowerLaw):
 
@@ -697,10 +693,6 @@ class Cosine(Prior):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.cos(val) / 2 * in_prior
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self)
-
 
 class Sine(Prior):
 
@@ -742,10 +734,6 @@ class Sine(Prior):
         """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.sin(val) / 2 * in_prior
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self)
 
 
 class Gaussian(Prior):
