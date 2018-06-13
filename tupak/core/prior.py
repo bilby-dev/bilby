@@ -595,9 +595,21 @@ class PowerLaw(Prior):
 
 
 class Uniform(Prior):
-    """Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
+        """Uniform prior with bounds
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name, latex_label, minimum, maximum)
 
     def rescale(self, val):
@@ -624,9 +636,21 @@ class Uniform(Prior):
 
 
 class LogUniform(PowerLaw):
-    """Log Uniform prior"""
 
     def __init__(self, minimum, maximum, name=None, latex_label=None):
+        """Log-Uniform prior with bounds
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         PowerLaw.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
             logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
@@ -635,6 +659,19 @@ class LogUniform(PowerLaw):
 class Cosine(Prior):
 
     def __init__(self, name=None, latex_label=None, minimum=-np.pi / 2, maximum=np.pi / 2):
+        """Cosine prior with bounds
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name, latex_label, minimum, maximum)
 
     def rescale(self, val):
@@ -668,6 +705,19 @@ class Cosine(Prior):
 class Sine(Prior):
 
     def __init__(self, name=None, latex_label=None, minimum=0, maximum=np.pi):
+        """Sine prior with bounds
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name, latex_label, minimum, maximum)
 
     def rescale(self, val):
@@ -699,10 +749,24 @@ class Sine(Prior):
 
 
 class Gaussian(Prior):
-    """Gaussian prior"""
-
     def __init__(self, mu, sigma, name=None, latex_label=None):
-        """Power law with bounds and alpha, spectral index"""
+        """Gaussian prior with mean mu and width sigma
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name, latex_label)
         self.mu = mu
         self.sigma = sigma
@@ -738,19 +802,40 @@ class Gaussian(Prior):
 
 
 class TruncatedGaussian(Prior):
-    """
-    Truncated Gaussian prior
-
-    https://en.wikipedia.org/wiki/Truncated_normal_distribution
-    """
 
     def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
-        """Power law with bounds and alpha, spectral index"""
+        """Truncated Gaussian prior with mean mu and width sigma
+
+        https://en.wikipedia.org/wiki/Truncated_normal_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
         Prior.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum)
         self.mu = mu
         self.sigma = sigma
 
-        self.normalisation = (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
+    @property
+    def normalisation(self):
+        """ Calculates the proper normalisation of the truncated Gaussian
+
+        Returns
+        -------
+        float: Proper normalisation of the truncated Gaussian
+        """
+        return (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2
 
     def rescale(self, val):
@@ -786,10 +871,38 @@ class TruncatedGaussian(Prior):
 class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None, latex_label=None):
-        """Initialise object from arrays of x and y=p(x)"""
+        """Creates an interpolated prior function from arrays of xx and yy=p(xx)
+
+        Parameters
+        ----------
+        xx: array_like
+            x values for the to be interpolated prior function
+        yy: array_like
+            p(xx) values for the to be interpolated prior function
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+
+        Attributes
+        -------
+        probability_density: scipy.interpolate.interp1d
+            Interpolated prior probability distribution
+        cumulative_distribution: scipy.interpolate.interp1d
+            Interpolated cumulative prior probability distribution
+        inverse_cumulative_distribution: scipy.interpolate.interp1d
+            Inverted cumulative prior probability distribution
+        YY: array_like
+            Cumulative prior probability distribution
+
+        """
         self.xx = xx
         self.yy = yy
-        self.all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
+        self.__all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         Prior.__init__(self, name, latex_label,
                        minimum=np.nanmax(np.array((min(xx), minimum))),
                        maximum=np.nanmin(np.array((max(xx), maximum))))
@@ -826,6 +939,15 @@ class Interped(Prior):
 
     @property
     def minimum(self):
+        """Return minimum of the prior distribution.
+
+        Updates the prior distribution if minimum is set to a different value.
+
+        Returns
+        -------
+        float: Minimum of the prior distribution
+
+        """
         return self.__minimum
 
     @minimum.setter
@@ -836,6 +958,15 @@ class Interped(Prior):
 
     @property
     def maximum(self):
+        """Return maximum of the prior distribution.
+
+        Updates the prior distribution if maximum is set to a different value.
+
+        Returns
+        -------
+        float: Maximum of the prior distribution
+
+        """
         return self.__maximum
 
     @maximum.setter
@@ -846,7 +977,7 @@ class Interped(Prior):
 
     def __update_instance(self):
         self.xx = np.linspace(self.minimum, self.maximum, len(self.xx))
-        self.yy = self.all_interpolated(self.xx)
+        self.yy = self.__all_interpolated(self.xx)
         self.__initialize_attributes()
 
     def __initialize_attributes(self):
@@ -864,6 +995,27 @@ class Interped(Prior):
 class FromFile(Interped):
 
     def __init__(self, file_name, minimum=None, maximum=None, name=None, latex_label=None):
+        """Creates an interpolated prior function from arrays of xx and yy=p(xx) extracted from a file
+
+        Parameters
+        ----------
+        file_name: str
+            Name of the file containing the xx and yy arrays
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+
+        Attributes
+        -------
+        all_interpolated: scipy.interpolate.interp1d
+            Interpolated prior function
+
+        """
         try:
             self.id = file_name
             xx, yy = np.genfromtxt(self.id).T
