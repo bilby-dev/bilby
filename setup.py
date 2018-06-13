@@ -4,6 +4,8 @@ from distutils.core import setup
 import subprocess
 from os import path
 
+version = '0.1.4'
+
 # Write a version file containing the git hash and info
 try:
     git_log = subprocess.check_output(
@@ -20,7 +22,7 @@ except subprocess.CalledProcessError:
 
 version_file = '.version'
 with open('tupak/' + version_file, 'w+') as f:
-    f.write(status)
+    f.write('{} - {}'.format(version, status))
 
 
 here = path.abspath(path.dirname(__file__))
@@ -34,7 +36,7 @@ setup(name='tupak',
       author='Greg Ashton, Moritz Hubner, Paul Lasky, Colm Talbot',
       author_email='paul.lasky@monash.edu',
       license="MIT",
-      version='0.1.3',
+      version=version,
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
       package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt'],
