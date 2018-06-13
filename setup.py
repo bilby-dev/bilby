@@ -2,6 +2,7 @@
 
 from distutils.core import setup
 import subprocess
+from os import path
 
 # Write a version file containing the git hash and info
 try:
@@ -22,8 +23,18 @@ with open('tupak/' + version_file, 'w+') as f:
     f.write(status)
 
 
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'README.rst')) as f:
+        long_description = f.read()
+
 setup(name='tupak',
-      version='0.1',
+      description='The User friendly Parameter estimAtion Kode',
+      long_description=long_description,
+      url='https://git.ligo.org/Monash/tupak',
+      author='Greg Ashton, Moritz Hubner, Paul Lasky, Colm Talbot',
+      author_email='paul.lasky@monash.edu',
+      license="MIT",
+      version='0.1.3',
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
       package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt'],
