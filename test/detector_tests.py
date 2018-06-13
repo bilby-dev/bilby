@@ -294,10 +294,8 @@ class TestDetector(unittest.TestCase):
                 self.assertEqual(self.ifo.data, np.array([1]))
 
     def test_unit_vector_along_arm_default(self):
-        with mock.patch('logging.warning') as m:
-            m.side_effect = KeyError('foo')
-            with self.assertRaises(KeyError):
-                self.ifo.unit_vector_along_arm('z')
+        with self.assertRaises(ValueError):
+            self.ifo.unit_vector_along_arm('z')
 
     def test_unit_vector_along_arm_x(self):
         with mock.patch('numpy.array') as m:
