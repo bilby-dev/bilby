@@ -18,11 +18,12 @@ try:
     else:
         status = '(UNCLEAN) ' + git_log
 except subprocess.CalledProcessError:
-    status = ""
+    status = ''
 
 version_file = '.version'
-with open('tupak/' + version_file, 'w+') as f:
-    f.write('{} - {}'.format(version, status))
+if path.isfile(version_file) is False:
+    with open('tupak/' + version_file, 'w+') as f:
+        f.write('{} - {}'.format(version, status))
 
 
 here = path.abspath(path.dirname(__file__))
