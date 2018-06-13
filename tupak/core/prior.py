@@ -12,7 +12,7 @@ import os
 
 class PriorSet(dict):
     def __init__(self, dictionary=None, filename=None):
-        """A set of priors
+        """ A set of priors
 
         Parameters
         ----------
@@ -28,7 +28,7 @@ class PriorSet(dict):
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
-        """Write the prior distribution to file.
+        """ Write the prior distribution to file.
 
         Parameters
         ----------
@@ -46,7 +46,7 @@ class PriorSet(dict):
                     "{} = {}\n".format(key, self[key]))
 
     def read_in_file(self, filename):
-        """Reads in a prior from a file specification
+        """ Reads in a prior from a file specification
 
         Parameters
         -------
@@ -253,7 +253,7 @@ def create_default_prior(name, default_priors_file=None):
 class Prior(object):
 
     def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
-        """Implements a Prior object
+        """ Implements a Prior object
 
         Parameters
         ----------
@@ -405,7 +405,8 @@ class Prior(object):
 
         Returns
         -------
-        bool:
+        bool: Whether it's fixed or not!
+
         """
         return isinstance(self, DeltaFunction)
 
