@@ -23,6 +23,11 @@ with open('tupak/' + version_file, 'w+') as f:
 
 
 setup(name='tupak',
+      description='The User friendly Parameter estimAtion Kode',
+      url='https://git.ligo.org/Monash/tupak',
+      author='Greg Ashton, Moritz Hübner, Paul Lasky, Colm Talbot',
+      author_email='paul.lasky@monash.edu',
+      license="MIT",
       version='0.1',
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
