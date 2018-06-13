@@ -4,7 +4,7 @@ from distutils.core import setup
 import subprocess
 from os import path
 
-version = '0.1.4'
+version = '0.2'
 
 # Write a version file containing the git hash and info
 try:
@@ -40,5 +40,17 @@ setup(name='tupak',
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
       package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt'],
-                    'tupak': [version_file]}
+                    'tupak': [version_file]},
+      install_requires=[
+          'future',
+          'dynesty',
+          'corner',
+          'numpy',
+          'matplotlib',
+          'deepdish',
+          'pandas',
+          'scipy',
+          'gwpy',
+          'lalsuite',
+          ]
       )
