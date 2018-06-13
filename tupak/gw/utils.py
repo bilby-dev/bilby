@@ -102,7 +102,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
     """
-    Calculate the position of the IFO vertex in geocentric coordiantes in meters.
+    Calculate the position of the IFO vertex in geocentric coordinates in meters.
 
     Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
     See Section 2.1 of LIGO-T980044-10 for the correct expression
@@ -241,7 +241,7 @@ def get_open_strain_data(
 
     """
     filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
-    if raw_data_file:
+    if raw_data_file is not None:
         logging.info('Using raw_data_file {}'.format(raw_data_file))
         strain = TimeSeries.read(raw_data_file)
         if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
