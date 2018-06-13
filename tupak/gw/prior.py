@@ -1,4 +1,5 @@
 import tupak.core.prior
+import os
 
 
 class UniformComovingVolume(tupak.core.prior.FromFile):
