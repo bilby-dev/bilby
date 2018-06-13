@@ -110,24 +110,6 @@ def lal_binary_black_hole(
 
 
 def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
-    """
-
-    Parameters
-    ----------
-    frequency_array: array_like
-        The frequencies at which we want to calculate the strain
-    hrss
-    Q
-    frequency
-    ra
-    dec
-    geocent_time
-    psi
-
-    Returns
-    -------
-
-    """
     tau = Q / (np.sqrt(2.0)*np.pi*frequency)
     temp = Q / (4.0*np.sqrt(np.pi)*frequency)
     t = geocent_time
