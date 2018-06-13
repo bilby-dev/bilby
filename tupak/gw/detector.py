@@ -228,7 +228,7 @@ class Interferometer(object):
             self.__vertex_updated = True
         return self.__vertex
 
-    @propexrty
+    @property
     def x(self):
         """ A unit vector along the x-arm
 
