@@ -604,41 +604,28 @@ def get_empty_interferometer(name):
     interferometer: Interferometer
         Interferometer instance
     """
-    known_interferometers = {
-        'H1': Interferometer(name='H1',
-                             power_spectral_density=PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt'),
-                             minimum_frequency=20, maximum_frequency=2048,
-                             length=4, latitude=46 + 27. / 60 + 18.528 / 3600,
-                             longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
-                             yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5),
-        'L1': Interferometer(name='L1',
-                             power_spectral_density=PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt'),
-                             minimum_frequency=20, maximum_frequency=2048,
-                             length=4, latitude=30 + 33. / 60 + 46.4196 / 3600,
-                             longitude=-(90 + 46. / 60 + 27.2654 / 3600), elevation=-6.574, xarm_azimuth=197.7165,
-                             yarm_azimuth=287.7165,
-                             xarm_tilt=-3.121e-4, yarm_tilt=-6.107e-4),
-        'V1': Interferometer(name='V1', power_spectral_density=PowerSpectralDensity(psd_file='AdV_psd.txt'), length=3,
-                             minimum_frequency=20, maximum_frequency=2048,
-                             latitude=43 + 37. / 60 + 53.0921 / 3600, longitude=10 + 30. / 60 + 16.1878 / 3600,
-                             elevation=51.884, xarm_azimuth=70.5674, yarm_azimuth=160.5674),
-        'GEO600': Interferometer(name='GEO600',
-                                 power_spectral_density=PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt'),
-                                 minimum_frequency=40, maximum_frequency=2048, length=0.6,
-                                 latitude=52 + 14. / 60 + 42.528 / 3600, longitude=9 + 48. / 60 + 25.894 / 3600,
-                                 elevation=114.425, xarm_azimuth=115.9431, yarm_azimuth=21.6117),
-        'CE': Interferometer(name='CE', power_spectral_density=PowerSpectralDensity(psd_file='CE_psd.txt'),
-                             minimum_frequency=10, maximum_frequency=2048,
-                             length=40, latitude=46 + 27. / 60 + 18.528 / 3600,
-                             longitude=-(119 + 24. / 60 + 27.5657 / 3600), elevation=142.554, xarm_azimuth=125.9994,
-                             yarm_azimuth=215.994, xarm_tilt=-6.195e-4, yarm_tilt=1.25e-5),
-    }
-
-    if name in known_interferometers.keys():
-        interferometer = known_interferometers[name]
+    filename = os.path.join(os.path.dirname(__file__), 'detectors', '{}.interferometer'.format(name))
+    try:
+        interferometer = load_interferometer(filename)
         return interferometer
-    else:
+    except FileNotFoundError:
         logging.warning('Interferometer {} not implemented'.format(name))
+
+
+def load_interferometer(filename):
+    """Load an interferometer from a file."""
+    parameters = dict()
+    with open(filename, 'r') as parameter_file:
+        lines = parameter_file.readlines()
+        for line in lines:
+            if line[0] == '#':
+                continue
+            split_line = line.split('=')
+            key = split_line[0].strip()
+            value = eval('='.join(split_line[1:]))
+            parameters[key] = value
+    interferometer = Interferometer(**parameters)
+    return interferometer
 
 
 def get_interferometer_with_open_data(
