@@ -69,14 +69,14 @@ class Result(dict):
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
     def __getattr__(self, name):
         try:
             return self[name]
         except KeyError:
             raise AttributeError(name)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
     def __repr__(self):
         """Print a summary """
@@ -144,7 +144,7 @@ class Result(dict):
 
         logging.info("Saving result to {}".format(file_name))
         try:
-            deepdish.io.save(file_name, self.__dict__)
+            deepdish.io.save(file_name, dict(self))
         except Exception as e:
             logging.error("\n\n Saving the data has failed with the "
                           "following message:\n {} \n\n".format(e))
