@@ -88,7 +88,6 @@ class Sampler(object):
         self.__search_parameter_keys = []
         self.__fixed_parameter_keys = []
         self._initialise_parameters()
-        self._check_if_priors_can_be_sampled()
         self._verify_parameters()
         self._verify_use_ratio()
         self.kwargs = kwargs
@@ -208,6 +207,7 @@ class Sampler(object):
 
     def _verify_parameters(self):
         """ Sets initial values for likelihood.parameters. Raises TypeError if likelihood can't be evaluated."""
+        self._check_if_priors_can_be_sampled()
         try:
             t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
@@ -221,6 +221,7 @@ class Sampler(object):
 
     def _verify_use_ratio(self):
         """Checks if use_ratio is set. Prints a warning if use_ratio is set but not properly implemented."""
+        self._check_if_priors_can_be_sampled()
         if self.use_ratio is False:
             logging.debug("use_ratio set to False")
             return
