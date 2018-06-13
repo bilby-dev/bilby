@@ -40,7 +40,7 @@ setup(name='tupak',
       version=version,
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
-      package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt'],
+      package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt', 'detectors/*'],
                     'tupak': [version_file]},
       install_requires=[
           'future',
