@@ -18,7 +18,7 @@ def asd_from_freq_series(freq_data, df):
     Output:
     asd = array of real-valued normalized frequency domain ASD data
     """
-    asd = np.absolute(freq_data) * (2 * df)**0.5
+    asd = np.absolute(freq_data) * 2 * df**0.5
     return asd
 
 
