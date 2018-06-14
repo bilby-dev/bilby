@@ -94,10 +94,10 @@ class PriorSet(dict):
                 continue
             elif isinstance(self[key], float) or isinstance(self[key], int):
                 self[key] = DeltaFunction(self[key])
-                logging.info(
+                logging.debug(
                     "{} converted to delta function prior.".format(key))
             else:
-                logging.info(
+                logging.debug(
                     "{} cannot be converted to delta function prior."
                     .format(key))
 
@@ -139,7 +139,7 @@ class PriorSet(dict):
             if isinstance(self[key], Prior):
                 samples[key] = self[key].sample(size=size)
             else:
-                logging.info('{} not a known prior.'.format(key))
+                logging.debug('{} not a known prior.'.format(key))
         return samples
 
     def prob(self, sample):
@@ -180,7 +180,7 @@ def create_default_prior(name, default_priors_file=None):
     """
 
     if default_priors_file is None:
-        logging.info(
+        logging.debug(
             "No prior file given.")
         prior = None
     else:
@@ -188,7 +188,7 @@ def create_default_prior(name, default_priors_file=None):
         if name in default_priors.keys():
             prior = default_priors[name]
         else:
-            logging.info(
+            logging.debug(
                 "No default prior found for variable {}.".format(name))
             prior = None
     return prior
@@ -579,7 +579,7 @@ class Interped(Prior):
 
     def __initialize_attributes(self):
         if np.trapz(self.yy, self.xx) != 1:
-            logging.info('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
+            logging.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.

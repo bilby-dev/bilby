@@ -219,9 +219,10 @@ def setup_logger(outdir=None, label=None, log_level=None):
         file_handler.setLevel(LEVEL)
         logger.addHandler(file_handler)
 
-    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.version')
+    version_file = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), '.version')
     with open(version_file, 'r') as f:
-        version = f.readline()
+        version = f.readline().rstrip()
     logging.info('Running tupak version: {}'.format(version))
 
 
@@ -300,8 +301,8 @@ command_line_args = set_up_command_line_arguments()
 if 'DISPLAY' in os.environ:
     pass
 else:
-    logging.info('No $DISPLAY environment variable found, so importing \
-                  matplotlib.pyplot with non-interactive "Agg" backend.')
+    logging.debug('No $DISPLAY environment variable found, so importing \
+                   matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
     matplotlib.use('Agg')
 

@@ -63,7 +63,7 @@ result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sa
 
 # make some plots of the outputs
 result.plot_corner()
-print(result)
+
 
 
 

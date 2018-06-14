@@ -388,7 +388,7 @@ def generate_component_spins(sample):
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
     elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
-        logging.info('Extracting component spins.')
+        logging.debug('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
         new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
 
@@ -456,4 +456,4 @@ def compute_snrs(sample, likelihood):
             print([interferometer.name for interferometer in likelihood.interferometers])
 
     else:
-        logging.info('Not computing SNRs.')
+        logging.debug('Not computing SNRs.')
