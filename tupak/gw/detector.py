@@ -589,10 +589,18 @@ def get_empty_interferometer(name):
     These objects do not have any noise instantiated.
 
     The available instruments are:
-        H1, L1, V1, GEO600
+        H1, L1, V1, GEO600, CE
 
-    Detector positions taken from LIGO-T980044-10 for L1/H1 and from
-    arXiv:gr-qc/0008066 [45] for V1/GEO600
+    Detector positions taken from:
+        L1/H1: LIGO-T980044-10
+        V1/GEO600: arXiv:gr-qc/0008066 [45]
+        CE: located at the site of H1
+
+    Detector sensitivities:
+        H1/L1/V1: https://dcc.ligo.org/LIGO-P1200087-v42/public
+        GEO600: http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
+        CE: https://dcc.ligo.org/LIGO-P1600143/public
+
 
     Parameters
     ----------
