@@ -163,14 +163,14 @@ class Interferometer(object):
 
     @property
     def vertex(self):
-        if self.__vertex_updated is False:
+        if not self.__vertex_updated:
             self.__vertex = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
             self.__vertex_updated = True
         return self.__vertex
 
     @property
     def x(self):
-        if self.__x_updated is False:
+        if not self.__x_updated:
             self.__x = self.unit_vector_along_arm('x')
             self.__x_updated = True
             self.__detector_tensor_updated = False
@@ -178,7 +178,7 @@ class Interferometer(object):
 
     @property
     def y(self):
-        if self.__y_updated is False:
+        if not self.__y_updated:
             self.__y = self.unit_vector_along_arm('y')
             self.__y_updated = True
             self.__detector_tensor_updated = False
@@ -191,7 +191,7 @@ class Interferometer(object):
 
         See Eq. B6 of arXiv:gr-qc/0008066
         """
-        if self.__detector_tensor_updated is False:
+        if not self.__detector_tensor_updated:
             self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
             self.__detector_tensor_updated = True
         return self.__detector_tensor
