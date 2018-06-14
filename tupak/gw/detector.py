@@ -292,9 +292,9 @@ class Interferometer(object):
         n - unit vector along arm in cartesian Earth-based coordinates
         """
         if arm == 'x':
-            return self.__calculate_arm(self.xarm_tilt, self.xarm_azimuth)
+            return self.__calculate_arm(self.__xarm_tilt, self.__xarm_azimuth)
         elif arm == 'y':
-            return self.__calculate_arm(self.yarm_tilt, self.yarm_azimuth)
+            return self.__calculate_arm(self.__yarm_tilt, self.__yarm_azimuth)
         else:
             logging.warning('Not a recognized arm, aborting!')
             return
