@@ -1,3 +1,6 @@
+# Advanced LIGO Livingston at design sensitvity.
+# LIGO-T980044-10
+# https://dcc.ligo.org/LIGO-P1200087-v42/public
 name = 'L1'
 power_spectral_density = PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
 minimum_frequency = 20

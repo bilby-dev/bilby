@@ -1,3 +1,6 @@
+# The proposed Cosmic Explorer located at the site of LIGO Hanford.
+# LIGO-T980044-10
+# https://dcc.ligo.org/LIGO-P1600143/public
 name = 'CE'
 power_spectral_density = PowerSpectralDensity(psd_file='CE_psd.txt')
 minimum_frequency = 10

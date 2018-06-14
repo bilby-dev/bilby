@@ -1,3 +1,6 @@
+# GEO600 at the sensitivity during initial LIGO S6.
+# arXiv:gr-qc/0008066 Table 1
+# http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
 name = 'GEO600'
 power_spectral_density = PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt')
 minimum_frequency = 40

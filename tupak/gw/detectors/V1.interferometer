@@ -1,3 +1,6 @@
+# Advanced LIGO at design sensitvity.
+# arXiv:gr-qc/0008066 Table 1
+# https://dcc.ligo.org/LIGO-P1200087-v42/public
 name = 'V1'
 power_spectral_density = PowerSpectralDensity(psd_file='AdV_psd.txt')
 length = 3
