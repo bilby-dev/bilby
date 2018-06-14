@@ -891,6 +891,6 @@ def get_event_data(
                 outdir=outdir, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
         except ValueError:
-            logging.info('No data found for {}.'.format(name))
+            logging.warning('No data found for {}.'.format(name))
 
     return interferometers
