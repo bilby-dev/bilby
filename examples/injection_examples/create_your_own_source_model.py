@@ -51,4 +51,4 @@ result = tupak.core.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,
     resume=False, sample='unif', injection_parameters=injection_parameters)
 result.plot_corner()
-print(result)
+

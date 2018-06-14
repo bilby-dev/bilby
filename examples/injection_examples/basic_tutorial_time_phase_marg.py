@@ -70,4 +70,4 @@ result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynest
 
 # make some plots of the outputs
 result.plot_corner()
-print(result)
+

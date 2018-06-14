@@ -51,4 +51,4 @@ likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, wav
 result = tupak.run_sampler(likelihood, prior, sampler='dynesty',
                            outdir=outdir, label=label)
 result.plot_corner()
-print(result)
+

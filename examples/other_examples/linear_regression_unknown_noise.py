@@ -110,4 +110,3 @@ result = tupak.run_sampler(
     walks=10, injection_parameters=injection_parameters, outdir=outdir,
     label=label)
 result.plot_corner()
-print(result)

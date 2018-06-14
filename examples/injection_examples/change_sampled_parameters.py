@@ -58,4 +58,4 @@ result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sa
                                         injection_parameters=injection_parameters, label='DifferentParameters',
                                         outdir=outdir, conversion_function=tupak.gw.conversion.generate_all_bbh_parameters)
 result.plot_corner()
-print(result)
+

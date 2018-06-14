@@ -72,4 +72,4 @@ result = tupak.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', np
                                         outdir=outdir, label=label)
 
 result.plot_corner()
-print(result)
+
