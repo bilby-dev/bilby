@@ -91,12 +91,12 @@ class Result(dict):
         if os.path.isdir(self.outdir) is False:
             os.makedirs(self.outdir)
         if os.path.isfile(file_name):
-            logging.info(
+            logging.debug(
                 'Renaming existing file {} to {}.old'.format(file_name,
                                                              file_name))
             os.rename(file_name, file_name + '.old')
 
-        logging.info("Saving result to {}".format(file_name))
+        logging.debug("Saving result to {}".format(file_name))
         try:
             deepdish.io.save(file_name, self.get_result_dictionary())
         except Exception as e:
@@ -183,7 +183,7 @@ class Result(dict):
 
         if save:
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
-            logging.info('Saving corner plot to {}'.format(filename))
+            logging.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
 
         return fig
