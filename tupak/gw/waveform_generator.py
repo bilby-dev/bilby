@@ -5,7 +5,12 @@ import numpy as np
 
 
 class WaveformGenerator(object):
-    """ A waveform generator
+
+    def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
+                 time_domain_source_model=None, parameters=None, parameter_conversion=None,
+                 non_standard_sampling_parameter_keys=None,
+                 waveform_arguments=dict()):
+        """ A waveform generator
 
     Parameters
     ----------
@@ -13,35 +18,30 @@ class WaveformGenerator(object):
         The sampling frequency
     time_duration: float
         Time duration of data
-    frequency_domain_source_model: func
+    frequency_domain_source_model: func, optional
         A python function taking some arguments and returning the frequency
         domain strain. Note the first argument must be the frequencies at
         which to compute the strain
-    time_domain_source_model: func
+    time_domain_source_model: func, optional
         A python function taking some arguments and returning the time
         domain strain. Note the first argument must be the times at
         which to compute the strain
-    parameters: dict
+    parameters: dict, optional
         Initial values for the parameters
-    parameter_conversion: func
+    parameter_conversion: func, optional
         Function to convert from sampled parameters to parameters of the
         waveform generator
-    non_standard_sampling_parameter_keys: list
+    non_standard_sampling_parameter_keys: list, optional
         List of parameter name for *non-standard* sampling parameters.
-    waveform_arguments: dict
+    waveform_arguments: dict, optional
         A dictionary of fixed keyword arguments to pass to either
         `frequency_domain_source_model` or `time_domain_source_model`.
 
-    Note: the arguments of frequency_domain_source_model (except the first,
-    which is the frequencies at which to compute the strain) will be added to
-    the WaveformGenerator object and initialised to `None`.
+        Note: the arguments of frequency_domain_source_model (except the first,
+        which is the frequencies at which to compute the strain) will be added to
+        the WaveformGenerator object and initialised to `None`.
 
-    """
-
-    def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
-                 time_domain_source_model=None, parameters=None, parameter_conversion=None,
-                 non_standard_sampling_parameter_keys=None,
-                 waveform_arguments=dict()):
+        """
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
         self.frequency_domain_source_model = frequency_domain_source_model
@@ -58,7 +58,21 @@ class WaveformGenerator(object):
         self.__full_source_model_keyword_arguments.update(waveform_arguments)
 
     def frequency_domain_strain(self):
-        """ Wrapper to source_model """
+        """ Rapper to source_model.
+
+        Converts self.parameters with self.parameter_conversion before handing it off to the source model.
+        Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
+
+        Returns
+        -------
+        array_like: The frequency domain strain for the given set of parameters
+
+        Raises
+        -------
+        RuntimeError: If no source model is given
+
+        """
+        added_keys = []
         if self.parameter_conversion is not None:
             self.parameters, added_keys = self.parameter_conversion(self.parameters,
                                                                     self.non_standard_sampling_parameter_keys)
@@ -80,14 +94,31 @@ class WaveformGenerator(object):
                                                                                self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
-        if self.parameter_conversion is not None:
-            for key in added_keys:
-                self.parameters.pop(key)
+
+        for key in added_keys:
+            self.parameters.pop(key)
         return model_frequency_strain
 
     def time_domain_strain(self):
+        """ Rapper to source_model.
+
+        Converts self.parameters with self.parameter_conversion before handing it off to the source model.
+        Automatically refers to the frequency_domain_source model via INFFT if no frequency_domain_source_model is
+        given.
+
+        Returns
+        -------
+        array_like: The time domain strain for the given set of parameters
+
+        Raises
+        -------
+        RuntimeError: If no source model is given
+
+        """
+        added_keys = []
         if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters, self.non_standard_sampling_parameter_keys)
+            self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                    self.non_standard_sampling_parameter_keys)
         if self.time_domain_source_model is not None:
             self.__full_source_model_keyword_arguments.update(self.parameters)
             model_time_series = self.time_domain_source_model(
@@ -103,13 +134,19 @@ class WaveformGenerator(object):
                 model_time_series[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
-        if self.parameter_conversion is not None:
-            for key in added_keys:
-                self.parameters.pop(key)
+
+        for key in added_keys:
+            self.parameters.pop(key)
         return model_time_series
 
     @property
     def frequency_array(self):
+        """ Frequency array for the waveforms. Automatically updates if sampling_frequency or time_duration are updated.
+
+        Returns
+        -------
+        array_like: The frequency array
+        """
         if self.__frequency_array_updated is False:
             self.frequency_array = utils.create_frequency_series(
                                         self.sampling_frequency,
@@ -123,6 +160,13 @@ class WaveformGenerator(object):
 
     @property
     def time_array(self):
+        """ Time array for the waveforms. Automatically updates if sampling_frequency or time_duration are updated.
+
+        Returns
+        -------
+        array_like: The time array
+        """
+
         if self.__time_array_updated is False:
             self.__time_array = utils.create_time_series(
                                         self.sampling_frequency,
@@ -131,8 +175,22 @@ class WaveformGenerator(object):
             self.__time_array_updated = True
         return self.__time_array
 
+    @time_array.setter
+    def time_array(self, time_array):
+        self.__time_array = time_array
+        self.__time_array_updated = True
+
     @property
     def parameters(self):
+        """ The dictionary of parameters for source model.
+
+        Does some introspection into the source_model to figure out the parameters if none are given.
+
+        Returns
+        -------
+        dict: The dictionary of parameter key-value pairs
+
+        """
         return self.__parameters
 
     @parameters.setter
@@ -154,6 +212,13 @@ class WaveformGenerator(object):
 
     @property
     def time_duration(self):
+        """ Allows one to set the time duration and automatically updates the frequency and time array.
+
+        Returns
+        -------
+        float: The time duration.
+
+        """
         return self.__time_duration
 
     @time_duration.setter
@@ -164,6 +229,13 @@ class WaveformGenerator(object):
 
     @property
     def sampling_frequency(self):
+        """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
+
+        Returns
+        -------
+        float: The sampling frequency.
+
+        """
         return self.__sampling_frequency
 
     @sampling_frequency.setter

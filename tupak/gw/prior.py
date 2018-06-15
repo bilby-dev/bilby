@@ -3,17 +3,36 @@ from tupak.core.prior import *
 
 class UniformComovingVolume(FromFile):
 
-    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
+    def __init__(self, minimum=None, maximum=None, name='luminosity distance', latex_label='$d_L$'):
+        """
+
+        Parameters
+        ----------
+        minimum: float, optional
+            See superclass
+        maximum: float, optional
+            See superclass
+        name: str, optional
+            See superclass
+        latex_label: str, optional
+            See superclass
+        """
         file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
         FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
                           latex_label=latex_label)
 
-    def __repr__(self, subclass_keys=list(), subclass_names=list()):
-        return FromFile.__repr__(self)
-
 
 class BBHPriorSet(PriorSet):
     def __init__(self, dictionary=None, filename=None):
+        """ Initialises a Prior set for Binary Black holes
+
+        Parameters
+        ----------
+        dictionary: dict, optional
+            See superclass
+        filename: str, optional
+            See superclass
+        """
         if dictionary is None and filename is None:
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_black_holes.prior')
             logging.info('No prior given, using default BBH priors in {}.'.format(filename))
@@ -28,12 +47,12 @@ class BBHPriorSet(PriorSet):
         Parameters
         ----------
         key: str
-            The string to test.
+            The key to test.
 
         Return
         ------
         redundant: bool
-            Whether the key is redundant
+            Whether the key is redundant or not
         """
         redundant = False
         mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
@@ -54,7 +73,8 @@ class BBHPriorSet(PriorSet):
             elif len(parameter_set.intersection(self)) == 2:
                 redundant = True
                 break
-        for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters, spin_tilt_2_parameters]:
+        for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters,
+                              spin_tilt_2_parameters]:
             if key in parameter_set:
                 if len(parameter_set.intersection(self)) > 1:
                     redundant = True

@@ -44,9 +44,9 @@ class Interferometer(object):
             Orientation of the x arm in degrees North of East.
         yarm_azimuth: float
             Orientation of the y arm in degrees North of East.
-        xarm_tilt: float
+        xarm_tilt: float, optional
             Tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08.
-        yarm_tilt: float
+        yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
         """
         self.__x_updated = False
@@ -91,11 +91,22 @@ class Interferometer(object):
 
     @property
     def frequency_mask(self):
-        """Masking array for limiting the frequency band."""
+        """Masking array for limiting the frequency band.
+
+        Returns
+        -------
+        array_like: An array of boolean values
+        """
         return (self.frequency_array > self.minimum_frequency) & (self.frequency_array < self.maximum_frequency)
 
     @property
     def latitude(self):
+        """ Saves latitude in rad internally. Updates related quantities if set to a different value.
+
+        Returns
+        -------
+        float: The latitude position of the detector in degree
+        """
         return self.__latitude * 180 / np.pi
 
     @latitude.setter
@@ -107,6 +118,12 @@ class Interferometer(object):
 
     @property
     def longitude(self):
+        """ Saves longitude in rad internally. Updates related quantities if set to a different value.
+
+        Returns
+        -------
+        float: The longitude position of the detector in degree
+        """
         return self.__longitude * 180 / np.pi
 
     @longitude.setter
@@ -118,6 +135,12 @@ class Interferometer(object):
 
     @property
     def elevation(self):
+        """ Updates related quantities if set to a different values.
+
+        Returns
+        -------
+        float: The height about the surface in meters
+        """
         return self.__elevation
 
     @elevation.setter
@@ -127,6 +150,13 @@ class Interferometer(object):
 
     @property
     def xarm_azimuth(self):
+        """ Saves the x-arm azimuth in rad internally. Updates related quantities if set to a different values.
+
+        Returns
+        -------
+        float: The x-arm azimuth in degrees.
+
+        """
         return self.__xarm_azimuth * 180 / np.pi
 
     @xarm_azimuth.setter
@@ -136,6 +166,13 @@ class Interferometer(object):
 
     @property
     def yarm_azimuth(self):
+        """ Saves the y-arm azimuth in rad internally. Updates related quantities if set to a different values.
+
+        Returns
+        -------
+        float: The y-arm azimuth in degrees.
+
+        """
         return self.__yarm_azimuth * 180 / np.pi
 
     @yarm_azimuth.setter
@@ -145,6 +182,13 @@ class Interferometer(object):
 
     @property
     def xarm_tilt(self):
+        """ Updates related quantities if set to a different values.
+
+        Returns
+        -------
+        float: The x-arm tilt in radians.
+
+        """
         return self.__xarm_tilt
 
     @xarm_tilt.setter
@@ -154,6 +198,13 @@ class Interferometer(object):
 
     @property
     def yarm_tilt(self):
+        """ Updates related quantities if set to a different values.
+
+        Returns
+        -------
+        float: The y-arm tilt in radians.
+
+        """
         return self.__yarm_tilt
 
     @yarm_tilt.setter
@@ -163,13 +214,31 @@ class Interferometer(object):
 
     @property
     def vertex(self):
+        """ Position of the IFO vertex in geocentric coordinates in meters.
+
+        Is automatically updated if related quantities are modified.
+
+        Returns
+        -------
+        array_like: A 3D array representation of the vertex
+        """
         if not self.__vertex_updated:
-            self.__vertex = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.elevation)
+            self.__vertex = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude,
+                                                                          self.elevation)
             self.__vertex_updated = True
         return self.__vertex
 
     @property
     def x(self):
+        """ A unit vector along the x-arm
+
+        Is automatically updated if related quantities are modified.
+
+        Returns
+        -------
+        array_like: A 3D array representation of a unit vector along the x-arm
+
+        """
         if not self.__x_updated:
             self.__x = self.unit_vector_along_arm('x')
             self.__x_updated = True
@@ -178,6 +247,15 @@ class Interferometer(object):
 
     @property
     def y(self):
+        """ A unit vector along the y-arm
+
+        Is automatically updated if related quantities are modified.
+
+        Returns
+        -------
+        array_like: A 3D array representation of a unit vector along the y-arm
+
+        """
         if not self.__y_updated:
             self.__y = self.unit_vector_along_arm('y')
             self.__y_updated = True
@@ -190,6 +268,13 @@ class Interferometer(object):
         Calculate the detector tensor from the unit vectors along each arm of the detector.
 
         See Eq. B6 of arXiv:gr-qc/0008066
+
+        Is automatically updated if related quantities are modified.
+
+        Returns
+        -------
+        array_like: A 3x3 array representation of the detector tensor
+
         """
         if not self.__detector_tensor_updated:
             self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
@@ -205,24 +290,40 @@ class Interferometer(object):
         [m, n, omega] represent the wave-frame
         Note: there is a typo in the definition of the wave-frame in Nishizawa et al.
 
-        :param ra: right ascension in radians
-        :param dec: declination in radians
-        :param time: geocentric GPS time
-        :param psi: binary polarisation angle counter-clockwise about the direction of propagation
-        :param mode: polarisation mode
-        :return: detector_response(theta, phi, psi, mode): antenna response for the specified mode.
+        Parameters
+        -------
+        ra: float
+            right ascension in radians
+        dec: float
+            declination in radians
+        time: float
+            geocentric GPS time
+        psi: float
+            binary polarisation angle counter-clockwise about the direction of propagation
+        mode: str
+            polarisation mode (e.g. 'plus', 'cross')
+
+        Returns
+        -------
+        array_like: A 3x3 array representation of the antenna response for the specified mode
+
         """
         polarization_tensor = tupak.gw.utils.get_polarization_tensor(ra, dec, time, psi, mode)
-        detector_response = np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
-        return detector_response
+        return np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
 
     def get_detector_response(self, waveform_polarizations, parameters):
-        """
-        Get the detector response for a particular waveform
+        """ Get the detector response for a particular waveform
 
-        :param waveform_polarizations: dict, polarizations of the waveform
-        :param parameters: dict, parameters describing position and time of arrival of the signal
-        :return: detector_response: signal observed in the interferometer
+        Parameters
+        -------
+        waveform_polarizations: dict
+            polarizations of the waveform
+        parameters: dict
+            parameters describing position and time of arrival of the signal
+
+        Returns
+        -------
+        array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
         signal = {}
         for mode in waveform_polarizations.keys():
@@ -244,7 +345,7 @@ class Interferometer(object):
 
         if self.time_marginalization:
             dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-                             # all candidate coalescence times
+            # all candidate coalescence times
         else:
             dt = self.epoch - (parameters['geocent_time'] - time_shift)
 
@@ -254,13 +355,14 @@ class Interferometer(object):
         return signal_ifo
 
     def inject_signal(self, waveform_polarizations, parameters):
-        """
-        Inject a signal into noise.
+        """ Inject a signal into noise and adds the requested signal to self.data
 
-        Adds the requested signal to self.data
-
-        :param waveform_polarizations: dict, polarizations of the waveform
-        :param parameters: dict, parameters describing position and time of arrival of the signal
+        Parameters
+        -------
+        waveform_polarizations: dict
+            polarizations of the waveform
+        parameters: dict
+            parameters describing position and time of arrival of the signal
         """
         if waveform_polarizations is None:
             logging.warning('Trying to inject signal which is None.')
@@ -272,11 +374,12 @@ class Interferometer(object):
                 logging.info('Injecting into zero noise.')
                 self.data = signal_ifo
             opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                 time_duration=1 / (self.frequency_array[1]
-                                                                                 - self.frequency_array[0])).real)
-            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                       time_duration=1 / (self.frequency_array[1]
-                                                                                       - self.frequency_array[0])).real)
+                                                                 time_duration=1 / (self.frequency_array[1] -
+                                                                                    self.frequency_array[0])).real)
+            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(signal=signal_ifo,
+                                                                       interferometer=self,
+                                                                       time_duration=1 / (self.frequency_array[1] -
+                                                                                          self.frequency_array[0])).real)
             logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
                 opt_snr, mf_snr, self.name))
 
@@ -286,18 +389,26 @@ class Interferometer(object):
 
         See Eqs. B14-B17 in arXiv:gr-qc/0008066
 
-        Input:
-        arm - x or y arm of the detector
-        Output:
-        n - unit vector along arm in cartesian Earth-based coordinates
+        Parameters
+        -------
+        arm: str
+            'x' or 'y' (arm of the detector)
+
+        Returns
+        -------
+        array_like: 3D unit vector along arm in cartesian Earth-based coordinates
+
+        Raises
+        -------
+        ValueError: If arm is neither 'x' nor 'y'
+
         """
         if arm == 'x':
             return self.__calculate_arm(self.__xarm_tilt, self.__xarm_azimuth)
         elif arm == 'y':
             return self.__calculate_arm(self.__yarm_tilt, self.__yarm_azimuth)
         else:
-            logging.warning('Not a recognized arm, aborting!')
-            return
+            raise ValueError("Arm must either be 'x' or 'y'.")
 
     def __calculate_arm(self, arm_tilt, arm_azimuth):
         e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
@@ -306,20 +417,30 @@ class Interferometer(object):
         e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
                         np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
 
-        return np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +\
-               np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat + \
-               np.sin(arm_tilt) * e_h
+        return np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long + \
+            np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat + \
+            np.sin(arm_tilt) * e_h
 
     @property
     def amplitude_spectral_density_array(self):
-        """
-        Set the PSD for the interferometer for a user-specified frequency series, this matches the data provided.
+        """ Calculates the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
+
+        Returns
+        -------
+        array_like: An array representation of the ASD
 
         """
         return self.power_spectral_density_array ** 0.5
 
     @property
     def power_spectral_density_array(self):
+        """ Calculates the power spectral density (PSD)
+
+        Returns
+        -------
+        array_like: An array representation of the PSD
+
+        """
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
 
     def set_data(self, sampling_frequency, duration, epoch=0,
@@ -335,25 +456,29 @@ class Interferometer(object):
             The sampling frequency of the data
         duration: float
             Duration of data
-        epoch: float
+        epoch: float, optional
             The GPS time of the start of the data
-        frequency_domain_strain: array_like
+        frequency_domain_strain: array_like, optional
             The frequency-domain strain
-        from_power_spectral_density: bool
+        from_power_spectral_density: bool, optional
             If frequency_domain_strain not given, use IFO's PSD object to
             generate noise
-        zero_noise: bool
+        zero_noise: bool, optional
             If true and frequency_domain_strain and from_power_spectral_density
             are false, set the data to be zero.
-        frame_file: str
+        frame_file: str, optional
             File from which to load data.
-        channel_name: str
+        channel_name: str, optional
             Channel to read from frame.
-        overwrite_psd: bool
+        overwrite_psd: bool, optional
             Whether to overwrite the psd in the interferometer with one calculated
             from the loaded data, default=True.
-        kwargs: dict
+        kwargs: dict, optional
             Additional arguments for loading data.
+
+        Raises
+        -------
+        ValueError: If no method to set data is provided
         """
 
         self.epoch = epoch
@@ -376,7 +501,7 @@ class Interferometer(object):
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
             strain = tupak.gw.utils.read_frame_file(
-                frame_file, t1=epoch, t2=epoch+duration, channel=channel_name, resample=sampling_frequency)
+                frame_file, t1=epoch, t2=epoch + duration, channel=channel_name, resample=sampling_frequency)
             frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
             if overwrite_psd:
                 self.power_spectral_density = PowerSpectralDensity(
@@ -389,23 +514,26 @@ class Interferometer(object):
         self.frequency_array = frequencies
         self.data = frequency_domain_strain * self.frequency_mask
 
-        return
-
     def time_delay_from_geocenter(self, ra, dec, time):
         """
         Calculate the time delay from the geocenter for the interferometer.
 
         Use the time delay function from utils.
 
-        Input:
-        ra - right ascension of source in radians
-        dec - declination of source in radians
-        time - GPS time
-        Output:
-        delta_t - time delay from geocenter
+        Parameters
+        -------
+        ra: float
+            right ascension of source in radians
+        dec: float
+            declination of source in radians
+        time: float
+            GPS time
+
+        Returns
+        -------
+        float: The time delay from geocenter in seconds
         """
-        delta_t = tupak.gw.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
-        return delta_t
+        return tupak.gw.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
 
     def vertex_position_geocentric(self):
         """
@@ -413,15 +541,31 @@ class Interferometer(object):
 
         Based on arXiv:gr-qc/0008066 Eqs. B11-B13 except for the typo in the definition of the local radius.
         See Section 2.1 of LIGO-T980044-10 for the correct expression
+
+        Returns
+        -------
+        array_like: A 3D array representation of the vertex
         """
-        vertex_position = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
-        return vertex_position
+        return tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
 
     @property
     def whitened_data(self):
+        """ Calculates the whitened data by dividing data by the amplitude spectral density
+
+        Returns
+        -------
+        array_like: The whitened data
+        """
         return self.data / self.amplitude_spectral_density_array
 
     def save_data(self, outdir):
+        """ Creates a save file for the data in plain text format
+
+        Parameters
+        ----------
+        outdir: str
+            The output directory in which the data is supposed to be saved
+        """
         np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
                    [self.frequency_array, self.data.real, self.data.imag],
                    header='f real_h(f) imag_h(f)')
@@ -441,33 +585,53 @@ class PowerSpectralDensity:
         Only one of the asd_file or psd_file needs to be specified.
         If multiple are given, the first will be used.
 
-        Parameters:
-        asd_file: str
+        Parameters
+        -------
+        asd_file: str, optional
             File containing amplitude spectral density, format 'f h_f'
-        psd_file: str
+        psd_file: str, optional
             File containing power spectral density, format 'f h_f'
-        frame_file: str
+        frame_file: str, optional
             Frame file to read data from.
-        asd_array: array-like
+        asd_array: array_like, optional
             List of amplitude spectral density values corresponding to frequency_array,
             requires frequency_array to be specified.
-        psd_array: array-like
+        psd_array: array_like, optional
             List of power spectral density values corresponding to frequency_array,
             requires frequency_array to be specified.
-        frequencies: array-like
+        frequencies: array_like, optional
             List of frequency values corresponding to asd_array/psd_array,
-        epoch: float
+        epoch: float, optional
             Beginning of segment to analyse.
-        psd_duration: float
+        psd_duration: float, optional
             Duration of data to generate PSD from.
-        psd_offset: float
+        psd_offset: float, optional
             Offset of data from beginning of analysed segment.
-        channel_name: str
+        channel_name: str, optional
             Name of channel to use to generate PSD.
-        alpha: float
+        alpha: float, optional
             Parameter for Tukey window.
-        fft_length: float
+        fft_length: float, optional
             Number of seconds in a single fft.
+
+        Attributes
+        -------
+        amplitude_spectral_density: array_like
+            Array representation of the ASD
+        amplitude_spectral_density_file: str
+            Name of the ASD file
+        frequencies: array_like
+            Array containing the frequencies of the ASD/PSD values
+        frequency_noise_realization: list
+            TODO: This isn't doing anything right now
+        interpolated_frequency: list
+            TODO: This isn't doing anything right now
+        power_spectral_density: array_like
+            Array representation of the PSD
+        power_spectral_density_file: str
+            Name of the PSD file
+        power_spectral_density_interpolated: scipy.interpolated.interp1d
+            Interpolated function of the PSD
         """
 
         self.frequencies = []
@@ -497,12 +661,12 @@ class PowerSpectralDensity:
             strain = strain.crop(*strain.span.contract(1))
 
             # Create and save PSDs
-            NFFT = int(sampling_frequency * fft_length)
-            window = signal.windows.tukey(NFFT, alpha=alpha)
+            nfft = int(sampling_frequency * fft_length)
+            window = signal.windows.tukey(nfft, alpha=alpha)
             psd = strain.psd(fftlength=fft_length, window=window)
             self.frequencies = psd.frequencies
             self.power_spectral_density = psd.value
-            self.amplitude_spectral_density = self.power_spectral_density**0.5
+            self.amplitude_spectral_density = self.power_spectral_density ** 0.5
             self.interpolate_power_spectral_density()
         elif frequencies is not None:
             if asd_array is not None:
@@ -569,17 +733,23 @@ class PowerSpectralDensity:
         """
         Generate frequency Gaussian noise scaled to the power spectral density.
 
-        :param sampling_frequency: sampling frequency of noise
-        :param duration: duration of noise
-        :return:  frequency_domain_strain (array), frequency (array)
+        Parameters
+        -------
+        sampling_frequency: float
+            sampling frequency of noise
+        duration: float
+            duration of noise
+
+        Returns
+        -------
+        array_like: frequency domain strain of this noise realisation
+        array_like: frequencies related to the frequency domain strain
+
         """
-        white_noise, frequency = utils.create_white_noise(sampling_frequency, duration)
-
-        interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequency)
-
+        white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
+        interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
         frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
-
-        return frequency_domain_strain, frequency
+        return frequency_domain_strain, frequencies
 
 
 def get_empty_interferometer(name):
@@ -646,20 +816,25 @@ def get_interferometer_with_open_data(
 
     Parameters
     ----------
+
     name: str
         Detector name, e.g., 'H1'.
     trigger_time: float
         Trigger GPS time.
-    time_duration: float (optional)
+    time_duration: float, optional
         The total time (in seconds) to analyse. Defaults to 4s.
-    epoch: float (optional)
+    epoch: float, optional
         Beginning of the segment, if None, the trigger is placed 2s before the end
         of the segment.
-    alpha: float
+    alpha: float, optional
         The tukey window shape parameter passed to `scipy.signal.tukey`.
     psd_offset, psd_duration: float
         The power spectral density (psd) is estimated using data from
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
+    cache: bool, optional
+        Whether or not to store the acquired data
+    raw_data_file: str
+        Name of a raw data file if this supposed to be read from a local file
     outdir: str
         Directory where the psd files are saved
     plot: bool
@@ -672,10 +847,10 @@ def get_interferometer_with_open_data(
 
     Returns
     -------
-    interferometer: `tupak.detector.Interferometer`
-        An Interferometer instance with a PSD and frequency-domain strain data.
+    tupak.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
+
     logging.warning(
         "Parameter estimation for real interferometer data in tupak is in "
         "alpha testing at the moment: the routines for windowing and filtering"
@@ -783,8 +958,7 @@ def get_interferometer_with_fake_noise_and_injection(
 
     Returns
     -------
-    interferometer: `tupak.detector.Interferometer`
-        An Interferometer instance with a PSD and frequency-domain strain data.
+    tupak.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
 
@@ -858,6 +1032,8 @@ def get_event_data(
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
     cache: bool
         Whether or not to store the acquired data.
+    raw_data_file:
+        If we want to read the event data from a local file.
     outdir: str
         Directory where the psd files are saved
     plot: bool
@@ -870,8 +1046,7 @@ def get_event_data(
 
     Return
     ------
-    interferometers: list
-        A list of tupak.detector.Interferometer objects
+    list: A list of tupak.gw.detector.Interferometer objects
     """
     event_time = tupak.gw.utils.get_event_time(event)
 

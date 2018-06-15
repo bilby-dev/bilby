@@ -21,17 +21,52 @@ class Sampler(object):
     ----------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    prior: tupak.core.prior.PriorSet
-        Prior to be used in the search.
+    priors: tupak.core.prior.PriorSet, dict
+        Priors to be used in the search.
         This has attributes for each parameter to be sampled.
-    sampler_string: str
-        A string containing the module name of the sampler
+    external_sampler: str, Sampler, optional
+        A string containing the module name of the sampler or an instance of this class
+    outdir: str, optional
+        Name of the output directory
+    label: str, optional
+        Naming scheme of the output files
+    use_ratio: bool, optional
+        Switch to set whether or not you want to use the log-likelihood ratio or just the log-likelihood
+    plot: bool, optional
+        Switch to set whether or not you want to create traceplots
+    **kwargs: dict
 
-    Returns
+    Attributes
     -------
-    results:
-        A dictionary of the results
+    likelihood: likelihood.Likelihood
+        A  object with a log_l method
+    priors: tupak.core.prior.PriorSet
+        Priors to be used in the search.
+        This has attributes for each parameter to be sampled.
+    external_sampler: Module
+        An external module containing an implementation of a sampler.
+    outdir: str
+        Name of the output directory
+    label: str
+        Naming scheme of the output files
+    use_ratio: bool
+        Switch to set whether or not you want to use the log-likelihood ratio or just the log-likelihood
+    plot: bool
+        Switch to set whether or not you want to create traceplots
+    result: tupak.core.result.Result
+        Container for the results of the sampling run
+    kwargs: dict
+        Dictionary of keyword arguments that can be used in the external sampler
 
+    Raises
+    -------
+    TypeError:
+        If external_sampler is neither a string nor an instance of this class
+        If not all likelihood.parameters have been defined
+    ImportError:
+        If the external_sampler string does not refer to a sampler that is installed on this system
+    AttributeError:
+        If some of the priors can't be sampled
     """
 
     def __init__(
@@ -68,18 +103,22 @@ class Sampler(object):
 
     @property
     def search_parameter_keys(self):
+        """list: List of parameter keys that are being sampled"""
         return self.__search_parameter_keys
 
     @property
     def fixed_parameter_keys(self):
+        """list: List of parameter keys that are not being sampled"""
         return self.__fixed_parameter_keys
 
     @property
     def ndim(self):
+        """int: Number of dimensions of the search parameter space"""
         return len(self.__search_parameter_keys)
 
     @property
     def kwargs(self):
+        """dict: Container for the **kwargs. Has more sophisticated logic in subclasses"""
         return self.__kwargs
 
     @kwargs.setter
@@ -88,6 +127,7 @@ class Sampler(object):
 
     @property
     def external_sampler(self):
+        """Module: An external sampler module imported to this code."""
         return self.__external_sampler
 
     @external_sampler.setter
@@ -105,6 +145,7 @@ class Sampler(object):
                             'inherits from sampler')
 
     def _verify_kwargs_against_external_sampler_function(self):
+        """Check if the kwargs are contained in the list of available arguments of the external sampler."""
         args = inspect.getargspec(self.external_sampler_function).args
         bad_keys = []
         for user_input in self.kwargs.keys():
@@ -117,9 +158,13 @@ class Sampler(object):
             self.kwargs.pop(key)
 
     def _initialise_parameters(self):
+        """
+        Go through the list of priors and add keys to the fixed and search parameter key list depending on whether
+        the respective parameter is fixed.
 
+        """
         for key in self.priors:
-            if isinstance(self.priors[key], Prior) is True \
+            if isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is False:
                 self.__search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Prior) \
@@ -135,6 +180,12 @@ class Sampler(object):
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def _initialise_result(self):
+        """
+        Returns
+        -------
+        tupak.core.result.Result: An initial template for the result
+
+        """
         result = Result()
         result.search_parameter_keys = self.__search_parameter_keys
         result.fixed_parameter_keys = self.__fixed_parameter_keys
@@ -146,12 +197,17 @@ class Sampler(object):
         result.kwargs = self.kwargs
         return result
 
-    def _verify_parameters(self):
+    def _check_if_priors_can_be_sampled(self):
+        """Check if all priors can be sampled properly. Raises AttributeError if prior can't be sampled."""
         for key in self.priors:
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
             except AttributeError as e:
                 logging.warning('Cannot sample from {}, {}'.format(key, e))
+
+    def _verify_parameters(self):
+        """ Sets initial values for likelihood.parameters. Raises TypeError if likelihood can't be evaluated."""
+        self._check_if_priors_can_be_sampled()
         try:
             t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
@@ -165,14 +221,8 @@ class Sampler(object):
                 .format(e, self.likelihood.parameters))
 
     def _verify_use_ratio(self):
-
-        # This is repeated from verify_parameters
-        for key in self.priors:
-            try:
-                self.likelihood.parameters[key] = self.priors[key].sample()
-            except AttributeError as e:
-                logging.warning('Cannot sample from {}, {}'.format(key, e))
-
+        """Checks if use_ratio is set. Prints a warning if use_ratio is set but not properly implemented."""
+        self._check_if_priors_can_be_sampled()
         if self.use_ratio is False:
             logging.debug("use_ratio set to False")
             return
@@ -183,18 +233,53 @@ class Sampler(object):
             logging.warning(
                 "You have requested to use the loglikelihood_ratio, but it "
                 " returns a NaN")
-        elif self.use_ratio is None and ~ratio_is_nan:
+        elif self.use_ratio is None and not ratio_is_nan:
             logging.debug(
                 "use_ratio not spec. but gives valid answer, setting True")
             self.use_ratio = True
 
     def prior_transform(self, theta):
+        """ Prior transform method that is passed into the external sampler.
+
+        Parameters
+        ----------
+        theta: list
+            List of sampled values on a unit interval
+
+        Returns
+        -------
+        list: Properly rescaled sampled values
+        """
         return self.priors.rescale(self.__search_parameter_keys, theta)
 
     def log_prior(self, theta):
+        """
+
+        Parameters
+        ----------
+        theta: list
+            List of sampled values on a unit interval
+
+        Returns
+        -------
+        float: TODO: Fill in proper explanation of what this is.
+
+        """
         return self.priors.ln_prob({key: t for key, t in zip(self.__search_parameter_keys, theta)})
 
     def log_likelihood(self, theta):
+        """
+
+        Parameters
+        ----------
+        theta: list
+            List of values for the likelihood parameters
+
+        Returns
+        -------
+        float: Log-likelihood or log-likelihood-ratio given the current likelihood.parameter values
+
+        """
         for i, k in enumerate(self.__search_parameter_keys):
             self.likelihood.parameters[k] = theta[i]
         if self.use_ratio:
@@ -219,9 +304,16 @@ class Sampler(object):
         return draw
 
     def _run_external_sampler(self):
+        """A template method to run in subclasses"""
         pass
 
     def _run_test(self):
+        """
+        TODO: Implement this method
+        Raises
+        -------
+        ValueError: in any case
+        """
         raise ValueError("Method not yet implemented")
 
     def _check_cached_result(self):
@@ -247,7 +339,7 @@ class Sampler(object):
                           'kwargs']
             use_cache = True
             for key in check_keys:
-                if self.cached_result._check_attribute_match_to_other_object(
+                if self.cached_result.check_attribute_match_to_other_object(
                         key, self) is False:
                     logging.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
@@ -255,6 +347,7 @@ class Sampler(object):
                 self.cached_result = None
 
     def _log_summary_for_sampler(self):
+        """Print a summary of the sampler used and its kwargs"""
         if self.cached_result is None:
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, self.kwargs))
@@ -264,6 +357,13 @@ class Nestle(Sampler):
 
     @property
     def kwargs(self):
+        """ Ensures that proper keyword arguments are used for the Nestle sampler.
+
+        Returns
+        -------
+        dict: Keyword arguments used for the Nestle Sampler
+
+        """
         return self.__kwargs
 
     @kwargs.setter
@@ -277,6 +377,13 @@ class Nestle(Sampler):
                     self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
 
     def _run_external_sampler(self):
+        """ Runs Nestle sampler with given kwargs and returns the result
+
+        Returns
+        -------
+        tupak.core.result.Result: Packaged information about the result
+
+        """
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
         if 'verbose' in self.kwargs:
@@ -298,6 +405,14 @@ class Nestle(Sampler):
         return self.result
 
     def _run_test(self):
+        """ Runs to test whether the sampler is properly running with the given kwargs without actually running to the
+            end
+
+        Returns
+        -------
+        tupak.core.result.Result: Dummy container for sampling results.
+
+        """
         nestle = self.external_sampler
         self.external_sampler_function = nestle.sample
         self.external_sampler_function(
@@ -532,8 +647,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         `tupak.sampler.get_implemented_samplers()` for a list of available
         samplers
     use_ratio: bool (False)
-        If True, use the likelihood's loglikelihood_ratio, rather than just
-        the log likelhood.
+        If True, use the likelihood's log_likelihood_ratio, rather than just
+        the log_likelihood.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
@@ -624,6 +739,13 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
 
 def get_implemented_samplers():
+    """ Does some introspection magic to figure out which samplers have been implemented yet.
+
+    Returns
+    -------
+    list: A list of strings with the names of the implemented samplers
+
+    """
     implemented_samplers = []
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj):

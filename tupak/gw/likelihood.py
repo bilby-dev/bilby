@@ -32,16 +32,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     waveform_generator: `tupak.waveform_generator.WaveformGenerator`
         An object which computes the frequency-domain strain of the signal,
         given some set of parameters
-    distance_marginalization: bool
+    distance_marginalization: bool, optional
         If true, marginalize over distance in the likelihood.
         This uses a look up table calculated at run time.
-    time_marginalization: bool
+    time_marginalization: bool, optional
         If true, marginalize over time in the likelihood.
         This uses a FFT.
-    phase_marginalization: bool
+    phase_marginalization: bool, optional
         If true, marginalize over phase in the likelihood.
         This is done analytically using a Bessel function.
-    prior: dict
+    prior: dict, optional
         If given, used in the distance and phase marginalization.
 
     Returns
@@ -243,34 +243,39 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
-    """ A basic gravitational wave transient likelihood
 
-    The simplest frequency-domain gravitational wave transient likelihood. Does
-    not include distance/phase marginalization.
+    def __init__(self, interferometers, waveform_generator):
+        """
 
-    Parameters
-    ----------
-    interferometers: list
-        A list of `tupak.detector.Interferometer` instances - contains the
-        detector data and power spectral densities
-    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
-        An object which computes the frequency-domain strain of the signal,
-        given some set of parameters
-
-    Returns
-    -------
-    Likelihood: `tupak.gw.likelihood.BasicGravitationalWaveTransient`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
-    """
+        The simplest frequency-domain gravitational wave transient likelihood. Does
+        not include distance/phase marginalization.
 
-    def __init__(self, interferometers, waveform_generator):
+
+        Parameters
+        ----------
+        interferometers: list
+            A list of `tupak.gw.detector.Interferometer` instances - contains the
+            detector data and power spectral densities
+        waveform_generator: tupak.gw.waveform_generator.WaveformGenerator
+            An object which computes the frequency-domain strain of the signal,
+            given some set of parameters
+
+        """
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
     def noise_log_likelihood(self):
+        """ Calculates the real part of noise log-likelihood
+
+        Returns
+        -------
+        float: The real part of the noise log likelihood
+
+        """
         log_l = 0
         for interferometer in self.interferometers:
             log_l -= 2. / self.waveform_generator.time_duration * np.sum(
@@ -279,6 +284,13 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
         return log_l.real
 
     def log_likelihood(self):
+        """ Calculates the real part of log-likelihood value
+
+        Returns
+        -------
+        float: The real part of the log likelihood
+
+        """
         log_l = 0
         waveform_polarizations = self.waveform_generator.frequency_domain_strain()
         if waveform_polarizations is None:
@@ -290,6 +302,20 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
 
     def log_likelihood_interferometer(self, waveform_polarizations,
                                       interferometer):
+        """
+
+        Parameters
+        ----------
+        waveform_polarizations: dict
+            Dictionary containing the desired waveform polarization modes and the related strain
+        interferometer: tupak.gw.detector.Interferometer
+            The Interferometer object we want to have the log-likelihood for
+
+        Returns
+        -------
+        float: The real part of the log-likelihood for this interferometer
+
+        """
         signal_ifo = interferometer.get_detector_response(
             waveform_polarizations, self.waveform_generator.parameters)
 
@@ -312,13 +338,12 @@ def get_binary_black_hole_likelihood(interferometers):
 
     Returns
     -------
-    likelihood: tupak.GravitationalWaveTransient
-        The likelihood to pass to `run_sampler`
+    tupak.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
+
     """
     waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
         time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
         frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
-    likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
-    return likelihood
+    return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
 

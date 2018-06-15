@@ -16,6 +16,15 @@ solar_mass = 1.98855 * 1e30
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
+
+    Returns
+    -------
+    float: Sampling frequency of the time series
+
+    Raises
+    -------
+    ValueError: If the time series is not evenly sampled.
+
     """
     tol = 1e-10
     if np.ptp(np.diff(time_series)) > tol:
@@ -25,19 +34,39 @@ def get_sampling_frequency(time_series):
 
 
 def create_time_series(sampling_frequency, duration, starting_time=0.):
+    """
+
+    Parameters
+    ----------
+    sampling_frequency: float
+    duration: float
+    starting_time: float, optional
+
+    Returns
+    -------
+    float: An equidistant time series given the parameters
+
+    """
     return np.arange(starting_time, duration, 1./sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
-    """
-    Convert from RA and DEC to polar coordinates on celestial sphere
-    Input:
-    ra - right ascension in radians
-    dec - declination in radians
-    gmst - Greenwich mean sidereal time of arrival of the signal in radians
-    Output:
-    theta - zenith angle in radians
-    phi - azimuthal angle in radians
+    """ Convert from RA and DEC to polar coordinates on celestial sphere
+
+    Parameters
+    -------
+    ra: float
+        right ascension in radians
+    dec: float
+        declination in radians
+    gmst: float
+        Greenwich mean sidereal time of arrival of the signal in radians
+
+    Returns
+    -------
+    float: zenith angle in radians
+    float: azimuthal angle in radians
+
     """
     phi = ra - gmst
     theta = np.pi / 2 - dec
@@ -52,10 +81,15 @@ def gps_time_to_gmst(gps_time):
     A correction has been applied to give the exact correct value for 00:00:00, 1 Jan. 2018
     Error accumulates at a rate of ~0.0001 radians/decade.
 
-    Input:
-    time - gps time
-    Output:
-    gmst - Greenwich mean sidereal time in radians
+    Parameters
+    -------
+    gps_time: float
+        gps time
+
+    Returns
+    -------
+    float: Greenwich mean sidereal time in radians
+
     """
     omega_earth = 2 * np.pi * (1 / 365.2425 + 1) / 86400.
     gps_2000 = 630720013.
@@ -67,12 +101,18 @@ def gps_time_to_gmst(gps_time):
 
 
 def create_frequency_series(sampling_frequency, duration):
-    """
-    Create a frequency series with the correct length and spacing.
+    """ Create a frequency series with the correct length and spacing.
 
-    :param sampling_frequency: sampling frequency
-    :param duration: duration of data
-    :return: frequencies, frequency series
+    Parameters
+    -------
+    sampling_frequency: float
+    duration: float
+        duration of data
+
+    Returns
+    -------
+    array_like: frequency series
+
     """
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
@@ -93,12 +133,18 @@ def create_frequency_series(sampling_frequency, duration):
 
 
 def create_white_noise(sampling_frequency, duration):
-    """
-    Create white_noise which is then coloured by a given PSD
+    """ Create white_noise which is then coloured by a given PSD
 
+    Parameters
+    -------
+    sampling_frequency: float
+    duration: float
+        duration of the data
 
-    :param sampling_frequency: sampling frequency
-    :param duration: duration of data
+    Returns
+    -------
+    array_like: white noise
+    array_like: frequency array
     """
 
     number_of_samples = duration * sampling_frequency
@@ -131,16 +177,20 @@ def create_white_noise(sampling_frequency, duration):
 
 
 def nfft(ht, Fs):
-    """
-    performs an FFT while keeping track of the frequency bins
-    assumes input time series is real (positive frequencies only)
+    """ Performs an FFT while keeping track of the frequency bins assumes input time series is real
+        (positive frequencies only)
 
-    ht = time series
-    Fs = sampling frequency
+    Parameters
+    -------
+    ht: array_like
+        Time series
+    Fs: float
+        Sampling frequency
 
-    returns
-    hf = single-sided FFT of ft normalised to units of strain / sqrt(Hz)
-    f = frequencies associated with hf
+    Returns
+    -------
+    array_like: Single-sided FFT of ft normalised to units of strain / sqrt(Hz) (hf)
+    array_like: Frequencies associated with hf
     """
     # add one zero padding if time series does not have even number of sampling times
     if np.mod(len(ht), 2) == 1:
@@ -160,14 +210,18 @@ def nfft(ht, Fs):
 
 
 def infft(hf, Fs):
-    """
-    inverse FFT for use in conjunction with nfft
-    eric.thrane@ligo.org
-    input:
-    hf = single-side FFT calculated by fft_eht
-    Fs = sampling frequency
-    output:
-    h = time series
+    """ Inverse FFT for use in conjunction with nfft (eric.thrane@ligo.org)
+
+    Parameters
+    -------
+    hf: array_like
+        single-side FFT calculated by fft_eht
+    Fs: float
+        sampling frequency
+
+    Returns
+    -------
+    array_like: time series
     """
     # use irfft to work with positive frequencies only
     h = np.fft.irfft(hf)
@@ -228,6 +282,9 @@ def setup_logger(outdir=None, label=None, log_level=None):
 
 
 def get_progress_bar(module='tqdm'):
+    """
+    TODO: Write proper docstring
+    """
     if module in ['tqdm']:
         try:
             from tqdm import tqdm
@@ -245,19 +302,34 @@ def get_progress_bar(module='tqdm'):
 
 
 def spherical_to_cartesian(radius, theta, phi):
-    """
-    Convert from spherical coordinates to cartesian.
+    """ Convert from spherical coordinates to cartesian.
 
-    :param radius: radial coordinate
-    :param theta: axial coordinate
-    :param phi: azimuthal coordinate
-    :return cartesian: cartesian vector
+    Parameters
+    -------
+    radius: float
+        radial coordinate
+    theta: float
+        axial coordinate
+    phi: float
+        azimuthal coordinate
+
+    Returns
+    -------
+    list: cartesian vector
     """
     cartesian = [radius * np.sin(theta) * np.cos(phi), radius * np.sin(theta) * np.sin(phi), radius * np.cos(theta)]
     return cartesian
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
+    """ Checks if the given directory exists and creates it if it does not exist
+
+    Parameters
+    ----------
+    directory: str
+        Name of the directory
+
+    """
     if not os.path.exists(directory):
         os.makedirs(directory)
         logging.debug('Making directory {}'.format(directory))
@@ -266,6 +338,13 @@ def check_directory_exists_and_if_not_mkdir(directory):
 
 
 def set_up_command_line_arguments():
+    """ Sets up some command line arguments that can be used to modify how scripts are run.
+
+    Returns
+    -------
+    list: A list of the used arguments
+
+    """
     parser = argparse.ArgumentParser(
         description="Command line interface for tupak scripts")
     parser.add_argument("-v", "--verbose", action="store_true",

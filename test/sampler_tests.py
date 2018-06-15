@@ -80,10 +80,12 @@ class TestSampler(unittest.TestCase):
         expected_result = Result()
         expected_result.search_parameter_keys = ['c']
         expected_result.fixed_parameter_keys = ['a']
-        expected_result.parameter_labels = ['c']
+        expected_result.parameter_labels = [None]
         expected_result.label = 'label'
-        expected_result.outdir = 'outdir'
+        expected_result.outdir = 'test_directory'
         expected_result.kwargs = {}
+        print(self.sampler.result.__dict__)
+        print(expected_result.__dict__)
         self.assertDictEqual(self.sampler.result.__dict__, expected_result.__dict__)
 
     def test_make_outdir_if_no_outdir_exists(self):

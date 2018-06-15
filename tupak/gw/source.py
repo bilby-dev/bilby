@@ -15,7 +15,49 @@ from tupak.core import utils
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
         iota, phase, ra, dec, geocent_time, psi, **kwargs):
-    """ A Binary Black Hole waveform model using lalsimulation """
+    """ A Binary Black Hole waveform model using lalsimulation
+
+    Parameters
+    ----------
+    frequency_array: array_like
+        The frequencies at which we want to calculate the strain
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+
+    iota: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+    ra: float
+        The right ascension of the binary
+    dec: float
+        The declination of the object
+    geocent_time: float
+        The time at coalescence
+    psi: float
+        Orbital polarisation
+    kwargs: dict
+        Optional keyword arguments
+
+    Returns
+    -------
+    dict: A dictionary with the plus and cross polarisation strain modes
+    """
 
     waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
                            minimum_frequency=20.0)
@@ -67,10 +109,8 @@ def lal_binary_black_hole(
     return {'plus': h_plus, 'cross': h_cross}
 
 
-def sinegaussian(
-        frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
-
-    tau  = Q / (np.sqrt(2.0)*np.pi*frequency)
+def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
+    tau = Q / (np.sqrt(2.0)*np.pi*frequency)
     temp = Q / (4.0*np.sqrt(np.pi)*frequency)
     t = geocent_time
     fm = frequency_array - frequency
@@ -125,26 +165,3 @@ def supernova_pca_model(
                          + pc_coeff4*pc4 + pc_coeff5*pc5)
 
     return {'plus': h_plus, 'cross': h_cross}
-
-
-
-#class BinaryNeutronStarMergerNumericalRelativity:
-#    """Loads in NR simulations of BNS merger
-#    takes parameters mean_mass, mass_ratio and equation_of_state, directory_path
-#    returns time,hplus,hcross,freq,Hplus(freq),Hcross(freq)
-#    """
-#    def model(self, parameters):
-#        mean_mass_string = '{:.0f}'.format(parameters['mean_mass'] * 1000)
-#        eos_string = parameters['equation_of_state']
-#        mass_ratio_string = '{:.0f}'.format(parameters['mass_ratio'] * 10)
-#        directory_path = parameters['directory_path']
-#        file_name = '{}-q{}-M{}.csv'.format(eos_string, mass_ratio_string, mean_mass_string)
-#        full_filename = '{}/{}'.format(directory_path, file_name)
-#        if not os.path.isfile(full_filename):
-#            print('{} does not exist'.format(full_filename))  # add exception
-#            return (-1)
-#        else:  # ok file exists
-#            strain_table = Table.read(full_filename)
-#            Hplus, _ = utils.nfft(strain_table["hplus"], utils.get_sampling_frequency(strain_table['time']))
-#            Hcross, frequency = utils.nfft(strain_table["hcross"], utils.get_sampling_frequency(strain_table['time']))
-#            return (strain_table['time'], strain_table["hplus"], strain_table["hcross"], frequency, Hplus, Hcross)

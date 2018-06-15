@@ -7,7 +7,19 @@ import corner
 
 
 def result_file_name(outdir, label):
-    """ Returns the standard filename used for a result file """
+    """ Returns the standard filename used for a result file
+
+    Parameters
+    ----------
+    outdir: str
+        Name of the output directory
+    label: str
+        Naming scheme of the output file
+
+    Returns
+    -------
+    str: File name of the output file
+    """
     return '{}/{}_result.h5'.format(outdir, label)
 
 
@@ -21,8 +33,14 @@ def read_in_result(outdir=None, label=None, filename=None):
     filename: str
         If given, try to load from this filename
 
-    Returns:
-    result: tupak.result.Result instance
+    Returns
+    -------
+    result: tupak.core.result.Result
+
+    Raises
+    -------
+    ValueError: If no filename is given and either outdir or label is None
+                If no tupak.core.result.Result is found in the path
 
     """
     if filename is None:
@@ -37,9 +55,18 @@ def read_in_result(outdir=None, label=None, filename=None):
 
 class Result(dict):
     def __init__(self, dictionary=None):
+        """ A class to save the results of the sampling run.
+
+        Parameters
+        ----------
+        dictionary: dict
+            A dictionary containing values to be set in this instance
+        """
+
+        dict.__init__(self)
         if type(dictionary) is dict:
             for key in dictionary:
-                val = self._standardise_strings(dictionary[key], key)
+                val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
     def __getattr__(self, name):
@@ -69,21 +96,40 @@ class Result(dict):
         else:
             return ''
 
-    def _standardise_a_string(self, item):
-        """ When reading in data, ensure all strings are decoded correctly """
+    @staticmethod
+    def _standardise_a_string(item):
+        """ When reading in data, ensure all strings are decoded correctly
+
+        Parameters
+        ----------
+        item: str
+
+        Returns
+        -------
+        str: decoded string
+        """
         if type(item) in [bytes]:
             return item.decode()
         else:
             return item
 
-    def _standardise_strings(self, item, name=None):
-        if type(item) in [list]:
-            item = [self._standardise_a_string(i) for i in item]
-        # logging.debug("Unable to decode item {}".format(name))
-        return item
+    @staticmethod
+    def _standardise_strings(item):
+        """
 
-    def get_result_dictionary(self):
-        return dict(self)
+        Parameters
+        ----------
+        item: list
+            List of strings to be decoded
+
+        Returns
+        -------
+        list: list of decoded strings in item
+
+        """
+        if type(item) in [list]:
+            item = [_standardise_a_string(i) for i in item]
+        return item
 
     def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
@@ -98,28 +144,40 @@ class Result(dict):
 
         logging.debug("Saving result to {}".format(file_name))
         try:
-            deepdish.io.save(file_name, self.get_result_dictionary())
+            deepdish.io.save(file_name, dict(self))
         except Exception as e:
-            logging.error(
-                "\n\n Saving the data has failed with the following message:\n {} \n\n"
-                    .format(e))
+            logging.error("\n\n Saving the data has failed with the "
+                          "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
+        """Saves posterior samples to a file"""
         filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
         self.posterior.to_csv(filename, index=False, header=True)
 
     def get_latex_labels_from_parameter_keys(self, keys):
-        return_list = []
+        """ Returns a list of latex_labels corresponding to the given keys
+
+        Parameters
+        ----------
+        keys: list
+            List of strings corresponding to the desired latex_labels
+
+        Returns
+        -------
+        list: The desired latex_labels
+
+        """
+        latex_labels = []
         for k in keys:
             if k in self.search_parameter_keys:
                 idx = self.search_parameter_keys.index(k)
-                return_list.append(self.parameter_labels[idx])
+                latex_labels.append(self.parameter_labels[idx])
             elif k in self.parameter_labels:
-                return_list.append(k)
+                latex_labels.append(k)
             else:
                 raise ValueError('key {} not a parameter label or latex label'
                                  .format(k))
-        return return_list
+        return latex_labels
 
     def plot_corner(self, parameters=None, save=True, dpi=300, **kwargs):
         """ Plot a corner-plot using corner
@@ -128,10 +186,12 @@ class Result(dict):
 
         Parameters
         ----------
-        parameters: list
+        parameters: list, optional
             If given, a list of the parameter names to include
-        save: bool
+        save: bool, optional
             If true, save the image using the given label and outdir
+        dpi: int, optional
+            Dots per inch resolution of the plot
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
@@ -189,13 +249,11 @@ class Result(dict):
         return fig
 
     def plot_walks(self, save=True, **kwargs):
-        """
-        """
+        """DEPRECATED"""
         logging.warning("plot_walks deprecated")
 
     def plot_distributions(self, save=True, **kwargs):
-        """
-        """
+        """DEPRECATED"""
         logging.warning("plot_distributions deprecated")
 
     def samples_to_posterior(self, likelihood=None, priors=None,
@@ -205,11 +263,11 @@ class Result(dict):
 
         Parameters
         ----------
-        likelihood: tupak.likelihood.GravitationalWaveTransient
-            GravitationalWaveTransient used for sampling.
-        priors: dict
+        likelihood: tupak.likelihood.GravitationalWaveTransient, optional
+            GravitationalWaveTransient likelihood used for sampling.
+        priors: dict, optional
             Dictionary of prior object, used to fill in delta function priors.
-        conversion_function: function
+        conversion_function: function, optional
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
@@ -220,11 +278,7 @@ class Result(dict):
         self.posterior = data_frame
 
     def construct_cbc_derived_parameters(self):
-        """
-        Construct widely used derived parameters of CBCs
-
-        :return:
-        """
+        """ Construct widely used derived parameters of CBCs """
         self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
                 self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
         self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
@@ -238,8 +292,21 @@ class Result(dict):
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
-    def _check_attribute_match_to_other_object(self, name, other_object):
-        """ Check attribute name exists in other_object and is the same """
+    def check_attribute_match_to_other_object(self, name, other_object):
+        """ Check attribute name exists in other_object and is the same
+
+        Parameters
+        ----------
+        name: str
+            Name of the attribute in this instance
+        other_object: object
+            Other object with attributes to compare with
+
+        Returns
+        -------
+        bool: True if attribute name matches with an attribute of other_object, False otherwise
+
+        """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
         logging.debug('Checking {} value: {}=={}'.format(name, A, B))

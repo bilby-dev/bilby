@@ -92,8 +92,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             converted_parameters['mass_ratio'] =\
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
             temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
-            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3)\
-                                       + (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
+            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3) + \
+                                       (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
             if remove:
                 converted_parameters.pop('chirp_mass')
         elif 'symmetric_mass_ratio' in converted_parameters.keys():
@@ -307,8 +307,8 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
         Mass ratio of the binary
     """
     temp = (chirp_mass / mass_1)**5
-    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp \
-                 + ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
+    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp + \
+                 ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
     return mass_ratio
 
 
@@ -320,7 +320,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     ----------
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an injection or posterior samples.
-    likelihood: tupak.GravitationalWaveTransient
+    likelihood: tupak.gw.likelihood.GravitationalWaveTr, optional
         GravitationalWaveTransient used for sampling, used for waveform and likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
@@ -339,7 +339,19 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
 
 
 def fill_from_fixed_priors(sample, priors):
-    """Add parameters with delta function prior to the data frame/dictionary."""
+    """Add parameters with delta function prior to the data frame/dictionary.
+
+    Parameters
+    ----------
+    sample: dict
+        A dictionary or data frame
+    priors: dict
+        A dictionary of priors
+
+    Returns
+    -------
+    dict:
+    """
     output_sample = sample.copy()
     if priors is not None:
         for name in priors:
@@ -354,6 +366,16 @@ def generate_non_standard_parameters(sample):
 
     We add:
         chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1, cos tilt 2, cos iota
+
+    Parameters
+    ----------
+    sample : dict
+        The input dictionary with component masses 'mass_1' and 'mass_2'
+
+    Returns
+    -------
+    dict: The updated dictionary
+
     """
     output_sample = sample.copy()
     output_sample['chirp_mass'] = component_masses_to_chirp_mass(sample['mass_1'], sample['mass_2'])
@@ -372,17 +394,32 @@ def generate_component_spins(sample):
     Add the component spins to the data frame/dictionary.
 
     This function uses a lalsimulation function to transform the spins.
+
+    Parameters
+    ----------
+    sample: A dictionary with the necessary spin conversion parameters:
+    'iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1', 'mass_2', 'reference_frequency', 'phase'
+
+    Returns
+    -------
+    dict: The updated dictionary
+
     """
     output_sample = sample.copy()
     spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
                                   'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, dict):
-        output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], output_sample['spin_2x'], \
-        output_sample['spin_2y'], output_sample['spin_2z'] = \
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                output_sample['iota'], output_sample['phi_jl'], output_sample['tilt_1'], output_sample['tilt_2'], output_sample['phi_12'], output_sample['a_1'],
-                output_sample['a_2'], output_sample['mass_1'] * tupak.core.utils.solar_mass, output_sample['mass_2'] * tupak.core.utils.solar_mass,
-                output_sample['reference_frequency'], output_sample['phase'])
+        output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], \
+            output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
+            lalsim.SimInspiralTransformPrecessingNewInitialConditions(output_sample['iota'], output_sample['phi_jl'],
+                                                                      output_sample['tilt_1'], output_sample['tilt_2'],
+                                                                      output_sample['phi_12'], output_sample['a_1'],
+                                                                      output_sample['a_2'], output_sample['mass_1']
+                                                                      * tupak.core.utils.solar_mass,
+                                                                      output_sample['mass_2']
+                                                                      * tupak.core.utils.solar_mass,
+                                                                      output_sample['reference_frequency'],
+                                                                      output_sample['phase'])
 
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
@@ -414,7 +451,16 @@ def generate_component_spins(sample):
 
 
 def compute_snrs(sample, likelihood):
-    """Compute the optimal and matched filter snrs of all posterior samples."""
+    """Compute the optimal and matched filter snrs of all posterior samples and print it out.
+
+    Parameters
+    ----------
+    sample: dict or array_like
+
+    likelihood: tupak.gw.likelihood.GravitationalWaveTransient
+        Likelihood function to be applied on the posterior
+
+    """
     temp_sample = sample
     if likelihood is not None:
         if isinstance(temp_sample, dict):
@@ -426,7 +472,7 @@ def compute_snrs(sample, likelihood):
                                                               likelihood.waveform_generator.parameters)
                 sample['{}_matched_filter_snr'.format(interferometer.name)] = \
                     tupak.gw.utils.matched_filter_snr_squared(signal, interferometer,
-                                                                likelihood.waveform_generator.time_duration) ** 0.5
+                                                              likelihood.waveform_generator.time_duration) ** 0.5
                 sample['{}_optimal_snr'.format(interferometer.name)] = tupak.gw.utils.optimal_snr_squared(
                     signal, interferometer, likelihood.waveform_generator.time_duration) ** 0.5
         else:
