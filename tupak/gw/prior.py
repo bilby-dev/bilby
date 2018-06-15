@@ -3,7 +3,7 @@ from tupak.core.prior import *
 
 class UniformComovingVolume(FromFile):
 
-    def __init__(self, minimum=None, maximum=None, name=None, latex_label=None):
+    def __init__(self, minimum=None, maximum=None, name='luminosity distance', latex_label='d_L'):
         """
 
         Parameters
