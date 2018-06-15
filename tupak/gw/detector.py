@@ -687,7 +687,7 @@ def get_interferometer_with_open_data(
         epoch = trigger_time + 2 - time_duration
 
     strain = tupak.gw.utils.get_open_strain_data(
-        name, epoch, epoch + time_duration, outdir=outdir, cache=cache,
+        name, epoch - 1, epoch + time_duration + 1, outdir=outdir, cache=cache,
         raw_data_file=raw_data_file, **kwargs)
 
     strain_psd = tupak.gw.utils.get_open_strain_data(
