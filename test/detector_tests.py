@@ -303,16 +303,16 @@ class TestDetector(unittest.TestCase):
             self.ifo.xarm_tilt = 0
             self.ifo.xarm_azimuth = 0
             self.ifo.yarm_tilt = 0
-            self.ifo.yarm_azimuth = np.pi
+            self.ifo.yarm_azimuth = 90
             self.assertAlmostEqual(self.ifo.unit_vector_along_arm('x'), 1)
 
     def test_unit_vector_along_arm_y(self):
         with mock.patch('numpy.array') as m:
             m.return_value = 1
             self.ifo.xarm_tilt = 0
-            self.ifo.xarm_azimuth = 0
+            self.ifo.xarm_azimuth = 90
             self.ifo.yarm_tilt = 0
-            self.ifo.yarm_azimuth = np.pi
+            self.ifo.yarm_azimuth = 180
             self.assertAlmostEqual(self.ifo.unit_vector_along_arm('y'), -1)
 
     def test_set_data_raises_value_error(self):

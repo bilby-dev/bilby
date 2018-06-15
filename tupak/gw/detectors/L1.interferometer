@@ -1,0 +1,13 @@
+# Advanced LIGO Livingston at design sensitvity.
+# LIGO-T980044-10
+# https://dcc.ligo.org/LIGO-P1200087-v42/public
+name = 'L1'
+power_spectral_density = PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
+minimum_frequency = 20
+maximum_frequency = 2048
+length = 4
+latitude = 30 + 33. / 60 + 46.4196 / 3600
+longitude = -(90 + 46. / 60 + 27.2654 / 3600)
+elevation = -6.574
+xarm_azimuth = 197.7165
+yarm_azimuth = 287.7165

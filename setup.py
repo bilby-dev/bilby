@@ -2,6 +2,9 @@
 
 from distutils.core import setup
 import subprocess
+from os import path
+
+version = '0.2'
 
 # Write a version file containing the git hash and info
 try:
@@ -15,17 +18,40 @@ try:
     else:
         status = '(UNCLEAN) ' + git_log
 except subprocess.CalledProcessError:
-    status = "NO VERSION INFORMATION"
+    status = ''
 
 version_file = '.version'
-with open('tupak/' + version_file, 'w+') as f:
-    f.write(status)
+if path.isfile(version_file) is False:
+    with open('tupak/' + version_file, 'w+') as f:
+        f.write('{} - {}'.format(version, status))
 
+
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'README.rst')) as f:
+        long_description = f.read()
 
 setup(name='tupak',
-      version='0.1',
+      description='The User friendly Parameter estimAtion Kode',
+      long_description=long_description,
+      url='https://git.ligo.org/Monash/tupak',
+      author='Greg Ashton, Moritz Hubner, Paul Lasky, Colm Talbot',
+      author_email='paul.lasky@monash.edu',
+      license="MIT",
+      version=version,
       packages=['tupak', 'tupak.core', 'tupak.gw'],
       package_dir={'tupak': 'tupak'},
-      package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt'],
-                    'tupak': [version_file]}
+      package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt', 'detectors/*'],
+                    'tupak': [version_file]},
+      install_requires=[
+          'future',
+          'dynesty',
+          'corner',
+          'numpy',
+          'matplotlib',
+          'deepdish',
+          'pandas',
+          'scipy',
+          'gwpy',
+          'lalsuite',
+          ]
       )

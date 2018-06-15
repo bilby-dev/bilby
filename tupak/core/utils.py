@@ -4,6 +4,7 @@ import os
 import numpy as np
 from math import fmod
 import argparse
+import traceback
 
 # Constants
 
@@ -273,9 +274,10 @@ def setup_logger(outdir=None, label=None, log_level=None):
         file_handler.setLevel(LEVEL)
         logger.addHandler(file_handler)
 
-    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.version')
+    version_file = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), '.version')
     with open(version_file, 'r') as f:
-        version = f.readline()
+        version = f.readline().rstrip()
     logging.info('Running tupak version: {}'.format(version))
 
 
@@ -377,13 +379,18 @@ def set_up_command_line_arguments():
 command_line_args = set_up_command_line_arguments()
 
 if 'DISPLAY' in os.environ:
+    logging.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
     pass
 else:
-    logging.info('No $DISPLAY environment variable found, so importing \
-                  matplotlib.pyplot with non-interactive "Agg" backend.')
+    logging.debug('No $DISPLAY environment variable found, so importing \
+                   matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
-    matplotlib.use('Agg')
-
-
-
-
+    non_gui_backends = matplotlib.rcsetup.non_interactive_bk
+    for backend in non_gui_backends:
+        try:
+            logging.debug("Trying backend {}".format(backend))
+            matplotlib.use(backend, warn=False)
+            matplotlib.pyplot.switch_backend(backend)
+            break
+        except Exception as e:
+            print(traceback.format_exc())

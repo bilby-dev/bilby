@@ -9,7 +9,6 @@ from __future__ import division
 import tupak
 import numpy as np
 import matplotlib.pyplot as plt
-import inspect
 
 # A few simple setup steps
 tupak.core.utils.setup_logger()
@@ -45,60 +44,11 @@ ax.set_ylabel('y')
 ax.legend()
 fig.savefig('{}/{}_data.png'.format(outdir, label))
 
+# Now lets instantiate the built-in GaussianLikelihood, giving it
+# the time, data and signal model. Note that, because we do not give it the
+# parameter, sigma is unknown and marginalised over during the sampling
+likelihood = tupak.core.likelihood.GaussianLikelihood(time, data, model)
 
-# Parameter estimation: we now define a Gaussian Likelihood class relevant for
-# our model.
-
-class GaussianLikelihood(tupak.Likelihood):
-    def __init__(self, x, y, function, sigma=None):
-        """
-        A general Gaussian likelihood for known or unknown noise - the model
-        parameters are inferred from the arguments of function
-
-        Parameters
-        ----------
-        x, y: array_like
-            The data to analyse
-        function:
-            The python function to fit to the data. Note, this must take the
-            dependent variable as its first argument. The other arguments are
-            will require a prior and will be sampled over (unless a fixed
-            value is given).
-        sigma: None, float, array_like
-            If None, the standard deviation of the noise is unknown and will be
-            estimated (note: this requires a prior to be given for sigma). If
-            not None, this defined the standard-deviation of the data points.
-            This can either be a single float, or an array with length equal
-            to that for `x` and `y`.
-        """
-        self.x = x
-        self.y = y
-        self.N = len(x)
-        self.sigma = sigma
-        self.function = function
-
-        # These lines of code infer the parameters from the provided function
-        parameters = inspect.getargspec(function).args
-        parameters.pop(0)
-        self.parameters = dict.fromkeys(parameters)
-        self.function_keys = self.parameters.keys()
-        if self.sigma is None:
-            self.parameters['sigma'] = None
-
-    def log_likelihood(self):
-        sigma = self.parameters.get('sigma', self.sigma)
-        model_parameters = {k: self.parameters[k] for k in self.function_keys}
-        res = self.y - self.function(self.x, **model_parameters)
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N*np.log(2*np.pi*sigma**2))
-
-
-# Now lets instantiate a version of our GaussianLikelihood, giving it
-# the time, data and signal model
-likelihood = GaussianLikelihood(time, data, model)
-
-# From hereon, the syntax is exactly equivalent to other tupak examples
-# We make a prior
 priors = {}
 priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
 priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
@@ -110,4 +60,3 @@ result = tupak.run_sampler(
     walks=10, injection_parameters=injection_parameters, outdir=outdir,
     label=label)
 result.plot_corner()
-print(result)

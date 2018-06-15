@@ -32,11 +32,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     waveform_generator: `tupak.waveform_generator.WaveformGenerator`
         An object which computes the frequency-domain strain of the signal,
         given some set of parameters
-    distance_marginalization: bool
-        If true, analytic distance marginalization
-    phase_marginalization: bool
-        If true, analytic phase marginalization
-    prior: dict
+    distance_marginalization: bool, optional
+        If true, marginalize over distance in the likelihood.
+        This uses a look up table calculated at run time.
+    time_marginalization: bool, optional
+        If true, marginalize over time in the likelihood.
+        This uses a FFT.
+    phase_marginalization: bool, optional
+        If true, marginalize over phase in the likelihood.
+        This is done analytically using a Bessel function.
+    prior: dict, optional
         If given, used in the distance and phase marginalization.
 
     Returns
@@ -342,53 +347,3 @@ def get_binary_black_hole_likelihood(interferometers):
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
 
-
-class HyperparameterLikelihood(likelihood.Likelihood):
-
-    def __init__(self, samples, hyper_prior, run_prior):
-        """ A likelihood for inferring hyperparameter posterior distributions
-
-        See Eq. (1) of https://arxiv.org/abs/1801.02699 for a definition.
-
-        Parameters
-        ----------
-        samples: list
-            An N-dimensional list of individual sets of samples. Each set may have
-            a different size.
-        hyper_prior: `tupak.core.prior.Prior`
-            A prior distribution with a `parameters` argument pointing to the
-            hyperparameters to infer from the samples. These may need to be
-            initialized to any arbitrary value, but this will not effect the
-            result.
-        run_prior: `tupak.core.prior.Prior`
-            The prior distribution used in the individual inferences which resulted
-            in the set of samples.
-
-        """
-        likelihood.Likelihood.__init__(self, parameters=hyper_prior.__dict__)
-        self.samples = samples
-        self.hyper_prior = hyper_prior
-        self.run_prior = run_prior
-        if hasattr(hyper_prior, 'lnprob') and hasattr(run_prior, 'lnprob'):
-            logging.info("Using log-probabilities in likelihood")
-            self.log_likelihood = self.log_likelihood_using_lnprob
-        else:
-            logging.info("Using probabilities in likelihood")
-            self.log_likelihood = self.log_likelihood_using_prob
-
-    def log_likelihood_using_lnprob(self):
-        L = []
-        self.hyper_prior.__dict__.update(self.parameters)
-        for samp in self.samples:
-            f = self.hyper_prior.lnprob(samp) - self.run_prior.lnprob(samp)
-            L.append(logsumexp(f))
-        return np.sum(L)
-
-    def log_likelihood_using_prob(self):
-        L = []
-        self.hyper_prior.__dict__.update(self.parameters)
-        for samp in self.samples:
-            L.append(
-                np.sum(self.hyper_prior.prob(samp) /
-                       self.run_prior.prob(samp)))
-        return np.sum(np.log(L))

@@ -147,6 +147,7 @@ def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
 
 
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
+
     """
     Convert the symmetric mass ratio to the normal mass ratio.
 
@@ -319,19 +320,18 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     ----------
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an injection or posterior samples.
-    likelihood: tupak.GravitationalWaveTransient, optional
+    likelihood: tupak.gw.likelihood.GravitationalWaveTr, optional
         GravitationalWaveTransient used for sampling, used for waveform and likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """
     output_sample = sample.copy()
     if likelihood is not None:
-        output_sample['reference_frequency'] = likelihood.waveform_generator.parameters['reference_frequency']
-        output_sample['waveform_approximant'] = likelihood.waveform_generator.parameters['waveform_approximant']
+        output_sample['reference_frequency'] = likelihood.waveform_generator.waveform_arguments['reference_frequency']
+        output_sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()],
-                                                                   remove=False)
+    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
     output_sample = generate_non_standard_parameters(output_sample)
     output_sample = generate_component_spins(output_sample)
     compute_snrs(output_sample, likelihood)
@@ -424,9 +424,8 @@ def generate_component_spins(sample):
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
-    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample,
-                                                                                               pd.DataFrame):
-        logging.info('Extracting component spins.')
+    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
+        logging.debug('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
         new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
 
@@ -434,11 +433,10 @@ def generate_component_spins(sample):
             new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
                 new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii],
-                    output_sample['tilt_2'][ii], output_sample['phi_12'][ii], output_sample['a_1'][ii],
-                    output_sample['a_2'][ii], output_sample['mass_1'][ii] * tupak.core.utils.solar_mass,
-                    output_sample['mass_2'][ii] * tupak.core.utils.solar_mass, output_sample['reference_frequency'][ii],
-                    output_sample['phase'][ii])
+                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
+                    output_sample['phi_12'][ii], output_sample['a_1'][ii], output_sample['a_2'][ii],
+                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass, output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['reference_frequency'][ii], output_sample['phase'][ii])
 
         for name in new_spin_parameters:
             output_sample[name] = new_spins[name]
@@ -504,4 +502,4 @@ def compute_snrs(sample, likelihood):
             print([interferometer.name for interferometer in likelihood.interferometers])
 
     else:
-        logging.info('Not computing SNRs.')
+        logging.debug('Not computing SNRs.')

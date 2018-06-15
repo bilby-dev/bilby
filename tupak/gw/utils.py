@@ -25,7 +25,7 @@ def asd_from_freq_series(freq_data, df):
     array_like: array of real-valued normalized frequency domain ASD data
 
     """
-    return np.absolute(freq_data) * (2 * df)**0.5
+    return np.absolute(freq_data) * 2 * df**0.5
 
 
 def psd_from_freq_series(freq_data, df):
@@ -179,7 +179,10 @@ def inner_product(aa, bb, frequency, PSD):
 
     """
     PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+
+    # calculate the inner product
     integrand = np.conj(aa) * bb / PSD_interp
+
     df = frequency[1] - frequency[0]
     integral = np.sum(integrand) * df
     return 4. * np.real(integral)

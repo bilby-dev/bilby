@@ -108,7 +108,7 @@ fig2.savefig('outdir/hyper_parameter_combined_posteriors.png')
 run_prior = tupak.core.prior.Uniform(minimum=-10, maximum=10, name='mu_c0')
 hyper_prior = tupak.core.prior.Gaussian(mu=0, sigma=1, name='hyper')
 
-hp_likelihood = tupak.gw.likelihood.HyperparameterLikelihood(
+hp_likelihood = tupak.core.likelihood.HyperparameterLikelihood(
         samples, hyper_prior, run_prior)
 
 hp_priors = dict(

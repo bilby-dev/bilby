@@ -6,7 +6,6 @@ stimation on GW150914 using open data.
 """
 import tupak
 
-t0 = tupak.gw.utils.get_event_time("GW150914")
 prior = tupak.gw.prior.BBHPriorSet(filename='GW150914.prior')
 interferometers = tupak.gw.detector.get_event_data("GW150914")
 likelihood = tupak.gw.likelihood.get_binary_black_hole_likelihood(interferometers)

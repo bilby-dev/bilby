@@ -175,7 +175,7 @@ class Sampler(object):
 
         logging.info("Search parameters:")
         for key in self.__search_parameter_keys:
-            logging.info('  {} ~ {}'.format(key, self.priors[key]))
+            logging.info('  {} = {}'.format(key, self.priors[key]))
         for key in self.__fixed_parameter_keys:
             logging.info('  {} = {}'.format(key, self.priors[key].peak))
 
@@ -212,7 +212,8 @@ class Sampler(object):
             t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
             logging.info(
-                "Single likelihood eval. took {:.3e} s".format((datetime.datetime.now() - t1).total_seconds()))
+                "Single likelihood evaluation took {:.3e} s"
+                .format((datetime.datetime.now() - t1).total_seconds()))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
@@ -297,9 +298,9 @@ class Sampler(object):
         """
         draw = np.array(list(self.priors.sample_subset(self.__search_parameter_keys).values()))
         if np.isinf(self.log_likelihood(draw)):
-            logging.info('Prior draw {} has inf likelihood'.format(draw))
+            logging.warning('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
-            logging.info('Prior draw {} has inf prior'.format(draw))
+            logging.warning('Prior draw {} has inf prior'.format(draw))
         return draw
 
     def _run_external_sampler(self):
@@ -511,7 +512,7 @@ class Dynesty(Sampler):
 
     def generate_trace_plots(self, dynesty_results):
         filename = '{}/{}_trace.png'.format(self.outdir, self.label)
-        logging.info("Writing trace plot to {}".format(filename))
+        logging.debug("Writing trace plot to {}".format(filename))
         from dynesty import plotting as dyplot
         fig, axes = dyplot.traceplot(dynesty_results,
                                      labels=self.result.parameter_labels)
@@ -619,23 +620,23 @@ class Ptemcee(Sampler):
 
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
-        logging.info('Saving walkers plot to {}'.format('filename'))
+        logging.debug('Saving walkers plot to {}'.format('filename'))
         fig.savefig(filename)
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
-                sampler='nestle', use_ratio=None, injection_parameters=None,
+                sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                **kwargs):
+                clean=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
     Parameters
     ----------
-    likelihood: `tupak.GravitationalWaveTransient`
-        A `GravitationalWaveTransient` instance
-    priors: dict
-        A dictionary of the priors for each parameter - missing parameters will
+    likelihood: `tupak.Likelihood`
+        A `Likelihood` instance
+    priors: `tupak.PriorSet`
+        A PriorSet/dictionary of the priors for each parameter - missing parameters will
         use default priors, if None, all priors will be default
     label: str
         Name for the run, used in output files
@@ -658,6 +659,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the tupak defaults for a binary black hole.
+    clean: bool
+        If given, override the command line interface `clean` option.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -666,6 +669,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     result
         An object containing the results
     """
+
+    if clean:
+        utils.command_line_args.clean = clean
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
@@ -680,7 +686,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         raise ValueError
 
-    priors.fill_priors(likelihood)
+    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
     priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
@@ -690,7 +696,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                                 **kwargs)
 
         if sampler.cached_result:
-            logging.info("Using cached result")
+            logging.warning("Using cached result")
             return sampler.cached_result
 
         start_time = datetime.datetime.now()
@@ -702,7 +708,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
         end_time = datetime.datetime.now()
         result.sampling_time = (end_time - start_time).total_seconds()
-        logging.info('')
         logging.info('Sampling time: {}'.format(end_time - start_time))
 
         if sampler.use_ratio:
@@ -725,6 +730,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.save_to_file()
         if plot:
             result.plot_corner()
+        logging.info("Sampling finished, results saved to {}/".format(outdir))
+        logging.info("Summary of results:\n{}".format(result))
         return result
     else:
         raise ValueError(

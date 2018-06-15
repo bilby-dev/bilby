@@ -1,0 +1,112 @@
+============
+Installation
+============
+
+The lastest stable release of Tupak can be `pip-installed
+<https://pypi.org/project/TUPAK/>`_ from
+
+.. code-block:: console
+
+   $ pip install tupak
+
+If you would like to install the development version, see the instructions
+below.
+
+Install tupak from source
+-------------------------
+
+:code:`tupak` is developed to work with both Python 2.7+ and Python 3+. In the
+following, we assume you have a working python installation, `python pip
+<https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
+and `git <https://git-scm.com/>`_.
+
+Clone the repository, install the requirements, and then install the software:
+
+.. code-block:: console
+
+   $ git clone git@git.ligo.org:Monash/tupak.git
+   $ cd tupak/
+   $ pip install -r requirements.txt
+   $ python setup.py install
+
+Once you have run these steps, you have `tupak` installed. You can now try to
+run the examples.
+
+.. note::
+   If you do not have a git.ligo account, and recieve and error message:
+
+   .. code-block:: console
+
+      git@git.ligo.org: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+      fatal: Could not read from remote repository.
+
+   Then you need to use the HTTPS URL, e.g. replace the first line above with
+
+   .. code-block:: console
+
+      $ git clone https://git.ligo.org/Monash/tupak.git
+
+
+Installing lalsuite
+-------------------
+
+For many gravitational-wave related examples you'll need access to the
+`lalsuite <https://wiki.ligo.org/DASWG/LALSuite>`_ tool set. These should be
+installed by default in the requirements. However, if you have problems with
+your installation, you can first try to install the simple way:
+
+.. code-block:: console
+
+   $ pip install lalsuite.
+
+If this doesn't work, or you prefer to, you can also install from source.
+
+First, head to https://git.ligo.org/lscsoft/lalsuite to check you have an
+account and SSH keys set up. Then,
+
+.. code-block:: console
+
+   $ git lfs install # you may need to install git-lfs first
+   $ git clone git@git.ligo.org:lscsoft/lalsuite.git
+   $ cd lalsuite
+   $ ./00boot
+   $ ./configure --prefix=${HOME}/lalsuite-install --disable-all-lal --enable-swig  --enable-lalsimulation
+   $ make; make install
+
+Warning: in the configure line here, we have disabled everything except
+lalsimulation. If you need other modules, see `./configure --help`.
+
+Installing pymultinest
+----------------------
+
+If you want to use the `pymultinest` sampler, you first need the
+MultiNest library to be installed to work properly. The full instructions can
+be found here: https://johannesbuchner.github.io/PyMultiNest/install.html. Here
+is a shortened version:
+
+First, install the dependencies (for Ubuntu/Linux):
+
+.. code-block:: console
+
+   $ sudo apt-get install python-{scipy,numpy,matplotlib,progressbar} ipython libblas{3,-dev} liblapack{3,-dev} libatlas{3-base,-dev} cmake build-essential git gfortran
+
+For Mac, the advice in the instructions are "If you google for “MultiNest Mac OSX” or “PyMultiNest Mac OSX” you will find installation instructions".
+
+The following will place a directory `MultiNest` in your :code:`$HOME` directory, if you want
+to place it somewhere, adjust the instructions as such.
+
+.. code-block:: console
+
+   $ git clone https://github.com/JohannesBuchner/MultiNest $HOME
+   $ cd $HOME/MultiNest/build
+   $ cmake ..
+   $ make
+
+Finally, add the libraries to you path. Add this to the `.bashrc` file
+
+.. code-block:: console
+
+   $ export LD_LIBRARY_PATH=$HOME/Downloads/MultiNest/lib:
+
+(you'll need to resource your `.bashrc` after this, i.e. run `bash`).
+

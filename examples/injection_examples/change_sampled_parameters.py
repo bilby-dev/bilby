@@ -20,7 +20,10 @@ np.random.seed(151226)
 
 injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
                             luminosity_distance=3000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
-                            waveform_approximant='IMRPhenomPv2', reference_frequency=50., ra=1.375, dec=-1.2108)
+                            ra=1.375, dec=-1.2108)
+
+waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
+                          reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
@@ -28,7 +31,7 @@ waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
     parameter_conversion=tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio'],
-    parameters=injection_parameters)
+    parameters=injection_parameters, waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
@@ -55,4 +58,4 @@ result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sa
                                         injection_parameters=injection_parameters, label='DifferentParameters',
                                         outdir=outdir, conversion_function=tupak.gw.conversion.generate_all_bbh_parameters)
 result.plot_corner()
-print(result)
+
