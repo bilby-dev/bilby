@@ -131,6 +131,11 @@ class WaveformGenerator(object):
             self.__time_array_updated = True
         return self.__time_array
 
+    @time_array.setter
+    def time_array(self, time_array):
+        self.__time_array = time_array
+        self.__time_array_updated = True
+
     @property
     def parameters(self):
         return self.__parameters
