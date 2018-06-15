@@ -50,4 +50,4 @@ likelihood = tupak.GravitationalWaveTransient(
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
                            injection_parameters=injection_parameters, outdir=outdir, label='BasicTutorial')
 result.plot_corner()
-print(result)
+
