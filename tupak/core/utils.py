@@ -231,7 +231,7 @@ def infft(hf, Fs):
     return h
 
 
-def setup_logger(outdir=None, label=None, log_level=None):
+def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
     """ Setup logging output: call at the start of the script to use
 
     Parameters
@@ -241,6 +241,8 @@ def setup_logger(outdir=None, label=None, log_level=None):
     log_level = ['debug', 'info', 'warning']
         Either a string from the list above, or an interger as specified
         in https://docs.python.org/2/library/logging.html#logging-levels
+    print_version: bool
+        If true, print version information
     """
 
     if type(log_level) is str:
@@ -254,25 +256,28 @@ def setup_logger(outdir=None, label=None, log_level=None):
         LEVEL = int(log_level)
 
     logger = logging.getLogger()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
     logger.setLevel(LEVEL)
-    stream_handler.setLevel(LEVEL)
-    logger.addHandler(stream_handler)
 
-    if label:
-        if outdir:
-            check_directory_exists_and_if_not_mkdir(outdir)
-        else:
-            outdir = '.'
-        log_file = '{}/{}.log'.format(outdir, label)
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter(
+    if any([type(h) == logging.StreamHandler for h in logger.handlers]) is False:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+        stream_handler.setLevel(LEVEL)
+        logger.addHandler(stream_handler)
 
-        file_handler.setLevel(LEVEL)
-        logger.addHandler(file_handler)
+    if any([type(h) == logging.FileHandler for h in logger.handlers]) is False:
+        if label:
+            if outdir:
+                check_directory_exists_and_if_not_mkdir(outdir)
+            else:
+                outdir = '.'
+            log_file = '{}/{}.log'.format(outdir, label)
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+
+            file_handler.setLevel(LEVEL)
+            logger.addHandler(file_handler)
 
     version_file = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), '.version')
@@ -377,6 +382,7 @@ def set_up_command_line_arguments():
 
 
 command_line_args = set_up_command_line_arguments()
+setup_logger(print_version=True)
 
 if 'DISPLAY' in os.environ:
     logging.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
