@@ -8,7 +8,6 @@ and then recovered.
 import tupak
 import numpy as np
 
-tupak.core.utils.setup_logger()
 
 
 # define the time-domain model

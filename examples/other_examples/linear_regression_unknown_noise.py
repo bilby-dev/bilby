@@ -11,7 +11,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # A few simple setup steps
-tupak.core.utils.setup_logger()
 label = 'linear_regression_unknown_noise'
 outdir = 'outdir'
 
