@@ -273,6 +273,7 @@ class Result(dict):
         """
         data_frame = pd.DataFrame(
             self.samples, columns=self.search_parameter_keys)
+        data_frame['log_likelihood'] = getattr(self, 'log_likelihood_evaluations', np.nan)
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
