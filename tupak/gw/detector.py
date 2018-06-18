@@ -15,13 +15,13 @@ from tupak.core import utils
 
 class InterferometerStrainData(object):
     def __init__(self, sampling_frequency, duration,
-                 epoch=0, frequency_domain_strain=None,
+                 start_time=0, frequency_domain_strain=None,
                  minimum_frequency=0, maximum_frequency=np.inf):
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
         self.sampling_frequency = sampling_frequency
         self.duration = duration
-        self.epoch = epoch
+        self.start_time = start_time
         self.frequency_array = utils.create_frequency_series(
             sampling_frequency, duration)
         self.frequency_domain_strain = frequency_domain_strain * self.frequency_mask
@@ -351,13 +351,13 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
-            self.strain_data.epoch)  # parameters['geocent_time'])
+            self.strain_data.start_time)  # parameters['geocent_time'])
 
         if self.time_marginalization:
             dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
             # all candidate coalescence times
         else:
-            dt = self.strain_data.epoch - (parameters['geocent_time'] - time_shift)
+            dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
@@ -461,7 +461,7 @@ class Interferometer(object):
     def frequency_domain_strain(self):
         return self.strain_data.frequency_domain_strain
 
-    def set_data(self, sampling_frequency, duration, epoch=0,
+    def set_data(self, sampling_frequency, duration, start_time=0,
                  from_power_spectral_density=False, zero_noise=False,
                  frequency_domain_strain=None, frame_file=None,
                  channel_name=None, overwrite_psd=True, **kwargs):
@@ -474,7 +474,7 @@ class Interferometer(object):
             The sampling frequency of the data
         duration: float
             Duration of data
-        epoch: float, optional
+        start_time: float, optional
             The GPS time of the start of the data
         frequency_domain_strain: array_like, optional
             The frequency-domain strain
@@ -499,7 +499,7 @@ class Interferometer(object):
         ValueError: If no method to set data is provided
         """
 
-        self.epoch = epoch
+        self.start_time = start_time
 
         if frequency_domain_strain is not None:
             logging.info(
@@ -519,18 +519,18 @@ class Interferometer(object):
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
             strain = tupak.gw.utils.read_frame_file(
-                frame_file, t1=epoch, t2=epoch + duration,
+                frame_file, t1=start_time, t2=start_time + duration,
                 channel=channel_name, resample=sampling_frequency)
             frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
             if overwrite_psd:
                 self.power_spectral_density = PowerSpectralDensity(
-                    frame_file=frame_file, channel_name=channel_name, epoch=epoch, **kwargs)
+                    frame_file=frame_file, channel_name=channel_name, start_time=start_time, **kwargs)
         else:
             raise ValueError("No method to set data provided.")
 
         self.strain_data = InterferometerStrainData(
             sampling_frequency=sampling_frequency, duration=duration,
-            epoch=epoch,
+            start_time=start_time,
             frequency_domain_strain=frequency_domain_strain)
 
     def time_delay_from_geocenter(self, ra, dec, time):
@@ -606,7 +606,7 @@ class Interferometer(object):
 class PowerSpectralDensity:
 
     def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, asd_array=None,
-                 psd_array=None, frequencies=None, epoch=0,
+                 psd_array=None, frequencies=None, start_time=0,
                  psd_duration=1024, psd_offset=16, channel_name=None, filter_freq=1024, alpha=0.25, fft_length=4):
         """
         Instantiate a new PowerSpectralDensity object.
@@ -630,7 +630,7 @@ class PowerSpectralDensity:
             requires frequency_array to be specified.
         frequencies: array_like, optional
             List of frequency values corresponding to asd_array/psd_array,
-        epoch: float, optional
+        start_time: float, optional
             Beginning of segment to analyse.
         psd_duration: float, optional
             Duration of data to generate PSD from.
@@ -680,8 +680,8 @@ class PowerSpectralDensity:
                     min(self.amplitude_spectral_density)))
                 logging.warning("You may have intended to provide this as a power spectral density.")
         elif frame_file is not None:
-            strain = tupak.gw.utils.read_frame_file(frame_file, t1=epoch - psd_duration - psd_offset,
-                                                    t2=epoch - psd_duration, channel=channel_name)
+            strain = tupak.gw.utils.read_frame_file(frame_file, t1=start_time - psd_duration - psd_offset,
+                                                    t2=start_time - psd_duration, channel=channel_name)
             sampling_frequency = int(strain.sample_rate.value)
 
             # Low pass filter
@@ -836,7 +836,7 @@ def load_interferometer(filename):
 
 
 def get_interferometer_with_open_data(
-        name, trigger_time, time_duration=4, epoch=None, alpha=0.25, psd_offset=-1024,
+        name, trigger_time, time_duration=4, start_time=None, alpha=0.25, psd_offset=-1024,
         psd_duration=100, cache=True, outdir='outdir', plot=True, filter_freq=1024,
         raw_data_file=None, **kwargs):
     """
@@ -852,7 +852,7 @@ def get_interferometer_with_open_data(
         Trigger GPS time.
     time_duration: float, optional
         The total time (in seconds) to analyse. Defaults to 4s.
-    epoch: float, optional
+    start_time: float, optional
         Beginning of the segment, if None, the trigger is placed 2s before the end
         of the segment.
     alpha: float, optional
@@ -887,16 +887,16 @@ def get_interferometer_with_open_data(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    if epoch is None:
-        epoch = trigger_time + 2 - time_duration
+    if start_time is None:
+        start_time = trigger_time + 2 - time_duration
 
     strain = tupak.gw.utils.get_open_strain_data(
-        name, epoch - 1, epoch + time_duration + 1, outdir=outdir, cache=cache,
+        name, start_time - 1, start_time + time_duration + 1, outdir=outdir, cache=cache,
         raw_data_file=raw_data_file, **kwargs)
 
     strain_psd = tupak.gw.utils.get_open_strain_data(
-        name, epoch + time_duration + psd_offset,
-        epoch + time_duration + psd_offset + psd_duration,
+        name, start_time + time_duration + psd_offset,
+        start_time + time_duration + psd_offset + psd_duration,
         raw_data_file=raw_data_file,
         outdir=outdir, cache=cache, **kwargs)
 
@@ -914,7 +914,7 @@ def get_interferometer_with_open_data(
     window = signal.windows.tukey(NFFT, alpha=alpha)
     psd = strain_psd.psd(fftlength=time_duration, window=window)
     psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, epoch + time_duration + psd_offset, psd_duration)
+        outdir, name, start_time + time_duration + psd_offset, psd_duration)
     with open('{}'.format(psd_file), 'w+') as file:
         for f, p in zip(psd.frequencies.value, psd.value):
             file.write('{} {}\n'.format(f, p))
@@ -933,7 +933,7 @@ def get_interferometer_with_open_data(
         sampling_frequency, time_duration,
         frequency_domain_strain=utils.nfft(
             strain.value, sampling_frequency)[0],
-        epoch=strain.epoch.value)
+        start_time=strain.start_time.value)
 
     if plot:
         interferometer.plot_data(outdir=outdir)
@@ -943,7 +943,7 @@ def get_interferometer_with_open_data(
 
 def get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations, injection_parameters,
-        sampling_frequency=4096, time_duration=4, epoch=None,
+        sampling_frequency=4096, time_duration=4, start_time=None,
         outdir='outdir', plot=True, save=True, zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
@@ -962,7 +962,7 @@ def get_interferometer_with_fake_noise_and_injection(
         sampling frequency for data, should match injection signal
     time_duration: float
         length of data, should be the same as used for signal generation
-    epoch: float
+    start_time: float
         Beginning of data segment, if None, injection is placed 2s before
         end of segment.
     outdir: str
@@ -982,21 +982,21 @@ def get_interferometer_with_fake_noise_and_injection(
 
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
-    if epoch is None:
-        epoch = injection_parameters['geocent_time'] + 2 - time_duration
-    if injection_parameters['geocent_time'] < epoch or injection_parameters['geocent_time'] > epoch - time_duration:
-        logging.warning('Injecting signal outside segment, epoch={}, merger time={}.'.format(
-            epoch, injection_parameters['geocent_time']))
+    if start_time is None:
+        start_time = injection_parameters['geocent_time'] + 2 - time_duration
+    if injection_parameters['geocent_time'] < start_time or injection_parameters['geocent_time'] > start_time - time_duration:
+        logging.warning('Injecting signal outside segment, start_time={}, merger time={}.'.format(
+            start_time, injection_parameters['geocent_time']))
 
     interferometer = get_empty_interferometer(name)
     if zero_noise:
         interferometer.set_data(
             sampling_frequency=sampling_frequency, duration=time_duration,
-            zero_noise=True, epoch=epoch)
+            zero_noise=True, start_time=start_time)
     else:
         interferometer.set_data(
             sampling_frequency=sampling_frequency, duration=time_duration,
-            from_power_spectral_density=True, epoch=epoch)
+            from_power_spectral_density=True, start_time=start_time)
     interferometer.inject_signal(
         waveform_polarizations=injection_polarizations,
         parameters=injection_parameters)
