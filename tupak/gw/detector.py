@@ -140,8 +140,10 @@ class InterferometerStrainData(object):
                             **kwargs):
         logging.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
-            frame_file, t1=self.start_time, t2=self.start_time + self.duration,
-            channel=channel_name, resample=self.sampling_frequency)
+            frame_file, t1=self.start_time-1,
+            t2=self.start_time+self.duration+1, channel=channel_name,
+            resample=self.sampling_frequency)
+
         frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
 
         if overwrite_psd:
