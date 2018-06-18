@@ -13,6 +13,48 @@ import tupak.gw.utils
 from tupak.core import utils
 
 
+class InterferometerSet(list):
+    def __init__(self, interferometers):
+        if type(interferometers) != list:
+            raise ValueError("Input must be list")
+        self.interferometers = interferometers
+        self.number_of_interferometers = len(interferometers)
+        self.check_interferometers()
+
+    def check_interferometers(self):
+        durations = [interferomer.strain_data.duration for interferomer in self.interferometers]
+        if np.mean(durations) != durations[0]:
+            raise ValueError("The duration of all interferometers are not the same")
+        start_times = [interferomer.strain_data.start_time for interferomer in self.interferometers]
+        if np.mean(start_times) != start_times[0]:
+            raise ValueError("The start time of all interferometers are not the same")
+        sampling_frequencies = [interferomer.strain_data.sampling_frequency for interferomer in self.interferometers]
+        if np.mean(sampling_frequencies) != sampling_frequencies[0]:
+            raise ValueError("The sampling_frequencies of all interferometers are not the same")
+
+    def __iter__(self):
+        i = 0
+        while i < self.number_of_interferometers:
+            yield self.interferometers[i]
+            i += 1
+
+    @property
+    def duration(self):
+        return self.interferometers[0].strain_data.duration
+
+    @property
+    def start_time(self):
+        return self.interferometers[0].strain_data.start_time
+
+    @property
+    def sampling_frequency(self):
+        return self.interferometers[0].strain_data.sampling_frequency
+
+    @property
+    def frequency_array(self):
+        return self.interferometers[0].strain_data.frequency_array
+
+
 class InterferometerStrainData(object):
     def __init__(self, sampling_frequency, duration,
                  start_time=0, frequency_domain_strain=None,
@@ -1087,4 +1129,4 @@ def get_event_data(
         except ValueError:
             logging.warning('No data found for {}.'.format(name))
 
-    return interferometers
+    return InterferometerSet(interferometers)

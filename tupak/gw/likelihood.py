@@ -57,7 +57,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
-        self.interferometers = interferometers
+        if type(interferometers) != tupak.gw.detector.InterferometerSet:
+            self.interferometers = tupak.gw.detector.InterferometerSet(interferometers)
+        else:
+            self.interferometers = interferometers
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -116,7 +119,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers[0].frequency_domain_strain[0:-1].shape, dtype=np.complex128)
+        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers.frequency_array[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
@@ -134,7 +137,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         if self.time_marginalization:
 
             delta_tc = 1. / self.waveform_generator.sampling_frequency
-            tc_log_norm = np.log(self.interferometers[0].duration * delta_tc)
+            tc_log_norm = np.log(self.interferometers.duration * delta_tc)
 
             if self.distance_marginalization:
 
@@ -344,7 +347,7 @@ def get_binary_black_hole_likelihood(interferometers):
 
     """
     waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-        time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
+        time_duration=interferometers.duration, sampling_frequency=interferometers.sampling_frequency,
         frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
