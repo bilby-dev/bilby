@@ -501,7 +501,7 @@ class Interferometer(object):
         elif frame_file is not None:
             logging.info('Reading data from frame, {}.'.format(self.name))
             strain = tupak.gw.utils.read_frame_file(
-                frame_file, t1=epoch, t2=epoch + duration, channel=channel_name, resample=sampling_frequency)
+                frame_file, t1=epoch - 1, t2=epoch + duration + 1, channel=channel_name, resample=sampling_frequency)
             frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
             if overwrite_psd:
                 self.power_spectral_density = PowerSpectralDensity(
