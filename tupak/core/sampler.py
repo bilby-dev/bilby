@@ -475,12 +475,23 @@ class Dynesty(Sampler):
         print_str = "\r {}| {}={:6.3f} +/- {:6.3f} | dlogz: {:6.3f} > {:6.3f}".format(
             niter, key, logz, logzerr, delta_logz, dlogz)
 
+        with open(self.sample_file, 'a') as sample_file:
+            sample_file.write('\t'.join([str(param) for param in vstar]) +
+                              '\t{}\t{}\t{}\n'.format(loglstar, logz, logwt))
+
         # Printing.
         sys.stderr.write(print_str)
         sys.stderr.flush()
 
     def _run_external_sampler(self):
         dynesty = self.external_sampler
+
+        self.sample_file = '{}/{}.samples'.format(self.outdir, self.label)
+        if os.path.isfile(self.sample_file):
+            os.rename(self.sample_file, self.sample_file + '_old')
+        with open(self.sample_file, 'w') as sample_file:
+            sample_file.write('\t'.join([key for key in self.priors.keys()]))
+            sample_file.write('\tlogl\tlogz\tlogwt\n')
 
         if self.kwargs.get('dynamic', False) is False:
             nested_sampler = dynesty.NestedSampler(
