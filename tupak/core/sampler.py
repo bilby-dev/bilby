@@ -626,6 +626,10 @@ class Dynesty(Sampler):
             live_bound=nested_sampler.live_bound, live_it=nested_sampler.live_it, added_live=nested_sampler.added_live
         )
 
+        weights = np.exp(current_state['sample_log_weights'] - current_state['cumulative_log_evidence'][-1])
+        current_state['posterior'] = self.external_sampler.utils.resample_equal(
+            np.array(current_state['physical_samples']), weights)
+
         deepdish.io.save(resume_file, current_state)
 
         nested_sampler.saved_id = [nested_sampler.saved_id[-1]]
