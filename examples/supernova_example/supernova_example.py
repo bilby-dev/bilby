@@ -29,8 +29,8 @@ np.random.seed(170801)
 # read in a signal to inject from a txt file.
 
 injection_parameters = dict(file_path='MuellerL15_example_inj.txt',
-                            luminosity_distance=10.0, ra=1.375,
-                            dec=-1.2108, geocent_time=1126259642.413,
+                            luminosity_distance=7.0, ra=4.6499,
+                            dec=-0.5063, geocent_time=1126259642.413,
                             psi=2.659)
 
 # Create the waveform_generator using a supernova source function
@@ -61,7 +61,7 @@ simulation_parameters = dict(
 search_waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     time_duration=time_duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.supernova_pca_model,
-    parameters=simulation_parameters)
+    waveform_arguments=simulation_parameters)
 
 # Set up prior
 priors = dict()
@@ -74,8 +74,9 @@ priors['pc_coeff2'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff2')
 priors['pc_coeff3'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff3')
 priors['pc_coeff4'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff4')
 priors['pc_coeff5'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff5')
-priors['ra'] = tupak.core.prior.create_default_prior(name='ra')
-priors['dec'] = tupak.core.prior.create_default_prior(name='dec')
+priors['ra'] = tupak.core.prior.Uniform(minimum=0, maximum=2 * np.pi,
+                                        name='ra')
+priors['dec'] = tupak.core.prior.Sine(name='dec')
 priors['geocent_time'] = tupak.core.prior.Uniform(
     injection_parameters['geocent_time'] - 1,
     injection_parameters['geocent_time'] + 1,

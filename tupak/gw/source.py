@@ -146,9 +146,12 @@ def supernova(
 
 
 def supernova_pca_model(
-        frequency_array, realPCs, imagPCs, pc_coeff1, pc_coeff2, pc_coeff3,
-        pc_coeff4, pc_coeff5, luminosity_distance, ra, dec, geocent_time, psi):
+        frequency_array, pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5,
+        luminosity_distance, ra, dec, geocent_time, psi, **kwargs):
     """ Supernova signal model """
+
+    realPCs = kwargs['realPCs']
+    imagPCs = kwargs['imagPCs']
 
     pc1 = realPCs[:, 0] + 1.0j*imagPCs[:, 0]
     pc2 = realPCs[:, 1] + 1.0j*imagPCs[:, 1]
