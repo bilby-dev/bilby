@@ -229,8 +229,9 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
     float: The matched filter signal to noise ratio squared
 
     """
-    return noise_weighted_inner_product(signal, interferometer.data, interferometer.power_spectral_density_array,
-                                        time_duration)
+    return noise_weighted_inner_product(
+        signal, interferometer.frequency_domain_strain,
+        interferometer.power_spectral_density_array, time_duration)
 
 
 def optimal_snr_squared(signal, interferometer, time_duration):
