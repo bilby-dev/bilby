@@ -155,7 +155,10 @@ class InterferometerStrainData(object):
         self._calculate_frequency_array()
 
         logging.debug('Setting data using provided frequency_domain_strain')
-        self._frequency_domain_strain = frequency_domain_strain
+        if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
+            self._frequency_domain_strain = frequency_domain_strain
+        else:
+            raise ValueError("Data frequencies do not match frequency_array")
 
     def set_from_power_spectral_density(self, power_spectral_density,
                                         sampling_frequency, duration,
@@ -186,7 +189,11 @@ class InterferometerStrainData(object):
         frequency_domain_strain, frequencies = \
             power_spectral_density.get_noise_realisation(
                 self.sampling_frequency, self.duration)
-        self._frequency_domain_strain = frequency_domain_strain
+
+        if np.array_equal(frequencies, self.frequency_array):
+            self._frequency_domain_strain = frequency_domain_strain
+        else:
+            raise ValueError("Data frequencies do not match frequency_array")
 
     def set_zero_noise(self, sampling_frequency, duration, start_time=0):
         """ Set the data to zero noise
@@ -240,7 +247,11 @@ class InterferometerStrainData(object):
             t2=start_time+duration+buffer_time, channel=channel_name,
             resample=sampling_frequency)
 
-        self._frequency_domain_strain, _ = tupak.gw.utils.process_strain_data(strain, **kwargs)
+        frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
+        if np.array_equal(frequencies, self.frequency_array):
+            self._frequency_domain_strain = frequency_domain_strain
+        else:
+            raise ValueError("Data frequencies do not match frequency_array")
 
 
 class Interferometer(object):
