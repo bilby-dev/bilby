@@ -61,7 +61,7 @@ simulation_parameters = dict(
 search_waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     time_duration=time_duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.supernova_pca_model,
-    parameters=simulation_parameters)
+    waveform_arguments=simulation_parameters)
 
 # Set up prior
 priors = dict()
