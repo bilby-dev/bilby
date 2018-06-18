@@ -233,6 +233,9 @@ class InterferometerStrainData(object):
             The data duration (in s)
         start_time: float
             The GPS start-time of the data
+        buffer_time: float
+            Read in data with `start_time-buffer_time` and
+            `start_time+duration+buffer_time`
 
         """
 
@@ -243,8 +246,8 @@ class InterferometerStrainData(object):
 
         logging.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
-            frame_file, t1=start_time-buffer_time,
-            t2=start_time+duration+buffer_time, channel=channel_name,
+            frame_file, t1=start_time, t2=start_time+duration,
+            buffer_time=buffer_time, channel=channel_name,
             resample=sampling_frequency)
 
         frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
