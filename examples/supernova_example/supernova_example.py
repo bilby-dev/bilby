@@ -74,8 +74,9 @@ priors['pc_coeff2'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff2')
 priors['pc_coeff3'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff3')
 priors['pc_coeff4'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff4')
 priors['pc_coeff5'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff5')
-priors['ra'] = tupak.core.prior.create_default_prior(name='ra')
-priors['dec'] = tupak.core.prior.create_default_prior(name='dec')
+priors['ra'] = tupak.core.prior.Uniform(minimum=0, maximum=2 * np.pi,
+                                        name='ra')
+priors['dec'] = tupak.core.prior.Sine(name='dec')
 priors['geocent_time'] = tupak.core.prior.Uniform(
     injection_parameters['geocent_time'] - 1,
     injection_parameters['geocent_time'] + 1,
