@@ -8,7 +8,6 @@ import tupak
 import numpy as np
 
 # A few simple setup steps
-tupak.core.utils.setup_logger()
 label = 'gaussian_example'
 outdir = 'outdir'
 
@@ -47,10 +46,10 @@ class SimpleGaussianLikelihood(tupak.Likelihood):
 likelihood = SimpleGaussianLikelihood(data)
 priors = dict(mu=tupak.core.prior.Uniform(0, 5, 'mu'),
               sigma=tupak.core.prior.Uniform(0, 10, 'sigma'))
-priors['mu'] = 1
 
 # And run sampler
 result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     walks=10, outdir=outdir, label=label)
 result.plot_corner()
+print result.posterior.head()

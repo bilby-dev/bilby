@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import inspect
 
 # A few simple setup steps
-tupak.core.utils.setup_logger()
 label = 'linear_regression'
 outdir = 'outdir'
 
