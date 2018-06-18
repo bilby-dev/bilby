@@ -555,8 +555,6 @@ class Interferometer(object):
         ValueError: If no method to set data is provided
         """
 
-        self.start_time = start_time
-
         if frequency_domain_strain is not None:
             logging.info(
                 'Setting {} data using provided frequency_domain_strain'.format(self.name))
