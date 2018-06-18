@@ -136,15 +136,16 @@ class InterferometerStrainData(object):
         logging.info('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array) * (1 + 1j)
 
-    def set_from_frame_file(self, frame_file, channel_name, overwrite_psd=True,
-                            **kwargs):
+    def set_from_frame_file(self, frame_file, channel_name, sampling_frequency,
+                            duration, start_time=0, overwrite_psd=True,
+                            buffer_time=1, **kwargs):
         logging.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
-            frame_file, t1=self.start_time-1,
-            t2=self.start_time+self.duration+1, channel=channel_name,
-            resample=self.sampling_frequency)
+            frame_file, t1=start_time-buffer_time,
+            t2=start_time+duration+buffer_time, channel=channel_name,
+            resample=sampling_frequency)
 
-        frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(strain, **kwargs)
+        frequency_domain_strain, _ = tupak.gw.utils.process_strain_data(strain, **kwargs)
 
         if overwrite_psd:
             self.power_spectral_density = PowerSpectralDensity(
