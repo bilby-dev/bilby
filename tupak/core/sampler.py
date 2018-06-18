@@ -400,6 +400,7 @@ class Nestle(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
+        self.result.log_likelihood_evaluations = out.logl
         self.result.log_evidence = out.logz
         self.result.log_evidence_err = out.logzerr
         return self.result
@@ -503,6 +504,7 @@ class Dynesty(Sampler):
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
             out.samples, weights)
+        self.result.log_likelihood_evaluations = out.logl
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
 
