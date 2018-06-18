@@ -29,8 +29,8 @@ np.random.seed(170801)
 # read in a signal to inject from a txt file.
 
 injection_parameters = dict(file_path='MuellerL15_example_inj.txt',
-                            luminosity_distance=10.0, ra=1.375,
-                            dec=-1.2108, geocent_time=1126259642.413,
+                            luminosity_distance=7.0, ra=4.6499,
+                            dec=-0.5063, geocent_time=1126259642.413,
                             psi=2.659)
 
 # Create the waveform_generator using a supernova source function
