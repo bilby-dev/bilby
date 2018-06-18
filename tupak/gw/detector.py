@@ -14,23 +14,35 @@ from tupak.core import utils
 
 
 class InterferometerSet(list):
+    """ A list of Interferometer objects """
     def __init__(self, interferometers):
+        """ Instantiate a InterferometerSet
+
+        The InterferometerSet containes a list of Interferometer objects, each
+        object has the data used in evaluating the likelihood
+
+        Parameters
+        ----------
+        interferometers: list
+            The list of interferometers
+        """
         if type(interferometers) != list:
             raise ValueError("Input must be list")
+        for ifo in interferometers:
+            if type(ifo) != Interferometer:
+                raise ValueError("Input list of interferometers are not all Interferometer objects")
         self.interferometers = interferometers
         self.number_of_interferometers = len(interferometers)
-        self.check_interferometers()
+        self._check_interferometers()
 
-    def check_interferometers(self):
-        durations = [interferomer.strain_data.duration for interferomer in self.interferometers]
-        if np.mean(durations) != durations[0]:
-            raise ValueError("The duration of all interferometers are not the same")
-        start_times = [interferomer.strain_data.start_time for interferomer in self.interferometers]
-        if np.mean(start_times) != start_times[0]:
-            raise ValueError("The start time of all interferometers are not the same")
-        sampling_frequencies = [interferomer.strain_data.sampling_frequency for interferomer in self.interferometers]
-        if np.mean(sampling_frequencies) != sampling_frequencies[0]:
-            raise ValueError("The sampling_frequencies of all interferometers are not the same")
+    def _check_interferometers(self):
+        """ Check certain aspects of the set are the same """
+        samesies = ['duration', 'start_time', 'sampling_frequency']
+        for attribute in samesies:
+            x = [getattr(interferometer.strain_data, attribute)
+                 for interferometer in self.interferometers]
+            if np.mean(x) != x[0]:
+                raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
     def __iter__(self):
         i = 0
