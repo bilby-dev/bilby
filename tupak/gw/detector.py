@@ -211,8 +211,7 @@ class InterferometerStrainData(object):
         self._frequency_domain_strain = np.zeros_like(self.frequency_array) * (1 + 1j)
 
     def set_from_frame_file(self, frame_file, channel_name, sampling_frequency,
-                            duration, start_time=0, overwrite_psd=True,
-                            buffer_time=1, **kwargs):
+                            duration, start_time=0, buffer_time=1, **kwargs):
         """ Set the data from a frame
 
         Parameters
@@ -221,9 +220,6 @@ class InterferometerStrainData(object):
             File from which to load data.
         channel_name: str
             Channel to read from frame.
-        overwrite_psd: bool
-            Whether to overwrite the psd in the interferometer with one
-            calculated from the loaded data, default=True.
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -244,11 +240,7 @@ class InterferometerStrainData(object):
             t2=start_time+duration+buffer_time, channel=channel_name,
             resample=sampling_frequency)
 
-        frequency_domain_strain, _ = tupak.gw.utils.process_strain_data(strain, **kwargs)
-
-        if overwrite_psd:
-            self.power_spectral_density = PowerSpectralDensity(
-                frame_file=frame_file, channel_name=channel_name, start_time=self.start_time, **kwargs)
+        self._frequency_domain_strain, _ = tupak.gw.utils.process_strain_data(strain, **kwargs)
 
 
 class Interferometer(object):
