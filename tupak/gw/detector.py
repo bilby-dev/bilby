@@ -56,8 +56,7 @@ class InterferometerSet(list):
 
 
 class InterferometerStrainData(object):
-    def __init__(self, sampling_frequency, duration,
-                 start_time=0, frequency_domain_strain=None,
+    def __init__(self, sampling_frequency, duration, start_time=0,
                  minimum_frequency=0, maximum_frequency=np.inf):
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
@@ -66,7 +65,6 @@ class InterferometerStrainData(object):
         self.start_time = start_time
         self.frequency_array = utils.create_frequency_series(
             sampling_frequency, duration)
-        self.frequency_domain_strain = frequency_domain_strain * self.frequency_mask
 
     @property
     def minimum_frequency(self):
@@ -93,6 +91,14 @@ class InterferometerStrainData(object):
         array_like: An array of boolean values
         """
         return (self.frequency_array > self.minimum_frequency) & (self.frequency_array < self.maximum_frequency)
+
+    def set_from_frequency_domain_strain(self, frequency_domain_strain):
+        logging.debug('Setting data using provided frequency_domain_strain')
+        self._frequency_domain_strain = frequency_domain_strain
+
+    @property
+    def frequency_domain_strain(self):
+        return self._frequency_domain_strain * self.frequency_mask
 
 
 class Interferometer(object):
@@ -435,7 +441,8 @@ class Interferometer(object):
         else:
             signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
             if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
-                self.strain_data.frequency_domain_strain += signal_ifo
+                self.strain_data.set_from_frequency_domain_strain(
+                    self.strain_data.frequency_domain_strain + signal_ifo)
             else:
                 logging.info('Injecting into zero noise.')
                 self.frequency_domain_strain = signal_ifo
@@ -584,7 +591,8 @@ class Interferometer(object):
 
         self.strain_data = InterferometerStrainData(
             sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time,
+            start_time=start_time)
+        self.strain_data.set_from_frequency_domain_strain(
             frequency_domain_strain=frequency_domain_strain)
 
     def time_delay_from_geocenter(self, ra, dec, time):
