@@ -68,12 +68,30 @@ class InterferometerSet(list):
 
 
 class InterferometerStrainData(object):
+    """ Strain data for an interferometer """
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf):
+        """ Initiate an InterferometerStrainData object
+
+        The initialised object contains no data, this should be added using one
+        of the `set_data..` methods.
+
+        Parameters
+        ----------
+        minimum_frequency: float
+            Minimum frequency to analyse for detector.
+        maximum_frequency: float
+            Maximum frequency to analyse for detector.
+
+        """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
         self._frequency_domain_strain = None
 
-    def calculate_frequency_array(self):
+    def _calculate_frequency_array(self):
+        """ Calculate the frequency array
+
+        Called after sampling_frequency and duration have been set.
+        """
         self.frequency_array = utils.create_frequency_series(
             self.sampling_frequency, self.duration)
 
@@ -110,29 +128,59 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("strain_data not yet set")
 
+    def add_to_frequency_domain_strain(self, x):
+        self._frequency_domain_strain += x
+
     def set_from_frequency_domain_strain(self, frequency_domain_strain,
                                          sampling_frequency, duration,
                                          start_time=0):
-        logging.debug('Setting data using provided frequency_domain_strain')
+        """ Set the data directly from a numpy array
+
+        Parameters
+        ----------
+        frequency_domain_strain: array_like
+            The data to set
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self.calculate_frequency_array()
-        self._frequency_domain_strain = frequency_domain_strain
+        self._calculate_frequency_array()
 
-    def add_to_frequency_domain_strain(self, x):
-        self._frequency_domain_strain += x
+        logging.debug('Setting data using provided frequency_domain_strain')
+        self._frequency_domain_strain = frequency_domain_strain
 
     def set_from_power_spectral_density(self, power_spectral_density,
                                         sampling_frequency, duration,
                                         start_time=0):
+        """ Set the data by generating a noise realisation
+
+        Parameters
+        ----------
+        power_spectral_density: tupak.gw.detecter.PowerSpectralDensity
+            A PowerSpectralDensity object used to generate the data
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self.calculate_frequency_array()
-        logging.info('Setting zero noise data')
+        self._calculate_frequency_array()
 
-        logging.info(
+        logging.debug(
             'Setting data using noise realization from provided'
             'power_spectal_density')
         frequency_domain_strain, frequencies = \
@@ -141,16 +189,55 @@ class InterferometerStrainData(object):
         self._frequency_domain_strain = frequency_domain_strain
 
     def set_zero_noise(self, sampling_frequency, duration, start_time=0):
+        """ Set the data to zero noise
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self.calculate_frequency_array()
-        logging.info('Setting zero noise data')
+        self._calculate_frequency_array()
+
+        logging.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array) * (1 + 1j)
 
     def set_from_frame_file(self, frame_file, channel_name, sampling_frequency,
                             duration, start_time=0, overwrite_psd=True,
                             buffer_time=1, **kwargs):
+        """ Set the data from a frame
+
+        Parameters
+        ----------
+        frame_file: str
+            File from which to load data.
+        channel_name: str
+            Channel to read from frame.
+        overwrite_psd: bool
+            Whether to overwrite the psd in the interferometer with one
+            calculated from the loaded data, default=True.
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
+        self.sampling_frequency = sampling_frequency
+        self.duration = duration
+        self.start_time = start_time
+        self._calculate_frequency_array()
+
         logging.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
             frame_file, t1=start_time-buffer_time,
