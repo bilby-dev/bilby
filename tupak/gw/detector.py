@@ -107,7 +107,21 @@ class Interferometer(object):
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.time_marginalization = False
-        self.strain_data = None  # Would be good to raise an error if this is called, but not set
+        self._strain_data = None
+
+    @property
+    def strain_data(self):
+        """ A tupak.gw.detector.InterferometerStrainData instance """
+        if self._strain_data:
+            return self._strain_data
+        else:
+            raise ValueError("Interferometer {} has no `strain_data` set"
+                             .format(self.name))
+
+    @strain_data.setter
+    def strain_data(self, strain_data):
+        """ Set the strain_data """
+        self._strain_data = strain_data
 
     @property
     def latitude(self):
