@@ -538,6 +538,9 @@ class Dynesty(Sampler):
 
         if self.plot:
             self.generate_trace_plots(out)
+
+        if os.path.isfile('{}/{}_resume.h5'.format(self.outdir, self.label)):
+            os.remove('{}/{}_resume.h5'.format(self.outdir, self.label))
         return self.result
 
     def read_saved_state(self, nested_sampler):
