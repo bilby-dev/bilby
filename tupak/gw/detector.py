@@ -947,7 +947,7 @@ def get_interferometer_with_open_data(
         sampling_frequency, time_duration,
         frequency_domain_strain=utils.nfft(
             strain.value, sampling_frequency)[0],
-        start_time=strain.start_time.value)
+        start_time=strain.epoch.value)
 
     if plot:
         interferometer.plot_data(outdir=outdir)
