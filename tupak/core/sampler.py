@@ -448,7 +448,8 @@ class Dynesty(Sampler):
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
         if 'n_check_point' not in kwargs:
             # checkpointing done by default ~ every 10 minutes
-            self.__kwargs['n_check_point'] = self.__kwargs['check_point_delta_t'] // self._sample_log_likelihood_eval
+            self.__kwargs['n_check_point'] = int(self.__kwargs['check_point_delta_t']
+                                                 // self._sample_log_likelihood_eval)
 
     def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
         """ Replacing status update for dynesty.result.print_func """
@@ -580,8 +581,6 @@ class Dynesty(Sampler):
 
         if os.path.isfile(resume_file):
             saved_state = deepdish.io.load(resume_file)
-
-            print(np.shape(saved_state['sample_likelihoods']), np.shape(nested_sampler.saved_logl))
 
             current_state = dict(
                 unit_cube_samples=np.vstack([saved_state['unit_cube_samples'], nested_sampler.saved_u[1:]]),
