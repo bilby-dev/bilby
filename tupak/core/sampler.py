@@ -213,9 +213,8 @@ class Sampler(object):
         try:
             t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
-            logging.info(
-                "Single likelihood evaluation took {:.3e} s"
-                .format((datetime.datetime.now() - t1).total_seconds()))
+            self._sample_log_likelihood_eval = (datetime.datetime.now() - t1).total_seconds()
+            logging.info("Single likelihood evaluation took {:.3e} s".format(self._sample_log_likelihood_eval))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
@@ -437,7 +436,7 @@ class Dynesty(Sampler):
     @kwargs.setter
     def kwargs(self, kwargs):
         self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk', resume=True,
-                             walks=self.ndim * 5, verbose=True, n_check_point=1000000)
+                             walks=self.ndim * 5, verbose=True, check_point_delta_t=60*10)
         self.__kwargs.update(kwargs)
         if 'nlive' not in self.__kwargs:
             for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
@@ -447,6 +446,9 @@ class Dynesty(Sampler):
             self.__kwargs['nlive'] = 250
         if 'update_interval' not in self.__kwargs:
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
+        if 'n_check_point' not in kwargs:
+            # checkpointing done by default ~ every 10 minutes
+            self.__kwargs['n_check_point'] = self.__kwargs['check_point_delta_t'] // self._sample_log_likelihood_eval
 
     def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
         """ Replacing status update for dynesty.result.print_func """
