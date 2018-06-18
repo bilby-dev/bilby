@@ -435,7 +435,7 @@ class Dynesty(Sampler):
     @kwargs.setter
     def kwargs(self, kwargs):
         self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk',
-                             walks=self.ndim * 5, verbose=True)
+                             walks=self.ndim * 5, verbose=True, n_check_point=5000)
         self.__kwargs.update(kwargs)
         if 'nlive' not in self.__kwargs:
             for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
@@ -498,10 +498,25 @@ class Dynesty(Sampler):
                 loglikelihood=self.log_likelihood,
                 prior_transform=self.prior_transform,
                 ndim=self.ndim, **self.kwargs)
+            old_ncall = 0
+            maxcall = self.kwargs['n_check_point']
+            # maxcall = 5000
+            while True:
+                maxcall += self.kwargs['n_check_point']
+                print(nested_sampler.ncall, 'fhdslahfjkldsahfsa')
+                nested_sampler.run_nested(
+                    dlogz=self.kwargs['dlogz'],
+                    print_progress=self.kwargs['verbose'],
+                    print_func=self._print_func, maxcall=maxcall,
+                    add_live=False)
+                if nested_sampler.ncall == old_ncall:
+                    break
+                print(old_ncall, nested_sampler.ncall)
+                old_ncall = nested_sampler.ncall
             nested_sampler.run_nested(
                 dlogz=self.kwargs['dlogz'],
                 print_progress=self.kwargs['verbose'],
-                print_func=self._print_func)
+                print_func=self._print_func, add_live=True)
         else:
             nested_sampler = dynesty.DynamicNestedSampler(
                 loglikelihood=self.log_likelihood,
