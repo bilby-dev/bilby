@@ -709,6 +709,16 @@ class Interferometer(object):
         """
         return tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
 
+    @property
+    def whitened_frequency_domain_strain(self):
+        """ Calculates the whitened data by dividing data by the amplitude spectral density
+
+        Returns
+        -------
+        array_like: The whitened data
+        """
+        return self.strain_data.frequency_domain_strain / self.amplitude_spectral_density_array
+
     def save_data(self, outdir):
         """ Creates a save file for the data in plain text format
 
