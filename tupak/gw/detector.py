@@ -73,7 +73,7 @@ class InterferometerStrainData(object):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
-        of the `set_data..` methods.
+        of the `set_from..` methods.
 
         Parameters
         ----------
@@ -322,6 +322,28 @@ class Interferometer(object):
     def strain_data(self, strain_data):
         """ Set the strain_data """
         self._strain_data = strain_data
+
+    def set_strain_data_from_power_spectral_density(
+            self, sampling_frequency, duration, start_time=0):
+        """ Set the `.strain_data` from the power spectal density
+
+        This uses the `interferometer.power_spectral_density` object to set
+        the `strain_data` to a noise realization. See
+        `tupak.gw.detector.InterferometerStrainData for further information.
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        self.strain_data.set_from_power_spectral_density(
+            self.power_spectral_density, sampling_frequency=sampling_frequency,
+            duration=duration, start_time=start_time)
 
     @property
     def latitude(self):
