@@ -32,7 +32,6 @@ class InterferometerSet(list):
             if type(ifo) != Interferometer:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
         self.interferometers = interferometers
-        self.number_of_interferometers = len(interferometers)
         self._check_interferometers()
 
     def _check_interferometers(self):
@@ -49,6 +48,10 @@ class InterferometerSet(list):
         while i < self.number_of_interferometers:
             yield self.interferometers[i]
             i += 1
+
+    @property
+    def number_of_interferometers(self):
+        return len(self.interferometers)
 
     @property
     def duration(self):
