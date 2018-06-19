@@ -29,7 +29,7 @@ Clone the repository, install the requirements, and then install the software:
    $ pip install -r requirements.txt
    $ python setup.py install
 
-Once you have run these steps, you have `tupak` installed. You can now try to
+Once you have run these steps, you have :code:`tupak` installed. You can now try to
 run the examples.
 
 .. note::

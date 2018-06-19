@@ -347,7 +347,7 @@ class Prior(object):
         """Test if 0 < val < 1
 
         Parameters
-        -------
+        ----------
         val: float
 
         Raises
