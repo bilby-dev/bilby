@@ -18,7 +18,7 @@ class InterferometerSet(list):
     def __init__(self, interferometers):
         """ Instantiate a InterferometerSet
 
-        The InterferometerSet containes a list of Interferometer objects, each
+        The InterferometerSet contains a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
 
         Parameters
@@ -40,7 +40,7 @@ class InterferometerSet(list):
         for attribute in consistent_attributes:
             x = [getattr(interferometer.strain_data, attribute)
                  for interferometer in self.interferometers]
-            if all(y == x[0] for y in x):
+            if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
     def __iter__(self):
@@ -170,7 +170,7 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        power_spectral_density: tupak.gw.detecter.PowerSpectralDensity
+        power_spectral_density: tupak.gw.detector.PowerSpectralDensity
             A PowerSpectralDensity object used to generate the data
         sampling_frequency: float
             The sampling frequency (in Hz)
