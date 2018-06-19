@@ -833,7 +833,7 @@ class PowerSpectralDensity:
                 logging.warning("You may have intended to provide this as a power spectral density.")
         elif frame_file is not None:
             strain = tupak.gw.utils.read_frame_file(frame_file, t1=start_time - psd_duration - psd_offset,
-                                                    t2=start_time - psd_duration, channel=channel_name)
+                                                    t2=start_time - psd_offset, channel=channel_name)
             sampling_frequency = int(strain.sample_rate.value)
 
             # Low pass filter
