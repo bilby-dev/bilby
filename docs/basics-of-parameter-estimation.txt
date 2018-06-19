@@ -3,7 +3,7 @@ Basics of parameter estimation
 ==============================
 
 In this example, we'll go into some of the basics of parameter estimation and
-how they are implemented in `tupak`.
+how they are implemented in :code:`tupak`.
 
 Firstly, consider a situation where you have discrete data :math:`\{y_0,
 y_1,\ldots, y_n\}` taken at a set of times :math:`\{t_0, t_1, \ldots, y_n\}`.
@@ -20,7 +20,7 @@ least squares estimator for example).
 Here, we will describe a Bayesian approach using `nested sampling
 <https://en.wikipedia.org/wiki/Nested_sampling_algorithm>`_ which might feel
 like overkill for this problem. However, it is a useful way to introduce some
-of the basic features of `tupak` before seeing them in more complicated
+of the basic features of :code:`tupak` before seeing them in more complicated
 settings.
 
 The maths
@@ -31,7 +31,7 @@ by
 
 .. math::
 
-   P(m, c| \{y_i, t_i\}, H) \propto P(\{y_i, t_i\}| m, c, H) \times P(m, c| H)
+   P(m, c| \{y_i, t_i\}, H) \propto P(\{y_i, t_i\}| m, c, H) \times P(m, c| H)\,.
 
 where the first term on the right-hand-side is the *likelihood* while the
 second is the *prior*. In the model :math:`H`, the likelihood of the data point
@@ -41,37 +41,37 @@ Gaussian distributed as such:
 .. math::
 
    P(y_i, t_i| m, c, H) = \frac{1}{\sqrt{2\pi\sigma^2}}
-                         \mathrm{exp}\left(\frac{-(y_i - (t_i x + c))^2}{2\sigma^2}\right)
+                         \mathrm{exp}\left(\frac{-(y_i - (t_i x + c))^2}{2\sigma^2}\right) \,.
 
 Next, we assume that all data points are independent. As such,
 
 .. math::
 
-   P(\{y_i, t_i\}| m, c, H) = \prod_{i=1}^n P(y_i, t_i| m, c, H)
+   P(\{y_i, t_i\}| m, c, H) = \prod_{i=1}^n P(y_i, t_i| m, c, H) \,.
 
 When solving problems on a computer, it is often convienient to work with
-the log-likelihood. Indeed, a `tupak` *likelihood* must have a `log_likelihood()`
+the log-likelihood. Indeed, a :code:`tupak` *likelihood* must have a `log_likelihood()`
 method. For the normal distribution, the log-likelihood for *n* data points is
 
 .. math::
 
    \log(P(\{y_i, t_i\}| m, c, H)) = -\frac{1}{2}\left[
        \sum_{i=1}^n \left(\frac{(y_i - (t_i x + c))}{\sigma}\right)^2
-       + n\log\left(2\pi\sigma^2\right)\right]
+       + n\log\left(2\pi\sigma^2\right)\right] \,.
 
 Finally, we need to specify a *prior*. In this case we will use uncorrelated
 uniform priors
 
 .. math::
 
-  P(m, c| H) = P(m| H) \times P(c| H) = \textrm{Unif}(0, 5) \times \textrm{Unif}(-2, 2)
+  P(m, c| H) = P(m| H) \times P(c| H) = \textrm{Unif}(0, 5) \times \textrm{Unif}(-2, 2)\,.
 
-the choice of prior in general should be guided by physical knowledge about the
+The choice of prior in general should be guided by physical knowledge about the
 system and not the data in question.
 
 The key point to take away here is that the **likelihood** and **prior** are
 the inputs to figuring out the **posterior**. There are many ways to go about
-this, we will now show how to do so in `tupak`. In this case, we explicitly
+this, we will now show how to do so in :code:`tupak`. In this case, we explicitly
 show how to write the `GaussianLikelihood` so that one can see how the
 maths above gets implemented. For the prior, this is done implicitly by the
 naming of the priors.

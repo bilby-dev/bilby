@@ -667,7 +667,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         All kwargs are passed directly to the samplers `run` function
 
     Returns
-    ------
+    -------
     result
         An object containing the results
     """

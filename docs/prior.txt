@@ -12,7 +12,7 @@ Typically, these are passed into :ref:`run_sampler <run_sampler>` as a regular
 `python dictionary
 <https://docs.python.org/2/tutorial/datastructures.html#dictionaries>`_.
 
-The keys of the priors objects should reference the model parameters (in
+The keys of the priors objects should reference the model parameters, in
 particular, the :code:`parameters` attribute of the :ref:`likelihood`. Each key
 can be either
 
@@ -20,7 +20,7 @@ can be either
   this is a Delta-function prior,
 - or a :code:`tupak.prior.Prior` instance.
 
-If the later, it will be sampled during the parameter estimation. Here is a
+If the latter, it will be sampled during the parameter estimation. Here is a
 simple example that sets a uniform prior for :code:`a`, and a fixed value for
 :code:`b`::
 
@@ -44,14 +44,23 @@ hole and defined in a file like this
 You can define your own default prior and pass a string pointing to that file
 to :ref:`run_sampler <run_sampler>`.
 
-Complete list of available prior classes
+Available prior classes
 ----------------------------------------
 
-We have provided a number of standard priors. You can define your own by
-subclassing the :code:`tupak.prior.Prior` class. Here is the complete list of
-those implemented:
+We have provided a number of standard priors. Here we document a few of them,
+note that this list is incomplete.
 
-.. automodule:: tupak.core.prior
+.. autoclass:: tupak.core.prior.Uniform
    :members:
+   :special-members:
 
+.. autoclass:: tupak.core.prior.Gaussian
+   :members:
+   :special-members:
 
+You can also define your own by
+subclassing the :code:`tupak.prior.Prior` class.
+
+.. autoclass:: tupak.core.prior.Prior
+   :members:
+   :special-members:
