@@ -694,6 +694,10 @@ class Interferometer(object):
         return self.strain_data.frequency_array
 
     @property
+    def frequency_mask(self):
+        return self.strain_data.frequency_mask
+
+    @property
     def frequency_domain_strain(self):
         return self.strain_data.frequency_domain_strain
 
