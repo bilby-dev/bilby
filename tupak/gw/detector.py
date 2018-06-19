@@ -36,11 +36,11 @@ class InterferometerSet(list):
 
     def _check_interferometers(self):
         """ Check certain aspects of the set are the same """
-        samesies = ['duration', 'start_time', 'sampling_frequency']
-        for attribute in samesies:
+        consistent_attributes = ['duration', 'start_time', 'sampling_frequency']
+        for attribute in consistent_attributes:
             x = [getattr(interferometer.strain_data, attribute)
                  for interferometer in self.interferometers]
-            if np.mean(x) != x[0]:
+            if all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
     def __iter__(self):
