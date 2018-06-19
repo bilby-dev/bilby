@@ -539,9 +539,13 @@ class Dynesty(Sampler):
         if self.plot:
             self.generate_trace_plots(out)
 
+        self._remove_checkpoint()
+        return self.result
+
+    def _remove_checkpoint(self):
+        """Remove checkpointed state"""
         if os.path.isfile('{}/{}_resume.h5'.format(self.outdir, self.label)):
             os.remove('{}/{}_resume.h5'.format(self.outdir, self.label))
-        return self.result
 
     def read_saved_state(self, nested_sampler):
         """
@@ -549,9 +553,8 @@ class Dynesty(Sampler):
 
         The required information to reconstruct the state of the run is read from an hdf5 file.
         This currently adds the whole chain to the sampler.
-        FIXME: Load only the necessary quantities?
-        To limit memory requirements this should currently be followed by wiping the resume file
-        and calling `self.write_saved_state`.
+        We then remove the old checkpoint and write all unnecessary items back to disk.
+        FIXME: Load only the necessary quantities, rather than read/write?
 
         Parameters
         ----------
@@ -586,6 +589,8 @@ class Dynesty(Sampler):
             nested_sampler.live_bound = saved_state['live_bound']
             nested_sampler.live_it = saved_state['live_it']
             nested_sampler.added_live = saved_state['added_live']
+            self._remove_checkpoint()
+            self.write_current_state(nested_sampler)
             return True
 
         else:
