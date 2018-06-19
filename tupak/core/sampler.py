@@ -544,7 +544,20 @@ class Dynesty(Sampler):
         return self.result
 
     def read_saved_state(self, nested_sampler):
+        """
+        Read a saved state of the sampler to disk.
 
+        The required information to reconstruct the state of the run is read from an hdf5 file.
+        This currently adds the whole chain to the sampler.
+        FIXME: Load only the necessary quantities?
+        To limit memory requirements this should currently be followed by wiping the resume file
+        and calling `self.write_saved_state`.
+
+        Parameters
+        ----------
+        nested_sampler: `dynesty.NestedSampler`
+            NestedSampler instance to reconstruct from the saved state.
+        """
         resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
 
         if os.path.isfile(resume_file):
@@ -579,7 +592,18 @@ class Dynesty(Sampler):
             return False
 
     def write_current_state(self, nested_sampler):
+        """
+        Write the current state of the sampler to disk.
 
+        The required information to reconstruct the state of the run are written to an hdf5 file.
+        All but the most recent removed live point in the chain are removed from the sampler to reduce memory usage.
+        This means it is necessary to not append the first live point to the file if updating a previous checkpoint.
+
+        Parameters
+        ----------
+        nested_sampler: `dynesty.NestedSampler`
+            NestedSampler to write to disk.
+        """
         resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
 
         if os.path.isfile(resume_file):
