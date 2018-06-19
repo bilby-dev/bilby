@@ -494,7 +494,7 @@ class Dynesty(Sampler):
                 ndim=self.ndim, **self.kwargs)
 
             if self.kwargs['resume']:
-                resume = self.read_saved_state(nested_sampler)
+                resume = self.read_saved_state(nested_sampler, continuing=True)
                 if resume:
                     logging.info('Resuming from previous run.')
 
@@ -547,7 +547,7 @@ class Dynesty(Sampler):
         if os.path.isfile('{}/{}_resume.h5'.format(self.outdir, self.label)):
             os.remove('{}/{}_resume.h5'.format(self.outdir, self.label))
 
-    def read_saved_state(self, nested_sampler):
+    def read_saved_state(self, nested_sampler, continuing=False):
         """
         Read a saved state of the sampler to disk.
 
@@ -560,6 +560,9 @@ class Dynesty(Sampler):
         ----------
         nested_sampler: `dynesty.NestedSampler`
             NestedSampler instance to reconstruct from the saved state.
+        continuing: bool
+            Whether the run is continuing or terminating, if True, the loaded state is mostly
+            written back to disk.
         """
         resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
 
@@ -590,7 +593,8 @@ class Dynesty(Sampler):
             nested_sampler.live_it = saved_state['live_it']
             nested_sampler.added_live = saved_state['added_live']
             self._remove_checkpoint()
-            self.write_current_state(nested_sampler)
+            if continuing:
+                self.write_current_state(nested_sampler)
             return True
 
         else:
