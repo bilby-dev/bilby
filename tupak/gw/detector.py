@@ -163,7 +163,7 @@ class InterferometerStrainData(object):
             self.sampling_frequency = sampling_frequency
             self.duration = duration
             self._calculate_frequency_array()
-        elif sampling_frequency != duration:
+        elif any(x is not None for x in [sampling_frequency, duration]):
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
         elif frequency_array is not None:
@@ -236,8 +236,9 @@ class InterferometerStrainData(object):
         logging.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array) * (1 + 1j)
 
-    def set_from_frame_file(self, frame_file, channel_name, sampling_frequency,
-                            duration, start_time=0, buffer_time=1, **kwargs):
+    def set_from_frame_file(self, frame_file, sampling_frequency,
+                            duration, start_time=0, channel_name=None,
+                            buffer_time=1, **kwargs):
         """ Set the data from a frame
 
         Parameters
@@ -777,11 +778,15 @@ class Interferometer(object):
             The output directory in which the data is supposed to be saved
         """
         np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
-                   [self.frequency_array, self.frequency_domain_strain.real,
-                    self.frequency_domain_strain.imag],
+                   np.array(
+                       [self.frequency_array,
+                        self.frequency_domain_strain.real,
+                        self.frequency_domain_strain.imag]).T,
                    header='f real_h(f) imag_h(f)')
         np.savetxt('{}/{}_psd.dat'.format(outdir, self.name),
-                   [self.frequency_array, self.amplitude_spectral_density_array],
+                   np.array(
+                       [self.frequency_array,
+                        self.amplitude_spectral_density_array]).T,
                    header='f h(f)')
 
     def plot_data(self, signal=None, outdir='.'):
