@@ -52,4 +52,3 @@ result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     walks=10, outdir=outdir, label=label)
 result.plot_corner()
-print result.posterior.head()
