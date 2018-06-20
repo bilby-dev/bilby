@@ -18,7 +18,7 @@ class InterferometerSet(list):
     def __init__(self, interferometers):
         """ Instantiate a InterferometerSet
 
-        The InterferometerSet containes a list of Interferometer objects, each
+        The InterferometerSet contains a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
 
         Parameters
@@ -32,16 +32,15 @@ class InterferometerSet(list):
             if type(ifo) != Interferometer:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
         self.interferometers = interferometers
-        self.number_of_interferometers = len(interferometers)
         self._check_interferometers()
 
     def _check_interferometers(self):
         """ Check certain aspects of the set are the same """
-        samesies = ['duration', 'start_time', 'sampling_frequency']
-        for attribute in samesies:
+        consistent_attributes = ['duration', 'start_time', 'sampling_frequency']
+        for attribute in consistent_attributes:
             x = [getattr(interferometer.strain_data, attribute)
                  for interferometer in self.interferometers]
-            if np.mean(x) != x[0]:
+            if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
     def __iter__(self):
@@ -49,6 +48,10 @@ class InterferometerSet(list):
         while i < self.number_of_interferometers:
             yield self.interferometers[i]
             i += 1
+
+    @property
+    def number_of_interferometers(self):
+        return len(self.interferometers)
 
     @property
     def duration(self):
@@ -167,7 +170,7 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        power_spectral_density: tupak.gw.detecter.PowerSpectralDensity
+        power_spectral_density: tupak.gw.detector.PowerSpectralDensity
             A PowerSpectralDensity object used to generate the data
         sampling_frequency: float
             The sampling frequency (in Hz)
