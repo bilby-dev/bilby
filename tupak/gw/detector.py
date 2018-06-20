@@ -574,7 +574,7 @@ class Interferometer(object):
                    header='f h(f)')
 
 
-class PowerSpectralDensity:
+class PowerSpectralDensity(object):
 
     def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, asd_array=None,
                  psd_array=None, frequencies=None, epoch=0,
@@ -630,8 +630,8 @@ class PowerSpectralDensity:
             Interpolated function of the PSD
         """
         self.__both_updated = True
-        self.__power_spectral_density = []
-        self.__amplitude_spectral_density = []
+        self.__power_spectral_density = None
+        self.__amplitude_spectral_density = None
 
         self.frequencies = []
         self.power_spectral_density_interpolated = None
@@ -684,12 +684,14 @@ class PowerSpectralDensity:
 
     @power_spectral_density.setter
     def power_spectral_density(self, power_spectral_density):
-        if self._check_frequency_array_matches_density_array(power_spectral_density):
-            self.__power_spectral_density = power_spectral_density
-            self._interpolate_power_spectral_density()
-            self.__both_updated = ~self.__both_updated
-            if not self.__both_updated:
-                self.amplitude_spectral_density = power_spectral_density**0.5
+        # if self._check_frequency_array_matches_density_array(power_spectral_density):
+        self.__power_spectral_density = power_spectral_density
+        self._interpolate_power_spectral_density()
+        # print(self.__both_updated)
+        # self.__both_updated = ~self.__both_updated
+        # print(self.__both_updated)
+        # if not self.__both_updated:
+        self.__amplitude_spectral_density = power_spectral_density**0.5
 
     @property
     def amplitude_spectral_density(self):
@@ -697,11 +699,14 @@ class PowerSpectralDensity:
 
     @amplitude_spectral_density.setter
     def amplitude_spectral_density(self, amplitude_spectral_density):
-        if self._check_frequency_array_matches_density_array(amplitude_spectral_density):
-            self.__amplitude_spectral_density = amplitude_spectral_density
-            self.__both_updated = ~self.__both_updated
-            if not self.__both_updated:
-                self.power_spectral_density = amplitude_spectral_density**2
+        # if self._check_frequency_array_matches_density_array(amplitude_spectral_density):
+        self.__amplitude_spectral_density = amplitude_spectral_density
+        # print(self.__both_updated)
+        # self.__both_updated = ~self.__both_updated
+        # print(self.__both_updated)
+        # if not self.__both_updated:
+        self.__power_spectral_density = amplitude_spectral_density**2
+        self._interpolate_power_spectral_density()
 
     def import_amplitude_spectral_density(self):
         """
