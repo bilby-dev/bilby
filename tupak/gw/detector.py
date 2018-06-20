@@ -621,7 +621,11 @@ class Interferometer(object):
                 self.strain_data.add_to_frequency_domain_strain(signal_ifo)
             else:
                 logging.info('Injecting into zero noise.')
-                self.frequency_domain_strain = signal_ifo
+                self.strain_data.set_from_frequency_domain_strain(
+                    signal_ifo,
+                    sampling_frequency=self.strain_data.sampling_frequency,
+                    duration=self.strain_data.duration,
+                    start_time=self.strain_data.start_time)
             opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
                                                                  time_duration=1 / (self.frequency_array[1] -
                                                                                     self.frequency_array[0])).real)
