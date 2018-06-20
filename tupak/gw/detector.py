@@ -134,28 +134,44 @@ class InterferometerStrainData(object):
     def add_to_frequency_domain_strain(self, x):
         self._frequency_domain_strain += x
 
-    def set_from_frequency_domain_strain(self, frequency_domain_strain,
-                                         sampling_frequency, duration,
-                                         start_time=0):
+    def set_from_frequency_domain_strain(
+            self, frequency_domain_strain, sampling_frequency=None,
+            duration=None, start_time=0, frequency_array=None):
         """ Set the data directly from a numpy array
 
         Parameters
         ----------
         frequency_domain_strain: array_like
-            The data to set
+            The data to set.
         sampling_frequency: float
-            The sampling frequency (in Hz)
+            The sampling frequency (in Hz).
         duration: float
-            The data duration (in s)
+            The data duration (in s).
         start_time: float
-            The GPS start-time of the data
+            The GPS start-time of the data.
+        frequency_array: array_like
+            The array of frequencies, if sampling_frequency and duration not
+            given.
 
         """
 
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
         self.start_time = start_time
-        self._calculate_frequency_array()
+        if (sampling_frequency is not None) and (duration is not None):
+            if frequency_array is not None:
+                raise ValueError(
+                    "You have given the sampling_frequency, duration, and frequency_array")
+            self.sampling_frequency = sampling_frequency
+            self.duration = duration
+            self._calculate_frequency_array()
+        elif sampling_frequency != duration:
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
+        elif frequency_array is not None:
+            self.sampling_frequency, self.duration = (
+                utils.get_sampling_frequency_and_duration_from_frequency_array(frequency_array))
+            self.frequency_array = np.array(frequency_array)
+        else:
+            raise ValueError("Insufficient information given to set frequency_array")
 
         logging.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
