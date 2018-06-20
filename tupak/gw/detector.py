@@ -622,10 +622,6 @@ class PowerSpectralDensity:
             Name of the ASD file
         frequencies: array_like
             Array containing the frequencies of the ASD/PSD values
-        frequency_noise_realization: list
-            TODO: This isn't doing anything right now
-        interpolated_frequency: list
-            TODO: This isn't doing anything right now
         power_spectral_density: array_like
             Array representation of the PSD
         power_spectral_density_file: str
@@ -637,8 +633,6 @@ class PowerSpectralDensity:
         self.frequencies = []
         self.power_spectral_density = []
         self.amplitude_spectral_density = []
-        self.frequency_noise_realization = []
-        self.interpolated_frequency = []
         self.power_spectral_density_interpolated = None
 
         if asd_file is not None:
