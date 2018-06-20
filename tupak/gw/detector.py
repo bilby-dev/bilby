@@ -720,13 +720,13 @@ class Interferometer(object):
                     sampling_frequency=self.strain_data.sampling_frequency,
                     duration=self.strain_data.duration,
                     start_time=self.strain_data.start_time)
-            opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(signal=signal_ifo, interferometer=self,
-                                                                 time_duration=1 / (self.frequency_array[1] -
-                                                                                    self.frequency_array[0])).real)
-            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(signal=signal_ifo,
-                                                                       interferometer=self,
-                                                                       time_duration=1 / (self.frequency_array[1] -
-                                                                                          self.frequency_array[0])).real)
+            opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(
+                signal=signal_ifo, interferometer=self,
+                time_duration=self.strain_data.duration).real)
+            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(
+                signal=signal_ifo, interferometer=self,
+                time_duration=self.strain_data.duration).real)
+
             logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
                 opt_snr, mf_snr, self.name))
 
