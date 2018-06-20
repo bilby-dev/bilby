@@ -661,10 +661,11 @@ class PowerSpectralDensity(object):
             self.frequencies = psd.frequencies
             self.power_spectral_density = psd.value
         elif frequencies is not None:
+            self.frequencies = frequencies
             if asd_array is not None:
-                self._set_from_amplitude_spectral_density(frequencies, asd_array)
+                self.amplitude_spectral_density = asd_array
             elif psd_array is not None:
-                self._set_from_amplitude_spectral_density(frequencies, psd_array)
+                self.power_spectral_density = psd_array
         else:
             if psd_file is None:
                 logging.info("No power spectral density provided, using aLIGO, zero detuning, high power.")
@@ -709,8 +710,7 @@ class PowerSpectralDensity(object):
         if '/' not in self.amplitude_spectral_density_file:
             self.amplitude_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                                 self.amplitude_spectral_density_file)
-        spectral_density = np.genfromtxt(self.amplitude_spectral_density_file)
-        self._set_from_amplitude_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+        self.frequencies, self.amplitude_spectral_density = np.genfromtxt(self.amplitude_spectral_density_file).T
 
     def import_power_spectral_density(self):
         """
@@ -722,22 +722,13 @@ class PowerSpectralDensity(object):
         if '/' not in self.power_spectral_density_file:
             self.power_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                             self.power_spectral_density_file)
-        spectral_density = np.genfromtxt(self.power_spectral_density_file)
-        self._set_from_power_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+        self.frequencies, self.power_spectral_density = np.genfromtxt(self.power_spectral_density_file).T
 
     def _check_frequency_array_matches_density_array(self, density_array):
         match = (len(self.frequencies) == len(density_array))
         if not match:
             logging.warning('Provided spectral density does not match frequency array. Not updating.')
         return match
-
-    def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
-        self.frequencies = frequencies
-        self.amplitude_spectral_density = amplitude_spectral_density
-
-    def _set_from_power_spectral_density(self, frequencies, power_spectral_density):
-        self.frequencies = frequencies
-        self.power_spectral_density = power_spectral_density
 
     def _interpolate_power_spectral_density(self):
         """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
