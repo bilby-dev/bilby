@@ -358,7 +358,7 @@ def set_up_command_line_arguments():
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +
                               " Overridden by script level settings"))
-    parser.add_argument("-q", "--quite", action="store_true",
+    parser.add_argument("-q", "--quiet", action="store_true",
                         help=("Decrease output verbosity [logging.WARNING]." +
                               " Overridden by script level settings"))
     parser.add_argument("-c", "--clean", action="store_true",
@@ -374,7 +374,7 @@ def set_up_command_line_arguments():
                               " just check nothing breaks"))
     args, _ = parser.parse_known_args()
 
-    if args.quite:
+    if args.quiet:
         args.log_level = logging.WARNING
     elif args.verbose:
         args.log_level = logging.DEBUG
