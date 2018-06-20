@@ -388,7 +388,7 @@ class Interferometer(object):
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
-        `tupak.gw.detector.InterferometerStrainData for further information.
+        `tupak.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
         ----------
@@ -713,7 +713,7 @@ class Interferometer(object):
         """ Inject a signal into noise and adds the requested signal to self.strain_data
 
         Parameters
-        -------
+        ----------
         waveform_polarizations: dict
             polarizations of the waveform
         parameters: dict
