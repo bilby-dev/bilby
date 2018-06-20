@@ -734,7 +734,7 @@ class PowerSpectralDensity(object):
         """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
         self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density,
                                                             bounds_error=False,
-                                                            fill_value=max(self.power_spectral_density))
+                                                            fill_value=np.inf)
 
     def get_noise_realisation(self, sampling_frequency, duration):
         """
@@ -756,6 +756,7 @@ class PowerSpectralDensity(object):
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
         frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
+        frequency_domain_strain[(frequencies < min(self.frequencies)) | (frequencies > max(self.frequencies))] = 0
         return frequency_domain_strain, frequencies
 
 
