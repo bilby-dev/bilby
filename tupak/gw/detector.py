@@ -32,8 +32,8 @@ class InterferometerSet(list):
         for ifo in interferometers:
             if type(ifo) != Interferometer:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
+        list.__init__(self, interferometers)
         self._check_interferometers()
-        list.__init__(interferometers)
 
     def _check_interferometers(self):
         """ Check certain aspects of the set are the same """
@@ -43,12 +43,6 @@ class InterferometerSet(list):
                  for interferometer in self]
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
-
-    # def __iter__(self):
-    #     i = 0
-    #     while i < self.number_of_interferometers:
-    #         yield self.interferometers[i]
-    #         i += 1
 
     @property
     def number_of_interferometers(self):
