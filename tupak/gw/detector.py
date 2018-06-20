@@ -64,6 +64,18 @@ class InterferometerSet(list):
     def frequency_array(self):
         return self[0].strain_data.frequency_array
 
+    def append(self, interferometer):
+        super(InterferometerSet, self).append(interferometer)
+        self._check_interferometers()
+
+    def extend(self, interferometers):
+        super(InterferometerSet, self).extend(interferometers)
+        self._check_interferometers()
+
+    def insert(self, index, interferometer):
+        super(InterferometerSet, self).insert(index, interferometer)
+        self._check_interferometers()
+
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
