@@ -686,22 +686,24 @@ class PowerSpectralDensity:
 
     @power_spectral_density.setter
     def power_spectral_density(self, power_spectral_density):
-        self.__power_spectral_density = power_spectral_density
-        self._interpolate_power_spectral_density()
-        self.__both_updated = ~self.__both_updated
-        if not self.__both_updated:
-            self.amplitude_spectral_density(power_spectral_density**0.5)
+        if self._check_frequency_array_matches_density_array(power_spectral_density):
+            self.__power_spectral_density = power_spectral_density
+            self._interpolate_power_spectral_density()
+            self.__both_updated = ~self.__both_updated
+            if not self.__both_updated:
+                self.amplitude_spectral_density = power_spectral_density**0.5
 
     @property
     def amplitude_spectral_density(self):
         return self.__amplitude_spectral_density
 
-    @power_spectral_density.setter
-    def power_spectral_density(self, amplitude_spectral_density):
-        self.__amplitude_spectral_density = amplitude_spectral_density
-        self.__both_updated = ~self.__both_updated
-        if not self.__both_updated:
-            self.power_spectral_density(amplitude_spectral_density**2)
+    @amplitude_spectral_density.setter
+    def amplitude_spectral_density(self, amplitude_spectral_density):
+        if self._check_frequency_array_matches_density_array(amplitude_spectral_density):
+            self.__amplitude_spectral_density = amplitude_spectral_density
+            self.__both_updated = ~self.__both_updated
+            if not self.__both_updated:
+                self.power_spectral_density = amplitude_spectral_density**2
 
     def import_amplitude_spectral_density(self):
         """
@@ -728,6 +730,12 @@ class PowerSpectralDensity:
                                                             self.power_spectral_density_file)
         spectral_density = np.genfromtxt(self.power_spectral_density_file)
         self._set_from_power_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+
+    def _check_frequency_array_matches_density_array(self, density_array):
+        match = (len(self.frequencies) == len(density_array))
+        if not match:
+            logging.warning('Spectral density does not match frequency array. Not updating.')
+        return match
 
     def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
         self.frequencies = frequencies
