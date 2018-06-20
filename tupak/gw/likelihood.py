@@ -46,7 +46,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     Returns
     -------
-    Likelihood: `tupak.likelihood.Likelihood`
+    Likelihood: `tupak.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
@@ -57,10 +57,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
-        if type(interferometers) != tupak.gw.detector.InterferometerSet:
-            self.interferometers = tupak.gw.detector.InterferometerSet(interferometers)
-        else:
-            self.interferometers = interferometers
+        self.interferometers = tupak.gw.detector.InterferometerSet(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
