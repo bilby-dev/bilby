@@ -629,10 +629,11 @@ class PowerSpectralDensity:
         power_spectral_density_interpolated: scipy.interpolated.interp1d
             Interpolated function of the PSD
         """
+        self.__both_updated = True
+        self.__power_spectral_density = []
+        self.__amplitude_spectral_density = []
 
         self.frequencies = []
-        self.power_spectral_density = []
-        self.amplitude_spectral_density = []
         self.power_spectral_density_interpolated = None
 
         if asd_file is not None:
@@ -678,6 +679,29 @@ class PowerSpectralDensity:
                 logging.warning("The minimum of the provided curve is {:.2e}.".format(
                     min(self.power_spectral_density)))
                 logging.warning("You may have intended to provide this as an amplitude spectral density.")
+
+    @property
+    def power_spectral_density(self):
+        return self.__power_spectral_density
+
+    @power_spectral_density.setter
+    def power_spectral_density(self, power_spectral_density):
+        self.__power_spectral_density = power_spectral_density
+        self._interpolate_power_spectral_density()
+        self.__both_updated = ~self.__both_updated
+        if not self.__both_updated:
+            self.amplitude_spectral_density(power_spectral_density**0.5)
+
+    @property
+    def amplitude_spectral_density(self):
+        return self.__amplitude_spectral_density
+
+    @power_spectral_density.setter
+    def power_spectral_density(self, amplitude_spectral_density):
+        self.__amplitude_spectral_density = amplitude_spectral_density
+        self.__both_updated = ~self.__both_updated
+        if not self.__both_updated:
+            self.power_spectral_density(amplitude_spectral_density**2)
 
     def import_amplitude_spectral_density(self):
         """
