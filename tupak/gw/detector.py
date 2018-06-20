@@ -737,7 +737,7 @@ class PowerSpectralDensity(object):
     def _check_frequency_array_matches_density_array(self, density_array):
         match = (len(self.frequencies) == len(density_array))
         if not match:
-            logging.warning('Spectral density does not match frequency array. Not updating.')
+            logging.warning('Provided spectral density does not match frequency array. Not updating.')
         return match
 
     def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
