@@ -629,7 +629,6 @@ class PowerSpectralDensity(object):
         power_spectral_density_interpolated: scipy.interpolated.interp1d
             Interpolated function of the PSD
         """
-        self.__both_updated = True
         self.__power_spectral_density = None
         self.__amplitude_spectral_density = None
 
@@ -687,10 +686,6 @@ class PowerSpectralDensity(object):
         if self._check_frequency_array_matches_density_array(power_spectral_density):
             self.__power_spectral_density = power_spectral_density
             self._interpolate_power_spectral_density()
-        # print(self.__both_updated)
-        # self.__both_updated = ~self.__both_updated
-        # print(self.__both_updated)
-        # if not self.__both_updated:
             self.__amplitude_spectral_density = power_spectral_density**0.5
 
     @property
@@ -701,10 +696,6 @@ class PowerSpectralDensity(object):
     def amplitude_spectral_density(self, amplitude_spectral_density):
         if self._check_frequency_array_matches_density_array(amplitude_spectral_density):
             self.__amplitude_spectral_density = amplitude_spectral_density
-        # print(self.__both_updated)
-        # self.__both_updated = ~self.__both_updated
-        # print(self.__both_updated)
-        # if not self.__both_updated:
             self.__power_spectral_density = amplitude_spectral_density**2
             self._interpolate_power_spectral_density()
 
