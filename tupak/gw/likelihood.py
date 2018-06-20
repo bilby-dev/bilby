@@ -67,6 +67,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.prior = prior
 
         if self.distance_marginalization:
+            self.check_prior_is_set()
             self.distance_array = np.array([])
             self.delta_distance = 0
             self.distance_prior_array = np.array([])
@@ -74,9 +75,17 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             prior['luminosity_distance'] = 1  # this means the prior is a delta function fixed at the RHS value
 
         if self.phase_marginalization:
+            self.check_prior_is_set()
             self.bessel_function_interped = None
             self.setup_phase_marginalization()
             prior['phase'] = 0
+
+        if self.time_marginalization:
+            self.check_prior_is_set()
+
+    def check_prior_is_set(self):
+        if self.prior is None:
+            raise ValueError("You can't use a marginalized likelihood without specifying a prior")
 
     @property
     def prior(self):
