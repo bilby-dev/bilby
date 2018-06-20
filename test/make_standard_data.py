@@ -43,7 +43,7 @@ IFO = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(name='H
                                                                          time_duration=time_duration, plot=False,
                                                                          sampling_frequency=sampling_frequency)
 
-hf_signal_and_noise = IFO.data
+hf_signal_and_noise = IFO.strain_data.frequency_domain_strain
 frequencies = tupak.core.utils.create_frequency_series(
     sampling_frequency=sampling_frequency, duration=time_duration)
 
