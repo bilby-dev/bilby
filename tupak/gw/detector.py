@@ -661,8 +661,6 @@ class PowerSpectralDensity:
             psd = strain.psd(fftlength=fft_length, window=window)
             self.frequencies = psd.frequencies
             self.power_spectral_density = psd.value
-            self.amplitude_spectral_density = self.power_spectral_density ** 0.5
-            self._interpolate_power_spectral_density()
         elif frequencies is not None:
             if asd_array is not None:
                 self._set_from_amplitude_spectral_density(frequencies, asd_array)
@@ -740,14 +738,10 @@ class PowerSpectralDensity:
     def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
         self.frequencies = frequencies
         self.amplitude_spectral_density = amplitude_spectral_density
-        self.power_spectral_density = self.amplitude_spectral_density ** 2
-        self._interpolate_power_spectral_density()
 
     def _set_from_power_spectral_density(self, frequencies, power_spectral_density):
         self.frequencies = frequencies
         self.power_spectral_density = power_spectral_density
-        self.amplitude_spectral_density = self.power_spectral_density ** 0.5
-        self._interpolate_power_spectral_density()
 
     def _interpolate_power_spectral_density(self):
         """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
