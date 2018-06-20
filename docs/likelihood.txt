@@ -7,9 +7,9 @@ Likelihood
 `tupak` likelihood objects are used in calculating the likelihood of the data
 for some specific set of parameters. In mathematical notation, the likelihood
 can be generically written as :math:`\mathcal{L}(d| \theta)`. How this is
-coded up will depend on the problem, but `tupak` expects all likelihood
+coded up will depend on the problem, but :code:`tupak` expects all likelihood
 objects to have a `parameters` attribute (a dictionary of key-value pairs) and
-a `log_likelihood()` method. In thie page, we'll discuss how to write your own
+a `log_likelihood()` method. In this page, we'll discuss how to write your own
 Likelihood, and the standard likelihoods in :code:`tupak`.
 
 The simplest likelihood
@@ -80,9 +80,9 @@ General likelihood for fitting a function :math:`y(x)` to some data with known n
 ------------------------------------------------------------------------------------
 
 The previous example was rather simplistic, Let's now consider that we have some
-dependent data :math:`\vec{y}=y_1, y_2, \ldots y_N$` measured at
+dependent data :math:`\vec{y}=y_1, y_2, \ldots y_N` measured at
 :math:`\vec{x}=x_1, x_2, \ldots, x_N`. We believe that the data is generated
-by additive Gaussian noise with a known variance :math:`sigma^2` and a function
+by additive Gaussian noise with a known variance :math:`\sigma^2` and a function
 :math:`y(x; \theta)` where :math:`\theta`  are some unknown parameters; that is
 
 .. math::
@@ -90,7 +90,7 @@ by additive Gaussian noise with a known variance :math:`sigma^2` and a function
    y_i = y(x_i; \theta) + n_i
 
 where :math:`n_i` is drawn from a normal distribution with zero mean and
-standard deviation :math:`sigma`. As such, :math:`y_i - y(x_i; \theta)`
+standard deviation :math:`\sigma`. As such, :math:`y_i - y(x_i; \theta)`
 itself will have a likelihood
 
 .. math::
@@ -100,7 +100,7 @@ itself will have a likelihood
    \mathrm{exp}\left(\frac{-(y_i - y(x_i; \theta))^2}{2\sigma^2}\right)
 
 
-As with the previous case, the likelihood for all the data is the produce over
+As with the previous case, the likelihood for all the data is the product over
 the likelihood for each data point.
 
 In :code:`tupak`, we can code this up as a likelihood in the following way::
@@ -143,7 +143,7 @@ In :code:`tupak`, we can code this up as a likelihood in the following way::
 This likelihood can be given any python function, the data (in the form of
 :code:`x` and :code:`y`) and the standard deviation of the noise. The
 parameters are inferred from the arguments to the :code:`function` argument,
-for example if, when instatiating the likelihood you passed in a the following
+for example if, when instantiating the likelihood you passed in the following
 function::
 
    def f(x, a, b):
@@ -167,7 +167,7 @@ In the last example, we considered only cases with known noise (e.g., a
 prespecified standard deviation. We now present a general function which can
 handle unknown noise (in which case you need to specify a prior for
 :math:`\sigma`, or known noise (in which case you pass the known noise in when
-instatiating the likelihood::
+instantiating the likelihood::
 
   class GaussianLikelihood(tupak.Likelihood):
       def __init__(self, x, y, function, sigma=None):
@@ -181,7 +181,7 @@ instatiating the likelihood::
               The data to analyse
           function:
               The python function to fit to the data. Note, this must take the
-              dependent variable as its first argument. The other arguments are
+              dependent variable as its first argument. The other arguments
               will require a prior and will be sampled over (unless a fixed
               value is given).
           sigma: None, float, array_like
