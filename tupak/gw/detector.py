@@ -83,6 +83,10 @@ class InterferometerStrainData(object):
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
+        self.sampling_frequency = None
+        self.duration = None
+        self.start_time = None
+
         self._frequency_domain_strain = None
 
     def _calculate_frequency_array(self):
