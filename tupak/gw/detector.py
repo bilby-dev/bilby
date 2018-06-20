@@ -136,7 +136,7 @@ class InterferometerStrainData(object):
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
             duration=None, start_time=0, frequency_array=None):
-        """ Set the data directly from a numpy array
+        """ Set the `Interferometer.strain_data` from a numpy array
 
         Parameters
         ----------
@@ -181,7 +181,7 @@ class InterferometerStrainData(object):
     def set_from_power_spectral_density(self, power_spectral_density,
                                         sampling_frequency, duration,
                                         start_time=0):
-        """ Set the data by generating a noise realisation
+        """ Set the `Interferometer.strain_data` from a power spectral density
 
         Parameters
         ----------
@@ -213,8 +213,8 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("Data frequencies do not match frequency_array")
 
-    def set_zero_noise(self, sampling_frequency, duration, start_time=0):
-        """ Set the data to zero noise
+    def set_from_zero_noise(self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` to zero noise
 
         Parameters
         ----------
@@ -238,7 +238,7 @@ class InterferometerStrainData(object):
     def set_from_frame_file(self, frame_file, sampling_frequency,
                             duration, start_time=0, channel_name=None,
                             buffer_time=1, **kwargs):
-        """ Set the data from a frame
+        """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
         ----------
@@ -255,6 +255,9 @@ class InterferometerStrainData(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
+        kwargs:
+            All other keyword arguments are passes to
+            `tupak.kw.utils.process_strain_data`
 
         """
 
@@ -342,9 +345,34 @@ class Interferometer(object):
         """ Set the strain_data """
         self._strain_data = strain_data
 
+    def set_strain_data_from_frequency_domain_strain(
+            self, frequency_domain_strain, sampling_frequency=None,
+            duration=None, start_time=0, frequency_array=None):
+        """ Set the `Interferometer.strain_data` from a numpy array
+
+        Parameters
+        ----------
+        frequency_domain_strain: array_like
+            The data to set.
+        sampling_frequency: float
+            The sampling frequency (in Hz).
+        duration: float
+            The data duration (in s).
+        start_time: float
+            The GPS start-time of the data.
+        frequency_array: array_like
+            The array of frequencies, if sampling_frequency and duration not
+            given.
+
+        """
+        self.strain_data.set_from_frequency_domain_strain(
+            frequency_domain_strain=frequency_domain_strain,
+            sampling_frequency=sampling_frequency, duration=duration,
+            start_time=start_time, frequency_array=frequency_array)
+
     def set_strain_data_from_power_spectral_density(
             self, sampling_frequency, duration, start_time=0):
-        """ Set the `.strain_data` from the power spectal density
+        """ Set the `Interferometer.strain_data` from a power spectal density
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
@@ -363,6 +391,56 @@ class Interferometer(object):
         self.strain_data.set_from_power_spectral_density(
             self.power_spectral_density, sampling_frequency=sampling_frequency,
             duration=duration, start_time=start_time)
+
+    def set_strain_data_from_frame_file(
+            self, frame_file, sampling_frequency, duration, start_time=0,
+            channel_name=None, buffer_time=1, **kwargs):
+        """ Set the `Interferometer.strain_data` from a frame file
+
+        Parameters
+        ----------
+        frame_file: str
+            File from which to load data.
+        channel_name: str
+            Channel to read from frame.
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+        buffer_time: float
+            Read in data with `start_time-buffer_time` and
+            `start_time+duration+buffer_time`
+        kwargs:
+            All other keyword arguments are passes to
+            `tupak.kw.utils.process_strain_data`
+
+        """
+        self.strain_data.set_from_frame_file(
+            frame_file=frame_file, sampling_frequency=sampling_frequency,
+            duration=duration, start_time=start_time,
+            channel_name=channel_name, buffer_time=buffer_time,
+            **kwargs)
+
+    def set_strain_data_from_zero_noise(
+            self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` to zero noise
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=sampling_frequency, duration=duration,
+            start_time=start_time)
 
     @property
     def latitude(self):
@@ -637,7 +715,7 @@ class Interferometer(object):
                 self.strain_data.add_to_frequency_domain_strain(signal_ifo)
             else:
                 logging.info('Injecting into zero noise.')
-                self.strain_data.set_from_frequency_domain_strain(
+                self.set_strain_data_from_frequency_domain_strain(
                     signal_ifo,
                     sampling_frequency=self.strain_data.sampling_frequency,
                     duration=self.strain_data.duration,
@@ -1134,7 +1212,7 @@ def get_interferometer_with_open_data(
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
         psd_file=psd_file)
-    interferometer.strain_data.set_from_frequency_domain_strain(
+    interferometer.set_strain_data_from_frequency_domain_strain(
         frequency_domain_strain=utils.nfft(
             strain.value, sampling_frequency)[0],
         sampling_frequency=sampling_frequency, duration=time_duration,
@@ -1195,12 +1273,11 @@ def get_interferometer_with_fake_noise_and_injection(
 
     interferometer = get_empty_interferometer(name)
     if zero_noise:
-        interferometer.strain_data.set_zero_noise(
+        interferometer.set_strain_data_from_zero_noise(
             sampling_frequency=sampling_frequency, duration=time_duration,
             zero_noise=True, start_time=start_time)
     else:
-        interferometer.strain_data.set_from_power_spectral_density(
-            power_spectral_density=interferometer.power_spectral_density,
+        interferometer.set_strain_data_from_power_spectral_density(
             sampling_frequency=sampling_frequency, duration=time_duration,
             start_time=start_time)
     interferometer.inject_signal(
