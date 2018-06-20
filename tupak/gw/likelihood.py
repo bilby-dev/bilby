@@ -46,7 +46,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     Returns
     -------
-    Likelihood: `tupak.likelihood.Likelihood`
+    Likelihood: `tupak.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
@@ -57,7 +57,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
-        self.interferometers = interferometers
+        self.interferometers = tupak.gw.detector.InterferometerSet(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -110,9 +110,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= tupak.gw.utils.noise_weighted_inner_product(interferometer.data, interferometer.data,
-                                                                 interferometer.power_spectral_density_array,
-                                                                 self.waveform_generator.time_duration) / 2
+            log_l -= tupak.gw.utils.noise_weighted_inner_product(
+                interferometer.frequency_domain_strain,
+                interferometer.frequency_domain_strain,
+                interferometer.power_spectral_density_array,
+                self.waveform_generator.time_duration) / 2
         return log_l.real
 
     def log_likelihood_ratio(self):
@@ -123,7 +125,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers[0].data[0:-1].shape, dtype=np.complex128)
+        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers.frequency_array[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
@@ -135,13 +137,13 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             if self.time_marginalization:
                 interferometer.time_marginalization = self.time_marginalization
                 matched_filter_snr_squared_tc_array += 4. * (1. / interferometer.duration) * np.fft.ifft(
-                    signal_ifo.conjugate()[0:-1] * interferometer.data[0:-1]
-                    / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.data[0:-1])
+                    signal_ifo.conjugate()[0:-1] * interferometer.frequency_domain_strain[0:-1]
+                    / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.frequency_domain_strain[0:-1])
 
         if self.time_marginalization:
 
             delta_tc = 1. / self.waveform_generator.sampling_frequency
-            tc_log_norm = np.log(self.interferometers[0].duration * delta_tc)
+            tc_log_norm = np.log(self.interferometers.duration * delta_tc)
 
             if self.distance_marginalization:
 
@@ -288,7 +290,7 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
         log_l = 0
         for interferometer in self.interferometers:
             log_l -= 2. / self.waveform_generator.time_duration * np.sum(
-                abs(interferometer.data) ** 2 /
+                abs(interferometer.frequency_domain_strain) ** 2 /
                 interferometer.power_spectral_density_array)
         return log_l.real
 
@@ -329,8 +331,8 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
             waveform_polarizations, self.waveform_generator.parameters)
 
         log_l = - 2. / self.waveform_generator.time_duration * np.vdot(
-            interferometer.data - signal_ifo,
-            (interferometer.data - signal_ifo)
+            interferometer.frequency_domain_strain - signal_ifo,
+            (interferometer.frequency_domain_strain - signal_ifo)
             / interferometer.power_spectral_density_array)
         return log_l.real
 
@@ -351,7 +353,7 @@ def get_binary_black_hole_likelihood(interferometers):
 
     """
     waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-        time_duration=interferometers[0].duration, sampling_frequency=interferometers[0].sampling_frequency,
+        time_duration=interferometers.duration, sampling_frequency=interferometers.sampling_frequency,
         frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)

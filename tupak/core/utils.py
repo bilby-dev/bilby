@@ -33,6 +33,31 @@ def get_sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
+def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
+    """
+    Calculate sampling frequency and duration from a frequency array
+
+    Returns
+    -------
+    sampling_frequency, duration:
+
+    Raises
+    -------
+    ValueError: If the frequency_array is not evenly sampled.
+
+    """
+
+    tol = 1e-10
+    if np.ptp(np.diff(frequency_array)) > tol:
+        raise ValueError("Your frequency series was not evenly sampled")
+
+    number_of_frequencies = len(frequency_array)
+    delta_freq = frequency_array[1] - frequency_array[0]
+    duration = 1 / delta_freq
+    sampling_frequency = 2 * number_of_frequencies / duration
+    return sampling_frequency, duration
+
+
 def create_time_series(sampling_frequency, duration, starting_time=0.):
     """
 

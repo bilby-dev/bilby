@@ -13,8 +13,9 @@ class TestNoiseRealisation(unittest.TestCase):
         psd_avg = 0
         interferometer = tupak.gw.detector.get_empty_interferometer('H1')
         for x in range(0, n_avg):
-            interferometer.set_data(sampling_frequency, time_duration, from_power_spectral_density=True)
-            psd_avg += abs(interferometer.data)**2
+            interferometer.set_strain_data_from_power_spectral_density(
+                sampling_frequency=sampling_frequency, duration=time_duration)
+            psd_avg += abs(interferometer.strain_data.frequency_domain_strain)**2
 
         psd_avg = psd_avg/n_avg
         asd_avg = np.sqrt(abs(psd_avg))
@@ -35,8 +36,9 @@ class TestNoiseRealisation(unittest.TestCase):
         muf, frequency_array = tupak.core.utils.nfft(mu, sampling_frequency)
         for x in range(0, n_avg):
             interferometer = tupak.gw.detector.get_empty_interferometer('H1')
-            interferometer.set_data(sampling_frequency, time_duration, from_power_spectral_density=True)
-            hf_tmp = interferometer.data
+            interferometer.set_strain_data_from_power_spectral_density(
+                sampling_frequency=sampling_frequency, duration=time_duration)
+            hf_tmp = interferometer.strain_data.frequency_domain_strain
             psd = interferometer.power_spectral_density
             snr[x] = tupak.gw.utils.inner_product(hf_tmp, muf, frequency_array, psd) \
                      / np.sqrt(tupak.gw.utils.inner_product(muf, muf, frequency_array, psd))
