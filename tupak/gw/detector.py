@@ -23,51 +23,52 @@ class InterferometerSet(list):
 
         Parameters
         ----------
-        interferometers: list
+        interferometers: iterable
             The list of interferometers
         """
-        if type(interferometers) != list:
-            raise ValueError("Input must be list")
+
+        if type(interferometers) == str:
+            raise ValueError("Input must not be a string")
         for ifo in interferometers:
             if type(ifo) != Interferometer:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
-        self.interferometers = interferometers
         self._check_interferometers()
+        list.__init__(interferometers)
 
     def _check_interferometers(self):
         """ Check certain aspects of the set are the same """
         consistent_attributes = ['duration', 'start_time', 'sampling_frequency']
         for attribute in consistent_attributes:
             x = [getattr(interferometer.strain_data, attribute)
-                 for interferometer in self.interferometers]
+                 for interferometer in self]
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
-    def __iter__(self):
-        i = 0
-        while i < self.number_of_interferometers:
-            yield self.interferometers[i]
-            i += 1
+    # def __iter__(self):
+    #     i = 0
+    #     while i < self.number_of_interferometers:
+    #         yield self.interferometers[i]
+    #         i += 1
 
     @property
     def number_of_interferometers(self):
-        return len(self.interferometers)
+        return len(self)
 
     @property
     def duration(self):
-        return self.interferometers[0].strain_data.duration
+        return self[0].strain_data.duration
 
     @property
     def start_time(self):
-        return self.interferometers[0].strain_data.start_time
+        return self[0].strain_data.start_time
 
     @property
     def sampling_frequency(self):
-        return self.interferometers[0].strain_data.sampling_frequency
+        return self[0].strain_data.sampling_frequency
 
     @property
     def frequency_array(self):
-        return self.interferometers[0].strain_data.frequency_array
+        return self[0].strain_data.frequency_array
 
 
 class InterferometerStrainData(object):
