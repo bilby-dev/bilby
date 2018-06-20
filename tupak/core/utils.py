@@ -279,6 +279,9 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
             file_handler.setLevel(LEVEL)
             logger.addHandler(file_handler)
 
+    for handler in logger.handlers:
+        handler.setLevel(LEVEL)
+
     version_file = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), '.version')
     with open(version_file, 'r') as f:
