@@ -684,10 +684,10 @@ class PowerSpectralDensity(object):
 
     @power_spectral_density.setter
     def power_spectral_density(self, power_spectral_density):
-        if self._check_frequency_array_matches_density_array(power_spectral_density):
-            self.__power_spectral_density = power_spectral_density
-            self._interpolate_power_spectral_density()
-            self.__amplitude_spectral_density = power_spectral_density**0.5
+        self._check_frequency_array_matches_density_array(power_spectral_density)
+        self.__power_spectral_density = power_spectral_density
+        self._interpolate_power_spectral_density()
+        self.__amplitude_spectral_density = power_spectral_density**0.5
 
     @property
     def amplitude_spectral_density(self):
@@ -695,10 +695,10 @@ class PowerSpectralDensity(object):
 
     @amplitude_spectral_density.setter
     def amplitude_spectral_density(self, amplitude_spectral_density):
-        if self._check_frequency_array_matches_density_array(amplitude_spectral_density):
-            self.__amplitude_spectral_density = amplitude_spectral_density
-            self.__power_spectral_density = amplitude_spectral_density**2
-            self._interpolate_power_spectral_density()
+        self._check_frequency_array_matches_density_array(amplitude_spectral_density)
+        self.__amplitude_spectral_density = amplitude_spectral_density
+        self.__power_spectral_density = amplitude_spectral_density**2
+        self._interpolate_power_spectral_density()
 
     def import_amplitude_spectral_density(self):
         """
@@ -725,10 +725,11 @@ class PowerSpectralDensity(object):
         self.frequencies, self.power_spectral_density = np.genfromtxt(self.power_spectral_density_file).T
 
     def _check_frequency_array_matches_density_array(self, density_array):
-        match = (len(self.frequencies) == len(density_array))
-        if not match:
-            logging.warning('Provided spectral density does not match frequency array. Not updating.')
-        return match
+        """Check if the provided frequency and spectral density arrays match."""
+        try:
+            self.frequencies - density_array
+        except ValueError as e:
+            raise(e, 'Provided spectral density does not match frequency array. Not updating.')
 
     def _interpolate_power_spectral_density(self):
         """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
