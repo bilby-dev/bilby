@@ -732,16 +732,20 @@ class Interferometer(object):
 
         return signal_ifo
 
-    def inject_signal(self, waveform_polarizations, parameters):
+    def inject_signal(self, waveform_generator, parameters):
         """ Inject a signal into noise
 
         Parameters
         ----------
-        waveform_polarizations: dict
-            polarizations of the waveform
+        waveform_generator: tupak.gw.waveform_generator
+            A WaveformGenerator instance using the source model to inject
         parameters: dict
             parameters describing position and time of arrival of the signal
         """
+
+        waveform_generator.parameters = parameters
+        waveform_polarizations = waveform_generator.frequency_domain_strain()
+
         if waveform_polarizations is None:
             raise ValueError(
                 'Trying to inject signal which is None. The most likely cause'
@@ -1292,9 +1296,10 @@ def get_interferometer_with_open_data(
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations, injection_parameters,
-        sampling_frequency=4096, time_duration=4, start_time=None,
-        outdir='outdir', label=None, plot=True, save=True, zero_noise=False):
+        name, injection_parameters, waveform_generator=None,
+        waveform_polarizations=None, sampling_frequency=4096, time_duration=4,
+        start_time=None, outdir='outdir', label=None, plot=True, save=True,
+        zero_noise=False):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -1303,11 +1308,10 @@ def get_interferometer_with_fake_noise_and_injection(
     ----------
     name: str
         Detector name, e.g., 'H1'.
-    injection_polarizations: dict
-        polarizations of waveform to inject, output of
-        `waveform_generator.get_frequency_domain_signal`
     injection_parameters: dict
         injection parameters, needed for sky position and timing
+    waveform_generator: tupak.gw.waveform_generator
+        A WaveformGenerator instance using the source model to inject
     sampling_frequency: float
         sampling frequency for data, should match injection signal
     time_duration: float
@@ -1347,9 +1351,10 @@ def get_interferometer_with_fake_noise_and_injection(
             sampling_frequency=sampling_frequency, duration=time_duration,
             start_time=start_time)
     interferometer.inject_signal(
-        waveform_polarizations=injection_polarizations,
+        waveform_generator=waveform_generator,
         parameters=injection_parameters)
 
+    injection_polarizations = waveform_generator.frequency_domain_strain()
     signal = interferometer.get_detector_response(
         injection_polarizations, injection_parameters)
 
