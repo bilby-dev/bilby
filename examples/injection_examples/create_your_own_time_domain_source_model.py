@@ -46,12 +46,14 @@ waveform = tupak.gw.waveform_generator.WaveformGenerator(time_duration=time_dura
 
 
 # inject the signal into three interferometers
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-        name, waveform_generator=waveform,
-        injection_parameters=injection_parameters, time_duration=time_duration,
-        sampling_frequency=sampling_frequency, outdir=outdir)
-        for name in ['H1', 'L1']]
-
+IFOs = []
+for name in ['H1', 'L1', 'V1']:
+    IFOs.append(
+        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+            name, waveform_generator=waveform,
+            injection_parameters=injection_parameters,
+            time_duration=time_duration,
+            sampling_frequency=sampling_frequency, outdir=outdir))
 
 #  create the priors
 prior = injection_parameters.copy()
