@@ -771,8 +771,8 @@ class Interferometer(object):
             time_duration=self.strain_data.duration).real)
 
         logging.info("Injected signal in {}:".format(self.name))
-        logging.info(" optimal SNR = {:.2f}".format(opt_snr))
-        logging.info(" matched filter SNR = {:.2f}".format(mf_snr))
+        logging.info("  optimal SNR = {:.2f}".format(opt_snr))
+        logging.info("  matched filter SNR = {:.2f}".format(mf_snr))
         for key in parameters:
             logging.info('  {} = {}'.format(key, parameters[key]))
 
