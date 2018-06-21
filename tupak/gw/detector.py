@@ -109,6 +109,29 @@ class InterferometerStrainData(object):
         self.frequency_array = utils.create_frequency_series(
             self.sampling_frequency, self.duration)
 
+    def time_within_data(self, time):
+        """ Check if time is within the data span
+
+        Parameters
+        ----------
+        time: float
+            The time to check
+
+        Returns
+        -------
+        bool:
+            A boolean stating whether the time is inside or outside the span
+
+        """
+        if time < self.start_time:
+            logging.debug("Time is before the start_time")
+            return False
+        elif time > self.start_time + self.duration:
+            logging.debug("Time is after the start_time + duration")
+            return False
+        else:
+            return True
+
     @property
     def minimum_frequency(self):
         return self.__minimum_frequency
@@ -710,7 +733,7 @@ class Interferometer(object):
         return signal_ifo
 
     def inject_signal(self, waveform_polarizations, parameters):
-        """ Inject a signal into noise and adds the requested signal to self.strain_data
+        """ Inject a signal into noise
 
         Parameters
         ----------
@@ -720,31 +743,38 @@ class Interferometer(object):
             parameters describing position and time of arrival of the signal
         """
         if waveform_polarizations is None:
-            logging.warning('Trying to inject signal which is None.')
-        else:
-            if (parameters['geocent_time'] < self.strain_data.start_time) \
-                    or (parameters['geocent_time'] > self.strain_data.start_time + self.strain_data.duration):
-                        logging.warning('Injecting signal outside segment, start_time={}, merger time={}.'.format(
-                            self.strain_data.start_time, parameters['geocent_time']))
-            signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
-            if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
-                self.strain_data.add_to_frequency_domain_strain(signal_ifo)
-            else:
-                logging.info('Injecting into zero noise.')
-                self.set_strain_data_from_frequency_domain_strain(
-                    signal_ifo,
-                    sampling_frequency=self.strain_data.sampling_frequency,
-                    duration=self.strain_data.duration,
-                    start_time=self.strain_data.start_time)
-            opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(
-                signal=signal_ifo, interferometer=self,
-                time_duration=self.strain_data.duration).real)
-            mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(
-                signal=signal_ifo, interferometer=self,
-                time_duration=self.strain_data.duration).real)
+            raise ValueError(
+                'Trying to inject signal which is None. The most likely cause'
+                ' is that waveform_generator.frequency_domain_strain returned'
+                ' None. This can be caused if, e.g., mass_2 > mass_1.')
 
-            logging.info("Injection found with optimal SNR = {:.2f} and matched filter SNR = {:.2f} in {}".format(
-                opt_snr, mf_snr, self.name))
+        if self.strain_data.time_within_data(parameters['geocent_time']):
+            logging.warning(
+                'Injecting signal outside segment, start_time={}, merger time={}.'
+                .format(self.strain_data.start_time, parameters['geocent_time']))
+
+        signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
+        if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
+            self.strain_data.add_to_frequency_domain_strain(signal_ifo)
+        else:
+            logging.info('Injecting into zero noise.')
+            self.set_strain_data_from_frequency_domain_strain(
+                signal_ifo,
+                sampling_frequency=self.strain_data.sampling_frequency,
+                duration=self.strain_data.duration,
+                start_time=self.strain_data.start_time)
+        opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(
+            signal=signal_ifo, interferometer=self,
+            time_duration=self.strain_data.duration).real)
+        mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(
+            signal=signal_ifo, interferometer=self,
+            time_duration=self.strain_data.duration).real)
+
+        logging.info("Injected signal in {}:".format(self.name))
+        logging.info(" optimal SNR = {:.2f}".format(opt_snr))
+        logging.info(" matched filter SNR = {:.2f}".format(mf_snr))
+        for key in parameters:
+            logging.info('  {} = {}'.format(key, parameters[key]))
 
     def unit_vector_along_arm(self, arm):
         """
