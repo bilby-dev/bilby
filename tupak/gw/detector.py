@@ -722,6 +722,10 @@ class Interferometer(object):
         if waveform_polarizations is None:
             logging.warning('Trying to inject signal which is None.')
         else:
+            if (parameters['geocent_time'] < self.strain_data.start_time) \
+                    or (parameters['geocent_time'] > self.strain_data.start_time + self.strain_data.duration):
+                        logging.warning('Injecting signal outside segment, start_time={}, merger time={}.'.format(
+                            self.strain_data.start_time, parameters['geocent_time']))
             signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
             if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
                 self.strain_data.add_to_frequency_domain_strain(signal_ifo)
@@ -1289,9 +1293,6 @@ def get_interferometer_with_fake_noise_and_injection(
 
     if start_time is None:
         start_time = injection_parameters['geocent_time'] + 2 - time_duration
-    if injection_parameters['geocent_time'] < start_time or injection_parameters['geocent_time'] > start_time - time_duration:
-        logging.warning('Injecting signal outside segment, start_time={}, merger time={}.'.format(
-            start_time, injection_parameters['geocent_time']))
 
     interferometer = get_empty_interferometer(name)
     if zero_noise:
