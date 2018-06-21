@@ -70,6 +70,14 @@ class Result(dict):
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
+    def __dir__(self):
+        """ Adds tab completion in ipython
+
+        See: http://ipython.org/ipython-doc/dev/config/integrating.html
+
+        """
+        return self.keys()
+
     def __getattr__(self, name):
         try:
             return self[name]
