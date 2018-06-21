@@ -65,6 +65,20 @@ class PriorSet(dict):
                 prior[key] = eval(val)
         self.update(prior)
 
+    def convert_floats_to_delta_functions(self):
+        """ Convert all float parameters to delta functions """
+        for key in self:
+            if isinstance(self[key], Prior):
+                continue
+            elif isinstance(self[key], float) or isinstance(self[key], int):
+                self[key] = DeltaFunction(self[key])
+                logging.debug(
+                    "{} converted to delta function prior.".format(key))
+            else:
+                logging.debug(
+                    "{} cannot be converted to delta function prior."
+                    .format(key))
+
     def fill_priors(self, likelihood, default_priors_file=None):
         """
         Fill dictionary of priors based on required parameters of likelihood
@@ -91,17 +105,7 @@ class PriorSet(dict):
 
         """
 
-        for key in self:
-            if isinstance(self[key], Prior):
-                continue
-            elif isinstance(self[key], float) or isinstance(self[key], int):
-                self[key] = DeltaFunction(self[key])
-                logging.debug(
-                    "{} converted to delta function prior.".format(key))
-            else:
-                logging.debug(
-                    "{} cannot be converted to delta function prior."
-                    .format(key))
+        self.convert_floats_to_delta_functions()
 
         missing_keys = set(likelihood.parameters) - set(self.keys())
 
@@ -138,6 +142,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the samples
         """
+        self.convert_floats_to_delta_functions()
         samples = dict()
         for key in self:
             if isinstance(self[key], Prior):
