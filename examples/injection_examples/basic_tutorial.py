@@ -41,17 +41,13 @@ waveform_generator = tupak.WaveformGenerator(time_duration=time_duration,
                                              frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
                                              parameters=injection_parameters,
                                              waveform_arguments=waveform_arguments)
+hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity
-IFOs = []
-for name in ['H1', 'L1', 'V1']:
-    IFOs.append(
-        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-            name, waveform_generator=waveform_generator,
-            injection_parameters=injection_parameters,
-            time_duration=time_duration,
-            sampling_frequency=sampling_frequency, outdir=outdir))
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
+    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
 
 # Set up prior, which is a dictionary
 # By default we will sample all terms in the signal models.  However, this will take a long time for the calculation,

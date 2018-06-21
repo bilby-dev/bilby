@@ -32,16 +32,12 @@ waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     parameter_conversion=tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     non_standard_sampling_parameter_keys=['chirp_mass', 'mass_ratio'],
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
+hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = []
-for name in ['H1', 'L1', 'V1']:
-    IFOs.append(
-        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-            name, waveform_generator=waveform_generator,
-            injection_parameters=injection_parameters,
-            time_duration=time_duration,
-            sampling_frequency=sampling_frequency, outdir=outdir))
+IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
+    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
 
 # Set up prior
 priors = tupak.gw.prior.BBHPriorSet()
