@@ -8,7 +8,7 @@ class TestNoiseRealisation(unittest.TestCase):
     def test_averaged_noise(self):
         time_duration = 1.
         sampling_frequency = 4096.
-        factor = np.sqrt(2./time_duration)
+        factor = np.sqrt(2 / time_duration)
         n_avg = 1000
         psd_avg = 0
         interferometer = tupak.gw.detector.get_empty_interferometer('H1')
@@ -17,11 +17,12 @@ class TestNoiseRealisation(unittest.TestCase):
                 sampling_frequency=sampling_frequency, duration=time_duration)
             psd_avg += abs(interferometer.strain_data.frequency_domain_strain)**2
 
-        psd_avg = psd_avg/n_avg
-        asd_avg = np.sqrt(abs(psd_avg))
+        psd_avg = psd_avg / n_avg
+        asd_avg = np.sqrt(abs(psd_avg)) * interferometer.frequency_mask
 
-        a = interferometer.amplitude_spectral_density_array/factor
+        a = np.nan_to_num(interferometer.amplitude_spectral_density_array / factor * interferometer.frequency_mask)
         b = asd_avg
+        print(a, b)
         self.assertTrue(np.allclose(a, b, rtol=1e-1))
 
     def test_noise_normalisation(self):

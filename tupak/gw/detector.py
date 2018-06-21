@@ -898,7 +898,7 @@ class Interferometer(object):
             '{}/{}_frequency_domain_data.png'.format(outdir, self.name))
 
 
-class PowerSpectralDensity:
+class PowerSpectralDensity(object):
 
     def __init__(self, asd_file=None, psd_file='aLIGO_ZERO_DET_high_P_psd.txt', frame_file=None, asd_array=None,
                  psd_array=None, frequencies=None, start_time=0,
@@ -946,10 +946,6 @@ class PowerSpectralDensity:
             Name of the ASD file
         frequencies: array_like
             Array containing the frequencies of the ASD/PSD values
-        frequency_noise_realization: list
-            TODO: This isn't doing anything right now
-        interpolated_frequency: list
-            TODO: This isn't doing anything right now
         power_spectral_density: array_like
             Array representation of the PSD
         power_spectral_density_file: str
@@ -957,12 +953,10 @@ class PowerSpectralDensity:
         power_spectral_density_interpolated: scipy.interpolated.interp1d
             Interpolated function of the PSD
         """
+        self.__power_spectral_density = None
+        self.__amplitude_spectral_density = None
 
         self.frequencies = []
-        self.power_spectral_density = []
-        self.amplitude_spectral_density = []
-        self.frequency_noise_realization = []
-        self.interpolated_frequency = []
         self.power_spectral_density_interpolated = None
 
         if asd_file is not None:
@@ -990,13 +984,12 @@ class PowerSpectralDensity:
             psd = strain.psd(fftlength=fft_length, window=window)
             self.frequencies = psd.frequencies
             self.power_spectral_density = psd.value
-            self.amplitude_spectral_density = self.power_spectral_density ** 0.5
-            self.interpolate_power_spectral_density()
         elif frequencies is not None:
+            self.frequencies = frequencies
             if asd_array is not None:
-                self._set_from_amplitude_spectral_density(frequencies, asd_array)
+                self.amplitude_spectral_density = asd_array
             elif psd_array is not None:
-                self._set_from_amplitude_spectral_density(frequencies, psd_array)
+                self.power_spectral_density = psd_array
         else:
             if psd_file is None:
                 logging.info("No power spectral density provided, using aLIGO, zero detuning, high power.")
@@ -1009,6 +1002,28 @@ class PowerSpectralDensity:
                     min(self.power_spectral_density)))
                 logging.warning("You may have intended to provide this as an amplitude spectral density.")
 
+    @property
+    def power_spectral_density(self):
+        return self.__power_spectral_density
+
+    @power_spectral_density.setter
+    def power_spectral_density(self, power_spectral_density):
+        self._check_frequency_array_matches_density_array(power_spectral_density)
+        self.__power_spectral_density = power_spectral_density
+        self._interpolate_power_spectral_density()
+        self.__amplitude_spectral_density = power_spectral_density**0.5
+
+    @property
+    def amplitude_spectral_density(self):
+        return self.__amplitude_spectral_density
+
+    @amplitude_spectral_density.setter
+    def amplitude_spectral_density(self, amplitude_spectral_density):
+        self._check_frequency_array_matches_density_array(amplitude_spectral_density)
+        self.__amplitude_spectral_density = amplitude_spectral_density
+        self.__power_spectral_density = amplitude_spectral_density**2
+        self._interpolate_power_spectral_density()
+
     def import_amplitude_spectral_density(self):
         """
         Automagically load one of the amplitude spectral density curves contained in the noise_curves directory.
@@ -1019,8 +1034,7 @@ class PowerSpectralDensity:
         if '/' not in self.amplitude_spectral_density_file:
             self.amplitude_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                                 self.amplitude_spectral_density_file)
-        spectral_density = np.genfromtxt(self.amplitude_spectral_density_file)
-        self._set_from_amplitude_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+        self.frequencies, self.amplitude_spectral_density = np.genfromtxt(self.amplitude_spectral_density_file).T
 
     def import_power_spectral_density(self):
         """
@@ -1032,26 +1046,20 @@ class PowerSpectralDensity:
         if '/' not in self.power_spectral_density_file:
             self.power_spectral_density_file = os.path.join(os.path.dirname(__file__), 'noise_curves',
                                                             self.power_spectral_density_file)
-        spectral_density = np.genfromtxt(self.power_spectral_density_file)
-        self._set_from_power_spectral_density(spectral_density[:, 0], spectral_density[:, 1])
+        self.frequencies, self.power_spectral_density = np.genfromtxt(self.power_spectral_density_file).T
 
-    def _set_from_amplitude_spectral_density(self, frequencies, amplitude_spectral_density):
-        self.frequencies = frequencies
-        self.amplitude_spectral_density = amplitude_spectral_density
-        self.power_spectral_density = self.amplitude_spectral_density ** 2
-        self.interpolate_power_spectral_density()
+    def _check_frequency_array_matches_density_array(self, density_array):
+        """Check if the provided frequency and spectral density arrays match."""
+        try:
+            self.frequencies - density_array
+        except ValueError as e:
+            raise(e, 'Provided spectral density does not match frequency array. Not updating.')
 
-    def _set_from_power_spectral_density(self, frequencies, power_spectral_density):
-        self.frequencies = frequencies
-        self.power_spectral_density = power_spectral_density
-        self.amplitude_spectral_density = self.power_spectral_density ** 0.5
-        self.interpolate_power_spectral_density()
-
-    def interpolate_power_spectral_density(self):
+    def _interpolate_power_spectral_density(self):
         """Interpolate the loaded PSD so it can be resampled for arbitrary frequency arrays."""
         self.power_spectral_density_interpolated = interp1d(self.frequencies, self.power_spectral_density,
                                                             bounds_error=False,
-                                                            fill_value=max(self.power_spectral_density))
+                                                            fill_value=np.inf)
 
     def get_noise_realisation(self, sampling_frequency, duration):
         """
@@ -1073,6 +1081,8 @@ class PowerSpectralDensity:
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
         frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
+        out_of_bounds = (frequencies < min(self.frequencies)) | (frequencies > max(self.frequencies))
+        frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
 
 
