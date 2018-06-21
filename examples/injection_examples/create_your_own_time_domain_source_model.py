@@ -36,7 +36,6 @@ waveform = tupak.gw.waveform_generator.WaveformGenerator(time_duration=time_dura
                                                          time_domain_source_model=time_domain_damped_sinusoid,
                                                          parameters=injection_parameters)
 
-hf_signal = waveform.frequency_domain_strain()
 #note we could plot the time domain signal with the following code
 # import matplotlib.pyplot as plt
 # plt.plot(waveform.time_array, waveform.time_domain_strain()['plus'])
@@ -48,7 +47,7 @@ hf_signal = waveform.frequency_domain_strain()
 
 # inject the signal into three interferometers
 IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations=hf_signal,
+        name, waveform_generator=waveform,
         injection_parameters=injection_parameters, time_duration=time_duration,
         sampling_frequency=sampling_frequency, outdir=outdir)
         for name in ['H1', 'L1']]
