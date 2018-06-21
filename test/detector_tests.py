@@ -249,7 +249,7 @@ class TestDetector(unittest.TestCase):
 
     def test_inject_signal_no_waveform_polarizations(self):
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(waveform_polarizations=None, parameters=None)
+            self.ifo.inject_signal(injection_polarizations=None, parameters=None)
 
     def test_unit_vector_along_arm_default(self):
         with self.assertRaises(ValueError):
