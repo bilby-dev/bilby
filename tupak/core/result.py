@@ -188,6 +188,30 @@ class Result(dict):
                                  .format(k))
         return latex_labels
 
+    @property
+    def covariance_matrix(self):
+        """ The covariance matrix of the samples the posterior """
+        samples = self.posterior[self.search_parameter_keys].values
+        return np.cov(samples.T)
+
+    @property
+    def posterior_volume(self):
+        """ The posterior volume """
+        return 1/np.sqrt(np.abs(np.linalg.det(1/self.covariance_matrix/2/np.pi)))
+
+    def prior_volume(self, priors):
+        """ The prior volume, given a set of priors """
+        return np.prod([priors[k].maximum - priors[k].minimum for k in priors])
+
+    def occam_factor(self, priors):
+        """ The Occam factor,
+
+        See Mackay "Information Theor, Inference and Learning Algorithms,
+        Cambridge University Press (2003) Eq. (28.10)
+
+        """
+        return self.posterior_volume / self.prior_volume(priors)
+
     def plot_corner(self, parameters=None, save=True, dpi=300, **kwargs):
         """ Plot a corner-plot using corner
 
