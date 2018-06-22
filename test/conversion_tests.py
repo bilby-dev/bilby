@@ -88,8 +88,8 @@ class TestConvertToLALBBHParams(unittest.TestCase):
             self.search_keys.append('cos_tilt_1')
             self.parameters['cos_tilt_1'] = 1
             self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys, remove=True)
-            self.assertDictEqual(self.parameters, dict(tilt_1 = 42))
+            self.assertDictEqual(self.parameters, dict(tilt_1=42, cos_tilt_1=1))
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     unittest.main()
