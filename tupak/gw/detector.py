@@ -732,21 +732,43 @@ class Interferometer(object):
 
         return signal_ifo
 
-    def inject_signal(self, waveform_generator, parameters):
+    def inject_signal(self,  parameters=None, injection_polarizations=None,
+                      waveform_generator=None):
         """ Inject a signal into noise
 
         Parameters
         ----------
-        waveform_generator: tupak.gw.waveform_generator
-            A WaveformGenerator instance using the source model to inject
         parameters: dict
-            parameters describing position and time of arrival of the signal
+            Parameters of the injection.
+        injection_polarizations: dict
+           Polarizations of waveform to inject, output of
+           `waveform_generator.frequency_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
+        waveform_generator: tupak.gw.waveform_generator
+            A WaveformGenerator instance using the source model to inject. If
+            `injection_polarizations` is given, this will be ignored.
+
+        Note: if your signal takes a substantial amount of time to generate, or
+        you experience buggy behaviour. It is preferable to provide the
+        injection_polarizations directly.
+
+        Returns
+        -------
+        injection_polarizations: dict
+
         """
 
-        waveform_generator.parameters = parameters
-        waveform_polarizations = waveform_generator.frequency_domain_strain()
+        if injection_polarizations is None:
+            if waveform_generator is not None:
+                waveform_generator.parameters = parameters
+                injection_polarizations = waveform_generator.frequency_domain_strain()
+            else:
+                raise ValueError(
+                    "inject_signal needs one of waveform_generator or "
+                    "injection_polarizations.")
 
-        if waveform_polarizations is None:
+        if injection_polarizations is None:
             raise ValueError(
                 'Trying to inject signal which is None. The most likely cause'
                 ' is that waveform_generator.frequency_domain_strain returned'
@@ -757,7 +779,7 @@ class Interferometer(object):
                 'Injecting signal outside segment, start_time={}, merger time={}.'
                 .format(self.strain_data.start_time, parameters['geocent_time']))
 
-        signal_ifo = self.get_detector_response(waveform_polarizations, parameters)
+        signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
             self.strain_data.add_to_frequency_domain_strain(signal_ifo)
         else:
@@ -779,6 +801,8 @@ class Interferometer(object):
         logging.info("  matched filter SNR = {:.2f}".format(mf_snr))
         for key in parameters:
             logging.info('  {} = {}'.format(key, parameters[key]))
+
+        return injection_polarizations
 
     def unit_vector_along_arm(self, arm):
         """
@@ -1296,8 +1320,8 @@ def get_interferometer_with_open_data(
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_parameters, waveform_generator=None,
-        waveform_polarizations=None, sampling_frequency=4096, time_duration=4,
+        name, injection_parameters, injection_polarizations=None,
+        waveform_generator=None, sampling_frequency=4096, time_duration=4,
         start_time=None, outdir='outdir', label=None, plot=True, save=True,
         zero_noise=False):
     """
@@ -1310,8 +1334,14 @@ def get_interferometer_with_fake_noise_and_injection(
         Detector name, e.g., 'H1'.
     injection_parameters: dict
         injection parameters, needed for sky position and timing
+    injection_polarizations: dict
+       Polarizations of waveform to inject, output of
+       `waveform_generator.frequency_domain_strain()`. If
+       `waveform_generator` is also given, the injection_polarizations will
+       be calculated directly and this argument can be ignored.
     waveform_generator: tupak.gw.waveform_generator
-        A WaveformGenerator instance using the source model to inject
+        A WaveformGenerator instance using the source model to inject. If
+        `injection_polarizations` is given, this will be ignored.
     sampling_frequency: float
         sampling frequency for data, should match injection signal
     time_duration: float
@@ -1350,11 +1380,12 @@ def get_interferometer_with_fake_noise_and_injection(
         interferometer.set_strain_data_from_power_spectral_density(
             sampling_frequency=sampling_frequency, duration=time_duration,
             start_time=start_time)
-    interferometer.inject_signal(
-        waveform_generator=waveform_generator,
-        parameters=injection_parameters)
 
-    injection_polarizations = waveform_generator.frequency_domain_strain()
+    injection_polarizations = interferometer.inject_signal(
+        parameters=injection_parameters,
+        injection_polarizations=injection_polarizations,
+        waveform_generator=waveform_generator)
+
     signal = interferometer.get_detector_response(
         injection_polarizations, injection_parameters)
 
