@@ -389,7 +389,7 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
         return None
 
 
-def process_strain_data(strain, alpha=0.25, filter_freq=1024, **kwargs):
+def process_strain_data(strain, alpha=0.25, filter_freq=1024):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
