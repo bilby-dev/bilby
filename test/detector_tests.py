@@ -248,10 +248,8 @@ class TestDetector(unittest.TestCase):
         self.assertTrue(np.array_equal(response, (plus+cross)*self.ifo.frequency_mask*np.exp(-0j)))
 
     def test_inject_signal_no_waveform_polarizations(self):
-        with mock.patch('logging.warning') as m:
-            m.side_effect = KeyError('foo')
-            with self.assertRaises(KeyError):
-                self.ifo.inject_signal(waveform_polarizations=None, parameters=None)
+        with self.assertRaises(ValueError):
+            self.ifo.inject_signal(injection_polarizations=None, parameters=None)
 
     def test_unit_vector_along_arm_default(self):
         with self.assertRaises(ValueError):
