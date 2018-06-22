@@ -113,10 +113,8 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
-        if cos_angle in converted_parameters.keys() and cos_angle not in search_keys:
+        if cos_angle in converted_parameters.keys():
             converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
-            if remove:
-                added_keys.append(cos_angle)
             added_keys.append(angle)
 
     added_keys = [key for key in added_keys if key not in search_keys]
