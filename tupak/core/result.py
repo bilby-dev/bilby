@@ -197,7 +197,11 @@ class Result(dict):
     @property
     def posterior_volume(self):
         """ The posterior volume """
-        return 1/np.sqrt(np.abs(np.linalg.det(1/self.covariance_matrix/2/np.pi)))
+        if self.covariance_matrix.ndim == 0:
+            return np.sqrt(self.covariance_matrix)
+        else:
+            return 1/np.sqrt(np.abs(np.linalg.det(
+                1/self.covariance_matrix)))
 
     def prior_volume(self, priors):
         """ The prior volume, given a set of priors """
