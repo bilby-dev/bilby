@@ -1311,7 +1311,7 @@ def get_interferometer_with_fake_noise_and_injection(
     if zero_noise:
         interferometer.set_strain_data_from_zero_noise(
             sampling_frequency=sampling_frequency, duration=time_duration,
-            zero_noise=True, start_time=start_time)
+            start_time=start_time)
     else:
         interferometer.set_strain_data_from_power_spectral_density(
             sampling_frequency=sampling_frequency, duration=time_duration,
