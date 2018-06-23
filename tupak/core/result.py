@@ -210,8 +210,9 @@ class Result(dict):
     def occam_factor(self, priors):
         """ The Occam factor,
 
-        See Mackay "Information Theor, Inference and Learning Algorithms,
-        Cambridge University Press (2003) Eq. (28.10)
+        See Chapter 28, `Mackay "Information Theory, Inference, and Learning
+        Algorithms" <http://www.inference.org.uk/itprnn/book.html>`_ Cambridge
+        University Press (2003).
 
         """
         return self.posterior_volume / self.prior_volume(priors)
