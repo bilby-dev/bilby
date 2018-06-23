@@ -76,7 +76,8 @@ class Result(dict):
         See: http://ipython.org/ipython-doc/dev/config/integrating.html
 
         """
-        return self.keys()
+        methods = ['plot_corner', 'save_to_file', 'save_posterior_samples']
+        return self.keys() + methods
 
     def __getattr__(self, name):
         try:
