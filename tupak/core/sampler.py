@@ -752,6 +752,54 @@ class Pymultinest(Sampler):
         return self.result
 
 
+class Emcee(Sampler):
+    def _run_external_sampler(self):
+        nwalkers = self.kwargs.pop('nwalkers', 100)
+        nsteps = self.kwargs.pop('nsteps', 100)
+        nburn = self.kwargs.pop('nburn', 50)
+        emcee = self.external_sampler
+        tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
+
+        sampler = emcee.EnsembleSampler(
+            nwalkers=nwalkers, dim=self.ndim, lnpostfn=self.lnpostfn,
+            **self.kwargs)
+        pos0 = [self.get_random_draw_from_prior() for i in range(nwalkers)]
+
+        for result in tqdm(
+                sampler.sample(pos0, iterations=nsteps), total=nsteps):
+            pass
+
+        self.result.sampler_output = np.nan
+        self.result.samples = sampler.chain[:, nburn:, :].reshape(
+            (-1, self.ndim))
+        self.result.walkers = sampler.chain[:, :, :]
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
+        self.plot_walkers()
+        try:
+            logging.info("Max autocorr time = {}".format(
+                         np.max(sampler.get_autocorr_time())))
+        except emcee.autocorr.AutocorrError as e:
+            logging.info("Unable to calculate autocorr time: {}".format(e))
+        return self.result
+
+    def lnpostfn(self, theta):
+        return self.log_likelihood(theta) + self.log_prior(theta)
+
+    def plot_walkers(self, save=True, **kwargs):
+        nwalkers, nsteps, ndim = self.result.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
+        for i, ax in enumerate(axes):
+            ax.plot(idxs, self.result.walkers[:, :, i].T, lw=0.1, color='k')
+            ax.set_ylabel(self.result.parameter_labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.debug('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
+
+
 class Ptemcee(Sampler):
 
     def _run_external_sampler(self):
