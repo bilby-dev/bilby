@@ -448,8 +448,10 @@ class Dynesty(Sampler):
             self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
         if 'n_check_point' not in kwargs:
             # checkpointing done by default ~ every 10 minutes
-            self.__kwargs['n_check_point'] = int(self.__kwargs['check_point_delta_t']
-                                                 // self._sample_log_likelihood_eval)
+            n_check_point_raw = (self.__kwargs['check_point_delta_t']
+                                 / self._sample_log_likelihood_eval)
+            n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
+            self.__kwargs['n_check_point'] = n_check_point_rnd
 
     def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
         """ Replacing status update for dynesty.result.print_func """
