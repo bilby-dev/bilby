@@ -9,7 +9,7 @@ class WaveformGenerator(object):
     def __init__(self, time_duration, sampling_frequency, starting_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None,
                  non_standard_sampling_parameter_keys=None,
-                 waveform_arguments=dict()):
+                 waveform_arguments=None):
         """ A waveform generator
 
     Parameters
@@ -54,7 +54,10 @@ class WaveformGenerator(object):
         self.parameter_conversion = parameter_conversion
         self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
         self.parameters = parameters
-        self.waveform_arguments = waveform_arguments
+        if waveform_arguments is not None:
+            self.waveform_arguments = waveform_arguments
+        else:
+            self.waveform_arguments = dict()
         self.__frequency_array_updated = False
         self.__time_array_updated = False
         self.__full_source_model_keyword_arguments = {}
