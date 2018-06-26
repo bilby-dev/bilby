@@ -755,15 +755,16 @@ class Emcee(Sampler):
     """ https://github.com/dfm/emcee """
 
     def _run_external_sampler(self):
-        self.nwalkers = self.kwargs.pop('nwalkers', 100)
-        self.nsteps = self.kwargs.pop('nsteps', 100)
-        self.nburn = self.kwargs.pop('nburn', 50)
+        self.nwalkers = self.kwargs.get('nwalkers', 100)
+        self.nsteps = self.kwargs.get('nsteps', 100)
+        self.nburn = self.kwargs.get('nburn', 50)
+        a = self.kwargs.get('a', 2)
         emcee = self.external_sampler
         tqdm = utils.get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
 
         sampler = emcee.EnsembleSampler(
             nwalkers=self.nwalkers, dim=self.ndim, lnpostfn=self.lnpostfn,
-            **self.kwargs)
+            a=a)
         pos0 = [self.get_random_draw_from_prior() for i in range(self.nwalkers)]
 
         for result in tqdm(
