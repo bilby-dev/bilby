@@ -9,7 +9,9 @@ def setup_command_line_args():
     parser.add_argument("-f", "--filename", default=None,
                         help="Output file name.")
     parser.add_argument("-l", "--labels", nargs='+', default=None,
-                        help="List of labels to use.")
+                        help="List of labels to use for each result.")
+    parser.add_argument("-p", "--parameters", nargs='+', default=None,
+                        help="List of parameters.")
     args, _ = parser.parse_known_args()
 
     return args
@@ -21,4 +23,5 @@ def main():
     results = [tupak.core.result.read_in_result(filename=r)
                for r in args.results]
     tupak.core.result.plot_multiple(results, filename=args.filename,
-                                    labels=args.labels)
+                                    labels=args.labels,
+                                    parameters=args.parameters)
