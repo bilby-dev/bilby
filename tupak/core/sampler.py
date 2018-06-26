@@ -786,7 +786,11 @@ class Emcee(Sampler):
         return self.result
 
     def lnpostfn(self, theta):
-        return self.log_likelihood(theta) + self.log_prior(theta)
+        p = self.log_prior(theta)
+        if np.isinf(p):
+            return -np.inf
+        else:
+            return self.log_likelihood(theta) + p
 
 
 class Ptemcee(Emcee):
