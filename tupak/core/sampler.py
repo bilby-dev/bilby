@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 import datetime
 import deepdish
 
@@ -775,10 +774,10 @@ class Emcee(Sampler):
         self.result.samples = sampler.chain[:, self.nburn:, :].reshape(
             (-1, self.ndim))
         self.result.walkers = sampler.chain[:, :, :]
+        self.result.nburn = self.nburn
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
-        if self.plot:
-            self.plot_walkers()
+
         try:
             logging.info("Max autocorr time = {}".format(
                          np.max(sampler.get_autocorr_time())))
@@ -788,29 +787,6 @@ class Emcee(Sampler):
 
     def lnpostfn(self, theta):
         return self.log_likelihood(theta) + self.log_prior(theta)
-
-    def _get_walkers_to_plot(self):
-        return self.result.walkers[:, :, :]
-
-    def plot_walkers(self, save=True, **kwargs):
-        nwalkers, nsteps, ndim = self.result.walkers.shape
-        idxs = np.arange(nsteps)
-        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*self.ndim))
-        walkers = self._get_walkers_to_plot()
-        for i, ax in enumerate(axes):
-            ax.plot(idxs[:self.nburn+1], walkers[:, :self.nburn+1, i].T,
-                    lw=0.1, color='r')
-            ax.set_ylabel(self.result.parameter_labels[i])
-
-        for i, ax in enumerate(axes):
-            ax.plot(idxs[self.nburn:], walkers[:, self.nburn:, i].T, lw=0.1,
-                    color='k')
-            ax.set_ylabel(self.result.parameter_labels[i])
-
-        fig.tight_layout()
-        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
-        logging.debug('Saving walkers plot to {}'.format('filename'))
-        fig.savefig(filename)
 
 
 class Ptemcee(Emcee):
@@ -843,8 +819,7 @@ class Ptemcee(Emcee):
         self.result.walkers = sampler.chain[0, :, :, :]
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
-        if self.plot:
-            self.plot_walkers()
+
         logging.info("Max autocorr time = {}"
                      .format(np.max(sampler.get_autocorr_time())))
         logging.info("Tswap frac = {}"

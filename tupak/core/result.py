@@ -5,6 +5,7 @@ import deepdish
 import pandas as pd
 import corner
 import matplotlib
+import matplotlib.pyplot as plt
 
 
 def result_file_name(outdir, label):
@@ -258,6 +259,31 @@ class Result(dict):
             fig.savefig(filename, dpi=dpi)
 
         return fig
+
+    def plot_walkers(self, save=True, **kwargs):
+        """ Method to plot the trace of the walkers in an ensmble MCMC plot """
+        if hasattr(self, 'walkers') is False:
+            logging.warning("Cannot plot_walkers as no walkers are saved")
+            return
+
+        nwalkers, nsteps, ndim = self.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*ndim))
+        walkers = self.walkers[:, :, :]
+        for i, ax in enumerate(axes):
+            ax.plot(idxs[:self.nburn+1], walkers[:, :self.nburn+1, i].T,
+                    lw=0.1, color='r')
+            ax.set_ylabel(self.parameter_labels[i])
+
+        for i, ax in enumerate(axes):
+            ax.plot(idxs[self.nburn:], walkers[:, self.nburn:, i].T, lw=0.1,
+                    color='k')
+            ax.set_ylabel(self.parameter_labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.debug('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
 
     def plot_walks(self, save=True, **kwargs):
         """DEPRECATED"""
