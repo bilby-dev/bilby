@@ -6,7 +6,7 @@ import numpy as np
 
 class WaveformGenerator(object):
 
-    def __init__(self, time_duration, sampling_frequency, frequency_domain_source_model=None,
+    def __init__(self, time_duration, sampling_frequency, starting_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None,
                  non_standard_sampling_parameter_keys=None,
                  waveform_arguments=dict()):
@@ -18,6 +18,8 @@ class WaveformGenerator(object):
         The sampling frequency
     time_duration: float
         Time duration of data
+    starting_time: float, optional
+        Starting time of the time array
     frequency_domain_source_model: func, optional
         A python function taking some arguments and returning the frequency
         domain strain. Note the first argument must be the frequencies at
@@ -44,6 +46,7 @@ class WaveformGenerator(object):
         """
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
+        self.starting_time = starting_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.time_duration = time_duration
@@ -170,7 +173,8 @@ class WaveformGenerator(object):
         if self.__time_array_updated is False:
             self.__time_array = utils.create_time_series(
                                         self.sampling_frequency,
-                                        self.time_duration)
+                                        self.time_duration,
+                                        self.starting_time)
 
             self.__time_array_updated = True
         return self.__time_array
