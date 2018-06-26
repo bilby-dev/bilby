@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 import deepdish
-from scipy.misc import logsumexp
 
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
