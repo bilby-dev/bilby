@@ -753,6 +753,8 @@ class Pymultinest(Sampler):
 
 
 class Emcee(Sampler):
+    """ https://github.com/dfm/emcee """
+
     def _run_external_sampler(self):
         self.nwalkers = self.kwargs.pop('nwalkers', 100)
         self.nsteps = self.kwargs.pop('nsteps', 100)
@@ -775,7 +777,8 @@ class Emcee(Sampler):
         self.result.walkers = sampler.chain[:, :, :]
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
-        self.plot_walkers()
+        if self.plot:
+            self.plot_walkers()
         try:
             logging.info("Max autocorr time = {}".format(
                          np.max(sampler.get_autocorr_time())))
@@ -811,6 +814,7 @@ class Emcee(Sampler):
 
 
 class Ptemcee(Emcee):
+    """ https://github.com/willvousden/ptemcee """
 
     def _run_external_sampler(self):
         self.ntemps = self.kwargs.pop('ntemps', 2)
@@ -839,9 +843,12 @@ class Ptemcee(Emcee):
         self.result.walkers = sampler.chain[0, :, :, :]
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
-        self.plot_walkers()
-        logging.info("Max autocorr time = {}".format(np.max(sampler.get_autocorr_time())))
-        logging.info("Tswap frac = {}".format(sampler.tswap_acceptance_fraction))
+        if self.plot:
+            self.plot_walkers()
+        logging.info("Max autocorr time = {}"
+                     .format(np.max(sampler.get_autocorr_time())))
+        logging.info("Tswap frac = {}"
+                     .format(sampler.tswap_acceptance_fraction))
         return self.result
 
 
