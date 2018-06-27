@@ -72,7 +72,7 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, duration, 1./sampling_frequency)
+    return np.arange(starting_time, starting_time+duration, 1./sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
