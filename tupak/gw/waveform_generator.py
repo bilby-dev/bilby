@@ -250,3 +250,12 @@ class WaveformGenerator(object):
         self.__sampling_frequency = sampling_frequency
         self.__frequency_array_updated = False
         self.__time_array_updated = False
+
+    @property
+    def starting_time(self):
+        return self.__starting_time
+
+    @starting_time.setter
+    def starting_time(self, starting_time):
+        self.__starting_time = starting_time
+        self.__time_array_updated = False
