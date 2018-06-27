@@ -955,6 +955,9 @@ class Interferometer(object):
                    header='f h(f)')
 
     def plot_data(self, signal=None, outdir='.', label=None):
+        if utils.command_line_args.test:
+            return
+
         fig, ax = plt.subplots()
         ax.loglog(self.frequency_array,
                   np.abs(self.frequency_domain_strain),
