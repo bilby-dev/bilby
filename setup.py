@@ -52,7 +52,6 @@ setup(name='tupak',
           'pandas',
           'scipy',
           'gwpy',
-          'lalsuite',
           ],
       entry_points={'console_scripts':
                     ['tupak_plot=cli_tupak.plot_multiple_posteriors:main']
