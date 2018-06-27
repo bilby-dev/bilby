@@ -29,11 +29,11 @@ exitcode-jessie:
     # Run tests and collect coverage data
     - coverage --version
     - coverage erase
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/conversion_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/detector_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/prior_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/sampler_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/waveform_generator_tests.py
+    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak* -a test/conversion_tests.py
+    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak* -a test/detector_tests.py
+    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak* -a test/prior_tests.py
+    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak* -a test/sampler_tests.py
+    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak* -a test/waveform_generator_tests.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
     # Run all other tests (no coverage data collected)
