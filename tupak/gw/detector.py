@@ -88,9 +88,9 @@ class InterferometerStrainData(object):
         Parameters
         ----------
         minimum_frequency: float
-            Minimum frequency to analyse for detector.
+            Minimum frequency to analyse for detector. Default is 0.
         maximum_frequency: float
-            Maximum frequency to analyse for detector.
+            Maximum frequency to analyse for detector. Default is infinity.
 
         """
         self.minimum_frequency = minimum_frequency
@@ -156,7 +156,8 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        return (self.frequency_array > self.minimum_frequency) & (self.frequency_array < self.maximum_frequency)
+        return ((self.frequency_array > self.minimum_frequency) &
+                (self.frequency_array < self.maximum_frequency))
 
     @property
     def frequency_domain_strain(self):
@@ -167,6 +168,32 @@ class InterferometerStrainData(object):
 
     def add_to_frequency_domain_strain(self, x):
         self._frequency_domain_strain += x
+
+    def _infer_frequency_domain_dependence(
+            self, sampling_frequency, duration, frequency_array):
+        """ Helper function to figure out if the frequency_array, or
+            sampling_frequency and duration where given
+        """
+
+        if (sampling_frequency is not None) and (duration is not None):
+            if frequency_array is not None:
+                raise ValueError(
+                    "You have given the sampling_frequency, duration, and "
+                    "frequency_array")
+            self.sampling_frequency = sampling_frequency
+            self.duration = duration
+            self._calculate_frequency_array()
+        elif any(x is not None for x in [sampling_frequency, duration]):
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
+        elif frequency_array is not None:
+            self.sampling_frequency, self.duration = (
+                utils.get_sampling_frequency_and_duration_from_frequency_array(
+                    frequency_array))
+            self.frequency_array = np.array(frequency_array)
+        else:
+            raise ValueError(
+                "Insufficient information given to set frequency_array")
 
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
@@ -190,22 +217,9 @@ class InterferometerStrainData(object):
         """
 
         self.start_time = start_time
-        if (sampling_frequency is not None) and (duration is not None):
-            if frequency_array is not None:
-                raise ValueError(
-                    "You have given the sampling_frequency, duration, and frequency_array")
-            self.sampling_frequency = sampling_frequency
-            self.duration = duration
-            self._calculate_frequency_array()
-        elif any(x is not None for x in [sampling_frequency, duration]):
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
-        elif frequency_array is not None:
-            self.sampling_frequency, self.duration = (
-                utils.get_sampling_frequency_and_duration_from_frequency_array(frequency_array))
-            self.frequency_array = np.array(frequency_array)
-        else:
-            raise ValueError("Insufficient information given to set frequency_array")
+        self._infer_frequency_domain_dependence(
+            sampling_frequency=sampling_frequency, duration=duration,
+            frequency_array=frequency_array)
 
         logging.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
@@ -213,9 +227,9 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("Data frequencies do not match frequency_array")
 
-    def set_from_power_spectral_density(self, power_spectral_density,
-                                        sampling_frequency, duration,
-                                        start_time=0):
+    def set_from_power_spectral_density(
+            self, power_spectral_density, sampling_frequency, duration,
+            start_time=0):
         """ Set the `Interferometer.strain_data` from a power spectral density
 
         Parameters
@@ -268,11 +282,12 @@ class InterferometerStrainData(object):
         self._calculate_frequency_array()
 
         logging.debug('Setting zero noise data')
-        self._frequency_domain_strain = np.zeros_like(self.frequency_array) * (1 + 1j)
+        self._frequency_domain_strain = np.zeros_like(self.frequency_array,
+                                                      dtype=np.complex)
 
-    def set_from_frame_file(self, frame_file, sampling_frequency,
-                            duration, start_time=0, channel_name=None,
-                            buffer_time=1, filter_freq=None, alpha=0.25):
+    def set_from_frame_file(
+            self, frame_file, sampling_frequency, duration, start_time=0,
+            channel_name=None, buffer_time=1, filter_freq=None, alpha=0.25):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
@@ -314,9 +329,9 @@ class InterferometerStrainData(object):
             buffer_time=buffer_time, channel=channel_name,
             resample=sampling_frequency)
 
-        frequency_domain_strain, frequencies = tupak.gw.utils.process_strain_data(
+        frequency_domain_strain, freqs = tupak.gw.utils.process_strain_data(
             strain, filter_freq=filter_freq, alpha=alpha)
-        if np.array_equal(frequencies, self.frequency_array):
+        if np.array_equal(freqs, self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
         else:
             raise ValueError("Data frequencies do not match frequency_array")
