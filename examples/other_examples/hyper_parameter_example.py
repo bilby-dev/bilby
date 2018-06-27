@@ -117,5 +117,5 @@ hp_priors = dict(
 # And run sampler
 result = tupak.core.sampler.run_sampler(
     likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty',
-    npoints=1000, outdir=outdir, label='hyper_parameter', verbose=True)
+    npoints=1000, outdir=outdir, label='hyper_parameter', verbose=True, clean=True)
 result.plot_corner(truth=dict(mu=true_mu_c0, sigma=true_sigma_c0))
