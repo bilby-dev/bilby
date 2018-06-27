@@ -1,0 +1,14 @@
+# KAGRA at design sensitvity.
+# https://arxiv.org/pdf/1102.5421.pdf
+# WARNING: I think there's a typo in that reference for the orientation.
+# https://dcc.ligo.org/LIGO-P1200087-v42/public
+name = 'K1'
+power_spectral_density = PowerSpectralDensity(psd_file='KAGRA_design_psd.txt')
+length = 3
+minimum_frequency = 20
+maximum_frequency = 2048
+latitude = 36 + 15. / 60 + 00. / 3600
+longitude = 137 + 10. / 60 + 48. / 3600
+elevation = 414.0
+xarm_azimuth = 25.0
+yarm_azimuth = 115.0

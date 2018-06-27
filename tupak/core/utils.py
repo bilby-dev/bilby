@@ -33,6 +33,31 @@ def get_sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
+def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
+    """
+    Calculate sampling frequency and duration from a frequency array
+
+    Returns
+    -------
+    sampling_frequency, duration:
+
+    Raises
+    -------
+    ValueError: If the frequency_array is not evenly sampled.
+
+    """
+
+    tol = 1e-10
+    if np.ptp(np.diff(frequency_array)) > tol:
+        raise ValueError("Your frequency series was not evenly sampled")
+
+    number_of_frequencies = len(frequency_array)
+    delta_freq = frequency_array[1] - frequency_array[0]
+    duration = 1 / delta_freq
+    sampling_frequency = 2 * number_of_frequencies / duration
+    return sampling_frequency, duration
+
+
 def create_time_series(sampling_frequency, duration, starting_time=0.):
     """
 
@@ -231,7 +256,7 @@ def infft(hf, Fs):
     return h
 
 
-def setup_logger(outdir=None, label=None, log_level=None):
+def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
     """ Setup logging output: call at the start of the script to use
 
     Parameters
@@ -241,6 +266,8 @@ def setup_logger(outdir=None, label=None, log_level=None):
     log_level = ['debug', 'info', 'warning']
         Either a string from the list above, or an interger as specified
         in https://docs.python.org/2/library/logging.html#logging-levels
+    print_version: bool
+        If true, print version information
     """
 
     if type(log_level) is str:
@@ -254,25 +281,31 @@ def setup_logger(outdir=None, label=None, log_level=None):
         LEVEL = int(log_level)
 
     logger = logging.getLogger()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
     logger.setLevel(LEVEL)
-    stream_handler.setLevel(LEVEL)
-    logger.addHandler(stream_handler)
 
-    if label:
-        if outdir:
-            check_directory_exists_and_if_not_mkdir(outdir)
-        else:
-            outdir = '.'
-        log_file = '{}/{}.log'.format(outdir, label)
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter(
+    if any([type(h) == logging.StreamHandler for h in logger.handlers]) is False:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+        stream_handler.setLevel(LEVEL)
+        logger.addHandler(stream_handler)
 
-        file_handler.setLevel(LEVEL)
-        logger.addHandler(file_handler)
+    if any([type(h) == logging.FileHandler for h in logger.handlers]) is False:
+        if label:
+            if outdir:
+                check_directory_exists_and_if_not_mkdir(outdir)
+            else:
+                outdir = '.'
+            log_file = '{}/{}.log'.format(outdir, label)
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+
+            file_handler.setLevel(LEVEL)
+            logger.addHandler(file_handler)
+
+    for handler in logger.handlers:
+        handler.setLevel(LEVEL)
 
     version_file = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), '.version')
@@ -350,7 +383,7 @@ def set_up_command_line_arguments():
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +
                               " Overridden by script level settings"))
-    parser.add_argument("-q", "--quite", action="store_true",
+    parser.add_argument("-q", "--quiet", action="store_true",
                         help=("Decrease output verbosity [logging.WARNING]." +
                               " Overridden by script level settings"))
     parser.add_argument("-c", "--clean", action="store_true",
@@ -366,7 +399,7 @@ def set_up_command_line_arguments():
                               " just check nothing breaks"))
     args, _ = parser.parse_known_args()
 
-    if args.quite:
+    if args.quiet:
         args.log_level = logging.WARNING
     elif args.verbose:
         args.log_level = logging.DEBUG
@@ -377,6 +410,7 @@ def set_up_command_line_arguments():
 
 
 command_line_args = set_up_command_line_arguments()
+setup_logger(print_version=True)
 
 if 'DISPLAY' in os.environ:
     logging.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))

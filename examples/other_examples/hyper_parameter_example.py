@@ -8,7 +8,6 @@ import numpy as np
 import inspect
 import matplotlib.pyplot as plt
 
-tupak.core.utils.setup_logger()
 outdir = 'outdir'
 
 

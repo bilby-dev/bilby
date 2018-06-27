@@ -23,7 +23,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
 
     This involves popping a lot of things from parameters.
-    The keys in ignored_keys should be popped after evaluating the waveform.
+    The keys in added_keys should be popped after evaluating the waveform.
 
     Parameters
     ----------
@@ -38,88 +38,88 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
     ------
     converted_parameters: dict
         dict of the required parameters
-    ignored_keys: list
+    added_keys: list
         keys which are added to parameters during function call
     """
 
-    ignored_keys = []
+    added_keys = []
     converted_parameters = parameters.copy()
 
     if 'mass_1' not in search_keys and 'mass_2' not in search_keys:
         if 'chirp_mass' in converted_parameters.keys():
-            if 'total_mass' in converted_parameters.keys():
+            if 'total_mass' in converted_parameters.keys() and 'total_mass' not in added_keys:
                 converted_parameters['symmetric_mass_ratio'] = chirp_mass_and_total_mass_to_symmetric_mass_ratio(
                     converted_parameters['chirp_mass'], converted_parameters['total_mass'])
                 if remove:
-                    converted_parameters.pop('chirp_mass')
-            if 'symmetric_mass_ratio' in converted_parameters.keys():
+                    added_keys.append('chirp_mass')
+            if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
                 converted_parameters['mass_ratio'] =\
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    converted_parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in converted_parameters.keys():
-                if 'total_mass' not in converted_parameters.keys():
+                    added_keys.append('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
+                if 'total_mass' not in converted_parameters.keys() and 'total_mass' not in added_keys:
                     converted_parameters['total_mass'] = chirp_mass_and_mass_ratio_to_total_mass(
                         converted_parameters['chirp_mass'], converted_parameters['mass_ratio'])
                     if remove:
-                        converted_parameters.pop('chirp_mass')
+                        added_keys.append('chirp_mass')
                 converted_parameters['mass_1'], converted_parameters['mass_2'] = \
                     total_mass_and_mass_ratio_to_component_masses(converted_parameters['mass_ratio'],
                                                                   converted_parameters['total_mass'])
                 if remove:
-                    converted_parameters.pop('total_mass')
-                    converted_parameters.pop('mass_ratio')
-            ignored_keys.append('mass_1')
-            ignored_keys.append('mass_2')
-        elif 'total_mass' in converted_parameters.keys():
-            if 'symmetric_mass_ratio' in converted_parameters.keys():
+                    added_keys.append('total_mass')
+                    added_keys.append('mass_ratio')
+            added_keys.append('mass_1')
+            added_keys.append('mass_2')
+        elif 'total_mass' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
+            if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
                 converted_parameters['mass_ratio'] =\
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
-                    converted_parameters.pop('symmetric_mass_ratio')
-            if 'mass_ratio' in converted_parameters.keys():
+                    added_keys.append('symmetric_mass_ratio')
+            if 'mass_ratio' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
                 converted_parameters['mass_1'], converted_parameters['mass_2'] =\
                     total_mass_and_mass_ratio_to_component_masses(
                         converted_parameters['mass_ratio'], converted_parameters['total_mass'])
                 if remove:
-                    converted_parameters.pop('total_mass')
-                    converted_parameters.pop('mass_ratio')
-            ignored_keys.append('mass_1')
-            ignored_keys.append('mass_2')
+                    added_keys.append('total_mass')
+                    added_keys.append('mass_ratio')
+            added_keys.append('mass_1')
+            added_keys.append('mass_2')
 
     elif 'mass_1' in search_keys and 'mass_2' not in search_keys:
-        if 'chirp_mass' in converted_parameters.keys():
+        if 'chirp_mass' in converted_parameters.keys() and 'chirp_mass' not in added_keys:
             converted_parameters['mass_ratio'] =\
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
             temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
             parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3) + \
                                        (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
             if remove:
-                converted_parameters.pop('chirp_mass')
-        elif 'symmetric_mass_ratio' in converted_parameters.keys():
+                added_keys.append('chirp_mass')
+        elif 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
             converted_parameters['mass_ratio'] = symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
             if remove:
-                converted_parameters.pop('symmetric_mass_ratio')
-        if 'mass_ratio' in converted_parameters.keys():
+                added_keys.append('symmetric_mass_ratio')
+        if 'mass_ratio' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
             converted_parameters['mass_2'] = converted_parameters['mass_1'] * converted_parameters['mass_ratio']
             if remove:
-                converted_parameters.pop('mass_ratio')
-            ignored_keys.append('mass_2')
-        elif 'total_mass' in converted_parameters.keys():
+                added_keys.append('mass_ratio')
+            added_keys.append('mass_2')
+        elif 'total_mass' in converted_parameters.keys() and 'total_mass' not in added_keys:
             converted_parameters['mass_2'] = parameters['total_mass'] - parameters['mass_1']
             if remove:
-                converted_parameters.pop('total_mass')
-            ignored_keys.append('mass_2')
+                added_keys.append('total_mass')
+            added_keys.append('mass_2')
 
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
             converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
-            if remove:
-                converted_parameters.pop(cos_angle)
-            ignored_keys.append(angle)
+            added_keys.append(angle)
 
-    return converted_parameters, ignored_keys
+    added_keys = [key for key in added_keys if key not in search_keys]
+
+    return converted_parameters, added_keys
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):

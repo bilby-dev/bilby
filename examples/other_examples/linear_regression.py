@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 import inspect
 
 # A few simple setup steps
-tupak.core.utils.setup_logger()
 label = 'linear_regression'
 outdir = 'outdir'
+tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 
 # First, we define our "signal model", in this case a simple linear function
@@ -22,7 +22,7 @@ def model(time, m, c):
     return time * m + c
 
 
-# New we define the injection parameters which we make simulated data with
+# Now we define the injection parameters which we make simulated data with
 injection_parameters = dict(m=0.5, c=0.2)
 
 # For this example, we'll use standard Gaussian noise

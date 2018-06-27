@@ -8,7 +8,6 @@ import numpy as np
 
 import tupak.gw.prior
 
-tupak.core.utils.setup_logger()
 
 time_duration = 4.
 sampling_frequency = 2048.

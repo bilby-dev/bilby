@@ -7,7 +7,6 @@ import tupak
 import numpy as np
 
 # First set up logging and some output directories and labels
-tupak.core.utils.setup_logger()
 outdir = 'outdir'
 label = 'create_your_own_source_model'
 sampling_frequency = 4096

@@ -1,0 +1,102 @@
+.. _transient_gw_data:
+
+=====================================
+Transient gravitational wave data I/O
+=====================================
+
+This document describs how :code:`tupak` handles interferometer data and how
+you can load data.
+
+What is used by the likelihood?
+-------------------------------
+
+First up, the :ref:`likelihood` used for transient gravitational wave searches
+is either :code:`tupak.gw.likelihood.GravitationalWaveTransient` or
+:code:`tupak.gw.likelihood.BasicGravitationalWaveTransient`. Both of these take
+an argument `interferometers` which is a list of
+`tupak.gw.detector.Interferometer` objects. These objects know about the
+geometry of the detector, the noise properties of the detector, and the
+segment of data which is to be analysed. In the following, we'll describe
+difference ways to set this data.
+
+Making an Interferometer
+------------------------
+
+First up, you can easily get one of the known interferometers using this command::
+
+   >>> H1 = tupak.gw.detector.get_empty_interferometer('H1')
+
+By default, these will have power spectral densities based on typical behaviour
+of the detector. The strain data (i.e. the data about the segment of interferomer
+data which we want to analyse) is in an attribute :code:`H1.strain_data`. The
+following is a list of ways to set this strain data.
+
+Setting the strain data
+-----------------------
+
+Setting the strain data directly
+================================
+
+If you have an array of the frequency-domain strain data, you can set it
+directly like this::
+
+   >>> H1.set_strain_data_from_frequency_domain_strain(frequency_domain_strain,
+                                                       sampling_frequency=sampling_frequency,
+                                                       duration=duration,
+                                                       start_time=start_time)
+
+Where the given arguments are things you have already defined in your python
+script. If you'd prefer to give the :code:`frequency_array` to which the
+data corresponds instead of the :code:`sampling_frequency` and :code:`duration`
+this can also be done::
+
+   >>> H1.set_strain_data_from_frequency_domain_strain(frequency_domain_strain,
+                                                       sampling_frequency=sampling_frequency,
+                                                       duration=duration,
+                                                       start_time=start_time)
+
+Here is the full API:
+
+.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_frequency_domain_strain
+
+
+Setting the strain data from a frame file
+=========================================
+
+To set the data from a frame file, use this method
+
+.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_frame_file
+
+Setting the strain data to be Gaussian noise
+============================================
+
+Often, for testing, you may want to just generate a realization of coloured
+Gaussian noise from the power spectral density. This can be done using this
+method:
+
+.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_power_spectral_density
+
+Setting the strain data to be zero noise
+========================================
+
+.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_zero_noise
+
+Injecting a signal
+------------------
+
+If you wish to inject a signal into the data, you can use this function
+
+.. automethod:: tupak.gw.detector.Interferometer.inject_signal
+
+Helper functions
+----------------
+
+To help setting things up, we provide a few convienience functions for typical
+operations:
+
+.. autofunction:: tupak.gw.detector.get_interferometer_with_fake_noise_and_injection
+
+.. autofunction:: tupak.gw.detector.get_interferometer_with_open_data
+
+.. autofunction:: tupak.gw.detector.get_event_data
+

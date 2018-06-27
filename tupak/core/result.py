@@ -4,6 +4,8 @@ import numpy as np
 import deepdish
 import pandas as pd
 import corner
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 def result_file_name(outdir, label):
@@ -68,6 +70,15 @@ class Result(dict):
             for key in dictionary:
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
+
+    def __dir__(self):
+        """ Adds tab completion in ipython
+
+        See: http://ipython.org/ipython-doc/dev/config/integrating.html
+
+        """
+        methods = ['plot_corner', 'save_to_file', 'save_posterior_samples']
+        return self.keys() + methods
 
     def __getattr__(self, name):
         try:
@@ -208,7 +219,8 @@ class Result(dict):
             bins=50, smooth=0.9, label_kwargs=dict(fontsize=16),
             title_kwargs=dict(fontsize=16), color='#0072C1',
             truth_color='tab:orange', show_titles=True,
-            quantiles=[0.025, 0.975], levels=(0.39, 0.8, 0.97),
+            quantiles=[0.16, 0.84],
+            levels=(1-np.exp(-0.5), 1-np.exp(-2), 1-np.exp(-9/2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
             max_n_ticks=3)
 
@@ -248,6 +260,31 @@ class Result(dict):
 
         return fig
 
+    def plot_walkers(self, save=True, **kwargs):
+        """ Method to plot the trace of the walkers in an ensmble MCMC plot """
+        if hasattr(self, 'walkers') is False:
+            logging.warning("Cannot plot_walkers as no walkers are saved")
+            return
+
+        nwalkers, nsteps, ndim = self.walkers.shape
+        idxs = np.arange(nsteps)
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*ndim))
+        walkers = self.walkers[:, :, :]
+        for i, ax in enumerate(axes):
+            ax.plot(idxs[:self.nburn+1], walkers[:, :self.nburn+1, i].T,
+                    lw=0.1, color='r')
+            ax.set_ylabel(self.parameter_labels[i])
+
+        for i, ax in enumerate(axes):
+            ax.plot(idxs[self.nburn:], walkers[:, self.nburn:, i].T, lw=0.1,
+                    color='k')
+            ax.set_ylabel(self.parameter_labels[i])
+
+        fig.tight_layout()
+        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        logging.debug('Saving walkers plot to {}'.format('filename'))
+        fig.savefig(filename)
+
     def plot_walks(self, save=True, **kwargs):
         """DEPRECATED"""
         logging.warning("plot_walks deprecated")
@@ -273,6 +310,7 @@ class Result(dict):
         """
         data_frame = pd.DataFrame(
             self.samples, columns=self.search_parameter_keys)
+        data_frame['log_likelihood'] = getattr(self, 'log_likelihood_evaluations', np.nan)
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
@@ -319,3 +357,69 @@ class Result(dict):
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
+
+
+def plot_multiple(results, filename=None, labels=None, colours=None,
+                  save=True, **kwargs):
+    """ Generate a corner plot overlaying two sets of results
+
+    Parameters
+    ----------
+    results: list
+        A list of `tupak.core.result.Result` objects containing the samples to
+        plot.
+    filename: str
+        File name to save the figure to. If None (default), a filename is
+        constructed from the outdir of the first element of results and then
+        the labels for all the result files.
+    labels: list
+        List of strings to use when generating a legend. If None (default), the
+        `label` attribute of each result in `results` is used.
+    colours: list
+        The colours for each result. If None, default styles are applied.
+    save: bool
+        If true, save the figure
+    kwargs: dict
+        All other keyword arguments are passed to `result.plot_corner`.
+        However, `show_titles` and `truths` are ignored since they would be
+        ambiguous on such a plot.
+
+    Returns
+    -------
+    fig:
+        A matplotlib figure instance
+
+    """
+
+    kwargs['show_titles'] = False
+    kwargs['truths'] = None
+
+    fig = results[0].plot_corner(save=False, **kwargs)
+    default_filename = '{}/{}'.format(results[0].outdir, results[0].label)
+    lines = []
+    default_labels = []
+    for i, result in enumerate(results):
+        if colours:
+            c = colours[i]
+        else:
+            c = 'C{}'.format(i)
+        fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
+        default_filename += '_{}'.format(result.label)
+        lines.append(matplotlib.lines.Line2D([0], [0], color=c))
+        default_labels.append(result.label)
+
+    if labels is None:
+        labels = default_labels
+
+    axes = fig.get_axes()
+    ndim = int(np.sqrt(len(axes)))
+    axes[ndim-1].legend(lines, labels)
+
+    if filename is None:
+        filename = default_filename
+
+    if save:
+        fig.savefig(filename)
+    return fig
+
+

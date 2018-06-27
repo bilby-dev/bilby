@@ -229,8 +229,9 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
     float: The matched filter signal to noise ratio squared
 
     """
-    return noise_weighted_inner_product(signal, interferometer.data, interferometer.power_spectral_density_array,
-                                        time_duration)
+    return noise_weighted_inner_product(
+        signal, interferometer.frequency_domain_strain,
+        interferometer.power_spectral_density_array, time_duration)
 
 
 def optimal_snr_squared(signal, interferometer, time_duration):
@@ -335,7 +336,7 @@ def get_open_strain_data(
     return strain
 
 
-def read_frame_file(file_name, t1, t2, channel=None, **kwargs):
+def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -347,6 +348,8 @@ def read_frame_file(file_name, t1, t2, channel=None, **kwargs):
         The name of the frame to read
     t1, t2: float
         The GPS time of the start and end of the data
+    buffer_time: float
+        Read in data with `t1-buffer_time` and `t2+buffer_time`
     channel: str
         The name of the channel being searched for, some standard channel names are attempted
         if channel is not specified or if specified channel is not found.
@@ -373,7 +376,7 @@ def read_frame_file(file_name, t1, t2, channel=None, **kwargs):
             if loaded:
                 continue
             try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
+                strain = TimeSeries.read(source=file_name, channel=channel, start=t1-buffer_time, end=t2+buffer_time, **kwargs)
                 loaded = True
                 logging.info('Successfully loaded {}.'.format(channel))
             except RuntimeError:
@@ -386,7 +389,7 @@ def read_frame_file(file_name, t1, t2, channel=None, **kwargs):
         return None
 
 
-def process_strain_data(strain, alpha=0.25, filter_freq=1024, **kwargs):
+def process_strain_data(strain, alpha=0.25, filter_freq=1024):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
