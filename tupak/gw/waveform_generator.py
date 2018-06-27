@@ -6,7 +6,7 @@ import numpy as np
 
 class WaveformGenerator(object):
 
-    def __init__(self, time_duration, sampling_frequency, starting_time=0, frequency_domain_source_model=None,
+    def __init__(self, time_duration, sampling_frequency, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None,
                  non_standard_sampling_parameter_keys=None,
                  waveform_arguments=None):
@@ -18,7 +18,7 @@ class WaveformGenerator(object):
         The sampling frequency
     time_duration: float
         Time duration of data
-    starting_time: float, optional
+    start_time: float, optional
         Starting time of the time array
     frequency_domain_source_model: func, optional
         A python function taking some arguments and returning the frequency
@@ -46,7 +46,7 @@ class WaveformGenerator(object):
         """
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
-        self.starting_time = starting_time
+        self.start_tiime = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.time_duration = time_duration
@@ -177,7 +177,7 @@ class WaveformGenerator(object):
             self.__time_array = utils.create_time_series(
                                         self.sampling_frequency,
                                         self.time_duration,
-                                        self.starting_time)
+                                        self.start_tiime)
 
             self.__time_array_updated = True
         return self.__time_array
@@ -252,10 +252,10 @@ class WaveformGenerator(object):
         self.__time_array_updated = False
 
     @property
-    def starting_time(self):
+    def start_tiime(self):
         return self.__starting_time
 
-    @starting_time.setter
-    def starting_time(self, starting_time):
+    @start_tiime.setter
+    def start_tiime(self, starting_time):
         self.__starting_time = starting_time
         self.__time_array_updated = False
