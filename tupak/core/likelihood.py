@@ -100,45 +100,101 @@ class HyperparameterLikelihood(Likelihood):
 
     Parameters
     ----------
-    samples: list
-        An N-dimensional list of individual sets of samples. Each set may have
+    posteriors: list
+        An list of pandas data frames of samples sets of samples. Each set may have
         a different size.
     hyper_prior: `tupak.prior.Prior`
         A prior distribution with a `parameters` argument pointing to the
-        hyperparameters to infer from the samples. These may need to be
+        hyperparameters to infer from the samples.
+        These may need to be
         initialized to any arbitrary value, but this will not effect the
         result.
-    run_prior: `tupak.prior.Prior`
-        The prior distribution used in the inidivudal inferences which resulted
-        in the set of samples.
+    model: func
+        Function which calculates the new prior probability for the data.
+    sampling_prior: func
+        Function which calculates the prior probability used to sample.
+    max_samples: int
+        Maximum number of samples to use from each set.
 
     """
 
-    def __init__(self, samples, hyper_prior, run_prior):
-        Likelihood.__init__(self, parameters=hyper_prior.__dict__)
-        self.samples = samples
+    def __init__(self, posteriors, hyper_prior, model, sampling_prior, max_samples=1e100):
+        self.parameters = model.parameters
+        self.posteriors = posteriors
         self.hyper_prior = hyper_prior
-        self.run_prior = run_prior
-        if hasattr(hyper_prior, 'lnprob') and hasattr(run_prior, 'lnprob'):
-            logging.info("Using log-probabilities in likelihood")
-            self.log_likelihood = self.log_likelihood_using_lnprob
-        else:
-            logging.info("Using probabilities in likelihood")
-            self.log_likelihood = self.log_likelihood_using_prob
+        self.sampling_prior = sampling_prior
+        self.model = model
 
-    def log_likelihood_using_lnprob(self):
-        L = []
-        self.hyper_prior.__dict__.update(self.parameters)
-        for samp in self.samples:
-            f = self.hyper_prior.lnprob(samp) - self.run_prior.lnprob(samp)
-            L.append(logsumexp(f))
-        return np.sum(L)
+        self.data = self._resample_posteriors(max_samples)
+        self.n_posteriors = min(np.shape(self.data.values()[0]))
+        self.samples_per_posterior = max(np.shape(self.data.values()[0]))
+        self.log_factor = - self.n_posteriors * np.log(self.samples_per_posterior)
 
-    def log_likelihood_using_prob(self):
-        L = []
-        self.hyper_prior.__dict__.update(self.parameters)
-        for samp in self.samples:
-            L.append(
-                np.sum(self.hyper_prior.prob(samp) /
-                       self.run_prior.prob(samp)))
-        return np.sum(np.log(L))
+    def log_likelihood(self):
+        self.model.parameters.update(self.parameters)
+        log_l = np.sum(np.log(np.sum(self.model.prob(self.data)
+                                     / self.sampling_prior(self.data), axis=-1))) + self.log_factor
+        return np.nan_to_num(log_l)
+
+    def _resample_posteriors(self, max_samples=1e100):
+        for posterior in self.posteriors:
+            max_samples = min(len(posterior), max_samples)
+        data = {key: [] for key in self.posteriors[0]}
+        for posterior in self.posteriors:
+            temp = posterior.sample(max_samples)
+            for key in data:
+                data[key].append(temp[key])
+        for key in data:
+            data[key] = np.array(data[key])
+        return data
+
+
+# class HyperparameterLikelihood(Likelihood):
+#     """ A likelihood for infering hyperparameter posterior distributions
+#
+#     See Eq. (1) of https://arxiv.org/abs/1801.02699 for a definition.
+#
+#     Parameters
+#     ----------
+#     samples: list
+#         An N-dimensional list of individual sets of samples. Each set may have
+#         a different size.
+#     hyper_prior: `tupak.prior.Prior`
+#         A prior distribution with a `parameters` argument pointing to the
+#         hyperparameters to infer from the samples. These may need to be
+#         initialized to any arbitrary value, but this will not effect the
+#         result.
+#     run_prior: `tupak.prior.Prior`
+#         The prior distribution used in the inidivudal inferences which resulted
+#         in the set of samples.
+#
+#     """
+#
+#     def __init__(self, samples, hyper_prior, run_prior):
+#         Likelihood.__init__(self, parameters=hyper_prior.__dict__)
+#         self.samples = samples
+#         self.hyper_prior = hyper_prior
+#         self.run_prior = run_prior
+#         if hasattr(hyper_prior, 'lnprob') and hasattr(run_prior, 'lnprob'):
+#             logging.info("Using log-probabilities in likelihood")
+#             self.log_likelihood = self.log_likelihood_using_lnprob
+#         else:
+#             logging.info("Using probabilities in likelihood")
+#             self.log_likelihood = self.log_likelihood_using_prob
+#
+#     def log_likelihood_using_lnprob(self):
+#         L = []
+#         self.hyper_prior.__dict__.update(self.parameters)
+#         for samp in self.samples:
+#             f = self.hyper_prior.lnprob(samp) - self.run_prior.lnprob(samp)
+#             L.append(logsumexp(f))
+#         return np.sum(L)
+#
+#     def log_likelihood_using_prob(self):
+#         L = []
+#         self.hyper_prior.__dict__.update(self.parameters)
+#         for samp in self.samples:
+#             L.append(
+#                 np.sum(self.hyper_prior.prob(samp) /
+#                        self.run_prior.prob(samp)))
+#         return np.sum(np.log(L))
