@@ -127,7 +127,7 @@ class HyperparameterLikelihood(Likelihood):
         self.model = model
         self.max_samples = max_samples
 
-        self.data = self._resample_posteriors()
+        self.data = self.resample_posteriors()
         self.n_posteriors = min(np.shape(self.data.values()[0]))
         self.samples_per_posterior = max(np.shape(self.data.values()[0]))
         self.log_factor = - self.n_posteriors * np.log(self.samples_per_posterior)
@@ -138,7 +138,7 @@ class HyperparameterLikelihood(Likelihood):
                                      / self.sampling_prior(self.data), axis=-1))) + self.log_factor
         return np.nan_to_num(log_l)
 
-    def _resample_posteriors(self, max_samples=None):
+    def resample_posteriors(self, max_samples=None):
         if max_samples is not None:
             self.max_samples = max_samples
         for posterior in self.posteriors:
