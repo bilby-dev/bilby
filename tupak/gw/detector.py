@@ -102,6 +102,30 @@ class InterferometerStrainData(object):
         self._frequency_domain_strain = None
         self._time_domain_strain = None
 
+    @property
+    def frequency_array(self):
+        if self._frequency_array is not None:
+            return self._frequency_array
+        else:
+            self._calculate_frequency_array()
+            return self._frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self._frequency_array = frequency_array
+
+    @property
+    def time_array(self):
+        if self._time_array is not None:
+            return self._time_array
+        else:
+            self._calculate_time_array()
+            return self._time_array
+
+    @time_array.setter
+    def time_array(self, time_array):
+        self._time_array = time_array
+
     def _calculate_time_array(self):
         """ Calculate the frequency array
 
