@@ -119,7 +119,7 @@ class HyperparameterLikelihood(Likelihood):
     """
 
     def __init__(self, posteriors, hyper_prior, model, sampling_prior, max_samples=1e100):
-        self.parameters = model.parameters
+        Likelihood.__init__(model.parameters)
         self.posteriors = posteriors
         self.hyper_prior = hyper_prior
         self.sampling_prior = sampling_prior
