@@ -108,10 +108,10 @@ class HyperparameterLikelihood(Likelihood):
         hyperparameters to infer from the samples.
         These may need to be initialized to any arbitrary value, but this will not
         effect the result.
-    model: object
+    model: `tupak.core.prior.PriorSet`-like
         Object with a `prob` method which calculates the new prior probability for the data.
         This can be a `tupak.core.prior.PriorSet`.
-    sampling_prior: object
+    sampling_prior: `tupak.core.prior.PriorSet`-like
         Object with a `prob` which calculates the prior probability used to sample.
         This can be a `tupak.core.prior.PriorSet`.
     max_samples: int, optional
@@ -135,7 +135,7 @@ class HyperparameterLikelihood(Likelihood):
     def log_likelihood(self):
         self.model.parameters.update(self.parameters)
         log_l = np.sum(np.log(np.sum(self.model.prob(self.data)
-                                     / self.sampling_prior(self.data), axis=-1))) + self.log_factor
+                                     / self.sampling_prior.prob(self.data), axis=-1))) + self.log_factor
         return np.nan_to_num(log_l)
 
     def resample_posteriors(self, max_samples=None):
