@@ -139,7 +139,8 @@ class HyperparameterLikelihood(Likelihood):
         return np.nan_to_num(log_l)
 
     def _resample_posteriors(self, max_samples=None):
-        self.max_samples = max_samples
+        if max_samples is not None:
+            self.max_samples = max_samples
         for posterior in self.posteriors:
             self.max_samples = min(len(posterior), max_samples)
         data = {key: [] for key in self.posteriors[0]}
