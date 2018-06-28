@@ -103,17 +103,18 @@ class HyperparameterLikelihood(Likelihood):
     posteriors: list
         An list of pandas data frames of samples sets of samples. Each set may have
         a different size.
-    hyper_prior: `tupak.prior.Prior`
-        A prior distribution with a `parameters` argument pointing to the
+    hyper_prior: `tupak.core.prior.PriorSet`
+        A set of prior distribution with a `parameters` argument pointing to the
         hyperparameters to infer from the samples.
-        These may need to be
-        initialized to any arbitrary value, but this will not effect the
-        result.
-    model: func
-        Function which calculates the new prior probability for the data.
-    sampling_prior: func
-        Function which calculates the prior probability used to sample.
-    max_samples: int
+        These may need to be initialized to any arbitrary value, but this will not
+        effect the result.
+    model: object
+        Object with a `prob` method which calculates the new prior probability for the data.
+        This can be a `tupak.core.prior.PriorSet`.
+    sampling_prior: object
+        Object with a `prob` which calculates the prior probability used to sample.
+        This can be a `tupak.core.prior.PriorSet`.
+    max_samples: int, optional
         Maximum number of samples to use from each set.
 
     """
