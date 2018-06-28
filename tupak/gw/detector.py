@@ -100,6 +100,16 @@ class InterferometerStrainData(object):
         self.start_time = None
 
         self._frequency_domain_strain = None
+        self._time_domain_strain = None
+
+    def _calculate_time_array(self):
+        """ Calculate the frequency array
+
+        Called after sampling_frequency and duration have been set.
+        """
+        self.time_array = utils.create_time_series(
+            sampling_frequency=self.sampling_frequency, duration=self.duration,
+            starting_time=self.start_time)
 
     def _calculate_frequency_array(self):
         """ Calculate the frequency array
@@ -107,7 +117,7 @@ class InterferometerStrainData(object):
         Called after sampling_frequency and duration have been set.
         """
         self.frequency_array = utils.create_frequency_series(
-            self.sampling_frequency, self.duration)
+            sampling_frequency=self.sampling_frequency, duration=self.duration)
 
     def time_within_data(self, time):
         """ Check if time is within the data span
@@ -160,14 +170,74 @@ class InterferometerStrainData(object):
                 (self.frequency_array < self.maximum_frequency))
 
     @property
+    def time_domain_strain(self):
+        if self._time_domain_strain is not None:
+            return self._time_domain_strain
+        elif self._frequency_domain_strain is not None:
+            time_domain_strain = utils.infft(
+                self.frequency_domain_strain, self.frequency_array)
+            self._time_domain_strain = time_domain_strain
+            return self._time_domain_strain
+
+        else:
+            raise ValueError("time domain strain data not yet set")
+
+    @property
     def frequency_domain_strain(self):
         if self._frequency_domain_strain is not None:
             return self._frequency_domain_strain * self.frequency_mask
+        elif self._time_domain_strain is not None:
+            frequency_domain_strain, _ = utils.nfft(
+                self._time_domain_strain, self.sampling_frequency)
+            self._frequency_domain_strain = frequency_domain_strain
+            return self._frequency_domain_strain
         else:
-            raise ValueError("strain_data not yet set")
+            raise ValueError("frequency domain strain data not yet set")
 
     def add_to_frequency_domain_strain(self, x):
         self._frequency_domain_strain += x
+
+    def _infer_time_domain_dependence(
+            self, sampling_frequency, duration, time_array):
+        """ Helper function to figure out if the time_array, or
+            sampling_frequency and duration where given
+        """
+
+        if (sampling_frequency is not None) and (duration is not None):
+            if time_array is not None:
+                raise ValueError(
+                    "You have given the sampling_frequency, duration, and "
+                    "time_array")
+            self.sampling_frequency = sampling_frequency
+            self.duration = duration
+            self._calculate_time_array()
+            self._calculate_frequency_array()
+        elif any(x is not None for x in [sampling_frequency, duration]):
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
+        elif time_array is not None:
+            self.sampling_frequency, self.duration = (
+                utils.get_sampling_frequency_and_duration_from_time_array(
+                    time_array))
+            self.time_array = np.array(time_array)
+        else:
+            raise ValueError(
+                "Insufficient information given to set time_array")
+
+    def set_from_time_domain_strain(
+            self, time_domain_strain, sampling_frequency=None, duration=None,
+            start_time=0, time_array=None):
+
+        self.start_time = start_time
+        self._infer_time_domain_dependence(
+            sampling_frequency=sampling_frequency, duration=duration,
+            time_array=time_array)
+
+        logging.debug('Setting data using provided time_domain_strain')
+        if np.shape(time_domain_strain) == np.shape(self.time_array):
+            self._time_domain_strain = time_domain_strain
+        else:
+            raise ValueError("Data times do not match time array")
 
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
@@ -182,6 +252,7 @@ class InterferometerStrainData(object):
                     "frequency_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
+            self._calculate_time_array()
             self._calculate_frequency_array()
         elif any(x is not None for x in [sampling_frequency, duration]):
             raise ValueError(

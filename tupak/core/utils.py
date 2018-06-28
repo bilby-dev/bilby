@@ -33,6 +33,25 @@ def get_sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
+def get_sampling_frequency_and_duration_from_time_array(time_array):
+    """
+    Calculate sampling frequency and duration from a time array
+
+    Returns
+    -------
+    sampling_frequency, duration:
+
+    Raises
+    -------
+    ValueError: If the time_array is not evenly sampled.
+
+    """
+
+    sampling_frequency = get_sampling_frequency(time_array)
+    duration = time_array[-1] - time_array[0]
+    return sampling_frequency, duration
+
+
 def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
     """
     Calculate sampling frequency and duration from a frequency array

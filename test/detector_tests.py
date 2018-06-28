@@ -358,6 +358,22 @@ class TestInterferometerStrainData(unittest.TestCase):
             sampling_frequency=sampling_frequency, start_time=10)
         self.assertTrue(self.ifosd.start_time == 10)
 
+    def test_time_array_frequency_array_consistency(self):
+        duration = 1
+        sampling_frequency = 10
+        time_array = tupak.core.utils.create_time_series(
+            sampling_frequency=sampling_frequency, duration=duration)
+        time_domain_strain = np.random.normal(0, 1, len(time_array))
+        self.ifosd.set_from_time_domain_strain(
+            time_domain_strain=time_domain_strain, duration=duration,
+            sampling_frequency=sampling_frequency)
+
+        frequency_domain_strain, freqs = tupak.core.utils.nfft(
+            time_domain_strain, sampling_frequency)
+
+        self.assertTrue(np.all(
+            frequency_domain_strain == self.ifosd.frequency_domain_strain))
+
     #def test_sampling_duration_init(self):
     #    self.assertIsNone(self.ifo.duration)
 
