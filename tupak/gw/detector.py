@@ -200,6 +200,7 @@ class InterferometerStrainData(object):
 
     @property
     def time_domain_strain(self):
+        """ The time domain strain, in units of strain """
         if self._time_domain_strain is not None:
             return self._time_domain_strain
         elif self._frequency_domain_strain is not None:
@@ -213,6 +214,12 @@ class InterferometerStrainData(object):
 
     @property
     def frequency_domain_strain(self):
+        """ Returns the frequency domain strain
+
+        This is the frequency domain strain normalised to units of
+        strain / sqrt(Hz), obtained by a one-sided Fourier transform of the
+        time domain data, divided by the sampling frequency.
+        """
         if self._frequency_domain_strain is not None:
             return self._frequency_domain_strain * self.frequency_mask
         elif self._time_domain_strain is not None:
