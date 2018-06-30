@@ -5,6 +5,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import gwpy
 from gwpy.signal import filter_design
 from scipy import signal
 from scipy.interpolate import interp1d
@@ -257,6 +258,15 @@ class InterferometerStrainData(object):
         else:
             raise ValueError(
                 "Insufficient information given to set time_array")
+
+    def set_from_gwpy_timeseries(self, timeseries):
+        logging.debug('Setting data using provided gwpy TimeSeries object')
+        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
+            raise ValueError("Input timeseries is not a gwpy TimeSeries")
+        self.start_time = timeseries.epoch.value
+        self.sampling_frequency = timeseries.sample_rate.value
+        self.duration = timeseries.value
+        self.time_domain_strain = timeseries.value
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
