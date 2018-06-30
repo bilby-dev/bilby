@@ -100,10 +100,13 @@ class InterferometerStrainData(object):
         self.start_time = None
 
         self._frequency_domain_strain = None
+        self._frequency_array = None
         self._time_domain_strain = None
+        self._time_array = None
 
     @property
     def frequency_array(self):
+        """ Frequencies of the data in Hz """
         if self._frequency_array is not None:
             return self._frequency_array
         else:
@@ -116,6 +119,7 @@ class InterferometerStrainData(object):
 
     @property
     def time_array(self):
+        """ Time of the data in seconds """
         if self._time_array is not None:
             return self._time_array
         else:
@@ -127,19 +131,20 @@ class InterferometerStrainData(object):
         self._time_array = time_array
 
     def _calculate_time_array(self):
-        """ Calculate the frequency array
+        """ Calculate the time array """
+        if (self.sampling_frequency is None) or (self.duration is None):
+            raise ValueError(
+                "You have not specified the sampling_frequency and duration")
 
-        Called after sampling_frequency and duration have been set.
-        """
         self.time_array = utils.create_time_series(
             sampling_frequency=self.sampling_frequency, duration=self.duration,
             starting_time=self.start_time)
 
     def _calculate_frequency_array(self):
-        """ Calculate the frequency array
-
-        Called after sampling_frequency and duration have been set.
-        """
+        """ Calculate the frequency array """
+        if (self.sampling_frequency is None) or (self.duration is None):
+            raise ValueError(
+                "You have not specified the sampling_frequency and duration")
         self.frequency_array = utils.create_frequency_series(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
@@ -234,8 +239,6 @@ class InterferometerStrainData(object):
                     "time_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-            self._calculate_time_array()
-            self._calculate_frequency_array()
         elif any(x is not None for x in [sampling_frequency, duration]):
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
@@ -276,8 +279,6 @@ class InterferometerStrainData(object):
                     "frequency_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-            self._calculate_time_array()
-            self._calculate_frequency_array()
         elif any(x is not None for x in [sampling_frequency, duration]):
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
@@ -343,7 +344,6 @@ class InterferometerStrainData(object):
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self._calculate_frequency_array()
 
         logging.debug(
             'Setting data using noise realization from provided'
@@ -374,7 +374,6 @@ class InterferometerStrainData(object):
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self._calculate_frequency_array()
 
         logging.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
@@ -416,7 +415,6 @@ class InterferometerStrainData(object):
         self.sampling_frequency = sampling_frequency
         self.duration = duration
         self.start_time = start_time
-        self._calculate_frequency_array()
 
         logging.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
