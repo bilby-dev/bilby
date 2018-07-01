@@ -222,7 +222,7 @@ def create_white_noise(sampling_frequency, duration):
 
 def nfft(time_domain_strain, sampling_frequency):
     """ Perform an FFT while keeping track of the frequency bins. Assumes input
-        time series is real (positive frequencies only)
+        time series is real (positive frequencies only).
 
     Parameters
     ----------
@@ -235,7 +235,7 @@ def nfft(time_domain_strain, sampling_frequency):
     -------
     frequency_domain_strain, frequency_array: (array, array)
         Single-sided FFT of time domain strain normalised to units of
-        strain / sqrt(Hz), and the associated frequency_array.
+        strain / Hz, and the associated frequency_array.
 
     """
 
@@ -253,20 +253,20 @@ def nfft(time_domain_strain, sampling_frequency):
     # rfft computes the fft for real inputs
     frequency_domain_strain = np.fft.rfft(time_domain_strain)
 
-    # normalise to units of strain / sqrt(Hz)
+    # normalise to units of strain / Hz
     norm_frequency_domain_strain = frequency_domain_strain / sampling_frequency
 
     return norm_frequency_domain_strain, frequency_array
 
 
 def infft(frequency_domain_strain, sampling_frequency):
-    """ Inverse FFT for use in conjunction with nfft
+    """ Inverse FFT for use in conjunction with nfft.
 
     Parameters
     ----------
     frequency_domain_strain: array_like
         Single-sided, normalised FFT of the time-domain strain data (in units
-        of strain / sqrt(Hz).
+        of strain / Hz).
     sampling_frequency: float
         Sampling frequency of the data.
 
@@ -277,7 +277,7 @@ def infft(frequency_domain_strain, sampling_frequency):
     """
 
     if np.ndim(sampling_frequency) != 0:
-        raise ValueError("Sampling frequency must be interger or float")
+        raise ValueError("Sampling frequency must be integer or float")
 
     time_domain_strain_norm = np.fft.irfft(frequency_domain_strain)
     time_domain_strain = time_domain_strain_norm * sampling_frequency

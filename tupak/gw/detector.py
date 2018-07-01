@@ -218,7 +218,7 @@ class InterferometerStrainData(object):
         """ Returns the frequency domain strain
 
         This is the frequency domain strain normalised to units of
-        strain / sqrt(Hz), obtained by a one-sided Fourier transform of the
+        strain / Hz, obtained by a one-sided Fourier transform of the
         time domain data, divided by the sampling frequency.
         """
         if self._frequency_domain_strain is not None:
@@ -1009,6 +1009,7 @@ class Interferometer(object):
 
     @property
     def frequency_domain_strain(self):
+        """ The frequency domain strain in units of strain / Hz """
         return self.strain_data.frequency_domain_strain
 
     def time_delay_from_geocenter(self, ra, dec, time):
