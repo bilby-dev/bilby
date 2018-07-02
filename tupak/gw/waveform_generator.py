@@ -102,7 +102,7 @@ class WaveformGenerator(object):
             raise RuntimeError("No source model given")
 
         for key in added_keys:
-            self.__parameters.pop(key)
+            self.parameters.pop(key)
         return model_frequency_strain
 
     def time_domain_strain(self):
@@ -142,7 +142,7 @@ class WaveformGenerator(object):
             raise RuntimeError("No source model given")
 
         for key in added_keys:
-            self.__parameters.pop(key)
+            self.parameters.pop(key)
         return model_time_series
 
     @property
