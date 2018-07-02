@@ -16,6 +16,12 @@ def gaussian_frequency_domain_strain_2(frequency_array, a, m, s, ra, dec, geocen
     return ht
 
 
+def gaussian_time_domain_strain_2(time_array, a, m, s, ra, dec, geocent_time, psi):
+    ht = {'plus': a * np.exp(-(m - time_array) ** 2 / s ** 2 / 2),
+          'cross': a * np.exp(-(m - time_array) ** 2 / s ** 2 / 2)}
+    return ht
+
+
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
@@ -83,24 +89,18 @@ class TestSetters(unittest.TestCase):
         self.waveform_generator.frequency_array = new_frequency_array
         self.assertTrue(np.array_equal(new_frequency_array, self.waveform_generator.frequency_array))
 
+    def test_time_array_setter(self):
+        new_time_array = np.arange(1, 100)
+        self.waveform_generator.time_array = new_time_array
+        self.assertTrue(np.array_equal(new_time_array, self.waveform_generator.time_array))
 
-class TestSourceModelSetter(unittest.TestCase):
-
-    def setUp(self):
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
-                                                                                frequency_domain_source_model=gaussian_frequency_domain_strain)
+    def test_parameters_set_from_frequency_domain_source_model(self):
         self.waveform_generator.frequency_domain_source_model = gaussian_frequency_domain_strain_2
-        self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
-                                          ra=1.375,
-                                          dec=-1.2108,
-                                          geocent_time=1126259642.413,
-                                          psi=2.659)
+        self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
+                             sorted(list(self.simulation_parameters.keys())))
 
-    def tearDown(self):
-        del self.waveform_generator
-        del self.simulation_parameters
-
-    def test_parameters_are_set_correctly(self):
+    def test_parameters_set_from_time_domain_source_model(self):
+        self.waveform_generator.time_domain_source_model = gaussian_time_domain_strain_2
         self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
                              sorted(list(self.simulation_parameters.keys())))
 
