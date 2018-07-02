@@ -79,7 +79,8 @@ class InterferometerSet(list):
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
-    def __init__(self, minimum_frequency=0, maximum_frequency=np.inf):
+    def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
+                 roll_off=0.4):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -91,10 +92,14 @@ class InterferometerStrainData(object):
             Minimum frequency to analyse for detector. Default is 0.
         maximum_frequency: float
             Maximum frequency to analyse for detector. Default is infinity.
+        roll_off: float
+            The roll-off (in seconds) used in the Tukey window.
 
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
+        self.roll_off = roll_off
+
         self.sampling_frequency = None
         self.duration = None
         self.start_time = None
@@ -326,18 +331,18 @@ class InterferometerStrainData(object):
         strain = strain.filter(bp, filtfilt=True)
         self._time_domain_strain = strain.value
 
-    def get_tukey_window(self, N, roll_off):
-        alpha = 2 * roll_off / self.duration
+    def get_tukey_window(self, N, duration):
+        alpha = 2 * self.roll_off / duration
         window = signal.windows.tukey(N, alpha=alpha)
         return window
 
-    def apply_tukey_window(self, roll_off):
+    def apply_tukey_window(self):
         N = len(self.time_domain_strain)
-        window = self.get_tukey_window(N, roll_off=roll_off)
+        window = self.get_tukey_window(N, duration=self.duration)
         self._time_domain_strain *= window
 
     def create_power_spectral_density(
-            self, name, analysis_segment_duration, roll_off, outdir='outdir'):
+            self, name, analysis_segment_duration, outdir='outdir'):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -349,8 +354,6 @@ class InterferometerStrainData(object):
             The name of the detector, used in storing the PSD
         analysis_segment_duration: float
             Duration of the analysis segment.
-        roll_off: float
-            The roll-off (in seconds) used in the Tukey window.
         outdir: str
             The output directory to write the PSD file too
 
@@ -361,7 +364,8 @@ class InterferometerStrainData(object):
 
         """
         NFFT = int(self.sampling_frequency * analysis_segment_duration)
-        window = self.get_tukey_window(N=NFFT, roll_off=roll_off)
+        window = self.get_tukey_window(
+            N=NFFT, duration=analysis_segment_duration)
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
         psd = strain.psd(fftlength=analysis_segment_duration, window=window)
@@ -1489,12 +1493,12 @@ def get_interferometer_with_open_data(
     if start_time is None:
         start_time = trigger_time + 2 - time_duration
 
-    strain = InterferometerStrainData()
+    strain = InterferometerStrainData(roll_off=roll_off)
     strain.set_from_open_data(
         name=name, start_time=start_time, duration=time_duration,
         outdir=outdir, cache=cache, **kwargs)
 
-    strain_psd = InterferometerStrainData()
+    strain_psd = InterferometerStrainData(roll_off=roll_off)
     strain_psd.set_from_open_data(
         name=name, start_time=start_time + time_duration + psd_offset,
         duration=psd_duration, outdir=outdir, cache=cache, **kwargs)
@@ -1505,10 +1509,10 @@ def get_interferometer_with_open_data(
 
     # Create and save PSDs
     psd_file = strain_psd.create_power_spectral_density(
-        name=name, roll_off=roll_off, outdir=outdir,
+        name=name, outdir=outdir,
         analysis_segment_duration=strain.duration)
 
-    strain.apply_tukey_window(roll_off=roll_off)
+    strain.apply_tukey_window()
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
