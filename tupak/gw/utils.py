@@ -291,7 +291,7 @@ def get_event_time(event):
 
 
 def get_open_strain_data(
-        name, t1, t2, outdir, cache=False, raw_data_file=None, **kwargs):
+        name, t1, t2, outdir, cache=False, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -307,9 +307,10 @@ def get_open_strain_data(
         The output directory to place data in
     cache: bool
         If true, cache the data
+    buffer_time: float
+        Time to add to the begining and end of the segment.
     **kwargs:
         Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
-    raw_data_file
 
     Returns
     -----------
@@ -317,19 +318,18 @@ def get_open_strain_data(
 
     """
     filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
-    if raw_data_file is not None:
-        logging.info('Using raw_data_file {}'.format(raw_data_file))
-        strain = TimeSeries.read(raw_data_file)
-        if (t1 > strain.times[0].value) and (t2 < strain.times[-1].value):
-            logging.info('Using supplied raw data file')
-            strain = strain.crop(t1, t2)
-        else:
-            raise ValueError('Supplied file does not contain requested data')
-    elif os.path.isfile(filename) and cache:
+
+    if buffer_time < 0:
+        raise ValueError("buffer_time < 0")
+    t1 = t1 - buffer_time
+    t2 = t2 + buffer_time
+
+    if os.path.isfile(filename) and cache:
         logging.info('Using cached data from {}'.format(filename))
         strain = TimeSeries.read(filename)
     else:
-        logging.info('Fetching open data ...')
+        logging.info('Fetching open data from {} to {} with buffer time {}'
+                     .format(t1, t2, buffer_time))
         strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
         logging.info('Saving data to {}'.format(filename))
         strain.write(filename)

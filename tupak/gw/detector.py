@@ -6,7 +6,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import gwpy
-from gwpy.signal import filter_design
 from scipy import signal
 from scipy.interpolate import interp1d
 
@@ -99,6 +98,7 @@ class InterferometerStrainData(object):
         self.sampling_frequency = None
         self.duration = None
         self.start_time = None
+        self.buffer_time = 0
 
         self._frequency_domain_strain = None
         self._frequency_array = None
@@ -265,8 +265,8 @@ class InterferometerStrainData(object):
             raise ValueError("Input timeseries is not a gwpy TimeSeries")
         self.start_time = timeseries.epoch.value
         self.sampling_frequency = timeseries.sample_rate.value
-        self.duration = timeseries.value
-        self.time_domain_strain = timeseries.value
+        self.duration = timeseries.duration.value
+        self._time_domain_strain = timeseries.value
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -282,6 +282,85 @@ class InterferometerStrainData(object):
             self._time_domain_strain = time_domain_strain
         else:
             raise ValueError("Data times do not match time array")
+
+    def set_from_open_data(
+            self, name, start_time, duration=4, outdir='outdir', cache=True,
+            buffer_time=1, **kwargs):
+        """
+
+        Parameters
+        ----------
+        name: str
+            Detector name, e.g., 'H1'.
+        start_time: float
+            Start GPS time of segment.
+        duration: float, optional
+            The total time (in seconds) to analyse. Defaults to 4s.
+        outdir: str
+            Directory where the psd files are saved
+        cache: bool, optional
+            Whether or not to store/use the acquired data.
+        buffer_time: float
+            Read in data with `start_time-buffer_time` and
+            `start_time+duration+buffer_time`
+        **kwargs:
+            All keyword arguments are passed to
+            `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+        """
+
+        self.buffer_time = buffer_time
+
+        timeseries = tupak.gw.utils.get_open_strain_data(
+            name, start_time, start_time+duration, outdir=outdir, cache=cache,
+            buffer_time=buffer_time, **kwargs)
+
+        self.set_from_gwpy_timeseries(timeseries)
+
+    def low_pass_filter(self, filter_freq):
+        """ Low pass filter the data """
+        bp = gwpy.signal.filter_design.lowpass(
+            filter_freq, self.sampling_frequency)
+        strain = gwpy.timeseries.TimeSeries(
+            self.time_domain_strain, sample_rate=self.sampling_frequency)
+        strain = strain.filter(bp, filtfilt=True)
+        strain = strain.crop(*strain.span.contract(self.buffer_time))
+        self._time_domain_strain = strain.value
+
+    def apply_tukey_window(self, alpha):
+        N = len(self.time_domain_strain)
+        self._time_domain_strain *= signal.windows.tukey(N, alpha=alpha)
+
+    def create_power_spectral_density(self, alpha, name, outdir='outdir'):
+        """ Use the time domain strain to generate a power spectral density
+
+        This create a Tukey-windowed power spectral density and writes it to a
+        PSD file.
+
+        Parameters
+        ----------
+        alpha: float
+            The tukey window shape parameter passed to `scipy.signal.tukey`.
+        outdir: str
+            The output directory to write the PSD file too
+
+        Returns
+        -------
+        psd_file_name: str
+            The path to the PSD file
+
+        """
+        NFFT = int(self.sampling_frequency * self.duration)
+        window = signal.windows.tukey(NFFT, alpha=alpha)
+        strain = gwpy.timeseries.TimeSeries(
+            self.time_domain_strain, sample_rate=self.sampling_frequency)
+        psd = strain.psd(fftlength=self.duration, window=window)
+        psd_file = '{}/{}_PSD_{}_{}.txt'.format(
+            outdir, name, self.start_time, self.duration)
+        with open('{}'.format(psd_file), 'w+') as file:
+            for f, p in zip(psd.frequencies.value, psd.value):
+                file.write('{} {}\n'.format(f, p))
+        return psd_file
 
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
@@ -1181,7 +1260,7 @@ class PowerSpectralDensity(object):
             sampling_frequency = int(strain.sample_rate.value)
 
             # Low pass filter
-            bp = filter_design.lowpass(filter_freq, strain.sample_rate)
+            bp = gwpy.signal.filter_design.lowpass(filter_freq, strain.sample_rate)
             strain = strain.filter(bp, filtfilt=True)
             strain = strain.crop(*strain.span.contract(1))
 
@@ -1404,50 +1483,30 @@ def get_interferometer_with_open_data(
     if start_time is None:
         start_time = trigger_time + 2 - time_duration
 
-    strain = tupak.gw.utils.get_open_strain_data(
-        name, start_time - 1, start_time + time_duration + 1, outdir=outdir, cache=cache,
-        raw_data_file=raw_data_file, **kwargs)
-
-    strain_psd = tupak.gw.utils.get_open_strain_data(
-        name, start_time + time_duration + psd_offset,
-        start_time + time_duration + psd_offset + psd_duration,
-        raw_data_file=raw_data_file,
+    strain = InterferometerStrainData()
+    strain.set_from_open_data(
+        name=name, start_time=start_time, duration=time_duration,
         outdir=outdir, cache=cache, **kwargs)
 
-    sampling_frequency = int(strain.sample_rate.value)
+    strain_psd = InterferometerStrainData()
+    strain_psd.set_from_open_data(
+        name=name, start_time=start_time + time_duration + psd_offset,
+        duration=psd_duration, outdir=outdir, cache=cache, **kwargs)
 
     # Low pass filter
-    bp = filter_design.lowpass(filter_freq, strain.sample_rate)
-    strain = strain.filter(bp, filtfilt=True)
-    strain = strain.crop(*strain.span.contract(1))
-    strain_psd = strain_psd.filter(bp, filtfilt=True)
-    strain_psd = strain_psd.crop(*strain_psd.span.contract(1))
+    strain.low_pass_filter(filter_freq)
+    strain_psd.low_pass_filter(filter_freq)
 
     # Create and save PSDs
-    NFFT = int(sampling_frequency * time_duration)
-    window = signal.windows.tukey(NFFT, alpha=alpha)
-    psd = strain_psd.psd(fftlength=time_duration, window=window)
-    psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-        outdir, name, start_time + time_duration + psd_offset, psd_duration)
-    with open('{}'.format(psd_file), 'w+') as file:
-        for f, p in zip(psd.frequencies.value, psd.value):
-            file.write('{} {}\n'.format(f, p))
+    psd_file = strain_psd.create_power_spectral_density(
+        name=name, alpha=alpha, outdir=outdir)
 
-    time_series = strain.times.value
-    time_duration = time_series[-1] - time_series[0]
-
-    # Apply Tukey window
-    N = len(time_series)
-    strain = strain * signal.windows.tukey(N, alpha=alpha)
+    strain.apply_tukey_window(alpha=alpha)
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
         psd_file=psd_file)
-    interferometer.set_strain_data_from_frequency_domain_strain(
-        frequency_domain_strain=utils.nfft(
-            strain.value, sampling_frequency)[0],
-        sampling_frequency=sampling_frequency, duration=time_duration,
-        start_time=strain.epoch.value)
+    interferometer.strain_data = strain
 
     if plot:
         interferometer.plot_data(outdir=outdir, label=label)
@@ -1593,7 +1652,8 @@ def get_event_data(
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
-        except ValueError:
+        except ValueError as e:
+            logging.debug("Error raised {}".format(e))
             logging.warning('No data found for {}.'.format(name))
 
     return InterferometerSet(interferometers)
