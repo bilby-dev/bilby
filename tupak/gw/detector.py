@@ -320,12 +320,18 @@ class InterferometerStrainData(object):
         strain = strain.filter(bp, filtfilt=True)
         self._time_domain_strain = strain.value
 
-    def apply_tukey_window(self, alpha):
+    def get_tukey_window(self, N, roll_off):
+        alpha = 2 * roll_off / self.duration
+        window = signal.windows.tukey(N, alpha=alpha)
+        return window
+
+    def apply_tukey_window(self, roll_off):
         N = len(self.time_domain_strain)
-        self._time_domain_strain *= signal.windows.tukey(N, alpha=alpha)
+        window = self.get_tukey_window(N, roll_off=roll_off)
+        self._time_domain_strain *= window
 
     def create_power_spectral_density(
-            self, name, analysis_segment_duration, alpha, outdir='outdir'):
+            self, name, analysis_segment_duration, roll_off, outdir='outdir'):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -337,8 +343,8 @@ class InterferometerStrainData(object):
             The name of the detector, used in storing the PSD
         analysis_segment_duration: float
             Duration of the analysis segment.
-        alpha: float
-            The tukey window shape parameter passed to `scipy.signal.tukey`.
+        roll_off: float
+            The roll-off (in seconds) used in the Tukey window.
         outdir: str
             The output directory to write the PSD file too
 
@@ -349,7 +355,7 @@ class InterferometerStrainData(object):
 
         """
         NFFT = int(self.sampling_frequency * analysis_segment_duration)
-        window = signal.windows.tukey(NFFT, alpha=alpha)
+        window = self.get_tukey_window(N=NFFT, roll_off=roll_off)
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
         psd = strain.psd(fftlength=analysis_segment_duration, window=window)
@@ -674,8 +680,8 @@ class Interferometer(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
-        alpha: float
-            The tukey window shape parameter passed to `scipy.signal.tukey`.
+        roll_off: float
+            The roll-off (in seconds) used in the Tukey window.
         filter_freq: float
             Low pass filter frequency. If None, defaults to the maximum
             frequency given to InterferometerStrainData.
@@ -1234,8 +1240,8 @@ class PowerSpectralDensity(object):
             Offset of data from beginning of analysed segment.
         channel_name: str, optional
             Name of channel to use to generate PSD.
-        alpha: float, optional
-            Parameter for Tukey window.
+        roll_off: float
+            The roll-off (in seconds) used in the Tukey window.
         fft_length: float, optional
             Number of seconds in a single fft.
 
@@ -1442,7 +1448,7 @@ def load_interferometer(filename):
 
 
 def get_interferometer_with_open_data(
-        name, trigger_time, time_duration=4, start_time=None, alpha=0.25, psd_offset=-1024,
+        name, trigger_time, time_duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
         psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=1024,
         raw_data_file=None, **kwargs):
     """
@@ -1461,8 +1467,8 @@ def get_interferometer_with_open_data(
     start_time: float, optional
         Beginning of the segment, if None, the trigger is placed 2s before the end
         of the segment.
-    alpha: float, optional
-        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    roll_off: float
+        The roll-off (in seconds) used in the Tukey window.
     psd_offset, psd_duration: float
         The power spectral density (psd) is estimated using data from
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
@@ -1514,10 +1520,10 @@ def get_interferometer_with_open_data(
 
     # Create and save PSDs
     psd_file = strain_psd.create_power_spectral_density(
-        name=name, alpha=alpha, outdir=outdir,
+        name=name, roll_off=roll_off, outdir=outdir,
         analysis_segment_duration=strain.duration)
 
-    strain.apply_tukey_window(alpha=alpha)
+    strain.apply_tukey_window(roll_off=roll_off)
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
@@ -1610,7 +1616,7 @@ def get_interferometer_with_fake_noise_and_injection(
 
 
 def get_event_data(
-        event, interferometer_names=None, time_duration=4, alpha=0.25,
+        event, interferometer_names=None, time_duration=4, roll_off=0.4,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
         label=None, plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
     """
@@ -1626,8 +1632,8 @@ def get_event_data(
         If None will look for data in 'H1', 'V1', 'L1'
     time_duration: float
         Time duration to search for.
-    alpha: float
-        The tukey window shape parameter passed to `scipy.signal.tukey`.
+    roll_off: float
+        The roll-off (in seconds) used in the Tukey window.
     psd_offset, psd_duration: float
         The power spectral density (psd) is estimated using data from
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
@@ -1664,7 +1670,7 @@ def get_event_data(
     for name in interferometer_names:
         try:
             interferometers.append(get_interferometer_with_open_data(
-                name, trigger_time=event_time, time_duration=time_duration, alpha=alpha,
+                name, trigger_time=event_time, time_duration=time_duration, roll_off=roll_off,
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
