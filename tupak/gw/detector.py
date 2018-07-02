@@ -358,7 +358,7 @@ class InterferometerStrainData(object):
         self._time_domain_strain *= window
 
     def create_power_spectral_density(
-            self, name, analysis_segment_duration, outdir='outdir'):
+            self, fft_length, name='unknown', outdir=None):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -366,31 +366,36 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        name: str
-            The name of the detector, used in storing the PSD
-        analysis_segment_duration: float
+        fft_length: float
             Duration of the analysis segment.
+        name: str
+            The name of the detector, used in storing the PSD. Defaults to
+            "unknown".
         outdir: str
-            The output directory to write the PSD file too
+            The output directory to write the PSD file too. If not given,
+            the PSD will not be written to file.
 
         Returns
         -------
-        psd_file_name: str
-            The path to the PSD file
+        frequency_array, psd : array_like
+            The frequencies and power spectral density array
 
         """
-        NFFT = int(self.sampling_frequency * analysis_segment_duration)
+        NFFT = int(self.sampling_frequency * fft_length)
         window = self.get_tukey_window(
-            N=NFFT, duration=analysis_segment_duration)
+            N=NFFT, duration=fft_length)
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
-        psd = strain.psd(fftlength=analysis_segment_duration, window=window)
-        psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-            outdir, name, self.start_time, self.duration)
-        with open('{}'.format(psd_file), 'w+') as file:
-            for f, p in zip(psd.frequencies.value, psd.value):
-                file.write('{} {}\n'.format(f, p))
-        return psd_file
+        psd = strain.psd(fftlength=fft_length, window=window)
+
+        if outdir:
+            psd_file = '{}/{}_PSD_{}_{}.txt'.format(
+                outdir, name, self.start_time, self.duration)
+            with open('{}'.format(psd_file), 'w+') as file:
+                for f, p in zip(psd.frequencies.value, psd.value):
+                    file.write('{} {}\n'.format(f, p))
+
+        return psd.frequencies.value, psd.value
 
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
@@ -1259,13 +1264,13 @@ class PowerSpectralDensity(object):
 
         for key in kwargs:
             try:
-                expanded_key = key.replace('psd', 'power_spectral_density')
-                expanded_key = key.replace('asd', 'amplitude_spectral_density')
+                expanded_key = (key.replace('psd', 'power_spectral_density')
+                                .replace('asd', 'amplitude_spectral_density'))
                 m = getattr(self, 'set_from_{}'.format(expanded_key))
                 m(**kwargs)
             except AttributeError:
-                logging.debug("Tried setting PSD from init kwarg {} and failed"
-                              .format(key))
+                logging.info("Tried setting PSD from init kwarg {} and failed"
+                             .format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
@@ -1335,19 +1340,11 @@ class PowerSpectralDensity(object):
         strain.set_from_frame_file(
             frame_file, t1=psd_start_time, t2=psd_start_time+psd_duration,
             channel=channel)
-        sampling_frequency = int(strain.sample_rate.value)
 
-        # Low pass filter
-        bp = gwpy.signal.filter_design.lowpass(filter_freq, strain.sample_rate)
-        strain = strain.filter(bp, filtfilt=True)
-        strain = strain.crop(*strain.span.contract(1))
-
-        # Create and save PSDs
-        nfft = int(sampling_frequency * fft_length)
-        window = signal.windows.tukey(nfft, alpha=alpha)
-        psd = strain.psd(fftlength=fft_length, window=window)
-        self.frequencies = psd.frequencies
-        self.power_spectral_density = psd.value
+        strain.low_pass_filter(filter_freq)
+        f, psd = strain.create_power_spectral_density(fft_length=fft_length)
+        self.frequencies = f
+        self.power_spectral_density = psd
 
     def set_from_amplitude_spectral_density_array(self, frequencies,
                                                   asd_array):
@@ -1358,7 +1355,7 @@ class PowerSpectralDensity(object):
         self.frequencies = frequencies
         self.power_spectral_density = psd_array
 
-    def set_to_aLIGO(self):
+    def set_from_aLIGO(self):
         psd_file = 'aLIGO_ZERO_DET_high_P_psd.txt'
         logging.info("No power spectral density provided, using aLIGO,"
                      "zero detuning, high power.")
@@ -1585,13 +1582,12 @@ def get_interferometer_with_open_data(
     # Low pass filter
     strain_psd.low_pass_filter(filter_freq)
     # Create and save PSDs
-    psd_file = strain_psd.create_power_spectral_density(
-        name=name, outdir=outdir,
-        analysis_segment_duration=strain.duration)
+    psd_frequencies, psd_array = strain_psd.create_power_spectral_density(
+        name=name, outdir=outdir, fft_length=strain.duration)
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
-        psd_file=psd_file)
+        psd_array=psd_array, frequencies=psd_frequencies)
     interferometer.strain_data = strain
 
     if plot:
