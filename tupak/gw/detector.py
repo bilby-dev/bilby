@@ -228,6 +228,10 @@ class InterferometerStrainData(object):
         if self._frequency_domain_strain is not None:
             return self._frequency_domain_strain * self.frequency_mask
         elif self._time_domain_strain is not None:
+            logging.info("Generating frequency domain strain from given time "
+                         "domain strain.")
+            self.low_pass_filter()
+            self.apply_tukey_window()
             frequency_domain_strain, _ = utils.nfft(
                 self._time_domain_strain, self.sampling_frequency)
             self._frequency_domain_strain = frequency_domain_strain
@@ -324,6 +328,15 @@ class InterferometerStrainData(object):
                 "Setting low pass filter_freq using given maximum frequency")
             filter_freq = self.maximum_frequency
 
+        if 2 * filter_freq >= self.sampling_frequency:
+            logging.info(
+                "Low pass filter frequency of {}Hz requested, this is equal"
+                " or greater than the Nyquist frequency so no filter applied"
+                .format(filter_freq))
+            return
+
+        logging.debug("Applying low pass filter with filter frequency {}"
+                      .format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
@@ -334,9 +347,12 @@ class InterferometerStrainData(object):
     def get_tukey_window(self, N, duration):
         alpha = 2 * self.roll_off / duration
         window = signal.windows.tukey(N, alpha=alpha)
+        logging.debug("Generated Tukey window with alpha = {}".format(alpha))
         return window
 
     def apply_tukey_window(self):
+        logging.debug("Applying Tukey window with roll_off {}"
+                      .format(self.roll_off))
         N = len(self.time_domain_strain)
         window = self.get_tukey_window(N, duration=self.duration)
         self._time_domain_strain *= window
@@ -1438,7 +1454,7 @@ def load_interferometer(filename):
 
 def get_interferometer_with_open_data(
         name, trigger_time, time_duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
-        psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=1024,
+        psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=None,
         raw_data_file=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
@@ -1502,17 +1518,12 @@ def get_interferometer_with_open_data(
     strain_psd.set_from_open_data(
         name=name, start_time=start_time + time_duration + psd_offset,
         duration=psd_duration, outdir=outdir, cache=cache, **kwargs)
-
     # Low pass filter
-    strain.low_pass_filter(filter_freq)
     strain_psd.low_pass_filter(filter_freq)
-
     # Create and save PSDs
     psd_file = strain_psd.create_power_spectral_density(
         name=name, outdir=outdir,
         analysis_segment_duration=strain.duration)
-
-    strain.apply_tukey_window()
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
@@ -1607,7 +1618,7 @@ def get_interferometer_with_fake_noise_and_injection(
 def get_event_data(
         event, interferometer_names=None, time_duration=4, roll_off=0.4,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
-        label=None, plot=True, filter_freq=1024, raw_data_file=None, **kwargs):
+        label=None, plot=True, filter_freq=None, raw_data_file=None, **kwargs):
     """
     Get open data for a specified event.
 
