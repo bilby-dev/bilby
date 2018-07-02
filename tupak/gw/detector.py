@@ -1212,9 +1212,28 @@ class Interferometer(object):
 
 class PowerSpectralDensity(object):
 
-    def __init__(self, psd_file=None):
+    def __init__(self, **kwargs):
         """
         Instantiate a new PowerSpectralDensity object.
+
+        If called with no argument, `PowerSpectralDensity()` will return an
+        empty instance which can be filled with one of the `set_from` methods.
+        You can also initialise a new PowerSpectralDensity object giving the
+        arguments of any `set_from` method and an attempt will be made to use
+        this information to load/create the power spectral density.
+
+        Example
+        -------
+        Using the `set_from` method directly (here `psd_file` is a string
+        containing the path to the file to load):
+        >>> power_spectral_density = PowerSpectralDensity()
+        >>> power_spectral_density.set_from_power_spectral_density_file(psd_file)
+
+        Alternatively (and equivalently) setting the psd_file directly:
+        >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
+
+        Note: for the "direct" method to work, you must provide the input
+        as a keyword argument as above.
 
         Attributes
         ----------
@@ -1238,8 +1257,15 @@ class PowerSpectralDensity(object):
         self.frequencies = []
         self.power_spectral_density_interpolated = None
 
-        if psd_file:
-            self.set_from_power_spectral_density_file(psd_file)
+        for key in kwargs:
+            try:
+                expanded_key = key.replace('psd', 'power_spectral_density')
+                expanded_key = key.replace('asd', 'amplitude_spectral_density')
+                m = getattr(self, 'set_from_{}'.format(expanded_key))
+                m(**kwargs)
+            except AttributeError:
+                logging.debug("Tried setting PSD from init kwarg {} and failed"
+                              .format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
