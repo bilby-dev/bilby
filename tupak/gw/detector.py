@@ -311,8 +311,14 @@ class InterferometerStrainData(object):
 
         self.set_from_gwpy_timeseries(timeseries)
 
-    def low_pass_filter(self, filter_freq):
+    def low_pass_filter(self, filter_freq=None):
         """ Low pass filter the data """
+
+        if filter_freq is None:
+            logging.debug(
+                "Setting low pass filter_freq using given maximum frequency")
+            filter_freq = self.maximum_frequency
+
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
@@ -481,7 +487,7 @@ class InterferometerStrainData(object):
 
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel_name=None, buffer_time=1, filter_freq=None, alpha=0.25):
+            channel_name=None, buffer_time=1):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
@@ -499,18 +505,8 @@ class InterferometerStrainData(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
-        alpha: float
-            The tukey window shape parameter passed to `scipy.signal.tukey`.
-        filter_freq: float
-            Low pass filter frequency. If None, defaults to the maximum
-            frequency given to InterferometerStrainData.
 
         """
-
-        if filter_freq is None:
-            logging.debug(
-                "Setting low pass filter_freq using given maximum frequency")
-            filter_freq = self.maximum_frequency
 
         self.sampling_frequency = sampling_frequency
         self.duration = duration
@@ -522,12 +518,7 @@ class InterferometerStrainData(object):
             buffer_time=buffer_time, channel=channel_name,
             resample=sampling_frequency)
 
-        frequency_domain_strain, freqs = tupak.gw.utils.process_strain_data(
-            strain, filter_freq=filter_freq, alpha=alpha)
-        if np.array_equal(freqs, self.frequency_array):
-            self._frequency_domain_strain = frequency_domain_strain
-        else:
-            raise ValueError("Data frequencies do not match frequency_array")
+        self.set_from_gwpy_timeseries(strain)
 
 
 class Interferometer(object):
@@ -662,7 +653,7 @@ class Interferometer(object):
 
     def set_strain_data_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel_name=None, buffer_time=1, alpha=0.25, filter_freq=None):
+            channel_name=None, buffer_time=1):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
@@ -680,18 +671,12 @@ class Interferometer(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
-        roll_off: float
-            The roll-off (in seconds) used in the Tukey window.
-        filter_freq: float
-            Low pass filter frequency. If None, defaults to the maximum
-            frequency given to InterferometerStrainData.
 
         """
         self.strain_data.set_from_frame_file(
             frame_file=frame_file, sampling_frequency=sampling_frequency,
             duration=duration, start_time=start_time,
-            channel_name=channel_name, buffer_time=buffer_time,
-            alpha=alpha, filter_freq=filter_freq)
+            channel_name=channel_name, buffer_time=buffer_time)
 
     def set_strain_data_from_zero_noise(
             self, sampling_frequency, duration, start_time=0):
