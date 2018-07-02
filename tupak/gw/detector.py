@@ -98,7 +98,6 @@ class InterferometerStrainData(object):
         self.sampling_frequency = None
         self.duration = None
         self.start_time = None
-        self.buffer_time = 0
 
         self._frequency_domain_strain = None
         self._frequency_array = None
@@ -285,7 +284,7 @@ class InterferometerStrainData(object):
 
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
-            buffer_time=1, **kwargs):
+            **kwargs):
         """
 
         Parameters
@@ -300,20 +299,15 @@ class InterferometerStrainData(object):
             Directory where the psd files are saved
         cache: bool, optional
             Whether or not to store/use the acquired data.
-        buffer_time: float
-            Read in data with `start_time-buffer_time` and
-            `start_time+duration+buffer_time`
         **kwargs:
             All keyword arguments are passed to
             `gwpy.timeseries.TimeSeries.fetch_open_data()`.
 
         """
 
-        self.buffer_time = buffer_time
-
         timeseries = tupak.gw.utils.get_open_strain_data(
             name, start_time, start_time+duration, outdir=outdir, cache=cache,
-            buffer_time=buffer_time, **kwargs)
+            **kwargs)
 
         self.set_from_gwpy_timeseries(timeseries)
 
@@ -324,14 +318,14 @@ class InterferometerStrainData(object):
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
         strain = strain.filter(bp, filtfilt=True)
-        strain = strain.crop(*strain.span.contract(self.buffer_time))
         self._time_domain_strain = strain.value
 
     def apply_tukey_window(self, alpha):
         N = len(self.time_domain_strain)
         self._time_domain_strain *= signal.windows.tukey(N, alpha=alpha)
 
-    def create_power_spectral_density(self, alpha, name, outdir='outdir'):
+    def create_power_spectral_density(
+            self, name, analysis_segment_duration, alpha, outdir='outdir'):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -339,6 +333,10 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
+        name: str
+            The name of the detector, used in storing the PSD
+        analysis_segment_duration: float
+            Duration of the analysis segment.
         alpha: float
             The tukey window shape parameter passed to `scipy.signal.tukey`.
         outdir: str
@@ -350,11 +348,11 @@ class InterferometerStrainData(object):
             The path to the PSD file
 
         """
-        NFFT = int(self.sampling_frequency * self.duration)
+        NFFT = int(self.sampling_frequency * analysis_segment_duration)
         window = signal.windows.tukey(NFFT, alpha=alpha)
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
-        psd = strain.psd(fftlength=self.duration, window=window)
+        psd = strain.psd(fftlength=analysis_segment_duration, window=window)
         psd_file = '{}/{}_PSD_{}_{}.txt'.format(
             outdir, name, self.start_time, self.duration)
         with open('{}'.format(psd_file), 'w+') as file:
@@ -583,13 +581,30 @@ class Interferometer(object):
             maximum_frequency=maximum_frequency)
 
     @property
+    def minimum_frequency(self):
+        return self.strain_data.minimum_frequency
+
+    @property
+    def maximum_frequency(self):
+        return self.strain_data.maximum_frequency
+
+    @property
     def strain_data(self):
         """ A tupak.gw.detector.InterferometerStrainData instance """
         return self._strain_data
 
     @strain_data.setter
     def strain_data(self, strain_data):
-        """ Set the strain_data """
+        """ Set the strain_data
+
+        This sets the Interferometer.strain_data equal to the provided
+        strain_data. This will overide the minimum_frequency and
+        maximum_frequency of the provided strain_data object with those of
+        the Interferometer object.
+        """
+        strain_data.minimum_frequency = self.minimum_frequency
+        strain_data.maximum_frequency = self.maximum_frequency
+
         self._strain_data = strain_data
 
     def set_strain_data_from_frequency_domain_strain(
@@ -1499,7 +1514,8 @@ def get_interferometer_with_open_data(
 
     # Create and save PSDs
     psd_file = strain_psd.create_power_spectral_density(
-        name=name, alpha=alpha, outdir=outdir)
+        name=name, alpha=alpha, outdir=outdir,
+        analysis_segment_duration=strain.duration)
 
     strain.apply_tukey_window(alpha=alpha)
 
