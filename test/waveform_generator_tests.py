@@ -60,6 +60,21 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                              sorted(list(self.simulation_parameters.keys())))
 
 
+class TestWaveformArgumentsSetting(unittest.TestCase):
+    def setUp(self):
+        self.waveform_generator = \
+            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                          frequency_domain_source_model=gaussian_frequency_domain_strain,
+                                                          waveform_arguments=dict(test='test', arguments='arguments'))
+
+    def tearDown(self):
+        del self.waveform_generator
+
+    def test_waveform_arguments_init_setting(self):
+        self.assertDictEqual(self.waveform_generator.waveform_arguments,
+                             dict(test='test', arguments='arguments'))
+
+
 class TestSetters(unittest.TestCase):
 
     def setUp(self):
