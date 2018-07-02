@@ -46,7 +46,7 @@ class WaveformGenerator(object):
         """
         self.time_duration = time_duration
         self.sampling_frequency = sampling_frequency
-        self.start_tiime = start_time
+        self.start_time = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.time_duration = time_duration
@@ -177,7 +177,7 @@ class WaveformGenerator(object):
             self.__time_array = utils.create_time_series(
                                         self.sampling_frequency,
                                         self.time_duration,
-                                        self.start_tiime)
+                                        self.start_time)
 
             self.__time_array_updated = True
         return self.__time_array
@@ -252,10 +252,10 @@ class WaveformGenerator(object):
         self.__time_array_updated = False
 
     @property
-    def start_tiime(self):
-        return self.__starting_time
+    def start_time(self):
+        return self.__start_time
 
-    @start_tiime.setter
-    def start_tiime(self, starting_time):
-        self.__starting_time = starting_time
+    @start_time.setter
+    def start_time(self, start_time):
+        self.__start_time = start_time
         self.__time_array_updated = False
