@@ -1609,6 +1609,9 @@ def get_interferometer_with_fake_noise_and_injection(
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
 
+    Note: by default this generates an Interferometer with a power spectral
+    density based on advanced LIGO.
+
     Parameters
     ----------
     name: str
@@ -1653,6 +1656,7 @@ def get_interferometer_with_fake_noise_and_injection(
         start_time = injection_parameters['geocent_time'] + 2 - time_duration
 
     interferometer = get_empty_interferometer(name)
+    interferometer.power_spectral_density.set_from_aLIGO()
     if zero_noise:
         interferometer.set_strain_data_from_zero_noise(
             sampling_frequency=sampling_frequency, duration=time_duration,
