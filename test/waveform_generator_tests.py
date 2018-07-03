@@ -32,8 +32,8 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         del self.waveform_generator
         del self.simulation_parameters
 
-    def test_time_duration(self):
-        self.assertEqual(self.waveform_generator.time_duration, 1)
+    def test_duration(self):
+        self.assertEqual(self.waveform_generator.duration, 1)
 
     def test_sampling_frequency(self):
         self.assertEqual(self.waveform_generator.sampling_frequency, 4096)

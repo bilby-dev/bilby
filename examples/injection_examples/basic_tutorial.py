@@ -13,7 +13,7 @@ import tupak
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
 
-time_duration = 4.
+duration = 4.
 sampling_frequency = 2048.
 
 # Specify the output directory and the name of the simulation.
@@ -36,7 +36,7 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.WaveformGenerator(time_duration=time_duration,
+waveform_generator = tupak.WaveformGenerator(duration=duration,
                                              sampling_frequency=sampling_frequency,
                                              frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
                                              parameters=injection_parameters,
@@ -46,7 +46,7 @@ hf_signal = waveform_generator.frequency_domain_strain()
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity
 IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, time_duration=time_duration,
+    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
     sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
 
 # Set up prior, which is a dictionary

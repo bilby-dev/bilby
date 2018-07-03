@@ -193,7 +193,7 @@ def inner_product(aa, bb, frequency, PSD):
     return 4. * np.real(integral)
 
 
-def noise_weighted_inner_product(aa, bb, power_spectral_density, time_duration):
+def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     """
     Calculate the noise weighted inner product between two arrays.
 
@@ -205,8 +205,8 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, time_duration):
         Array not to be complex conjugated
     power_spectral_density: array_like
         Power spectral density of the noise
-    time_duration: float
-        time_duration of the data
+    duration: float
+        duration of the data
 
     Returns
     ------
@@ -214,10 +214,10 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, time_duration):
     """
 
     integrand = np.conj(aa) * bb / power_spectral_density
-    return 4 / time_duration * np.sum(integrand)
+    return 4 / duration * np.sum(integrand)
 
 
-def matched_filter_snr_squared(signal, interferometer, time_duration):
+def matched_filter_snr_squared(signal, interferometer, duration):
     """
 
     Parameters
@@ -226,7 +226,7 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
         Array containing the signal
     interferometer: tupak.gw.detector.Interferometer
         Interferometer which we want to have the data and noise from
-    time_duration: float
+    duration: float
         Time duration of the signal
 
     Returns
@@ -236,10 +236,10 @@ def matched_filter_snr_squared(signal, interferometer, time_duration):
     """
     return noise_weighted_inner_product(
         signal, interferometer.frequency_domain_strain,
-        interferometer.power_spectral_density_array, time_duration)
+        interferometer.power_spectral_density_array, duration)
 
 
-def optimal_snr_squared(signal, interferometer, time_duration):
+def optimal_snr_squared(signal, interferometer, duration):
     """
 
     Parameters
@@ -248,14 +248,14 @@ def optimal_snr_squared(signal, interferometer, time_duration):
         Array containing the signal
     interferometer: tupak.gw.detector.Interferometer
         Interferometer which we want to have the data and noise from
-    time_duration: float
+    duration: float
         Time duration of the signal
 
     Returns
     -------
     float: The optimal signal to noise ratio possible squared
     """
-    return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, time_duration)
+    return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, duration)
 
 
 def get_event_time(event):
