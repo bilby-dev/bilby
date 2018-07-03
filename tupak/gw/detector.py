@@ -319,6 +319,10 @@ class InterferometerStrainData(object):
 
         return psd.frequencies.value, psd.value
 
+    def _check_maximum_frequency(self):
+        if 2 * self.maximum_frequency > self.sampling_frequency:
+            self.maximum_frequency = self.sampling_frequency / 2.
+
     def _infer_time_domain_dependence(
             self, sampling_frequency, duration, time_array):
         """ Helper function to figure out if the time_array, or
@@ -363,6 +367,7 @@ class InterferometerStrainData(object):
         self.sampling_frequency = timeseries.sample_rate.value
         self.duration = timeseries.duration.value
         self._time_domain_strain = timeseries.value
+        self._check_maximum_frequency()
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -398,6 +403,7 @@ class InterferometerStrainData(object):
             self._time_domain_strain = time_domain_strain
         else:
             raise ValueError("Data times do not match time array")
+        self._check_maximum_frequency()
 
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
@@ -431,6 +437,7 @@ class InterferometerStrainData(object):
             **kwargs)
 
         self.set_from_gwpy_timeseries(timeseries)
+        self._check_maximum_frequency()
 
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
