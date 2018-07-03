@@ -62,6 +62,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
         self.prior = prior
+        self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
         if self.distance_marginalization:
             self.check_prior_is_set()
@@ -79,6 +80,24 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         if self.time_marginalization:
             self.check_prior_is_set()
+
+    def _check_set_duration_and_sampling_frequency_of_waveform_generator(self):
+        """ Check the waveform_generator has the same duration and
+        sampling_frequency as the interferometers. If they are unset, then
+        set them, if they differ, raise an error
+        """
+
+        attributes = ['duration', 'sampling_frequency', 'start_time']
+        for attr in attributes:
+            wfg_attr = getattr(self.waveform_generator, attr)
+            ifo_attr = getattr(self.interferometers, attr)
+            if wfg_attr is None:
+                setattr(self.waveform_generator, attr, ifo_attr)
+            elif wfg_attr != ifo_attr:
+                logging.debug(
+                    "The waveform_generator {} is not equal to that of the "
+                    "provided interferometers. Overwriting the "
+                    "waveform_generator.".format(attr))
 
     def check_prior_is_set(self):
         if self.prior is None:
