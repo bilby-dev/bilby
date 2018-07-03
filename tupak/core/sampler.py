@@ -70,7 +70,7 @@ class Sampler(object):
     """
 
     def __init__(
-            self, likelihood, priors, external_sampler='nestle',
+            self, likelihood, priors, external_sampler='dynesty',
             outdir='outdir', label='label', use_ratio=False, plot=False,
             **kwargs):
         self.likelihood = likelihood
@@ -418,7 +418,7 @@ class Nestle(Sampler):
         self.external_sampler_function(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, maxiter=10, **self.kwargs)
+            ndim=self.ndim, maxiter=2, **self.kwargs)
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
@@ -701,7 +701,7 @@ class Dynesty(Sampler):
         nested_sampler.run_nested(
             dlogz=self.kwargs['dlogz'],
             print_progress=self.kwargs['verbose'],
-            maxiter=10)
+            maxiter=2)
 
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
         self.result.log_evidence = np.nan

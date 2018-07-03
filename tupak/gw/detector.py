@@ -5,12 +5,17 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import gwpy
 import scipy
 from scipy.interpolate import interp1d
 
 import tupak.gw.utils
 from tupak.core import utils
+
+try:
+    import gwpy
+except ImportError:
+    logging.warning("You do not have gwpy installed currently. You will "
+                    " not be able to use some of the prebuilt functions.")
 
 
 class InterferometerSet(list):

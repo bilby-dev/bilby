@@ -60,7 +60,7 @@ class Test(unittest.TestCase):
             name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
 
         result = tupak.core.sampler.run_sampler(
-            likelihood, priors, sampler='nestle', verbose=False, npoints=100)
+            likelihood, priors, sampler='dynesty', verbose=False, npoints=100)
         self.assertAlmostEqual(np.mean(result.samples), dL,
                                delta=3*np.std(result.samples))
 

@@ -31,7 +31,7 @@ class TestSampler(unittest.TestCase):
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
         self.sampler = tupak.core.sampler.Sampler(
-            likelihood=likelihood, priors=priors, external_sampler='nestle',
+            likelihood=likelihood, priors=priors, external_sampler='dynesty',
             outdir=test_directory, use_ratio=False)
 
     def tearDown(self):
@@ -59,18 +59,18 @@ class TestSampler(unittest.TestCase):
         self.assertTrue(inspect.ismodule(self.sampler.external_sampler))
 
     def test_if_external_sampler_has_the_correct_module_name(self):
-        expected_name = 'nestle'
+        expected_name = 'dynesty'
         self.assertEqual(self.sampler.external_sampler.__name__, expected_name)
 
     def test_external_sampler_raises_if_sampler_not_installed(self):
         with self.assertRaises(ImportError):
             self.sampler.external_sampler = 'unexpected_sampler'
 
-    def test_setting_custom_sampler(self):
-        other_sampler = tupak.core.sampler.Sampler(self.sampler.likelihood,
-                                                   self.sampler.priors)
-        self.sampler.external_sampler = other_sampler
-        self.assertEqual(self.sampler.external_sampler, other_sampler)
+    #def test_setting_custom_sampler(self):
+    #    other_sampler = tupak.core.sampler.Sampler(self.sampler.likelihood,
+    #                                               self.sampler.priors)
+    #    self.sampler.external_sampler = other_sampler
+    #    self.assertEqual(self.sampler.external_sampler, other_sampler)
 
     def test_setting_external_sampler_to_something_else_raises_error(self):
         with self.assertRaises(TypeError):

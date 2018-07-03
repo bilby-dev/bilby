@@ -2,11 +2,16 @@ import logging
 import os
 
 import numpy as np
-from gwpy.signal import filter_design
-from gwpy.timeseries import TimeSeries
 from scipy import signal
 
 from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft
+
+try:
+    from gwpy.signal import filter_design
+    from gwpy.timeseries import TimeSeries
+except ImportError:
+    logging.warning("You do not have gwpy installed currently. You will "
+                    " not be able to use some of the prebuilt functions.")
 
 
 def asd_from_freq_series(freq_data, df):
