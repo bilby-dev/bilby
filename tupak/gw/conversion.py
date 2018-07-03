@@ -3,12 +3,40 @@ import tupak
 import numpy as np
 import pandas as pd
 import logging
+from astropy.cosmology import z_at_value, Planck15
+import astropy.units as u
 
 try:
     import lalsimulation as lalsim
 except ImportError:
     logging.warning("You do not have lalsuite installed currently. You will "
                     " not be able to use some of the prebuilt functions.")
+
+
+def redshift_to_luminosity_distance(redshift):
+    return Planck15.luminosity_distance(redshift).value
+
+
+def redshift_to_comoving_distance(redshift):
+    return Planck15.comoving_distance(redshift).value
+
+
+def luminosity_distance_to_redshift(distance):
+    return z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
+
+
+def comoving_distance_to_redshift(distance):
+    return z_at_value(Planck15.comoving_distance, distance * u.Mpc)
+
+
+def comoving_distance_to_luminosity_distance(distance):
+    redshift = z_at_value(Planck15.comoving_distance, distance * u.Mpc)
+    return redshift_to_luminosity_distance(redshift)
+
+
+def luminosity_distance_to_comoving_distance(distance):
+    redshift = z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
+    return redshift_to_comoving_distance(redshift)
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=True):
@@ -116,6 +144,17 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
         if cos_angle in converted_parameters.keys():
             converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
             added_keys.append(angle)
+
+    if 'luminosity_distance' not in search_keys:
+        if 'redshift' in converted_parameters.keys():
+            converted_parameters['luminosity_distance'] = redshift_to_luminosity_distance(parameters['redshift'])
+            if remove:
+                added_keys.append('redshift')
+        elif 'comoving_distance' in converted_parameters.keys():
+            converted_parameters['luminosity_distance'] =\
+                comoving_distance_to_luminosity_distance(parameters['comoving_distance'])
+            if remove:
+                added_keys.append('comoving_distance')
 
     added_keys = [key for key in added_keys if key not in search_keys]
 
@@ -386,6 +425,12 @@ def generate_non_standard_parameters(sample):
     output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
     output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
     output_sample['cos_iota'] = np.cos(output_sample['iota'])
+
+    try:
+        output_sample['redshift'] = luminosity_distance_to_redshift(sample['luminosity_distance'])
+    except u.core.UnitsError:
+        output_sample['redshift'] = [luminosity_distance_to_redshift(distance)
+                                     for distance in sample['luminosity_distance']]
     return output_sample
 
 

@@ -51,8 +51,8 @@ setup(name='tupak',
           'deepdish',
           'pandas',
           'scipy',
-          'gwpy',
           ],
       entry_points={'console_scripts':
                     ['tupak_plot=cli_tupak.plot_multiple_posteriors:main']
                     })
+
