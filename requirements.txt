@@ -3,7 +3,7 @@ dynesty
 corner
 numpy>=1.9
 matplotlib>=2.0
-scipy
+scipy>=0.16
 gwpy
 pandas
 astropy
