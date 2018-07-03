@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 import subprocess
 from os import path
 
@@ -38,7 +38,7 @@ setup(name='tupak',
       author_email='paul.lasky@monash.edu',
       license="MIT",
       version=version,
-      packages=['tupak', 'tupak.core', 'tupak.gw', 'tupak.hyper'],
+      packages=['tupak', 'tupak.core', 'tupak.gw', 'tupak.hyper', 'cli_tupak'],
       package_dir={'tupak': 'tupak'},
       package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt', 'detectors/*'],
                     'tupak': [version_file]},
@@ -46,10 +46,13 @@ setup(name='tupak',
           'future',
           'dynesty',
           'corner',
-          'numpy',
-          'matplotlib',
+          'numpy>=1.9',
+          'matplotlib>=2.0',
           'deepdish',
           'pandas',
           'scipy',
-          ]
-      )
+          ],
+      entry_points={'console_scripts':
+                    ['tupak_plot=cli_tupak.plot_multiple_posteriors:main']
+                    })
+

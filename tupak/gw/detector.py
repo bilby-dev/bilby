@@ -1262,15 +1262,18 @@ class Interferometer(object):
                    header='f h(f)')
 
     def plot_data(self, signal=None, outdir='.', label=None):
+        if utils.command_line_args.test:
+            return
+
         fig, ax = plt.subplots()
         ax.loglog(self.frequency_array,
                   np.abs(self.frequency_domain_strain),
-                  '-C0', label=self.name)
+                  color='C0', label=self.name)
         ax.loglog(self.frequency_array,
                   self.amplitude_spectral_density_array,
-                  '-C1', lw=0.5, label=self.name + ' ASD')
+                  color='C1', lw=0.5, label=self.name + ' ASD')
         if signal is not None:
-            ax.loglog(self.frequency_array, abs(signal), '-C2',
+            ax.loglog(self.frequency_array, abs(signal), color='C2',
                       label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
