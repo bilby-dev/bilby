@@ -21,21 +21,23 @@ def redshift_to_comoving_distance(redshift):
     return Planck15.comoving_distance(redshift).value
 
 
+@np.vectorize
 def luminosity_distance_to_redshift(distance):
     return z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
 
 
+@np.vectorize
 def comoving_distance_to_redshift(distance):
     return z_at_value(Planck15.comoving_distance, distance * u.Mpc)
 
 
 def comoving_distance_to_luminosity_distance(distance):
-    redshift = z_at_value(Planck15.comoving_distance, distance * u.Mpc)
+    redshift = comoving_distance_to_redshift(distance)
     return redshift_to_luminosity_distance(redshift)
 
 
 def luminosity_distance_to_comoving_distance(distance):
-    redshift = z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
+    redshift = luminosity_distance_to_redshift(distance)
     return redshift_to_comoving_distance(redshift)
 
 
@@ -426,11 +428,7 @@ def generate_non_standard_parameters(sample):
     output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
     output_sample['cos_iota'] = np.cos(output_sample['iota'])
 
-    try:
-        output_sample['redshift'] = luminosity_distance_to_redshift(sample['luminosity_distance'])
-    except u.core.UnitsError:
-        output_sample['redshift'] = [luminosity_distance_to_redshift(distance)
-                                     for distance in sample['luminosity_distance']]
+    output_sample['redshift'] = luminosity_distance_to_redshift(sample['luminosity_distance'])
     return output_sample
 
 
