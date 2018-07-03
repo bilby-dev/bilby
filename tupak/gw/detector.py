@@ -408,7 +408,7 @@ class InterferometerStrainData(object):
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
             **kwargs):
-        """ Set the strain data from a open LOSC data
+        """ Set the strain data from open LOSC data
 
         This sets the time_domain_strain attribute, the frequency_domain_strain
         is automatically calculated after a low-pass filter and Tukey window
@@ -436,6 +436,19 @@ class InterferometerStrainData(object):
             name, start_time, start_time+duration, outdir=outdir, cache=cache,
             **kwargs)
 
+        self.set_from_gwpy_timeseries(timeseries)
+        self._check_maximum_frequency()
+
+    def set_from_csv(self, filename):
+        """ Set the strain data from a csv file
+
+        Parameters
+        ----------
+        filename: str
+            The path to the file to read in
+
+        """
+        timeseries = gwpy.timeseries.TimeSeries.read(filename, format='csv')
         self.set_from_gwpy_timeseries(timeseries)
         self._check_maximum_frequency()
 
@@ -744,6 +757,17 @@ class Interferometer(object):
             frame_file=frame_file, sampling_frequency=sampling_frequency,
             duration=duration, start_time=start_time,
             channel_name=channel_name, buffer_time=buffer_time)
+
+    def set_strain_data_from_csv(self, filename):
+        """ Set the `Interferometer.strain_data` from a csv file
+
+        Parameters
+        ----------
+        filename: str
+            The path to the file to read in
+
+        """
+        self.strain_data.set_from_csv(filename)
 
     def set_strain_data_from_zero_noise(
             self, sampling_frequency, duration, start_time=0):
