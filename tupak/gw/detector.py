@@ -348,27 +348,6 @@ class InterferometerStrainData(object):
             raise ValueError(
                 "Insufficient information given to set time_array")
 
-    def set_from_gwpy_timeseries(self, timeseries):
-        """ Set the strain data from a gwpy TimeSeries
-
-        This sets the time_domain_strain attribute, the frequency_domain_strain
-        is automatically calculated after a low-pass filter and Tukey window
-        is applied.
-
-        Parameters
-        ----------
-        timeseries: gwpy.timeseries.timeseries.TimeSeries
-
-        """
-        logging.debug('Setting data using provided gwpy TimeSeries object')
-        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
-            raise ValueError("Input timeseries is not a gwpy TimeSeries")
-        self.start_time = timeseries.epoch.value
-        self.sampling_frequency = timeseries.sample_rate.value
-        self.duration = timeseries.duration.value
-        self._time_domain_strain = timeseries.value
-        self._check_maximum_frequency()
-
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
             start_time=0, time_array=None):
@@ -403,6 +382,27 @@ class InterferometerStrainData(object):
             self._time_domain_strain = time_domain_strain
         else:
             raise ValueError("Data times do not match time array")
+        self._check_maximum_frequency()
+
+    def set_from_gwpy_timeseries(self, timeseries):
+        """ Set the strain data from a gwpy TimeSeries
+
+        This sets the time_domain_strain attribute, the frequency_domain_strain
+        is automatically calculated after a low-pass filter and Tukey window
+        is applied.
+
+        Parameters
+        ----------
+        timeseries: gwpy.timeseries.timeseries.TimeSeries
+
+        """
+        logging.debug('Setting data using provided gwpy TimeSeries object')
+        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
+            raise ValueError("Input timeseries is not a gwpy TimeSeries")
+        self.start_time = timeseries.epoch.value
+        self.sampling_frequency = timeseries.sample_rate.value
+        self.duration = timeseries.duration.value
+        self._time_domain_strain = timeseries.value
         self._check_maximum_frequency()
 
     def set_from_open_data(
