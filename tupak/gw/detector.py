@@ -6,7 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import gwpy
-from scipy import signal
+import scipy
 from scipy.interpolate import interp1d
 
 import tupak.gw.utils
@@ -242,84 +242,6 @@ class InterferometerStrainData(object):
     def add_to_frequency_domain_strain(self, x):
         self._frequency_domain_strain += x
 
-    def _infer_time_domain_dependence(
-            self, sampling_frequency, duration, time_array):
-        """ Helper function to figure out if the time_array, or
-            sampling_frequency and duration where given
-        """
-
-        if (sampling_frequency is not None) and (duration is not None):
-            if time_array is not None:
-                raise ValueError(
-                    "You have given the sampling_frequency, duration, and "
-                    "time_array")
-            self.sampling_frequency = sampling_frequency
-            self.duration = duration
-        elif any(x is not None for x in [sampling_frequency, duration]):
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
-        elif time_array is not None:
-            self.sampling_frequency, self.duration = (
-                utils.get_sampling_frequency_and_duration_from_time_array(
-                    time_array))
-            self.time_array = np.array(time_array)
-        else:
-            raise ValueError(
-                "Insufficient information given to set time_array")
-
-    def set_from_gwpy_timeseries(self, timeseries):
-        logging.debug('Setting data using provided gwpy TimeSeries object')
-        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
-            raise ValueError("Input timeseries is not a gwpy TimeSeries")
-        self.start_time = timeseries.epoch.value
-        self.sampling_frequency = timeseries.sample_rate.value
-        self.duration = timeseries.duration.value
-        self._time_domain_strain = timeseries.value
-
-    def set_from_time_domain_strain(
-            self, time_domain_strain, sampling_frequency=None, duration=None,
-            start_time=0, time_array=None):
-
-        self.start_time = start_time
-        self._infer_time_domain_dependence(
-            sampling_frequency=sampling_frequency, duration=duration,
-            time_array=time_array)
-
-        logging.debug('Setting data using provided time_domain_strain')
-        if np.shape(time_domain_strain) == np.shape(self.time_array):
-            self._time_domain_strain = time_domain_strain
-        else:
-            raise ValueError("Data times do not match time array")
-
-    def set_from_open_data(
-            self, name, start_time, duration=4, outdir='outdir', cache=True,
-            **kwargs):
-        """
-
-        Parameters
-        ----------
-        name: str
-            Detector name, e.g., 'H1'.
-        start_time: float
-            Start GPS time of segment.
-        duration: float, optional
-            The total time (in seconds) to analyse. Defaults to 4s.
-        outdir: str
-            Directory where the psd files are saved
-        cache: bool, optional
-            Whether or not to store/use the acquired data.
-        **kwargs:
-            All keyword arguments are passed to
-            `gwpy.timeseries.TimeSeries.fetch_open_data()`.
-
-        """
-
-        timeseries = tupak.gw.utils.get_open_strain_data(
-            name, start_time, start_time+duration, outdir=outdir, cache=cache,
-            **kwargs)
-
-        self.set_from_gwpy_timeseries(timeseries)
-
     def low_pass_filter(self, filter_freq=None):
         """ Low pass filter the data """
 
@@ -346,7 +268,7 @@ class InterferometerStrainData(object):
 
     def get_tukey_window(self, N, duration):
         alpha = 2 * self.roll_off / duration
-        window = signal.windows.tukey(N, alpha=alpha)
+        window = scipy.signal.windows.tukey(N, alpha=alpha)
         logging.debug("Generated Tukey window with alpha = {}".format(alpha))
         return window
 
@@ -397,6 +319,119 @@ class InterferometerStrainData(object):
 
         return psd.frequencies.value, psd.value
 
+    def _infer_time_domain_dependence(
+            self, sampling_frequency, duration, time_array):
+        """ Helper function to figure out if the time_array, or
+            sampling_frequency and duration where given
+        """
+
+        if (sampling_frequency is not None) and (duration is not None):
+            if time_array is not None:
+                raise ValueError(
+                    "You have given the sampling_frequency, duration, and "
+                    "time_array")
+            self.sampling_frequency = sampling_frequency
+            self.duration = duration
+        elif any(x is not None for x in [sampling_frequency, duration]):
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
+        elif time_array is not None:
+            self.sampling_frequency, self.duration = (
+                utils.get_sampling_frequency_and_duration_from_time_array(
+                    time_array))
+            self.time_array = np.array(time_array)
+        else:
+            raise ValueError(
+                "Insufficient information given to set time_array")
+
+    def set_from_gwpy_timeseries(self, timeseries):
+        """ Set the strain data from a gwpy TimeSeries
+
+        This sets the time_domain_strain attribute, the frequency_domain_strain
+        is automatically calculated after a low-pass filter and Tukey window
+        is applied.
+
+        Parameters
+        ----------
+        timeseries: gwpy.timeseries.timeseries.TimeSeries
+
+        """
+        logging.debug('Setting data using provided gwpy TimeSeries object')
+        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
+            raise ValueError("Input timeseries is not a gwpy TimeSeries")
+        self.start_time = timeseries.epoch.value
+        self.sampling_frequency = timeseries.sample_rate.value
+        self.duration = timeseries.duration.value
+        self._time_domain_strain = timeseries.value
+
+    def set_from_time_domain_strain(
+            self, time_domain_strain, sampling_frequency=None, duration=None,
+            start_time=0, time_array=None):
+        """ Set the strain data from a time domain strain array
+
+        This sets the time_domain_strain attribute, the frequency_domain_strain
+        is automatically calculated after a low-pass filter and Tukey window
+        is applied.
+
+        Parameters
+        ----------
+        time_domain_strain: array_like
+            An array of the time domain strain.
+        sampling_frequency: float
+            The sampling frequency (in Hz).
+        duration: float
+            The data duration (in s).
+        start_time: float
+            The GPS start-time of the data.
+        time_array: array_like
+            The array of times, if sampling_frequency and duration not
+            given.
+
+        """
+        self.start_time = start_time
+        self._infer_time_domain_dependence(
+            sampling_frequency=sampling_frequency, duration=duration,
+            time_array=time_array)
+
+        logging.debug('Setting data using provided time_domain_strain')
+        if np.shape(time_domain_strain) == np.shape(self.time_array):
+            self._time_domain_strain = time_domain_strain
+        else:
+            raise ValueError("Data times do not match time array")
+
+    def set_from_open_data(
+            self, name, start_time, duration=4, outdir='outdir', cache=True,
+            **kwargs):
+        """ Set the strain data from a open LOSC data
+
+        This sets the time_domain_strain attribute, the frequency_domain_strain
+        is automatically calculated after a low-pass filter and Tukey window
+        is applied.
+
+        Parameters
+        ----------
+        name: str
+            Detector name, e.g., 'H1'.
+        start_time: float
+            Start GPS time of segment.
+        duration: float, optional
+            The total time (in seconds) to analyse. Defaults to 4s.
+        outdir: str
+            Directory where the psd files are saved
+        cache: bool, optional
+            Whether or not to store/use the acquired data.
+        **kwargs:
+            All keyword arguments are passed to
+            `gwpy.timeseries.TimeSeries.fetch_open_data()`.
+
+        """
+
+        timeseries = tupak.gw.utils.get_open_strain_data(
+            name, start_time, start_time+duration, outdir=outdir, cache=cache,
+            **kwargs)
+
+        self.set_from_gwpy_timeseries(timeseries)
+
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
         """ Helper function to figure out if the frequency_array, or
@@ -425,7 +460,7 @@ class InterferometerStrainData(object):
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
             duration=None, start_time=0, frequency_array=None):
-        """ Set the `Interferometer.strain_data` from a numpy array
+        """ Set the `frequency_domain_strain` from a numpy array
 
         Parameters
         ----------
@@ -457,7 +492,7 @@ class InterferometerStrainData(object):
     def set_from_power_spectral_density(
             self, power_spectral_density, sampling_frequency, duration,
             start_time=0):
-        """ Set the `Interferometer.strain_data` from a power spectral density
+        """ Set the `frequency_domain_strain` by generating a noise realisation
 
         Parameters
         ----------
@@ -489,7 +524,7 @@ class InterferometerStrainData(object):
             raise ValueError("Data frequencies do not match frequency_array")
 
     def set_from_zero_noise(self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` to zero noise
+        """ Set the `frequency_domain_strain` to zero noise
 
         Parameters
         ----------
@@ -513,7 +548,7 @@ class InterferometerStrainData(object):
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
             channel_name=None, buffer_time=1):
-        """ Set the `Interferometer.strain_data` from a frame file
+        """ Set the `frequency_domain_strain` from a frame fiile
 
         Parameters
         ----------
