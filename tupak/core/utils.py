@@ -33,6 +33,25 @@ def get_sampling_frequency(time_series):
         return 1. / (time_series[1] - time_series[0])
 
 
+def get_sampling_frequency_and_duration_from_time_array(time_array):
+    """
+    Calculate sampling frequency and duration from a time array
+
+    Returns
+    -------
+    sampling_frequency, duration:
+
+    Raises
+    -------
+    ValueError: If the time_array is not evenly sampled.
+
+    """
+
+    sampling_frequency = get_sampling_frequency(time_array)
+    duration = time_array[-1] - time_array[0]
+    return sampling_frequency, duration
+
+
 def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
     """
     Calculate sampling frequency and duration from a frequency array
@@ -72,7 +91,7 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, duration, 1./sampling_frequency)
+    return np.arange(starting_time, starting_time+duration, 1./sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
@@ -201,59 +220,68 @@ def create_white_noise(sampling_frequency, duration):
     return white_noise, frequencies
 
 
-def nfft(ht, Fs):
-    """ Performs an FFT while keeping track of the frequency bins assumes input time series is real
-        (positive frequencies only)
+def nfft(time_domain_strain, sampling_frequency):
+    """ Perform an FFT while keeping track of the frequency bins. Assumes input
+        time series is real (positive frequencies only).
 
     Parameters
-    -------
-    ht: array_like
-        Time series
-    Fs: float
-        Sampling frequency
+    ----------
+    time_domain_strain: array_like
+        Time series of strain data.
+    sampling_frequency: float
+        Sampling frequency of the data.
 
     Returns
     -------
-    array_like: Single-sided FFT of ft normalised to units of strain / sqrt(Hz) (hf)
-    array_like: Frequencies associated with hf
+    frequency_domain_strain, frequency_array: (array, array)
+        Single-sided FFT of time domain strain normalised to units of
+        strain / Hz, and the associated frequency_array.
+
     """
-    # add one zero padding if time series does not have even number of sampling times
-    if np.mod(len(ht), 2) == 1:
-        ht = np.append(ht, 0)
-    LL = len(ht)
+
+    if np.ndim(sampling_frequency) != 0:
+        raise ValueError("Sampling frequency must be interger or float")
+
+    # add one zero padding if time series doesn't have even number of samples
+    if np.mod(len(time_domain_strain), 2) == 1:
+        time_domain_strain = np.append(time_domain_strain, 0)
+    LL = len(time_domain_strain)
     # frequency range
-    ff = Fs / 2 * np.linspace(0, 1, int(LL/2+1))
+    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL/2+1))
 
     # calculate FFT
     # rfft computes the fft for real inputs
-    hf = np.fft.rfft(ht)
+    frequency_domain_strain = np.fft.rfft(time_domain_strain)
 
-    # normalise to units of strain / sqrt(Hz)
-    hf = hf / Fs
+    # normalise to units of strain / Hz
+    norm_frequency_domain_strain = frequency_domain_strain / sampling_frequency
 
-    return hf, ff
+    return norm_frequency_domain_strain, frequency_array
 
 
-def infft(hf, Fs):
-    """ Inverse FFT for use in conjunction with nfft (eric.thrane@ligo.org)
+def infft(frequency_domain_strain, sampling_frequency):
+    """ Inverse FFT for use in conjunction with nfft.
 
     Parameters
-    -------
-    hf: array_like
-        single-side FFT calculated by fft_eht
-    Fs: float
-        sampling frequency
+    ----------
+    frequency_domain_strain: array_like
+        Single-sided, normalised FFT of the time-domain strain data (in units
+        of strain / Hz).
+    sampling_frequency: float
+        Sampling frequency of the data.
 
     Returns
     -------
-    array_like: time series
+    time_domain_strain: array
+        An array of the time domain strain
     """
-    # use irfft to work with positive frequencies only
-    h = np.fft.irfft(hf)
-    # undo LAL/Lasky normalisation
-    h = h*Fs
 
-    return h
+    if np.ndim(sampling_frequency) != 0:
+        raise ValueError("Sampling frequency must be integer or float")
+
+    time_domain_strain_norm = np.fft.irfft(frequency_domain_strain)
+    time_domain_strain = time_domain_strain_norm * sampling_frequency
+    return time_domain_strain
 
 
 def setup_logger(outdir=None, label=None, log_level=None, print_version=False):

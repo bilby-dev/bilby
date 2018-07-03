@@ -635,6 +635,20 @@ class Uniform(Prior):
         return scipy.stats.uniform.pdf(val, loc=self.minimum,
                                        scale=self.maximum-self.minimum)
 
+    def ln_prob(self, val):
+        """Return the log prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: log probability of val
+        """
+        return scipy.stats.uniform.logpdf(val, loc=self.minimum,
+                                          scale=self.maximum-self.minimum)
+
 
 class LogUniform(PowerLaw):
 
