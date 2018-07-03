@@ -2,8 +2,8 @@
 """
 Tutorial to demonstrate running parameter estimation sampling in non-standard parameters for an injected signal.
 
-This example estimates the masses using a uniform prior in chirp mass and mass ratio and distance using a uniform in
-comoving volume prior on luminosity distance between luminosity distances of 100Mpc and 5Gpc, the cosmology is WMAP7.
+This example estimates the masses using a uniform prior in chirp mass, mass ratio and redshift.
+The cosmology is according to the Planck 2015 data release.
 """
 from __future__ import division, print_function
 import tupak
