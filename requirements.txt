@@ -3,15 +3,7 @@ dynesty
 corner
 numpy>=1.9
 matplotlib>=2.0
-scipy
-gwpy
+scipy>=0.16
 pandas
-astropy
-pymultinest
-gwsurrogate
-NRSur7dq2
-nestle
 deepdish
-ptemcee
 mock
-lalsuite

@@ -1,0 +1,27 @@
+import argparse
+
+
+def setup_command_line_args():
+    parser = argparse.ArgumentParser(
+        description="Plot corner plots from results files")
+    parser.add_argument("-r", "--results",  nargs='+',
+                        help="List of results files to use.")
+    parser.add_argument("-f", "--filename", default=None,
+                        help="Output file name.")
+    parser.add_argument("-l", "--labels", nargs='+', default=None,
+                        help="List of labels to use for each result.")
+    parser.add_argument("-p", "--parameters", nargs='+', default=None,
+                        help="List of parameters.")
+    args, _ = parser.parse_known_args()
+
+    return args
+
+
+def main():
+    args = setup_command_line_args()
+    import tupak
+    results = [tupak.core.result.read_in_result(filename=r)
+               for r in args.results]
+    tupak.core.result.plot_multiple(results, filename=args.filename,
+                                    labels=args.labels,
+                                    parameters=args.parameters)

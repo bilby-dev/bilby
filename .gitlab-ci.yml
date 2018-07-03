@@ -16,11 +16,10 @@ stages:
 # test example on Debian 8 "jessie"
 exitcode-jessie:
   stage: test
-  image: ligo/software:jessie
+  image: continuumio/anaconda3
   before_script:
-    # Remove lalsuite from requirements for CI tests - the pip version in the
-    # CI is too old and fails when trying to install lalsuite
     - sed -i '/lalsuite/d' requirements.txt
+    - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
     - pip install 'coverage>=4.5'
     - pip install coverage-badge
@@ -29,21 +28,22 @@ exitcode-jessie:
     # Run tests and collect coverage data
     - coverage --version
     - coverage erase
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/conversion_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/detector_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/prior_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/sampler_tests.py
-    - coverage run --source /usr/local/lib/python2.7/dist-packages/tupak/ -a test/waveform_generator_tests.py
+    - coverage run --debug=trace --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/conversion_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/detector_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/utils_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/prior_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/sampler_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/waveform_generator_tests.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
     # Run all other tests (no coverage data collected)
     - python test/example_tests.py
     - python test/noise_realisation_tests.py
-    - python test/other_tests.py
 
     # Make the documentation
     - pip install -r docs/requirements.txt
     - cd docs
+    - conda install -y make
     - make clean
     - make html
 
