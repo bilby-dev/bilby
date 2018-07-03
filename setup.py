@@ -51,7 +51,5 @@ setup(name='tupak',
           'deepdish',
           'pandas',
           'scipy',
-          'gwpy',
-          'lalsuite',
           ]
       )

@@ -27,10 +27,12 @@ Clone the repository, install the requirements, and then install the software:
    $ git clone git@git.ligo.org:Monash/tupak.git
    $ cd tupak/
    $ pip install -r requirements.txt
+   $ pip install -r optional_requirements.txt
    $ python setup.py install
 
 Once you have run these steps, you have :code:`tupak` installed. You can now try to
-run the examples.
+run the examples. You should install the `optional_requirements.txt` if you
+plan to use `tupak` for gravitational wave inference.
 
 .. note::
    If you do not have a git.ligo account, and recieve and error message:
