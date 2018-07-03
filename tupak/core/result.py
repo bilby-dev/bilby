@@ -141,7 +141,7 @@ class Result(dict):
 
         """
         if type(item) in [list]:
-            item = [_standardise_a_string(i) for i in item]
+            item = [Result._standardise_a_string(i) for i in item]
         return item
 
     def save_to_file(self):
@@ -457,5 +457,4 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     if save:
         fig.savefig(filename)
     return fig
-
 
