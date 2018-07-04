@@ -1090,7 +1090,7 @@ class Interferometer(object):
                 ' is that waveform_generator.frequency_domain_strain returned'
                 ' None. This can be caused if, e.g., mass_2 > mass_1.')
 
-        if self.strain_data.time_within_data(parameters['geocent_time']):
+        if not self.strain_data.time_within_data(parameters['geocent_time']):
             logging.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
                 .format(self.strain_data.start_time, parameters['geocent_time']))
