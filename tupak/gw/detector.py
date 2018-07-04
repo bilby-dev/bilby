@@ -131,29 +131,31 @@ class InterferometerSet(list):
         if utils.command_line_args.test:
             return
 
-        fig, ax = plt.subplots()
-        for interferometer in self:
+        fig = plt.figure()
+        for ii, interferometer in enumerate(self):
+            ax = fig.add_subplot(len(self) // 2, 2, ii + 1)
             ax.loglog(interferometer.frequency_array,
                       np.abs(interferometer.frequency_domain_strain),
                       color='C0', label=interferometer.name)
             ax.loglog(interferometer.frequency_array,
                       interferometer.amplitude_spectral_density_array,
                       color='C1', lw=0.5, label=interferometer.name + ' ASD')
+            ax.grid('on')
+            ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+            ax.set_xlabel(r'frequency [Hz]')
+            ax.set_xlim(20, 2000)
+            ax.legend(loc='best')
         if signal is not None:
             ax.loglog(self.frequency_array, abs(signal), color='C2',
                       label='Signal')
-        ax.grid('on')
-        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
-        ax.set_xlabel(r'frequency [Hz]')
-        ax.set_xlim(20, 2000)
-        ax.legend(loc='best')
+        fig.tight_layout()
         if label is None:
             fig.savefig(
-                '{}/{}_frequency_domain_data.png'.format(outdir, self.name))
+                '{}/frequency_domain_data.png'.format(outdir))
         else:
             fig.savefig(
-                '{}/{}_{}_frequency_domain_data.png'.format(
-                    outdir, self.name, label))
+                '{}/{}_frequency_domain_data.png'.format(
+                    outdir, label))
 
     @property
     def number_of_interferometers(self):
