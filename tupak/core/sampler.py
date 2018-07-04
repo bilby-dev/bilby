@@ -187,6 +187,7 @@ class Sampler(object):
 
         """
         result = Result()
+        result.sampler = self.__class__.__name__.lower()
         result.search_parameter_keys = self.__search_parameter_keys
         result.fixed_parameter_keys = self.__fixed_parameter_keys
         result.parameter_labels = [

@@ -73,6 +73,15 @@ class Result(dict):
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
+    def __add__(self, other):
+        if other.sampler != self.sampler:
+            raise ValueError(
+                "Unable to add results generated from different samplers")
+
+        self.samples = np.concatenate([self.samples, other.samples])
+        self.posterior = pd.concat([self.posterior, other.posterior])
+        return self
+
     def __dir__(self):
         """ Adds tab completion in ipython
 
@@ -99,13 +108,13 @@ class Result(dict):
                         "log_noise_evidence: {:6.3f}\n"
                         "log_evidence: {:6.3f} +/- {:6.3f}\n"
                         "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
+                        .format(len(self.posterior), self.log_noise_evidence, self.log_evidence,
                                 self.log_evidence_err, self.log_bayes_factor,
                                 self.log_evidence_err))
             else:
                 return ("nsamples: {:d}\n"
                         "log_evidence: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.samples), self.log_evidence, self.log_evidence_err))
+                        .format(len(self.posterior), self.log_evidence, self.log_evidence_err))
         else:
             return ''
 
