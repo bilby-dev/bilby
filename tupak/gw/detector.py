@@ -49,6 +49,26 @@ class InterferometerSet(list):
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
+    def set_strain_data_from_power_spectral_densities(self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` from the power spectal densities of the detectors
+
+        This uses the `interferometer.power_spectral_density` object to set
+        the `strain_data` to a noise realization. See
+        `tupak.gw.detector.InterferometerStrainData` for further information.
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        for interferometer in self:
+            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency, duration, start_time)
+
     def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
         """ Inject a signal into noise in each of the three detectors.
 
