@@ -74,9 +74,13 @@ class Result(dict):
                 setattr(self, key, val)
 
     def __add__(self, other):
-        if other.sampler != self.sampler:
-            raise ValueError(
-                "Unable to add results generated from different samplers")
+        matches = ['sampler', 'search_parameter_keys']
+        for match in matches:
+            # The 1 and 0 here ensure that if either doesn't have a match for
+            # some reason, a error will be thrown.
+            if getattr(other, match, 1) != getattr(self, match, 0):
+                raise ValueError(
+                    "Unable to add results generated with different {}".format(match))
 
         self.samples = np.concatenate([self.samples, other.samples])
         self.posterior = pd.concat([self.posterior, other.posterior])
