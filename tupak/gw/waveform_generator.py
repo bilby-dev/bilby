@@ -253,9 +253,9 @@ class WaveformGenerator(object):
 
     @property
     def start_time(self):
-        return self.__starting_time
+        return self.__start_time
 
     @start_time.setter
     def start_time(self, starting_time):
-        self.__starting_time = starting_time
+        self.__start_time = starting_time
         self.__time_array_updated = False
