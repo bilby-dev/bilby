@@ -409,7 +409,7 @@ class Result(dict):
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
-                  save=True, **kwargs):
+                  save=True, evidences=False, **kwargs):
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
@@ -432,6 +432,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         All other keyword arguments are passed to `result.plot_corner`.
         However, `show_titles` and `truths` are ignored since they would be
         ambiguous on such a plot.
+    evidences: bool, optional
+        Add the log-evidence calculations to the legend. If available, the
+        Bayes factor will be used instead.
 
     Returns
     -------
@@ -459,6 +462,14 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if labels is None:
         labels = default_labels
+
+    if evidences:
+        if np.isnan(results[0].log_bayes_factor):
+            template = ' $\mathrm{{ln}}(Z)={:1.3g}$'
+        else:
+            template = ' $\mathrm{{ln}}(B)={:1.3g}$'
+        for i, label in enumerate(labels):
+            labels[i] = label + template.format(results[i].log_bayes_factor)
 
     axes = fig.get_axes()
     ndim = int(np.sqrt(len(axes)))

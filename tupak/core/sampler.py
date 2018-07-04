@@ -353,7 +353,7 @@ class Sampler(object):
             for k in kwargs_print:
                 if type(kwargs_print[k]) in (list, np.ndarray):
                     array_repr = np.array(kwargs_print[k])
-                    if array_repr.shape > 10:
+                    if array_repr.size > 10:
                         kwargs_print[k] = ('array_like, shape={}'
                                            .format(array_repr.shape))
             logging.info("Using sampler {} with kwargs {}".format(
@@ -776,7 +776,7 @@ class Emcee(Sampler):
         if 'pos0' in self.kwargs:
             logging.debug("Using given initial positions for walkers")
             pos0 = np.squeeze(self.kwargs['pos0'])
-            if pos0.shape != (self.ndim, self.nwalkers):
+            if pos0.shape != (self.nwalkers, self.ndim):
                 raise ValueError(
                     'Input pos0 should be of shape ndim, nwalkers')
         else:
