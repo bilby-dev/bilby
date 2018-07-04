@@ -173,8 +173,7 @@ class InterferometerSet(list):
 
     def append(self, interferometer):
         if isinstance(interferometer, InterferometerSet):
-            for ifo in interferometer:
-                super(InterferometerSet, self).append(ifo)
+            super(InterferometerSet, self).extend(interferometer)
         else:
             super(InterferometerSet, self).append(interferometer)
         self._check_interferometers()
