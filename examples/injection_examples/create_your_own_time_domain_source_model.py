@@ -26,13 +26,13 @@ injection_parameters = dict(amplitude=5e-22, damping_time=0.1, frequency=50,
                             phase=0,
                             ra=0, dec=0, psi=0, geocent_time=0.)
 
-time_duration = 0.5
+duration = 0.5
 sampling_frequency = 2048
 outdir='outdir'
 label='time_domain_source_model'
 
 # call the waveform_generator to create our waveform model.
-waveform = tupak.gw.waveform_generator.WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
+waveform = tupak.gw.waveform_generator.WaveformGenerator(duration=duration, sampling_frequency=sampling_frequency,
                                                          time_domain_source_model=time_domain_damped_sinusoid,
                                                          parameters=injection_parameters)
 
@@ -49,7 +49,7 @@ hf_signal = waveform.frequency_domain_strain()
 # inject the signal into three interferometers
 IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
         name, injection_polarizations=hf_signal,
-        injection_parameters=injection_parameters, time_duration=time_duration,
+        injection_parameters=injection_parameters, duration=duration,
         sampling_frequency=sampling_frequency, outdir=outdir)
         for name in ['H1', 'L1']]
 

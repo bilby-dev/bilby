@@ -539,11 +539,11 @@ class InterferometerStrainData(object):
         logging.debug(
             'Setting data using noise realization from provided'
             'power_spectal_density')
-        frequency_domain_strain, frequencies = \
+        frequency_domain_strain, frequency_array = \
             power_spectral_density.get_noise_realisation(
                 self.sampling_frequency, self.duration)
 
-        if np.array_equal(frequencies, self.frequency_array):
+        if np.array_equal(frequency_array, self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
         else:
             raise ValueError("Data frequencies do not match frequency_array")
@@ -1107,10 +1107,10 @@ class Interferometer(object):
                 start_time=self.strain_data.start_time)
         opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(
             signal=signal_ifo, interferometer=self,
-            time_duration=self.strain_data.duration).real)
+            duration=self.strain_data.duration).real)
         mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(
             signal=signal_ifo, interferometer=self,
-            time_duration=self.strain_data.duration).real)
+            duration=self.strain_data.duration).real)
 
         logging.info("Injected signal in {}:".format(self.name))
         logging.info("  optimal SNR = {:.2f}".format(opt_snr))
@@ -1320,7 +1320,7 @@ class PowerSpectralDensity(object):
             Array representation of the ASD
         amplitude_spectral_density_file: str
             Name of the ASD file
-        frequencies: array_like
+        frequency_array: array_like
             Array containing the frequencies of the ASD/PSD values
         power_spectral_density: array_like
             Array representation of the PSD
@@ -1333,7 +1333,7 @@ class PowerSpectralDensity(object):
         self.__power_spectral_density = None
         self.__amplitude_spectral_density = None
 
-        self.frequencies = []
+        self.frequency_array = []
         self.power_spectral_density_interpolated = None
 
         for key in kwargs:
@@ -1417,16 +1417,16 @@ class PowerSpectralDensity(object):
 
         strain.low_pass_filter(filter_freq)
         f, psd = strain.create_power_spectral_density(fft_length=fft_length)
-        self.frequencies = f
+        self.frequency_array = f
         self.power_spectral_density = psd
 
-    def set_from_amplitude_spectral_density_array(self, frequencies,
+    def set_from_amplitude_spectral_density_array(self, frequency_array,
                                                   asd_array):
-        self.frequencies = frequencies
+        self.frequency_array = frequency_array
         self.amplitude_spectral_density = asd_array
 
-    def set_from_power_spectral_density_array(self, frequencies, psd_array):
-        self.frequencies = frequencies
+    def set_from_power_spectral_density_array(self, frequency_array, psd_array):
+        self.frequency_array = frequency_array
         self.power_spectral_density = psd_array
 
     def set_from_aLIGO(self):
@@ -1475,7 +1475,7 @@ class PowerSpectralDensity(object):
                 os.path.dirname(__file__), 'noise_curves',
                 self.amplitude_spectral_density_file)
 
-        self.frequencies, self.amplitude_spectral_density = np.genfromtxt(
+        self.frequency_array, self.amplitude_spectral_density = np.genfromtxt(
             self.amplitude_spectral_density_file).T
 
     def import_power_spectral_density(self):
@@ -1490,13 +1490,13 @@ class PowerSpectralDensity(object):
             self.power_spectral_density_file = os.path.join(
                 os.path.dirname(__file__), 'noise_curves',
                 self.power_spectral_density_file)
-        self.frequencies, self.power_spectral_density = np.genfromtxt(
+        self.frequency_array, self.power_spectral_density = np.genfromtxt(
                 self.power_spectral_density_file).T
 
     def _check_frequency_array_matches_density_array(self, density_array):
         """Check the provided frequency and spectral density arrays match."""
         try:
-            self.frequencies - density_array
+            self.frequency_array - density_array
         except ValueError as e:
             raise(e, 'Provided spectral density does not match frequency array. Not updating.')
 
@@ -1505,7 +1505,7 @@ class PowerSpectralDensity(object):
            for arbitrary frequency arrays.
         """
         self.power_spectral_density_interpolated = interp1d(
-            self.frequencies, self.power_spectral_density, bounds_error=False,
+            self.frequency_array, self.power_spectral_density, bounds_error=False,
             fill_value=np.inf)
 
     def get_noise_realisation(self, sampling_frequency, duration):
@@ -1528,7 +1528,7 @@ class PowerSpectralDensity(object):
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
         interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
         frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
-        out_of_bounds = (frequencies < min(self.frequencies)) | (frequencies > max(self.frequencies))
+        out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
 
@@ -1588,7 +1588,7 @@ def load_interferometer(filename):
 
 
 def get_interferometer_with_open_data(
-        name, trigger_time, time_duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
+        name, trigger_time, duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
         psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=None,
         raw_data_file=None, **kwargs):
     """
@@ -1602,7 +1602,7 @@ def get_interferometer_with_open_data(
         Detector name, e.g., 'H1'.
     trigger_time: float
         Trigger GPS time.
-    time_duration: float, optional
+    duration: float, optional
         The total time (in seconds) to analyse. Defaults to 4s.
     start_time: float, optional
         Beginning of the segment, if None, the trigger is placed 2s before the end
@@ -1642,16 +1642,16 @@ def get_interferometer_with_open_data(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     if start_time is None:
-        start_time = trigger_time + 2 - time_duration
+        start_time = trigger_time + 2 - duration
 
     strain = InterferometerStrainData(roll_off=roll_off)
     strain.set_from_open_data(
-        name=name, start_time=start_time, duration=time_duration,
+        name=name, start_time=start_time, duration=duration,
         outdir=outdir, cache=cache, **kwargs)
 
     strain_psd = InterferometerStrainData(roll_off=roll_off)
     strain_psd.set_from_open_data(
-        name=name, start_time=start_time + time_duration + psd_offset,
+        name=name, start_time=start_time + duration + psd_offset,
         duration=psd_duration, outdir=outdir, cache=cache, **kwargs)
     # Low pass filter
     strain_psd.low_pass_filter(filter_freq)
@@ -1661,7 +1661,7 @@ def get_interferometer_with_open_data(
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
-        psd_array=psd_array, frequencies=psd_frequencies)
+        psd_array=psd_array, frequency_array=psd_frequencies)
     interferometer.strain_data = strain
 
     if plot:
@@ -1672,7 +1672,7 @@ def get_interferometer_with_open_data(
 
 def get_interferometer_with_fake_noise_and_injection(
         name, injection_parameters, injection_polarizations=None,
-        waveform_generator=None, sampling_frequency=4096, time_duration=4,
+        waveform_generator=None, sampling_frequency=4096, duration=4,
         start_time=None, outdir='outdir', label=None, plot=True, save=True,
         zero_noise=False):
     """
@@ -1698,7 +1698,7 @@ def get_interferometer_with_fake_noise_and_injection(
         `injection_polarizations` is given, this will be ignored.
     sampling_frequency: float
         sampling frequency for data, should match injection signal
-    time_duration: float
+    duration: float
         length of data, should be the same as used for signal generation
     start_time: float
         Beginning of data segment, if None, injection is placed 2s before
@@ -1723,17 +1723,17 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     if start_time is None:
-        start_time = injection_parameters['geocent_time'] + 2 - time_duration
+        start_time = injection_parameters['geocent_time'] + 2 - duration
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density.set_from_aLIGO()
     if zero_noise:
         interferometer.set_strain_data_from_zero_noise(
-            sampling_frequency=sampling_frequency, duration=time_duration,
+            sampling_frequency=sampling_frequency, duration=duration,
             start_time=start_time)
     else:
         interferometer.set_strain_data_from_power_spectral_density(
-            sampling_frequency=sampling_frequency, duration=time_duration,
+            sampling_frequency=sampling_frequency, duration=duration,
             start_time=start_time)
 
     injection_polarizations = interferometer.inject_signal(
@@ -1754,7 +1754,7 @@ def get_interferometer_with_fake_noise_and_injection(
 
 
 def get_event_data(
-        event, interferometer_names=None, time_duration=4, roll_off=0.4,
+        event, interferometer_names=None, duration=4, roll_off=0.4,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
         label=None, plot=True, filter_freq=None, raw_data_file=None, **kwargs):
     """
@@ -1768,7 +1768,7 @@ def get_event_data(
     interferometer_names: list, optional
         List of interferometer identifiers, e.g., 'H1'.
         If None will look for data in 'H1', 'V1', 'L1'
-    time_duration: float
+    duration: float
         Time duration to search for.
     roll_off: float
         The roll-off (in seconds) used in the Tukey window.
@@ -1808,7 +1808,7 @@ def get_event_data(
     for name in interferometer_names:
         try:
             interferometers.append(get_interferometer_with_open_data(
-                name, trigger_time=event_time, time_duration=time_duration, roll_off=roll_off,
+                name, trigger_time=event_time, duration=duration, roll_off=roll_off,
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
