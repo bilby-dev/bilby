@@ -11,6 +11,7 @@ import traceback
 speed_of_light = 299792458.0  # speed of light in m/s
 parsec = 3.085677581 * 1e16
 solar_mass = 1.98855 * 1e30
+radius_of_earth = 6371 * 1e3  # metres
 
 
 def get_sampling_frequency(time_series):
