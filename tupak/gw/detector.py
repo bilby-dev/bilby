@@ -172,7 +172,11 @@ class InterferometerSet(list):
         return self[0].strain_data.frequency_array
 
     def append(self, interferometer):
-        super(InterferometerSet, self).append(interferometer)
+        if isinstance(interferometer, InterferometerSet):
+            for ifo in interferometer:
+                super(InterferometerSet, self).append(ifo)
+        else:
+            super(InterferometerSet, self).append(interferometer)
         self._check_interferometers()
 
     def extend(self, interferometers):
