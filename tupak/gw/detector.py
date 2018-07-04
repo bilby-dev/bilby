@@ -49,6 +49,87 @@ class InterferometerSet(list):
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
+    def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
+        """ Inject a signal into noise in each of the three detectors.
+
+        Parameters
+        ----------
+        parameters: dict
+            Parameters of the injection.
+        injection_polarizations: dict
+           Polarizations of waveform to inject, output of
+           `waveform_generator.frequency_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
+        waveform_generator: tupak.gw.waveform_generator
+            A WaveformGenerator instance using the source model to inject. If
+            `injection_polarizations` is given, this will be ignored.
+
+        Note: if your signal takes a substantial amount of time to generate, or
+        you experience buggy behaviour. It is preferable to provide the
+        injection_polarizations directly.
+
+        Returns
+        -------
+        injection_polarizations: dict
+
+        """
+        if injection_polarizations is None:
+            if waveform_generator is not None:
+                waveform_generator.parameters = parameters
+                injection_polarizations = waveform_generator.frequency_domain_strain()
+            else:
+                raise ValueError(
+                    "inject_signal needs one of waveform_generator or "
+                    "injection_polarizations.")
+
+        all_injection_polarizations = list()
+        for interferometer in self:
+            all_injection_polarizations.append(
+                interferometer.inject_signal(parameters=parameters, injection_polarizations=injection_polarizations))
+
+        return all_injection_polarizations
+
+    def save_data(self, outdir, label=None):
+        """ Creates a save file for the data in plain text format
+
+        Parameters
+        ----------
+        outdir: str
+            The output directory in which the data is supposed to be saved
+        label: str
+            The string labelling the data
+        """
+        for interferometer in self:
+            interferometer.save_data(outdir, label)
+
+    def plot_data(self, signal=None, outdir='.', label=None):
+        if utils.command_line_args.test:
+            return
+
+        fig, ax = plt.subplots()
+        for interferometer in self:
+            ax.loglog(interferometer.frequency_array,
+                      np.abs(interferometer.frequency_domain_strain),
+                      color='C0', label=interferometer.name)
+            ax.loglog(interferometer.frequency_array,
+                      interferometer.amplitude_spectral_density_array,
+                      color='C1', lw=0.5, label=interferometer.name + ' ASD')
+        if signal is not None:
+            ax.loglog(self.frequency_array, abs(signal), color='C2',
+                      label='Signal')
+        ax.grid('on')
+        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+        ax.set_xlabel(r'frequency [Hz]')
+        ax.set_xlim(20, 2000)
+        ax.legend(loc='best')
+        if label is None:
+            fig.savefig(
+                '{}/{}_frequency_domain_data.png'.format(outdir, self.name))
+        else:
+            fig.savefig(
+                '{}/{}_{}_frequency_domain_data.png'.format(
+                    outdir, self.name, label))
 
     @property
     def number_of_interferometers(self):
