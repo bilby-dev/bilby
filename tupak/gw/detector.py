@@ -1381,9 +1381,9 @@ class TriangularInterferometer(InterferometerSet):
         # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
         if isinstance(power_spectral_density, PowerSpectralDensity):
             power_spectral_density = [power_spectral_density] * 3
-        if isinstance(minimum_frequency, PowerSpectralDensity):
+        if isinstance(minimum_frequency, float) or isinstance(minimum_frequency, int):
             minimum_frequency = [minimum_frequency] * 3
-        if isinstance(maximum_frequency, PowerSpectralDensity):
+        if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
             maximum_frequency = [maximum_frequency] * 3
 
         for ii in range(3):
@@ -1692,7 +1692,15 @@ def load_interferometer(filename):
             key = split_line[0].strip()
             value = eval('='.join(split_line[1:]))
             parameters[key] = value
-    interferometer = Interferometer(**parameters)
+    if 'shape' not in parameters.keys():
+        interferometer = Interferometer(**parameters)
+        logging.debug('Assuming L shape for {}'.format('name'))
+    elif parameters['shape'].lower() in ['l', 'ligo']:
+        parameters.pop('shape')
+        interferometer = Interferometer(**parameters)
+    elif parameters['shape'].lower() in ['triangular', 'triangle']:
+        parameters.pop('shape')
+        interferometer = TriangularInterferometer(**parameters)
     return interferometer
 
 
