@@ -49,6 +49,7 @@ class InterferometerSet(list):
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
 
+
     @property
     def number_of_interferometers(self):
         return len(self)
@@ -1287,6 +1288,33 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_frequency_domain_data.png'.format(
                     outdir, self.name, label))
+
+
+class TriangularInterferometer(InterferometerSet):
+
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
+                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0.):
+        InterferometerSet.__init__(self, [])
+        self.name = name
+        # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
+        if isinstance(power_spectral_density, PowerSpectralDensity):
+            power_spectral_density = [power_spectral_density] * 3
+        if isinstance(minimum_frequency, PowerSpectralDensity):
+            minimum_frequency = [minimum_frequency] * 3
+        if isinstance(maximum_frequency, PowerSpectralDensity):
+            maximum_frequency = [maximum_frequency] * 3
+
+        for ii in range(3):
+            self.append(Interferometer(
+                '{}{}'.format(name, ii+1), power_spectral_density[ii], minimum_frequency[ii], maximum_frequency[ii],
+                length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt))
+
+            xarm_azimuth += 240
+            yarm_azimuth += 240
+
+            latitude += np.arctan(length * np.sin(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+            longitude += np.arctan(length * np.cos(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
 
 
 class PowerSpectralDensity(object):
