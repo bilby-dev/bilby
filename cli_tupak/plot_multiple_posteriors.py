@@ -12,6 +12,8 @@ def setup_command_line_args():
                         help="List of labels to use for each result.")
     parser.add_argument("-p", "--parameters", nargs='+', default=None,
                         help="List of parameters.")
+    parser.add_argument("-e", "--evidences", action='store_true', default=False,
+                        help="Add the evidences to the legend.")
     args, _ = parser.parse_known_args()
 
     return args
@@ -24,4 +26,5 @@ def main():
                for r in args.results]
     tupak.core.result.plot_multiple(results, filename=args.filename,
                                     labels=args.labels,
-                                    parameters=args.parameters)
+                                    parameters=args.parameters,
+                                    evidences=args.evidences)
