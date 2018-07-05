@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import datetime
 import deepdish
+import pandas as pd
 
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
@@ -297,11 +298,15 @@ class Sampler(object):
 
         """
         draw = np.array(list(self.priors.sample_subset(self.__search_parameter_keys).values()))
+        self.check_draw(draw)
+        return draw
+
+    def check_draw(self, draw):
+        """ Checks if the draw will generate an infinite prior or likelihood """
         if np.isinf(self.log_likelihood(draw)):
             logging.warning('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
             logging.warning('Prior draw {} has inf prior'.format(draw))
-        return draw
 
     def _run_external_sampler(self):
         """A template method to run in subclasses"""
@@ -356,6 +361,9 @@ class Sampler(object):
                     if array_repr.size > 10:
                         kwargs_print[k] = ('array_like, shape={}'
                                            .format(array_repr.shape))
+            if type(kwargs_print[k]) == pd.core.frame.DataFrame:
+                kwargs_print[k] = ('DataFrame, shape={}'
+                                   .format(kwargs_print[k].shape))
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
@@ -775,10 +783,18 @@ class Emcee(Sampler):
 
         if 'pos0' in self.kwargs:
             logging.debug("Using given initial positions for walkers")
-            pos0 = np.squeeze(self.kwargs['pos0'])
+            pos0 = self.kwargs['pos0']
+            if type(pos0) == pd.core.frame.DataFrame:
+                pos0 = pos0[self.search_parameter_keys].values
+            elif type(pos0) in (list, np.ndarray):
+                pos0 = np.squeeze(self.kwargs['pos0'])
+
             if pos0.shape != (self.nwalkers, self.ndim):
                 raise ValueError(
                     'Input pos0 should be of shape ndim, nwalkers')
+            logging.debug("Checking input pos0")
+            for draw in pos0:
+                self.check_draw(draw)
         else:
             logging.debug("Generating initial walker positions from prior")
             pos0 = [self.get_random_draw_from_prior()
