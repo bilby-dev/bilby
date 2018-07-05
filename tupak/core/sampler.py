@@ -868,7 +868,7 @@ class Ptemcee(Emcee):
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, **kwargs):
+                clean=None, meta_data=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -902,6 +902,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         the tupak defaults for a binary black hole.
     clean: bool
         If given, override the command line interface `clean` option.
+    meta_data: dict
+        If given, adds the key-value pairs to the 'results' object before
+        saving. For example, if `meta_data={dtype: 'signal'}`. Warning: in case
+        of conflict with keys saved by tupak, the meta_data keys will be
+        overwritten.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -946,6 +951,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result = sampler._run_test()
         else:
             result = sampler._run_external_sampler()
+
+        if type(meta_data) == dict:
+            result.update(meta_data)
 
         end_time = datetime.datetime.now()
         result.sampling_time = (end_time - start_time).total_seconds()
