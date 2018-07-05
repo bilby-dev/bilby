@@ -361,9 +361,9 @@ class Sampler(object):
                     if array_repr.size > 10:
                         kwargs_print[k] = ('array_like, shape={}'
                                            .format(array_repr.shape))
-            if type(kwargs_print[k]) == pd.core.frame.DataFrame:
-                kwargs_print[k] = ('DataFrame, shape={}'
-                                   .format(kwargs_print[k].shape))
+                elif type(kwargs_print[k]) == pd.core.frame.DataFrame:
+                    kwargs_print[k] = ('DataFrame, shape={}'
+                                       .format(kwargs_print[k].shape))
             logging.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
