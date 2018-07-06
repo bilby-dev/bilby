@@ -6,7 +6,7 @@ import numpy as np
 
 class WaveformGenerator(object):
 
-    def __init__(self, duration, sampling_frequency, start_time=0, frequency_domain_source_model=None,
+    def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None, parameter_conversion=None,
                  non_standard_sampling_parameter_keys=None,
                  waveform_arguments=None):
@@ -14,9 +14,9 @@ class WaveformGenerator(object):
 
     Parameters
     ----------
-    sampling_frequency: float
+    sampling_frequency: float, optional
         The sampling frequency
-    duration: float
+    duration: float, optional
         Time duration of data
     start_time: float, optional
         Starting time of the time array
@@ -253,9 +253,9 @@ class WaveformGenerator(object):
 
     @property
     def start_time(self):
-        return self.__starting_time
+        return self.__start_time
 
     @start_time.setter
     def start_time(self, starting_time):
-        self.__starting_time = starting_time
+        self.__start_time = starting_time
         self.__time_array_updated = False

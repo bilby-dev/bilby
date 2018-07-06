@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import datetime
 import deepdish
+import pandas as pd
 
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
@@ -187,6 +188,7 @@ class Sampler(object):
 
         """
         result = Result()
+        result.sampler = self.__class__.__name__.lower()
         result.search_parameter_keys = self.__search_parameter_keys
         result.fixed_parameter_keys = self.__fixed_parameter_keys
         result.parameter_labels = [
@@ -296,11 +298,15 @@ class Sampler(object):
 
         """
         draw = np.array(list(self.priors.sample_subset(self.__search_parameter_keys).values()))
+        self.check_draw(draw)
+        return draw
+
+    def check_draw(self, draw):
+        """ Checks if the draw will generate an infinite prior or likelihood """
         if np.isinf(self.log_likelihood(draw)):
             logging.warning('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
             logging.warning('Prior draw {} has inf prior'.format(draw))
-        return draw
 
     def _run_external_sampler(self):
         """A template method to run in subclasses"""
@@ -348,8 +354,18 @@ class Sampler(object):
     def _log_summary_for_sampler(self):
         """Print a summary of the sampler used and its kwargs"""
         if self.cached_result is None:
+            kwargs_print = self.kwargs.copy()
+            for k in kwargs_print:
+                if type(kwargs_print[k]) in (list, np.ndarray):
+                    array_repr = np.array(kwargs_print[k])
+                    if array_repr.size > 10:
+                        kwargs_print[k] = ('array_like, shape={}'
+                                           .format(array_repr.shape))
+                elif type(kwargs_print[k]) == pd.core.frame.DataFrame:
+                    kwargs_print[k] = ('DataFrame, shape={}'
+                                       .format(kwargs_print[k].shape))
             logging.info("Using sampler {} with kwargs {}".format(
-                self.__class__.__name__, self.kwargs))
+                self.__class__.__name__, kwargs_print))
 
 
 class Nestle(Sampler):
@@ -764,7 +780,25 @@ class Emcee(Sampler):
         sampler = emcee.EnsembleSampler(
             nwalkers=self.nwalkers, dim=self.ndim, lnpostfn=self.lnpostfn,
             a=a)
-        pos0 = [self.get_random_draw_from_prior() for i in range(self.nwalkers)]
+
+        if 'pos0' in self.kwargs:
+            logging.debug("Using given initial positions for walkers")
+            pos0 = self.kwargs['pos0']
+            if type(pos0) == pd.core.frame.DataFrame:
+                pos0 = pos0[self.search_parameter_keys].values
+            elif type(pos0) in (list, np.ndarray):
+                pos0 = np.squeeze(self.kwargs['pos0'])
+
+            if pos0.shape != (self.nwalkers, self.ndim):
+                raise ValueError(
+                    'Input pos0 should be of shape ndim, nwalkers')
+            logging.debug("Checking input pos0")
+            for draw in pos0:
+                self.check_draw(draw)
+        else:
+            logging.debug("Generating initial walker positions from prior")
+            pos0 = [self.get_random_draw_from_prior()
+                    for i in range(self.nwalkers)]
 
         for result in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps), total=self.nsteps):
@@ -834,7 +868,7 @@ class Ptemcee(Emcee):
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, **kwargs):
+                clean=None, meta_data=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -868,6 +902,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         the tupak defaults for a binary black hole.
     clean: bool
         If given, override the command line interface `clean` option.
+    meta_data: dict
+        If given, adds the key-value pairs to the 'results' object before
+        saving. For example, if `meta_data={dtype: 'signal'}`. Warning: in case
+        of conflict with keys saved by tupak, the meta_data keys will be
+        overwritten.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -912,6 +951,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result = sampler._run_test()
         else:
             result = sampler._run_external_sampler()
+
+        if type(meta_data) == dict:
+            result.update(meta_data)
 
         end_time = datetime.datetime.now()
         result.sampling_time = (end_time - start_time).total_seconds()
