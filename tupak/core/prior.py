@@ -6,8 +6,9 @@ from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import scipy.stats
-import logging
 import os
+
+from tupak.core.utils import logger
 
 
 class PriorSet(dict):
@@ -39,7 +40,7 @@ class PriorSet(dict):
         """
 
         prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
-        logging.debug("Writing priors to {}".format(prior_file))
+        logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():
                 outfile.write(
@@ -72,10 +73,10 @@ class PriorSet(dict):
                 continue
             elif isinstance(self[key], float) or isinstance(self[key], int):
                 self[key] = DeltaFunction(self[key])
-                logging.debug(
+                logger.debug(
                     "{} converted to delta function prior.".format(key))
             else:
-                logging.debug(
+                logger.debug(
                     "{} cannot be converted to delta function prior."
                     .format(key))
 
@@ -120,7 +121,7 @@ class PriorSet(dict):
                 default_prior = create_default_prior(missing_key, default_priors_file)
                 if default_prior is None:
                     set_val = likelihood.parameters[missing_key]
-                    logging.warning(
+                    logger.warning(
                         "Parameter {} has no default prior and is set to {}, this"
                         " will not be sampled and may cause an error."
                         .format(missing_key, set_val))
@@ -168,7 +169,7 @@ class PriorSet(dict):
             if isinstance(self[key], Prior):
                 samples[key] = self[key].sample(size=size)
             else:
-                logging.debug('{} not a known prior.'.format(key))
+                logger.debug('{} not a known prior.'.format(key))
         return samples
 
     def prob(self, sample):
@@ -241,7 +242,7 @@ def create_default_prior(name, default_priors_file=None):
     """
 
     if default_priors_file is None:
-        logging.debug(
+        logger.debug(
             "No prior file given.")
         prior = None
     else:
@@ -249,7 +250,7 @@ def create_default_prior(name, default_priors_file=None):
         if name in default_priors.keys():
             prior = default_priors[name]
         else:
-            logging.debug(
+            logger.debug(
                 "No default prior found for variable {}.".format(name))
             prior = None
     return prior
@@ -668,7 +669,7 @@ class LogUniform(PowerLaw):
         """
         PowerLaw.__init__(self, name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
-            logging.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
+            logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
 
 class Cosine(Prior):
@@ -989,7 +990,7 @@ class Interped(Prior):
 
     def __initialize_attributes(self):
         if np.trapz(self.yy, self.xx) != 1:
-            logging.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
+            logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
         self.YY = cumtrapz(self.yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
@@ -1028,9 +1029,9 @@ class FromFile(Interped):
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum, name=name, latex_label=latex_label)
         except IOError:
-            logging.warning("Can't load {}.".format(self.id))
-            logging.warning("Format should be:")
-            logging.warning(r"x\tp(x)")
+            logger.warning("Can't load {}.".format(self.id))
+            logger.warning("Format should be:")
+            logger.warning(r"x\tp(x)")
 
     def __repr__(self):
         """Call to helper method in the super class."""

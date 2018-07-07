@@ -1,5 +1,7 @@
 from tupak.core.prior import *
 
+from tupak.core.utils import logger
+
 
 class UniformComovingVolume(FromFile):
 
@@ -35,7 +37,7 @@ class BBHPriorSet(PriorSet):
         """
         if dictionary is None and filename is None:
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_black_holes.prior')
-            logging.info('No prior given, using default BBH priors in {}.'.format(filename))
+            logger.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif not os.path.isfile(filename):
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
         PriorSet.__init__(self, dictionary=dictionary, filename=filename)
@@ -67,7 +69,7 @@ class BBHPriorSet(PriorSet):
             if key in parameter_set:
                 if len(parameter_set.intersection(self)) > 2:
                     redundant = True
-                    logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
                         parameter_set.intersection(self)))
                     break
             elif len(parameter_set.intersection(self)) == 2:
@@ -78,7 +80,7 @@ class BBHPriorSet(PriorSet):
             if key in parameter_set:
                 if len(parameter_set.intersection(self)) > 1:
                     redundant = True
-                    logging.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
                         parameter_set.intersection(self)))
                     break
                 elif len(parameter_set.intersection(self)) == 1:

@@ -1,7 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
 import inspect
-import logging
 import os
 import sys
 import numpy as np
@@ -9,6 +8,7 @@ import datetime
 import deepdish
 import pandas as pd
 
+from tupak.core.utils import logger
 from tupak.core.result import Result, read_in_result
 from tupak.core.prior import Prior
 from tupak.core import utils
@@ -151,7 +151,7 @@ class Sampler(object):
         bad_keys = []
         for user_input in self.kwargs.keys():
             if user_input not in args:
-                logging.warning(
+                logger.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
                     .format(user_input, self.external_sampler_function))
                 bad_keys.append(user_input)
@@ -174,11 +174,11 @@ class Sampler(object):
                     self.priors[key].sample()
                 self.__fixed_parameter_keys.append(key)
 
-        logging.info("Search parameters:")
+        logger.info("Search parameters:")
         for key in self.__search_parameter_keys:
-            logging.info('  {} = {}'.format(key, self.priors[key]))
+            logger.info('  {} = {}'.format(key, self.priors[key]))
         for key in self.__fixed_parameter_keys:
-            logging.info('  {} = {}'.format(key, self.priors[key].peak))
+            logger.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def _initialise_result(self):
         """
@@ -205,7 +205,7 @@ class Sampler(object):
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
             except AttributeError as e:
-                logging.warning('Cannot sample from {}, {}'.format(key, e))
+                logger.warning('Cannot sample from {}, {}'.format(key, e))
 
     def _verify_parameters(self):
         """ Sets initial values for likelihood.parameters. Raises TypeError if likelihood can't be evaluated."""
@@ -214,7 +214,7 @@ class Sampler(object):
             t1 = datetime.datetime.now()
             self.likelihood.log_likelihood()
             self._sample_log_likelihood_eval = (datetime.datetime.now() - t1).total_seconds()
-            logging.info("Single likelihood evaluation took {:.3e} s".format(self._sample_log_likelihood_eval))
+            logger.info("Single likelihood evaluation took {:.3e} s".format(self._sample_log_likelihood_eval))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
@@ -225,17 +225,17 @@ class Sampler(object):
         """Checks if use_ratio is set. Prints a warning if use_ratio is set but not properly implemented."""
         self._check_if_priors_can_be_sampled()
         if self.use_ratio is False:
-            logging.debug("use_ratio set to False")
+            logger.debug("use_ratio set to False")
             return
 
         ratio_is_nan = np.isnan(self.likelihood.log_likelihood_ratio())
 
         if self.use_ratio is True and ratio_is_nan:
-            logging.warning(
+            logger.warning(
                 "You have requested to use the loglikelihood_ratio, but it "
                 " returns a NaN")
         elif self.use_ratio is None and not ratio_is_nan:
-            logging.debug(
+            logger.debug(
                 "use_ratio not spec. but gives valid answer, setting True")
             self.use_ratio = True
 
@@ -304,9 +304,9 @@ class Sampler(object):
     def check_draw(self, draw):
         """ Checks if the draw will generate an infinite prior or likelihood """
         if np.isinf(self.log_likelihood(draw)):
-            logging.warning('Prior draw {} has inf likelihood'.format(draw))
+            logger.warning('Prior draw {} has inf likelihood'.format(draw))
         if np.isinf(self.log_prior(draw)):
-            logging.warning('Prior draw {} has inf prior'.format(draw))
+            logger.warning('Prior draw {} has inf prior'.format(draw))
 
     def _run_external_sampler(self):
         """A template method to run in subclasses"""
@@ -325,7 +325,7 @@ class Sampler(object):
         """ Check if the cached data file exists and can be used """
 
         if utils.command_line_args.clean:
-            logging.debug("Command line argument clean given, forcing rerun")
+            logger.debug("Command line argument clean given, forcing rerun")
             self.cached_result = None
             return
 
@@ -335,10 +335,10 @@ class Sampler(object):
             self.cached_result = None
 
         if utils.command_line_args.use_cached:
-            logging.debug("Command line argument cached given, no cache check performed")
+            logger.debug("Command line argument cached given, no cache check performed")
             return
 
-        logging.debug("Checking cached data")
+        logger.debug("Checking cached data")
         if self.cached_result:
             check_keys = ['search_parameter_keys', 'fixed_parameter_keys',
                           'kwargs']
@@ -346,7 +346,7 @@ class Sampler(object):
             for key in check_keys:
                 if self.cached_result.check_attribute_match_to_other_object(
                         key, self) is False:
-                    logging.debug("Cached value {} is unmatched".format(key))
+                    logger.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
             if use_cache is False:
                 self.cached_result = None
@@ -364,7 +364,7 @@ class Sampler(object):
                 elif type(kwargs_print[k]) == pd.core.frame.DataFrame:
                     kwargs_print[k] = ('DataFrame, shape={}'
                                        .format(kwargs_print[k].shape))
-            logging.info("Using sampler {} with kwargs {}".format(
+            logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
 
@@ -512,7 +512,7 @@ class Dynesty(Sampler):
             if self.kwargs['resume']:
                 resume = self.read_saved_state(nested_sampler, continuing=True)
                 if resume:
-                    logging.info('Resuming from previous run.')
+                    logger.info('Resuming from previous run.')
 
             old_ncall = nested_sampler.ncall
             maxcall = self.kwargs['n_check_point']
@@ -701,7 +701,7 @@ class Dynesty(Sampler):
 
     def generate_trace_plots(self, dynesty_results):
         filename = '{}/{}_trace.png'.format(self.outdir, self.label)
-        logging.debug("Writing trace plot to {}".format(filename))
+        logger.debug("Writing trace plot to {}".format(filename))
         from dynesty import plotting as dyplot
         fig, axes = dyplot.traceplot(dynesty_results,
                                      labels=self.result.parameter_labels)
@@ -782,7 +782,7 @@ class Emcee(Sampler):
             a=a)
 
         if 'pos0' in self.kwargs:
-            logging.debug("Using given initial positions for walkers")
+            logger.debug("Using given initial positions for walkers")
             pos0 = self.kwargs['pos0']
             if type(pos0) == pd.core.frame.DataFrame:
                 pos0 = pos0[self.search_parameter_keys].values
@@ -792,11 +792,11 @@ class Emcee(Sampler):
             if pos0.shape != (self.nwalkers, self.ndim):
                 raise ValueError(
                     'Input pos0 should be of shape ndim, nwalkers')
-            logging.debug("Checking input pos0")
+            logger.debug("Checking input pos0")
             for draw in pos0:
                 self.check_draw(draw)
         else:
-            logging.debug("Generating initial walker positions from prior")
+            logger.debug("Generating initial walker positions from prior")
             pos0 = [self.get_random_draw_from_prior()
                     for i in range(self.nwalkers)]
 
@@ -813,10 +813,10 @@ class Emcee(Sampler):
         self.result.log_evidence_err = np.nan
 
         try:
-            logging.info("Max autocorr time = {}".format(
+            logger.info("Max autocorr time = {}".format(
                          np.max(sampler.get_autocorr_time())))
         except emcee.autocorr.AutocorrError as e:
-            logging.info("Unable to calculate autocorr time: {}".format(e))
+            logger.info("Unable to calculate autocorr time: {}".format(e))
         return self.result
 
     def lnpostfn(self, theta):
@@ -858,9 +858,9 @@ class Ptemcee(Emcee):
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
 
-        logging.info("Max autocorr time = {}"
+        logger.info("Max autocorr time = {}"
                      .format(np.max(sampler.get_autocorr_time())))
-        logging.info("Tswap frac = {}"
+        logger.info("Tswap frac = {}"
                      .format(sampler.tswap_acceptance_fraction))
         return self.result
 
@@ -942,7 +942,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                                 **kwargs)
 
         if sampler.cached_result:
-            logging.warning("Using cached result")
+            logger.warning("Using cached result")
             return sampler.cached_result
 
         start_time = datetime.datetime.now()
@@ -957,7 +957,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
         end_time = datetime.datetime.now()
         result.sampling_time = (end_time - start_time).total_seconds()
-        logging.info('Sampling time: {}'.format(end_time - start_time))
+        logger.info('Sampling time: {}'.format(end_time - start_time))
 
         if sampler.use_ratio:
             result.log_noise_evidence = likelihood.noise_log_likelihood()
@@ -979,8 +979,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.save_to_file()
         if plot:
             result.plot_corner()
-        logging.info("Sampling finished, results saved to {}/".format(outdir))
-        logging.info("Summary of results:\n{}".format(result))
+        logger.info("Sampling finished, results saved to {}/".format(outdir))
+        logger.info("Summary of results:\n{}".format(result))
         return result
     else:
         raise ValueError(

@@ -2,14 +2,15 @@ from __future__ import division
 import tupak
 import numpy as np
 import pandas as pd
-import logging
 from astropy.cosmology import z_at_value, Planck15
 import astropy.units as u
+
+from tupak.core.utils import logger
 
 try:
     import lalsimulation as lalsim
 except ImportError:
-    logging.warning("You do not have lalsuite installed currently. You will "
+    logger.warning("You do not have lalsuite installed currently. You will "
                     " not be able to use some of the prebuilt functions.")
 
 
@@ -468,7 +469,7 @@ def generate_component_spins(sample):
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
     elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
-        logging.debug('Extracting component spins.')
+        logger.debug('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
         new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
 
@@ -488,7 +489,7 @@ def generate_component_spins(sample):
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
     else:
-        logging.warning("Component spin extraction failed.")
+        logger.warning("Component spin extraction failed.")
 
     return output_sample
 
@@ -519,7 +520,7 @@ def compute_snrs(sample, likelihood):
                 sample['{}_optimal_snr'.format(interferometer.name)] = tupak.gw.utils.optimal_snr_squared(
                     signal, interferometer, likelihood.waveform_generator.duration) ** 0.5
         else:
-            logging.info('Computing SNRs for every sample, this may take some time.')
+            logger.info('Computing SNRs for every sample, this may take some time.')
             all_interferometers = likelihood.interferometers
             matched_filter_snrs = {interferometer.name: [] for interferometer in all_interferometers}
             optimal_snrs = {interferometer.name: [] for interferometer in all_interferometers}
@@ -545,4 +546,4 @@ def compute_snrs(sample, likelihood):
             print([interferometer.name for interferometer in likelihood.interferometers])
 
     else:
-        logging.debug('Not computing SNRs.')
+        logger.debug('Not computing SNRs.')
