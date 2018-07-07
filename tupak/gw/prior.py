@@ -1,4 +1,5 @@
-from tupak.core.prior import *
+import os
+from tupak.core.prior import PriorSet, FromFile, Prior
 
 from tupak.core.utils import logger
 
