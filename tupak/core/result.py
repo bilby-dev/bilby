@@ -268,7 +268,7 @@ class Result(dict):
             quantiles=[0.16, 0.84],
             levels=(1-np.exp(-0.5), 1-np.exp(-2), 1-np.exp(-9/2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
-            max_n_ticks=3)
+            max_n_ticks=3, hist_kwargs=dict(density=True))
 
         defaults_kwargs.update(kwargs)
         kwargs = defaults_kwargs
@@ -447,7 +447,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     kwargs['truths'] = None
 
     fig = results[0].plot_corner(save=False, **kwargs)
-    default_filename = '{}/{}'.format(results[0].outdir, results[0].label)
+    default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
     for i, result in enumerate(results):
@@ -459,6 +459,11 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         default_filename += '_{}'.format(result.label)
         lines.append(matplotlib.lines.Line2D([0], [0], color=c))
         default_labels.append(result.label)
+
+    # Rescale the axes
+    for i, ax in enumerate(fig.axes):
+        ax.autoscale()
+    plt.draw()
 
     if labels is None:
         labels = default_labels
