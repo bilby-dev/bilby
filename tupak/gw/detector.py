@@ -1,6 +1,5 @@
 from __future__ import division, print_function, absolute_import
 
-import logging
 import os
 
 import matplotlib.pyplot as plt
@@ -10,12 +9,13 @@ from scipy.interpolate import interp1d
 
 import tupak.gw.utils
 from tupak.core import utils
+from tupak.core.utils import logger
 
 try:
     import gwpy
 except ImportError:
-    logging.warning("You do not have gwpy installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+    logger.warning("You do not have gwpy installed currently. You will "
+                   " not be able to use some of the prebuilt functions.")
 
 
 class InterferometerSet(list):
@@ -173,10 +173,10 @@ class InterferometerStrainData(object):
 
         """
         if time < self.start_time:
-            logging.debug("Time is before the start_time")
+            logger.debug("Time is before the start_time")
             return False
         elif time > self.start_time + self.duration:
-            logging.debug("Time is after the start_time + duration")
+            logger.debug("Time is after the start_time + duration")
             return False
         else:
             return True
@@ -233,8 +233,8 @@ class InterferometerStrainData(object):
         if self._frequency_domain_strain is not None:
             return self._frequency_domain_strain * self.frequency_mask
         elif self._time_domain_strain is not None:
-            logging.info("Generating frequency domain strain from given time "
-                         "domain strain.")
+            logger.info("Generating frequency domain strain from given time "
+                        "domain strain.")
             self.low_pass_filter()
             self.apply_tukey_window()
             frequency_domain_strain, _ = utils.nfft(
@@ -251,18 +251,18 @@ class InterferometerStrainData(object):
         """ Low pass filter the data """
 
         if filter_freq is None:
-            logging.debug(
+            logger.debug(
                 "Setting low pass filter_freq using given maximum frequency")
             filter_freq = self.maximum_frequency
 
         if 2 * filter_freq >= self.sampling_frequency:
-            logging.info(
+            logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
                 .format(filter_freq))
             return
 
-        logging.debug("Applying low pass filter with filter frequency {}"
+        logger.debug("Applying low pass filter with filter frequency {}"
                       .format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
@@ -274,11 +274,11 @@ class InterferometerStrainData(object):
     def get_tukey_window(self, N, duration):
         alpha = 2 * self.roll_off / duration
         window = scipy.signal.windows.tukey(N, alpha=alpha)
-        logging.debug("Generated Tukey window with alpha = {}".format(alpha))
+        logger.debug("Generated Tukey window with alpha = {}".format(alpha))
         return window
 
     def apply_tukey_window(self):
-        logging.debug("Applying Tukey window with roll_off {}"
+        logger.debug("Applying Tukey window with roll_off {}"
                       .format(self.roll_off))
         N = len(self.time_domain_strain)
         window = self.get_tukey_window(N, duration=self.duration)
@@ -382,7 +382,7 @@ class InterferometerStrainData(object):
             sampling_frequency=sampling_frequency, duration=duration,
             time_array=time_array)
 
-        logging.debug('Setting data using provided time_domain_strain')
+        logger.debug('Setting data using provided time_domain_strain')
         if np.shape(time_domain_strain) == np.shape(self.time_array):
             self._time_domain_strain = time_domain_strain
         else:
@@ -401,7 +401,7 @@ class InterferometerStrainData(object):
         timeseries: gwpy.timeseries.timeseries.TimeSeries
 
         """
-        logging.debug('Setting data using provided gwpy TimeSeries object')
+        logger.debug('Setting data using provided gwpy TimeSeries object')
         if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
             raise ValueError("Input timeseries is not a gwpy TimeSeries")
         self.start_time = timeseries.epoch.value
@@ -508,7 +508,7 @@ class InterferometerStrainData(object):
             sampling_frequency=sampling_frequency, duration=duration,
             frequency_array=frequency_array)
 
-        logging.debug('Setting data using provided frequency_domain_strain')
+        logger.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
         else:
@@ -536,7 +536,7 @@ class InterferometerStrainData(object):
         self.duration = duration
         self.start_time = start_time
 
-        logging.debug(
+        logger.debug(
             'Setting data using noise realization from provided'
             'power_spectal_density')
         frequency_domain_strain, frequency_array = \
@@ -566,7 +566,7 @@ class InterferometerStrainData(object):
         self.duration = duration
         self.start_time = start_time
 
-        logging.debug('Setting zero noise data')
+        logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
                                                       dtype=np.complex)
 
@@ -597,7 +597,7 @@ class InterferometerStrainData(object):
         self.duration = duration
         self.start_time = start_time
 
-        logging.info('Reading data from frame')
+        logger.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
             frame_file, t1=start_time, t2=start_time+duration,
             buffer_time=buffer_time, channel=channel_name,
@@ -1091,7 +1091,7 @@ class Interferometer(object):
                 ' None. This can be caused if, e.g., mass_2 > mass_1.')
 
         if not self.strain_data.time_within_data(parameters['geocent_time']):
-            logging.warning(
+            logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
                 .format(self.strain_data.start_time, parameters['geocent_time']))
 
@@ -1099,7 +1099,7 @@ class Interferometer(object):
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
             self.strain_data.add_to_frequency_domain_strain(signal_ifo)
         else:
-            logging.info('Injecting into zero noise.')
+            logger.info('Injecting into zero noise.')
             self.set_strain_data_from_frequency_domain_strain(
                 signal_ifo,
                 sampling_frequency=self.strain_data.sampling_frequency,
@@ -1112,11 +1112,11 @@ class Interferometer(object):
             signal=signal_ifo, interferometer=self,
             duration=self.strain_data.duration).real)
 
-        logging.info("Injected signal in {}:".format(self.name))
-        logging.info("  optimal SNR = {:.2f}".format(opt_snr))
-        logging.info("  matched filter SNR = {:.2f}".format(mf_snr))
+        logger.info("Injected signal in {}:".format(self.name))
+        logger.info("  optimal SNR = {:.2f}".format(opt_snr))
+        logger.info("  matched filter SNR = {:.2f}".format(mf_snr))
         for key in parameters:
-            logging.info('  {} = {}'.format(key, parameters[key]))
+            logger.info('  {} = {}'.format(key, parameters[key]))
 
         return injection_polarizations
 
@@ -1343,7 +1343,7 @@ class PowerSpectralDensity(object):
                 m = getattr(self, 'set_from_{}'.format(expanded_key))
                 m(**kwargs)
             except AttributeError:
-                logging.info("Tried setting PSD from init kwarg {} and failed"
+                logger.info("Tried setting PSD from init kwarg {} and failed"
                              .format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
@@ -1359,11 +1359,11 @@ class PowerSpectralDensity(object):
         self.amplitude_spectral_density_file = asd_file
         self.import_amplitude_spectral_density()
         if min(self.amplitude_spectral_density) < 1e-30:
-            logging.warning("You specified an amplitude spectral density file.")
-            logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logging.warning("The minimum of the provided curve is {:.2e}.".format(
+            logger.warning("You specified an amplitude spectral density file.")
+            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(
                 min(self.amplitude_spectral_density)))
-            logging.warning(
+            logger.warning(
                 "You may have intended to provide this as a power spectral density.")
 
     def set_from_power_spectral_density_file(self, psd_file):
@@ -1379,11 +1379,11 @@ class PowerSpectralDensity(object):
         self.power_spectral_density_file = psd_file
         self.import_power_spectral_density()
         if min(self.power_spectral_density) > 1e-30:
-            logging.warning("You specified a power spectral density file.")
-            logging.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logging.warning("The minimum of the provided curve is {:.2e}.".format(
+            logger.warning("You specified a power spectral density file.")
+            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(
                 min(self.power_spectral_density)))
-            logging.warning(
+            logger.warning(
                 "You may have intended to provide this as an amplitude spectral density.")
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
@@ -1431,8 +1431,8 @@ class PowerSpectralDensity(object):
 
     def set_from_aLIGO(self):
         psd_file = 'aLIGO_ZERO_DET_high_P_psd.txt'
-        logging.info("No power spectral density provided, using aLIGO,"
-                     "zero detuning, high power.")
+        logger.info("No power spectral density provided, using aLIGO,"
+                    "zero detuning, high power.")
         self.set_from_power_spectral_density_file(psd_file)
 
     @property
@@ -1568,7 +1568,7 @@ def get_empty_interferometer(name):
         interferometer = load_interferometer(filename)
         return interferometer
     except FileNotFoundError:
-        logging.warning('Interferometer {} not implemented'.format(name))
+        logger.warning('Interferometer {} not implemented'.format(name))
 
 
 def load_interferometer(filename):
@@ -1634,7 +1634,7 @@ def get_interferometer_with_open_data(
 
     """
 
-    logging.warning(
+    logger.warning(
         "Parameter estimation for real interferometer data in tupak is in "
         "alpha testing at the moment: the routines for windowing and filtering"
         " have not been reviewed.")
@@ -1813,7 +1813,7 @@ def get_event_data(
                 outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
                 raw_data_file=raw_data_file, **kwargs))
         except ValueError as e:
-            logging.debug("Error raised {}".format(e))
-            logging.warning('No data found for {}.'.format(name))
+            logger.debug("Error raised {}".format(e))
+            logger.warning('No data found for {}.'.format(name))
 
     return InterferometerSet(interferometers)

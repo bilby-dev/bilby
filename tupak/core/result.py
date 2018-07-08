@@ -1,4 +1,3 @@
-import logging
 import os
 import numpy as np
 import deepdish
@@ -8,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from tupak.core import utils
+from tupak.core.utils import logger
 
 
 def result_file_name(outdir, label):
@@ -73,6 +73,19 @@ class Result(dict):
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
 
+    def __add__(self, other):
+        matches = ['sampler', 'search_parameter_keys']
+        for match in matches:
+            # The 1 and 0 here ensure that if either doesn't have a match for
+            # some reason, a error will be thrown.
+            if getattr(other, match, 1) != getattr(self, match, 0):
+                raise ValueError(
+                    "Unable to add results generated with different {}".format(match))
+
+        self.samples = np.concatenate([self.samples, other.samples])
+        self.posterior = pd.concat([self.posterior, other.posterior])
+        return self
+
     def __dir__(self):
         """ Adds tab completion in ipython
 
@@ -99,13 +112,13 @@ class Result(dict):
                         "log_noise_evidence: {:6.3f}\n"
                         "log_evidence: {:6.3f} +/- {:6.3f}\n"
                         "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.samples), self.log_noise_evidence, self.log_evidence,
+                        .format(len(self.posterior), self.log_noise_evidence, self.log_evidence,
                                 self.log_evidence_err, self.log_bayes_factor,
                                 self.log_evidence_err))
             else:
                 return ("nsamples: {:d}\n"
                         "log_evidence: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.samples), self.log_evidence, self.log_evidence_err))
+                        .format(len(self.posterior), self.log_evidence, self.log_evidence_err))
         else:
             return ''
 
@@ -150,16 +163,16 @@ class Result(dict):
         if os.path.isdir(self.outdir) is False:
             os.makedirs(self.outdir)
         if os.path.isfile(file_name):
-            logging.debug(
+            logger.debug(
                 'Renaming existing file {} to {}.old'.format(file_name,
                                                              file_name))
             os.rename(file_name, file_name + '.old')
 
-        logging.debug("Saving result to {}".format(file_name))
+        logger.debug("Saving result to {}".format(file_name))
         try:
             deepdish.io.save(file_name, dict(self))
         except Exception as e:
-            logging.error("\n\n Saving the data has failed with the "
+            logger.error("\n\n Saving the data has failed with the "
                           "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
@@ -288,7 +301,7 @@ class Result(dict):
 
         if save:
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
-            logging.debug('Saving corner plot to {}'.format(filename))
+            logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
 
         return fig
@@ -296,7 +309,7 @@ class Result(dict):
     def plot_walkers(self, save=True, **kwargs):
         """ Method to plot the trace of the walkers in an ensmble MCMC plot """
         if hasattr(self, 'walkers') is False:
-            logging.warning("Cannot plot_walkers as no walkers are saved")
+            logger.warning("Cannot plot_walkers as no walkers are saved")
             return
 
         if utils.command_line_args.test:
@@ -318,16 +331,16 @@ class Result(dict):
 
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
-        logging.debug('Saving walkers plot to {}'.format('filename'))
+        logger.debug('Saving walkers plot to {}'.format('filename'))
         fig.savefig(filename)
 
     def plot_walks(self, save=True, **kwargs):
         """DEPRECATED"""
-        logging.warning("plot_walks deprecated")
+        logger.warning("plot_walks deprecated")
 
     def plot_distributions(self, save=True, **kwargs):
         """DEPRECATED"""
-        logging.warning("plot_distributions deprecated")
+        logger.warning("plot_distributions deprecated")
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
@@ -383,7 +396,7 @@ class Result(dict):
         """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
-        logging.debug('Checking {} value: {}=={}'.format(name, A, B))
+        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
         if (A is not False) and (B is not False):
             typeA = type(A)
             typeB = type(B)
@@ -396,7 +409,7 @@ class Result(dict):
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
-                  save=True, **kwargs):
+                  save=True, evidences=False, **kwargs):
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
@@ -419,6 +432,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         All other keyword arguments are passed to `result.plot_corner`.
         However, `show_titles` and `truths` are ignored since they would be
         ambiguous on such a plot.
+    evidences: bool, optional
+        Add the log-evidence calculations to the legend. If available, the
+        Bayes factor will be used instead.
 
     Returns
     -------
@@ -446,6 +462,14 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if labels is None:
         labels = default_labels
+
+    if evidences:
+        if np.isnan(results[0].log_bayes_factor):
+            template = ' $\mathrm{{ln}}(Z)={:1.3g}$'
+        else:
+            template = ' $\mathrm{{ln}}(B)={:1.3g}$'
+        for i, label in enumerate(labels):
+            labels[i] = label + template.format(results[i].log_bayes_factor)
 
     axes = fig.get_axes()
     ndim = int(np.sqrt(len(axes)))
