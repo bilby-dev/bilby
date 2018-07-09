@@ -1,4 +1,5 @@
 import os
+from distutils.version import LooseVersion
 import numpy as np
 import deepdish
 import pandas as pd
@@ -268,7 +269,12 @@ class Result(dict):
             quantiles=[0.16, 0.84],
             levels=(1-np.exp(-0.5), 1-np.exp(-2), 1-np.exp(-9/2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
-            max_n_ticks=3, hist_kwargs=dict(density=True))
+            max_n_ticks=3)
+
+        if LooseVersion(matplotlib.__version__) < "2.1":
+            defaults_kwargs['hist_kwargs'] = dict(normed=True)
+        else:
+            defaults_kwargs['hist_kwargs'] = dict(density=True)
 
         defaults_kwargs.update(kwargs)
         kwargs = defaults_kwargs
