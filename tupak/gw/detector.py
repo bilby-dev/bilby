@@ -373,8 +373,7 @@ class InterferometerStrainData(object):
                 .format(filter_freq))
             return
 
-        logger.debug("Applying low pass filter with filter frequency {}"
-                      .format(filter_freq))
+        logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
@@ -389,8 +388,7 @@ class InterferometerStrainData(object):
         return window
 
     def apply_tukey_window(self):
-        logger.debug("Applying Tukey window with roll_off {}"
-                      .format(self.roll_off))
+        logger.debug("Applying Tukey window with roll_off {}".format(self.roll_off))
         N = len(self.time_domain_strain)
         window = self.get_tukey_window(N, duration=self.duration)
         self._time_domain_strain *= window
@@ -1149,8 +1147,9 @@ class Interferometer(object):
             self.strain_data.start_time)  # parameters['geocent_time'])
 
         if self.time_marginalization:
-            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-            # all candidate coalescence times
+            dt = time_shift
+            # when marginalizing over time we only care about relative time shifts
+            # between detectors and marginalized over all candidate coalescence times
         else:
             dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
@@ -1481,8 +1480,7 @@ class PowerSpectralDensity(object):
                 m = getattr(self, 'set_from_{}'.format(expanded_key))
                 m(**kwargs)
             except AttributeError:
-                logger.info("Tried setting PSD from init kwarg {} and failed"
-                             .format(key))
+                logger.info("Tried setting PSD from init kwarg {} and failed".format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
@@ -1723,7 +1721,7 @@ def load_interferometer(filename):
             parameters[key] = value
     if 'shape' not in parameters.keys():
         interferometer = Interferometer(**parameters)
-        logging.debug('Assuming L shape for {}'.format('name'))
+        logger.debug('Assuming L shape for {}'.format('name'))
     elif parameters['shape'].lower() in ['l', 'ligo']:
         parameters.pop('shape')
         interferometer = Interferometer(**parameters)
