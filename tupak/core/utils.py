@@ -6,6 +6,8 @@ from math import fmod
 import argparse
 import traceback
 
+logger = logging.getLogger('tupak')
+
 # Constants
 
 speed_of_light = 299792458.0  # speed of light in m/s
@@ -309,13 +311,14 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
     else:
         LEVEL = int(log_level)
 
-    logger = logging.getLogger()
+    logger = logging.getLogger('tupak')
+    logger.propagate = False
     logger.setLevel(LEVEL)
 
     if any([type(h) == logging.StreamHandler for h in logger.handlers]) is False:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+            '%(asctime)s %(name)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
         stream_handler.setLevel(LEVEL)
         logger.addHandler(stream_handler)
 
@@ -340,7 +343,9 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
         os.path.dirname(os.path.dirname(__file__)), '.version')
     with open(version_file, 'r') as f:
         version = f.readline().rstrip()
-    logging.info('Running tupak version: {}'.format(version))
+
+    if print_version:
+        logger.info('Running tupak version: {}'.format(version))
 
 
 def get_progress_bar(module='tqdm'):
@@ -394,9 +399,9 @@ def check_directory_exists_and_if_not_mkdir(directory):
     """
     if not os.path.exists(directory):
         os.makedirs(directory)
-        logging.debug('Making directory {}'.format(directory))
+        logger.debug('Making directory {}'.format(directory))
     else:
-        logging.debug('Directory {} exists'.format(directory))
+        logger.debug('Directory {} exists'.format(directory))
 
 
 def set_up_command_line_arguments():
@@ -442,16 +447,16 @@ command_line_args = set_up_command_line_arguments()
 setup_logger(print_version=True)
 
 if 'DISPLAY' in os.environ:
-    logging.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
+    logger.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
     pass
 else:
-    logging.debug('No $DISPLAY environment variable found, so importing \
+    logger.debug('No $DISPLAY environment variable found, so importing \
                    matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
     non_gui_backends = matplotlib.rcsetup.non_interactive_bk
     for backend in non_gui_backends:
         try:
-            logging.debug("Trying backend {}".format(backend))
+            logger.debug("Trying backend {}".format(backend))
             matplotlib.use(backend, warn=False)
             matplotlib.pyplot.switch_backend(backend)
             break

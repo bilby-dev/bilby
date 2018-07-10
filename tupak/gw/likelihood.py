@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 from scipy.interpolate import interp2d, interp1d
 
@@ -13,6 +11,7 @@ from scipy.special._ufuncs import i0e
 
 import tupak
 from tupak.core import likelihood as likelihood
+from tupak.core.utils import logger
 
 
 class GravitationalWaveTransient(likelihood.Likelihood):
@@ -92,12 +91,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             wfg_attr = getattr(self.waveform_generator, attr)
             ifo_attr = getattr(self.interferometers, attr)
             if wfg_attr is None:
-                logging.debug(
+                logger.debug(
                     "The waveform_generator {} is None. Setting from the "
                     "provided interferometers.".format(attr))
                 setattr(self.waveform_generator, attr, ifo_attr)
             elif wfg_attr != ifo_attr:
-                logging.warning(
+                logger.warning(
                     "The waveform_generator {} is not equal to that of the "
                     "provided interferometers. Overwriting the "
                     "waveform_generator.".format(attr))
@@ -226,7 +225,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
-            logging.info('No prior provided for distance, using default prior.')
+            logger.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
@@ -267,7 +266,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def setup_phase_marginalization(self):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
-            logging.info('No prior provided for phase at coalescence, using default prior.')
+            logger.info('No prior provided for phase at coalescence, using default prior.')
             self.prior['phase'] = tupak.core.prior.create_default_prior('phase')
         self.bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])

@@ -1,5 +1,5 @@
-import logging
 import os
+from distutils.version import LooseVersion
 import numpy as np
 import deepdish
 import pandas as pd
@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from tupak.core import utils
+from tupak.core.utils import logger
 
 
 def result_file_name(outdir, label):
@@ -163,16 +164,16 @@ class Result(dict):
         if os.path.isdir(self.outdir) is False:
             os.makedirs(self.outdir)
         if os.path.isfile(file_name):
-            logging.debug(
+            logger.debug(
                 'Renaming existing file {} to {}.old'.format(file_name,
                                                              file_name))
             os.rename(file_name, file_name + '.old')
 
-        logging.debug("Saving result to {}".format(file_name))
+        logger.debug("Saving result to {}".format(file_name))
         try:
             deepdish.io.save(file_name, dict(self))
         except Exception as e:
-            logging.error("\n\n Saving the data has failed with the "
+            logger.error("\n\n Saving the data has failed with the "
                           "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
@@ -270,6 +271,11 @@ class Result(dict):
             plot_density=False, plot_datapoints=True, fill_contours=True,
             max_n_ticks=3)
 
+        if LooseVersion(matplotlib.__version__) < "2.1":
+            defaults_kwargs['hist_kwargs'] = dict(normed=True)
+        else:
+            defaults_kwargs['hist_kwargs'] = dict(density=True)
+
         defaults_kwargs.update(kwargs)
         kwargs = defaults_kwargs
 
@@ -301,7 +307,7 @@ class Result(dict):
 
         if save:
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
-            logging.debug('Saving corner plot to {}'.format(filename))
+            logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
 
         return fig
@@ -309,7 +315,7 @@ class Result(dict):
     def plot_walkers(self, save=True, **kwargs):
         """ Method to plot the trace of the walkers in an ensmble MCMC plot """
         if hasattr(self, 'walkers') is False:
-            logging.warning("Cannot plot_walkers as no walkers are saved")
+            logger.warning("Cannot plot_walkers as no walkers are saved")
             return
 
         if utils.command_line_args.test:
@@ -331,16 +337,16 @@ class Result(dict):
 
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
-        logging.debug('Saving walkers plot to {}'.format('filename'))
+        logger.debug('Saving walkers plot to {}'.format('filename'))
         fig.savefig(filename)
 
     def plot_walks(self, save=True, **kwargs):
         """DEPRECATED"""
-        logging.warning("plot_walks deprecated")
+        logger.warning("plot_walks deprecated")
 
     def plot_distributions(self, save=True, **kwargs):
         """DEPRECATED"""
-        logging.warning("plot_distributions deprecated")
+        logger.warning("plot_distributions deprecated")
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
@@ -396,7 +402,7 @@ class Result(dict):
         """
         A = getattr(self, name, False)
         B = getattr(other_object, name, False)
-        logging.debug('Checking {} value: {}=={}'.format(name, A, B))
+        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
         if (A is not False) and (B is not False):
             typeA = type(A)
             typeB = type(B)
@@ -447,7 +453,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     kwargs['truths'] = None
 
     fig = results[0].plot_corner(save=False, **kwargs)
-    default_filename = '{}/{}'.format(results[0].outdir, results[0].label)
+    default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
     for i, result in enumerate(results):
@@ -459,6 +465,11 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         default_filename += '_{}'.format(result.label)
         lines.append(matplotlib.lines.Line2D([0], [0], color=c))
         default_labels.append(result.label)
+
+    # Rescale the axes
+    for i, ax in enumerate(fig.axes):
+        ax.autoscale()
+    plt.draw()
 
     if labels is None:
         labels = default_labels

@@ -1,17 +1,16 @@
-import logging
 import os
 
 import numpy as np
 from scipy import signal
 
-from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft
+from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft, logger
 
 try:
     from gwpy.signal import filter_design
     from gwpy.timeseries import TimeSeries
 except ImportError:
-    logging.warning("You do not have gwpy installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+    logger.warning("You do not have gwpy installed currently. You will "
+                   " not be able to use some of the prebuilt functions.")
 
 
 def asd_from_freq_series(freq_data, df):
@@ -131,7 +130,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     elif mode.lower() == 'y':
         return np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
     else:
-        logging.warning("{} not a polarization mode!".format(mode))
+        logger.warning("{} not a polarization mode!".format(mode))
         return None
 
 
@@ -330,13 +329,13 @@ def get_open_strain_data(
     t2 = t2 + buffer_time
 
     if os.path.isfile(filename) and cache:
-        logging.info('Using cached data from {}'.format(filename))
+        logger.info('Using cached data from {}'.format(filename))
         strain = TimeSeries.read(filename)
     else:
-        logging.info('Fetching open data from {} to {} with buffer time {}'
+        logger.info('Fetching open data from {} to {} with buffer time {}'
                      .format(t1, t2, buffer_time))
         strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
-        logging.info('Saving data to {}'.format(filename))
+        logger.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
 
@@ -372,9 +371,9 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
         try:
             strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
             loaded = True
-            logging.info('Successfully loaded {}.'.format(channel))
+            logger.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
-            logging.warning('Channel {} not found. Trying preset channel names'.format(channel))
+            logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
     for channel_type in ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02']:
         for ifo_name in ['H1', 'L1']:
             channel = '{}:{}'.format(ifo_name, channel_type)
@@ -383,14 +382,14 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
             try:
                 strain = TimeSeries.read(source=file_name, channel=channel, start=t1-buffer_time, end=t2+buffer_time, **kwargs)
                 loaded = True
-                logging.info('Successfully loaded {}.'.format(channel))
+                logger.info('Successfully loaded {}.'.format(channel))
             except RuntimeError:
                 pass
 
     if loaded:
         return strain
     else:
-        logging.warning('No data loaded.')
+        logger.warning('No data loaded.')
         return None
 
 

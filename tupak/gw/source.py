@@ -1,15 +1,15 @@
 from __future__ import division, print_function
 
-import logging
 import numpy as np
+
+from tupak.core.utils import logger
+from tupak.core import utils
 
 try:
     import lalsimulation as lalsim
 except ImportError:
-    logging.warning("You do not have lalsuite installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
-
-from tupak.core import utils
+    logger.warning("You do not have lalsuite installed currently. You will "
+                   " not be able to use some of the prebuilt functions.")
 
 
 def lal_binary_black_hole(
