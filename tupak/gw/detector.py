@@ -276,9 +276,8 @@ class InterferometerStrainData(object):
 
     def get_tukey_window(self, N, duration):
         alpha = 2 * self.roll_off / duration
-        window = scipy.signal.windows.tukey(N, alpha=alpha)
         logger.debug("Generated Tukey window with alpha = {}".format(alpha))
-        return window
+        return scipy.signal.windows.tukey(N, alpha=alpha)
 
     def apply_tukey_window(self):
         logger.debug("Applying Tukey window with roll_off {}"
@@ -311,9 +310,9 @@ class InterferometerStrainData(object):
             The frequencies and power spectral density array
 
         """
-        NFFT = int(self.sampling_frequency * fft_length)
+        nfft = int(self.sampling_frequency * fft_length)
         window = self.get_tukey_window(
-            N=NFFT, duration=fft_length)
+            N=nfft, duration=fft_length)
         strain = gwpy.timeseries.TimeSeries(
             self.time_domain_strain, sample_rate=self.sampling_frequency)
         psd = strain.psd(fftlength=fft_length, window=window)
