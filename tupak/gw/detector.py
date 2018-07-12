@@ -105,7 +105,7 @@ class InterferometerStrainData(object):
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
-        self.alpha=alpha
+        self.alpha = alpha
         self.roll_off = roll_off
 
         self.sampling_frequency = None
