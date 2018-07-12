@@ -391,38 +391,3 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     else:
         logger.warning('No data loaded.')
         return None
-
-
-def process_strain_data(strain, alpha=0.25, filter_freq=1024):
-    """
-    Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an center_time.
-
-    Parameters
-    ----------
-    strain: array_like
-        Strain data to be processed
-    alpha: float
-        The tukey window shape parameter passed to `scipy.signal.tukey`.
-    filter_freq: float
-        Low pass filter frequency
-
-    Returns
-    -------
-    tupak.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
-
-    """
-
-    sampling_frequency = int(strain.sample_rate.value)
-
-    # Low pass filter
-    bp = filter_design.lowpass(filter_freq, strain.sample_rate)
-    strain = strain.filter(bp, filtfilt=True)
-    strain = strain.crop(*strain.span.contract(1))
-
-    time_series = strain.times.value
-
-    # Apply Tukey window
-    strain = strain * signal.windows.tukey(len(time_series), alpha=alpha)
-    frequency_domain_strain, frequencies = nfft(strain.value, sampling_frequency)
-    return frequency_domain_strain, frequencies
