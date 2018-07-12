@@ -66,7 +66,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         if self.distance_marginalization:
             self.check_prior_is_set()
             self.distance_array = np.array([])
-            self.delta_distance = 0
             self.distance_prior_array = np.array([])
             self.setup_distance_marginalization()
             prior['luminosity_distance'] = 1
@@ -207,13 +206,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def log_likelihood(self):
         return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
+    @property
+    def delta_distance(self):
+        return self.distance_array[1] - self.distance_array[0]
+
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logger.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
-        self.delta_distance = self.distance_array[1] - self.distance_array[0]
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self.distance_array])
 
