@@ -1533,8 +1533,7 @@ class PowerSpectralDensity(object):
 
         """
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
-        interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
-        frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
+        frequency_domain_strain = self.power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
@@ -1590,8 +1589,7 @@ def load_interferometer(filename):
             key = split_line[0].strip()
             value = eval('='.join(split_line[1:]))
             parameters[key] = value
-    interferometer = Interferometer(**parameters)
-    return interferometer
+    return Interferometer(**parameters)
 
 
 def get_interferometer_with_open_data(
