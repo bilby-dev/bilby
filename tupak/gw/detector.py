@@ -243,7 +243,8 @@ class InterferometerStrainData(object):
                                                 alpha=self.alpha)
             frequency_domain_strain, _ = utils.nfft(
                 self._time_domain_strain * window, self.sampling_frequency)
-            self._frequency_domain_strain = frequency_domain_strain / np.mean(window**2)
+            self._frequency_domain_strain = frequency_domain_strain\
+                                            / np.mean(window**2)**0.5
             return self._frequency_domain_strain * self.frequency_mask
         else:
             raise ValueError("frequency domain strain data not yet set")
