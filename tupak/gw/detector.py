@@ -283,7 +283,7 @@ class InterferometerStrainData(object):
 
     def apply_tukey_window(self):
         logger.debug("Applying Tukey window with roll_off {}"
-                      .format(self.roll_off))
+                     .format(self.roll_off))
         n = len(self.time_domain_strain)
         window = self.get_tukey_window(n=n, duration=self.duration)
         self._time_domain_strain *= window
@@ -322,9 +322,9 @@ class InterferometerStrainData(object):
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(
                 outdir, name, self.start_time, self.duration)
-            with open('{}'.format(psd_file), 'w+') as file:
+            with open('{}'.format(psd_file), 'w+') as opened_file:
                 for f, p in zip(psd.frequencies.value, psd.value):
-                    file.write('{} {}\n'.format(f, p))
+                    opened_file.write('{} {}\n'.format(f, p))
 
         return psd.frequencies.value, psd.value
 
