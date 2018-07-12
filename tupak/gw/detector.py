@@ -23,7 +23,7 @@ class InterferometerSet(list):
     def __init__(self, interferometers):
         """ Instantiate a InterferometerSet
 
-        The InterferometerSet contains a list of Interferometer objects, each
+        The InterferometerSet is a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
 
         Parameters
