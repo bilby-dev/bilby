@@ -606,9 +606,9 @@ class InterferometerStrainData(object):
 class Interferometer(object):
     """Class for the Interferometer """
 
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
-                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0.):
+    def __init__(self, name, power_spectral_density, minimum_frequency,
+                 maximum_frequency, length, latitude, longitude, elevation,
+                 xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0.):
         """
         Instantiate an Interferometer object.
 
