@@ -452,7 +452,7 @@ else:
     logger.debug('No $DISPLAY environment variable found, so importing \
                    matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
-    import matplotlib.pylot as plt
+    import matplotlib.pyplot as plt
     non_gui_backends = matplotlib.rcsetup.non_interactive_bk
     for backend in non_gui_backends:
         try:
