@@ -572,7 +572,7 @@ class InterferometerStrainData(object):
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
             channel_name=None, buffer_time=1):
-        """ Set the `frequency_domain_strain` from a frame fiile
+        """ Set the `frequency_domain_strain` from a frame file
 
         Parameters
         ----------
@@ -680,7 +680,7 @@ class Interferometer(object):
         """ Set the strain_data
 
         This sets the Interferometer.strain_data equal to the provided
-        strain_data. This will overide the minimum_frequency and
+        strain_data. This will override the minimum_frequency and
         maximum_frequency of the provided strain_data object with those of
         the Interferometer object.
         """
@@ -1035,8 +1035,7 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
-            self.strain_data.start_time)  # parameters['geocent_time'])
-
+            self.strain_data.start_time)
         if self.time_marginalization:
             dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors
             #  and marginalized over all candidate coalescence times
@@ -1086,11 +1085,11 @@ class Interferometer(object):
                     "inject_signal needs one of waveform_generator or "
                     "injection_polarizations.")
 
-        if injection_polarizations is None:
-            raise ValueError(
-                'Trying to inject signal which is None. The most likely cause'
-                ' is that waveform_generator.frequency_domain_strain returned'
-                ' None. This can be caused if, e.g., mass_2 > mass_1.')
+            if injection_polarizations is None:
+                raise ValueError(
+                    'Trying to inject signal which is None. The most likely cause'
+                    ' is that waveform_generator.frequency_domain_strain returned'
+                    ' None. This can be caused if, e.g., mass_2 > mass_1.')
 
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
