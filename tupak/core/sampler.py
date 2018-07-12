@@ -479,7 +479,7 @@ class Dynesty(Sampler):
         # Adjusting outputs for printing.
         if delta_logz > 1e6:
             delta_logz = np.inf
-        if logzvar >= 0. and logzvar <= 1e6:
+        if 0. <= logzvar <= 1e6:
             logzerr = np.sqrt(logzvar)
         else:
             logzerr = np.nan
