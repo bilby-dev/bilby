@@ -74,8 +74,7 @@ class GaussianLikelihood(Likelihood):
         self.y = y
         self.sigma = sigma
         self.function = function
-        if self.sigma is None:
-            self.parameters['sigma'] = None
+        self.parameters['sigma'] = sigma
 
     @property
     def function_keys(self):
