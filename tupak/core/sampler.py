@@ -799,7 +799,7 @@ class Emcee(Sampler):
         else:
             logger.debug("Generating initial walker positions from prior")
             pos0 = [self.get_random_draw_from_prior()
-                    for i in range(self.nwalkers)]
+                    for _ in range(self.nwalkers)]
 
         for result in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps), total=self.nsteps):
