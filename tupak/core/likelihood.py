@@ -65,16 +65,17 @@ class GaussianLikelihood(Likelihood):
             This can either be a single float, or an array with length equal
             to that for `x` and `y`.
         """
+        # These lines of code infer the parameters from the provided function
+        parameters = inspect.getargspec(function).args
+        parameters.pop(0)
+        Likelihood.__init__(self, dict.fromkeys(parameters))
+
         self.x = x
         self.y = y
         self.N = len(x)
         self.sigma = sigma
         self.function = function
 
-        # These lines of code infer the parameters from the provided function
-        parameters = inspect.getargspec(function).args
-        parameters.pop(0)
-        self.parameters = dict.fromkeys(parameters)
         self.function_keys = self.parameters.keys()
         if self.sigma is None:
             self.parameters['sigma'] = None
