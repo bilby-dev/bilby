@@ -341,7 +341,7 @@ class InterferometerStrainData(object):
                     "time_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-        elif any(x is not None for x in [sampling_frequency, duration]):
+        elif sampling_frequency is not None or duration is not None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
         elif time_array is not None:
