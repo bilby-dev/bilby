@@ -801,7 +801,7 @@ class Emcee(Sampler):
             pos0 = [self.get_random_draw_from_prior()
                     for _ in range(self.nwalkers)]
 
-        for result in tqdm(
+        for _ in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps), total=self.nsteps):
             pass
 
