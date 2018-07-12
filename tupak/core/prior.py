@@ -148,6 +148,8 @@ class PriorSet(dict):
         for key in self:
             if isinstance(self[key], Prior):
                 samples[key] = self[key].sample(size=size)
+            else:
+                logger.debug('{} not a known prior.'.format(key))
         return samples
 
     def sample_subset(self, keys=list(), size=None):
@@ -164,6 +166,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the drawn samples
         """
+        self.convert_floats_to_delta_functions()
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
