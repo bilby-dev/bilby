@@ -242,6 +242,10 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("frequency domain strain data not yet set")
 
+    @frequency_domain_strain.setter
+    def frequency_domain_strain(self, frequency_domain_strain):
+        self._frequency_domain_strain = frequency_domain_strain
+
     def add_to_frequency_domain_strain(self, x):
         self._frequency_domain_strain += x
 
