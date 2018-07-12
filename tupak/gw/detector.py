@@ -247,6 +247,7 @@ class InterferometerStrainData(object):
         self._frequency_domain_strain = frequency_domain_strain
 
     def add_to_frequency_domain_strain(self, x):
+        """Deprecated"""
         self._frequency_domain_strain += x
 
     def low_pass_filter(self, filter_freq=None):
@@ -1101,7 +1102,8 @@ class Interferometer(object):
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
-            self.strain_data.add_to_frequency_domain_strain(signal_ifo)
+            self.strain_data.frequency_domain_strain = \
+                signal_ifo + self.strain_data.frequency_domain_strain
         else:
             logger.info('Injecting into zero noise.')
             self.set_strain_data_from_frequency_domain_strain(
