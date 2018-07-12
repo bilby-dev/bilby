@@ -182,10 +182,10 @@ def inner_product(aa, bb, frequency, PSD):
     The matched filter inner product for aa and bb
 
     """
-    PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+    psd_interp = PSD.power_spectral_density_interpolated(frequency)
 
     # calculate the inner product
-    integrand = np.conj(aa) * bb / PSD_interp
+    integrand = np.conj(aa) * bb / psd_interp
 
     df = frequency[1] - frequency[0]
     integral = np.sum(integrand) * df
@@ -333,7 +333,7 @@ def get_open_strain_data(
         strain = TimeSeries.read(filename)
     else:
         logger.info('Fetching open data from {} to {} with buffer time {}'
-                     .format(t1, t2, buffer_time))
+                    .format(t1, t2, buffer_time))
         strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
         logger.info('Saving data to {}'.format(filename))
         strain.write(filename)
@@ -380,7 +380,8 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
             if loaded:
                 continue
             try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=t1-buffer_time, end=t2+buffer_time, **kwargs)
+                strain = TimeSeries.read(source=file_name, channel=channel,
+                                         start=t1-buffer_time, end=t2+buffer_time, **kwargs)
                 loaded = True
                 logger.info('Successfully loaded {}.'.format(channel))
             except RuntimeError:
