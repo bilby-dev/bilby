@@ -72,13 +72,18 @@ class GaussianLikelihood(Likelihood):
 
         self.x = x
         self.y = y
-        self.N = len(x)
         self.sigma = sigma
         self.function = function
-
-        self.function_keys = self.parameters.keys()
         if self.sigma is None:
             self.parameters['sigma'] = None
+
+    @property
+    def function_keys(self):
+        return self.parameters.keys()
+
+    @property
+    def N(self):
+        return len(self.x)
 
     def log_likelihood(self):
         sigma = self.parameters.get('sigma', self.sigma)
