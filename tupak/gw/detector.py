@@ -304,18 +304,6 @@ class InterferometerStrainData(object):
         strain = strain.filter(bp, filtfilt=True)
         self._time_domain_strain = strain.value
 
-    def get_tukey_window(self, length, duration):
-        alpha = 2 * self.roll_off / duration
-        window = scipy.signal.windows.tukey(length, alpha=alpha)
-        logger.debug("Generated Tukey window with alpha = {}".format(alpha))
-        return window
-
-    def apply_tukey_window(self):
-        logger.debug("Applying Tukey window with roll_off {}".format(self.roll_off))
-        length = len(self.time_domain_strain)
-        window = self.get_tukey_window(length, duration=self.duration)
-        self._time_domain_strain *= window
-
     def create_power_spectral_density(self, fft_length, name='unknown', outdir=None):
         """ Use the time domain strain to generate a power spectral density
 
