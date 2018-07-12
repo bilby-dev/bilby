@@ -221,7 +221,8 @@ class Result(dict):
             return 1 / np.sqrt(np.abs(np.linalg.det(
                 1 / self.covariance_matrix)))
 
-    def prior_volume(self, priors):
+    @staticmethod
+    def prior_volume(priors):
         """ The prior volume, given a set of priors """
         return np.prod([priors[k].maximum - priors[k].minimum for k in priors])
 
