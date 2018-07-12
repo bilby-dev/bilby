@@ -401,17 +401,17 @@ class Result(dict):
         bool: True if attribute name matches with an attribute of other_object, False otherwise
 
         """
-        A = getattr(self, name, False)
-        B = getattr(other_object, name, False)
-        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
-        if (A is not False) and (B is not False):
-            typeA = type(A)
-            typeB = type(B)
-            if typeA == typeB:
-                if typeA in [str, float, int, dict, list]:
-                    return A == B
-                elif typeA in [np.ndarray]:
-                    return np.all(A == B)
+        a = getattr(self, name, False)
+        b = getattr(other_object, name, False)
+        logger.debug('Checking {} value: {}=={}'.format(name, a, b))
+        if (a is not False) and (b is not False):
+            type_a = type(a)
+            type_b = type(b)
+            if type_a == type_b:
+                if type_a in [str, float, int, dict, list]:
+                    return a == b
+                elif type_a in [np.ndarray]:
+                    return np.all(a == b)
         return False
 
 
