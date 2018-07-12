@@ -143,14 +143,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the samples
         """
-        self.convert_floats_to_delta_functions()
-        samples = dict()
-        for key in self:
-            if isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
-            else:
-                logger.debug('{} not a known prior.'.format(key))
-        return samples
+        return self.sample_subset(keys=self.keys(), size=size)
 
     def sample_subset(self, keys=list(), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
