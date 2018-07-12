@@ -174,7 +174,7 @@ class Result(dict):
             deepdish.io.save(file_name, dict(self))
         except Exception as e:
             logger.error("\n\n Saving the data has failed with the "
-                          "following message:\n {} \n\n".format(e))
+                         "following message:\n {} \n\n".format(e))
 
     def save_posterior_samples(self):
         """Saves posterior samples to a file"""
@@ -218,8 +218,8 @@ class Result(dict):
         if self.covariance_matrix.ndim == 0:
             return np.sqrt(self.covariance_matrix)
         else:
-            return 1/np.sqrt(np.abs(np.linalg.det(
-                1/self.covariance_matrix)))
+            return 1 / np.sqrt(np.abs(np.linalg.det(
+                1 / self.covariance_matrix)))
 
     def prior_volume(self, priors):
         """ The prior volume, given a set of priors """
@@ -267,7 +267,7 @@ class Result(dict):
             title_kwargs=dict(fontsize=16), color='#0072C1',
             truth_color='tab:orange', show_titles=True,
             quantiles=[0.16, 0.84],
-            levels=(1-np.exp(-0.5), 1-np.exp(-2), 1-np.exp(-9/2.)),
+            levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
             max_n_ticks=3)
 
@@ -323,10 +323,10 @@ class Result(dict):
 
         nwalkers, nsteps, ndim = self.walkers.shape
         idxs = np.arange(nsteps)
-        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3*ndim))
+        fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3 * ndim))
         walkers = self.walkers[:, :, :]
         for i, ax in enumerate(axes):
-            ax.plot(idxs[:self.nburn+1], walkers[:, :self.nburn+1, i].T,
+            ax.plot(idxs[:self.nburn + 1], walkers[:, :self.nburn + 1, i].T,
                     lw=0.1, color='r')
             ax.set_ylabel(self.parameter_labels[i])
 
@@ -484,7 +484,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     axes = fig.get_axes()
     ndim = int(np.sqrt(len(axes)))
-    axes[ndim-1].legend(lines, labels)
+    axes[ndim - 1].legend(lines, labels)
 
     if filename is None:
         filename = default_filename
@@ -492,4 +492,3 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     if save:
         fig.savefig(filename)
     return fig
-
