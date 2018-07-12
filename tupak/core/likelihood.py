@@ -74,7 +74,6 @@ class GaussianLikelihood(Likelihood):
         self.y = y
         self.sigma = sigma
         self.function = function
-        self.parameters['sigma'] = sigma
 
     @property
     def function_keys(self):
@@ -84,8 +83,16 @@ class GaussianLikelihood(Likelihood):
     def N(self):
         return len(self.x)
 
+    @property
+    def sigma(self):
+        return self.parameters.get('sigma', None)
+
+    @sigma.setter
+    def sigma(self, sigma):
+        self.parameters['sigma'] = sigma
+
     def log_likelihood(self):
-        sigma = self.parameters.get('sigma', self.sigma)
+        sigma = self.parameters['sigma']
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
         res = self.y - self.function(self.x, **model_parameters)
         return -0.5 * (np.sum((res / sigma)**2)
