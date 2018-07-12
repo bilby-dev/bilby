@@ -267,10 +267,9 @@ class InterferometerStrainData(object):
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
             # self.low_pass_filter()
-            self.time_domain_window = scipy.signal.windows.tukey(
-                len(self._time_domain_strain), alpha=self.alpha)
+            window = self.time_domain_window()
             frequency_domain_strain, self.frequency_array = utils.nfft(
-                self._time_domain_strain * self.time_domain_window, self.sampling_frequency)
+                self._time_domain_strain * window, self.sampling_frequency)
             self._frequency_domain_strain = frequency_domain_strain
             return self._frequency_domain_strain * self.frequency_mask
         else:
@@ -1197,7 +1196,7 @@ class Interferometer(object):
 
         """
         return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)\
-            / self.strain_data.window_factor
+            * self.strain_data.window_factor
 
     @property
     def frequency_array(self):
@@ -1666,6 +1665,7 @@ def get_interferometer_with_open_data(
     strain.set_from_open_data(
         name=name, start_time=start_time, duration=duration,
         outdir=outdir, cache=cache, **kwargs)
+    strain.low_pass_filter(filter_freq)
 
     strain_psd = InterferometerStrainData(roll_off=roll_off)
     strain_psd.set_from_open_data(
