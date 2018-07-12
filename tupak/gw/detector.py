@@ -1388,7 +1388,7 @@ class PowerSpectralDensity(object):
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
                             fft_length=4, filter_freq=1024, alpha=0.25,
-                            channel=None):
+                            channel_name=None):
         """ Generate power spectral density from a frame file
 
         Parameters
@@ -1412,8 +1412,8 @@ class PowerSpectralDensity(object):
 
         strain = tupak.gw.detector.InterferometerStrainData()
         strain.set_from_frame_file(
-            frame_file, t1=psd_start_time, t2=psd_start_time+psd_duration,
-            channel=channel)
+            frame_file, start_time=psd_start_time, duration=psd_duration,
+            channel_name=channel_name)
 
         strain.low_pass_filter(filter_freq)
         f, psd = strain.create_power_spectral_density(fft_length=fft_length)
