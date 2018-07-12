@@ -191,7 +191,7 @@ class InterferometerStrainData(object):
 
     @property
     def maximum_frequency(self):
-        if 2 * self.__maximum_frequency > self.__sampling_frequency:
+        if 2 * self.__maximum_frequency > self.sampling_frequency:
             self.__maximum_frequency = self.sampling_frequency / 2.
         return self.__maximum_frequency
 
