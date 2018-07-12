@@ -241,7 +241,7 @@ class InterferometerStrainData(object):
             # self.low_pass_filter()
             window = scipy.signal.windows.tukey(len(self._time_domain_strain),
                                                 alpha=self.alpha)
-            frequency_domain_strain, _ = utils.nfft(
+            frequency_domain_strain, self.frequency_array = utils.nfft(
                 self._time_domain_strain * window, self.sampling_frequency)
             self._frequency_domain_strain = frequency_domain_strain\
                                             / np.mean(window**2)**0.5
