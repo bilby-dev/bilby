@@ -1038,8 +1038,8 @@ class Interferometer(object):
             self.strain_data.start_time)  # parameters['geocent_time'])
 
         if self.time_marginalization:
-            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-            # all candidate coalescence times
+            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors
+            #  and marginalized over all candidate coalescence times
         else:
             dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
@@ -1065,7 +1065,9 @@ class Interferometer(object):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note: if your signal takes a substantial amount of time to generate, or
+        Note
+        -------
+        if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
@@ -1244,6 +1246,8 @@ class Interferometer(object):
         ----------
         outdir: str
             The output directory in which the data is supposed to be saved
+        label: str
+            The name of the output files
         """
         np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
                    np.array(
@@ -1344,7 +1348,7 @@ class PowerSpectralDensity(object):
                 m(**kwargs)
             except AttributeError:
                 logger.info("Tried setting PSD from init kwarg {} and failed"
-                             .format(key))
+                            .format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
