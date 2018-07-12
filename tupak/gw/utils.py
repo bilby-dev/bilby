@@ -295,7 +295,7 @@ def get_event_time(event):
 
 
 def get_open_strain_data(
-        name, t1, t2, outdir, cache=False, buffer_time=0, **kwargs):
+        name, start_time, end_time, outdir, cache=False, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -305,7 +305,7 @@ def get_open_strain_data(
     ----------
     name: str
         The name of the detector to get data for
-    t1, t2: float
+    start_time, end_time: float
         The GPS time of the start and end of the data
     outdir: str
         The output directory to place data in
@@ -321,20 +321,20 @@ def get_open_strain_data(
     strain: gwpy.timeseries.TimeSeries
 
     """
-    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
+    filename = '{}/{}_{}_{}.txt'.format(outdir, name, start_time, end_time)
 
     if buffer_time < 0:
         raise ValueError("buffer_time < 0")
-    t1 = t1 - buffer_time
-    t2 = t2 + buffer_time
+    start_time = start_time - buffer_time
+    end_time = end_time + buffer_time
 
     if os.path.isfile(filename) and cache:
         logger.info('Using cached data from {}'.format(filename))
         strain = TimeSeries.read(filename)
     else:
         logger.info('Fetching open data from {} to {} with buffer time {}'
-                     .format(t1, t2, buffer_time))
-        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
+                    .format(start_time, end_time, buffer_time))
+        strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
         logger.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
