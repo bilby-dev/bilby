@@ -177,7 +177,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                                                                                        rho_opt_ref)
                     log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
             elif self.phase_marginalization:
-                log_l = logsumexp(self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc) \
+                log_l = logsumexp(
+                    self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc) \
                         - optimal_snr_squared / 2. - tc_log_norm
             else:
                 log_l = logsumexp(matched_filter_snr_squared_tc_array.real, axis=0,
