@@ -266,7 +266,7 @@ class InterferometerStrainData(object):
             return
 
         logger.debug("Applying low pass filter with filter frequency {}"
-                      .format(filter_freq))
+                     .format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
