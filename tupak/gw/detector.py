@@ -214,9 +214,8 @@ class InterferometerStrainData(object):
         if self._time_domain_strain is not None:
             return self._time_domain_strain
         elif self._frequency_domain_strain is not None:
-            time_domain_strain = utils.infft(
+            self._time_domain_strain = utils.infft(
                 self.frequency_domain_strain, self.frequency_array)
-            self._time_domain_strain = time_domain_strain
             return self._time_domain_strain
 
         else:
@@ -237,9 +236,8 @@ class InterferometerStrainData(object):
                         "domain strain.")
             self.low_pass_filter()
             self.apply_tukey_window()
-            frequency_domain_strain, _ = utils.nfft(
+            self._frequency_domain_strain, _ = utils.nfft(
                 self._time_domain_strain, self.sampling_frequency)
-            self._frequency_domain_strain = frequency_domain_strain
             return self._frequency_domain_strain
         else:
             raise ValueError("frequency domain strain data not yet set")
