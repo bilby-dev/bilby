@@ -844,10 +844,10 @@ class Ptemcee(Emcee):
             logl=self.log_likelihood, logp=self.log_prior,
             **self.kwargs)
         pos0 = [[self.get_random_draw_from_prior()
-                 for i in range(self.nwalkers)]
-                for j in range(self.ntemps)]
+                 for _ in range(self.nwalkers)]
+                for _ in range(self.ntemps)]
 
-        for result in tqdm(
+        for _ in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps, adapt=True),
                 total=self.nsteps):
             pass
