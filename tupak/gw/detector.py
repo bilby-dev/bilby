@@ -333,7 +333,6 @@ class InterferometerStrainData(object):
         """ Helper function to figure out if the time_array, or
             sampling_frequency and duration where given
         """
-
         if (sampling_frequency is not None) and (duration is not None):
             if time_array is not None:
                 raise ValueError(
@@ -341,14 +340,16 @@ class InterferometerStrainData(object):
                     "time_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-        elif sampling_frequency is None or duration is None:
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
+            self.time_array = utils.create_time_series(sampling_frequency=sampling_frequency,
+                                                       duration=duration)
         elif time_array is not None:
             self.sampling_frequency, self.duration = (
                 utils.get_sampling_frequency_and_duration_from_time_array(
                     time_array))
             self.time_array = np.array(time_array)
+        elif sampling_frequency is None or duration is None:
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
                 "Insufficient information given to set time_array")
@@ -634,7 +635,8 @@ class Interferometer(object):
         yarm_azimuth: float
             Orientation of the y arm in degrees North of East.
         xarm_tilt: float, optional
-            Tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08.
+            Tilt of the x arm in radians above the horizontal defined by
+            ellipsoid earth model in LIGO-T980044-08.
         yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
         """
