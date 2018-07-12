@@ -85,7 +85,7 @@ class InterferometerSet(list):
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
-                 alpha=0.1, roll_off=0.4):
+                 roll_off=0.4):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -97,15 +97,13 @@ class InterferometerStrainData(object):
             Minimum frequency to analyse for detector. Default is 0.
         maximum_frequency: float
             Maximum frequency to analyse for detector. Default is infinity.
-        alpha: float
-            parameter for tukey window
         roll_off: float
-            The roll-off (in seconds) used in the Tukey window.
+            The roll-off (in seconds) used in the Tukey window, default=0.4s.
+            This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
-        self.alpha = alpha
         self.roll_off = roll_off
         self.window_factor = 1
 
@@ -212,7 +210,11 @@ class InterferometerStrainData(object):
         return ((self.frequency_array > self.minimum_frequency) &
                 (self.frequency_array < self.maximum_frequency))
 
-    def time_domain_window(self, alpha=None, roll_off=None):
+    @property
+    def alpha(self):
+        return 2 * self.roll_off / self.duration
+
+    def time_domain_window(self, roll_off=None, alpha=None):
         """
         Window function to apply to time domain data before FFTing.
 
@@ -220,21 +222,21 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
+        roll_off: float
+            Rise time of window in seconds
         alpha: float
             Parameter to pass to tukey window, how much of segment falls
             into windowed part
-        roll_off: float
-            Rise time of window in seconds
 
         Return
         ------
         window: array
             Window function over time array
         """
-        if alpha is not None:
-            self.alpha = alpha
-        elif roll_off is not None:
-            self.alpha = 2 * roll_off / self.duration
+        if roll_off is not None:
+            self.roll_off = roll_off
+        elif alpha is not None:
+            self.roll_off = alpha * self.duration / 2
         window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=self.alpha)
         self.window_factor = np.mean(window**2)
         return window
@@ -326,7 +328,8 @@ class InterferometerStrainData(object):
 
         """
         strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
-        psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', self.alpha))
+        psd_alpha = 2 * self.roll_off / fft_length
+        psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', psd_alpha))
 
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
@@ -1405,7 +1408,7 @@ class PowerSpectralDensity(object):
                 "You may have intended to provide this as an amplitude spectral density.")
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
-                            fft_length=4, sampling_frequency=4096, alpha=0.1,
+                            fft_length=4, sampling_frequency=4096, roll_off=0.1,
                             channel=None):
         """ Generate power spectral density from a frame file
 
@@ -1419,16 +1422,19 @@ class PowerSpectralDensity(object):
             Duration of data (in seconds) to generate PSD from.
         fft_length: float, optional
             Number of seconds in a single fft.
+        sampling_frequency: float, optional
+            Sampling frequency for time series.
+            This is twice the maximum frequency.
         filter_freq: float
             Low pass filter frequency
-        alpha: float, optional
-            Parameter for Tukey window.
+        roll_off: float, optional
+            Rise time in seconds of tukey window.
         channel: str, optional
             Name of channel to use to generate PSD.
 
         """
 
-        strain = tupak.gw.detector.InterferometerStrainData(alpha=alpha)
+        strain = tupak.gw.detector.InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
