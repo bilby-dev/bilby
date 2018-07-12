@@ -66,7 +66,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         if self.distance_marginalization:
             self.check_prior_is_set()
             self.distance_array = np.array([])
-            self.distance_prior_array = np.array([])
             self.setup_distance_marginalization()
             prior['luminosity_distance'] = 1
 
@@ -210,37 +209,42 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def delta_distance(self):
         return self.distance_array[1] - self.distance_array[0]
 
+    @property
+    def distance_prior_array(self):
+        return np.array([self.prior['luminosity_distance'].prob(distance) for distance in self.distance_array])
+
+    @property
+    def ref_dist(self):
+        """ 1000 Mpc """
+        return 1000
+
+    @property
+    def rho_opt_ref_array(self):
+        """ Optimal filter snr at fiducial distance of ref_dist Mpc """
+        return np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[0])
+
+    @property
+    def rho_mf_ref_array(self):
+        """ Matched filter snr at fiducial distance of ref_dist Mpc """
+        return np.hstack((-np.logspace(2, -3, self.dist_margd_loglikelihood_array.shape[1] / 2),
+                          np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[1] / 2)))
+
     def setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
             logger.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
-        self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
-                                              for distance in self.distance_array])
-
         # Make the lookup table
-        self.ref_dist = 1000  # 1000 Mpc
         self.dist_margd_loglikelihood_array = np.zeros((400, 800))
 
-        self.rho_opt_ref_array = np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
-            0])  # optimal filter snr at fiducial distance of ref_dist Mpc
-        self.rho_mf_ref_array = np.hstack((-np.logspace(2, -3, self.dist_margd_loglikelihood_array.shape[1] / 2),
-                                           np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
-                                               1] / 2)))  # matched filter snr at fiducial distance of ref_dist Mpc
-
         for ii, rho_opt_ref in enumerate(self.rho_opt_ref_array):
-
             for jj, rho_mf_ref in enumerate(self.rho_mf_ref_array):
-                optimal_snr_squared_array = rho_opt_ref * self.ref_dist ** 2. \
-                                            / self.distance_array ** 2
-                matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist \
-                                                   / self.distance_array
-                self.dist_margd_loglikelihood_array[ii][jj] = \
-                    logsumexp(matched_filter_snr_squared_array -
-                              optimal_snr_squared_array / 2,
-                              b=self.distance_prior_array * self.delta_distance)
-
+                optimal_snr_squared_array = rho_opt_ref * self.ref_dist ** 2. / self.distance_array ** 2
+                matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist / self.distance_array
+                self.dist_margd_loglikelihood_array[ii][jj] = logsumexp(matched_filter_snr_squared_array -
+                                                                        optimal_snr_squared_array / 2,
+                                                                        b=self.distance_prior_array * self.delta_distance)
         log_norm = logsumexp(0. / self.distance_array - 0. / self.distance_array ** 2.,
                              b=self.distance_prior_array * self.delta_distance)
         self.dist_margd_loglikelihood_array -= log_norm
