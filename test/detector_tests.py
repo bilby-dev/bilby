@@ -30,7 +30,7 @@ class TestDetector(unittest.TestCase):
                                                     xarm_azimuth=self.xarm_azimuth, yarm_azimuth=self.yarm_azimuth,
                                                     xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
         self.ifo.strain_data.set_from_frequency_domain_strain(
-            [1], sampling_frequency=1, duration=1)
+            np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=2)
 
     def tearDown(self):
         del self.name
@@ -214,7 +214,7 @@ class TestDetector(unittest.TestCase):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
         #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
-        plus = np.array([1, 2, 3, 4, 5])
+        plus = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
@@ -227,11 +227,13 @@ class TestDetector(unittest.TestCase):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
         #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
-        plus = np.array([1, 2, 3, 4, 5])
+        plus = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
-        self.assertTrue(np.array_equal(response, plus*self.ifo.frequency_mask*np.exp(-1j*2*np.pi*self.ifo.frequency_array)))
+        expected_response = plus*self.ifo.frequency_mask*np.exp(-1j*2*np.pi*self.ifo.frequency_array)
+        self.assertTrue(np.allclose(abs(response),
+                                    abs(plus*self.ifo.frequency_mask*np.exp(-1j*2*np.pi*self.ifo.frequency_array))))
 
     def test_get_detector_response_multiple_modes(self):
         self.ifo.antenna_response = MagicMock(return_value=1)
@@ -240,8 +242,8 @@ class TestDetector(unittest.TestCase):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
         #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
-        plus = np.array([1, 2, 3, 4, 5])
-        cross = np.array([6, 7, 8, 9, 10])
+        plus = np.linspace(0, 4096, 4097)
+        cross = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus, cross=cross),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
