@@ -85,7 +85,7 @@ class InterferometerSet(list):
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
-                 roll_off=0.4):
+                 alpha=0.1, roll_off=0.4):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -97,12 +97,15 @@ class InterferometerStrainData(object):
             Minimum frequency to analyse for detector. Default is 0.
         maximum_frequency: float
             Maximum frequency to analyse for detector. Default is infinity.
+        alpha: float
+            parameter for tukey window
         roll_off: float
             The roll-off (in seconds) used in the Tukey window.
 
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
+        self.alpha=alpha
         self.roll_off = roll_off
 
         self.sampling_frequency = None
@@ -236,10 +239,11 @@ class InterferometerStrainData(object):
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
             # self.low_pass_filter()
-            window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=0.1)
+            window = scipy.signal.windows.tukey(len(self._time_domain_strain),
+                                                alpha=self.alpha)
             frequency_domain_strain, _ = utils.nfft(
                 self._time_domain_strain * window, self.sampling_frequency)
-            self._frequency_domain_strain = frequency_domain_strain
+            self._frequency_domain_strain = frequency_domain_strain / np.mean(window**2)
             return self._frequency_domain_strain * self.frequency_mask
         else:
             raise ValueError("frequency domain strain data not yet set")
@@ -310,7 +314,7 @@ class InterferometerStrainData(object):
         # window = scipy.signal.windows.tukey(n_times)
         strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
         # strain = strain.resample(self.maximum_frequency * 2)
-        psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', 0.1))
+        psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', self.alpha))
 
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(
@@ -387,7 +391,7 @@ class InterferometerStrainData(object):
             raise ValueError("Data times do not match time array")
         self._check_maximum_frequency()
 
-    def set_from_gwpy_timeseries(self, timeseries):
+    def set_from_gwpy_timeseries(self, time_series):
         """ Set the strain data from a gwpy TimeSeries
 
         This sets the time_domain_strain attribute, the frequency_domain_strain
@@ -396,16 +400,16 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        timeseries: gwpy.timeseries.timeseries.TimeSeries
+        time_series: gwpy.timeseries.timeseries.TimeSeries
 
         """
         logger.debug('Setting data using provided gwpy TimeSeries object')
-        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
-            raise ValueError("Input timeseries is not a gwpy TimeSeries")
-        self.start_time = timeseries.epoch.value
-        self.sampling_frequency = timeseries.sample_rate.value
-        self.duration = timeseries.duration.value
-        self._time_domain_strain = timeseries.value
+        if type(time_series) != gwpy.timeseries.timeseries.TimeSeries:
+            raise ValueError("Input time_series is not a gwpy TimeSeries")
+        self.start_time = time_series.epoch.value
+        self.sampling_frequency = time_series.sample_rate.value
+        self.duration = time_series.duration.value
+        self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
         self._check_maximum_frequency()
 
