@@ -235,22 +235,24 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self.distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                           self.prior['luminosity_distance'].maximum, int(1e4))
-        # Make the lookup table
-        self.dist_margd_loglikelihood_array = np.zeros((400, 800))
+        self.__create_lookup_table()
 
+        self.interp_dist_margd_loglikelihood = interp2d(self.rho_mf_ref_array, self.rho_opt_ref_array,
+                                                        self.dist_margd_loglikelihood_array)
+
+    def __create_lookup_table(self):
+        """ Make the lookup table """
+        self.dist_margd_loglikelihood_array = np.zeros((400, 800))
         for ii, rho_opt_ref in enumerate(self.rho_opt_ref_array):
             for jj, rho_mf_ref in enumerate(self.rho_mf_ref_array):
                 optimal_snr_squared_array = rho_opt_ref * self.ref_dist ** 2. / self.distance_array ** 2
                 matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist / self.distance_array
-                self.dist_margd_loglikelihood_array[ii][jj] = logsumexp(matched_filter_snr_squared_array -
-                                                                        optimal_snr_squared_array / 2,
-                                                                        b=self.distance_prior_array * self.delta_distance)
+                self.dist_margd_loglikelihood_array[ii][jj] = \
+                    logsumexp(matched_filter_snr_squared_array - optimal_snr_squared_array / 2,
+                              b=self.distance_prior_array * self.delta_distance)
         log_norm = logsumexp(0. / self.distance_array - 0. / self.distance_array ** 2.,
                              b=self.distance_prior_array * self.delta_distance)
         self.dist_margd_loglikelihood_array -= log_norm
-
-        self.interp_dist_margd_loglikelihood = interp2d(self.rho_mf_ref_array, self.rho_opt_ref_array,
-                                                        self.dist_margd_loglikelihood_array)
 
     def setup_phase_marginalization(self):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
