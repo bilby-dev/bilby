@@ -215,7 +215,7 @@ class PriorSet(dict):
         return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
 
     def test_redundancy(self, key):
-        """Empty redundancy test, should be overwritten"""
+        """TODO: Empty redundancy test, should be overwritten"""
         return False
 
 
