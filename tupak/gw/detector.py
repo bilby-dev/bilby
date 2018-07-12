@@ -107,6 +107,7 @@ class InterferometerStrainData(object):
         self.maximum_frequency = maximum_frequency
         self.alpha = alpha
         self.roll_off = roll_off
+        self.window_factor = 1
 
         self.sampling_frequency = None
         self.duration = None
@@ -211,6 +212,33 @@ class InterferometerStrainData(object):
         return ((self.frequency_array > self.minimum_frequency) &
                 (self.frequency_array < self.maximum_frequency))
 
+    def time_domain_window(self, alpha=None, roll_off=None):
+        """
+        Window function to apply to time domain data before FFTing.
+
+        This defines self.window_factor as the power loss due to the windowing.
+
+        Parameters
+        ----------
+        alpha: float
+            Parameter to pass to tukey window, how much of segment falls
+            into windowed part
+        roll_off: float
+            Rise time of window in seconds
+
+        Return
+        ------
+        window: array
+            Window function over time array
+        """
+        if alpha is not None:
+            self.alpha = alpha
+        elif roll_off is not None:
+            self.alpha = 2 * roll_off / self.duration
+        window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=self.alpha)
+        self.window_factor = np.mean(window**2)
+        return window
+
     @property
     def time_domain_strain(self):
         """ The time domain strain, in units of strain """
@@ -239,10 +267,10 @@ class InterferometerStrainData(object):
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
             # self.low_pass_filter()
-            window = scipy.signal.windows.tukey(len(self._time_domain_strain),
-                                                alpha=self.alpha)
+            self.time_domain_window = scipy.signal.windows.tukey(
+                len(self._time_domain_strain), alpha=self.alpha)
             frequency_domain_strain, self.frequency_array = utils.nfft(
-                self._time_domain_strain * window, self.sampling_frequency)
+                self._time_domain_strain * self.time_domain_window, self.sampling_frequency)
             self._frequency_domain_strain = frequency_domain_strain\
                                             / np.mean(window**2)**0.5
             return self._frequency_domain_strain * self.frequency_mask
@@ -311,10 +339,7 @@ class InterferometerStrainData(object):
             The frequencies and power spectral density array
 
         """
-        # n_times = int(self.sampling_frequency * fft_length)
-        # window = scipy.signal.windows.tukey(n_times)
         strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
-        # strain = strain.resample(self.maximum_frequency * 2)
         psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', self.alpha))
 
         if outdir:
@@ -515,6 +540,7 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
+            self.window_factor = 1
         else:
             raise ValueError("Data frequencies do not match frequency_array")
 
@@ -1164,7 +1190,7 @@ class Interferometer(object):
 
     @property
     def amplitude_spectral_density_array(self):
-        """ Calculates the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
+        """ Returns the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
 
         Returns
         -------
@@ -1175,14 +1201,17 @@ class Interferometer(object):
 
     @property
     def power_spectral_density_array(self):
-        """ Calculates the power spectral density (PSD)
+        """ Returns the power spectral density (PSD)
+
+        This accounts for whether the data in the interferometer has been windowed.
 
         Returns
         -------
         array_like: An array representation of the PSD
 
         """
-        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
+        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)\
+            / self.strain_data.window_factor
 
     @property
     def frequency_array(self):
