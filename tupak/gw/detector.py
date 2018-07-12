@@ -603,7 +603,7 @@ class InterferometerStrainData(object):
 
         logger.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
-            frame_file, t1=start_time, t2=start_time+duration,
+            frame_file, start_time=start_time, end_time=start_time + duration,
             buffer_time=buffer_time, channel=channel,
             resample=sampling_frequency)
 

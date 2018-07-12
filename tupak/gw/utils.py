@@ -340,7 +340,7 @@ def get_open_strain_data(
     return strain
 
 
-def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
+def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -350,10 +350,10 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     ----------
     file_name: str
         The name of the frame to read
-    t1, t2: float
+    start_time, end_time: float
         The GPS time of the start and end of the data
     buffer_time: float
-        Read in data with `t1-buffer_time` and `t2+buffer_time`
+        Read in data with `t1-buffer_time` and `end_time+buffer_time`
     channel: str
         The name of the channel being searched for, some standard channel names are attempted
         if channel is not specified or if specified channel is not found.
@@ -369,7 +369,7 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     strain = None
     if channel is not None:
         try:
-            strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
+            strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
             loaded = True
             logger.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
@@ -380,7 +380,7 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
             if loaded:
                 continue
             try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=t1-buffer_time, end=t2+buffer_time, **kwargs)
+                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
                 loaded = True
                 logger.info('Successfully loaded {}.'.format(channel))
             except RuntimeError:
