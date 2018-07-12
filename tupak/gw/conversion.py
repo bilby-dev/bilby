@@ -10,13 +10,13 @@ try:
     import astropy.units as u
 except ImportError:
     logger.warning("You do not have astropy installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+                   " not be able to use some of the prebuilt functions.")
 
 try:
     import lalsimulation as lalsim
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+                   " not be able to use some of the prebuilt functions.")
 
 
 def redshift_to_luminosity_distance(redshift):
@@ -89,7 +89,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                 if remove:
                     added_keys.append('chirp_mass')
             if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
-                converted_parameters['mass_ratio'] =\
+                converted_parameters['mass_ratio'] = \
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     added_keys.append('symmetric_mass_ratio')
@@ -109,12 +109,12 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             added_keys.append('mass_2')
         elif 'total_mass' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
             if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
-                converted_parameters['mass_ratio'] =\
+                converted_parameters['mass_ratio'] = \
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     added_keys.append('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
-                converted_parameters['mass_1'], converted_parameters['mass_2'] =\
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = \
                     total_mass_and_mass_ratio_to_component_masses(
                         converted_parameters['mass_ratio'], converted_parameters['total_mass'])
                 if remove:
@@ -125,11 +125,11 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     elif 'mass_1' in search_keys and 'mass_2' not in search_keys:
         if 'chirp_mass' in converted_parameters.keys() and 'chirp_mass' not in added_keys:
-            converted_parameters['mass_ratio'] =\
+            converted_parameters['mass_ratio'] = \
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
-            temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
-            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3) + \
-                                       (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
+            temp = (parameters['chirp_mass'] / parameters['mass_1']) ** 5
+            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (
+                        1 / 3) + (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3)
             if remove:
                 added_keys.append('chirp_mass')
         elif 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
@@ -159,7 +159,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             if remove:
                 added_keys.append('redshift')
         elif 'comoving_distance' in converted_parameters.keys():
-            converted_parameters['luminosity_distance'] =\
+            converted_parameters['luminosity_distance'] = \
                 comoving_distance_to_luminosity_distance(parameters['comoving_distance'])
             if remove:
                 added_keys.append('comoving_distance')
@@ -194,7 +194,6 @@ def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
 
 
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
-
     """
     Convert the symmetric mass ratio to the normal mass ratio.
 
@@ -353,9 +352,9 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
     mass_ratio: float
         Mass ratio of the binary
     """
-    temp = (chirp_mass / mass_1)**5
-    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp + \
-                 ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
+    temp = (chirp_mass / mass_1) ** 5
+    mass_ratio = (2 / 3 / (3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 + 9 * temp)) ** (1 / 3) * temp + \
+                 ((3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 + 9 * temp) / (2 * 3 ** 2)) ** (1 / 3)
     return mass_ratio
 
 
@@ -378,7 +377,8 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
         output_sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
+    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()],
+                                                                   remove=False)
     output_sample = generate_non_standard_parameters(output_sample)
     output_sample = generate_component_spins(output_sample)
     compute_snrs(output_sample, likelihood)
@@ -459,7 +459,7 @@ def generate_component_spins(sample):
                                   'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, dict):
         output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], \
-            output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
+        output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(output_sample['iota'], output_sample['phi_jl'],
                                                                       output_sample['tilt_1'], output_sample['tilt_2'],
                                                                       output_sample['phi_12'], output_sample['a_1'],
@@ -473,18 +473,21 @@ def generate_component_spins(sample):
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
-    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
+    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample,
+                                                                                               pd.DataFrame):
         logger.debug('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
         new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
 
         for ii in range(len(output_sample)):
             new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
-                new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
+            new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
+                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii],
+                    output_sample['tilt_2'][ii],
                     output_sample['phi_12'][ii], output_sample['a_1'][ii], output_sample['a_2'][ii],
-                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass, output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
                     output_sample['reference_frequency'][ii], output_sample['phase'][ii])
 
         for name in new_spin_parameters:
