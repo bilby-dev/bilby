@@ -467,14 +467,16 @@ class InterferometerStrainData(object):
                     "frequency_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-        elif any(x is not None for x in [sampling_frequency, duration]):
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
+            self.frequency_array = utils.create_frequency_series(sampling_frequency=sampling_frequency,
+                                                                 duration=duration)
         elif frequency_array is not None:
             self.sampling_frequency, self.duration = (
                 utils.get_sampling_frequency_and_duration_from_frequency_array(
                     frequency_array))
             self.frequency_array = np.array(frequency_array)
+        elif sampling_frequency is None or duration is None:
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
                 "Insufficient information given to set frequency_array")
