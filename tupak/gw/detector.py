@@ -331,8 +331,7 @@ class InterferometerStrainData(object):
         psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', self.alpha))
 
         if outdir:
-            psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-                outdir, name, self.start_time, self.duration)
+            psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
             with open('{}'.format(psd_file), 'w+') as file:
                 for f, p in zip(psd.frequencies.value, psd.value):
                     file.write('{} {}\n'.format(f, p))
@@ -340,6 +339,7 @@ class InterferometerStrainData(object):
         return psd.frequencies.value, psd.value
 
     def _check_maximum_frequency(self):
+        """ Force the maximum frequency be less than the Nyquist frequency """
         if 2 * self.maximum_frequency > self.sampling_frequency:
             self.maximum_frequency = self.sampling_frequency / 2.
 
@@ -348,7 +348,6 @@ class InterferometerStrainData(object):
         """ Helper function to figure out if the time_array, or
             sampling_frequency and duration where given
         """
-
         if (sampling_frequency is not None) and (duration is not None):
             if time_array is not None:
                 raise ValueError(
@@ -418,7 +417,7 @@ class InterferometerStrainData(object):
 
         """
         logger.debug('Setting data using provided gwpy TimeSeries object')
-        if type(time_series) != gwpy.timeseries.timeseries.TimeSeries:
+        if type(time_series) != gwpy.timeseries.TimeSeries:
             raise ValueError("Input time_series is not a gwpy TimeSeries")
         self.start_time = time_series.epoch.value
         self.sampling_frequency = time_series.sample_rate.value
@@ -1408,7 +1407,7 @@ class PowerSpectralDensity(object):
                 "You may have intended to provide this as an amplitude spectral density.")
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
-                            fft_length=4, filter_freq=1024, alpha=0.25,
+                            fft_length=4, sampling_frequency=4096, alpha=0.1,
                             channel=None):
         """ Generate power spectral density from a frame file
 
@@ -1431,12 +1430,11 @@ class PowerSpectralDensity(object):
 
         """
 
-        strain = tupak.gw.detector.InterferometerStrainData()
+        strain = tupak.gw.detector.InterferometerStrainData(alpha=alpha)
         strain.set_from_frame_file(
             frame_file, start_time=psd_start_time, duration=psd_duration,
-            channel=channel, sampling_frequency=filter_freq * 2)
+            channel=channel, sampling_frequency=sampling_frequency)
 
-        strain.low_pass_filter(filter_freq)
         f, psd = strain.create_power_spectral_density(fft_length=fft_length)
         self.frequency_array = f
         self.power_spectral_density = psd
