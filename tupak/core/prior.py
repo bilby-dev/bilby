@@ -254,6 +254,8 @@ def create_default_prior(name, default_priors_file=None):
 
 class Prior(object):
 
+    _default_latex_labels = dict()
+
     def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
         """ Implements a Prior object
 
@@ -455,8 +457,6 @@ class Prior(object):
         else:
             label = self.name
         return label
-
-    _default_latex_labels = dict()
 
 
 class DeltaFunction(Prior):
