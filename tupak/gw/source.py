@@ -106,6 +106,9 @@ def lal_binary_black_hole(
     h_plus = hplus.data.data
     h_cross = hcross.data.data
 
+    h_plus = h_plus[:len(frequency_array)]
+    h_cross = h_cross[:len(frequency_array)]
+
     return {'plus': h_plus, 'cross': h_cross}
 
 
