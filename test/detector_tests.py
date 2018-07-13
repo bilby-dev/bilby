@@ -364,7 +364,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         time_array = tupak.core.utils.create_time_series(
             sampling_frequency=sampling_frequency, duration=duration)
         time_domain_strain = np.random.normal(0, 1, len(time_array))
-        self.ifosd.alpha = 0
+        self.ifosd.roll_off = 0
         self.ifosd.set_from_time_domain_strain(
             time_domain_strain=time_domain_strain, duration=duration,
             sampling_frequency=sampling_frequency)
