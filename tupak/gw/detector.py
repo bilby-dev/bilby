@@ -32,12 +32,16 @@ class InterferometerSet(list):
             The list of interferometers
         """
 
+        list.__init__(self)
         if type(interferometers) == str:
             raise ValueError("Input must not be a string")
         for ifo in interferometers:
-            if type(ifo) != Interferometer:
+            if type(ifo) == str:
+                ifo = get_empty_interferometer(ifo)
+            if type(ifo) not in [Interferometer, TriangularInterferometer]:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
-        list.__init__(self, interferometers)
+            else:
+                self.append(ifo)
         self._check_interferometers()
 
     def _check_interferometers(self):
@@ -48,6 +52,110 @@ class InterferometerSet(list):
                  for interferometer in self]
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
+
+    def set_strain_data_from_power_spectral_densities(self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` from the power spectal densities of the detectors
+
+        This uses the `interferometer.power_spectral_density` object to set
+        the `strain_data` to a noise realization. See
+        `tupak.gw.detector.InterferometerStrainData` for further information.
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        for interferometer in self:
+            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency, duration, start_time)
+
+    def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
+        """ Inject a signal into noise in each of the three detectors.
+
+        Parameters
+        ----------
+        parameters: dict
+            Parameters of the injection.
+        injection_polarizations: dict
+           Polarizations of waveform to inject, output of
+           `waveform_generator.frequency_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
+        waveform_generator: tupak.gw.waveform_generator
+            A WaveformGenerator instance using the source model to inject. If
+            `injection_polarizations` is given, this will be ignored.
+
+        Note: if your signal takes a substantial amount of time to generate, or
+        you experience buggy behaviour. It is preferable to provide the
+        injection_polarizations directly.
+
+        Returns
+        -------
+        injection_polarizations: dict
+
+        """
+        if injection_polarizations is None:
+            if waveform_generator is not None:
+                waveform_generator.parameters = parameters
+                injection_polarizations = waveform_generator.frequency_domain_strain()
+            else:
+                raise ValueError(
+                    "inject_signal needs one of waveform_generator or "
+                    "injection_polarizations.")
+
+        all_injection_polarizations = list()
+        for interferometer in self:
+            all_injection_polarizations.append(
+                interferometer.inject_signal(parameters=parameters, injection_polarizations=injection_polarizations))
+
+        return all_injection_polarizations
+
+    def save_data(self, outdir, label=None):
+        """ Creates a save file for the data in plain text format
+
+        Parameters
+        ----------
+        outdir: str
+            The output directory in which the data is supposed to be saved
+        label: str
+            The string labelling the data
+        """
+        for interferometer in self:
+            interferometer.save_data(outdir, label)
+
+    def plot_data(self, signal=None, outdir='.', label=None):
+        if utils.command_line_args.test:
+            return
+
+        fig = plt.figure()
+        for ii, interferometer in enumerate(self):
+            ax = fig.add_subplot(len(self) // 2, 2, ii + 1)
+            ax.loglog(interferometer.frequency_array,
+                      np.abs(interferometer.frequency_domain_strain),
+                      color='C0', label=interferometer.name)
+            ax.loglog(interferometer.frequency_array,
+                      interferometer.amplitude_spectral_density_array,
+                      color='C1', lw=0.5, label=interferometer.name + ' ASD')
+            ax.grid('on')
+            ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+            ax.set_xlabel(r'frequency [Hz]')
+            ax.set_xlim(20, 2000)
+            ax.legend(loc='best')
+        if signal is not None:
+            ax.loglog(self.frequency_array, abs(signal), color='C2',
+                      label='Signal')
+        fig.tight_layout()
+        if label is None:
+            fig.savefig(
+                '{}/frequency_domain_data.png'.format(outdir))
+        else:
+            fig.savefig(
+                '{}/{}_frequency_domain_data.png'.format(
+                    outdir, label))
 
     @property
     def number_of_interferometers(self):
@@ -70,7 +178,10 @@ class InterferometerSet(list):
         return self[0].strain_data.frequency_array
 
     def append(self, interferometer):
-        super(InterferometerSet, self).append(interferometer)
+        if isinstance(interferometer, InterferometerSet):
+            super(InterferometerSet, self).extend(interferometer)
+        else:
+            super(InterferometerSet, self).append(interferometer)
         self._check_interferometers()
 
     def extend(self, interferometers):
@@ -98,12 +209,14 @@ class InterferometerStrainData(object):
         maximum_frequency: float
             Maximum frequency to analyse for detector. Default is infinity.
         roll_off: float
-            The roll-off (in seconds) used in the Tukey window.
+            The roll-off (in seconds) used in the Tukey window, default=0.4s.
+            This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
         self.roll_off = roll_off
+        self.window_factor = 1
 
         self.sampling_frequency = None
         self.duration = None
@@ -209,6 +322,38 @@ class InterferometerStrainData(object):
                 (self.frequency_array < self.maximum_frequency))
 
     @property
+    def alpha(self):
+        return 2 * self.roll_off / self.duration
+
+    def time_domain_window(self, roll_off=None, alpha=None):
+        """
+        Window function to apply to time domain data before FFTing.
+
+        This defines self.window_factor as the power loss due to the windowing.
+        See https://dcc.ligo.org/DocDB/0027/T040089/000/T040089-00.pdf
+
+        Parameters
+        ----------
+        roll_off: float
+            Rise time of window in seconds
+        alpha: float
+            Parameter to pass to tukey window, how much of segment falls
+            into windowed part
+
+        Return
+        ------
+        window: array
+            Window function over time array
+        """
+        if roll_off is not None:
+            self.roll_off = roll_off
+        elif alpha is not None:
+            self.roll_off = alpha * self.duration / 2
+        window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=self.alpha)
+        self.window_factor = np.mean(window**2)
+        return window
+
+    @property
     def time_domain_strain(self):
         """ The time domain strain, in units of strain """
         if self._time_domain_strain is not None:
@@ -235,12 +380,12 @@ class InterferometerStrainData(object):
         elif self._time_domain_strain is not None:
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
-            self.low_pass_filter()
-            self.apply_tukey_window()
-            frequency_domain_strain, _ = utils.nfft(
-                self._time_domain_strain, self.sampling_frequency)
+            # self.low_pass_filter()
+            window = self.time_domain_window()
+            frequency_domain_strain, self.frequency_array = utils.nfft(
+                self._time_domain_strain * window, self.sampling_frequency)
             self._frequency_domain_strain = frequency_domain_strain
-            return self._frequency_domain_strain
+            return self._frequency_domain_strain * self.frequency_mask
         else:
             raise ValueError("frequency domain strain data not yet set")
 
@@ -262,8 +407,7 @@ class InterferometerStrainData(object):
                 .format(filter_freq))
             return
 
-        logger.debug("Applying low pass filter with filter frequency {}"
-                      .format(filter_freq))
+        logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
@@ -271,21 +415,7 @@ class InterferometerStrainData(object):
         strain = strain.filter(bp, filtfilt=True)
         self._time_domain_strain = strain.value
 
-    def get_tukey_window(self, N, duration):
-        alpha = 2 * self.roll_off / duration
-        window = scipy.signal.windows.tukey(N, alpha=alpha)
-        logger.debug("Generated Tukey window with alpha = {}".format(alpha))
-        return window
-
-    def apply_tukey_window(self):
-        logger.debug("Applying Tukey window with roll_off {}"
-                      .format(self.roll_off))
-        N = len(self.time_domain_strain)
-        window = self.get_tukey_window(N, duration=self.duration)
-        self._time_domain_strain *= window
-
-    def create_power_spectral_density(
-            self, fft_length, name='unknown', outdir=None):
+    def create_power_spectral_density(self, fft_length, name='unknown', outdir=None):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -308,16 +438,12 @@ class InterferometerStrainData(object):
             The frequencies and power spectral density array
 
         """
-        NFFT = int(self.sampling_frequency * fft_length)
-        window = self.get_tukey_window(
-            N=NFFT, duration=fft_length)
-        strain = gwpy.timeseries.TimeSeries(
-            self.time_domain_strain, sample_rate=self.sampling_frequency)
-        psd = strain.psd(fftlength=fft_length, window=window)
+        strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
+        psd_alpha = 2 * self.roll_off / fft_length
+        psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', psd_alpha))
 
         if outdir:
-            psd_file = '{}/{}_PSD_{}_{}.txt'.format(
-                outdir, name, self.start_time, self.duration)
+            psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
             with open('{}'.format(psd_file), 'w+') as file:
                 for f, p in zip(psd.frequencies.value, psd.value):
                     file.write('{} {}\n'.format(f, p))
@@ -325,6 +451,7 @@ class InterferometerStrainData(object):
         return psd.frequencies.value, psd.value
 
     def _check_maximum_frequency(self):
+        """ Force the maximum frequency be less than the Nyquist frequency """
         if 2 * self.maximum_frequency > self.sampling_frequency:
             self.maximum_frequency = self.sampling_frequency / 2.
 
@@ -333,7 +460,6 @@ class InterferometerStrainData(object):
         """ Helper function to figure out if the time_array, or
             sampling_frequency and duration where given
         """
-
         if (sampling_frequency is not None) and (duration is not None):
             if time_array is not None:
                 raise ValueError(
@@ -385,11 +511,12 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided time_domain_strain')
         if np.shape(time_domain_strain) == np.shape(self.time_array):
             self._time_domain_strain = time_domain_strain
+            self._frequency_domain_strain = None
         else:
             raise ValueError("Data times do not match time array")
         self._check_maximum_frequency()
 
-    def set_from_gwpy_timeseries(self, timeseries):
+    def set_from_gwpy_timeseries(self, time_series):
         """ Set the strain data from a gwpy TimeSeries
 
         This sets the time_domain_strain attribute, the frequency_domain_strain
@@ -398,16 +525,17 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        timeseries: gwpy.timeseries.timeseries.TimeSeries
+        time_series: gwpy.timeseries.timeseries.TimeSeries
 
         """
         logger.debug('Setting data using provided gwpy TimeSeries object')
-        if type(timeseries) != gwpy.timeseries.timeseries.TimeSeries:
-            raise ValueError("Input timeseries is not a gwpy TimeSeries")
-        self.start_time = timeseries.epoch.value
-        self.sampling_frequency = timeseries.sample_rate.value
-        self.duration = timeseries.duration.value
-        self._time_domain_strain = timeseries.value
+        if type(time_series) != gwpy.timeseries.TimeSeries:
+            raise ValueError("Input time_series is not a gwpy TimeSeries")
+        self.start_time = time_series.epoch.value
+        self.sampling_frequency = time_series.sample_rate.value
+        self.duration = time_series.duration.value
+        self._time_domain_strain = time_series.value
+        self._frequency_domain_strain = None
         self._check_maximum_frequency()
 
     def set_from_open_data(
@@ -511,6 +639,7 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
+            self.window_factor = 1
         else:
             raise ValueError("Data frequencies do not match frequency_array")
 
@@ -572,14 +701,14 @@ class InterferometerStrainData(object):
 
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel_name=None, buffer_time=1):
+            channel=None, buffer_time=1):
         """ Set the `frequency_domain_strain` from a frame fiile
 
         Parameters
         ----------
         frame_file: str
             File from which to load data.
-        channel_name: str
+        channel: str
             Channel to read from frame.
         sampling_frequency: float
             The sampling frequency (in Hz)
@@ -599,8 +728,8 @@ class InterferometerStrainData(object):
 
         logger.info('Reading data from frame')
         strain = tupak.gw.utils.read_frame_file(
-            frame_file, t1=start_time, t2=start_time+duration,
-            buffer_time=buffer_time, channel=channel_name,
+            frame_file, start_time=start_time, end_time=start_time + duration,
+            buffer_time=buffer_time, channel=channel,
             resample=sampling_frequency)
 
         self.set_from_gwpy_timeseries(strain)
@@ -738,14 +867,14 @@ class Interferometer(object):
 
     def set_strain_data_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel_name=None, buffer_time=1):
+            channel=None, buffer_time=1):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
         ----------
         frame_file: str
             File from which to load data.
-        channel_name: str
+        channel: str
             Channel to read from frame.
         sampling_frequency: float
             The sampling frequency (in Hz)
@@ -761,7 +890,7 @@ class Interferometer(object):
         self.strain_data.set_from_frame_file(
             frame_file=frame_file, sampling_frequency=sampling_frequency,
             duration=duration, start_time=start_time,
-            channel_name=channel_name, buffer_time=buffer_time)
+            channel=channel, buffer_time=buffer_time)
 
     def set_strain_data_from_csv(self, filename):
         """ Set the `Interferometer.strain_data` from a csv file
@@ -1038,8 +1167,9 @@ class Interferometer(object):
             self.strain_data.start_time)  # parameters['geocent_time'])
 
         if self.time_marginalization:
-            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-            # all candidate coalescence times
+            dt = time_shift
+            # when marginalizing over time we only care about relative time shifts
+            # between detectors and marginalized over all candidate coalescence times
         else:
             dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
@@ -1160,7 +1290,7 @@ class Interferometer(object):
 
     @property
     def amplitude_spectral_density_array(self):
-        """ Calculates the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
+        """ Returns the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
 
         Returns
         -------
@@ -1171,14 +1301,17 @@ class Interferometer(object):
 
     @property
     def power_spectral_density_array(self):
-        """ Calculates the power spectral density (PSD)
+        """ Returns the power spectral density (PSD)
+
+        This accounts for whether the data in the interferometer has been windowed.
 
         Returns
         -------
         array_like: An array representation of the PSD
 
         """
-        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)
+        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array)\
+            * self.strain_data.window_factor
 
     @property
     def frequency_array(self):
@@ -1289,6 +1422,33 @@ class Interferometer(object):
                     outdir, self.name, label))
 
 
+class TriangularInterferometer(InterferometerSet):
+
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
+                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0.):
+        InterferometerSet.__init__(self, [])
+        self.name = name
+        # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
+        if isinstance(power_spectral_density, PowerSpectralDensity):
+            power_spectral_density = [power_spectral_density] * 3
+        if isinstance(minimum_frequency, float) or isinstance(minimum_frequency, int):
+            minimum_frequency = [minimum_frequency] * 3
+        if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
+            maximum_frequency = [maximum_frequency] * 3
+
+        for ii in range(3):
+            self.append(Interferometer(
+                '{}{}'.format(name, ii+1), power_spectral_density[ii], minimum_frequency[ii], maximum_frequency[ii],
+                length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt))
+
+            xarm_azimuth += 240
+            yarm_azimuth += 240
+
+            latitude += np.arctan(length * np.sin(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+            longitude += np.arctan(length * np.cos(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+
+
 class PowerSpectralDensity(object):
 
     def __init__(self, **kwargs):
@@ -1343,8 +1503,7 @@ class PowerSpectralDensity(object):
                 m = getattr(self, 'set_from_{}'.format(expanded_key))
                 m(**kwargs)
             except AttributeError:
-                logger.info("Tried setting PSD from init kwarg {} and failed"
-                             .format(key))
+                logger.info("Tried setting PSD from init kwarg {} and failed".format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
@@ -1387,7 +1546,7 @@ class PowerSpectralDensity(object):
                 "You may have intended to provide this as an amplitude spectral density.")
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
-                            fft_length=4, filter_freq=1024, alpha=0.25,
+                            fft_length=4, sampling_frequency=4096, roll_off=0.1,
                             channel=None):
         """ Generate power spectral density from a frame file
 
@@ -1401,21 +1560,23 @@ class PowerSpectralDensity(object):
             Duration of data (in seconds) to generate PSD from.
         fft_length: float, optional
             Number of seconds in a single fft.
+        sampling_frequency: float, optional
+            Sampling frequency for time series.
+            This is twice the maximum frequency.
         filter_freq: float
             Low pass filter frequency
-        alpha: float, optional
-            Parameter for Tukey window.
-        channel_name: str, optional
+        roll_off: float, optional
+            Rise time in seconds of tukey window.
+        channel: str, optional
             Name of channel to use to generate PSD.
 
         """
 
-        strain = tupak.gw.detector.InterferometerStrainData()
+        strain = tupak.gw.detector.InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
-            frame_file, t1=psd_start_time, t2=psd_start_time+psd_duration,
-            channel=channel)
+            frame_file, start_time=psd_start_time, duration=psd_duration,
+            channel=channel, sampling_frequency=sampling_frequency)
 
-        strain.low_pass_filter(filter_freq)
         f, psd = strain.create_power_spectral_density(fft_length=fft_length)
         self.frequency_array = f
         self.power_spectral_density = psd
@@ -1583,7 +1744,15 @@ def load_interferometer(filename):
             key = split_line[0].strip()
             value = eval('='.join(split_line[1:]))
             parameters[key] = value
-    interferometer = Interferometer(**parameters)
+    if 'shape' not in parameters.keys():
+        interferometer = Interferometer(**parameters)
+        logger.debug('Assuming L shape for {}'.format('name'))
+    elif parameters['shape'].lower() in ['l', 'ligo']:
+        parameters.pop('shape')
+        interferometer = Interferometer(**parameters)
+    elif parameters['shape'].lower() in ['triangular', 'triangle']:
+        parameters.pop('shape')
+        interferometer = TriangularInterferometer(**parameters)
     return interferometer
 
 
@@ -1648,6 +1817,7 @@ def get_interferometer_with_open_data(
     strain.set_from_open_data(
         name=name, start_time=start_time, duration=duration,
         outdir=outdir, cache=cache, **kwargs)
+    strain.low_pass_filter(filter_freq)
 
     strain_psd = InterferometerStrainData(roll_off=roll_off)
     strain_psd.set_from_open_data(

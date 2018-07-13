@@ -2,10 +2,15 @@ from __future__ import division
 import tupak
 import numpy as np
 import pandas as pd
-from astropy.cosmology import z_at_value, Planck15
-import astropy.units as u
 
 from tupak.core.utils import logger
+
+try:
+    from astropy.cosmology import z_at_value, Planck15
+    import astropy.units as u
+except ImportError:
+    logger.warning("You do not have astropy installed currently. You will "
+                    " not be able to use some of the prebuilt functions.")
 
 try:
     import lalsimulation as lalsim

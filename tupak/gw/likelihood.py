@@ -157,14 +157,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 signal_ifo, interferometer, self.waveform_generator.duration)
             if self.time_marginalization:
                 interferometer.time_marginalization = self.time_marginalization
-                matched_filter_snr_squared_tc_array += 4. * (1. / interferometer.duration) * np.fft.ifft(
+                matched_filter_snr_squared_tc_array += 4. * (1. / self.waveform_generator.duration) * np.fft.ifft(
                     signal_ifo.conjugate()[0:-1] * interferometer.frequency_domain_strain[0:-1]
                     / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.frequency_domain_strain[0:-1])
 
         if self.time_marginalization:
 
             delta_tc = 1. / self.waveform_generator.sampling_frequency
-            tc_log_norm = np.log(self.interferometers.duration * delta_tc)
+            tc_log_norm = np.log(self.waveform_generator.duration * delta_tc)
 
             if self.distance_marginalization:
 
