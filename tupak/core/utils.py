@@ -453,12 +453,13 @@ else:
     logger.debug('No $DISPLAY environment variable found, so importing \
                    matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
+    import matplotlib.pyplot as plt
     non_gui_backends = matplotlib.rcsetup.non_interactive_bk
     for backend in non_gui_backends:
         try:
             logger.debug("Trying backend {}".format(backend))
             matplotlib.use(backend, warn=False)
-            matplotlib.pyplot.switch_backend(backend)
+            plt.switch_backend(backend)
             break
         except Exception as e:
             print(traceback.format_exc())
