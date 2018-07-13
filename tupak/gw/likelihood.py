@@ -233,15 +233,17 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self.distance_array])
 
-        ### Make the lookup table ###
+        # Make the lookup table ###
+        logger.info('Building lookup table for distance marginalisation.')
         self.ref_dist = 1000  # 1000 Mpc
         self.dist_margd_loglikelihood_array = np.zeros((400, 800))
 
-        self.rho_opt_ref_array = np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
-            0])  # optimal filter snr at fiducial distance of ref_dist Mpc
-        self.rho_mf_ref_array = np.hstack((-np.logspace(2, -3, self.dist_margd_loglikelihood_array.shape[1] / 2), \
-                                           np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[
-                                               1] / 2)))  # matched filter snr at fiducial distance of ref_dist Mpc
+        # optimal filter snr at fiducial distance of ref_dist Mpc
+        self.rho_opt_ref_array = np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[0])
+        # matched filter snr at fiducial distance of ref_dist Mpc
+        self.rho_mf_ref_array = np.hstack(
+                (-np.logspace(2, -3, self.dist_margd_loglikelihood_array.shape[1] / 2),
+                 np.logspace(-3, 4, self.dist_margd_loglikelihood_array.shape[1] / 2)))
 
         for ii, rho_opt_ref in enumerate(self.rho_opt_ref_array):
 
@@ -249,15 +251,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 optimal_snr_squared_array = rho_opt_ref * self.ref_dist ** 2. \
                                             / self.distance_array ** 2
 
-                matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist \
-                                                   / self.distance_array
+                matched_filter_snr_squared_array = rho_mf_ref * self.ref_dist / self.distance_array
 
                 self.dist_margd_loglikelihood_array[ii][jj] = \
-                    logsumexp(matched_filter_snr_squared_array - \
-                              optimal_snr_squared_array / 2, \
+                    logsumexp(matched_filter_snr_squared_array -
+                              optimal_snr_squared_array / 2,
                               b=self.distance_prior_array * self.delta_distance)
 
-        log_norm = logsumexp(0. / self.distance_array - 0. / self.distance_array ** 2., \
+        log_norm = logsumexp(0. / self.distance_array - 0. / self.distance_array ** 2.,
                              b=self.distance_prior_array * self.delta_distance)
         self.dist_margd_loglikelihood_array -= log_norm
 
