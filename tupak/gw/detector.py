@@ -32,12 +32,16 @@ class InterferometerSet(list):
             The list of interferometers
         """
 
+        list.__init__(self)
         if type(interferometers) == str:
             raise ValueError("Input must not be a string")
         for ifo in interferometers:
-            if type(ifo) != Interferometer:
+            if type(ifo) == str:
+                ifo = get_empty_interferometer(ifo)
+            if type(ifo) not in [Interferometer, TriangularInterferometer]:
                 raise ValueError("Input list of interferometers are not all Interferometer objects")
-        list.__init__(self, interferometers)
+            else:
+                self.append(ifo)
         self._check_interferometers()
 
     def _check_interferometers(self):
@@ -48,6 +52,110 @@ class InterferometerSet(list):
                  for interferometer in self]
             if not all(y == x[0] for y in x):
                 raise ValueError("The {} of all interferometers are not the same".format(attribute))
+
+    def set_strain_data_from_power_spectral_densities(self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` from the power spectal densities of the detectors
+
+        This uses the `interferometer.power_spectral_density` object to set
+        the `strain_data` to a noise realization. See
+        `tupak.gw.detector.InterferometerStrainData` for further information.
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        for interferometer in self:
+            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency, duration, start_time)
+
+    def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
+        """ Inject a signal into noise in each of the three detectors.
+
+        Parameters
+        ----------
+        parameters: dict
+            Parameters of the injection.
+        injection_polarizations: dict
+           Polarizations of waveform to inject, output of
+           `waveform_generator.frequency_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
+        waveform_generator: tupak.gw.waveform_generator
+            A WaveformGenerator instance using the source model to inject. If
+            `injection_polarizations` is given, this will be ignored.
+
+        Note: if your signal takes a substantial amount of time to generate, or
+        you experience buggy behaviour. It is preferable to provide the
+        injection_polarizations directly.
+
+        Returns
+        -------
+        injection_polarizations: dict
+
+        """
+        if injection_polarizations is None:
+            if waveform_generator is not None:
+                waveform_generator.parameters = parameters
+                injection_polarizations = waveform_generator.frequency_domain_strain()
+            else:
+                raise ValueError(
+                    "inject_signal needs one of waveform_generator or "
+                    "injection_polarizations.")
+
+        all_injection_polarizations = list()
+        for interferometer in self:
+            all_injection_polarizations.append(
+                interferometer.inject_signal(parameters=parameters, injection_polarizations=injection_polarizations))
+
+        return all_injection_polarizations
+
+    def save_data(self, outdir, label=None):
+        """ Creates a save file for the data in plain text format
+
+        Parameters
+        ----------
+        outdir: str
+            The output directory in which the data is supposed to be saved
+        label: str
+            The string labelling the data
+        """
+        for interferometer in self:
+            interferometer.save_data(outdir, label)
+
+    def plot_data(self, signal=None, outdir='.', label=None):
+        if utils.command_line_args.test:
+            return
+
+        fig = plt.figure()
+        for ii, interferometer in enumerate(self):
+            ax = fig.add_subplot(len(self) // 2, 2, ii + 1)
+            ax.loglog(interferometer.frequency_array,
+                      np.abs(interferometer.frequency_domain_strain),
+                      color='C0', label=interferometer.name)
+            ax.loglog(interferometer.frequency_array,
+                      interferometer.amplitude_spectral_density_array,
+                      color='C1', lw=0.5, label=interferometer.name + ' ASD')
+            ax.grid('on')
+            ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
+            ax.set_xlabel(r'frequency [Hz]')
+            ax.set_xlim(20, 2000)
+            ax.legend(loc='best')
+        if signal is not None:
+            ax.loglog(self.frequency_array, abs(signal), color='C2',
+                      label='Signal')
+        fig.tight_layout()
+        if label is None:
+            fig.savefig(
+                '{}/frequency_domain_data.png'.format(outdir))
+        else:
+            fig.savefig(
+                '{}/{}_frequency_domain_data.png'.format(
+                    outdir, label))
 
     @property
     def number_of_interferometers(self):
@@ -70,7 +178,10 @@ class InterferometerSet(list):
         return self[0].strain_data.frequency_array
 
     def append(self, interferometer):
-        super(InterferometerSet, self).append(interferometer)
+        if isinstance(interferometer, InterferometerSet):
+            super(InterferometerSet, self).extend(interferometer)
+        else:
+            super(InterferometerSet, self).append(interferometer)
         self._check_interferometers()
 
     def extend(self, interferometers):
@@ -295,8 +406,7 @@ class InterferometerStrainData(object):
                 .format(filter_freq))
             return
 
-        logger.debug("Applying low pass filter with filter frequency {}"
-                      .format(filter_freq))
+        logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
         bp = gwpy.signal.filter_design.lowpass(
             filter_freq, self.sampling_frequency)
         strain = gwpy.timeseries.TimeSeries(
@@ -1056,8 +1166,9 @@ class Interferometer(object):
             self.strain_data.start_time)  # parameters['geocent_time'])
 
         if self.time_marginalization:
-            dt = time_shift  # when marginalizing over time we only care about relative time shifts between detectors and marginalized over
-            # all candidate coalescence times
+            dt = time_shift
+            # when marginalizing over time we only care about relative time shifts
+            # between detectors and marginalized over all candidate coalescence times
         else:
             dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
@@ -1310,6 +1421,33 @@ class Interferometer(object):
                     outdir, self.name, label))
 
 
+class TriangularInterferometer(InterferometerSet):
+
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
+                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0.):
+        InterferometerSet.__init__(self, [])
+        self.name = name
+        # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
+        if isinstance(power_spectral_density, PowerSpectralDensity):
+            power_spectral_density = [power_spectral_density] * 3
+        if isinstance(minimum_frequency, float) or isinstance(minimum_frequency, int):
+            minimum_frequency = [minimum_frequency] * 3
+        if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
+            maximum_frequency = [maximum_frequency] * 3
+
+        for ii in range(3):
+            self.append(Interferometer(
+                '{}{}'.format(name, ii+1), power_spectral_density[ii], minimum_frequency[ii], maximum_frequency[ii],
+                length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt))
+
+            xarm_azimuth += 240
+            yarm_azimuth += 240
+
+            latitude += np.arctan(length * np.sin(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+            longitude += np.arctan(length * np.cos(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+
+
 class PowerSpectralDensity(object):
 
     def __init__(self, **kwargs):
@@ -1364,8 +1502,7 @@ class PowerSpectralDensity(object):
                 m = getattr(self, 'set_from_{}'.format(expanded_key))
                 m(**kwargs)
             except AttributeError:
-                logger.info("Tried setting PSD from init kwarg {} and failed"
-                             .format(key))
+                logger.info("Tried setting PSD from init kwarg {} and failed".format(key))
 
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
@@ -1606,7 +1743,15 @@ def load_interferometer(filename):
             key = split_line[0].strip()
             value = eval('='.join(split_line[1:]))
             parameters[key] = value
-    interferometer = Interferometer(**parameters)
+    if 'shape' not in parameters.keys():
+        interferometer = Interferometer(**parameters)
+        logger.debug('Assuming L shape for {}'.format('name'))
+    elif parameters['shape'].lower() in ['l', 'ligo']:
+        parameters.pop('shape')
+        interferometer = Interferometer(**parameters)
+    elif parameters['shape'].lower() in ['triangular', 'triangle']:
+        parameters.pop('shape')
+        interferometer = TriangularInterferometer(**parameters)
     return interferometer
 
 
