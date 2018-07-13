@@ -146,7 +146,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers.frequency_array[0:-1].shape, dtype=np.complex128)
+        matched_filter_snr_squared_tc_array = np.zeros(
+                self.interferometers.frequency_array[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
@@ -159,7 +160,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 interferometer.time_marginalization = self.time_marginalization
                 matched_filter_snr_squared_tc_array += 4. * (1. / self.waveform_generator.duration) * np.fft.ifft(
                     signal_ifo.conjugate()[0:-1] * interferometer.frequency_domain_strain[0:-1]
-                    / interferometer.power_spectral_density_array[0:-1]) * len(interferometer.frequency_domain_strain[0:-1])
+                    / interferometer.power_spectral_density_array[0:-1])\
+                    * len(interferometer.frequency_domain_strain[0:-1])
 
         if self.time_marginalization:
 
@@ -216,8 +218,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                       self.waveform_generator.parameters['luminosity_distance'] ** 2 \
                       / self.ref_dist ** 2.
         rho_mf_ref = matched_filter_snr_squared * \
-                     self.waveform_generator.parameters['luminosity_distance'] \
-                     / self.ref_dist
+            self.waveform_generator.parameters['luminosity_distance'] / self.ref_dist
         return rho_mf_ref, rho_opt_ref
 
     def log_likelihood(self):
