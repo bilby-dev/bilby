@@ -330,6 +330,7 @@ class InterferometerStrainData(object):
         Window function to apply to time domain data before FFTing.
 
         This defines self.window_factor as the power loss due to the windowing.
+        See https://dcc.ligo.org/DocDB/0027/T040089/000/T040089-00.pdf
 
         Parameters
         ----------
