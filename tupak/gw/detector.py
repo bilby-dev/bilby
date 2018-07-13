@@ -518,7 +518,6 @@ class InterferometerStrainData(object):
             self._frequency_domain_strain = None
         else:
             raise ValueError("Data times do not match time array")
-        self._check_maximum_frequency()
 
     def set_from_gwpy_timeseries(self, time_series):
         """ Set the strain data from a gwpy TimeSeries
