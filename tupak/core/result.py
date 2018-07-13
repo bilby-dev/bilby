@@ -408,7 +408,10 @@ class Result(dict):
             typeB = type(B)
             if typeA == typeB:
                 if typeA in [str, float, int, dict, list]:
-                    return A == B
+                    try:
+                        return A == B
+                    except ValueError:
+                        return False
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
@@ -461,6 +464,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
             c = colours[i]
         else:
             c = 'C{}'.format(i)
+        hist_kwargs = kwargs.get('hist_kwargs', dict())
+        hist_kwargs['color'] = c
         fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(matplotlib.lines.Line2D([0], [0], color=c))
