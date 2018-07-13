@@ -451,7 +451,7 @@ class InterferometerStrainData(object):
 
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
-            with open('{}'.format(psd_file), 'w+') as file:
+            with open('{}'.format(psd_file), 'w+') as opened_file:
                 for f, p in zip(psd.frequencies.value, psd.value):
                     opened_file.write('{} {}\n'.format(f, p))
 
