@@ -401,17 +401,20 @@ class Result(dict):
         bool: True if attribute name matches with an attribute of other_object, False otherwise
 
         """
-        a = getattr(self, name, False)
-        b = getattr(other_object, name, False)
-        logger.debug('Checking {} value: {}=={}'.format(name, a, b))
-        if (a is not False) and (b is not False):
-            type_a = type(a)
-            type_b = type(b)
-            if type_a == type_b:
-                if type_a in [str, float, int, dict, list]:
-                    return a == b
-                elif type_a in [np.ndarray]:
-                    return np.all(a == b)
+        A = getattr(self, name, False)
+        B = getattr(other_object, name, False)
+        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
+        if (A is not False) and (B is not False):
+            typeA = type(A)
+            typeB = type(B)
+            if typeA == typeB:
+                if typeA in [str, float, int, dict, list]:
+                    try:
+                        return A == B
+                    except ValueError:
+                        return False
+                elif typeA in [np.ndarray]:
+                    return np.all(A == B)
         return False
 
 
@@ -462,6 +465,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
             c = colours[i]
         else:
             c = 'C{}'.format(i)
+        hist_kwargs = kwargs.get('hist_kwargs', dict())
+        hist_kwargs['color'] = c
         fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(matplotlib.lines.Line2D([0], [0], color=c))

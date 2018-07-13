@@ -13,6 +13,7 @@ logger = logging.getLogger('tupak')
 speed_of_light = 299792458.0  # speed of light in m/s
 parsec = 3.085677581 * 1e16
 solar_mass = 1.98855 * 1e30
+radius_of_earth = 6371 * 1e3  # metres
 
 
 def get_sampling_frequency(time_series):
@@ -453,12 +454,13 @@ else:
     logger.debug('No $DISPLAY environment variable found, so importing \
                    matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
+    import matplotlib.pyplot as plt
     non_gui_backends = matplotlib.rcsetup.non_interactive_bk
     for backend in non_gui_backends:
         try:
             logger.debug("Trying backend {}".format(backend))
             matplotlib.use(backend, warn=False)
-            matplotlib.pyplot.switch_backend(backend)
+            plt.switch_backend(backend)
             break
         except Exception as e:
             print(traceback.format_exc())

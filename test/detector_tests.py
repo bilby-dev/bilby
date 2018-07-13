@@ -375,7 +375,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             time_domain_strain, sampling_frequency)
 
         self.assertTrue(np.all(
-            frequency_domain_strain == self.ifosd.frequency_domain_strain))
+            self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
 
     #def test_sampling_duration_init(self):
     #    self.assertIsNone(self.ifo.duration)
