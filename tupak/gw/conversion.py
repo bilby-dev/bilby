@@ -9,14 +9,14 @@ try:
     from astropy.cosmology import z_at_value, Planck15
     import astropy.units as u
 except ImportError:
-    logger.warning("You do not have astropy installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+    logger.warning("You do not have astropy installed currently. You will"
+                   " not be able to use some of the prebuilt functions.")
 
 try:
     import lalsimulation as lalsim
 except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will "
-                    " not be able to use some of the prebuilt functions.")
+    logger.warning("You do not have lalsuite installed currently. You will"
+                   " not be able to use some of the prebuilt functions.")
 
 
 def redshift_to_luminosity_distance(redshift):
@@ -378,7 +378,8 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
         output_sample['waveform_approximant'] = likelihood.waveform_generator.waveform_arguments['waveform_approximant']
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample, _ = convert_to_lal_binary_black_hole_parameters(output_sample, [key for key in output_sample.keys()], remove=False)
+    output_sample, _ = convert_to_lal_binary_black_hole_parameters(
+        output_sample, [key for key in output_sample.keys()], remove=False)
     output_sample = generate_non_standard_parameters(output_sample)
     output_sample = generate_component_spins(output_sample)
     compute_snrs(output_sample, likelihood)
@@ -457,23 +458,23 @@ def generate_component_spins(sample):
     output_sample = sample.copy()
     spin_conversion_parameters = ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
                                   'mass_2', 'reference_frequency', 'phase']
-    if all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, dict):
+    if all(key in output_sample.keys() for key in spin_conversion_parameters)\
+            and isinstance(output_sample, dict):
         output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], \
             output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(output_sample['iota'], output_sample['phi_jl'],
-                                                                      output_sample['tilt_1'], output_sample['tilt_2'],
-                                                                      output_sample['phi_12'], output_sample['a_1'],
-                                                                      output_sample['a_2'], output_sample['mass_1']
-                                                                      * tupak.core.utils.solar_mass,
-                                                                      output_sample['mass_2']
-                                                                      * tupak.core.utils.solar_mass,
-                                                                      output_sample['reference_frequency'],
-                                                                      output_sample['phase'])
+            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+                    output_sample['iota'], output_sample['phi_jl'],
+                    output_sample['tilt_1'], output_sample['tilt_2'],
+                    output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
+                    output_sample['mass_1'] * tupak.core.utils.solar_mass,
+                    output_sample['mass_2'] * tupak.core.utils.solar_mass,
+                    output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
 
-    elif all(key in output_sample.keys() for key in spin_conversion_parameters) and isinstance(output_sample, pd.DataFrame):
+    elif all(key in output_sample.keys() for key in spin_conversion_parameters)\
+            and isinstance(output_sample, pd.DataFrame):
         logger.debug('Extracting component spins.')
         new_spin_parameters = ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
         new_spins = {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
@@ -482,9 +483,11 @@ def generate_component_spins(sample):
             new_spins['iota'], new_spins['spin_1x'][ii], new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
                 new_spins['spin_2x'][ii], new_spins['spin_2y'][ii], new_spins['spin_2z'][ii] = \
                 lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'][ii], output_sample['phi_jl'][ii], output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
+                    output_sample['iota'][ii], output_sample['phi_jl'][ii],
+                    output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
                     output_sample['phi_12'][ii], output_sample['a_1'][ii], output_sample['a_2'][ii],
-                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass, output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
                     output_sample['reference_frequency'][ii], output_sample['phase'][ii])
 
         for name in new_spin_parameters:
@@ -532,8 +535,9 @@ def compute_snrs(sample, likelihood):
             for ii in range(len(temp_sample)):
                 for key in set(temp_sample.keys()).intersection(likelihood.waveform_generator.parameters.keys()):
                     likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
-                for key in likelihood.waveform_generator.non_standard_sampling_parameter_keys:
-                    likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
+                if likelihood.waveform_generator.non_standard_sampling_parameter_keys is not None:
+                    for key in likelihood.waveform_generator.non_standard_sampling_parameter_keys:
+                        likelihood.waveform_generator.parameters[key] = temp_sample[key][ii]
                 signal_polarizations = likelihood.waveform_generator.frequency_domain_strain()
                 for interferometer in all_interferometers:
                     signal = interferometer.get_detector_response(signal_polarizations,

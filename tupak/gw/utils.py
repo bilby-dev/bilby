@@ -1,3 +1,4 @@
+from __future__ import division
 import os
 
 import numpy as np
@@ -295,7 +296,7 @@ def get_event_time(event):
 
 
 def get_open_strain_data(
-        name, t1, t2, outdir, cache=False, buffer_time=0, **kwargs):
+        name, start_time, end_time, outdir, cache=False, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -305,7 +306,7 @@ def get_open_strain_data(
     ----------
     name: str
         The name of the detector to get data for
-    t1, t2: float
+    start_time, end_time: float
         The GPS time of the start and end of the data
     outdir: str
         The output directory to place data in
@@ -321,26 +322,26 @@ def get_open_strain_data(
     strain: gwpy.timeseries.TimeSeries
 
     """
-    filename = '{}/{}_{}_{}.txt'.format(outdir, name, t1, t2)
+    filename = '{}/{}_{}_{}.txt'.format(outdir, name, start_time, end_time)
 
     if buffer_time < 0:
         raise ValueError("buffer_time < 0")
-    t1 = t1 - buffer_time
-    t2 = t2 + buffer_time
+    start_time = start_time - buffer_time
+    end_time = end_time + buffer_time
 
     if os.path.isfile(filename) and cache:
         logger.info('Using cached data from {}'.format(filename))
         strain = TimeSeries.read(filename)
     else:
         logger.info('Fetching open data from {} to {} with buffer time {}'
-                     .format(t1, t2, buffer_time))
-        strain = TimeSeries.fetch_open_data(name, t1, t2, **kwargs)
+                    .format(start_time, end_time, buffer_time))
+        strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
         logger.info('Saving data to {}'.format(filename))
         strain.write(filename)
     return strain
 
 
-def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
+def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -350,10 +351,10 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     ----------
     file_name: str
         The name of the frame to read
-    t1, t2: float
+    start_time, end_time: float
         The GPS time of the start and end of the data
     buffer_time: float
-        Read in data with `t1-buffer_time` and `t2+buffer_time`
+        Read in data with `t1-buffer_time` and `end_time+buffer_time`
     channel: str
         The name of the channel being searched for, some standard channel names are attempted
         if channel is not specified or if specified channel is not found.
@@ -369,7 +370,7 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     strain = None
     if channel is not None:
         try:
-            strain = TimeSeries.read(source=file_name, channel=channel, start=t1, end=t2, **kwargs)
+            strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
             loaded = True
             logger.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
@@ -380,7 +381,7 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
             if loaded:
                 continue
             try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=t1-buffer_time, end=t2+buffer_time, **kwargs)
+                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
                 loaded = True
                 logger.info('Successfully loaded {}.'.format(channel))
             except RuntimeError:
@@ -391,38 +392,3 @@ def read_frame_file(file_name, t1, t2, channel=None, buffer_time=1, **kwargs):
     else:
         logger.warning('No data loaded.')
         return None
-
-
-def process_strain_data(strain, alpha=0.25, filter_freq=1024):
-    """
-    Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an center_time.
-
-    Parameters
-    ----------
-    strain: array_like
-        Strain data to be processed
-    alpha: float
-        The tukey window shape parameter passed to `scipy.signal.tukey`.
-    filter_freq: float
-        Low pass filter frequency
-
-    Returns
-    -------
-    tupak.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
-
-    """
-
-    sampling_frequency = int(strain.sample_rate.value)
-
-    # Low pass filter
-    bp = filter_design.lowpass(filter_freq, strain.sample_rate)
-    strain = strain.filter(bp, filtfilt=True)
-    strain = strain.crop(*strain.span.contract(1))
-
-    time_series = strain.times.value
-
-    # Apply Tukey window
-    strain = strain * signal.windows.tukey(len(time_series), alpha=alpha)
-    frequency_domain_strain, frequencies = nfft(strain.value, sampling_frequency)
-    return frequency_domain_strain, frequencies
