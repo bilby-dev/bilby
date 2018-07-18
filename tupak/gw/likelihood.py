@@ -199,8 +199,13 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         elif self.distance_marginalization:
 
-            rho_mf_ref, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared.real,
+            rho_mf_ref, rho_opt_ref = self.__setup_rho(matched_filter_snr_squared,
                                                        optimal_snr_squared)
+            if self.phase_marginalization:
+                rho_mf_ref = self.bessel_function_interped(abs(rho_mf_ref))
+
+            else:
+                rho_mf_ref = rho_mf_ref.real
 
             log_l = self.interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
 

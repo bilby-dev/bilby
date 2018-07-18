@@ -36,7 +36,7 @@ IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
 # Set up prior
 priors = tupak.gw.prior.BBHPriorSet()
 # These parameters will not be sampled
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time']:
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
 
 # Initialise GravitationalWaveTransient
