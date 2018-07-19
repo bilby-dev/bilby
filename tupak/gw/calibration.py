@@ -76,7 +76,7 @@ class CubicSpline(Recalibrate):
         if n_points < 4:
             raise ValueError('Cubic spline calibration requires at least 4 spline nodes.')
         self.n_points = n_points
-        self.spline_points = np.logspace(np.log(minimum_frequency), np.log(maximum_frequency), n_points)
+        self.spline_points = np.logspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
 
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
