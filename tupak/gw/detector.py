@@ -740,7 +740,7 @@ class Interferometer(object):
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
                  length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0.):
+                 xarm_tilt=0., yarm_tilt=0., calibration_model=None):
         """
         Instantiate an Interferometer object.
 
@@ -770,6 +770,8 @@ class Interferometer(object):
             Tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08.
         yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
+        calibration_model: Recalibration
+            Calibration model, this applies the calibration correction to the template.
         """
         self.__x_updated = False
         self.__y_updated = False
@@ -787,6 +789,9 @@ class Interferometer(object):
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.time_marginalization = False
+        if calibration_model is None:
+            calibration_model = tupak.gw.calibration.Recalibrate()
+        self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
@@ -1183,6 +1188,9 @@ class Interferometer(object):
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
+
+        signal_ifo *= self.calibration_model.get_calibration_factor(
+            self.frequency_array, prefix='recalib_{}_'.format(self.name), **parameters)
 
         return signal_ifo
 
