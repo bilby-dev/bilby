@@ -73,6 +73,8 @@ class CubicSpline(Recalibrate):
             number of spline points
         """
         Recalibrate.__init__(self, prefix=prefix)
+        if n_points < 4:
+            raise ValueError('Cubic spline calibration requires at least 4 spline nodes.')
         self.n_points = n_points
         self.spline_points = np.logspace(np.log(minimum_frequency), np.log(maximum_frequency), n_points)
 
