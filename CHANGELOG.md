@@ -12,6 +12,9 @@ Changes currently on master, but not under a tag.
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
 - Add functionality to plot multiple results in a corner plot, see `tupak.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
+- Add functionality to sample in redshift and reconstruction of source frame masses.
+- Add functionality to combine result objects.
+- Enable initial values for emcee to be specified.
 
 ### Changed
 - Changed to using `setuptools` for installation.
