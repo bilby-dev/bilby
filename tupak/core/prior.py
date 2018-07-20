@@ -39,7 +39,7 @@ class PriorSet(dict):
             Output file naming scheme
         """
 
-        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():
