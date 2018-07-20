@@ -223,3 +223,62 @@ class CalibrationPriorSet(PriorSet):
                                         latex_label=latex_label)
         prior.source = os.path.abspath(envelope_file)
         return prior
+
+    @staticmethod
+    def constant_uncertainty_spline(
+            amplitude_sigma, phase_sigma, minimum_frequency, maximum_frequency,
+            n_nodes, label):
+        """
+        Make prior assuming constant in frequency calibration uncertainty.
+
+        This assumes Gaussian fluctuations about 0.
+
+        Parameters
+        ----------
+        amplitude_sigma: float
+            Uncertainty in the amplitude.
+        phase_sigma: float
+            Uncertainty in the phase.
+        minimum_frequency: float
+            Minimum frequency for the spline.
+        maximum_frequency: float
+            Minimum frequency for the spline.
+        n_nodes: int
+            Number of nodes for the spline.
+        label: str
+            Label for the names of the parameters, e.g., recalib_H1_
+
+        Returns
+        -------
+        prior: PriorSet
+            Priors for the relevant parameters.
+            This includes the frequencies of the nodes which are _not_ sampled.
+        """
+        nodes = np.logspace(np.log10(minimum_frequency),
+                            np.log10(maximum_frequency), n_nodes)
+
+        amplitude_mean_nodes = [0] * n_nodes
+        amplitude_sigma_nodes = [amplitude_sigma] * n_nodes
+        phase_mean_nodes = [0] * n_nodes
+        phase_sigma_nodes = [phase_sigma] * n_nodes
+
+        prior = CalibrationPriorSet()
+        for ii in range(n_nodes):
+            name = "recalib_{}_amplitude_{}".format(label, ii)
+            latex_label = "$A^{}_{}$".format(label, ii)
+            prior[name] = Gaussian(mu=amplitude_mean_nodes[ii],
+                                   sigma=amplitude_sigma_nodes[ii],
+                                   name=name, latex_label=latex_label)
+        for ii in range(n_nodes):
+            name = "recalib_{}_phase_{}".format(label, ii)
+            latex_label = "$\\phi^{}_{}$".format(label, ii)
+            prior[name] = Gaussian(mu=phase_mean_nodes[ii],
+                                   sigma=phase_sigma_nodes[ii],
+                                   name=name, latex_label=latex_label)
+        for ii in range(n_nodes):
+            name = "recalib_{}_frequency_{}".format(label, ii)
+            latex_label = "$f^{}_{}$".format(label, ii)
+            prior[name] = DeltaFunction(peak=nodes[ii], name=name,
+                                        latex_label=latex_label)
+
+        return prior
