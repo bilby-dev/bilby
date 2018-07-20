@@ -399,6 +399,32 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
 
 def calibration_prior_from_envelope(envelope_file, minimum_frequency,
                                     maximum_frequency, n_nodes, label):
+    """
+    Load in the calibration envelope.
+
+    This is a text file with columns:
+        frequency median-amplitude median-phase -1-sigma-amplitude
+        -1-sigma-phase +1-sigma-amplitude +1-sigma-phase
+
+    Parameters
+    ----------
+    envelope_file: str
+        Name of file to read in.
+    minimum_frequency: float
+        Minimum frequency for the spline.
+    maximum_frequency: float
+        Minimum frequency for the spline.
+    n_nodes: int
+        Number of nodes for the spline.
+    label: str
+        Label for the names of the parameters, e.g., recalib_H1_
+
+    Returns
+    -------
+    prior: PriorSet
+        Priors for the relevant parameters.
+        This includes the frequencies of the nodes which are _not_ sampled.
+    """
     calibration_data = np.genfromtxt(envelope_file).T
     frequency_array = calibration_data[0]
     amplitude_median = 1 - calibration_data[1]
@@ -430,6 +456,12 @@ def calibration_prior_from_envelope(envelope_file, minimum_frequency,
             ff.write("{} = ".format(name))
             ff.write("Gaussian(mu={:.3e}, sigma={:.3e}, ".format(
                 phase_mean_nodes[ii], phase_sigma_nodes[ii]))
+            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
+        for ii in range(n_nodes):
+            name = "recalib_{}_frequency_{}".format(label, ii)
+            latex_label = "$f^{}_{}$".format(label, ii)
+            ff.write("{} = ".format(name))
+            ff.write("DeltaFunction(peak={:.3e}, ".format(nodes[ii]))
             ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
 
     prior = PriorSet(filename='{}_calibration.prior'.format(label))
