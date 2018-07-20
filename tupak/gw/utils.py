@@ -443,6 +443,8 @@ def calibration_prior_from_envelope(envelope_file, minimum_frequency,
     phase_sigma_nodes = UnivariateSpline(frequency_array, phase_sigma)(nodes)
 
     with open('{}_calibration.prior'.format(label), 'w') as ff:
+        ff.write("# calibration spline points and prior ")
+        ff.write("generated from {}\n".format(os.path.abspath(envelope_file)))
         for ii in range(n_nodes):
             name = "recalib_{}_amplitude_{}".format(label, ii)
             latex_label = "$A^{}_{}$".format(label, ii)
