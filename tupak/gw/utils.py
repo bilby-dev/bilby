@@ -7,7 +7,8 @@ from scipy.interpolate import UnivariateSpline
 
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
                           nfft, logger)
-from ..core.prior import PriorSet
+from ..core.prior import DeltaFunction, Gaussian
+from .prior import CalibrationPriorSet
 
 try:
     from gwpy.signal import filter_design
@@ -398,7 +399,8 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
 
 
 def calibration_prior_from_envelope(envelope_file, minimum_frequency,
-                                    maximum_frequency, n_nodes, label):
+                                    maximum_frequency, n_nodes, label,
+                                    save=True):
     """
     Load in the calibration envelope.
 
@@ -418,6 +420,8 @@ def calibration_prior_from_envelope(envelope_file, minimum_frequency,
         Number of nodes for the spline.
     label: str
         Label for the names of the parameters, e.g., recalib_H1_
+    save: bool, optional
+        Whether to write the prior to disk, default=True
 
     Returns
     -------
@@ -442,29 +446,21 @@ def calibration_prior_from_envelope(envelope_file, minimum_frequency,
     phase_mean_nodes = UnivariateSpline(frequency_array, phase_median)(nodes)
     phase_sigma_nodes = UnivariateSpline(frequency_array, phase_sigma)(nodes)
 
-    with open('{}_calibration.prior'.format(label), 'w') as ff:
-        ff.write("# calibration spline points and prior ")
-        ff.write("generated from {}\n".format(os.path.abspath(envelope_file)))
-        for ii in range(n_nodes):
-            name = "recalib_{}_amplitude_{}".format(label, ii)
-            latex_label = "$A^{}_{}$".format(label, ii)
-            ff.write("{} = ".format(name))
-            ff.write("Gaussian(mu={:.3e}, sigma={:.3e}, ".format(
-                amplitude_mean_nodes[ii], amplitude_sigma_nodes[ii]))
-            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
-        for ii in range(n_nodes):
-            name = "recalib_{}_phase_{}".format(label, ii)
-            latex_label = "$\\phi^{}_{}$".format(label, ii)
-            ff.write("{} = ".format(name))
-            ff.write("Gaussian(mu={:.3e}, sigma={:.3e}, ".format(
-                phase_mean_nodes[ii], phase_sigma_nodes[ii]))
-            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
-        for ii in range(n_nodes):
-            name = "recalib_{}_frequency_{}".format(label, ii)
-            latex_label = "$f^{}_{}$".format(label, ii)
-            ff.write("{} = ".format(name))
-            ff.write("DeltaFunction(peak={:.3e}, ".format(nodes[ii]))
-            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
-
-    prior = PriorSet(filename='{}_calibration.prior'.format(label))
+    prior = CalibrationPriorSet()
+    for ii in range(n_nodes):
+        name = "recalib_{}_amplitude_{}".format(label, ii)
+        latex_label = "$A^{}_{}$".format(label, ii)
+        prior[name] = Gaussian(mu=amplitude_mean_nodes[ii],
+                               sigma=amplitude_sigma_nodes[ii],
+                               name=name, latex_label=latex_label)
+        name = "recalib_{}_phase_{}".format(label, ii)
+        latex_label = "$\\phi^{}_{}$".format(label, ii)
+        prior[name] = Gaussian(mu=phase_mean_nodes[ii],
+                               sigma=phase_sigma_nodes[ii],
+                               name=name, latex_label=latex_label)
+        name = "recalib_{}_frequency_{}".format(label, ii)
+        latex_label = "$f^{}_{}$".format(label, ii)
+        prior[name] = DeltaFunction(peak=nodes[ii], name=name,
+                                    latex_label=latex_label)
+    prior.source = os.path.abspath(envelope_file)
     return prior
