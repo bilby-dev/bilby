@@ -210,11 +210,13 @@ class CalibrationPriorSet(PriorSet):
             prior[name] = Gaussian(mu=amplitude_mean_nodes[ii],
                                    sigma=amplitude_sigma_nodes[ii],
                                    name=name, latex_label=latex_label)
+        for ii in range(n_nodes):
             name = "recalib_{}_phase_{}".format(label, ii)
             latex_label = "$\\phi^{}_{}$".format(label, ii)
             prior[name] = Gaussian(mu=phase_mean_nodes[ii],
                                    sigma=phase_sigma_nodes[ii],
                                    name=name, latex_label=latex_label)
+        for ii in range(n_nodes):
             name = "recalib_{}_frequency_{}".format(label, ii)
             latex_label = "$f^{}_{}$".format(label, ii)
             prior[name] = DeltaFunction(peak=nodes[ii], name=name,
