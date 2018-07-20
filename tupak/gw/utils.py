@@ -3,8 +3,11 @@ import os
 
 import numpy as np
 from scipy import signal
+from scipy.interpolate import UnivariateSpline
 
-from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft, logger
+from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
+                          nfft, logger)
+from ..core.prior import PriorSet
 
 try:
     from gwpy.signal import filter_design
@@ -392,3 +395,42 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     else:
         logger.warning('No data loaded.')
         return None
+
+
+def calibration_prior_from_envelope(envelope_file, minimum_frequency,
+                                    maximum_frequency, n_nodes, label):
+    calibration_data = np.genfromtxt(envelope_file).T
+    frequency_array = calibration_data[0]
+    amplitude_median = 1 - calibration_data[1]
+    phase_median = calibration_data[2]
+    amplitude_sigma = (calibration_data[4] - calibration_data[2]) / 2
+    phase_sigma = (calibration_data[5] - calibration_data[3]) / 2
+
+    nodes = np.logspace(np.log(minimum_frequency), np.log(maximum_frequency),
+                        n_nodes)
+
+    amplitude_mean_nodes =\
+        UnivariateSpline(frequency_array, amplitude_median)(nodes)
+    amplitude_sigma_nodes =\
+        UnivariateSpline(frequency_array, amplitude_sigma)(nodes)
+    phase_mean_nodes = UnivariateSpline(frequency_array, phase_median)(nodes)
+    phase_sigma_nodes = UnivariateSpline(frequency_array, phase_sigma)(nodes)
+
+    with open('{}_calibration.prior'.format(label), 'w') as ff:
+        for ii in range(n_nodes):
+            name = "recalib_{}_amplitude_{}".format(label, ii)
+            latex_label = "$A^{}_{}$".format(label, ii)
+            ff.write("{} = ".format(name))
+            ff.write("Gaussian(mu={:.3e}, sigma={:.3e}, ".format(
+                amplitude_mean_nodes[ii], amplitude_sigma_nodes[ii]))
+            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
+        for ii in range(n_nodes):
+            name = "recalib_{}_phase_{}".format(label, ii)
+            latex_label = "$\\phi^{}_{}$".format(label, ii)
+            ff.write("{} = ".format(name))
+            ff.write("Gaussian(mu={:.3e}, sigma={:.3e}, ".format(
+                phase_mean_nodes[ii], phase_sigma_nodes[ii]))
+            ff.write("name='{}', latex_label='{}')\n".format(name, latex_label))
+
+    prior = PriorSet(filename='{}_calibration.prior'.format(label))
+    return prior
