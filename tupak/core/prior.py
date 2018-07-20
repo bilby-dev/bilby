@@ -25,7 +25,7 @@ class PriorSet(dict):
         dict.__init__(self)
         if type(dictionary) is dict:
             self.update(dictionary)
-        elif filename:
+        elif filename or type(dictionary) is str:
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
