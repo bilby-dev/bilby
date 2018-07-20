@@ -2,13 +2,9 @@ from __future__ import division
 import os
 
 import numpy as np
-from scipy import signal
-from scipy.interpolate import UnivariateSpline
 
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
                           nfft, logger)
-from ..core.prior import DeltaFunction, Gaussian
-from .prior import CalibrationPriorSet
 
 try:
     from gwpy.signal import filter_design
@@ -396,71 +392,3 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     else:
         logger.warning('No data loaded.')
         return None
-
-
-def calibration_prior_from_envelope(envelope_file, minimum_frequency,
-                                    maximum_frequency, n_nodes, label,
-                                    save=True):
-    """
-    Load in the calibration envelope.
-
-    This is a text file with columns:
-        frequency median-amplitude median-phase -1-sigma-amplitude
-        -1-sigma-phase +1-sigma-amplitude +1-sigma-phase
-
-    Parameters
-    ----------
-    envelope_file: str
-        Name of file to read in.
-    minimum_frequency: float
-        Minimum frequency for the spline.
-    maximum_frequency: float
-        Minimum frequency for the spline.
-    n_nodes: int
-        Number of nodes for the spline.
-    label: str
-        Label for the names of the parameters, e.g., recalib_H1_
-    save: bool, optional
-        Whether to write the prior to disk, default=True
-
-    Returns
-    -------
-    prior: PriorSet
-        Priors for the relevant parameters.
-        This includes the frequencies of the nodes which are _not_ sampled.
-    """
-    calibration_data = np.genfromtxt(envelope_file).T
-    frequency_array = calibration_data[0]
-    amplitude_median = 1 - calibration_data[1]
-    phase_median = calibration_data[2]
-    amplitude_sigma = (calibration_data[4] - calibration_data[2]) / 2
-    phase_sigma = (calibration_data[5] - calibration_data[3]) / 2
-
-    nodes = np.logspace(np.log10(minimum_frequency),
-                        np.log10(maximum_frequency), n_nodes)
-
-    amplitude_mean_nodes =\
-        UnivariateSpline(frequency_array, amplitude_median)(nodes)
-    amplitude_sigma_nodes =\
-        UnivariateSpline(frequency_array, amplitude_sigma)(nodes)
-    phase_mean_nodes = UnivariateSpline(frequency_array, phase_median)(nodes)
-    phase_sigma_nodes = UnivariateSpline(frequency_array, phase_sigma)(nodes)
-
-    prior = CalibrationPriorSet()
-    for ii in range(n_nodes):
-        name = "recalib_{}_amplitude_{}".format(label, ii)
-        latex_label = "$A^{}_{}$".format(label, ii)
-        prior[name] = Gaussian(mu=amplitude_mean_nodes[ii],
-                               sigma=amplitude_sigma_nodes[ii],
-                               name=name, latex_label=latex_label)
-        name = "recalib_{}_phase_{}".format(label, ii)
-        latex_label = "$\\phi^{}_{}$".format(label, ii)
-        prior[name] = Gaussian(mu=phase_mean_nodes[ii],
-                               sigma=phase_sigma_nodes[ii],
-                               name=name, latex_label=latex_label)
-        name = "recalib_{}_frequency_{}".format(label, ii)
-        latex_label = "$f^{}_{}$".format(label, ii)
-        prior[name] = DeltaFunction(peak=nodes[ii], name=name,
-                                    latex_label=latex_label)
-    prior.source = os.path.abspath(envelope_file)
-    return prior

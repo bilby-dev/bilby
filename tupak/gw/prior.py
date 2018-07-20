@@ -1,7 +1,8 @@
 import os
-from tupak.core.prior import PriorSet, FromFile, Prior
-
-from tupak.core.utils import logger
+from ..core.prior import PriorSet, FromFile, Prior, DeltaFunction, Gaussian
+from ..core.utils import logger
+import numpy as np
+from scipy.interpolate import UnivariateSpline
 
 
 class UniformComovingVolume(FromFile):
@@ -114,3 +115,109 @@ Prior._default_latex_labels = {
     'psi': '$\psi$',
     'phase': '$\phi$',
     'geocent_time': '$t_c$'}
+
+
+class CalibrationPriorSet(PriorSet):
+
+    def __init__(self, dictionary=None, filename=None):
+        """ Initialises a Prior set for Binary Black holes
+
+        Parameters
+        ----------
+        dictionary: dict, optional
+            See superclass
+        filename: str, optional
+            See superclass
+        """
+        if dictionary is None and filename is not None:
+            filename = os.path.join(os.path.dirname(__file__),
+                                    'prior_files', filename)
+        PriorSet.__init__(self, dictionary=dictionary, filename=filename)
+        self.source = None
+
+    def write_to_file(self, outdir, label):
+        """
+        Write the prior to file. This includes information about the source if
+        possible.
+
+        Parameters
+        ----------
+        outdir: str
+            Output directory.
+        label: str
+            Label for prior.
+        """
+        PriorSet.write_to_file(self, outdir=outdir, label=label)
+        if self.source is not None:
+            prior_file = os.path.join(outdir, "{}.prior".format(label))
+            with open(prior_file, "a") as outfile:
+                outfile.write("# prior source file is {}".format(self.source))
+
+    @staticmethod
+    def from_envelope_file(envelope_file, minimum_frequency,
+                           maximum_frequency, n_nodes, label):
+        """
+        Load in the calibration envelope.
+
+        This is a text file with columns:
+            frequency median-amplitude median-phase -1-sigma-amplitude
+            -1-sigma-phase +1-sigma-amplitude +1-sigma-phase
+
+        Parameters
+        ----------
+        envelope_file: str
+            Name of file to read in.
+        minimum_frequency: float
+            Minimum frequency for the spline.
+        maximum_frequency: float
+            Minimum frequency for the spline.
+        n_nodes: int
+            Number of nodes for the spline.
+        label: str
+            Label for the names of the parameters, e.g., recalib_H1_
+        save: bool, optional
+            Whether to write the prior to disk, default=True
+
+        Returns
+        -------
+        prior: PriorSet
+            Priors for the relevant parameters.
+            This includes the frequencies of the nodes which are _not_ sampled.
+        """
+        calibration_data = np.genfromtxt(envelope_file).T
+        frequency_array = calibration_data[0]
+        amplitude_median = 1 - calibration_data[1]
+        phase_median = calibration_data[2]
+        amplitude_sigma = (calibration_data[4] - calibration_data[2]) / 2
+        phase_sigma = (calibration_data[5] - calibration_data[3]) / 2
+
+        nodes = np.logspace(np.log10(minimum_frequency),
+                            np.log10(maximum_frequency), n_nodes)
+
+        amplitude_mean_nodes =\
+            UnivariateSpline(frequency_array, amplitude_median)(nodes)
+        amplitude_sigma_nodes =\
+            UnivariateSpline(frequency_array, amplitude_sigma)(nodes)
+        phase_mean_nodes =\
+            UnivariateSpline(frequency_array, phase_median)(nodes)
+        phase_sigma_nodes =\
+            UnivariateSpline(frequency_array, phase_sigma)(nodes)
+
+        prior = CalibrationPriorSet()
+        for ii in range(n_nodes):
+            name = "recalib_{}_amplitude_{}".format(label, ii)
+            latex_label = "$A^{}_{}$".format(label, ii)
+            prior[name] = Gaussian(mu=amplitude_mean_nodes[ii],
+                                   sigma=amplitude_sigma_nodes[ii],
+                                   name=name, latex_label=latex_label)
+            name = "recalib_{}_phase_{}".format(label, ii)
+            latex_label = "$\\phi^{}_{}$".format(label, ii)
+            prior[name] = Gaussian(mu=phase_mean_nodes[ii],
+                                   sigma=phase_sigma_nodes[ii],
+                                   name=name, latex_label=latex_label)
+            name = "recalib_{}_frequency_{}".format(label, ii)
+            latex_label = "$f^{}_{}$".format(label, ii)
+            prior[name] = DeltaFunction(peak=nodes[ii], name=name,
+                                        latex_label=latex_label)
+        prior.source = os.path.abspath(envelope_file)
+        return prior
