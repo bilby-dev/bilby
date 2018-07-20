@@ -406,8 +406,8 @@ def calibration_prior_from_envelope(envelope_file, minimum_frequency,
     amplitude_sigma = (calibration_data[4] - calibration_data[2]) / 2
     phase_sigma = (calibration_data[5] - calibration_data[3]) / 2
 
-    nodes = np.logspace(np.log(minimum_frequency), np.log(maximum_frequency),
-                        n_nodes)
+    nodes = np.logspace(np.log10(minimum_frequency),
+                        np.log10(maximum_frequency), n_nodes)
 
     amplitude_mean_nodes =\
         UnivariateSpline(frequency_array, amplitude_median)(nodes)
