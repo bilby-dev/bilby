@@ -360,7 +360,7 @@ class InterferometerStrainData(object):
             return self._time_domain_strain
         elif self._frequency_domain_strain is not None:
             time_domain_strain = utils.infft(
-                self.frequency_domain_strain, self.frequency_array)
+                self.frequency_domain_strain, self.sampling_frequency)
             self._time_domain_strain = time_domain_strain
             return self._time_domain_strain
 
