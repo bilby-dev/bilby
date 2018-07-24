@@ -197,9 +197,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def _setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
         rho_opt_ref = optimal_snr_squared.real * \
                       self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                      / self.ref_dist ** 2.
+                      / self._ref_dist ** 2.
         rho_mf_ref = matched_filter_snr_squared * \
-            self.waveform_generator.parameters['luminosity_distance'] / self.ref_dist
+            self.waveform_generator.parameters['luminosity_distance'] / self._ref_dist
         return rho_mf_ref, rho_opt_ref
 
     def log_likelihood(self):
