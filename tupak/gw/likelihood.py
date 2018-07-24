@@ -239,7 +239,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def _create_lookup_table(self):
         """ Make the lookup table """
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
-                                              for distance in self.distance_array])
+                                              for distance in self._distance_array])
         self._dist_margd_loglikelihood_array = np.zeros((400, 800))
         for ii, rho_opt_ref in enumerate(self._rho_opt_ref_array):
             for jj, rho_mf_ref in enumerate(self._rho_mf_ref_array):
