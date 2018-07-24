@@ -144,8 +144,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         matched_filter_snr_squared = 0
         optimal_snr_squared = 0
-        matched_filter_snr_squared_tc_array = np.zeros(self.interferometers.frequency_array[0:-1].shape,
-                                                       dtype=np.complex128)
+        matched_filter_snr_squared_tc_array = np.zeros(
+                self.interferometers.frequency_array[0:-1].shape, dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(waveform_polarizations,
                                                               self.waveform_generator.parameters)
@@ -158,8 +158,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 interferometer.time_marginalization = self.time_marginalization
                 matched_filter_snr_squared_tc_array += 4. * (1. / self.waveform_generator.duration) * np.fft.ifft(
                     signal_ifo.conjugate()[0:-1] * interferometer.frequency_domain_strain[0:-1]
-                    / interferometer.power_spectral_density_array[0:-1]) * len(
-                    interferometer.frequency_domain_strain[0:-1])
+                    / interferometer.power_spectral_density_array[0:-1])\
+                    * len(interferometer.frequency_domain_strain[0:-1])
 
         if self.time_marginalization:
             delta_tc = 1. / self.waveform_generator.sampling_frequency
@@ -195,12 +195,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         return log_l.real
 
     def _setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
-        rho_opt_ref = optimal_snr_squared.real \
-                      * self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                      / self._ref_dist ** 2.
-        rho_mf_ref = matched_filter_snr_squared \
-                     * self.waveform_generator.parameters['luminosity_distance'] \
-                     / self._ref_dist
+        rho_opt_ref = optimal_snr_squared.real * \
+                      self.waveform_generator.parameters['luminosity_distance'] ** 2 \
+                      / self.ref_dist ** 2.
+        rho_mf_ref = matched_filter_snr_squared * \
+            self.waveform_generator.parameters['luminosity_distance'] / self.ref_dist
         return rho_mf_ref, rho_opt_ref
 
     def log_likelihood(self):
@@ -240,6 +239,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         """ Make the lookup table """
         self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
                                               for distance in self._distance_array])
+        logger.info('Building lookup table for distance marginalisation.')
         self._dist_margd_loglikelihood_array = np.zeros((400, 800))
         for ii, rho_opt_ref in enumerate(self._rho_opt_ref_array):
             for jj, rho_mf_ref in enumerate(self._rho_mf_ref_array):

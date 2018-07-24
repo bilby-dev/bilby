@@ -363,7 +363,7 @@ class InterferometerStrainData(object):
             return self._time_domain_strain
         elif self._frequency_domain_strain is not None:
             self._time_domain_strain = utils.infft(
-                self.frequency_domain_strain, self.frequency_array)
+                self.frequency_domain_strain, self.sampling_frequency)
             return self._time_domain_strain
 
         else:
@@ -798,9 +798,17 @@ class Interferometer(object):
     def minimum_frequency(self):
         return self.strain_data.minimum_frequency
 
+    @minimum_frequency.setter
+    def minimum_frequency(self, minimum_frequency):
+        self._strain_data.minimum_frequency = minimum_frequency
+
     @property
     def maximum_frequency(self):
         return self.strain_data.maximum_frequency
+
+    @maximum_frequency.setter
+    def maximum_frequency(self, maximum_frequency):
+        self._strain_data.maximum_frequency = maximum_frequency
 
     @property
     def strain_data(self):

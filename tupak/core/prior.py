@@ -667,6 +667,10 @@ class LogUniform(PowerLaw):
         if self.minimum <= 0:
             logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self)
+
 
 class Cosine(Prior):
 
