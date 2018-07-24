@@ -1758,7 +1758,6 @@ def load_interferometer(filename):
             key = split_line[0].strip()
             value = eval('='.join(split_line[1:]))
             parameters[key] = value
-    interferometer = None
     if 'shape' not in parameters.keys():
         interferometer = Interferometer(**parameters)
         logger.debug('Assuming L shape for {}'.format('name'))
@@ -1768,6 +1767,8 @@ def load_interferometer(filename):
     elif parameters['shape'].lower() in ['triangular', 'triangle']:
         parameters.pop('shape')
         interferometer = TriangularInterferometer(**parameters)
+    else:
+        raise IOError("{} could not be loaded. Invalid parameter 'shape'.".format(filename))
     return interferometer
 
 
