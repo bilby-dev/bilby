@@ -504,44 +504,38 @@ class Dynesty(Sampler):
     def _run_external_sampler(self):
         dynesty = self.external_sampler
 
-        if self.kwargs.get('dynamic', False) is False:
-            nested_sampler = dynesty.NestedSampler(
-                loglikelihood=self.log_likelihood,
-                prior_transform=self.prior_transform,
-                ndim=self.ndim, **self.kwargs)
+        nested_sampler = dynesty.NestedSampler(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, **self.kwargs)
 
-            if self.kwargs['resume']:
-                resume = self.read_saved_state(nested_sampler, continuing=True)
-                if resume:
-                    logger.info('Resuming from previous run.')
+        if self.kwargs['resume']:
+            resume = self.read_saved_state(nested_sampler, continuing=True)
+            if resume:
+                logger.info('Resuming from previous run.')
 
-            old_ncall = nested_sampler.ncall
-            maxcall = self.kwargs['n_check_point']
-            while True:
-                maxcall += self.kwargs['n_check_point']
-                nested_sampler.run_nested(
-                    dlogz=self.kwargs['dlogz'],
-                    print_progress=self.kwargs['verbose'],
-                    print_func=self._print_func, maxcall=maxcall,
-                    add_live=False)
-                if nested_sampler.ncall == old_ncall:
-                    break
-                old_ncall = nested_sampler.ncall
-
-                self.write_current_state(nested_sampler)
-
-            self.read_saved_state(nested_sampler)
-
+        old_ncall = nested_sampler.ncall
+        maxcall = self.kwargs['n_check_point']
+        while True:
+            maxcall += self.kwargs['n_check_point']
             nested_sampler.run_nested(
                 dlogz=self.kwargs['dlogz'],
                 print_progress=self.kwargs['verbose'],
-                print_func=self._print_func, add_live=True)
-        else:
-            nested_sampler = dynesty.DynamicNestedSampler(
-                loglikelihood=self.log_likelihood,
-                prior_transform=self.prior_transform,
-                ndim=self.ndim, **self.kwargs)
-            nested_sampler.run_nested(print_progress=self.kwargs['verbose'])
+                print_func=self._print_func, maxcall=maxcall,
+                add_live=False)
+            if nested_sampler.ncall == old_ncall:
+                break
+            old_ncall = nested_sampler.ncall
+
+            self.write_current_state(nested_sampler)
+
+        self.read_saved_state(nested_sampler)
+
+        nested_sampler.run_nested(
+            dlogz=self.kwargs['dlogz'],
+            print_progress=self.kwargs['verbose'],
+            print_func=self._print_func, add_live=True)
+
         print("")
         out = nested_sampler.results
 
