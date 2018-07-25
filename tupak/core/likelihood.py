@@ -61,35 +61,53 @@ class GaussianLikelihood(Likelihood):
         sigma: None, float, array_like
             If None, the standard deviation of the noise is unknown and will be
             estimated (note: this requires a prior to be given for sigma). If
-            not None, this defined the standard-deviation of the data points.
+            not None, this defines the standard-deviation of the data points.
             This can either be a single float, or an array with length equal
             to that for `x` and `y`.
         """
-        parameters = self._infer_parameters_from_model(function)
-        Likelihood.__init__(self, dict.fromkeys(parameters))
+
+        parameters = self._infer_parameters_from_function(function)
+        self.parameters = dict.fromkeys(parameters)
+
+        Likelihood.__init__(self, self.parameters)
 
         self.x = x
         self.y = y
         self.sigma = sigma
         self.function = function
 
-        self.parameters = dict.fromkeys(parameters)
+        # Check if sigma was provided, if not it is a parameter
         self.function_keys = self.parameters.keys()
         if self.sigma is None:
             self.parameters['sigma'] = None
 
     @staticmethod
-    def _infer_parameters_from_model(model):
-        parameters = inspect.getargspec(model).args
+    def _infer_parameters_from_function(function):
+        """ Infers the arguments of function (except the first arg which is
+            assumed to be the dep. variable
+        """
+        parameters = inspect.getargspec(function).args
         parameters.pop(0)
         return parameters
 
     @property
     def N(self):
+        """ The number of data points """
         return len(self.x)
 
     def log_likelihood(self):
+        # This checks if sigma has been set in parameters. If so, that value
+        # will be used. Otherwise, the attribute sigma is used. The logic is
+        # that if sigma is not in parameters the attribute is used which was
+        # given at init (i.e. the known sigma as either a float or array).
+        sigma = self.parameters.get('sigma', self.sigma)
+
+        # This sets up the function only parameters (i.e. not sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
+
+        # Calculate the residual
         res = self.y - self.function(self.x, **model_parameters)
-        return -0.5 * (np.sum((res / self.sigma)**2)
-                       + self.N*np.log(2*np.pi*self.sigma**2))
+
+        # Return the summed log likelihood
+        return -0.5 * (np.sum((res / sigma)**2)
+                       + self.N * np.log(2 * np.pi * sigma**2))
