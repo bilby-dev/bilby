@@ -65,23 +65,34 @@ class GaussianLikelihood(Likelihood):
             This can either be a single float, or an array with length equal
             to that for `x` and `y`.
         """
-        self.x = x
-        self.y = y
-        self.N = len(x)
-        self.sigma = sigma
-        self.function = function
-
         # These lines of code infer the parameters from the provided function
         parameters = inspect.getargspec(function).args
         parameters.pop(0)
-        self.parameters = dict.fromkeys(parameters)
-        self.function_keys = self.parameters.keys()
-        if self.sigma is None:
-            self.parameters['sigma'] = None
+        Likelihood.__init__(self, dict.fromkeys(parameters))
+
+        self.x = x
+        self.y = y
+        self.sigma = sigma
+        self.function = function
+
+    @property
+    def function_keys(self):
+        return self.parameters.keys()
+
+    @property
+    def N(self):
+        return len(self.x)
+
+    @property
+    def sigma(self):
+        return self.parameters.get('sigma', None)
+
+    @sigma.setter
+    def sigma(self, sigma):
+        self.parameters['sigma'] = sigma
 
     def log_likelihood(self):
-        sigma = self.parameters.get('sigma', self.sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
         res = self.y - self.function(self.x, **model_parameters)
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N*np.log(2*np.pi*sigma**2))
+        return -0.5 * (np.sum((res / self.sigma)**2)
+                       + self.N*np.log(2*np.pi*self.sigma**2))
