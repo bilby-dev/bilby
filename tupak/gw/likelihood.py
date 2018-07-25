@@ -7,7 +7,7 @@ try:
     from scipy.special import logsumexp
 except ImportError:
     from scipy.misc import logsumexp
-from scipy.special._ufuncs import i0e
+from scipy.special import i0e
 
 import tupak
 from tupak.core import likelihood as likelihood
