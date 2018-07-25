@@ -26,16 +26,18 @@ def write_version_file(version):
                     + subprocess.check_output(
                         ['git', 'diff', '--cached', '.'])).decode('utf-8')
         if git_diff == '':
-            status = '(CLEAN) ' + git_log
+            git_status = '(CLEAN) ' + git_log
         else:
-            status = '(UNCLEAN) ' + git_log
-    except subprocess.CalledProcessError:
-        status = ''
+            git_status = '(UNCLEAN) ' + git_log
+    except Exception as e:
+        print("Unable to obtain git version information, exception: {}"
+              .format(e))
+        git_status = ''
 
     version_file = '.version'
     if path.isfile(version_file) is False:
         with open('tupak/' + version_file, 'w+') as f:
-            f.write('{} - {}'.format(version, status))
+            f.write('{}: {}'.format(version, git_status))
 
     return version_file
 
