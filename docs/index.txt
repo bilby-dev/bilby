@@ -9,6 +9,7 @@ Welcome to tupak's documentation!
    :caption: Contents:
 
    installation
+   examples
    basics-of-parameter-estimation
    prior
    likelihood

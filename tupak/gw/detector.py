@@ -23,7 +23,7 @@ class InterferometerSet(list):
     def __init__(self, interferometers):
         """ Instantiate a InterferometerSet
 
-        The InterferometerSet contains a list of Interferometer objects, each
+        The InterferometerSet is a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
 
         Parameters
@@ -304,6 +304,9 @@ class InterferometerStrainData(object):
 
     @property
     def maximum_frequency(self):
+        """ Force the maximum frequency be less than the Nyquist frequency """
+        if 2 * self.__maximum_frequency > self.sampling_frequency:
+            self.__maximum_frequency = self.sampling_frequency / 2.
         return self.__maximum_frequency
 
     @maximum_frequency.setter
@@ -359,9 +362,8 @@ class InterferometerStrainData(object):
         if self._time_domain_strain is not None:
             return self._time_domain_strain
         elif self._frequency_domain_strain is not None:
-            time_domain_strain = utils.infft(
-                self.frequency_domain_strain, self.frequency_array)
-            self._time_domain_strain = time_domain_strain
+            self._time_domain_strain = utils.infft(
+                self.frequency_domain_strain, self.sampling_frequency)
             return self._time_domain_strain
 
         else:
@@ -389,7 +391,12 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("frequency domain strain data not yet set")
 
+    @frequency_domain_strain.setter
+    def frequency_domain_strain(self, frequency_domain_strain):
+        self._frequency_domain_strain = frequency_domain_strain
+
     def add_to_frequency_domain_strain(self, x):
+        """Deprecated"""
         self._frequency_domain_strain += x
 
     def low_pass_filter(self, filter_freq=None):
@@ -444,16 +451,11 @@ class InterferometerStrainData(object):
 
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
-            with open('{}'.format(psd_file), 'w+') as file:
+            with open('{}'.format(psd_file), 'w+') as opened_file:
                 for f, p in zip(psd.frequencies.value, psd.value):
-                    file.write('{} {}\n'.format(f, p))
+                    opened_file.write('{} {}\n'.format(f, p))
 
         return psd.frequencies.value, psd.value
-
-    def _check_maximum_frequency(self):
-        """ Force the maximum frequency be less than the Nyquist frequency """
-        if 2 * self.maximum_frequency > self.sampling_frequency:
-            self.maximum_frequency = self.sampling_frequency / 2.
 
     def _infer_time_domain_dependence(
             self, sampling_frequency, duration, time_array):
@@ -467,14 +469,16 @@ class InterferometerStrainData(object):
                     "time_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-        elif any(x is not None for x in [sampling_frequency, duration]):
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
+            self.time_array = utils.create_time_series(sampling_frequency=sampling_frequency,
+                                                       duration=duration)
         elif time_array is not None:
             self.sampling_frequency, self.duration = (
                 utils.get_sampling_frequency_and_duration_from_time_array(
                     time_array))
             self.time_array = np.array(time_array)
+        elif sampling_frequency is None or duration is None:
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
                 "Insufficient information given to set time_array")
@@ -514,7 +518,6 @@ class InterferometerStrainData(object):
             self._frequency_domain_strain = None
         else:
             raise ValueError("Data times do not match time array")
-        self._check_maximum_frequency()
 
     def set_from_gwpy_timeseries(self, time_series):
         """ Set the strain data from a gwpy TimeSeries
@@ -536,7 +539,6 @@ class InterferometerStrainData(object):
         self.duration = time_series.duration.value
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
-        self._check_maximum_frequency()
 
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
@@ -570,7 +572,6 @@ class InterferometerStrainData(object):
             **kwargs)
 
         self.set_from_gwpy_timeseries(timeseries)
-        self._check_maximum_frequency()
 
     def set_from_csv(self, filename):
         """ Set the strain data from a csv file
@@ -583,7 +584,6 @@ class InterferometerStrainData(object):
         """
         timeseries = gwpy.timeseries.TimeSeries.read(filename, format='csv')
         self.set_from_gwpy_timeseries(timeseries)
-        self._check_maximum_frequency()
 
     def _infer_frequency_domain_dependence(
             self, sampling_frequency, duration, frequency_array):
@@ -598,14 +598,16 @@ class InterferometerStrainData(object):
                     "frequency_array")
             self.sampling_frequency = sampling_frequency
             self.duration = duration
-        elif any(x is not None for x in [sampling_frequency, duration]):
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
+            self.frequency_array = utils.create_frequency_series(sampling_frequency=sampling_frequency,
+                                                                 duration=duration)
         elif frequency_array is not None:
             self.sampling_frequency, self.duration = (
                 utils.get_sampling_frequency_and_duration_from_frequency_array(
                     frequency_array))
             self.frequency_array = np.array(frequency_array)
+        elif sampling_frequency is None or duration is None:
+            raise ValueError(
+                "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
                 "Insufficient information given to set frequency_array")
@@ -738,9 +740,9 @@ class InterferometerStrainData(object):
 class Interferometer(object):
     """Class for the Interferometer """
 
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
-                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0.):
+    def __init__(self, name, power_spectral_density, minimum_frequency,
+                 maximum_frequency, length, latitude, longitude, elevation,
+                 xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0.):
         """
         Instantiate an Interferometer object.
 
@@ -767,7 +769,8 @@ class Interferometer(object):
         yarm_azimuth: float
             Orientation of the y arm in degrees North of East.
         xarm_tilt: float, optional
-            Tilt of the x arm in radians above the horizontal defined by ellipsoid earth model in LIGO-T980044-08.
+            Tilt of the x arm in radians above the horizontal defined by
+            ellipsoid earth model in LIGO-T980044-08.
         yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
         """
@@ -817,7 +820,7 @@ class Interferometer(object):
         """ Set the strain_data
 
         This sets the Interferometer.strain_data equal to the provided
-        strain_data. This will overide the minimum_frequency and
+        strain_data. This will override the minimum_frequency and
         maximum_frequency of the provided strain_data object with those of
         the Interferometer object.
         """
@@ -1172,8 +1175,7 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'],
             parameters['dec'],
-            self.strain_data.start_time)  # parameters['geocent_time'])
-
+            self.strain_data.start_time)
         if self.time_marginalization:
             dt = time_shift
             # when marginalizing over time we only care about relative time shifts
@@ -1203,7 +1205,9 @@ class Interferometer(object):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note: if your signal takes a substantial amount of time to generate, or
+        Note
+        -------
+        if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
@@ -1222,11 +1226,11 @@ class Interferometer(object):
                     "inject_signal needs one of waveform_generator or "
                     "injection_polarizations.")
 
-        if injection_polarizations is None:
-            raise ValueError(
-                'Trying to inject signal which is None. The most likely cause'
-                ' is that waveform_generator.frequency_domain_strain returned'
-                ' None. This can be caused if, e.g., mass_2 > mass_1.')
+            if injection_polarizations is None:
+                raise ValueError(
+                    'Trying to inject signal which is None. The most likely cause'
+                    ' is that waveform_generator.frequency_domain_strain returned'
+                    ' None. This can be caused if, e.g., mass_2 > mass_1.')
 
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
@@ -1235,7 +1239,8 @@ class Interferometer(object):
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
-            self.strain_data.add_to_frequency_domain_strain(signal_ifo)
+            self.strain_data.frequency_domain_strain = \
+                signal_ifo + self.strain_data.frequency_domain_strain
         else:
             logger.info('Injecting into zero noise.')
             self.set_strain_data_from_frequency_domain_strain(
@@ -1385,6 +1390,8 @@ class Interferometer(object):
         ----------
         outdir: str
             The output directory in which the data is supposed to be saved
+        label: str
+            The name of the output files
         """
         np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
                    np.array(
@@ -1695,8 +1702,7 @@ class PowerSpectralDensity(object):
 
         """
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
-        interpolated_power_spectral_density = self.power_spectral_density_interpolated(frequencies)
-        frequency_domain_strain = interpolated_power_spectral_density ** 0.5 * white_noise
+        frequency_domain_strain = self.power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
@@ -1761,6 +1767,8 @@ def load_interferometer(filename):
     elif parameters['shape'].lower() in ['triangular', 'triangle']:
         parameters.pop('shape')
         interferometer = TriangularInterferometer(**parameters)
+    else:
+        raise IOError("{} could not be loaded. Invalid parameter 'shape'.".format(filename))
     return interferometer
 
 

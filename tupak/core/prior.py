@@ -143,12 +143,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the samples
         """
-        self.convert_floats_to_delta_functions()
-        samples = dict()
-        for key in self:
-            if isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
-        return samples
+        return self.sample_subset(keys=self.keys(), size=size)
 
     def sample_subset(self, keys=list(), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
@@ -164,6 +159,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the drawn samples
         """
+        self.convert_floats_to_delta_functions()
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
@@ -219,7 +215,7 @@ class PriorSet(dict):
         return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
 
     def test_redundancy(self, key):
-        """Empty redundancy test, should be overwritten"""
+        """Empty redundancy test, should be overwritten in subclasses"""
         return False
 
 
@@ -257,6 +253,8 @@ def create_default_prior(name, default_priors_file=None):
 
 
 class Prior(object):
+
+    _default_latex_labels = dict()
 
     def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
         """ Implements a Prior object
@@ -459,8 +457,6 @@ class Prior(object):
         else:
             label = self.name
         return label
-
-    _default_latex_labels = dict()
 
 
 class DeltaFunction(Prior):

@@ -177,7 +177,7 @@ To diagnose this, run the following
 
 .. code-block:: console
 
-   $ python -c 'import tupak; print(tpuak.__file__)'
+   $ python -c 'import tupak; print(tupak.__file__)'
    /home/user1/anaconda3/lib/python3.6/site-packages/tupak-0.2.10py3.6.egg/tupak/__init__.pyc
 
 Here we can see it's installed under `site-packages` within anaconda. Your
