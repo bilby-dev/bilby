@@ -67,9 +67,7 @@ class GaussianLikelihood(Likelihood):
         """
 
         parameters = self._infer_parameters_from_function(function)
-        self.parameters = dict.fromkeys(parameters)
-
-        Likelihood.__init__(self, self.parameters)
+        Likelihood.__init__(self, dict.fromkeys(parameters))
 
         self.x = x
         self.y = y
@@ -86,7 +84,7 @@ class GaussianLikelihood(Likelihood):
         """ Infers the arguments of function (except the first arg which is
             assumed to be the dep. variable
         """
-        parameters = inspect.getargspec(function).args
+        parameters = inspect.getargspec(func).args
         parameters.pop(0)
         return parameters
 
