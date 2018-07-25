@@ -4,7 +4,7 @@ from setuptools import setup
 import subprocess
 from os import path
 
-version = '0.2'
+version = '0.2.1'
 
 # Write a version file containing the git hash and info
 try:

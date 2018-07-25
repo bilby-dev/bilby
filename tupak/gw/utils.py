@@ -183,10 +183,10 @@ def inner_product(aa, bb, frequency, PSD):
     The matched filter inner product for aa and bb
 
     """
-    PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+    psd_interp = PSD.power_spectral_density_interpolated(frequency)
 
     # calculate the inner product
-    integrand = np.conj(aa) * bb / PSD_interp
+    integrand = np.conj(aa) * bb / psd_interp
 
     df = frequency[1] - frequency[0]
     integral = np.sum(integrand) * df

@@ -18,7 +18,8 @@ Install tupak from source
 :code:`tupak` is developed to work with both Python 2.7+ and Python 3+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
-and `git <https://git-scm.com/>`_.
+and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our
+advise on installing anaconda python.
 
 Clone the repository, install the requirements, and then install the software:
 
@@ -47,6 +48,62 @@ plan to use `tupak` for gravitational wave inference.
    .. code-block:: console
 
       $ git clone https://git.ligo.org/Monash/tupak.git
+
+.. _installing-python:
+
+Installing python
+-----------------
+
+Most computers/clusters have a system installed python version. You may choose
+to use this, but here we describe an alternative. In particular, how to install
+the `anaconda distribution python package
+<https://www.anaconda.com/download/#linux>`_. Firstly, download the install
+file, you can do this from the link above, or run the command
+
+.. code-block:: console
+
+   $ wget https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh
+
+this will download an installer for python 3.6, for other versions check
+the `anaconda page <https://www.anaconda.com/download/#linux>`_.
+Then, `run the command
+<https://conda.io/docs/user-guide/install/linux.html>`_
+
+.. code-block:: console
+
+   $ bash Anaconda3-5.2.0-Linux-x86_64.sh
+
+and follow the prompts on the install screen.  After this process, you should
+have a directory :code:`~/anaconda3` in your home directory. This contains your
+python installation. In particular, if you run the command
+
+.. code-block:: console
+
+   $ which python
+   /home/users/USER/anaconda3/bin/python
+
+The output here (with a suitable replacement of the path) indicates that you
+are using the anaconda install of python. If instead, the output says something
+like :code;`/usr/bin/python`, then this is not the anaconda installation, but
+instead the system python.
+
+If you are finding that you have run the above steps, but :code:`python` is
+not pointing to your anaconda install, make sure that (a) you have appended a
+line like this to your :code:`.bashrc` file
+
+.. code-block:: console
+
+   export PATH="${HOME}/anaconda3/bin:$PATH"
+
+and (b) that you have restarted bash for this line to take effect (i.e., run
+:code:`$ bash`).
+
+.. note::
+
+    Using your own installation of python has several advantages: its generally
+    easier to debug, avoids conflicts with other packages, and if you end up
+    with a broken installation you can just delete the directory and start
+    again.
 
 
 Installing lalsuite
@@ -111,4 +168,26 @@ Finally, add the libraries to you path. Add this to the `.bashrc` file
    $ export LD_LIBRARY_PATH=$HOME/Downloads/MultiNest/lib:
 
 (you'll need to resource your `.bashrc` after this, i.e. run `bash`).
+
+Common problems: multiple tupak versions
+----------------------------------------
+
+Occasionally, it is possible to end up with multiple tupak installations.
+To diagnose this, run the following
+
+.. code-block:: console
+
+   $ python -c 'import tupak; print(tupak.__file__)'
+   /home/user1/anaconda3/lib/python3.6/site-packages/tupak-0.2.10py3.6.egg/tupak/__init__.pyc
+
+Here we can see it's installed under `site-packages` within anaconda. Your
+installation path may differ. If you believe you have multiple installs, you
+can verify this by running :code:`ls` in that directory. Then, you
+can purge your installation of tupak by running
+
+.. code-block:: console
+
+   $ rm -r /home/user1/anaconda/lib/python3.6/site-packages/tupak*
+
+Replacing the path with the output of the previous command.
 

@@ -4,14 +4,20 @@
 
 Changes currently on master, but not under a tag.
 
+## [0.2.1] 2018-07-18
+
 ### Added
 - InterferometerStrainData now handles both time-domain and frequencu-domain data
 - Adds documentation on setting data (https://monash.docs.ligo.org/tupak/transient-gw-data.html)
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
 - Add functionality to plot multiple results in a corner plot, see `tupak.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
+- Add functionality to sample in redshift and reconstruction of source frame masses.
+- Add functionality to combine result objects.
+- Enable initial values for emcee to be specified.
 
 ### Changed
+- Changed to using `setuptools` for installation.
 - Clean up of real data handling: all data is now windowed with a 0.4s roll off (unless set otherwise) and low-pass filtered.
 - Add explicit method to create a power spectral density from time-domain data
 - Clean up of `PowerSpectralDensity()` - addds `set_from` methods to handle various ways to define the PSD.

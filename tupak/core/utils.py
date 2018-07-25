@@ -294,8 +294,9 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
     ----------
     outdir, label: str
         If supplied, write the logging output to outdir/label.log
-    log_level = ['debug', 'info', 'warning']
-        Either a string from the list above, or an interger as specified
+    log_level: str, optional
+        ['debug', 'info', 'warning']
+        Either a string from the list above, or an integer as specified
         in https://docs.python.org/2/library/logging.html#logging-levels
     print_version: bool
         If true, print version information
@@ -303,23 +304,23 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
 
     if type(log_level) is str:
         try:
-            LEVEL = getattr(logging, log_level.upper())
+            level = getattr(logging, log_level.upper())
         except AttributeError:
             raise ValueError('log_level {} not understood'.format(log_level))
     elif log_level is None:
-        LEVEL = command_line_args.log_level
+        level = command_line_args.log_level
     else:
-        LEVEL = int(log_level)
+        level = int(log_level)
 
     logger = logging.getLogger('tupak')
     logger.propagate = False
-    logger.setLevel(LEVEL)
+    logger.setLevel(level)
 
     if any([type(h) == logging.StreamHandler for h in logger.handlers]) is False:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(name)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
-        stream_handler.setLevel(LEVEL)
+        stream_handler.setLevel(level)
         logger.addHandler(stream_handler)
 
     if any([type(h) == logging.FileHandler for h in logger.handlers]) is False:
@@ -333,11 +334,11 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
             file_handler.setFormatter(logging.Formatter(
                 '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
 
-            file_handler.setLevel(LEVEL)
+            file_handler.setLevel(level)
             logger.addHandler(file_handler)
 
     for handler in logger.handlers:
-        handler.setLevel(LEVEL)
+        handler.setLevel(level)
 
     version_file = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), '.version')

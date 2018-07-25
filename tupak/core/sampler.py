@@ -451,7 +451,7 @@ class Dynesty(Sampler):
     @kwargs.setter
     def kwargs(self, kwargs):
         self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk', resume=True,
-                             walks=self.ndim * 5, verbose=True, check_point_delta_t=60*10)
+                             walks=self.ndim * 5, verbose=True, check_point_delta_t=60 * 10)
         self.__kwargs.update(kwargs)
         if 'nlive' not in self.__kwargs:
             for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
@@ -479,7 +479,7 @@ class Dynesty(Sampler):
         # Adjusting outputs for printing.
         if delta_logz > 1e6:
             delta_logz = np.inf
-        if logzvar >= 0. and logzvar <= 1e6:
+        if 0. <= logzvar <= 1e6:
             logzerr = np.sqrt(logzvar)
         else:
             logzerr = np.nan
@@ -799,9 +799,9 @@ class Emcee(Sampler):
         else:
             logger.debug("Generating initial walker positions from prior")
             pos0 = [self.get_random_draw_from_prior()
-                    for i in range(self.nwalkers)]
+                    for _ in range(self.nwalkers)]
 
-        for result in tqdm(
+        for _ in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps), total=self.nsteps):
             pass
 
@@ -815,7 +815,7 @@ class Emcee(Sampler):
 
         try:
             logger.info("Max autocorr time = {}".format(
-                         np.max(sampler.get_autocorr_time())))
+                np.max(sampler.get_autocorr_time())))
         except emcee.autocorr.AutocorrError as e:
             logger.info("Unable to calculate autocorr time: {}".format(e))
         return self.result
@@ -844,10 +844,10 @@ class Ptemcee(Emcee):
             logl=self.log_likelihood, logp=self.log_prior,
             **self.kwargs)
         pos0 = [[self.get_random_draw_from_prior()
-                 for i in range(self.nwalkers)]
-                for j in range(self.ntemps)]
+                 for _ in range(self.nwalkers)]
+                for _ in range(self.ntemps)]
 
-        for result in tqdm(
+        for _ in tqdm(
                 sampler.sample(pos0, iterations=self.nsteps, adapt=True),
                 total=self.nsteps):
             pass
@@ -860,9 +860,9 @@ class Ptemcee(Emcee):
         self.result.log_evidence_err = np.nan
 
         logger.info("Max autocorr time = {}"
-                     .format(np.max(sampler.get_autocorr_time())))
+                    .format(np.max(sampler.get_autocorr_time())))
         logger.info("Tswap frac = {}"
-                     .format(sampler.tswap_acceptance_fraction))
+                    .format(sampler.tswap_acceptance_fraction))
         return self.result
 
 
