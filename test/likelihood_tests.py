@@ -35,7 +35,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         likelihood.log_likelihood()
-        self.assertTrue(likelihood.sigma == self.sigma)
+        self.assertEqual(likelihood.sigma, self.sigma)
 
     def test_known_array_sigma(self):
         sigma_array = np.ones(self.N) * self.sigma
