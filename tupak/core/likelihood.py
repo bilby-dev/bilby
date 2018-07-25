@@ -77,7 +77,7 @@ class GaussianLikelihood(Likelihood):
         self.function = function
 
         # Check if sigma was provided, if not it is a parameter
-        self.function_keys = self.parameters.keys()
+        self.function_keys = list(self.parameters.keys())
         if self.sigma is None:
             self.parameters['sigma'] = None
 
