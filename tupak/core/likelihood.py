@@ -80,7 +80,7 @@ class GaussianLikelihood(Likelihood):
             self.parameters['sigma'] = None
 
     @staticmethod
-    def _infer_parameters_from_function(function):
+    def _infer_parameters_from_function(func):
         """ Infers the arguments of function (except the first arg which is
             assumed to be the dep. variable
         """
