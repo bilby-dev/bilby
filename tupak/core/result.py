@@ -161,8 +161,7 @@ class Result(dict):
     def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
         file_name = result_file_name(self.outdir, self.label)
-        if os.path.isdir(self.outdir) is False:
-            os.makedirs(self.outdir)
+        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         if os.path.isfile(file_name):
             logger.debug(
                 'Renaming existing file {} to {}.old'.format(file_name,
@@ -307,6 +306,7 @@ class Result(dict):
         fig = corner.corner(xs, **kwargs)
 
         if save:
+            utils.check_directory_exists_and_if_not_mkdir(self.outdir)
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
@@ -339,6 +339,7 @@ class Result(dict):
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
         logger.debug('Saving walkers plot to {}'.format('filename'))
+        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
 
     def samples_to_posterior(self, likelihood=None, priors=None,
