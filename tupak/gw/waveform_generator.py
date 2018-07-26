@@ -119,9 +119,12 @@ class WaveformGenerator(object):
         self._remove_added_keys(added_keys)
         return model_strain
 
-    def _remove_added_keys(self, added_keys):
-        for key in added_keys:
-            self.parameters.pop(key)
+    def _setup_conversion(self):
+        added_keys = []
+        if self.parameter_conversion is not None:
+            self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                    self.non_standard_sampling_parameter_keys)
+        return added_keys
 
     def _strain_from_model(self, model_data_points, model):
         self.__full_source_model_keyword_arguments.update(self.parameters)
@@ -142,12 +145,10 @@ class WaveformGenerator(object):
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         return model_strain
 
-    def _setup_conversion(self):
-        added_keys = []
-        if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                    self.non_standard_sampling_parameter_keys)
-        return added_keys
+    def _remove_added_keys(self, added_keys):
+        for key in added_keys:
+            self.parameters.pop(key)
+
 
     @property
     def frequency_array(self):
