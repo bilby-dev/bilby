@@ -18,14 +18,10 @@ https://monash.docs.ligo.org/tupak/installation.html.
 
 from __future__ import print_function, division, absolute_import
 
-# import local files, core utils should be imported first
-from tupak.core import utils, likelihood, prior, result, sampler
-from tupak.gw import detector, conversion, source, waveform_generator
-from tupak.hyper import likelihood, model
+import tupak.core
+import tupak.gw
+import tupak.hyper
 
-# import a few often-used functions and classes to simplify scripts
-from tupak.core.likelihood import Likelihood
-from tupak.gw.likelihood import GravitationalWaveTransient
-from tupak.gw.waveform_generator import WaveformGenerator
+from tupak.core import utils, likelihood, prior, result
 from tupak.core.sampler import run_sampler
-from tupak.hyper.likelihood import HyperparameterLikelihood
+from tupak.core.likelihood import Likelihood
