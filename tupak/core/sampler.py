@@ -942,7 +942,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         of conflict with keys saved by tupak, the meta_data keys will be
         overwritten.
     save: bool
-        If true, save the results to disk.
+        If true, save the priors and results to disk.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -955,7 +955,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if clean:
         utils.command_line_args.clean = clean
 
-    utils.check_directory_exists_and_if_not_mkdir(outdir)
     implemented_samplers = get_implemented_samplers()
 
     if priors is None:
@@ -969,7 +968,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         raise ValueError
 
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
-    priors.write_to_file(outdir, label)
+
+    if save:
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
         sampler_class = globals()[sampler.title()]
@@ -1008,7 +1010,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             if conversion_function is not None:
                 result.injection_parameters = conversion_function(result.injection_parameters)
         result.fixed_parameter_keys = sampler.fixed_parameter_keys
-        # result.prior = prior  # Removed as this breaks the saving of the data
         result.samples_to_posterior(likelihood=likelihood, priors=priors,
                                     conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
