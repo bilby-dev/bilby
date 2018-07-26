@@ -86,19 +86,13 @@ class WaveformGenerator(object):
         transformation_function = utils.nfft
         added_keys = self._setup_conversion()
 
-        model_strain = None
+        model_strain = dict()
         if model is not None:
-            self.__full_source_model_keyword_arguments.update(self.parameters)
-            model_strain = model(
-                model_data_points,
-                **self.__full_source_model_keyword_arguments)
+            model_strain = self._strain_from_model(model, model_data_points)
         elif transformed_model is not None:
-            model_strain = dict()
-            self.__full_source_model_keyword_arguments.update(self.parameters)
-            transformed_model_strain = transformed_model(
-                transformed_model_data_points, **self.__full_source_model_keyword_arguments)
+            transformed_model_strain = self._strain_from_model(transformed_model, transformed_model_data_points)
             if isinstance(transformed_model_strain, np.ndarray):
-                return transformation_function(transformed_model_strain, self.sampling_frequency)
+                model_strain = transformation_function(transformed_model_strain, self.sampling_frequency)
             for key in transformed_model_strain:
                 model_strain[key], self.frequency_array = transformation_function(transformed_model_strain[key],
                                                                                   self.sampling_frequency)
@@ -140,18 +134,13 @@ class WaveformGenerator(object):
         transformation_function = utils.infft
         added_keys = self._setup_conversion()
 
-        model_strain = None
+        model_strain = dict()
         if model is not None:
-            self.__full_source_model_keyword_arguments.update(self.parameters)
-            model_strain = model(
-                model_data_points, **self.__full_source_model_keyword_arguments)
+            model_strain = self._strain_from_model(model, model_data_points)
         elif transformed_model is not None:
-            model_strain = dict()
-            self.__full_source_model_keyword_arguments.update(self.parameters)
-            transformed_model_strain = transformed_model(
-                transformed_model_data_points, **self.__full_source_model_keyword_arguments)
+            transformed_model_strain = self._strain_from_model(transformed_model, transformed_model_data_points)
             if isinstance(transformed_model_strain, np.ndarray):
-                return transformation_function(transformed_model_strain, self.sampling_frequency)
+                model_strain = transformation_function(transformed_model_strain, self.sampling_frequency)
             for key in transformed_model_strain:
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         else:
@@ -159,6 +148,12 @@ class WaveformGenerator(object):
 
         for key in added_keys:
             self.parameters.pop(key)
+        return model_strain
+
+    def _strain_from_model(self, model, model_data_points):
+        self.__full_source_model_keyword_arguments.update(self.parameters)
+        model_strain = model(
+            model_data_points, **self.__full_source_model_keyword_arguments)
         return model_strain
 
     @property
