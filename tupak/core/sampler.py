@@ -902,7 +902,7 @@ class Ptemcee(Emcee):
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, meta_data=None, **kwargs):
+                clean=None, meta_data=None, save=True, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -941,6 +941,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         saving. For example, if `meta_data={dtype: 'signal'}`. Warning: in case
         of conflict with keys saved by tupak, the meta_data keys will be
         overwritten.
+    save: bool
+        If true, save the results to disk.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -1010,10 +1012,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.samples_to_posterior(likelihood=likelihood, priors=priors,
                                     conversion_function=conversion_function)
         result.kwargs = sampler.kwargs
-        result.save_to_file()
+        if save:
+            result.save_to_file()
+            logger.info("Results saved to {}/".format(outdir))
         if plot:
             result.plot_corner()
-        logger.info("Sampling finished, results saved to {}/".format(outdir))
         logger.info("Summary of results:\n{}".format(result))
         return result
     else:

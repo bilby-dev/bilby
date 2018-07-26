@@ -370,6 +370,8 @@ class Result(dict):
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
+        # We save the samples in the posterior and remove the array of samples
+        del self.samples
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
