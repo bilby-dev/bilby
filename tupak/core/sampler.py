@@ -546,6 +546,10 @@ class Dynesty(Sampler):
         else:
             out = self._run_external_sampler_without_checkpointing(nested_sampler)
 
+        # Flushes the output to force a line break
+        if self.kwargs["verbose"]:
+            print("")
+
         # self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
         self.result.samples = dynesty.utils.resample_equal(
@@ -565,7 +569,6 @@ class Dynesty(Sampler):
             dlogz=self.kwargs['dlogz'],
             print_progress=self.kwargs['verbose'],
             print_func=self._print_func)
-        print("")
         return nested_sampler.results
 
     def _run_external_sampler_with_checkpointing(self, nested_sampler):
@@ -596,8 +599,6 @@ class Dynesty(Sampler):
             dlogz=self.kwargs['dlogz'],
             print_progress=self.kwargs['verbose'],
             print_func=self._print_func, add_live=True)
-
-        print("")
         self._remove_checkpoint()
         return nested_sampler.results
 
