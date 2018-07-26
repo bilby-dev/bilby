@@ -314,7 +314,7 @@ class Result(dict):
         return fig
 
     def plot_walkers(self, **kwargs):
-        """ Method to plot the trace of the walkers in an ensmble MCMC plot """
+        """ Method to plot the trace of the walkers in an ensemble MCMC plot """
         if hasattr(self, 'walkers') is False:
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
