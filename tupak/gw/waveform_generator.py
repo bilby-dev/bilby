@@ -78,12 +78,11 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        model_strain = self._calculate_strain(model=self.frequency_domain_source_model,
-                                              model_data_points=self.frequency_array,
-                                              transformation_function=utils.nfft,
-                                              transformed_model=self.time_domain_source_model,
-                                              transformed_model_data_points=self.time_array)
-        return model_strain
+        return self._calculate_strain(model=self.frequency_domain_source_model,
+                                      model_data_points=self.frequency_array,
+                                      transformation_function=utils.nfft,
+                                      transformed_model=self.time_domain_source_model,
+                                      transformed_model_data_points=self.time_array)
 
     def time_domain_strain(self):
         """ Rapper to source_model.
@@ -101,38 +100,42 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        model_strain = self._calculate_strain(model=self.time_domain_source_model,
-                                              model_data_points=self.time_array,
-                                              transformation_function=utils.nfft,
-                                              transformed_model=self.frequency_domain_source_model,
-                                              transformed_model_data_points=self.frequency_array)
-        return model_strain
+        return self._calculate_strain(model=self.time_domain_source_model,
+                                      model_data_points=self.time_array,
+                                      transformation_function=utils.infft,
+                                      transformed_model=self.frequency_domain_source_model,
+                                      transformed_model_data_points=self.frequency_array)
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points):
         added_keys = self._setup_conversion()
-        model_strain = dict()
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
-            model_strain = self._strain_from_transformed_model(model_strain, transformation_function, transformed_model,
-                                                               transformed_model_data_points)
+            model_strain = self._strain_from_transformed_model(transformed_model_data_points, transformed_model,
+                                                               transformation_function)
         else:
             raise RuntimeError("No source model given")
         for key in added_keys:
             self.parameters.pop(key)
         return model_strain
 
-    def _strain_from_transformed_model(self, model_strain, transformation_function, transformed_model,
-                                       transformed_model_data_points):
+    def _strain_from_model(self, model_data_points, model):
+        self.__full_source_model_keyword_arguments.update(self.parameters)
+        return model(model_data_points, **self.__full_source_model_keyword_arguments)
+
+    def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function):
         transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model)
         if isinstance(transformed_model_strain, np.ndarray):
             model_strain = transformation_function(transformed_model_strain, self.sampling_frequency)
+        else:
+            raise TypeError("Strain should be of tupe numpy.ndarray, but actually was {}"
+                            .format(type(transformed_model_strain)))
         for key in transformed_model_strain:
             if transformation_function == utils.nfft:
                 model_strain[key], self.frequency_array = \
                     transformation_function(transformed_model_strain[key], self.sampling_frequency)
-            elif transformation_function == utils.infft:
+            else:
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         return model_strain
 
@@ -142,12 +145,6 @@ class WaveformGenerator(object):
             self.parameters, added_keys = self.parameter_conversion(self.parameters,
                                                                     self.non_standard_sampling_parameter_keys)
         return added_keys
-
-    def _strain_from_model(self, model_data_points, model):
-        self.__full_source_model_keyword_arguments.update(self.parameters)
-        model_strain = model(
-            model_data_points, **self.__full_source_model_keyword_arguments)
-        return model_strain
 
     @property
     def frequency_array(self):
