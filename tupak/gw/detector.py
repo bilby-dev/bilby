@@ -305,8 +305,9 @@ class InterferometerStrainData(object):
     @property
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
-        if 2 * self.__maximum_frequency > self.sampling_frequency:
-            self.__maximum_frequency = self.sampling_frequency / 2.
+        if self.sampling_frequency is not None:
+            if 2 * self.__maximum_frequency > self.sampling_frequency:
+                self.__maximum_frequency = self.sampling_frequency / 2.
         return self.__maximum_frequency
 
     @maximum_frequency.setter
