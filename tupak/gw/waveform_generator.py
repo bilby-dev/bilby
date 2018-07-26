@@ -78,32 +78,42 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        added_keys = []
-        if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                    self.non_standard_sampling_parameter_keys)
+        model_strain = None
+        added_keys = self._setup_conversion()
 
-        if self.frequency_domain_source_model is not None:
+        preferred_model = self.frequency_domain_source_model
+        preferred_model_data_points = self.frequency_array
+        alternative_model = self.time_domain_source_model
+        alternative_model_data_points = self.time_array
+
+        if preferred_model is not None:
             self.__full_source_model_keyword_arguments.update(self.parameters)
-            model_frequency_strain = self.frequency_domain_source_model(
-                self.frequency_array,
+            model_strain = preferred_model(
+                preferred_model_data_points,
                 **self.__full_source_model_keyword_arguments)
-        elif self.time_domain_source_model is not None:
-            model_frequency_strain = dict()
+        elif alternative_model is not None:
+            model_strain = dict()
             self.__full_source_model_keyword_arguments.update(self.parameters)
-            time_domain_strain = self.time_domain_source_model(
-                self.time_array, **self.__full_source_model_keyword_arguments)
+            time_domain_strain = alternative_model(
+                alternative_model_data_points, **self.__full_source_model_keyword_arguments)
             if isinstance(time_domain_strain, np.ndarray):
                 return utils.nfft(time_domain_strain, self.sampling_frequency)
             for key in time_domain_strain:
-                model_frequency_strain[key], self.frequency_array = utils.nfft(time_domain_strain[key],
+                model_strain[key], self.frequency_array = utils.nfft(time_domain_strain[key],
                                                                                self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
 
         for key in added_keys:
             self.parameters.pop(key)
-        return model_frequency_strain
+        return model_strain
+
+    def _setup_conversion(self):
+        added_keys = []
+        if self.parameter_conversion is not None:
+            self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                    self.non_standard_sampling_parameter_keys)
+        return added_keys
 
     def time_domain_strain(self):
         """ Rapper to source_model.
@@ -121,29 +131,33 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        added_keys = []
-        if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                    self.non_standard_sampling_parameter_keys)
-        if self.time_domain_source_model is not None:
+        model_strain = None
+        added_keys = self._setup_conversion()
+
+        preferred_model = self.time_domain_source_model
+        preferred_model_data_points = self.time_array
+        alternative_model = self.frequency_domain_source_model
+        alternative_model_data_points = self.frequency_array
+
+        if preferred_model is not None:
             self.__full_source_model_keyword_arguments.update(self.parameters)
-            model_time_series = self.time_domain_source_model(
-                self.time_array, **self.__full_source_model_keyword_arguments)
-        elif self.frequency_domain_source_model is not None:
-            model_time_series = dict()
+            model_strain = preferred_model(
+                preferred_model_data_points, **self.__full_source_model_keyword_arguments)
+        elif alternative_model is not None:
+            model_strain = dict()
             self.__full_source_model_keyword_arguments.update(self.parameters)
-            frequency_domain_strain = self.frequency_domain_source_model(
-                self.frequency_array, **self.__full_source_model_keyword_arguments)
+            frequency_domain_strain = alternative_model(
+                alternative_model_data_points, **self.__full_source_model_keyword_arguments)
             if isinstance(frequency_domain_strain, np.ndarray):
                 return utils.infft(frequency_domain_strain, self.sampling_frequency)
             for key in frequency_domain_strain:
-                model_time_series[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
+                model_strain[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
 
         for key in added_keys:
             self.parameters.pop(key)
-        return model_time_series
+        return model_strain
 
     @property
     def frequency_array(self):
