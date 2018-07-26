@@ -56,7 +56,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
-        self.interferometers = tupak.gw.detector.InterferometerSet(interferometers)
+        self.interferometers = tupak.gw.detector.InterferometerList(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
