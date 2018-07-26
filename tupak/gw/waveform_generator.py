@@ -78,15 +78,11 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-
-        model = self.frequency_domain_source_model
-        model_data_points = self.frequency_array
-        transformed_model = self.time_domain_source_model
-        transformed_model_data_points = self.time_array
-        transformation_function = utils.nfft
-
-        model_strain = self._calculate_strain(model, model_data_points, transformation_function, transformed_model,
-                                              transformed_model_data_points)
+        model_strain = self._calculate_strain(model=self.frequency_domain_source_model,
+                                              model_data_points=self.frequency_array,
+                                              transformation_function=utils.nfft,
+                                              transformed_model=self.time_domain_source_model,
+                                              transformed_model_data_points=self.time_array)
         return model_strain
 
     def time_domain_strain(self):
