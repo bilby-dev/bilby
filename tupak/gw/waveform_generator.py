@@ -103,12 +103,6 @@ class WaveformGenerator(object):
             self.parameters.pop(key)
         return model_strain
 
-    def _setup_conversion(self):
-        added_keys = []
-        if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                    self.non_standard_sampling_parameter_keys)
-        return added_keys
 
     def time_domain_strain(self):
         """ Rapper to source_model.
@@ -149,6 +143,14 @@ class WaveformGenerator(object):
         for key in added_keys:
             self.parameters.pop(key)
         return model_strain
+
+    def _setup_conversion(self):
+        added_keys = []
+        if self.parameter_conversion is not None:
+            self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                    self.non_standard_sampling_parameter_keys)
+        return added_keys
+
 
     def _strain_from_model(self, model, model_data_points):
         self.__full_source_model_keyword_arguments.update(self.parameters)
