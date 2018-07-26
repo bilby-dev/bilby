@@ -123,15 +123,14 @@ class WaveformGenerator(object):
     def _strain_from_model(self, model_data_points, model):
         self.__full_source_model_keyword_arguments.update(self.parameters)
         strain = model(model_data_points, **self.__full_source_model_keyword_arguments)
-        if isinstance(strain, np.ndarray):
-            return strain
-        else:
-            raise TypeError("The model return value should be of type numpy.ndarray, but actually was {}"
-                            .format(type(transformed_model_strain)))
+        return strain
 
     def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function):
         transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model)
-        model_strain = transformation_function(transformed_model_strain, self.sampling_frequency)
+
+        model_strain = dict()
+        if isinstance(transformed_model_strain, np.ndarray):
+            return transformation_function(transformed_model_strain, self.sampling_frequency)
         for key in transformed_model_strain:
             if transformation_function == utils.nfft:
                 model_strain[key], self.frequency_array = \
