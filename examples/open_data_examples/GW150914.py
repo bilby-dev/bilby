@@ -24,6 +24,10 @@ tupak.core.utils.setup_logger(outdir=outdir, label=label)
 # H1_frequency_domain_data.png and LI_frequency_domain_data.png. The two
 # objects are then placed into a list.
 interferometers = tupak.gw.detector.get_event_data(label)
+for ifo in interferometers:
+    ifo.calibration_model = tupak.gw.calibration.CubicSpline(
+        'recalib_{}'.format(ifo.name), ifo.maximum_frequency,
+        ifo.minimum_frequency, 5)
 
 # We now define the prior.
 # We have defined our prior distribution in a file packaged with TUPAK.
@@ -36,13 +40,15 @@ prior = tupak.gw.prior.BBHPriorSet(filename='GW150914.prior')
 # creates the frequency-domain strain. In this instance, we are using the
 # `lal_binary_black_hole model` source model. We also pass other parameters:
 # the waveform approximant and reference frequency.
-waveform_generator = tupak.WaveformGenerator(frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                             waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
-                                                                 'reference_frequency': 50})
+waveform_generator = tupak.WaveformGenerator(
+    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
+                        'reference_frequency': 50})
 
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+    interferometers, waveform_generator)
 
 # Finally, we run the sampler. This function takes the likelihood and prior
 # along with some options for how to do the sampling and how to save the data
