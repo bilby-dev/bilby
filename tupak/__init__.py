@@ -22,6 +22,6 @@ import tupak.core
 import tupak.gw
 import tupak.hyper
 
-from tupak.core import utils, likelihood, prior, result
+from tupak.core import utils, likelihood, prior, result, sampler
 from tupak.core.sampler import run_sampler
 from tupak.core.likelihood import Likelihood
