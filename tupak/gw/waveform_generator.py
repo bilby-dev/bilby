@@ -116,21 +116,24 @@ class WaveformGenerator(object):
                                                                transformation_function)
         else:
             raise RuntimeError("No source model given")
+        self._remove_added_keys(added_keys)
+        return model_strain
+
+    def _remove_added_keys(self, added_keys):
         for key in added_keys:
             self.parameters.pop(key)
-        return model_strain
 
     def _strain_from_model(self, model_data_points, model):
         self.__full_source_model_keyword_arguments.update(self.parameters)
-        strain = model(model_data_points, **self.__full_source_model_keyword_arguments)
-        return strain
+        return model(model_data_points, **self.__full_source_model_keyword_arguments)
 
     def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function):
         transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model)
 
-        model_strain = dict()
         if isinstance(transformed_model_strain, np.ndarray):
             return transformation_function(transformed_model_strain, self.sampling_frequency)
+
+        model_strain = dict()
         for key in transformed_model_strain:
             if transformation_function == utils.nfft:
                 model_strain[key], self.frequency_array = \
