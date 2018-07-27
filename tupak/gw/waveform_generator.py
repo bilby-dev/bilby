@@ -7,7 +7,8 @@ import numpy as np
 class WaveformGenerator(object):
 
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
-                 time_domain_source_model=None, parameters=None, parameter_conversion=None,
+                 time_domain_source_model=None, parameters=None,
+                 parameter_conversion=lambda parameters, search_keys: (parameters, []),
                  non_standard_sampling_parameter_keys=None,
                  waveform_arguments=None):
         """ A waveform generator
@@ -108,7 +109,8 @@ class WaveformGenerator(object):
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points):
-        added_keys = self._setup_conversion()
+        self.parameters, added_keys = self.parameter_conversion(self.parameters,
+                                                                self.non_standard_sampling_parameter_keys)
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -118,13 +120,6 @@ class WaveformGenerator(object):
             raise RuntimeError("No source model given")
         self._remove_added_keys(added_keys)
         return model_strain
-
-    def _setup_conversion(self):
-        added_keys = []
-        if self.parameter_conversion is not None:
-            self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                    self.non_standard_sampling_parameter_keys)
-        return added_keys
 
     def _strain_from_model(self, model_data_points, model):
         self.__full_source_model_keyword_arguments.update(self.parameters)
