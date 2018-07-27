@@ -33,7 +33,8 @@ class WaveformGenerator(object):
         Initial values for the parameters
     parameter_conversion: func, optional
         Function to convert from sampled parameters to parameters of the
-        waveform generator
+        waveform generator. Default value is the identity, i.e. it leaves
+        the parameters unaffected.
     non_standard_sampling_parameter_keys: list, optional
         List of parameter name for *non-standard* sampling parameters.
     waveform_arguments: dict, optional
