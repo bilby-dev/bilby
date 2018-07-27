@@ -64,6 +64,7 @@ class WaveformGenerator(object):
         self.__time_array_updated = False
         self.__full_source_model_keyword_arguments = {}
         self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
+        self.__added_keys = []
 
     def frequency_domain_strain(self):
         """ Rapper to source_model.
@@ -110,8 +111,7 @@ class WaveformGenerator(object):
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points):
-        self.parameters, added_keys = self.parameter_conversion(self.parameters,
-                                                                self.non_standard_sampling_parameter_keys)
+        self._apply_parameter_conversion()
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -119,11 +119,15 @@ class WaveformGenerator(object):
                                                                transformation_function)
         else:
             raise RuntimeError("No source model given")
-        self._remove_added_keys(added_keys)
+        self._remove_added_keys()
         return model_strain
 
-    def _strain_from_model(self, model_data_points, model):
+    def _apply_parameter_conversion(self):
+        self.parameters, self.__added_keys = self.parameter_conversion(self.parameters,
+                                                                       self.non_standard_sampling_parameter_keys)
         self.__full_source_model_keyword_arguments.update(self.parameters)
+
+    def _strain_from_model(self, model_data_points, model):
         return model(model_data_points, **self.__full_source_model_keyword_arguments)
 
     def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function):
@@ -141,8 +145,8 @@ class WaveformGenerator(object):
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         return model_strain
 
-    def _remove_added_keys(self, added_keys):
-        for key in added_keys:
+    def _remove_added_keys(self):
+        for key in self.__added_keys:
             self.parameters.pop(key)
 
     @property
