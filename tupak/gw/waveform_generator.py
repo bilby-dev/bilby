@@ -149,7 +149,6 @@ class WaveformGenerator(object):
         for key in added_keys:
             self.parameters.pop(key)
 
-
     @property
     def frequency_array(self):
         """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
@@ -196,8 +195,6 @@ class WaveformGenerator(object):
     def parameters(self):
         """ The dictionary of parameters for source model.
 
-        Does some introspection into the source_model to figure out the parameters if none are given.
-
         Returns
         -------
         dict: The dictionary of parameter key-value pairs
@@ -207,6 +204,8 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
+        """ Does some introspection into the source_model to figure out the parameters if none are given.
+        """
         self.__parameters_from_source_model()
         if isinstance(parameters, dict):
             for key in parameters.keys():
