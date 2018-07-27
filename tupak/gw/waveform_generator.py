@@ -64,6 +64,7 @@ class WaveformGenerator(object):
         self.__time_array_updated = False
         self.__full_source_model_keyword_arguments = {}
         self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
+        self.__full_source_model_keyword_arguments.update(self.parameters)
         self.__added_keys = []
 
     def frequency_domain_strain(self):
