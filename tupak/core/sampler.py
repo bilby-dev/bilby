@@ -97,9 +97,6 @@ class Sampler(object):
 
         self._log_summary_for_sampler()
 
-        if os.path.isdir(outdir) is False:
-            os.makedirs(outdir)
-
         self.result = self._initialise_result()
 
     @property
@@ -1013,7 +1010,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
 
     if save:
-        utils.check_directory_exists_and_if_not_mkdir(outdir)
         priors.write_to_file(outdir, label)
 
     if implemented_samplers.__contains__(sampler.title()):
