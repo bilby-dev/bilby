@@ -1580,8 +1580,6 @@ class PowerSpectralDensity(object):
         sampling_frequency: float, optional
             Sampling frequency for time series.
             This is twice the maximum frequency.
-        filter_freq: float
-            Low pass filter frequency
         roll_off: float, optional
             Rise time in seconds of tukey window.
         channel: str, optional
@@ -1777,7 +1775,7 @@ def load_interferometer(filename):
 def get_interferometer_with_open_data(
         name, trigger_time, duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
         psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=None,
-        raw_data_file=None, **kwargs):
+        **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
@@ -1801,8 +1799,6 @@ def get_interferometer_with_open_data(
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
     cache: bool, optional
         Whether or not to store the acquired data
-    raw_data_file: str
-        Name of a raw data file if this supposed to be read from a local file
     outdir: str
         Directory where the psd files are saved
     label: str
@@ -1944,7 +1940,7 @@ def get_interferometer_with_fake_noise_and_injection(
 def get_event_data(
         event, interferometer_names=None, duration=4, roll_off=0.4,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
-        label=None, plot=True, filter_freq=None, raw_data_file=None, **kwargs):
+        label=None, plot=True, filter_freq=None, **kwargs):
     """
     Get open data for a specified event.
 
@@ -1965,8 +1961,6 @@ def get_event_data(
         `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
     cache: bool
         Whether or not to store the acquired data.
-    raw_data_file:
-        If we want to read the event data from a local file.
     outdir: str
         Directory where the psd files are saved
     label: str
@@ -1999,7 +1993,7 @@ def get_event_data(
                 name, trigger_time=event_time, duration=duration, roll_off=roll_off,
                 psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
                 outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
-                raw_data_file=raw_data_file, **kwargs))
+                **kwargs))
         except ValueError as e:
             logger.debug("Error raised {}".format(e))
             logger.warning('No data found for {}.'.format(name))
