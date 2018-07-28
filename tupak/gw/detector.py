@@ -89,7 +89,9 @@ class InterferometerSet(list):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note: if your signal takes a substantial amount of time to generate, or
+        Note
+        ----------
+        if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
