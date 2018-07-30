@@ -29,7 +29,7 @@ class Recalibrate(object):
 
         Parameters
         ----------
-        frequency_array: array
+        frequency_array: array-like
             The frequency values to calculate the calibration factor for.
         params : dict
             Dictionary of sampling parameters which includes
@@ -37,7 +37,7 @@ class Recalibrate(object):
 
         Returns
         -------
-        calibration_factor : array
+        calibration_factor : array-like
             The factor to multiply the strain by.
         """
         self.set_calibration_parameters(**params)
@@ -83,7 +83,7 @@ class CubicSpline(Recalibrate):
 
         Parameters
         ----------
-        frequency_array: array
+        frequency_array: array-like
             The frequency values to calculate the calibration factor for.
         prefix: str
             Prefix for calibration parameter names
@@ -93,7 +93,7 @@ class CubicSpline(Recalibrate):
 
         Returns
         -------
-        calibration_factor : array
+        calibration_factor : array-like
             The factor to multiply the strain by.
         """
         self.set_calibration_parameters(**params)
