@@ -18,12 +18,12 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-class InterferometerSet(list):
+class InterferometerList(list):
     """ A list of Interferometer objects """
     def __init__(self, interferometers):
-        """ Instantiate a InterferometerSet
+        """ Instantiate a InterferometerList
 
-        The InterferometerSet is a list of Interferometer objects, each
+        The InterferometerList is a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
 
         Parameters
@@ -180,18 +180,18 @@ class InterferometerSet(list):
         return self[0].strain_data.frequency_array
 
     def append(self, interferometer):
-        if isinstance(interferometer, InterferometerSet):
-            super(InterferometerSet, self).extend(interferometer)
+        if isinstance(interferometer, InterferometerList):
+            super(InterferometerList, self).extend(interferometer)
         else:
-            super(InterferometerSet, self).append(interferometer)
+            super(InterferometerList, self).append(interferometer)
         self._check_interferometers()
 
     def extend(self, interferometers):
-        super(InterferometerSet, self).extend(interferometers)
+        super(InterferometerList, self).extend(interferometers)
         self._check_interferometers()
 
     def insert(self, index, interferometer):
-        super(InterferometerSet, self).insert(index, interferometer)
+        super(InterferometerList, self).insert(index, interferometer)
         self._check_interferometers()
 
 
@@ -307,8 +307,9 @@ class InterferometerStrainData(object):
     @property
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
-        if 2 * self.__maximum_frequency > self.sampling_frequency:
-            self.__maximum_frequency = self.sampling_frequency / 2.
+        if self.sampling_frequency is not None:
+            if 2 * self.__maximum_frequency > self.sampling_frequency:
+                self.__maximum_frequency = self.sampling_frequency / 2.
         return self.__maximum_frequency
 
     @maximum_frequency.setter
@@ -1439,12 +1440,12 @@ class Interferometer(object):
                     outdir, self.name, label))
 
 
-class TriangularInterferometer(InterferometerSet):
+class TriangularInterferometer(InterferometerList):
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
                  length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
                  xarm_tilt=0., yarm_tilt=0.):
-        InterferometerSet.__init__(self, [])
+        InterferometerList.__init__(self, [])
         self.name = name
         # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
         if isinstance(power_spectral_density, PowerSpectralDensity):
@@ -1773,9 +1774,9 @@ def load_interferometer(filename):
 
 
 def get_interferometer_with_open_data(
-        name, trigger_time, duration=4, start_time=None, roll_off=0.4, psd_offset=-1024,
-        psd_duration=100, cache=True, outdir='outdir', label=None, plot=True, filter_freq=None,
-        **kwargs):
+        name, trigger_time, duration=4, start_time=None, roll_off=0.4,
+        psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
+        label=None, plot=True, filter_freq=None, **kwargs):
     """
     Helper function to obtain an Interferometer instance with appropriate
     PSD and data, given an center_time.
@@ -1998,4 +1999,4 @@ def get_event_data(
             logger.debug("Error raised {}".format(e))
             logger.warning('No data found for {}.'.format(name))
 
-    return InterferometerSet(interferometers)
+    return InterferometerList(interferometers)
