@@ -4,7 +4,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
+from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 
 import tupak.gw.utils
@@ -353,7 +353,7 @@ class InterferometerStrainData(object):
             self.roll_off = roll_off
         elif alpha is not None:
             self.roll_off = alpha * self.duration / 2
-        window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=self.alpha)
+        window = tukey(len(self._time_domain_strain), alpha=self.alpha)
         self.window_factor = np.mean(window**2)
         return window
 
