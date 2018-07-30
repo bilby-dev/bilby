@@ -142,11 +142,12 @@ class CoupledTimeAndFrequencySeries(object):
         return self.__time_series
 
     @time_series.setter
-    def time_series(self, time_array):
-        self.__time_series = time_array
+    def time_series(self, time_series):
+        self.__time_series = time_series
+        self.__time_series_updated = True
+        self.__reset_parameters()
         self.__update_parameters()
         self.__frequency_series_updated = False
-        self.__time_series_updated = True
 
     @property
     def frequency_series(self):
@@ -168,11 +169,12 @@ class CoupledTimeAndFrequencySeries(object):
         return self.__frequency_series
 
     @frequency_series.setter
-    def frequency_series(self, frequency_array):
-        self.__frequency_series = frequency_array
+    def frequency_series(self, frequency_series):
+        self.__frequency_series = frequency_series
+        self.__frequency_series_updated = True
+        self.__reset_parameters()
         self.__update_parameters()
         self.__time_series_updated = False
-        self.__frequency_series_updated = True
 
     def __reset_parameters(self):
         self.__sampling_frequency_updated = False
