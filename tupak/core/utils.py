@@ -29,18 +29,64 @@ class TimingParameters(object):
 
     @property
     def start_time(self):
+        """ Allows one to set the start_time and automatically updates the time array.
+
+        Returns
+        -------
+        float: The sampling frequency.
+
+        """
         return self.__start_time
+
+    @start_time.setter
+    def start_time(self, start_time):
+        self.__start_time = start_time
+        self.__time_array_updated = False
 
     @property
     def duration(self):
+        """ Allows one to set the time duration and automatically updates the frequency and time array.
+
+        Returns
+        -------
+        float: The time duration.
+
+        """
         return self.__duration
+
+    @duration.setter
+    def duration(self, duration):
+        self.__duration = duration
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
 
     @property
     def sampling_frequency(self):
+        """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
+
+        Returns
+        -------
+        float: The sampling frequency.
+
+        """
         return self.__sampling_frequency
+
+    @sampling_frequency.setter
+    def sampling_frequency(self, sampling_frequency):
+        self.__sampling_frequency = sampling_frequency
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
 
     @property
     def time_array(self):
+        """ Time array for the data set. Automatically updates if start_time,
+        sampling_frequency, or duration are updated.
+
+        Returns
+        -------
+        array_like: The time array
+        """
+
         if self.__time_array_updated:
             return self.__time_array
         else:
@@ -49,15 +95,32 @@ class TimingParameters(object):
                                                          starting_time=self.start_time)
             self.__time_array_updated = True
 
+    @time_array.setter
+    def time_array(self, time_array):
+        self.__time_array = time_array
+        self.__time_array_updated = True
+
     @property
     def frequency_array(self):
+        """ Frequency array for the data set. Automatically updates if sampling_frequency or duration are updated.
+
+        Returns
+        -------
+        array_like: The frequency array
+        """
         if self.__frequency_array_updated:
             return self.__frequency_array
         else:
             self.__time_array = utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
-                                                              duration=self.duration
-                                                              )
+                                                              duration=self.duration)
             self.__frequency_array_updated = True
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self.__frequency_array = frequency_array
+        self.__frequency_array_updated = True
+
+
 
 def get_sampling_frequency(time_series):
     """
