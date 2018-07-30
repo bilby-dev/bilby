@@ -85,7 +85,7 @@ class InterferometerList(list):
            `waveform_generator.frequency_domain_strain()`. If
            `waveform_generator` is also given, the injection_polarizations will
            be calculated directly and this argument can be ignored.
-        waveform_generator: tupak.gw.waveform_generator
+        waveform_generator: tupak.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
