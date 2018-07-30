@@ -133,7 +133,7 @@ class CoupledTimeAndFrequencySeries(object):
             pass
         elif self.__sampling_frequency_updated and self.__duration_updated and self.__start_time_updated:
             self.__update_parameters()
-            self.__time_series = utils.create_time_series(sampling_frequency=self.sampling_frequency,
+            self.__time_series = create_time_series(sampling_frequency=self.sampling_frequency,
                                                           duration=self.duration,
                                                           starting_time=self.start_time)
             self.__time_series_updated = True
@@ -160,7 +160,7 @@ class CoupledTimeAndFrequencySeries(object):
             pass
         elif self.__sampling_frequency_updated and self.__duration_updated:
             self.__update_parameters()
-            self.__time_series = utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+            self.__time_series = create_frequency_series(sampling_frequency=self.sampling_frequency,
                                                                duration=self.duration)
             self.__frequency_series_updated = True
         else:
