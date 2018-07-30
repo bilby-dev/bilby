@@ -36,6 +36,12 @@ class CoupledTimeAndFrequencySeries(object):
         result.frequency_series = frequency_series
         return result
 
+    @staticmethod
+    def from_time_series(time_series):
+        result = CoupledTimeAndFrequencySeries(0, 0, 0)
+        result.time_series = time_series
+        return result
+
     @property
     def start_time(self):
         """ Allows one to set the start_time and automatically updates the time array.
