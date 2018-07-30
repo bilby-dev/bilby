@@ -67,7 +67,7 @@ class TestCoupledTimeAndFrequencySeriesFromInit(unittest.TestCase):
                                                                            duration=self.duration)))
 
 
-class TestSettingParameters(unittest.TestCase):
+class TestCoupledTimeAndFrequencySeriesSettingParameters(unittest.TestCase):
 
     def setUp(self):
         self.start_time = 4
@@ -105,7 +105,7 @@ class TestSettingParameters(unittest.TestCase):
         self.assertEqual(expected_series, self.test_series)
 
 
-class TestSettingTimeSeries(unittest.TestCase):
+class TestCoupledTimeAndFrequencySeriesSettingTimeSeries(unittest.TestCase):
 
     def setUp(self):
         self.test_series = tupak.utils.CoupledTimeAndFrequencySeries(start_time=4,
@@ -143,7 +143,7 @@ class TestSettingTimeSeries(unittest.TestCase):
         self.assertTrue(np.allclose(self.test_series.frequency_series, self.expected_frequency_series, atol=0.1))
 
 
-class TestSettingFrequencySeries(unittest.TestCase):
+class TestCoupledTimeAndFrequencySeriesSettingFrequencySeries(unittest.TestCase):
 
     def setUp(self):
         self.expected_start_time = 4
@@ -179,6 +179,42 @@ class TestSettingFrequencySeries(unittest.TestCase):
     def test_change_frequency_series_sets_time_series(self):
         self.assertTrue(np.allclose(self.test_series.time_series, self.expected_time_series, atol=0.1))
 
+
+class TestCoupledTimeAndFrequencySeriesFromFrequencySeries(unittest.TestCase):
+
+    def setUp(self):
+        self.sampling_frequency = 1000
+        self.duration = 2
+        self.frequency_series = tupak.utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+                                                                    duration=self.duration)
+        self.test_series = tupak.utils.CoupledTimeAndFrequencySeries.\
+            from_frequency_series(frequency_series=self.frequency_series)
+
+    def tearDown(self):
+        del self.frequency_series
+        del self.test_series
+        del self.sampling_frequency
+        del self.duration
+
+    def test_start_time_from_frequency_series(self):
+        self.assertEqual(0, self.test_series.start_time)
+
+    def test_duration_from_frequency_series(self):
+        self.assertEqual(self.duration, self.test_series.duration)
+
+    def test_sampling_frequency_from_frequency_series(self):
+        self.assertAlmostEqual(self.sampling_frequency, self.test_series.sampling_frequency, delta=1)
+
+    def test_time_array_correct_from_frequency_series(self):
+        self.assertTrue(np.array_equal(self.test_series.time_series,
+                                       tupak.utils.create_time_series(sampling_frequency=self.sampling_frequency,
+                                                                      duration=self.duration,
+                                                                      starting_time=self.test_series.start_time)))
+
+    # def test_frequency_array_correct_from_frequency_series(self):
+    #     self.assertTrue(np.array_equal(self.test_series.frequency_series,
+    #                                    tupak.utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+    #                                                                        duration=self.duration)))
 
 if __name__ == '__main__':
     unittest.main()
