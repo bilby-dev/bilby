@@ -188,6 +188,15 @@ class CoupledTimeAndFrequencySeries(object):
         self.__time_series_updated = False
         self.__frequency_series_updated = False
 
+    def __eq__(self, other):
+        if self.sampling_frequency != other.sampling_frequency \
+                or self.start_time != other.start_time \
+                or self.duration != other.duration \
+                or self.time_series != other.time_series \
+                or self.frequency_series != other.frequency_series:
+            return False
+        return True
+
 
 def get_sampling_frequency(time_series):
     """
