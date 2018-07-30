@@ -16,6 +16,49 @@ solar_mass = 1.98855 * 1e30
 radius_of_earth = 6371 * 1e3  # metres
 
 
+class TimingParameters(object):
+
+    def __init__(self, start_time, duration, sampling_frequency):
+        self.__start_time = start_time
+        self.__duration = duration
+        self.__sampling_frequency = sampling_frequency
+        self.__frequency_array = None
+        self.__time_array = None
+        self.__frequency_array_updated = False
+        self.__time_array_updated = False
+
+    @property
+    def start_time(self):
+        return self.__start_time
+
+    @property
+    def duration(self):
+        return self.__duration
+
+    @property
+    def sampling_frequency(self):
+        return self.__sampling_frequency
+
+    @property
+    def time_array(self):
+        if self.__time_array_updated:
+            return self.__time_array
+        else:
+            self.__time_array = utils.create_time_series(sampling_frequency=self.sampling_frequency,
+                                                         duration=self.duration,
+                                                         starting_time=self.start_time)
+            self.__time_array_updated = True
+
+    @property
+    def frequency_array(self):
+        if self.__frequency_array_updated:
+            return self.__frequency_array
+        else:
+            self.__time_array = utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+                                                              duration=self.duration
+                                                              )
+            self.__frequency_array_updated = True
+
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series

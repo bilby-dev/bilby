@@ -222,6 +222,7 @@ class InterferometerStrainData(object):
         self.roll_off = roll_off
         self.window_factor = 1
 
+        self.__time_and_freq_array_parameters = _TimingParameters(None, None, None)
         self._set_time_and_frequency_array_parameters(None, None, None)
 
         self._frequency_domain_strain = None
