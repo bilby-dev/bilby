@@ -24,10 +24,6 @@ tupak.core.utils.setup_logger(outdir=outdir, label=label)
 # H1_frequency_domain_data.png and LI_frequency_domain_data.png. The two
 # objects are then placed into a list.
 interferometers = tupak.gw.detector.get_event_data(label)
-for ifo in interferometers:
-    ifo.calibration_model = tupak.gw.calibration.CubicSpline(
-        'recalib_{}'.format(ifo.name), ifo.maximum_frequency,
-        ifo.minimum_frequency, 5)
 
 # We now define the prior.
 # We have defined our prior distribution in a file packaged with TUPAK.
