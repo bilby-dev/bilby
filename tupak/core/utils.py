@@ -144,7 +144,7 @@ class CoupledTimeAndFrequencySeries(object):
     @time_series.setter
     def time_series(self, time_array):
         self.__time_series = time_array
-        self.__reset_parameters()
+        self.__update_parameters()
         self.__frequency_series_updated = False
         self.__time_series_updated = True
 
@@ -170,7 +170,7 @@ class CoupledTimeAndFrequencySeries(object):
     @frequency_series.setter
     def frequency_series(self, frequency_array):
         self.__frequency_series = frequency_array
-        self.__reset_parameters()
+        self.__update_parameters()
         self.__time_series_updated = False
         self.__frequency_series_updated = True
 
