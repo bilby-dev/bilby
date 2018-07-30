@@ -16,33 +16,33 @@ phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi)
 geocent_time = Uniform(1126259462.322, 1126259462.522, name='geocent_time')
 # These are the calibration parameters as described in
 # https://journals.aps.org/prx/abstract/10.1103/PhysRevX.6.041015
-recalib_H1_frequency_0 = 20
-recalib_H1_frequency_1 = 54
-recalib_H1_frequency_2 = 143
-recalib_H1_frequency_3 = 383
-recalib_H1_frequency_4 = 1024
-recalib_H1_amplitude_0 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_0), '$\\delta A_{H0}$'
-recalib_H1_amplitude_1 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_1), '$\\delta A_{H1}$'
-recalib_H1_amplitude_2 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_2), '$\\delta A_{H2}$'
-recalib_H1_amplitude_3 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_3), '$\\delta A_{H3}$'
-recalib_H1_amplitude_4 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_4), '$\\delta A_{H4}$'
-recalib_H1_phase_0 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_0', '$\\delta \\phi_{H0}$')
-recalib_H1_phase_1 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_1', '$\\delta \\phi_{H1}$')
-recalib_H1_phase_2 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_2', '$\\delta \\phi_{H2}$')
-recalib_H1_phase_3 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_3', '$\\delta \\phi_{H3}$')
-recalib_H1_phase_4 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_4', '$\\delta \\phi_{H4}$')
-recalib_L1_frequency_0 = 20
-recalib_L1_frequency_1 = 54
-recalib_L1_frequency_2 = 143
-recalib_L1_frequency_3 = 383
-recalib_L1_frequency_4 = 1024
-recalib_L1_amplitude_0 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_0), '$\\delta A_{L0}$'
-recalib_L1_amplitude_1 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_1), '$\\delta A_{L1}$'
-recalib_L1_amplitude_2 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_2), '$\\delta A_{L2}$'
-recalib_L1_amplitude_3 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_3), '$\\delta A_{L3}$'
-recalib_L1_amplitude_4 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_4), '$\\delta A_{L4}$'
-recalib_L1_phase_0 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_0', '$\\delta \\phi_{L0}$')
-recalib_L1_phase_1 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_1', '$\\delta \\phi_{L1}$')
-recalib_L1_phase_2 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_2', '$\\delta \\phi_{L2}$')
-recalib_L1_phase_3 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_3', '$\\delta \\phi_{L3}$')
-recalib_L1_phase_4 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_4', '$\\delta \\phi_{L4}$')
+# recalib_H1_frequency_0 = 20
+# recalib_H1_frequency_1 = 54
+# recalib_H1_frequency_2 = 143
+# recalib_H1_frequency_3 = 383
+# recalib_H1_frequency_4 = 1024
+# recalib_H1_amplitude_0 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_0), '$\\delta A_{H0}$'
+# recalib_H1_amplitude_1 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_1), '$\\delta A_{H1}$'
+# recalib_H1_amplitude_2 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_2), '$\\delta A_{H2}$'
+# recalib_H1_amplitude_3 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_3), '$\\delta A_{H3}$'
+# recalib_H1_amplitude_4 = Gaussian(mu=0, sigma=0.048, name='recalib_H1_amplitude_4), '$\\delta A_{H4}$'
+# recalib_H1_phase_0 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_0', '$\\delta \\phi_{H0}$')
+# recalib_H1_phase_1 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_1', '$\\delta \\phi_{H1}$')
+# recalib_H1_phase_2 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_2', '$\\delta \\phi_{H2}$')
+# recalib_H1_phase_3 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_3', '$\\delta \\phi_{H3}$')
+# recalib_H1_phase_4 = Gaussian(mu=0, sigma=0.056, name='recalib_H1_phase_4', '$\\delta \\phi_{H4}$')
+# recalib_L1_frequency_0 = 20
+# recalib_L1_frequency_1 = 54
+# recalib_L1_frequency_2 = 143
+# recalib_L1_frequency_3 = 383
+# recalib_L1_frequency_4 = 1024
+# recalib_L1_amplitude_0 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_0), '$\\delta A_{L0}$'
+# recalib_L1_amplitude_1 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_1), '$\\delta A_{L1}$'
+# recalib_L1_amplitude_2 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_2), '$\\delta A_{L2}$'
+# recalib_L1_amplitude_3 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_3), '$\\delta A_{L3}$'
+# recalib_L1_amplitude_4 = Gaussian(mu=0, sigma=0.082, name='recalib_L1_amplitude_4), '$\\delta A_{L4}$'
+# recalib_L1_phase_0 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_0', '$\\delta \\phi_{L0}$')
+# recalib_L1_phase_1 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_1', '$\\delta \\phi_{L1}$')
+# recalib_L1_phase_2 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_2', '$\\delta \\phi_{L2}$')
+# recalib_L1_phase_3 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_3', '$\\delta \\phi_{L3}$')
+# recalib_L1_phase_4 = Gaussian(mu=0, sigma=0.073, name='recalib_L1_phase_4', '$\\delta \\phi_{L4}$')
