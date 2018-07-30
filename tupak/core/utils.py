@@ -24,6 +24,9 @@ class TimingParameters(object):
         self.__sampling_frequency = sampling_frequency
         self.__frequency_array = None
         self.__time_array = None
+        self.__start_time_updated = True
+        self.__duration_updated = True
+        self.__sampling_frequency_updated = True
         self.__frequency_array_updated = False
         self.__time_array_updated = False
 
@@ -36,11 +39,19 @@ class TimingParameters(object):
         float: The sampling frequency.
 
         """
+        if self.__start_time_updated:
+            pass
+        elif self.__time_array_updated:
+            self.__start_time = self.__time_array[0]
+            self.__start_time_updated = True
+        else:
+            self.__start_time = 0
         return self.__start_time
 
     @start_time.setter
     def start_time(self, start_time):
         self.__start_time = start_time
+        self.__start_time_updated = True
         self.__time_array_updated = False
 
     @property
@@ -52,13 +63,23 @@ class TimingParameters(object):
         float: The time duration.
 
         """
+        if self.__duration_updated:
+            pass
+        elif self.__frequency_array_updated:
+            _, self.__duration = get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
+            self.__duration_updated = True
+        elif self.__time_array_updated:
+            _, self.__duration = get_sampling_frequency_and_duration_from_time_array(self.time_array)
+            self.__duration_updated = True
+        else:
+            raise RuntimeError("No valid value for the duration could be derived")
         return self.__duration
 
     @duration.setter
     def duration(self, duration):
         self.__duration = duration
-        self.__frequency_array_updated = False
-        self.__time_array_updated = False
+        self.__duration_updated = True
+        self.__reset_arrays()
 
     @property
     def sampling_frequency(self):
@@ -69,13 +90,23 @@ class TimingParameters(object):
         float: The sampling frequency.
 
         """
+        if self.__sampling_frequency_updated:
+            pass
+        elif self.__frequency_array_updated:
+            self.__sampling_frequency, _ = get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
+            self.__sampling_frequency_updated = True
+        elif self.__time_array_updated:
+            self.__sampling_frequency, _ = get_sampling_frequency_and_duration_from_time_array(self.time_array)
+            self.__sampling_frequency_updated = True
+        else:
+            raise RuntimeError("No valid value for the sampling_frequency could be derived.")
         return self.__sampling_frequency
 
     @sampling_frequency.setter
     def sampling_frequency(self, sampling_frequency):
         self.__sampling_frequency = sampling_frequency
-        self.__frequency_array_updated = False
-        self.__time_array_updated = False
+        self.__sampling_frequency_updated = True
+        self.__reset_arrays()
 
     @property
     def time_array(self):
@@ -86,18 +117,23 @@ class TimingParameters(object):
         -------
         array_like: The time array
         """
-
         if self.__time_array_updated:
-            return self.__time_array
-        else:
+            pass
+        elif self.__sampling_frequency_updated and self.__duration_updated and self.__start_time_updated:
+            self.__update_parameters()
             self.__time_array = utils.create_time_series(sampling_frequency=self.sampling_frequency,
                                                          duration=self.duration,
                                                          starting_time=self.start_time)
             self.__time_array_updated = True
+        else:
+            raise RuntimeError("No valid value for the time_array could be derived.")
+        return self.__time_array
 
     @time_array.setter
     def time_array(self, time_array):
         self.__time_array = time_array
+        self.__reset_parameters()
+        self.__frequency_array_updated = False
         self.__time_array_updated = True
 
     @property
@@ -109,17 +145,36 @@ class TimingParameters(object):
         array_like: The frequency array
         """
         if self.__frequency_array_updated:
-            return self.__frequency_array
-        else:
+            pass
+        elif self.__sampling_frequency_updated and self.__duration_updated:
+            self.__update_parameters()
             self.__time_array = utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
                                                               duration=self.duration)
             self.__frequency_array_updated = True
+        else:
+            raise RuntimeError("No valid value for the frequency_array could be derived.")
+        return self.__frequency_array
 
     @frequency_array.setter
     def frequency_array(self, frequency_array):
         self.__frequency_array = frequency_array
+        self.__reset_parameters()
+        self.__time_array_updated = False
         self.__frequency_array_updated = True
 
+    def __reset_parameters(self):
+        self.__sampling_frequency_updated = False
+        self.__duration_updated = False
+        self.__start_time_updated = False
+
+    def __update_parameters(self):
+        _ = self.start_time
+        _ = self.sampling_frequency
+        _ = self.duration
+
+    def __reset_arrays(self):
+        self.__time_array_updated = False
+        self.__frequency_array_updated = False
 
 
 def get_sampling_frequency(time_series):
