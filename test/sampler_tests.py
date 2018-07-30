@@ -35,7 +35,6 @@ class TestSampler(unittest.TestCase):
             outdir=test_directory, use_ratio=False)
 
     def tearDown(self):
-        os.rmdir(self.sampler.outdir)
         del self.sampler
 
     def test_search_parameter_keys(self):
@@ -87,9 +86,6 @@ class TestSampler(unittest.TestCase):
         print(self.sampler.result.__dict__)
         print(expected_result.__dict__)
         self.assertDictEqual(self.sampler.result.__dict__, expected_result.__dict__)
-
-    def test_make_outdir_if_no_outdir_exists(self):
-        self.assertTrue(os.path.isdir(self.sampler.outdir))
 
     def test_prior_transform_transforms_search_parameter_keys(self):
         self.sampler.prior_transform([0])

@@ -26,39 +26,39 @@ class TestBasicConversions(unittest.TestCase):
         del self.symmetric_mass_ratio
 
     def test_total_mass_and_mass_ratio_to_component_masses(self):
-        mass_1, mass_2 = tupak.conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_ratio, self.total_mass)
+        mass_1, mass_2 = tupak.gw.conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_ratio, self.total_mass)
         self.assertTupleEqual((mass_1, mass_2), (self.mass_1, self.mass_2))
 
     def test_symmetric_mass_ratio_to_mass_ratio(self):
-        mass_ratio = tupak.conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
+        mass_ratio = tupak.gw.conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
     def test_chirp_mass_and_total_mass_to_symmetric_mass_ratio(self):
-        symmetric_mass_ratio = tupak.conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(self.chirp_mass, self.total_mass)
+        symmetric_mass_ratio = tupak.gw.conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(self.chirp_mass, self.total_mass)
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
 
     def test_chirp_mass_and_mass_ratio_to_total_mass(self):
-        total_mass = tupak.conversion.chirp_mass_and_mass_ratio_to_total_mass(self.chirp_mass, self.mass_ratio)
+        total_mass = tupak.gw.conversion.chirp_mass_and_mass_ratio_to_total_mass(self.chirp_mass, self.mass_ratio)
         self.assertAlmostEqual(self.total_mass, total_mass)
 
     def test_component_masses_to_chirp_mass(self):
-        chirp_mass = tupak.conversion.component_masses_to_chirp_mass(self.mass_1, self.mass_2)
+        chirp_mass = tupak.gw.conversion.component_masses_to_chirp_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.chirp_mass, chirp_mass)
 
     def test_component_masses_to_total_mass(self):
-        total_mass = tupak.conversion.component_masses_to_total_mass(self.mass_1, self.mass_2)
+        total_mass = tupak.gw.conversion.component_masses_to_total_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.total_mass, total_mass)
 
     def test_component_masses_to_symmetric_mass_ratio(self):
-        symmetric_mass_ratio = tupak.conversion.component_masses_to_symmetric_mass_ratio(self.mass_1, self.mass_2)
+        symmetric_mass_ratio = tupak.gw.conversion.component_masses_to_symmetric_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
 
     def test_component_masses_to_mass_ratio(self):
-        mass_ratio = tupak.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
+        mass_ratio = tupak.gw.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
     def test_mass_1_and_chirp_mass_to_mass_ratio(self):
-        mass_ratio = tupak.conversion.mass_1_and_chirp_mass_to_mass_ratio(self.mass_1, self.chirp_mass)
+        mass_ratio = tupak.gw.conversion.mass_1_and_chirp_mass_to_mass_ratio(self.mass_1, self.chirp_mass)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
 

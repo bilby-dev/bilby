@@ -36,11 +36,10 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.WaveformGenerator(duration=duration,
-                                             sampling_frequency=sampling_frequency,
-                                             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                             parameters=injection_parameters,
-                                             waveform_arguments=waveform_arguments)
+waveform_generator = tupak.gw.WaveformGenerator(
+    duration=duration, sampling_frequency=sampling_frequency,
+    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    parameters=injection_parameters, waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),

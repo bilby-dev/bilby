@@ -7,3 +7,7 @@ import tupak.gw.source
 import tupak.gw.utils
 import tupak.gw.waveform_generator
 from . import calibration
+
+
+from tupak.gw.waveform_generator import WaveformGenerator
+from tupak.gw.likelihood import GravitationalWaveTransient

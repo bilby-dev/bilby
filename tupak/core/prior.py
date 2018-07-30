@@ -9,6 +9,7 @@ import scipy.stats
 import os
 
 from tupak.core.utils import logger
+from tupak.core import utils
 
 
 class PriorSet(dict):
@@ -39,6 +40,7 @@ class PriorSet(dict):
             Output file naming scheme
         """
 
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
