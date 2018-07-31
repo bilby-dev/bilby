@@ -32,16 +32,17 @@ simulation_parameters = dict(
     psi=2.659
 )
 
-waveform_generator = WaveformGenerator(time_duration=time_duration, sampling_frequency=sampling_frequency,
-                                       frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                       parameters=simulation_parameters)
+waveform_generator = WaveformGenerator(
+    duration=time_duration, sampling_frequency=sampling_frequency,
+    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    parameters=simulation_parameters)
 
 signal = waveform_generator.frequency_domain_strain()
 
-IFO = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(name='H1', injection_polarizations=signal,
-                                                                         injection_parameters=simulation_parameters,
-                                                                         time_duration=time_duration, plot=False,
-                                                                         sampling_frequency=sampling_frequency)
+IFO = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+    name='H1', injection_polarizations=signal,
+    injection_parameters=simulation_parameters, duration=time_duration,
+    plot=False, sampling_frequency=sampling_frequency)
 
 hf_signal_and_noise = IFO.strain_data.frequency_domain_strain
 frequencies = tupak.core.utils.create_frequency_series(
