@@ -175,8 +175,6 @@ class CalibrationPriorSet(PriorSet):
             Number of nodes for the spline.
         label: str
             Label for the names of the parameters, e.g., recalib_H1_
-        save: bool, optional
-            Whether to write the prior to disk, default=True
 
         Returns
         -------
