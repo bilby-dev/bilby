@@ -44,8 +44,11 @@ class Test(unittest.TestCase):
             self.dir_path + '/test/standard_data.txt').T
         hf_signal_and_noise_saved = hf_real_saved + 1j * hf_imag_saved
 
-        self.assertTrue(np.array_equal(self.msd['frequencies'], frequencies_saved))
-        self.assertAlmostEqual(all(self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved), 0.00000000, 5)
+        self.assertTrue(np.array_equal(
+            self.msd['frequencies'], frequencies_saved))
+        self.assertAlmostEqual(all(
+            self.msd['hf_signal_and_noise'] - hf_signal_and_noise_saved),
+            0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
         likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
@@ -61,8 +64,9 @@ class Test(unittest.TestCase):
 
         result = tupak.core.sampler.run_sampler(
             likelihood, priors, sampler='dynesty', verbose=False, npoints=100)
-        self.assertAlmostEqual(np.mean(result.samples), dL,
-                               delta=3*np.std(result.samples))
+        self.assertAlmostEqual(
+            np.mean(result.posterior.luminosity_distance), dL,
+            delta=3*np.std(result.posterior.luminosity_distance))
 
 
 if __name__ == '__main__':
