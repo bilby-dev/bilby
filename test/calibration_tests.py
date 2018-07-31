@@ -41,11 +41,12 @@ class TestCubicSpline(unittest.TestCase):
 class TestCubicSplineRequiresFourNodes(unittest.TestCase):
 
     def test_cannot_instantiate_with_too_few_nodes(self):
-        self.assertRaises(ValueError,
-                          lambda: calibration.CubicSpline('test', 1, 10, 3))
-
-    def test_can_instantiate_with_four_few_nodes(self):
-        calibration.CubicSpline('test', 1, 10, 4)
+        for ii in range(6):
+            if ii < 4:
+                with self.assertRaises(ValueError):
+                    calibration.CubicSpline('test', 1, 10, ii)
+            else:
+                calibration.CubicSpline('test', 1, 10, ii)
 
 
 if __name__ == '__main__':
