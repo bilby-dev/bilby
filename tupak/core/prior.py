@@ -26,7 +26,11 @@ class PriorSet(dict):
         dict.__init__(self)
         if type(dictionary) is dict:
             self.update(dictionary)
-        elif filename or type(dictionary) is str:
+        elif type(dictionary) is str:
+            logger.debug('Argument "dictionary" is a string.'
+                         + ' Assuming it is intended as a file name.')
+            self.read_in_file(dictionary)
+        elif type(filename) is str:
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
