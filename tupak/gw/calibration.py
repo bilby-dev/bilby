@@ -20,7 +20,6 @@ class Recalibrate(object):
         """
         self.params = dict()
         self.prefix = prefix
-        pass
 
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
