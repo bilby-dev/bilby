@@ -10,6 +10,7 @@ from scipy.interpolate import interp1d
 import tupak.gw.utils
 from tupak.core import utils
 from tupak.core.utils import logger
+from .calibration import Recalibrate
 
 try:
     import gwpy
@@ -743,7 +744,7 @@ class Interferometer(object):
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
                  length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0., calibration_model=None):
+                 xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
         """
         Instantiate an Interferometer object.
 
@@ -775,7 +776,8 @@ class Interferometer(object):
         yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
         calibration_model: Recalibration
-            Calibration model, this applies the calibration correction to the template.
+            Calibration model, this applies the calibration correction to the
+            template, the default model applies no correction.
         """
         self.__x_updated = False
         self.__y_updated = False
@@ -793,8 +795,6 @@ class Interferometer(object):
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.time_marginalization = False
-        if calibration_model is None:
-            calibration_model = tupak.gw.calibration.Recalibrate()
         self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
