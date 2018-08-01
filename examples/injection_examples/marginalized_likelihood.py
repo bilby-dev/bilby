@@ -44,7 +44,8 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 
 # This is still under development so care should be taken with the marginalised likelihood.
 likelihood = tupak.gw.GravitationalWaveTransient(
     interferometers=IFOs, waveform_generator=waveform_generator, prior=priors,
-    distance_marginalization=True, phase_marginalization=False)
+    distance_marginalization=False, phase_marginalization=True,
+    time_marginalization=False)
 
 # Run sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
