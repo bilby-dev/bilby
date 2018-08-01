@@ -147,7 +147,7 @@ class PriorSet(dict):
         """
         return self.sample_subset(keys=self.keys(), size=size)
 
-    def sample_subset(self, keys=list(), size=None):
+    def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -377,7 +377,7 @@ class Prior(object):
         """
         return self._subclass_repr_helper()
 
-    def _subclass_repr_helper(self, subclass_args=list()):
+    def _subclass_repr_helper(self, subclass_args=iter([])):
         """Helps out subclass _repr__ methods by creating a common template
 
         Parameters
