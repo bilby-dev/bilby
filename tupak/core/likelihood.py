@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import inspect
 import numpy as np
-
+from scipy.special import gammaln
 
 class Likelihood(object):
 
@@ -109,3 +109,76 @@ class GaussianLikelihood(Likelihood):
         # Return the summed log likelihood
         return -0.5 * (np.sum((res / sigma)**2)
                        + self.N * np.log(2 * np.pi * sigma**2))
+
+
+class PoissonLikelihood(Likelihood):
+    def __init__(self, x, function):
+        """
+        A general Poisson likelihood for a rate - the model parameters are
+        inferred from the arguments of function, which provides a rate.
+
+        Note: This can only be used for fitting a single rate and not a
+        changing rate through a generalised linear model (GLM).
+
+        Parameters
+        ----------
+        x: array_like
+            The data to analyse - this must be a set of non-negative integers,
+            each being the number of events within some interval.
+        function:
+            The python function providing the rate of events per interval to
+            fit to the data. The arguments will require priors and will be
+            sampled over (unless a fixed value is given).
+        """
+
+        parameters = self._infer_parameters_from_function(function)
+        Likelihood.__init__(self, dict.fromkeys(parameters))
+
+        self.x = x
+
+        # check values are non-negative integers
+        if isinstance(self.x, int):
+            # convert to numpy array if passing a single integer
+            self.x = np.array(self.x)
+
+        try:
+            # use bincount to check all values are non-negative integers
+            _ = np.bincount(self.x)
+        except ValueError:
+            raise ValueError("Data must be non-negative integers")
+
+        # save sum of log factorial of counts
+        self.sumlogfactorial = np.sum(gammaln(self.x + 1))
+
+        self.function = function
+
+        # Check if sigma was provided, if not it is a parameter
+        self.function_keys = list(self.parameters.keys())
+
+    @staticmethod
+    def _infer_parameters_from_function(func):
+        """ Infers the arguments of function (except the first arg which is
+            assumed to be the dep. variable
+        """
+        parameters = inspect.getargspec(func).args
+        parameters.pop(0)
+        return parameters
+
+    @property
+    def N(self):
+        """ The number of data points """
+        return len(self.x)
+
+    def log_likelihood(self):
+        # This sets up the function only parameters (i.e. not sigma)
+        model_parameters = {k: self.parameters[k] for k in self.function_keys}
+
+        # Calculate the rate
+        rate = self.function(**model_parameters)
+
+        # check rate is positive
+        if rate < 0.:
+            raise ValueError("Poisson rate function returns a negative value!")
+
+        # Return the summed log likelihood
+        return -self.N*rate + np.sum(self.x*np.log(rate)) - self.sumlogfactorial
