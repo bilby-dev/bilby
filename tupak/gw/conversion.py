@@ -89,7 +89,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                 if remove:
                     added_keys.append('chirp_mass')
             if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
-                converted_parameters['mass_ratio'] =\
+                converted_parameters['mass_ratio'] = \
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     added_keys.append('symmetric_mass_ratio')
@@ -109,12 +109,12 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             added_keys.append('mass_2')
         elif 'total_mass' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
             if 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
-                converted_parameters['mass_ratio'] =\
+                converted_parameters['mass_ratio'] = \
                     symmetric_mass_ratio_to_mass_ratio(converted_parameters['symmetric_mass_ratio'])
                 if remove:
                     added_keys.append('symmetric_mass_ratio')
             if 'mass_ratio' in converted_parameters.keys() and 'mass_ratio' not in added_keys:
-                converted_parameters['mass_1'], converted_parameters['mass_2'] =\
+                converted_parameters['mass_1'], converted_parameters['mass_2'] = \
                     total_mass_and_mass_ratio_to_component_masses(
                         converted_parameters['mass_ratio'], converted_parameters['total_mass'])
                 if remove:
@@ -125,11 +125,11 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
 
     elif 'mass_1' in search_keys and 'mass_2' not in search_keys:
         if 'chirp_mass' in converted_parameters.keys() and 'chirp_mass' not in added_keys:
-            converted_parameters['mass_ratio'] =\
+            converted_parameters['mass_ratio'] = \
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
-            temp = (parameters['chirp_mass'] / parameters['mass_1'])**5
-            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp))**(1 / 3) + \
-                                       (((51 * temp**2 - 12 * temp**3)**0.5 + 9 * temp) / 9 / 2**0.5)**(1 / 3)
+            temp = (parameters['chirp_mass'] / parameters['mass_1']) ** 5
+            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (
+                    1 / 3) + (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3)
             if remove:
                 added_keys.append('chirp_mass')
         elif 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
@@ -159,7 +159,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             if remove:
                 added_keys.append('redshift')
         elif 'comoving_distance' in converted_parameters.keys():
-            converted_parameters['luminosity_distance'] =\
+            converted_parameters['luminosity_distance'] = \
                 comoving_distance_to_luminosity_distance(parameters['comoving_distance'])
             if remove:
                 added_keys.append('comoving_distance')
@@ -194,7 +194,6 @@ def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
 
 
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
-
     """
     Convert the symmetric mass ratio to the normal mass ratio.
 
@@ -353,9 +352,9 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
     mass_ratio: float
         Mass ratio of the binary
     """
-    temp = (chirp_mass / mass_1)**5
-    mass_ratio = (2 / 3 / (3**0.5 * (27 * temp**2 - 4 * temp**3)**0.5 + 9 * temp))**(1 / 3) * temp + \
-                 ((3**0.5 * (27 * temp**2 - 4 * temp ** 3)**0.5 + 9 * temp) / (2 * 3**2)) ** (1 / 3)
+    temp = (chirp_mass / mass_1) ** 5
+    mass_ratio = (2 / 3 / (3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 + 9 * temp)) ** (1 / 3) * temp + \
+                 ((3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 + 9 * temp) / (2 * 3 ** 2)) ** (1 / 3)
     return mass_ratio
 
 
