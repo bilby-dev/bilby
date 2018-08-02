@@ -7,6 +7,7 @@ import numpy as np
 import datetime
 import deepdish
 import pandas as pd
+from future.utils import iteritems
 
 from tupak.core.utils import logger
 from tupak.core.result import Result, read_in_result
@@ -804,6 +805,64 @@ class Pymultinest(Sampler):
         self.result.log_evidence = out['logZ']
         self.result.log_evidence_err = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
+        return self.result
+
+
+class Cpnest(Sampler):
+    """ https://github.com/johnveitch/cpnest """
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        # Check if nlive was instead given by another name
+        if 'Nlive' not in kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints',
+                          'nlive']:
+                if equiv in kwargs:
+                    kwargs['Nlive'] = kwargs.pop(equiv)
+
+        # Set some default values
+        self.__kwargs = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000)
+
+        # Overwrite default values with user specified values
+        self.__kwargs.update(kwargs)
+
+    def _run_external_sampler(self):
+        cpnest = self.external_sampler
+        import cpnest.model
+
+        class Model(cpnest.model.Model):
+            """ A wrapper class to pass our log_likelihood into pcnest """
+            def __init__(self, names, bounds):
+                self.names = names
+                self.bounds = bounds
+
+            @staticmethod
+            def log_likelihood(x):
+                theta = [x[n] for n in x.names]
+                return self.log_likelihood(theta)
+
+            @staticmethod
+            def log_prior(x):
+                theta = [x[n] for n in x.names]
+                return self.log_prior(theta)
+
+        bounds = [[p.minimum, p.maximum] for p in self.priors.values()]
+        model = Model(self.search_parameter_keys, bounds)
+        out = cpnest.CPNest(model, output=self.outdir, **self.kwargs)
+        out.run()
+
+        if self.plot:
+            out.plot()
+
+        # Since the output is not just samples, but log_likelihood as well,
+        # we turn this into a dataframe here. The index [0] here may be wrong
+        self.result.posterior = pd.DataFrame(out.posterior_samples[0])
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
         return self.result
 
 

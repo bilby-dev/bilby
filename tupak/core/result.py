@@ -357,14 +357,18 @@ class Result(dict):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        data_frame = pd.DataFrame(
-            self.samples, columns=self.search_parameter_keys)
-        data_frame['log_likelihood'] = getattr(self, 'log_likelihood_evaluations', np.nan)
+        if hasattr(self, 'posterior') is False:
+            data_frame = pd.DataFrame(
+                self.samples, columns=self.search_parameter_keys)
+            data_frame['log_likelihood'] = getattr(
+                self, 'log_likelihood_evaluations', np.nan)
+            # We save the samples in the posterior and remove the array of samples
+            del self.samples
+        else:
+            data_frame = self.posterior
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
-        # We save the samples in the posterior and remove the array of samples
-        del self.samples
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
