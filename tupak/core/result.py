@@ -161,8 +161,7 @@ class Result(dict):
     def save_to_file(self):
         """ Writes the Result to a deepdish h5 file """
         file_name = result_file_name(self.outdir, self.label)
-        if os.path.isdir(self.outdir) is False:
-            os.makedirs(self.outdir)
+        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         if os.path.isfile(file_name):
             logger.debug(
                 'Renaming existing file {} to {}.old'.format(file_name,
@@ -307,14 +306,15 @@ class Result(dict):
         fig = corner.corner(xs, **kwargs)
 
         if save:
+            utils.check_directory_exists_and_if_not_mkdir(self.outdir)
             filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
 
         return fig
 
-    def plot_walkers(self, save=True, **kwargs):
-        """ Method to plot the trace of the walkers in an ensmble MCMC plot """
+    def plot_walkers(self, **kwargs):
+        """ Method to plot the trace of the walkers in an ensemble MCMC plot """
         if hasattr(self, 'walkers') is False:
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
@@ -339,15 +339,8 @@ class Result(dict):
         fig.tight_layout()
         filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
         logger.debug('Saving walkers plot to {}'.format('filename'))
+        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
-
-    def plot_walks(self, save=True, **kwargs):
-        """DEPRECATED"""
-        logger.warning("plot_walks deprecated")
-
-    def plot_distributions(self, save=True, **kwargs):
-        """DEPRECATED"""
-        logger.warning("plot_distributions deprecated")
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
@@ -370,6 +363,8 @@ class Result(dict):
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
+        # We save the samples in the posterior and remove the array of samples
+        del self.samples
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
