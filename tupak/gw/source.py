@@ -108,6 +108,86 @@ def lal_binary_black_hole(
 
     return {'plus': h_plus, 'cross': h_cross}
 
+def lal_eccentric_binary_black_hole_no_spins(
+        frequency_array, mass_1, mass_2, eccentricity, luminosity_distance, iota, phase, ra, dec, 
+        geocent_time, psi, **kwargs):        
+    """ Eccentric binary black hole waveform model using lalsimulation (EccentricFD)
+
+    Parameters
+    ----------
+    frequency_array: array_like
+        The frequencies at which we want to calculate the strain
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    eccentricity: float
+        The orbital eccentricity of the system
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    iota: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+    ra: float
+        The right ascension of the binary
+    dec: float
+        The declination of the object
+    geocent_time: float
+        The time at coalescence
+    psi: float
+        Orbital polarisation
+    kwargs: dict
+        Optional keyword arguments
+
+    Returns
+    -------
+    dict: A dictionary with the plus and cross polarisation strain modes
+    """
+    
+    waveform_kwargs = dict(waveform_approximant='EccentricFD', reference_frequency=10.0,
+                           minimum_frequency=10.0)
+    waveform_kwargs.update(kwargs)
+    waveform_approximant = waveform_kwargs['waveform_approximant']
+    reference_frequency = waveform_kwargs['reference_frequency']
+    minimum_frequency = waveform_kwargs['minimum_frequency']
+
+    if mass_2 > mass_1:
+        return None
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+    
+    spin_1x = 0.0
+    spin_1y = 0.0
+    spin_1z = 0.0 
+    spin_2x = 0.0
+    spin_2y = 0.0
+    spin_2z = 0.0
+    
+    longitude_ascending_nodes = 0.0
+    mean_per_ano = 0.0
+
+    waveform_dictionary = None
+
+    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+
+    maximum_frequency = frequency_array[-1]
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant)
+
+    h_plus = hplus.data.data
+    h_cross = hcross.data.data
+
+    return {'plus': h_plus, 'cross': h_cross}
+
 
 def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
     tau = Q / (np.sqrt(2.0)*np.pi*frequency)
