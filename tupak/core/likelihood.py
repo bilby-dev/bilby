@@ -188,15 +188,15 @@ class PoissonLikelihood(Likelihood):
                                   "value!"))
 
             # Return the summed log likelihood
-            return -self.N*rate + np.sum(self.counts*np.log(rate)) -
-                   self.sumlogfactorial
+            return (-self.N*rate + np.sum(self.counts*np.log(rate))
+                    - self.sumlogfactorial)
         elif isinstance(rate, np.ndarray):
             # check rates are positive
             if np.any(rate < 0.):
-                raise ValueError(("Poisson rate function returns a negative")),
+                raise ValueError(("Poisson rate function returns a negative",
                                   " value!"))
 
-            return np.sum(-rate + self.counts*np.log(rate)) - 
-                   self.sumlogfactorial
+            return (np.sum(-rate + self.counts*np.log(rate))
+                    - self.sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
