@@ -112,7 +112,7 @@ class GaussianLikelihood(Likelihood):
 
 
 class PoissonLikelihood(Likelihood):
-    def __init__(self, x, function):
+    def __init__(self, x, func):
         """
         A general Poisson likelihood for a rate - the model parameters are
         inferred from the arguments of function, which provides a rate.
@@ -125,13 +125,13 @@ class PoissonLikelihood(Likelihood):
         x: array_like
             The data to analyse - this must be a set of non-negative integers,
             each being the number of events within some interval.
-        function:
+        func:
             The python function providing the rate of events per interval to
             fit to the data. The arguments will require priors and will be
             sampled over (unless a fixed value is given).
         """
 
-        parameters = self._infer_parameters_from_function(function)
+        parameters = self._infer_parameters_from_function(func)
         Likelihood.__init__(self, dict.fromkeys(parameters))
 
         self.x = x
@@ -150,7 +150,7 @@ class PoissonLikelihood(Likelihood):
         # save sum of log factorial of counts
         self.sumlogfactorial = np.sum(gammaln(self.x + 1))
 
-        self.function = function
+        self.function = func
 
         # Check if sigma was provided, if not it is a parameter
         self.function_keys = list(self.parameters.keys())
