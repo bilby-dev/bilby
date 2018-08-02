@@ -143,12 +143,14 @@ class PoissonLikelihood(Likelihood):
         # check values are non-negative integers
         if isinstance(self.counts, int):
             # convert to numpy array if passing a single integer
-            self.counts = np.array(self.counts)
+            self.counts = np.array([self.counts])
 
-        try:
-            # use bincount to check all values are non-negative integers
-            _ = np.bincount(self.counts)
-        except ValueError:
+        # check array is an integer array
+        if self.counts.dtype.kind not in 'ui':
+            raise ValueError("Data must be non-negative integers")
+
+        # check for non-negative integers
+        if np.any(self.counts < 0):
             raise ValueError("Data must be non-negative integers")
 
         # save sum of log factorial of counts
@@ -187,16 +189,22 @@ class PoissonLikelihood(Likelihood):
                 raise ValueError(("Poisson rate function returns a negative ",
                                   "value!"))
 
-            # Return the summed log likelihood
-            return (-self.N*rate + np.sum(self.counts*np.log(rate))
-                    - self.sumlogfactorial)
+            if rate == 0.:
+                return -np.inf
+            else:
+                # Return the summed log likelihood
+                return (-self.N*rate + np.sum(self.counts*np.log(rate))
+                        -self.sumlogfactorial)
         elif isinstance(rate, np.ndarray):
             # check rates are positive
             if np.any(rate < 0.):
                 raise ValueError(("Poisson rate function returns a negative",
                                   " value!"))
 
-            return (np.sum(-rate + self.counts*np.log(rate))
-                    - self.sumlogfactorial)
+            if np.any(rate == 0.):
+                return -np.inf
+            else:
+                return (np.sum(-rate + self.counts*np.log(rate))
+                        -self.sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
