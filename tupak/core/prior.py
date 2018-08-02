@@ -26,7 +26,11 @@ class PriorSet(dict):
         dict.__init__(self)
         if type(dictionary) is dict:
             self.update(dictionary)
-        elif filename:
+        elif type(dictionary) is str:
+            logger.debug('Argument "dictionary" is a string.'
+                         + ' Assuming it is intended as a file name.')
+            self.read_in_file(dictionary)
+        elif type(filename) is str:
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
@@ -41,7 +45,7 @@ class PriorSet(dict):
         """
 
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():

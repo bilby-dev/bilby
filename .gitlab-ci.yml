@@ -42,6 +42,7 @@ python-3:
     - coverage --version
     - coverage erase
     - coverage run --debug=trace --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/conversion_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/calibration_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/detector_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/utils_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/prior_tests.py
