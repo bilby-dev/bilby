@@ -835,22 +835,23 @@ class Cpnest(Sampler):
         import cpnest.model
 
         class Model(cpnest.model.Model):
-            """ A wrapper class to pass our log_likelihood into pcnest """
+            """ A wrapper class to pass our log_likelihood into cpnest """
             def __init__(self, names, bounds):
                 self.names = names
                 self.bounds = bounds
 
             @staticmethod
             def log_likelihood(x):
-                theta = [x[n] for n in x.names]
+                theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_likelihood(theta)
 
             @staticmethod
             def log_prior(x):
-                theta = [x[n] for n in x.names]
+                theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_prior(theta)
 
-        bounds = [[p.minimum, p.maximum] for p in self.priors.values()]
+        bounds = [[self.priors[key].minimum, self.priors[key].maximum]
+                  for key in self.search_parameter_keys]
         model = Model(self.search_parameter_keys, bounds)
         out = cpnest.CPNest(model, output=self.outdir, **self.kwargs)
         out.run()
