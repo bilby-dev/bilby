@@ -127,10 +127,10 @@ class GaussianLikelihood(Likelihood):
         model_parameters = dict()
         for key in sampler.priors:
             if key == 'sigma' and self.sigma is None:
-                self.sigma = sampler.priors[key].pymc3(sampler)
+                self.sigma = sampler.priors[key].pymc3_prior(sampler)
             else:
                 if key in self.function_keys:
-                    model_parameters[key] = sampler.priors[key].pymc3(sampler)
+                    model_parameters[key] = sampler.priors[key].pymc3_prior(sampler)
                 else:
                     raise ValueError("Prior key '{}' is not a function key!".format(key))
 
