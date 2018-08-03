@@ -13,8 +13,21 @@ stages:
   - test
   - deploy
 
-# test example on Debian 8 "jessie"
-exitcode-jessie:
+# test example on python 2
+python-2:
+  stage: test
+  image: continuumio/anaconda
+  before_script:
+    - apt install -y libgl1-mesa-glx
+    - pip install -r requirements.txt
+    - pip install lalsuite enum gwpy
+  script:
+    - python setup.py install
+    # Run tests without finding coverage
+    - for test in test/*tests.py; do python $test; done
+
+# test example on python 3
+python-3:
   stage: test
   image: continuumio/anaconda3
   before_script:
@@ -29,6 +42,7 @@ exitcode-jessie:
     - coverage --version
     - coverage erase
     - coverage run --debug=trace --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/conversion_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/calibration_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/detector_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/utils_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/prior_tests.py
@@ -57,7 +71,8 @@ exitcode-jessie:
 pages:
   stage: deploy
   dependencies:
-    - exitcode-jessie
+    - python-3
+    - python-2
   script:
     - mkdir public/
     - mv htmlcov/ public/

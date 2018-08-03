@@ -26,7 +26,11 @@ class PriorSet(dict):
         dict.__init__(self)
         if type(dictionary) is dict:
             self.update(dictionary)
-        elif filename:
+        elif type(dictionary) is str:
+            logger.debug('Argument "dictionary" is a string.'
+                         + ' Assuming it is intended as a file name.')
+            self.read_in_file(dictionary)
+        elif type(filename) is str:
             self.read_in_file(filename)
 
     def write_to_file(self, outdir, label):
@@ -41,7 +45,7 @@ class PriorSet(dict):
         """
 
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():
@@ -147,7 +151,7 @@ class PriorSet(dict):
         """
         return self.sample_subset(keys=self.keys(), size=size)
 
-    def sample_subset(self, keys=list(), size=None):
+    def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -377,7 +381,7 @@ class Prior(object):
         """
         return self._subclass_repr_helper()
 
-    def _subclass_repr_helper(self, subclass_args=list()):
+    def _subclass_repr_helper(self, subclass_args=iter([])):
         """Helps out subclass _repr__ methods by creating a common template
 
         Parameters
