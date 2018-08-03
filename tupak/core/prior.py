@@ -802,7 +802,7 @@ class Sine(Prior):
 
 
 class Gaussian(Prior):
-    def __init__(self, mu, sigma, name=None, latex_label=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, use_pymc3=False):
         """Gaussian prior with mean mu and width sigma
 
         Parameters
@@ -820,7 +820,7 @@ class Gaussian(Prior):
         latex_label: str
             See superclass
         """
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name, latex_label, use_pymc3=use_pymc3)
         self.mu = mu
         self.sigma = sigma
 
@@ -848,6 +848,14 @@ class Gaussian(Prior):
 
     def lnprob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+
+    def pymc3_prior(self, sampler):
+        priortype = 'Normal'
+        priorargs = {}
+        priorargs['mu'] = self.mu
+        priorargs['sd'] = self.sigma
+
+        return self.set_pymc3_prior(sampler, priortype, **priorargs)
 
     def __repr__(self):
         """Call to helper method in the super class."""
