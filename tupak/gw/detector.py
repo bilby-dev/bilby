@@ -484,20 +484,23 @@ class InterferometerStrainData(object):
                 raise ValueError(
                     "You have given the sampling_frequency, duration, and "
                     "an array")
-            self._set_time_and_frequency_array_parameters(duration=duration,
-                                                          sampling_frequency=sampling_frequency,
-                                                          start_time=start_time)
+            pass
         elif array is not None:
             if domain == 'time':
                 self.time_array = array
+                sampling_frequency, duration = tupak.core.utils.get_sampling_frequency_and_duration_from_time_array(array)
             elif domain == 'frequency':
                 self.frequency_array = array
+                sampling_frequency, duration = tupak.core.utils.get_sampling_frequency_and_duration_from_frequency_array(array)
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
                 "Insufficient information given to set arrays")
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
