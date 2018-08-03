@@ -1,6 +1,5 @@
 import inspect
-
-from tupak.core import utils
+import tupak
 import numpy as np
 
 
@@ -84,7 +83,7 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.frequency_domain_source_model,
                                       model_data_points=self.frequency_array,
-                                      transformation_function=utils.nfft,
+                                      transformation_function=tupak.core.utils.nfft,
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
@@ -106,7 +105,7 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.time_domain_source_model,
                                       model_data_points=self.time_array,
-                                      transformation_function=utils.infft,
+                                      transformation_function=tupak.core.utils.infft,
                                       transformed_model=self.frequency_domain_source_model,
                                       transformed_model_data_points=self.frequency_array)
 
