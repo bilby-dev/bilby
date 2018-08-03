@@ -1,6 +1,6 @@
 import inspect
 
-from tupak.core import utils
+import tupak
 import numpy as np
 
 
@@ -94,10 +94,10 @@ class WaveformGenerator(object):
             time_domain_strain = self.time_domain_source_model(
                 self.time_array, **self.__full_source_model_keyword_arguments)
             if isinstance(time_domain_strain, np.ndarray):
-                return utils.nfft(time_domain_strain, self.sampling_frequency)
+                return tupak.core.utils.nfft(time_domain_strain, self.sampling_frequency)
             for key in time_domain_strain:
-                model_frequency_strain[key], self.frequency_array = utils.nfft(time_domain_strain[key],
-                                                                               self.sampling_frequency)
+                model_frequency_strain[key], self.frequency_array = tupak.core.utils.nfft(time_domain_strain[key],
+                                                                                          self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
 
@@ -135,9 +135,9 @@ class WaveformGenerator(object):
             frequency_domain_strain = self.frequency_domain_source_model(
                 self.frequency_array, **self.__full_source_model_keyword_arguments)
             if isinstance(frequency_domain_strain, np.ndarray):
-                return utils.infft(frequency_domain_strain, self.sampling_frequency)
+                return tupak.core.utils.infft(frequency_domain_strain, self.sampling_frequency)
             for key in frequency_domain_strain:
-                model_time_series[key] = utils.infft(frequency_domain_strain[key], self.sampling_frequency)
+                model_time_series[key] = tupak.core.utils.infft(frequency_domain_strain[key], self.sampling_frequency)
         else:
             raise RuntimeError("No source model given")
 
