@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core.result import Result, read_in_result
-from tupak.core.prior import Prior
+from tupak.core.prior import Prior, DeltaFunction
 from tupak.core import utils
 import tupak
 
@@ -939,6 +939,64 @@ class Ptemcee(Emcee):
         logger.info("Tswap frac = {}"
                     .format(sampler.tswap_acceptance_fraction))
         return self.result
+
+
+class Pymc3(Sampler):
+    """ https://docs.pymc.io/ """
+
+    def _run_external_sampler(self):
+        pymc3 = self.external_sampler
+
+        # set kwargs
+        self.draws = self.kwargs.get('draws', 1000)
+        self.chains = self.kwargs.get('chains', 2)
+        self.cores = self.kwargs.get('cores', 1)
+        self.tune = self.kwargs.get('tune', 1000) # burn in samples
+        self.discard_tuned_samples = self.kwargs.get('discard_tuned_samples',
+                                                     True)
+        # set the model
+        model = pymc3.Model()
+
+        with model:
+            likelihood = self.likelihood.pymc3_likelihood(self)
+
+            # perform the sampling
+            trace = pymc3.sample(self.draws, tune=self.tune, cores=self.cores,
+                chains=self.chains, 
+                discard_tuned_samples=self.discard_tuned_samples)
+
+        nparams = int(len(trace.varnames)/self.chains)
+        nsamples = len(trace)*self.chains
+
+        self.result.samples = np.zeros((nsamples, nparams))
+        for i, key in enumerate(self.priors.keys()):
+            self.result.samples[:,i] = trace[key]
+
+        self.result.sampler_output = np.nan
+        self.calculate_autocorrelation(self.result.samples)
+        self.result.log_evidence = np.nan
+        self.result.log_evidence_err = np.nan
+        return self.result
+
+    def calculate_autocorrelation(self, samples, c=3):
+        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
+
+        Parameters
+        ----------
+        c: float
+            The minimum number of autocorrelation times needed to trust the
+            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
+        """
+
+        import emcee
+        try:
+            self.result.max_autocorrelation_time = int(np.max(
+                emcee.autocorr.integrated_time(samples, c=c)))
+            logger.info("Max autocorr time = {}".format(
+                self.result.max_autocorrelation_time))
+        except emcee.autocorr.AutocorrError as e:
+            self.result.max_autocorrelation_time = None
+            logger.info("Unable to calculate autocorr time: {}".format(e))
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',

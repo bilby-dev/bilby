@@ -23,6 +23,8 @@ class PriorSet(OrderedDict):
             If given, a dictionary to generate the prior set.
         filename: str, None
             If given, a file containing the prior to generate the prior set.
+        use_pymc3: bool, False
+            Set to True if using the PyMC3 sampler, default: False
         """
         OrderedDict.__init__(self)
         if type(dictionary) in [dict, OrderedDict]:
@@ -265,7 +267,7 @@ class Prior(object):
 
     _default_latex_labels = dict()
 
-    def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
+    def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf, use_pymc3=False):
         """ Implements a Prior object
 
         Parameters
@@ -278,12 +280,15 @@ class Prior(object):
             Minimum of the domain, default=-np.inf
         maximum: float, optional
             Maximum of the domain, default=np.inf
+        use_pymc3: bool, optional
+            Set to True if using the PyMC3 sampler, default=False
 
         """
         self.name = name
         self.latex_label = latex_label
         self.minimum = minimum
         self.maximum = maximum
+        self.use_pymc3 = use_pymc3
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -470,7 +475,7 @@ class Prior(object):
 
 class DeltaFunction(Prior):
 
-    def __init__(self, peak, name=None, latex_label=None):
+    def __init__(self, peak, name=None, latex_label=None, use_pymc3=False):
         """Dirac delta function prior, this always returns peak.
 
         Parameters
@@ -481,9 +486,11 @@ class DeltaFunction(Prior):
             See superclass
         latex_label: str
             See superclass
+        use_pymc3: bool, False
+            See superclass
 
         """
-        Prior.__init__(self, name, latex_label, minimum=peak, maximum=peak)
+        Prior.__init__(self, name, latex_label, minimum=peak, maximum=peak, use_pymc3=use_pymc3)
         self.peak = peak
 
     def rescale(self, val):
@@ -516,6 +523,10 @@ class DeltaFunction(Prior):
             return np.inf
         else:
             return 0
+
+    def pymc3(self, sampler):
+        # just return the value
+        return self.peak
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -607,7 +618,7 @@ class PowerLaw(Prior):
 
 class Uniform(Prior):
 
-    def __init__(self, minimum, maximum, name=None, latex_label=None):
+    def __init__(self, minimum, maximum, name=None, latex_label=None, use_pymc3=False):
         """Uniform prior with bounds
 
         Parameters
@@ -621,7 +632,17 @@ class Uniform(Prior):
         latex_label: str
             See superclass
         """
-        Prior.__init__(self, name, latex_label, minimum, maximum)
+        Prior.__init__(self, name, latex_label, minimum, maximum, use_pymc3)
+
+    def sample(self, size=None):
+        if self.use_pymc3:
+            try:
+                import pymc3
+                return pymc3.Uniform.dist(lower=self.minimum, upper=self.maximum).random(size=size)
+            except ImportError:
+                raise ImportError("Could not import PyMC3")
+        else:
+            return self.rescale(np.random.uniform(0., 1., size=size))
 
     def rescale(self, val):
         Prior.test_valid_for_rescaling(val)
@@ -654,6 +675,23 @@ class Uniform(Prior):
         """
         return scipy.stats.uniform.logpdf(val, loc=self.minimum,
                                           scale=self.maximum-self.minimum)
+
+    def pymc3(self, sampler):
+        from tupak.core.sampler import Sampler
+
+        if not isinstance(sampler, Sampler):
+            raise ValueError("'sampler' is not a Sampler class")
+
+        try:
+            samplername = sampler.external_sampler.__name__
+        except ValueError:
+            raise ValueError("Sampler's 'external_sampler' has not been initialised")
+
+        if samplername != 'pymc3':
+            raise ValueError("Only use this class method for PyMC3 sampler")
+        
+        return sampler.external_sampler.Uniform(self.name, lower=self.minimum,
+                                                upper=self.maximum)
 
 
 class LogUniform(PowerLaw):

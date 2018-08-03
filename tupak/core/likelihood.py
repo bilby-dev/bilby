@@ -110,6 +110,34 @@ class GaussianLikelihood(Likelihood):
         return -0.5 * (np.sum((res / sigma)**2)
                        + self.N * np.log(2 * np.pi * sigma**2))
 
+    def pymc3_likelihood(self, sampler):
+        from tupak.core.sampler import Sampler
+
+        if not isinstance(sampler, Sampler):
+            raise ValueError("'sampler' is not a Sampler class")
+
+        try:
+            samplername = sampler.external_sampler.__name__
+        except ValueError:
+            raise ValueError("Sampler's 'external_sampler' has not been initialised")
+
+        if samplername != 'pymc3':
+            raise ValueError("Only use this class method for PyMC3 sampler")
+
+        model_parameters = dict()
+        for key in sampler.priors:
+            if key == 'sigma' and self.sigma is None:
+                self.sigma = sampler.priors[key].pymc3(sampler)
+            else:
+                if key in self.function_keys:
+                    model_parameters[key] = sampler.priors[key].pymc3(sampler)
+                else:
+                    raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+        model = self.function(self.x, **model_parameters)
+
+        return sampler.external_sampler.Normal('likelihood', mu=model, sd=self.sigma, observed=self.y)
+
 
 class PoissonLikelihood(Likelihood):
     def __init__(self, x, counts, func):
