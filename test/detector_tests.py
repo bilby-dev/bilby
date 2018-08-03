@@ -303,62 +303,82 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_frequency_mask(self):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], frequency_array=[5, 15, 25])
-        self.assertTrue(np.array_equal(self.ifosd.frequency_mask, [False, True, False]))
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = np.array([5, 15, 25])
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
+            self.assertTrue(np.array_equal(self.ifosd.frequency_mask, [False, True, False]))
 
     def test_frequency_array_setting_direct(self):
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], frequency_array=[5, 15, 25])
-        self.assertTrue(np.array_equal(self.ifosd.frequency_array, np.array([5, 15, 25])))
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = np.array([5, 15, 25])
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
+            self.assertTrue(np.array_equal(self.ifosd.frequency_array, np.array(np.array([5, 15, 25]))))
 
     def test_duration_setting(self):
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], frequency_array=[0, 1, 2])
-        self.assertTrue(self.ifosd.duration == 1)
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = np.array([0, 1, 2])
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
+            self.assertTrue(self.ifosd.duration == 1)
 
     def test_sampling_frequency_setting(self):
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], frequency_array=[0, 1, 2])
-        self.assertTrue(self.ifosd.sampling_frequency == 6)
+        with mock.patch('tupak.core.utils.create_frequency_series') as n:
+            with mock.patch('tupak.core.utils.get_sampling_frequency_and_duration_from_frequency_array') as m:
+                m.return_value = 8, 456
+                n.return_value = np.array([1, 2, 3])
+                self.ifosd.set_from_frequency_domain_strain(
+                    frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
+                self.assertEqual(8, self.ifosd.sampling_frequency)
 
     def test_frequency_array_setting(self):
         duration = 3
         sampling_frequency = 1
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], duration=duration,
-            sampling_frequency=sampling_frequency)
-        self.assertTrue(np.array_equal(
-            self.ifosd.frequency_array,
-            tupak.core.utils.create_frequency_series(duration=duration,
-                                                     sampling_frequency=sampling_frequency)))
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), duration=duration,
+                sampling_frequency=sampling_frequency)
+            self.assertTrue(np.array_equal(
+                self.ifosd.frequency_array,
+                tupak.core.utils.create_frequency_series(duration=duration,
+                                                         sampling_frequency=sampling_frequency)))
 
     def test_set_data_fails(self):
-        with self.assertRaises(ValueError):
-            self.ifosd.set_from_frequency_domain_strain(
-                frequency_domain_strain=[0, 1, 2])
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            with self.assertRaises(ValueError):
+                self.ifosd.set_from_frequency_domain_strain(
+                    frequency_domain_strain=np.array([0, 1, 2]))
 
     def test_set_data_fails_too_much(self):
-        with self.assertRaises(ValueError):
-            self.ifosd.set_from_frequency_domain_strain(
-                frequency_domain_strain=[0, 1, 2], frequency_array=[1, 2, 3],
-                duration=3, sampling_frequency=1)
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            with self.assertRaises(ValueError):
+                self.ifosd.set_from_frequency_domain_strain(
+                    frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([1, 2, 3]),
+                    duration=3, sampling_frequency=1)
 
     def test_start_time_init(self):
-        duration = 3
-        sampling_frequency = 1
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], duration=duration,
-            sampling_frequency=sampling_frequency)
-        self.assertTrue(self.ifosd.start_time == 0)
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            duration = 3
+            sampling_frequency = 1
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), duration=duration,
+                sampling_frequency=sampling_frequency)
+            self.assertTrue(self.ifosd.start_time == 0)
 
     def test_start_time_set(self):
-        duration = 3
-        sampling_frequency = 1
-        self.ifosd.set_from_frequency_domain_strain(
-            frequency_domain_strain=[0, 1, 2], duration=duration,
-            sampling_frequency=sampling_frequency, start_time=10)
-        self.assertTrue(self.ifosd.start_time == 10)
+        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            duration = 3
+            sampling_frequency = 1
+            self.ifosd.set_from_frequency_domain_strain(
+                frequency_domain_strain=np.array([0, 1, 2]), duration=duration,
+                sampling_frequency=sampling_frequency, start_time=10)
+            self.assertTrue(self.ifosd.start_time == 10)
 
     def test_time_array_frequency_array_consistency(self):
         duration = 1
@@ -376,78 +396,6 @@ class TestInterferometerStrainData(unittest.TestCase):
 
         self.assertTrue(np.all(
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
-
-    #def test_sampling_duration_init(self):
-    #    self.assertIsNone(self.ifo.duration)
-
-
-    #def test_set_data_raises_value_error(self):
-    #    with self.assertRaises(ValueError):
-    #        self.ifo.set_data(sampling_frequency=1, duration=1)
-
-    #def test_set_data_sets_data_from_frequency_domain_strain(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.strain_data.minimum_frequency = 0
-    #        self.ifo.strain_data.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.strain_data.set_from_frequency_domain_strain(
-    #                sampling_frequency=1, duration=1,
-    #                frequency_domain_strain=np.array([1]))
-    #        self.assertTrue(np.array_equal(
-    #            self.ifo.strain_data.frequency_domain_strain, np.array([1])))
-
-    #def test_set_data_sets_frequencies_from_frequency_domain_strain(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.minimum_frequency = 0
-    #        self.ifo.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.set_data(sampling_frequency=1, duration=1, frequency_domain_strain=np.array([1]))
-    #        self.assertTrue(np.array_equal(self.ifo.frequency_array, np.array([1])))
-
-    #def test_set_data_sets_frequencies_from_spectral_density(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.minimum_frequency = 0
-    #        self.ifo.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.set_data(sampling_frequency=1, duration=1, from_power_spectral_density=True)
-    #        self.assertTrue(np.array_equal(self.ifo.frequency_array, np.array([2])))
-
-    #def test_set_data_sets_epoch(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.minimum_frequency = 0
-    #        self.ifo.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.set_data(sampling_frequency=1, duration=1, from_power_spectral_density=True, epoch=4)
-    #        self.assertEqual(self.ifo.epoch, 4)
-
-    #def test_set_data_sets_sampling_frequency(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.minimum_frequency = 0
-    #        self.ifo.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.set_data(sampling_frequency=1, duration=1, from_power_spectral_density=True, epoch=4)
-    #        self.assertEqual(self.ifo.sampling_frequency, 1)
-
-    #def test_set_data_sets_duration(self):
-    #    with mock.patch('tupak.core.utils.create_frequency_series') as m:
-    #        m.return_value = np.array([1])
-    #        self.ifo.minimum_frequency = 0
-    #        self.ifo.maximum_frequency = 3
-    #        self.ifo.power_spectral_density.get_noise_realisation = MagicMock(return_value=(1, np.array([2])))
-    #        self.ifo.set_data(sampling_frequency=1, duration=1, from_power_spectral_density=True, epoch=4)
-    #        self.assertEqual(self.ifo.duration, 1)
-
-    #def test_whitened_data(self):
-    #    self.ifo.data = np.array([2])
-    #    self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1]))
-    #    self.ifo.set_strain_data_from_power_spectral_density(
-    #        sampling_frequency=1, duration=1)
-    #    self.assertTrue(np.array_equal(self.ifo.whitened_frequency_domain_strain, np.array([2])))
 
 
 if __name__ == '__main__':
