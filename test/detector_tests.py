@@ -321,7 +321,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             m.return_value = np.array([0, 1, 2])
             self.ifosd.set_from_frequency_domain_strain(
                 frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
-            self.assertTrue(self.ifosd.duration == 1)
+            self.assertAlmostEqual(self.ifosd.duration, 1)
 
     def test_sampling_frequency_setting(self):
         with mock.patch('tupak.core.utils.create_frequency_series') as n:
