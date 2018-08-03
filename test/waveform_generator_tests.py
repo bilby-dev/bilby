@@ -166,8 +166,10 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             return value, value2
 
         with mock.patch('tupak.core.utils.nfft') as m:
-            m.side_effect = side_effect
-            self.assertDictEqual(dict(plus=1, cross=2), self.waveform_generator.frequency_domain_strain())
+            with mock.patch('tupak.core.utils.get_sampling_frequency_and_duration_from_frequency_array') as n:
+                n.return_value = 1, 1
+                m.side_effect = side_effect
+                self.assertDictEqual(dict(plus=1, cross=2), self.waveform_generator.frequency_domain_strain())
 
     def test_no_source_model_given(self):
         self.waveform_generator.time_domain_source_model = None
