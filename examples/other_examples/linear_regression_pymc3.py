@@ -59,5 +59,5 @@ priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
 result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='pymc3',
     injection_parameters=injection_parameters, outdir=outdir,
-    nsamples=2000, label=label)
+    draws=2000, label=label)
 result.plot_corner()
