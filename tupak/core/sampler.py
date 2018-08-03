@@ -823,6 +823,8 @@ class Cpnest(Sampler):
                           'nlive']:
                 if equiv in kwargs:
                     kwargs['Nlive'] = kwargs.pop(equiv)
+        if 'seed' not in kwargs:
+            logger.warning('No seed provided, cpnest will use 1234.')
 
         # Set some default values
         self.__kwargs = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000)
