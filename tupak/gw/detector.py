@@ -489,9 +489,9 @@ class InterferometerStrainData(object):
                                                           start_time=start_time)
         elif array is not None:
             if domain == 'time':
-                self.time_array = np.array(array)
+                self.time_array = array
             elif domain == 'frequency':
-                self.frequency_array = np.array(array)
+                self.frequency_array = array
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
