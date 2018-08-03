@@ -2,9 +2,9 @@ from __future__ import division
 import os
 
 import numpy as np
-from scipy import signal
 
-from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft, logger
+from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
+                          nfft, logger)
 
 try:
     from gwpy.signal import filter_design
