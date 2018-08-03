@@ -634,16 +634,6 @@ class Uniform(Prior):
         """
         Prior.__init__(self, name, latex_label, minimum, maximum, use_pymc3)
 
-    def sample(self, size=None):
-        if self.use_pymc3:
-            try:
-                import pymc3
-                return pymc3.Uniform.dist(lower=self.minimum, upper=self.maximum).random(size=size)
-            except ImportError:
-                raise ImportError("Could not import PyMC3")
-        else:
-            return self.rescale(np.random.uniform(0., 1., size=size))
-
     def rescale(self, val):
         Prior.test_valid_for_rescaling(val)
         return self.minimum + val * (self.maximum - self.minimum)
