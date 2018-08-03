@@ -2,7 +2,7 @@
 """
 An example of how to use tupak to perform paramater estimation for
 non-gravitational wave data. In this case, fitting the half-life and
-initial radionucleotide number for Lead 214. 
+initial radionucleotide number for Polonium 214. 
 """
 from __future__ import division
 import tupak
@@ -69,9 +69,9 @@ likelihood = PoissonLikelihood(deltat, counts, decayrate)
 # Make the prior
 priors = {}
 priors['halflife'] = tupak.core.prior.LogUniform(1e-5, 1e5, 'halflife',
-                                                 latex_label='$t_{1/2}$')
+                                                 latex_label='$t_{1/2}$ (min)')
 priors['N0'] = tupak.core.prior.LogUniform(1e-25, 1e-10, 'N0',
-                                           latex_label='$N_0$')
+                                           latex_label='$N_0$ (mole)')
 
 # And run sampler
 result = tupak.run_sampler(
