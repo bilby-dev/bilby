@@ -16,231 +16,6 @@ solar_mass = 1.98855 * 1e30
 radius_of_earth = 6371 * 1e3  # metres
 
 
-class CoupledTimeAndFrequencySeries(object):
-
-    def __init__(self, start_time, duration, sampling_frequency):
-        self.__start_time = start_time
-        self.__duration = duration
-        self.__sampling_frequency = sampling_frequency
-        self.__frequency_series = None
-        self.__time_series = None
-        self.__start_time_updated = True
-        self.__duration_updated = True
-        self.__sampling_frequency_updated = True
-        self.__frequency_series_updated = False
-        self.__time_series_updated = False
-
-    @staticmethod
-    def from_frequency_series(frequency_series):
-        result = CoupledTimeAndFrequencySeries(0, 0, 0)
-        result.frequency_series = frequency_series
-        return result
-
-    @staticmethod
-    def from_time_series(time_series):
-        result = CoupledTimeAndFrequencySeries(0, 0, 0)
-        result.time_series = time_series
-        return result
-
-    @property
-    def start_time(self):
-        """ Allows one to set the start_time and automatically updates the time array.
-
-        Returns
-        -------
-        float: The sampling frequency.
-
-        """
-        self.__update_start_time()
-        return self.__start_time
-
-    def __update_start_time(self):
-        if self.__start_time_updated:
-            pass
-        elif self.__time_series_updated:
-            self.__update_start_time_from_time_series()
-        else:
-            self.__start_time = 0
-            self.__start_time_updated = True
-
-    def __update_start_time_from_time_series(self):
-        self.__start_time = self.__time_series[0]
-        self.__start_time_updated = True
-
-    @start_time.setter
-    def start_time(self, start_time):
-        self.__start_time = start_time
-        self.__start_time_updated = True
-        self.__time_series_updated = False
-
-    @property
-    def duration(self):
-        """ Allows one to set the time duration and automatically updates the frequency and time array.
-
-        Returns
-        -------
-        float: The time duration.
-
-        """
-        self.__update_duration()
-        return self.__duration
-
-    def __update_duration(self):
-        if self.__duration_updated:
-            pass
-        elif self.__frequency_series_updated:
-            self.__update_duration_from_frequency_series()
-        elif self.__time_series_updated:
-            self.__update_duration_from_time_series()
-        else:
-            raise RuntimeError("No valid value for the duration could be derived")
-
-    def __update_duration_from_time_series(self):
-        _, self.__duration = get_sampling_frequency_and_duration_from_time_array(self.time_series)
-        self.__duration_updated = True
-
-    def __update_duration_from_frequency_series(self):
-        _, self.__duration = get_sampling_frequency_and_duration_from_frequency_array(self.frequency_series)
-        self.__duration_updated = True
-
-    @duration.setter
-    def duration(self, duration):
-        self.__duration = duration
-        self.__duration_updated = True
-        self.__reset_arrays()
-
-    @property
-    def sampling_frequency(self):
-        """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
-
-        Returns
-        -------
-        float: The sampling frequency.
-
-        """
-        self.__update_sampling_frequency()
-        return self.__sampling_frequency
-
-    def __update_sampling_frequency(self):
-        if self.__sampling_frequency_updated:
-            pass
-        elif self.__frequency_series_updated:
-            self.__update_sampling_frequency_from_frequency_array()
-        elif self.__time_series_updated:
-            self.__update_sampling_frequency_from_time_array()
-        else:
-            raise RuntimeError("No valid value for the sampling_frequency could be derived.")
-
-    def __update_sampling_frequency_from_time_array(self):
-        self.__sampling_frequency, _ = get_sampling_frequency_and_duration_from_time_array(self.time_series)
-        self.__sampling_frequency_updated = True
-
-    def __update_sampling_frequency_from_frequency_array(self):
-        self.__sampling_frequency, _ = get_sampling_frequency_and_duration_from_frequency_array(
-            self.frequency_series)
-        self.__sampling_frequency_updated = True
-
-    @sampling_frequency.setter
-    def sampling_frequency(self, sampling_frequency):
-        self.__sampling_frequency = sampling_frequency
-        self.__sampling_frequency_updated = True
-        self.__reset_arrays()
-
-    @property
-    def time_series(self):
-        """ Time array for the data set. Automatically updates if start_time,
-        sampling_frequency, or duration are updated.
-
-        Returns
-        -------
-        array_like: The time array
-        """
-        self.__update_time_series()
-        return self.__time_series
-
-    def __update_time_series(self):
-        if self.__time_series_updated:
-            pass
-        elif self.__sampling_frequency_updated and self.__duration_updated and self.__start_time_updated:
-            self.__update_time_series_from_parameters()
-        else:
-            raise RuntimeError("No valid value for the time_array could be derived.")
-
-    def __update_time_series_from_parameters(self):
-        self.__update_parameters()
-        self.__time_series = create_time_series(sampling_frequency=self.sampling_frequency,
-                                                duration=self.duration,
-                                                starting_time=self.start_time)
-        self.__time_series_updated = True
-
-    @time_series.setter
-    def time_series(self, time_series):
-        self.__time_series = time_series
-        self.__time_series_updated = True
-        self.__frequency_series_updated = False
-        self.__reset_parameters()
-        self.__update_parameters()
-        self.__update_frequency_series()
-
-    @property
-    def frequency_series(self):
-        """ Frequency array for the data set. Automatically updates if sampling_frequency or duration are updated.
-
-        Returns
-        -------
-        array_like: The frequency array
-        """
-        self.__update_frequency_series()
-        return self.__frequency_series
-
-    def __update_frequency_series(self):
-        if self.__frequency_series_updated:
-            pass
-        elif self.__sampling_frequency_updated and self.__duration_updated:
-            self.__update_frequency_series_from_parameters()
-        else:
-            raise RuntimeError("No valid value for the frequency_array could be derived.")
-
-    def __update_frequency_series_from_parameters(self):
-        self.__update_parameters()
-        self.__frequency_series = create_frequency_series(sampling_frequency=self.sampling_frequency,
-                                                     duration=self.duration)
-        self.__frequency_series_updated = True
-
-    @frequency_series.setter
-    def frequency_series(self, frequency_series):
-        self.__frequency_series = frequency_series
-        self.__frequency_series_updated = True
-        self.__time_series_updated = False
-        self.__reset_parameters()
-        self.__start_time_updated = True
-        self.__update_parameters()
-        self.__update_time_series()
-
-    def __reset_parameters(self):
-        self.__sampling_frequency_updated = False
-        self.__duration_updated = False
-        self.__start_time_updated = False
-
-    def __update_parameters(self):
-        self.__update_duration()
-        self.__update_sampling_frequency()
-        self.__update_start_time()
-
-    def __reset_arrays(self):
-        self.__time_series_updated = False
-        self.__frequency_series_updated = False
-
-    def __eq__(self, other):
-        if self.sampling_frequency != other.sampling_frequency \
-                or self.start_time != other.start_time \
-                or self.duration != other.duration \
-                or any(self.time_series != other.time_series) \
-                or any(self.frequency_series != other.frequency_series):
-            return False
-        return True
-
-
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
@@ -319,7 +94,7 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, starting_time + duration, 1. / sampling_frequency)
+    return np.arange(starting_time, starting_time+duration, 1./sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
@@ -390,8 +165,8 @@ def create_frequency_series(sampling_frequency, duration):
     number_of_samples = int(np.round(number_of_samples))
 
     # prepare for FFT
-    number_of_frequencies = (number_of_samples - 1) // 2
-    delta_freq = 1. / duration
+    number_of_frequencies = (number_of_samples-1)//2
+    delta_freq = 1./duration
 
     frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
 
@@ -422,14 +197,14 @@ def create_white_noise(sampling_frequency, duration):
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
 
-    delta_freq = 1. / duration
+    delta_freq = 1./duration
 
     frequencies = create_frequency_series(sampling_frequency, duration)
 
-    norm1 = 0.5 * (1. / delta_freq) ** 0.5
+    norm1 = 0.5*(1./delta_freq)**0.5
     re1 = np.random.normal(0, norm1, len(frequencies))
     im1 = np.random.normal(0, norm1, len(frequencies))
-    htilde1 = re1 + 1j * im1
+    htilde1 = re1 + 1j*im1
 
     # convolve data with instrument transfer function
     otilde1 = htilde1 * 1.
@@ -475,7 +250,7 @@ def nfft(time_domain_strain, sampling_frequency):
         time_domain_strain = np.append(time_domain_strain, 0)
     LL = len(time_domain_strain)
     # frequency range
-    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL / 2 + 1))
+    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL/2+1))
 
     # calculate FFT
     # rfft computes the fft for real inputs
@@ -650,7 +425,7 @@ def set_up_command_line_arguments():
                         help="Force clean data, never use cached data")
     parser.add_argument("-u", "--use-cached", action="store_true",
                         help="Force cached data and do not check its validity")
-    parser.add_argument("-d", "--detectors", nargs='+',
+    parser.add_argument("-d", "--detectors",  nargs='+',
                         default=['H1', 'L1', 'V1'],
                         help=("List of detectors to use in open data calls, "
                               "e.g. -d H1 L1 for H1 and L1"))
