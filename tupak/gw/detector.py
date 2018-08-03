@@ -466,26 +466,38 @@ class InterferometerStrainData(object):
         """ Helper function to figure out if the time_array, or
             sampling_frequency and duration where given
         """
+        self._infer_dependence(domain='time', array=time_array, duration=duration,
+                               sampling_frequency=sampling_frequency, start_time=start_time)
+
+    def _infer_frequency_domain_dependence(
+            self, start_time, sampling_frequency, duration, frequency_array):
+        """ Helper function to figure out if the frequency_array, or
+            sampling_frequency and duration where given
+        """
+
+        self._infer_dependence(domain='frequency', array=frequency_array,
+                               duration=duration, sampling_frequency=sampling_frequency, start_time=start_time)
+
+    def _infer_dependence(self, domain, array, duration, sampling_frequency, start_time):
         if (sampling_frequency is not None) and (duration is not None):
-            if time_array is not None:
+            if array is not None:
                 raise ValueError(
                     "You have given the sampling_frequency, duration, and "
-                    "time_array")
-            self.time_array = utils.create_time_series(sampling_frequency=sampling_frequency,
-                                                       duration=duration)
-        elif time_array is not None:
-            sampling_frequency, duration = (
-                utils.get_sampling_frequency_and_duration_from_time_array(
-                    time_array))
-            self.time_array = np.array(time_array)
+                    "an array")
+            self._set_time_and_frequency_array_parameters(duration=duration,
+                                                          sampling_frequency=sampling_frequency,
+                                                          start_time=start_time)
+        elif array is not None:
+            if domain == 'time':
+                self.time_array = np.array(array)
+            elif domain == 'frequency':
+                self.frequency_array = np.array(array)
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
-                "Insufficient information given to set time_array")
-        self._set_time_and_frequency_array_parameters(duration, sampling_frequency, start_time)
-        self.time_array = time_array
+                "Insufficient information given to set arrays")
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -587,32 +599,6 @@ class InterferometerStrainData(object):
         """
         timeseries = gwpy.timeseries.TimeSeries.read(filename, format='csv')
         self.set_from_gwpy_timeseries(timeseries)
-
-    def _infer_frequency_domain_dependence(
-            self, start_time, sampling_frequency, duration, frequency_array):
-        """ Helper function to figure out if the frequency_array, or
-            sampling_frequency and duration where given
-        """
-
-        if (sampling_frequency is not None) and (duration is not None):
-            if frequency_array is not None:
-                raise ValueError(
-                    "You have given the sampling_frequency, duration, and "
-                    "frequency_array")
-            frequency_array = utils.create_frequency_series(sampling_frequency=sampling_frequency,
-                                                            duration=duration)
-        elif frequency_array is not None:
-            sampling_frequency, duration = \
-                utils.get_sampling_frequency_and_duration_from_frequency_array(frequency_array)
-            frequency_array = np.array(frequency_array)
-        elif sampling_frequency is None or duration is None:
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
-        else:
-            raise ValueError(
-                "Insufficient information given to set frequency_array")
-        self._set_time_and_frequency_array_parameters(duration, sampling_frequency, start_time)
-        self.frequency_array = frequency_array
 
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
