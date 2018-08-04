@@ -467,22 +467,29 @@ class Prior(object):
             label = self.name
         return label
 
-    def set_pymc3_prior(self, sampler, priortype, **kwargs):
+    def pymc3_prior(self, sampler):
+        """
+        'pymc3_prior' A user defined PyMC3 prior.
+
+        This should be overwritten by each subclass if needed.
+
+        Parameters
+        ----------
+        val: float
+            A random number between 0 and 1
+
+        Returns
+        -------
+        None
+
+        """
+
         from tupak.core.sampler import Sampler
 
         if not isinstance(sampler, Sampler):
             raise ValueError("'sampler' is not a Sampler class")
 
-        try:
-            samplername = sampler.external_sampler.__name__
-        except ValueError:
-            raise ValueError("Sampler's 'external_sampler' has not been initialised")
-
-        if samplername != 'pymc3':
-            raise ValueError("Only use this class method for PyMC3 sampler")
-        
-        if priortype in sampler.external_sampler.__dict__:
-            return sampler.external_sampler.__dict__[priortype](self.name, **kwargs)
+        return None
 
 
 class DeltaFunction(Prior):
@@ -644,6 +651,10 @@ class Uniform(Prior):
         """
         Prior.__init__(self, name, latex_label, minimum, maximum)
 
+        # set PyMC3 Uniform distribution attributes
+        self.lower = self.minimum
+        self.upper = self.maximum
+
     def rescale(self, val):
         Prior.test_valid_for_rescaling(val)
         return self.minimum + val * (self.maximum - self.minimum)
@@ -675,14 +686,6 @@ class Uniform(Prior):
         """
         return scipy.stats.uniform.logpdf(val, loc=self.minimum,
                                           scale=self.maximum-self.minimum)
-
-    def pymc3_prior(self, sampler):
-        priortype = 'Uniform'
-        priorargs = {}
-        priorargs['lower'] = self.minimum
-        priorargs['upper'] = self.maximum
-
-        return self.set_pymc3_prior(sampler, priortype, **priorargs)
 
 
 class LogUniform(PowerLaw):
@@ -853,6 +856,20 @@ class Gaussian(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class Normal(Gaussian):
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """A copy of the Gaussian prior, but with "Normal" name to copy that
+        used for the distribution in PyMC3.
+
+        """
+
+        Gaussian.__init__(self, mu, sigma, name, latex_label)
+
+        # set argument names used in PyMC3 distribution
+        self.mu = mu
+        self.sd = sigma
 
 
 class TruncatedGaussian(Prior):

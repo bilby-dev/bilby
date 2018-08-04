@@ -124,20 +124,20 @@ class GaussianLikelihood(Likelihood):
         if samplername != 'pymc3':
             raise ValueError("Only use this class method for PyMC3 sampler")
 
-        model_parameters = dict()
-        for key in sampler.priors:
-            if key == 'sigma' and self.sigma is None:
-                self.sigma = sampler.priors[key].pymc3_prior(sampler)
+        if 'sigma' in sampler.pymc3_priors:
+            # if sigma is suppled use that value
+            if self.sigma is None:
+                self.sigma = sampler.pymc3_priors.pop('sigma')
             else:
-                if key in self.function_keys:
-                    model_parameters[key] = sampler.priors[key].pymc3_prior(sampler)
-                else:
-                    raise ValueError("Prior key '{}' is not a function key!".format(key))
+                del sampler.pymc3_priors['sigma']
 
-        model = self.function(self.x, **model_parameters)
+        for key in sampler.pymc3_priors:
+            if key not in self.function_keys:
+                raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+        model = self.function(self.x, **sampler.pymc3_priors)
 
         return sampler.external_sampler.Normal('likelihood', mu=model, sd=self.sigma, observed=self.y)
-
 
 class PoissonLikelihood(Likelihood):
     def __init__(self, x, counts, func):

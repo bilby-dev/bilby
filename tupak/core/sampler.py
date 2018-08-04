@@ -958,6 +958,8 @@ class Pymc3(Sampler):
         model = pymc3.Model()
 
         with model:
+            self.set_prior()
+
             likelihood = self.likelihood.pymc3_likelihood(self)
 
             # perform the sampling
@@ -965,7 +967,7 @@ class Pymc3(Sampler):
                 chains=self.chains, 
                 discard_tuned_samples=self.discard_tuned_samples)
 
-        nparams = int(len(trace.varnames)/self.chains)
+        nparams = len(trace.varnames)
         nsamples = len(trace)*self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
@@ -977,6 +979,42 @@ class Pymc3(Sampler):
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
+
+    def set_prior(self):
+        """ Set the PyMC3 prior distributions.
+
+        """
+
+        self.pymc3_priors = dict()
+
+        # set the parameter prior distributions
+        for key in self.priors:
+            # if the prior contains a pymc3_prior method use that otherwise try
+            # and find the PyMC3 distribution
+            if self.priors[key].pymc3_prior(self) is not None:
+                self.pymc3_priors[key] = self.priors[key].pymc3_prior(self)
+            else:
+                # use Prior distribution name
+                distname = self.priors[key].__class__.__name__
+
+                # check whether name is a PyMC3 distribution
+                if distname in self.external_sampler.__dict__:
+                    # check the required arguments for the PyMC3 distribution
+                    reqargs = inspect.getargspec(self.external_sampler.__dict__[distname].__init__).args[1:]
+
+                    priorkwargs = dict()
+
+                    # check whether the Prior class has required attributes
+                    for arg in reqargs:
+                        if hasattr(self.priors[key], arg):
+                            priorkwargs[arg] = getattr(self.priors[key], arg)
+                        else:
+                            priorkwargs[arg] = None
+
+                    # set the prior
+                    self.pymc3_priors[key] = self.external_sampler.__dict__[distname](key, **priorkwargs)
+                else:
+                    raise ValueError("Prior '{}' is not a PyMC3 distribution.".format(distname))
 
     def calculate_autocorrelation(self, samples, c=3):
         """ Uses the `emcee.autocorr` module to estimate the autocorrelation
