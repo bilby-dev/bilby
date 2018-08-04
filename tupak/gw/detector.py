@@ -4,12 +4,13 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
+from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 
 import tupak.gw.utils
 from tupak.core import utils
 from tupak.core.utils import logger
+from .calibration import Recalibrate
 
 try:
     import gwpy
@@ -85,7 +86,7 @@ class InterferometerList(list):
            `waveform_generator.frequency_domain_strain()`. If
            `waveform_generator` is also given, the injection_polarizations will
            be calculated directly and this argument can be ignored.
-        waveform_generator: tupak.gw.waveform_generator
+        waveform_generator: tupak.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
@@ -353,7 +354,7 @@ class InterferometerStrainData(object):
             self.roll_off = roll_off
         elif alpha is not None:
             self.roll_off = alpha * self.duration / 2
-        window = scipy.signal.windows.tukey(len(self._time_domain_strain), alpha=self.alpha)
+        window = tukey(len(self._time_domain_strain), alpha=self.alpha)
         self.window_factor = np.mean(window**2)
         return window
 
@@ -745,9 +746,9 @@ class InterferometerStrainData(object):
 class Interferometer(object):
     """Class for the Interferometer """
 
-    def __init__(self, name, power_spectral_density, minimum_frequency,
-                 maximum_frequency, length, latitude, longitude, elevation,
-                 xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0.):
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
+                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
         """
         Instantiate an Interferometer object.
 
@@ -778,6 +779,9 @@ class Interferometer(object):
             ellipsoid earth model in LIGO-T980044-08.
         yarm_tilt: float, optional
             Tilt of the y arm in radians above the horizontal.
+        calibration_model: Recalibration
+            Calibration model, this applies the calibration correction to the
+            template, the default model applies no correction.
         """
         self.__x_updated = False
         self.__y_updated = False
@@ -795,6 +799,7 @@ class Interferometer(object):
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.time_marginalization = False
+        self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
@@ -1190,6 +1195,9 @@ class Interferometer(object):
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
+
+        signal_ifo *= self.calibration_model.get_calibration_factor(
+            self.frequency_array, prefix='recalib_{}_'.format(self.name), **parameters)
 
         return signal_ifo
 
