@@ -1,5 +1,6 @@
 import inspect
-import tupak
+
+from tupak.core import utils
 import numpy as np
 
 
@@ -83,7 +84,7 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.frequency_domain_source_model,
                                       model_data_points=self.frequency_array,
-                                      transformation_function=tupak.core.utils.nfft,
+                                      transformation_function=utils.nfft,
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
@@ -105,7 +106,7 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.time_domain_source_model,
                                       model_data_points=self.time_array,
-                                      transformation_function=tupak.core.utils.infft,
+                                      transformation_function=utils.infft,
                                       transformed_model=self.frequency_domain_source_model,
                                       transformed_model_data_points=self.frequency_array)
 
@@ -138,7 +139,7 @@ class WaveformGenerator(object):
 
         model_strain = dict()
         for key in transformed_model_strain:
-            if transformation_function == tupak.core.utils.nfft:
+            if transformation_function == utils.nfft:
                 model_strain[key], self.frequency_array = \
                     transformation_function(transformed_model_strain[key], self.sampling_frequency)
             else:
@@ -158,7 +159,7 @@ class WaveformGenerator(object):
         array_like: The frequency array
         """
         if self.__frequency_array_updated is False:
-            self.frequency_array = tupak.core.utils.create_frequency_series(
+            self.frequency_array = utils.create_frequency_series(
                 self.sampling_frequency,
                 self.duration)
         return self.__frequency_array
@@ -178,7 +179,7 @@ class WaveformGenerator(object):
         """
 
         if self.__time_array_updated is False:
-            self.__time_array = tupak.core.utils.create_time_series(
+            self.__time_array = utils.create_time_series(
                 self.sampling_frequency,
                 self.duration,
                 self.start_time)
