@@ -488,10 +488,10 @@ class InterferometerStrainData(object):
         elif array is not None:
             if domain == 'time':
                 self.time_array = array
-                sampling_frequency, duration = tupak.core.utils.get_sampling_frequency_and_duration_from_time_array(array)
+                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_time_array(array)
             elif domain == 'frequency':
                 self.frequency_array = array
-                sampling_frequency, duration = tupak.core.utils.get_sampling_frequency_and_duration_from_frequency_array(array)
+                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_frequency_array(array)
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
