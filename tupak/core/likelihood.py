@@ -137,7 +137,10 @@ class GaussianLikelihood(Likelihood):
 
         model = self.function(self.x, **sampler.pymc3_priors)
 
-        return sampler.external_sampler.Normal('likelihood', mu=model, sd=self.sigma, observed=self.y)
+        # set the distribution
+        sampler.external_sampler.Normal('likelihood', mu=model, 
+                                        sd=self.sigma, observed=self.y)
+
 
 class PoissonLikelihood(Likelihood):
     def __init__(self, x, counts, func):
@@ -258,5 +261,6 @@ class PoissonLikelihood(Likelihood):
         # get rate function
         rate = self.function(self.x, **sampler.pymc3_priors)
 
-        return sampler.external_sampler.Poisson('likelihood', mu=rate,
-                                                observed=self.y)
+        # set the distribution
+        sampler.external_sampler.Poisson('likelihood', mu=rate,
+                                         observed=self.y)

@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core.result import Result, read_in_result
-from tupak.core.prior import Prior, DeltaFunction
+from tupak.core.prior import Prior
 from tupak.core import utils
 import tupak
 
@@ -944,6 +944,144 @@ class Ptemcee(Emcee):
 class Pymc3(Sampler):
     """ https://docs.pymc.io/ """
 
+    def setup_prior_mapping(self):
+        """
+        Set the mapping between predefined tupak priors and the equivalent
+        PyMC3 distributions.
+        """
+
+        self.prior_map = {}
+        
+        # predefined PyMC3 distributions 
+
+        # Gaussian
+        self.prior_map['Gaussian'] = {'pymc3': 'Normal',
+                                      'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        self.prior_map['Normal'] = self.prior_map['Gaussian']
+        
+        # Truncated Gaussian
+        self.prior_map['TruncatedGaussian'] = {'pymc3': 'TruncatedNormal',
+                                               'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
+        self.prior_map['TruncatedNormal'] = self.prior_map['TruncatedGaussian']
+
+        # Uniform
+        self.prior_map['Uniform'] = {'pymc3': 'Uniform',
+                                     'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
+
+        # Interpolated
+        self.prior_map['Interped'] = {'pymc3': 'Interpolated',
+                                      'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
+
+        # internally defined mappings for tupak priors
+
+        # DeltaFunction
+        self.prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
+
+        # Sine
+        self.prior_map['Sine'] = {'internal': self._sine_prior}
+
+        # Cosine
+        self.prior_map['Cosine'] = {'internal': self._cosine_prior}
+
+    def _deltafunction_prior(self, key):
+        """
+        Map the tupak delta function prior to a single value for PyMC3.
+        """
+ 
+        from tupak.core.prior import DeltaFunction
+
+        # check prior is a DeltaFunction
+        if isinstance(self.priors[key], DeltaFunction):
+            return self.priors[key].peak
+        else:
+            raise ValueError("Prior for '{}' is not a DeltaFunction".format(key))
+
+    def _sine_prior(self, key):
+        """
+        Map the tupak Sine prior to a PyMC3 style function
+        """
+ 
+        from tupak.core.prior import Sine
+
+        # check prior is a Sine
+        if isinstance(self.priors[key], Sine):
+            pymc3 = self.external_sampler
+
+            # import theano
+            try:
+                import theano.tensor as tt
+                from pymc3.theanof import floatX
+            except ImportError:
+                raise ImportError("You must have Theano installed to use PyMC3")
+
+            class Pymc3Sine(pymc3.Continuous):
+                def __init__(self, lower=0., upper=np.pi):
+                    if lower >= upper:
+                        raise ValueError("Lower bound is above upper bound!")
+
+                    # set the mode
+                    self.lower = lower = tt.as_tensor_variable(floatX(lower))
+                    self.upper = upper = tt.as_tensor_variable(floatX(upper))
+                    self.norm = (tt.cos(lower) - tt.cos(upper))
+                    self.mean = (tt.sin(upper)+lower*tt.cos(lower) - tt.sin(lower) - upper*tt.cos(upper))/self.norm
+
+                    transform = pymc3.distributions.transforms.interval(lower, upper)
+
+                    super(Pymc3Sine, self).__init__(transform=transform)
+
+                def logp(self, value):
+                    upper = self.upper
+                    lower = self.lower
+                    return pymc3.distributions.dist_math.bound(tt.log(tt.sin(value)/self.norm), lower <= value, value <= upper)
+
+            return Pymc3Sine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
+        else:
+            raise ValueError("Prior for '{}' is not a Sine".format(key))
+
+    def _cosine_prior(self, key):
+        """
+        Map the tupak Cosine prior to a PyMC3 style function
+        """
+ 
+        from tupak.core.prior import Cosine
+
+        # check prior is a Cosine
+        if isinstance(self.priors[key], Cosine):
+            pymc3 = self.external_sampler
+
+            # import theano
+            try:
+                import theano.tensor as tt
+                from pymc3.theanof import floatX
+            except ImportError:
+                raise ImportError("You must have Theano installed to use PyMC3")
+
+            class Pymc3Cosine(pymc3.Continuous):
+                def __init__(self, lower=-np.pi/2., upper=np.pi/2.):
+                    if lower >= upper:
+                        raise ValueError("Lower bound is above upper bound!")
+
+                    self.norm = (np.sin(upper) - np.sin(lower))
+                    self.mean = (upper*np.sin(upper)+np.cos(upper)-lower*np.sin(lower)-np.cos(lower))/self.norm
+
+                    self.lower = lower = tt.as_tensor_variable(floatX(lower))
+                    self.upper = upper = tt.as_tensor_variable(floatX(upper))
+                    self.norm = (tt.sin(upper) - tt.sin(lower))
+                    self.mean = (upper*tt.sin(upper) + tt.cos(upper)-lower*tt.sin(lower)-tt.cos(lower))/self.norm
+
+                    transform = pymc3.distributions.transforms.interval(lower, upper)
+
+                    super(Pymc3Cosine, self).__init__(transform=transform)
+
+                def logp(self, value):
+                    upper = self.upper
+                    lower = self.lower
+                    return pymc3.distributions.dist_math.bound(tt.log(tt.cos(value)/self.norm), lower <= value, value <= upper)
+
+            return Pymc3Cosine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
+        else:
+            raise ValueError("Prior for '{}' is not a Sine".format(key))
+
     def _run_external_sampler(self):
         pymc3 = self.external_sampler
 
@@ -954,20 +1092,21 @@ class Pymc3(Sampler):
         self.tune = self.kwargs.get('tune', 1000) # burn in samples
         self.discard_tuned_samples = self.kwargs.get('discard_tuned_samples',
                                                      True)
+
         # set the model
         model = pymc3.Model()
 
         with model:
             self.set_prior()
 
-            likelihood = self.likelihood.pymc3_likelihood(self)
+            self.likelihood.pymc3_likelihood(self)
 
             # perform the sampling
             trace = pymc3.sample(self.draws, tune=self.tune, cores=self.cores,
                 chains=self.chains, 
                 discard_tuned_samples=self.discard_tuned_samples)
 
-        nparams = len(trace.varnames)
+        nparams = len(self.priors.keys())
         nsamples = len(trace)*self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
@@ -985,7 +1124,11 @@ class Pymc3(Sampler):
 
         """
 
+        self.setup_prior_mapping()
+
         self.pymc3_priors = dict()
+
+        pymc3 = self.external_sampler
 
         # set the parameter prior distributions
         for key in self.priors:
@@ -997,24 +1140,32 @@ class Pymc3(Sampler):
                 # use Prior distribution name
                 distname = self.priors[key].__class__.__name__
 
-                # check whether name is a PyMC3 distribution
-                if distname in self.external_sampler.__dict__:
-                    # check the required arguments for the PyMC3 distribution
-                    reqargs = inspect.getargspec(self.external_sampler.__dict__[distname].__init__).args[1:]
+                if distname in self.prior_map:
+                    # check if we have a predefined PyMC3 distribution
+                    if 'pymc3' in self.prior_map[distname] and 'argmap' in self.prior_map[distname] and distname in pymc3.__dict__:
+                        # check the required arguments for the PyMC3 distribution
+                        pymc3distname = self.prior_map[distname]['pymc3']
 
-                    priorkwargs = dict()
+                        reqargs = inspect.getargspec(pymc3.__dict__[pymc3distname].__init__).args[1:]
 
-                    # check whether the Prior class has required attributes
-                    for arg in reqargs:
-                        if hasattr(self.priors[key], arg):
-                            priorkwargs[arg] = getattr(self.priors[key], arg)
-                        else:
-                            priorkwargs[arg] = None
-
-                    # set the prior
-                    self.pymc3_priors[key] = self.external_sampler.__dict__[distname](key, **priorkwargs)
+                        # set keyword arguments
+                        priorkwargs = {}
+                        for (targ, parg) in self.prior_map[distname]['argmap'].items():
+                            if hasattr(self.priors[key], targ):
+                                if parg in reqargs:
+                                    priorkwargs[parg] = getattr(self.priors[key], targ)
+                                else:
+                                    raise ValueError("Unknown argument {}".format(parg))
+                            else:
+                                if parg in reqargs:
+                                    priorkwargs[parg] = None
+                        self.pymc3_priors[key] = pymc3.__dict__[pymc3distname](key, **priorkwargs)
+                    elif 'internal' in self.prior_map[distname]:
+                        self.pymc3_priors[key] = self.prior_map[distname]['internal'](key)
+                    else:
+                        raise ValueError("Prior '{}' is not a known distribution.".format(distname))
                 else:
-                    raise ValueError("Prior '{}' is not a PyMC3 distribution.".format(distname))
+                    raise ValueError("Prior '{}' is not a known distribution.".format(distname))
 
     def calculate_autocorrelation(self, samples, c=3):
         """ Uses the `emcee.autocorr` module to estimate the autocorrelation

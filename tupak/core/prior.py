@@ -541,10 +541,6 @@ class DeltaFunction(Prior):
         else:
             return 0
 
-    def pymc3_prior(self, sampler):
-        # just return the value
-        return self.peak
-
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['peak'])
@@ -650,10 +646,6 @@ class Uniform(Prior):
             See superclass
         """
         Prior.__init__(self, name, latex_label, minimum, maximum)
-
-        # set PyMC3 Uniform distribution attributes
-        self.lower = self.minimum
-        self.upper = self.maximum
 
     def rescale(self, val):
         Prior.test_valid_for_rescaling(val)
@@ -860,16 +852,10 @@ class Gaussian(Prior):
 
 class Normal(Gaussian):
     def __init__(self, mu, sigma, name=None, latex_label=None):
-        """A copy of the Gaussian prior, but with "Normal" name to copy that
-        used for the distribution in PyMC3.
-
+        """A synonym for the Gaussian prior
         """
 
         Gaussian.__init__(self, mu, sigma, name, latex_label)
-
-        # set argument names used in PyMC3 distribution
-        self.mu = mu
-        self.sd = sigma
 
 
 class TruncatedGaussian(Prior):
@@ -937,6 +923,14 @@ class TruncatedGaussian(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class TruncatedNormal(Gaussian):
+    def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
+        """A synonym for the Truncated Gaussian prior
+        """
+
+        TruncatedGaussian.__init__(self, mu, sigma, minimum, maximum, name, latex_label)
 
 
 class Interped(Prior):
