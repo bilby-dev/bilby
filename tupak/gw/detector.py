@@ -555,8 +555,9 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided gwpy TimeSeries object')
         if type(time_series) != gwpy.timeseries.TimeSeries:
             raise ValueError("Input time_series is not a gwpy TimeSeries")
-        self._set_time_and_frequency_array_parameters(time_series.sample_rate.value, time_series.epoch.value,
-                                                      time_series.duration.value)
+        self._set_time_and_frequency_array_parameters(duration=time_series.duration.value,
+                                                      sampling_frequency=time_series.sample_rate.value,
+                                                      start_time=time_series.epoch.value)
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
 
@@ -656,7 +657,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration, sampling_frequency, start_time)
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.debug(
             'Setting data using noise realization from provided'
@@ -684,7 +687,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration, sampling_frequency, start_time)
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
@@ -713,7 +718,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration, sampling_frequency, start_time)
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.info('Reading data from frame')
         strain = gwutils.read_frame_file(
