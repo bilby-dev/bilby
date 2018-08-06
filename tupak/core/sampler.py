@@ -1196,9 +1196,12 @@ class Pymc3(Sampler):
 
                 if distname in self.prior_map:
                     # check if we have a predefined PyMC3 distribution
-                    if 'pymc3' in self.prior_map[distname] and 'argmap' in self.prior_map[distname] and distname in pymc3.__dict__:
+                    if 'pymc3' in self.prior_map[distname] and 'argmap' in self.prior_map[distname]:
                         # check the required arguments for the PyMC3 distribution
                         pymc3distname = self.prior_map[distname]['pymc3']
+
+                        if pymc3distname not in pymc3.__dict__:
+                            raise ValueError("Prior '{}' is not a known PyMC3 distribution.".format(pymc3distname))
 
                         reqargs = inspect.getargspec(pymc3.__dict__[pymc3distname].__init__).args[1:]
 
