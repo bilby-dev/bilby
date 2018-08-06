@@ -236,3 +236,27 @@ class PoissonLikelihood(Likelihood):
                         -self.sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
+
+    def pymc3_likelihood(self, sampler):
+        from tupak.core.sampler import Sampler
+
+        if not isinstance(sampler, Sampler):
+            raise ValueError("'sampler' is not a Sampler class")
+
+        try:
+            samplername = sampler.external_sampler.__name__
+        except ValueError:
+            raise ValueError("Sampler's 'external_sampler' has not been initialised")
+
+        if samplername != 'pymc3':
+            raise ValueError("Only use this class method for PyMC3 sampler")
+
+        for key in sampler.pymc3_priors:
+            if key not in self.function_keys:
+                raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+        # get rate function
+        rate = self.function(self.x, **sampler.pymc3_priors)
+
+        return sampler.external_sampler.Poisson('likelihood', mu=rate,
+                                                observed=self.y)
