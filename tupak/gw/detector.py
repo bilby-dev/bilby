@@ -7,7 +7,7 @@ import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 
-import tupak.gw.utils
+from tupak.gw import utils as gwutils
 from tupak.core import utils
 from tupak.core.utils import logger
 from .calibration import Recalibrate
@@ -136,7 +136,8 @@ class InterferometerList(list):
         for ii, interferometer in enumerate(self):
             ax = fig.add_subplot(len(self) // 2, 2, ii + 1)
             ax.loglog(interferometer.frequency_array,
-                      np.abs(interferometer.frequency_domain_strain),
+                      gwutils.asd_from_freq_series(
+                          interferometer.frequency_domain_strain),
                       color='C0', label=interferometer.name)
             ax.loglog(interferometer.frequency_array,
                       interferometer.amplitude_spectral_density_array,
@@ -147,7 +148,8 @@ class InterferometerList(list):
             ax.set_xlim(20, 2000)
             ax.legend(loc='best')
         if signal is not None:
-            ax.loglog(self.frequency_array, abs(signal), color='C2',
+            ax.loglog(self.frequency_array,
+                      gwutils.asd_from_freq_series(signal), color='C2',
                       label='Signal')
         fig.tight_layout()
         if label is None:
@@ -569,7 +571,7 @@ class InterferometerStrainData(object):
 
         """
 
-        timeseries = tupak.gw.utils.get_open_strain_data(
+        timeseries = gwutils.get_open_strain_data(
             name, start_time, start_time+duration, outdir=outdir, cache=cache,
             **kwargs)
 
@@ -731,7 +733,7 @@ class InterferometerStrainData(object):
         self.start_time = start_time
 
         logger.info('Reading data from frame')
-        strain = tupak.gw.utils.read_frame_file(
+        strain = gwutils.read_frame_file(
             frame_file, start_time=start_time, end_time=start_time + duration,
             buffer_time=buffer_time, channel=channel,
             resample=sampling_frequency)
@@ -1063,7 +1065,7 @@ class Interferometer(object):
         array_like: A 3D array representation of the vertex
         """
         if not self.__vertex_updated:
-            self.__vertex = tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude,
+            self.__vertex = gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude,
                                                                           self.elevation)
             self.__vertex_updated = True
         return self.__vertex
@@ -1148,7 +1150,7 @@ class Interferometer(object):
         array_like: A 3x3 array representation of the antenna response for the specified mode
 
         """
-        polarization_tensor = tupak.gw.utils.get_polarization_tensor(ra, dec, time, psi, mode)
+        polarization_tensor = gwutils.get_polarization_tensor(ra, dec, time, psi, mode)
         return np.einsum('ij,ij->', self.detector_tensor, polarization_tensor)
 
     def get_detector_response(self, waveform_polarizations, parameters):
@@ -1257,10 +1259,10 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(tupak.gw.utils.optimal_snr_squared(
+        opt_snr = np.sqrt(gwutils.optimal_snr_squared(
             signal=signal_ifo, interferometer=self,
             duration=self.strain_data.duration).real)
-        mf_snr = np.sqrt(tupak.gw.utils.matched_filter_snr_squared(
+        mf_snr = np.sqrt(gwutils.matched_filter_snr_squared(
             signal=signal_ifo, interferometer=self,
             duration=self.strain_data.duration).real)
 
@@ -1367,7 +1369,7 @@ class Interferometer(object):
         -------
         float: The time delay from geocenter in seconds
         """
-        return tupak.gw.utils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
+        return gwutils.time_delay_geocentric(self.vertex, np.array([0, 0, 0]), ra, dec, time)
 
     def vertex_position_geocentric(self):
         """
@@ -1380,7 +1382,7 @@ class Interferometer(object):
         -------
         array_like: A 3D array representation of the vertex
         """
-        return tupak.gw.utils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+        return gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
 
     @property
     def whitened_frequency_domain_strain(self):
@@ -1424,13 +1426,14 @@ class Interferometer(object):
 
         fig, ax = plt.subplots()
         ax.loglog(self.frequency_array,
-                  np.abs(self.frequency_domain_strain),
+                  gwutils.asd_from_freq_series(self.frequency_domain_strain),
                   color='C0', label=self.name)
         ax.loglog(self.frequency_array,
                   self.amplitude_spectral_density_array,
                   color='C1', lw=0.5, label=self.name + ' ASD')
         if signal is not None:
-            ax.loglog(self.frequency_array, abs(signal), color='C2',
+            ax.loglog(self.frequency_array,
+                      gwutils.asd_from_freq_series(signal), color='C2',
                       label='Signal')
         ax.grid('on')
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
@@ -1986,7 +1989,7 @@ def get_event_data(
     ------
     list: A list of tupak.gw.detector.Interferometer objects
     """
-    event_time = tupak.gw.utils.get_event_time(event)
+    event_time = gwutils.get_event_time(event)
 
     interferometers = []
 
