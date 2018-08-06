@@ -837,14 +837,6 @@ class Gaussian(Prior):
     def lnprob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
-    def pymc3_prior(self, sampler):
-        priortype = 'Normal'
-        priorargs = {}
-        priorargs['mu'] = self.mu
-        priorargs['sd'] = self.sigma
-
-        return self.set_pymc3_prior(sampler, priortype, **priorargs)
-
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])

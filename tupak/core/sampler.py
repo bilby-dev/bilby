@@ -971,6 +971,7 @@ class Pymc3(Sampler):
         # Interpolated
         self.prior_map['Interped'] = {'pymc3': 'Interpolated',
                                       'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
+        self.prior_map['FromFile'] = self.prior_map['Interped']
 
         # internally defined mappings for tupak priors
 
@@ -983,11 +984,17 @@ class Pymc3(Sampler):
         # Cosine
         self.prior_map['Cosine'] = {'internal': self._cosine_prior}
 
-    def _deltafunction_prior(self, key):
+        # PowerLaw
+        self.prior_map['PowerLaw'] = {'internal': self._powerlaw_prior}
+
+        # LogUniform
+        self.prior_map['LogUniform'] = {'internal': self._powerlaw_prior}
+
+    def _deltafunction_prior(self, key, **kwargs):
         """
         Map the tupak delta function prior to a single value for PyMC3.
         """
- 
+
         from tupak.core.prior import DeltaFunction
 
         # check prior is a DeltaFunction
@@ -1061,9 +1068,6 @@ class Pymc3(Sampler):
                     if lower >= upper:
                         raise ValueError("Lower bound is above upper bound!")
 
-                    self.norm = (np.sin(upper) - np.sin(lower))
-                    self.mean = (upper*np.sin(upper)+np.cos(upper)-lower*np.sin(lower)-np.cos(lower))/self.norm
-
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.sin(upper) - tt.sin(lower))
@@ -1080,7 +1084,57 @@ class Pymc3(Sampler):
 
             return Pymc3Cosine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
-            raise ValueError("Prior for '{}' is not a Sine".format(key))
+            raise ValueError("Prior for '{}' is not a Cosine".format(key))
+
+    def _powerlaw_prior(self, key):
+        """
+        Map the tupak PowerLaw prior to a PyMC3 style function
+        """
+ 
+        from tupak.core.prior import PowerLaw
+
+        # check prior is a PowerLaw
+        if isinstance(self.priors[key], PowerLaw):
+            pymc3 = self.external_sampler
+
+            # check power law is set
+            if not hasattr(self.priors[key], 'alpha'):
+                raise AttributeError("No 'alpha' attribute set for PowerLaw prior")
+
+            # import theano
+            try:
+                import theano.tensor as tt
+                from pymc3.theanof import floatX
+            except ImportError:
+                raise ImportError("You must have Theano installed to use PyMC3")
+
+            class Pymc3PowerLaw(pymc3.Continuous):
+                def __init__(self, lower, upper, alpha, testval=1):
+                    falpha = alpha
+                    self.lower = lower = tt.as_tensor_variable(floatX(lower))
+                    self.upper = upper = tt.as_tensor_variable(floatX(upper))
+                    self.alpha = alpha = tt.as_tensor_variable(floatX(alpha))
+
+                    if falpha == -1:
+                        self.norm = 1./(tt.log(self.upper/self.lower))
+                    else:
+                        self.norm = (1. + self.alpha) / (tt.pow(self.upper, (1. + self.alpha)) 
+                                          - tt.pow(self.lower, (1. + self.alpha)))
+
+                    transform = pymc3.distributions.transforms.interval(lower, upper)
+
+                    super(Pymc3PowerLaw, self).__init__(transform=transform, testval=testval)
+
+                def logp(self, value):
+                    upper = self.upper
+                    lower = self.lower
+                    alpha = self.alpha
+
+                    return pymc3.distributions.dist_math.bound(self.alpha*tt.log(value) + tt.log(self.norm), lower <= value, value <= upper)
+
+            return Pymc3PowerLaw(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum, alpha=self.priors[key].alpha)
+        else:
+            raise ValueError("Prior for '{}' is not a Power Law".format(key))
 
     def _run_external_sampler(self):
         pymc3 = self.external_sampler
