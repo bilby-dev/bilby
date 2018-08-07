@@ -1144,8 +1144,6 @@ class Pymc3(Sampler):
             else:
                 class Pymc3PowerLaw(pymc3.Continuous):
                     def __init__(self, lower, upper, alpha, testval=1):
-                        print(lower, upper, alpha)
-                        
                         falpha = alpha
                         self.lower = lower = tt.as_tensor_variable(floatX(lower))
                         self.upper = upper = tt.as_tensor_variable(floatX(upper))
