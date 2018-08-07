@@ -925,6 +925,7 @@ class Ptemcee(Emcee):
                 total=self.nsteps):
             pass
 
+        self.result.nburn = self.nburn
         self.result.sampler_output = np.nan
         self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
