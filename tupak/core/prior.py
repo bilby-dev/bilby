@@ -475,8 +475,8 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
-            A random number between 0 and 1
+        sampler: `tupak.core.sampler.Sampler`
+            A Sampler class
 
         Returns
         -------

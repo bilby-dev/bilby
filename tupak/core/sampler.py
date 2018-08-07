@@ -1147,13 +1147,15 @@ class Pymc3(Sampler):
         self.discard_tuned_samples = self.kwargs.get('discard_tuned_samples',
                                                      True)
 
-        # set the model
+        # initialise the PyMC3 model
         model = pymc3.Model()
 
         with model:
+            # set the prior
             self.set_prior()
 
-            self.likelihood.pymc3_likelihood(self)
+            # set the likelihood function
+            self.set_likelihood()
 
             # perform the sampling
             trace = pymc3.sample(self.draws, tune=self.tune, cores=self.cores,
@@ -1174,8 +1176,8 @@ class Pymc3(Sampler):
         return self.result
 
     def set_prior(self):
-        """ Set the PyMC3 prior distributions.
-
+        """
+        Set the PyMC3 prior distributions.
         """
 
         self.setup_prior_mapping()
@@ -1223,6 +1225,62 @@ class Pymc3(Sampler):
                         raise ValueError("Prior '{}' is not a known distribution.".format(distname))
                 else:
                     raise ValueError("Prior '{}' is not a known distribution.".format(distname))
+
+    def set_likelihood(self):
+        """
+        Convert any tupak likelihoods to PyMC3 distributions.
+        """
+
+        pymc3 = self.external_sampler
+
+        # check if a PyMC3 likelihood function is defined (if it is defined
+        # then this check will actually initialise it)
+        if self.likelihood.pymc3_likelihood(self) is None:
+            #  check if it is a predefined likelhood function
+            if self.likelihood.__class__.__name__ == 'GaussianLikelihood':
+                # check required attributes exist
+                if (not hasattr(self.likelihood, 'sigma') or
+                    not hasattr(self.likelihood, 'x') or
+                    not hasattr(self.likelihood, 'y') or
+                    not hasattr(self.likelihood, 'function') or
+                    not hasattr(self.likelihood, 'function_keys')):
+                    raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
+                
+                if 'sigma' in self.pymc3_priors:
+                    # if sigma is suppled use that value
+                    if self.likelihood.sigma is None:
+                        self.likelihood.sigma = self.pymc3_priors.pop('sigma')
+                    else:
+                        del self.pymc3_priors['sigma']
+
+                for key in self.pymc3_priors:
+                    if key not in self.likelihood.function_keys:
+                        raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+
+                # set the distribution
+                pymc3.Normal('likelihood', mu=model, sd=self.likelihood.sigma,
+                             observed=self.likelihood.y)
+            elif self.likelihood.__class__.__name__ == 'PoissonLikelihood':
+                # check required attributes exist
+                if (not hasattr(self.likelihood, 'x') or
+                    not hasattr(self.likelihood, 'y') or
+                    not hasattr(self.likelihood, 'func') or
+                    not hasattr(self.likelihood, 'function_keys')):
+                    raise ValueError("Poisson Likelihood does not have all the correct attributes!")
+                
+                for key in self.pymc3_priors:
+                    if key not in self.likelihood.function_keys:
+                        raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+                # get rate function
+                rate = self.function(self.likelihood.x, **self.pymc3_priors)
+
+                # set the distribution
+                pymc3.Poisson('likelihood', mu=rate, observed=self.likelihood.y)
+            else:
+                raise ValueError("Unknown likelihood has been provided")
 
     def calculate_autocorrelation(self, samples, c=3):
         """ Uses the `emcee.autocorr` module to estimate the autocorrelation

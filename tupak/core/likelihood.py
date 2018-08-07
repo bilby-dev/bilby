@@ -42,6 +42,62 @@ class Likelihood(object):
         """
         return self.log_likelihood() - self.noise_log_likelihood()
 
+    def pymc3_likelihood(self, sampler):
+        """
+        A PyMC3 log-likelihood function. This function can only be called
+        within the context of a PyMC3 model.
+
+        Parameters
+        ----------
+        sampler: `tupak.core.sampler.Sampler`
+            A Sampler class
+
+        Example
+        -------
+
+        If defining a new likelihood with a `pymc3_likelihood` you could do
+        something like the following:
+
+            from tupak.core.likelihood import Likelihood
+
+            class MyPyMC3Likelihood(Likelihood):
+                def __init__(self, x, y, func, sigma):
+                    parameters = self._infer_parameters_from_function(func)
+                    Likelihood.__init__(self, dict.fromkeys(parameters))
+
+                    self.x = x
+                    self.y = y
+                    self.func = func
+                    self.sigma
+                    self.function_keys = list(self.parameters.keys())
+
+                def pymc3_likelihood(self, sampler):
+                    from tupak.core.sampler import Sampler
+
+                    if not isinstance(sampler, Sampler):
+                        raise ValueError("'sampler' is not a Sampler class")
+
+                    if sampler.external_sampler.__name__ != 'pymc3':
+                        raise ValueError("Only use this class method for PyMC3 sampler")
+                    
+                    for key in sampler.pymc3_priors:
+                        if key not in self.function_keys:
+                            raise KeyError("Prior key '{}' is not a function key!".format(key))
+                    
+                    model = self.function(self.x, **sampler.pymc3_priors)
+
+                    # set the PyMC3 loglikelihood
+                    return sampler.external_sampler.Normal('likelihood', mu=model,
+                        sd=self.sigma, observed=self.y)
+        """
+
+        from tupak.core.sampler import Sampler
+
+        if not isinstance(sampler, Sampler):
+            raise ValueError("'sampler' is not a Sampler class")
+
+        return None
+
 
 class GaussianLikelihood(Likelihood):
     def __init__(self, x, y, function, sigma=None):
@@ -110,40 +166,9 @@ class GaussianLikelihood(Likelihood):
         return -0.5 * (np.sum((res / sigma)**2)
                        + self.N * np.log(2 * np.pi * sigma**2))
 
-    def pymc3_likelihood(self, sampler):
-        from tupak.core.sampler import Sampler
-
-        if not isinstance(sampler, Sampler):
-            raise ValueError("'sampler' is not a Sampler class")
-
-        try:
-            samplername = sampler.external_sampler.__name__
-        except ValueError:
-            raise ValueError("Sampler's 'external_sampler' has not been initialised")
-
-        if samplername != 'pymc3':
-            raise ValueError("Only use this class method for PyMC3 sampler")
-
-        if 'sigma' in sampler.pymc3_priors:
-            # if sigma is suppled use that value
-            if self.sigma is None:
-                self.sigma = sampler.pymc3_priors.pop('sigma')
-            else:
-                del sampler.pymc3_priors['sigma']
-
-        for key in sampler.pymc3_priors:
-            if key not in self.function_keys:
-                raise ValueError("Prior key '{}' is not a function key!".format(key))
-
-        model = self.function(self.x, **sampler.pymc3_priors)
-
-        # set the distribution
-        sampler.external_sampler.Normal('likelihood', mu=model, 
-                                        sd=self.sigma, observed=self.y)
-
 
 class PoissonLikelihood(Likelihood):
-    def __init__(self, x, counts, func):
+    def __init__(self, x, y, func):
         """
         A general Poisson likelihood for a rate - the model parameters are
         inferred from the arguments of function, which provides a rate.
@@ -153,7 +178,7 @@ class PoissonLikelihood(Likelihood):
 
         x: array_like
             A dependent variable at which the Poisson rates will be calculated
-        counts: array_like
+        y: array_like
             The data to analyse - this must be a set of non-negative integers,
             each being the number of events within some interval.
         func:
@@ -168,24 +193,24 @@ class PoissonLikelihood(Likelihood):
         parameters = self._infer_parameters_from_function(func)
         Likelihood.__init__(self, dict.fromkeys(parameters))
 
-        self.x = x           # the dependent variable
-        self.counts = counts # the counts
+        self.x = x  # the dependent variable
+        self.y = y  # the counts
 
         # check values are non-negative integers
-        if isinstance(self.counts, int):
+        if isinstance(self.y, int):
             # convert to numpy array if passing a single integer
-            self.counts = np.array([self.counts])
+            self.y = np.array([self.y])
 
         # check array is an integer array
-        if self.counts.dtype.kind not in 'ui':
+        if self.y.dtype.kind not in 'ui':
             raise ValueError("Data must be non-negative integers")
 
         # check for non-negative integers
-        if np.any(self.counts < 0):
+        if np.any(self.y < 0):
             raise ValueError("Data must be non-negative integers")
 
         # save sum of log factorial of counts
-        self.sumlogfactorial = np.sum(gammaln(self.counts + 1))
+        self.sumlogfactorial = np.sum(gammaln(self.y + 1))
 
         self.function = func
 
@@ -204,7 +229,7 @@ class PoissonLikelihood(Likelihood):
     @property
     def N(self):
         """ The number of data points """
-        return len(self.counts)
+        return len(self.y)
 
     def log_likelihood(self):
         # This sets up the function only parameters (i.e. not sigma)
@@ -224,7 +249,7 @@ class PoissonLikelihood(Likelihood):
                 return -np.inf
             else:
                 # Return the summed log likelihood
-                return (-self.N*rate + np.sum(self.counts*np.log(rate))
+                return (-self.N*rate + np.sum(self.y*np.log(rate))
                         -self.sumlogfactorial)
         elif isinstance(rate, np.ndarray):
             # check rates are positive
@@ -235,32 +260,7 @@ class PoissonLikelihood(Likelihood):
             if np.any(rate == 0.):
                 return -np.inf
             else:
-                return (np.sum(-rate + self.counts*np.log(rate))
+                return (np.sum(-rate + self.y*np.log(rate))
                         -self.sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
-
-    def pymc3_likelihood(self, sampler):
-        from tupak.core.sampler import Sampler
-
-        if not isinstance(sampler, Sampler):
-            raise ValueError("'sampler' is not a Sampler class")
-
-        try:
-            samplername = sampler.external_sampler.__name__
-        except ValueError:
-            raise ValueError("Sampler's 'external_sampler' has not been initialised")
-
-        if samplername != 'pymc3':
-            raise ValueError("Only use this class method for PyMC3 sampler")
-
-        for key in sampler.pymc3_priors:
-            if key not in self.function_keys:
-                raise ValueError("Prior key '{}' is not a function key!".format(key))
-
-        # get rate function
-        rate = self.function(self.x, **sampler.pymc3_priors)
-
-        # set the distribution
-        sampler.external_sampler.Poisson('likelihood', mu=rate,
-                                         observed=self.y)
