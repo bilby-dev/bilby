@@ -20,6 +20,8 @@ tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
 # generate a set of counts per minute for Polonium 214 with a half-life of 20 mins
 halflife = 20
 N0 = 1.e-19 # initial number of radionucleotides in moles
+atto = 1e-18
+N0 /= atto
 
 def decayrate(deltat, halflife, N0):
     """
@@ -33,7 +35,9 @@ def decayrate(deltat, halflife, N0):
     ln2 = np.log(2.)
     NA = 6.02214078e23 # Avagadro's number
 
-    rates = (N0*NA*(np.exp(-ln2*(times[0:-1]/halflife)) 
+    N0a = N0*atto*NA # number of nucleotides
+
+    rates = (N0a*(np.exp(-ln2*(times[0:-1]/halflife)) 
              - np.exp(-ln2*(times[1:]/halflife)))/deltat)
 
     return rates
@@ -70,8 +74,8 @@ likelihood = PoissonLikelihood(deltat, counts, decayrate)
 priors = {}
 priors['halflife'] = tupak.core.prior.LogUniform(1e-5, 1e5, 'halflife',
                                                  latex_label='$t_{1/2}$ (min)')
-priors['N0'] = tupak.core.prior.LogUniform(1e-25, 1e-10, 'N0',
-                                           latex_label='$N_0$ (mole)')
+priors['N0'] = tupak.core.prior.LogUniform(1e-25/atto, 1e-10/atto, 'N0',
+                                           latex_label='$N_0$ (attomole)')
 
 # And run sampler
 result = tupak.run_sampler(
