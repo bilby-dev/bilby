@@ -1201,12 +1201,15 @@ class Pymc3(Sampler):
             # perform the sampling
             trace = pymc3.sample(self.draws, step=sm, **self.kwargs)
 
-        nparams = len(self.priors.keys())
+        nparams = len([key for key in self.priors.keys() if self.priors[key].__class__.__name__ != 'DeltaFunction'])
         nsamples = len(trace)*self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
-        for i, key in enumerate(self.priors.keys()):
-            self.result.samples[:,i] = trace[key]
+        count = 0
+        for key in self.priors.keys():
+            if self.priors[key].__class__.__name__ != 'DeltaFunction': # ignore DeltaFunction variables
+                self.result.samples[:,count] = trace[key]
+                count += 1
 
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(self.result.samples)
