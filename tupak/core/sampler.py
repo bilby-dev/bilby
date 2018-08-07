@@ -1266,7 +1266,7 @@ class Pymc3(Sampler):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'func') or
+                    not hasattr(self.likelihood, 'function') or
                     not hasattr(self.likelihood, 'function_keys')):
                     raise ValueError("Poisson Likelihood does not have all the correct attributes!")
                 
@@ -1275,7 +1275,7 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get rate function
-                rate = self.function(self.likelihood.x, **self.pymc3_priors)
+                rate = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Poisson('likelihood', mu=rate, observed=self.likelihood.y)
