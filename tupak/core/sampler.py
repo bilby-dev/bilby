@@ -951,6 +951,12 @@ class Pymc3(Sampler):
         """
         pass
 
+    def _verify_use_ratio(self):
+        """
+        Change `_verify_use_ratio() to just pass.
+        """
+        pass
+
     @property
     def kwargs(self):
         """ Ensures that proper keyword arguments are used for the Pymc3 sampler.
@@ -1202,13 +1208,13 @@ class Pymc3(Sampler):
         # set the prior
         self.set_prior()
 
-        # if a custom log_likelihood function requires a `pymc3_model` argument
+        # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
-        # takes in a PyMC3 model and defined the likelihood within that context
-        # manager
+        # takes in a Pymc3 Sampler, with a pymc3_model attribute, and defines
+        # the likelihood within that context manager
         likeargs = inspect.getargspec(self.likelihood.log_likelihood).args
-        if 'pymc3_model' in likeargs:
-            self.likelihood.log_likelihood(pymc3_model=self.pymc3_model)
+        if 'sampler' in likeargs:
+            self.likelihood.log_likelihood(sampler=self)
         else:
             # set the likelihood function from predefined functions
             self.set_likelihood()
