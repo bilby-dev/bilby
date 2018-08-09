@@ -944,6 +944,13 @@ class Ptemcee(Emcee):
 class Pymc3(Sampler):
     """ https://docs.pymc.io/ """
 
+    def _verify_parameters(self):
+        """
+        Change `_verify_parameters()` to just pass, i.e., don't try and
+        evaluate the likelihood for PyMC3.
+        """
+        pass
+
     @property
     def kwargs(self):
         """ Ensures that proper keyword arguments are used for the Pymc3 sampler.
@@ -1187,17 +1194,26 @@ class Pymc3(Sampler):
             step_method = None
 
         # initialise the PyMC3 model
-        model = pymc3.Model()
+        self.pymc3_model = pymc3.Model()
 
-        with model:
-            # set the prior
-            self.set_prior()
+        # set the step method
+        sm = None if step_method is None else pymc3.__dict__[step_methods[step_method]]()
 
-            # set the likelihood function
+        # set the prior
+        self.set_prior()
+
+        # if a custom log_likelihood function requires a `pymc3_model` argument
+        # then use that log_likelihood function, with the assumption that it
+        # takes in a PyMC3 model and defined the likelihood within that context
+        # manager
+        likeargs = inspect.getargspec(self.likelihood.log_likelihood).args
+        if 'pymc3_model' in likeargs:
+            self.likelihood.log_likelihood(pymc3_model=self.pymc3_model)
+        else:
+            # set the likelihood function from predefined functions
             self.set_likelihood()
 
-            sm = None if step_method is None else pymc3.__dict__[step_methods[step_method]]()
-
+        with self.pymc3_model:
             # perform the sampling
             trace = pymc3.sample(self.draws, step=sm, **self.kwargs)
 
@@ -1228,45 +1244,46 @@ class Pymc3(Sampler):
 
         pymc3 = self.external_sampler
 
-        # set the parameter prior distributions
-        for key in self.priors:
-            # if the prior contains a pymc3_prior method use that otherwise try
-            # and find the PyMC3 distribution
-            if self.priors[key].pymc3_prior(self) is not None:
-                self.pymc3_priors[key] = self.priors[key].pymc3_prior(self)
-            else:
-                # use Prior distribution name
-                distname = self.priors[key].__class__.__name__
+        # set the parameter prior distributions (in the model context manager)
+        with self.pymc3_model:
+            for key in self.priors:
+                # if the prior contains a pymc3_prior method use that otherwise try
+                # and find the PyMC3 distribution
+                if self.priors[key].pymc3_prior(self) is not None:
+                    self.pymc3_priors[key] = self.priors[key].pymc3_prior(self)
+                else:
+                    # use Prior distribution name
+                    distname = self.priors[key].__class__.__name__
 
-                if distname in self.prior_map:
-                    # check if we have a predefined PyMC3 distribution
-                    if 'pymc3' in self.prior_map[distname] and 'argmap' in self.prior_map[distname]:
-                        # check the required arguments for the PyMC3 distribution
-                        pymc3distname = self.prior_map[distname]['pymc3']
+                    if distname in self.prior_map:
+                        # check if we have a predefined PyMC3 distribution
+                        if 'pymc3' in self.prior_map[distname] and 'argmap' in self.prior_map[distname]:
+                            # check the required arguments for the PyMC3 distribution
+                            pymc3distname = self.prior_map[distname]['pymc3']
 
-                        if pymc3distname not in pymc3.__dict__:
-                            raise ValueError("Prior '{}' is not a known PyMC3 distribution.".format(pymc3distname))
+                            if pymc3distname not in pymc3.__dict__:
+                                raise ValueError("Prior '{}' is not a known PyMC3 distribution.".format(pymc3distname))
 
-                        reqargs = inspect.getargspec(pymc3.__dict__[pymc3distname].__init__).args[1:]
+                            reqargs = inspect.getargspec(pymc3.__dict__[pymc3distname].__init__).args[1:]
 
-                        # set keyword arguments
-                        priorkwargs = {}
-                        for (targ, parg) in self.prior_map[distname]['argmap'].items():
-                            if hasattr(self.priors[key], targ):
-                                if parg in reqargs:
-                                    priorkwargs[parg] = getattr(self.priors[key], targ)
+                            # set keyword arguments
+                            priorkwargs = {}
+                            for (targ, parg) in self.prior_map[distname]['argmap'].items():
+                                if hasattr(self.priors[key], targ):
+                                    if parg in reqargs:
+                                        priorkwargs[parg] = getattr(self.priors[key], targ)
+                                    else:
+                                        raise ValueError("Unknown argument {}".format(parg))
                                 else:
-                                    raise ValueError("Unknown argument {}".format(parg))
-                            else:
-                                if parg in reqargs:
-                                    priorkwargs[parg] = None
-                        self.pymc3_priors[key] = pymc3.__dict__[pymc3distname](key, **priorkwargs)
-                    elif 'internal' in self.prior_map[distname]:
-                        self.pymc3_priors[key] = self.prior_map[distname]['internal'](key)
+                                    if parg in reqargs:
+                                        priorkwargs[parg] = None
+                            self.pymc3_priors[key] = pymc3.__dict__[pymc3distname](key, **priorkwargs)
+                        elif 'internal' in self.prior_map[distname]:
+                            self.pymc3_priors[key] = self.prior_map[distname]['internal'](key)
+                        else:
+                            raise ValueError("Prior '{}' is not a known distribution.".format(distname))
                     else:
                         raise ValueError("Prior '{}' is not a known distribution.".format(distname))
-                else:
-                    raise ValueError("Prior '{}' is not a known distribution.".format(distname))
 
     def set_likelihood(self):
         """
@@ -1275,9 +1292,7 @@ class Pymc3(Sampler):
 
         pymc3 = self.external_sampler
 
-        # check if a PyMC3 likelihood function is defined (if it is defined
-        # then this check will actually initialise it)
-        if self.likelihood.pymc3_likelihood(self) is None:
+        with self.pymc3_model:
             #  check if it is a predefined likelhood function
             if self.likelihood.__class__.__name__ == 'GaussianLikelihood':
                 # check required attributes exist
