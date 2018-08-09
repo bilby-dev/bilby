@@ -42,62 +42,6 @@ class Likelihood(object):
         """
         return self.log_likelihood() - self.noise_log_likelihood()
 
-    def pymc3_likelihood(self, sampler):
-        """
-        A PyMC3 log-likelihood function. This function can only be called
-        within the context of a PyMC3 model.
-
-        Parameters
-        ----------
-        sampler: `tupak.core.sampler.Sampler`
-            A Sampler class
-
-        Example
-        -------
-
-        If defining a new likelihood with a `pymc3_likelihood` you could do
-        something like the following:
-
-            from tupak.core.likelihood import Likelihood
-
-            class MyPyMC3Likelihood(Likelihood):
-                def __init__(self, x, y, func, sigma):
-                    parameters = self._infer_parameters_from_function(func)
-                    Likelihood.__init__(self, dict.fromkeys(parameters))
-
-                    self.x = x
-                    self.y = y
-                    self.func = func
-                    self.sigma
-                    self.function_keys = list(self.parameters.keys())
-
-                def pymc3_likelihood(self, sampler):
-                    from tupak.core.sampler import Sampler
-
-                    if not isinstance(sampler, Sampler):
-                        raise ValueError("'sampler' is not a Sampler class")
-
-                    if sampler.external_sampler.__name__ != 'pymc3':
-                        raise ValueError("Only use this class method for PyMC3 sampler")
-                    
-                    for key in sampler.pymc3_priors:
-                        if key not in self.function_keys:
-                            raise KeyError("Prior key '{}' is not a function key!".format(key))
-                    
-                    model = self.function(self.x, **sampler.pymc3_priors)
-
-                    # set the PyMC3 loglikelihood
-                    return sampler.external_sampler.Normal('likelihood', mu=model,
-                        sd=self.sigma, observed=self.y)
-        """
-
-        from tupak.core.sampler import Sampler
-
-        if not isinstance(sampler, Sampler):
-            raise ValueError("'sampler' is not a Sampler class")
-
-        return None
-
 
 class GaussianLikelihood(Likelihood):
     def __init__(self, x, y, function, sigma=None):
