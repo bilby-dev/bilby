@@ -7,12 +7,13 @@ from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import scipy.stats
 import os
+from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core import utils
 
 
-class PriorSet(dict):
+class PriorSet(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -23,8 +24,8 @@ class PriorSet(dict):
         filename: str, None
             If given, a file containing the prior to generate the prior set.
         """
-        dict.__init__(self)
-        if type(dictionary) is dict:
+        OrderedDict.__init__(self)
+        if type(dictionary) in [dict, OrderedDict]:
             self.update(dictionary)
         elif type(dictionary) is str:
             logger.debug('Argument "dictionary" is a string.'
@@ -32,6 +33,8 @@ class PriorSet(dict):
             self.read_in_file(dictionary)
         elif type(filename) is str:
             self.read_in_file(filename)
+        elif dictionary is not None:
+            raise ValueError("PriorSet input dictionay not understood")
 
     def write_to_file(self, outdir, label):
         """ Write the prior distribution to file.
