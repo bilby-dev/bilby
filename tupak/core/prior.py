@@ -467,30 +467,6 @@ class Prior(object):
             label = self.name
         return label
 
-    def pymc3_prior(self, sampler):
-        """
-        'pymc3_prior' A user defined PyMC3 prior.
-
-        This should be overwritten by each subclass if needed.
-
-        Parameters
-        ----------
-        sampler: `tupak.core.sampler.Sampler`
-            A Sampler class
-
-        Returns
-        -------
-        None
-
-        """
-
-        from tupak.core.sampler import Sampler
-
-        if not isinstance(sampler, Sampler):
-            raise ValueError("'sampler' is not a Sampler class")
-
-        return None
-
 
 class DeltaFunction(Prior):
 

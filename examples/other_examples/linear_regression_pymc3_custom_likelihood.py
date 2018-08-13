@@ -109,11 +109,37 @@ class GaussianLikelihoodPyMC3(tupak.Likelihood):
 # the time, data and signal model
 likelihood = GaussianLikelihoodPyMC3(time, data, sigma, model)
 
+
+# Define a custom prior for one of the parameter for use with PyMC3
+class PriorPyMC3(tupak.core.prior.Prior):
+    def __init__(self, minimum, maximum, name=None, latex_label=None):
+        """
+        Uniform prior with bounds (should be equivalent to tupak.prior.Uniform)
+        """
+
+        tupak.core.prior.Prior.__init__(self, name, latex_label,
+                                        minimum=minimum,
+                                        maximum=maximum)
+
+    def ln_prob(self, sampler=None):
+        """
+        Change ln_prob method to take in a Sampler and return a PyMC3
+        distribution.
+        """
+
+        from tupak.core.sampler import Pymc3
+
+        if not isinstance(sampler, Pymc3):
+            raise ValueError("Sampler is not a tupak Pymc3 sampler object")
+
+        return pm.Uniform(self.name, lower=self.minimum,
+                          upper=self.maximum)
+
 # From hereon, the syntax is exactly equivalent to other tupak examples
 # We make a prior
 priors = {}
 priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
-priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
+priors['c'] = PriorPyMC3(-2, 2, 'c')
 
 # And run sampler
 result = tupak.run_sampler(

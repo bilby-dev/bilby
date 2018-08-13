@@ -957,6 +957,46 @@ class Pymc3(Sampler):
         """
         pass
 
+    def _initialise_parameters(self):
+        """
+        Change `_initialise_parameters()`, so that it does call the `sample`
+        method in the Prior class.
+
+        """
+
+        self.__search_parameter_keys = []
+        self.__fixed_parameter_keys = []
+
+        for key in self.priors:
+            if isinstance(self.priors[key], Prior) \
+                    and self.priors[key].is_fixed is False:
+                self.__search_parameter_keys.append(key)
+            elif isinstance(self.priors[key], Prior) \
+                    and self.priors[key].is_fixed is True:
+                self.__fixed_parameter_keys.append(key)
+
+        logger.info("Search parameters:")
+        for key in self.__search_parameter_keys:
+            logger.info('  {} = {}'.format(key, self.priors[key]))
+        for key in self.__fixed_parameter_keys:
+            logger.info('  {} = {}'.format(key, self.priors[key].peak))
+
+    def _initialise_result(self):
+        """
+        Initialise results within Pymc3 subclass.
+        """
+        result = Result()
+        result.sampler = self.__class__.__name__.lower()
+        result.search_parameter_keys = self.__search_parameter_keys
+        result.fixed_parameter_keys = self.__fixed_parameter_keys
+        result.parameter_labels = [
+            self.priors[k].latex_label for k in
+            self.__search_parameter_keys]
+        result.label = self.label
+        result.outdir = self.outdir
+        result.kwargs = self.kwargs
+        return result
+
     @property
     def kwargs(self):
         """ Ensures that proper keyword arguments are used for the Pymc3 sampler.
@@ -1253,10 +1293,15 @@ class Pymc3(Sampler):
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
             for key in self.priors:
-                # if the prior contains a pymc3_prior method use that otherwise try
-                # and find the PyMC3 distribution
-                if self.priors[key].pymc3_prior(self) is not None:
-                    self.pymc3_priors[key] = self.priors[key].pymc3_prior(self)
+                # if the prior contains ln_prob method that takes a 'sampler' argument
+                # then try using that
+                lnprobargs = inspect.getargspec(self.priors[key].ln_prob).args
+                if 'sampler' in lnprobargs:
+                    try:
+                        self.pymc3_priors[key] = self.priors[key].ln_prob(sampler=self)
+                    except RuntimeError:
+                        raise RuntimeError(("Problem setting PyMC3 prior for ",
+                            "'{}'".format(key)))
                 else:
                     # use Prior distribution name
                     distname = self.priors[key].__class__.__name__
