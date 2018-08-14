@@ -1261,6 +1261,82 @@ class Logistic(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'scale'])
 
 
+class Cauchy(Prior):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Cauchy distribution
+
+        https://en.wikipedia.org/wiki/Cauchy_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            Location parameter
+        beta: float
+            Scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label)
+        self.alpha = alpha
+        self.beta = beta
+
+        # set scipy distribution
+        self.dist = stats.cauchy(loc=alpha, scale=beta)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Cauchy prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return self.dist.ppf(val)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return self.dist.pdf(val)
+
+    def ln_prob(self, val):
+        return self.dist.logpdf(val)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
+
+
+class Lorentzian(Prior):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Synonym for the Cauchy distribution
+
+        https://en.wikipedia.org/wiki/Cauchy_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            Location parameter
+        beta: float
+            Scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Cauchy.__init__(self, alpha, beta, name=name, latex_label=latex_label)
+
+
 class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None, latex_label=None):
