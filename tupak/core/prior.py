@@ -1099,6 +1099,7 @@ class StudentT(Prior):
         Parameters
         ----------
         df: float
+            Number of degrees of freedom for distribution
         mu: float
             Mean of the Student's t-prior
         scale:
@@ -1145,7 +1146,63 @@ class StudentT(Prior):
 
     def __repr__(self):
         """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['df', 'mu,' 'scale'])
+        return Prior._subclass_repr_helper(self, subclass_args=['df', 'mu', 'scale'])
+
+
+class Beta(Prior):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Beta distribution
+
+        https://en.wikipedia.org/wiki/Beta_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            first shape parameter
+        beta: float
+            second shape parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, minimum=0., maximum=1., name=name, latex_label=latex_label)
+        self.alpha = alpha
+        self.beta = beta
+
+        # set scipy distribution
+        self.dist = stats.beta(alpha, beta)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return self.dist.ppf(val)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return self.dist.pdf(val)
+
+    def ln_prob(self, val):
+        return self.dist.logpdf(val)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
 
 
 class Interped(Prior):
