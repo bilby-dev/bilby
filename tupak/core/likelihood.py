@@ -158,7 +158,6 @@ class PoissonLikelihood(Likelihood):
 
         self.function = func
 
-        # Check if sigma was provided, if not it is a parameter
         self.function_keys = list(self.parameters.keys())
 
     @staticmethod
@@ -208,3 +207,64 @@ class PoissonLikelihood(Likelihood):
                         -self.sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
+
+
+class ExponentialLikelihood(Likelihood):
+    def __init__(self, x, y, func):
+        """
+        An exponential likelihood function.
+
+        Parameters
+        ----------
+
+        x, y: array_like
+            The data to analyse
+        The python function to fit to the data. Note, this must take the
+            dependent variable as its first argument. The other arguments
+            will require a prior and will be sampled over (unless a fixed
+            value is given). The model should return the expected mean of
+            the exponential distribution for each data point.
+        """
+
+        parameters = self._infer_parameters_from_function(func)
+        Likelihood.__init__(self, dict.fromkeys(parameters))
+
+        self.x = x           # the dependent variable
+        self.y = y           # the observed data
+
+        # check for non-negative values
+        if np.any(self.y < 0):
+            raise ValueError("Data must be non-negative")
+
+        self.function = func
+
+        # Check if sigma was provided, if not it is a parameter
+        self.function_keys = list(self.parameters.keys())
+
+    @staticmethod
+    def _infer_parameters_from_function(func):
+        """ Infers the arguments of function (except the first arg which is
+            assumed to be the dep. variable)
+        """
+        parameters = inspect.getargspec(func).args
+        parameters.pop(0)
+        return parameters
+
+    @property
+    def N(self):
+        """ The number of data points """
+        return len(self.y)
+
+    def log_likelihood(self):
+        # This sets up the function only parameters (i.e. not sigma)
+        model_parameters = {k: self.parameters[k] for k in self.function_keys}
+
+        # Calculate the mean of the distribution
+        mu = self.function(self.x, **model_parameters)
+
+        # return -inf if any mean values are negative
+        if np.any(mu < 0.):
+            return -np.inf
+
+        # Return the summed log likelihood
+        return -np.sum(np.log(mu) + (self.y/mu))
