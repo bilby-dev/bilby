@@ -1089,6 +1089,65 @@ class Exponential(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['mu'])
 
 
+class StudentT(Prior):
+    def __init__(self, df, mu=0., scale=1., name=None, latex_label=None):
+        """Student's t-distribution prior with number of degrees of freedom df,
+        mean mu and scale
+
+        https://en.wikipedia.org/wiki/Student%27s_t-distribution#Generalized_Student's_t-distribution
+
+        Parameters
+        ----------
+        df: float
+        mu: float
+            Mean of the Student's t-prior
+        scale:
+            Width of the Student's t-prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name, latex_label)
+        self.df = df
+        self.mu = mu
+        self.scale = scale
+
+        # set scipy distribution
+        self.dist = stats.t(df, loc=self.mu, scale=self.scale)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return self.dist.ppf(val)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return self.dist.pdf(val)
+
+    def ln_prob(self, val):
+        return self.dist.logpdf(val)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['df', 'mu,' 'scale'])
+
+
 class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None, latex_label=None):
