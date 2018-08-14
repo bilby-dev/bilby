@@ -781,10 +781,6 @@ class Gaussian(Prior):
             Mean of the Gaussian prior
         sigma:
             Width/Standard deviation of the Gaussian prior
-        minimum: float
-            See superclass
-        maximum: float
-            See superclass
         name: str
             See superclass
         latex_label: str
@@ -822,6 +818,25 @@ class Gaussian(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class Normal(Gaussian):
+    
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """A synonym for the Gaussian distribution.
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma: float
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Gaussian.__init__(self, mu, sigma, name=name, latex_label=latex_label)
 
 
 class TruncatedGaussian(Prior):
@@ -889,6 +904,65 @@ class TruncatedGaussian(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class TruncatedNormal(TruncatedGaussian):
+    
+    def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
+        """A synonym for the TruncatedGaussian distribution.
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        TruncatedGaussian.__init__(self, mu, sigma, minimum, maximum, name=name, latex_label=latex_label)
+
+
+class HalfGaussian(TruncatedGaussian):
+    def __init__(self, sigma, name=None, latex_label=None):
+        """A Gaussian with its mode at zero, and truncated to only be positive.
+
+        Parameters
+        ----------
+        sigma: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        TruncatedGaussian.__init__(self, 0., sigma, name=name, latex_label=latex_label)
+ 
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['sigma'])
+
+
+class HalfNormal(HalfGaussian):
+    def __init__(self, sigma, name=None, latex_label=None):
+        """A synonym for the HalfGaussian distribution.
+
+        Parameters
+        ----------
+        sigma: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        HalfGaussian.__init__(self, sigma, name=name, latex_label=latex_label)
 
 
 class Exponential(Prior):
