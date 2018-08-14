@@ -891,6 +891,53 @@ class TruncatedGaussian(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
+class Exponential(Prior):
+    def __init__(self, mu, name=None, latex_label=None):
+        """Exponential prior with mean mu
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Exponential prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name, latex_label)
+        self.mu = mu
+        self.logmu = np.log(mu)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+        return -self.mu*np.log(1.-val)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return (1./self.mu)*np.exp(-val/self.mu)
+
+    def ln_prob(self, val):
+        return -self.logmu - (val/self.mu)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu'])
+
+
 class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None, latex_label=None):
