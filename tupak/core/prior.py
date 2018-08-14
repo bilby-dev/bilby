@@ -965,6 +965,83 @@ class HalfNormal(HalfGaussian):
         HalfGaussian.__init__(self, sigma, name=name, latex_label=latex_label)
 
 
+class LogGaussian(Prior):
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """Log-normal prior with mean mu and width sigma
+
+        https://en.wikipedia.org/wiki/Log-normal_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+        self.mu = mu
+        self.sigma = sigma
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate LogNormal prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Note: This is equivalent to using :func:`scipy.stats.lognorm` with:
+
+            > from scipy.stats import lognorm
+            > ppf = lognorm.ppf(val, sigma, scale=np.exp(mu))
+        """
+        Prior.test_valid_for_rescaling(val)
+        return np.exp(self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return np.exp(-(np.log(val)-self.mu) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma / val
+
+    def ln_prob(self, val):
+        logval = np.log(val)
+        return -0.5 * ((logval - self.mu) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2)) - logval
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class LogNormal(LogGaussian):
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """Synonym of LogGaussian prior
+
+        https://en.wikipedia.org/wiki/Log-normal_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        LogGaussian.__init__(self, mu, sigma, name, latex_label)
+
+
 class Exponential(Prior):
     def __init__(self, mu, name=None, latex_label=None):
         """Exponential prior with mean mu
