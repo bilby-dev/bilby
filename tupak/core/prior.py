@@ -1061,7 +1061,7 @@ class Exponential(Prior):
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+        'Rescale' a sample from the unit line element to the appropriate Exponential prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
@@ -1119,7 +1119,7 @@ class StudentT(Prior):
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+        'Rescale' a sample from the unit line element to the appropriate Student's t-prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
@@ -1175,7 +1175,7 @@ class Beta(Prior):
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+        'Rescale' a sample from the unit line element to the appropriate Beta prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
@@ -1203,6 +1203,62 @@ class Beta(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
+
+
+class Logistic(Prior):
+    def __init__(self, mu, scale, name=None, latex_label=None):
+        """Logistic distribution
+
+        https://en.wikipedia.org/wiki/Logistic_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the distribution
+        scale: float
+            Width of the distribution
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label)
+        self.mu = mu
+        self.scale = scale
+
+        # set scipy distribution
+        self.dist = stats.logistic(loc=self.mu, scale=self.scale)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Logistic prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return self.dist.ppf(val)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return self.dist.pdf(val)
+
+    def ln_prob(self, val):
+        return self.dist.logpdf(val)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'scale'])
 
 
 class Interped(Prior):
