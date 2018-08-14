@@ -1115,7 +1115,7 @@ class StudentT(Prior):
         self.scale = scale
 
         # set scipy distribution
-        self.dist = stats.t(df, loc=self.mu, scale=self.scale)
+        self.dist = scipy.stats.t(df, loc=self.mu, scale=self.scale)
 
     def rescale(self, val):
         """
@@ -1171,7 +1171,7 @@ class Beta(Prior):
         self.beta = beta
 
         # set scipy distribution
-        self.dist = stats.beta(alpha, beta)
+        self.dist = scipy.stats.beta(alpha, beta)
 
     def rescale(self, val):
         """
@@ -1227,7 +1227,7 @@ class Logistic(Prior):
         self.scale = scale
 
         # set scipy distribution
-        self.dist = stats.logistic(loc=self.mu, scale=self.scale)
+        self.dist = scipy.stats.logistic(loc=self.mu, scale=self.scale)
 
     def rescale(self, val):
         """
@@ -1283,7 +1283,7 @@ class Cauchy(Prior):
         self.beta = beta
 
         # set scipy distribution
-        self.dist = stats.cauchy(loc=alpha, scale=beta)
+        self.dist = scipy.stats.cauchy(loc=alpha, scale=beta)
 
     def rescale(self, val):
         """
