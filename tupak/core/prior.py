@@ -1325,7 +1325,7 @@ class Cauchy(Prior):
         return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
 
 
-class Lorentzian(Prior):
+class Lorentzian(Cauchy):
     def __init__(self, alpha, beta, name=None, latex_label=None):
         """Synonym for the Cauchy distribution
 
