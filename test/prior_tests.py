@@ -123,7 +123,7 @@ class TestPriorClasses(unittest.TestCase):
             tupak.core.prior.LogNormal(name='test', mu=0, sigma=1),
             tupak.core.prior.Exponential(name='test', mu=1),
             tupak.core.prior.StudentT(name='test', df=3, mu=0, scale=1),
-            tupak.core.prior.Beta(name='test', alpha=0.5, beta=0.5),
+            tupak.core.prior.Beta(name='test', alpha=2.0, beta=2.0),
             tupak.core.prior.Logistic(name='test', mu=0, scale=1),
             tupak.core.prior.Cauchy(name='test', alpha=0, beta=1),
             tupak.core.prior.Lorentzian(name='test', alpha=0, beta=1),
@@ -213,6 +213,8 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             if isinstance(prior, tupak.core.prior.DeltaFunction):
                 continue
+            if isinstance(prior, tupak.core.prior.Cauchy):
+                continue
             elif isinstance(prior, tupak.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
             elif isinstance(prior, tupak.core.prior.Cauchy):
@@ -222,7 +224,13 @@ class TestPriorClasses(unittest.TestCase):
             elif isinstance(prior, tupak.core.prior.HalfGaussian):
                 domain = np.linspace(0., 1e2, 1000)
             elif isinstance(prior, tupak.core.prior.Gamma):
+                domain = np.linspace(0., 1e2, 5000)
+            elif isinstance(prior, tupak.core.prior.LogNormal):
                 domain = np.linspace(0., 1e2, 1000)
+            elif isinstance(prior, tupak.core.prior.Exponential):
+                domain = np.linspace(0., 1e2, 5000)
+            elif isinstance(prior, tupak.core.prior.Logistic):
+                domain = np.linspace(-1e2, 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)

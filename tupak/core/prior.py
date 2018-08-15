@@ -595,7 +595,7 @@ class PowerLaw(Prior):
         float:
 
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        in_prior = np.log(1.*((val >= self.minimum) & (val <= self.maximum)))
 
         if self.alpha == -1:
             normalising = 1. / np.log(self.maximum / self.minimum)
@@ -604,7 +604,7 @@ class PowerLaw(Prior):
                                               - self.minimum ** (
                                                           1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) * in_prior
+        return (self.alpha * np.log(val) + np.log(normalising)) + in_prior
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -965,7 +965,7 @@ class HalfNormal(HalfGaussian):
         HalfGaussian.__init__(self, sigma, name=name, latex_label=latex_label)
 
 
-class LogGaussian(Prior):
+class LogNormal(Prior):
     def __init__(self, mu, sigma, name=None, latex_label=None):
         """Log-normal prior with mean mu and width sigma
 
@@ -995,14 +995,9 @@ class LogGaussian(Prior):
         'Rescale' a sample from the unit line element to the appropriate LogNormal prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
-
-        Note: This is equivalent to using :func:`scipy.stats.lognorm` with:
-
-            > from scipy.stats import lognorm
-            > ppf = lognorm.ppf(val, sigma, scale=np.exp(mu))
         """
         Prior.test_valid_for_rescaling(val)
-        return np.exp(self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma)
+        return scipy.stats.lognorm.ppf(val, self.sigma, scale=np.exp(self.mu))
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1015,20 +1010,20 @@ class LogGaussian(Prior):
         -------
         float: Prior probability of val
         """
-        return np.exp(-(np.log(val)-self.mu) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma / val
+
+        return scipy.stats.lognorm.pdf(val, self.sigma, scale=np.exp(self.mu))
 
     def ln_prob(self, val):
-        logval = np.log(val)
-        return -0.5 * ((logval - self.mu) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2)) - logval
+        return scipy.stats.lognorm.logpdf(val, self.sigma, scale=np.exp(self.mu))
 
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
-class LogNormal(LogGaussian):
+class LogGaussian(LogNormal):
     def __init__(self, mu, sigma, name=None, latex_label=None):
-        """Synonym of LogGaussian prior
+        """Synonym of LogNormal prior
 
         https://en.wikipedia.org/wiki/Log-normal_distribution
 
@@ -1043,7 +1038,7 @@ class LogNormal(LogGaussian):
         latex_label: str
             See superclass
         """
-        LogGaussian.__init__(self, mu, sigma, name, latex_label)
+        LogNormal.__init__(self, mu, sigma, name, latex_label)
 
 
 class Exponential(Prior):
@@ -1070,7 +1065,7 @@ class Exponential(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return -self.mu*np.log(1.-val)
+        return scipy.stats.expon.ppf(val, scale=self.mu)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1083,10 +1078,11 @@ class Exponential(Prior):
         -------
         float: Prior probability of val
         """
-        return (1./self.mu)*np.exp(-val/self.mu)
+
+        return scipy.stats.expon.pdf(val, scale=self.mu)
 
     def ln_prob(self, val):
-        return -self.logmu - (val/self.mu)
+        return scipy.stats.expon.logpdf(val, scale=self.mu)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1201,10 +1197,30 @@ class Beta(Prior):
         -------
         float: Prior probability of val
         """
-        return scipy.stats.beta.pdf(val, self.alpha, self.beta)
+
+        spdf = scipy.stats.beta.pdf(val, self.alpha, self.beta)
+        if np.all(np.isfinite(spdf)):
+            return spdf
+
+        # deal with the fact that if alpha or beta are < 1 you get infinities at 0 and 1
+        if isinstance(val, np.ndarray):
+            pdf = np.zeros(len(val))
+            pdf[np.isfinite(spdf)] = spdf[np.isfinite]
+            return spdf
+        else:
+            return 0.
 
     def ln_prob(self, val):
-        return scipy.stats.beta.logpdf(val, self.alpha, self.beta)
+        spdf = scipy.stats.beta.logpdf(val, self.alpha, self.beta)
+        if np.all(np.isfinite(spdf)):
+            return spdf
+
+        if isinstance(val, np.ndarray):
+            pdf = -np.inf*np.ones(len(val))
+            pdf[np.isfinite(spdf)] = spdf[np.isfinite]
+            return spdf
+        else:
+            return -np.inf
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1392,6 +1408,7 @@ class Gamma(Prior):
         -------
         float: Prior probability of val
         """
+
         return scipy.stats.gamma.pdf(val, self.k, loc=0., scale=self.theta)
 
     def ln_prob(self, val):
