@@ -105,6 +105,7 @@ class TestPriorClasses(unittest.TestCase):
         self.priors = [
             tupak.core.prior.DeltaFunction(name='test', peak=1),
             tupak.core.prior.Gaussian(name='test', mu=0, sigma=1),
+            tupak.core.prior.Normal(name='test', mu=0, sigma=1),
             tupak.core.prior.PowerLaw(name='test', alpha=0, minimum=0, maximum=1),
             tupak.core.prior.PowerLaw(name='test', alpha=2, minimum=1, maximum=1e2),
             tupak.core.prior.Uniform(name='test', minimum=0, maximum=1),
@@ -114,7 +115,18 @@ class TestPriorClasses(unittest.TestCase):
             tupak.core.prior.Cosine(name='test'),
             tupak.core.prior.Interped(name='test', xx=np.linspace(0, 10, 1000), yy=np.linspace(0, 10, 1000) ** 4,
                                       minimum=3, maximum=5),
-            tupak.core.prior.TruncatedGaussian(name='test', mu=1, sigma=0.4, minimum=-1, maximum=1)
+            tupak.core.prior.TruncatedGaussian(name='test', mu=1, sigma=0.4, minimum=-1, maximum=1),
+            tupak.core.prior.TruncatedNormal(name='test', mu=1, sigma=0.4, minimum=-1, maximum=1),
+            tupak.core.prior.HalfGaussian(name='test', sigma=1),
+            tupak.core.prior.HalfNormal(name='test', sigma=1),
+            tupak.core.prior.LogGaussian(name='test', mu=0, sigma=1),
+            tupak.core.prior.LogNormal(name='test', mu=0, sigma=1),
+            tupak.core.prior.Exponential(name='test', mu=1),
+            tupak.core.prior.StudentT(name='test', df=3, mu=0, scale=1),
+            tupak.core.prior.Beta(name='test', alpha=0.5, beta=0.5),
+            tupak.core.prior.Logistic(name='test', mu=0, scale=1),
+            tupak.core.prior.Cauchy(name='test', alpha=0, beta=1),
+            tupak.core.prior.Lorentzian(name='test', alpha=0, beta=1)
         ]
 
     def test_minimum_rescaling(self):
