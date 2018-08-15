@@ -942,7 +942,7 @@ class HalfGaussian(TruncatedGaussian):
         latex_label: str
             See superclass
         """
-        TruncatedGaussian.__init__(self, 0., sigma, name=name, latex_label=latex_label)
+        TruncatedGaussian.__init__(self, 0., sigma, minimum=0., maximum=np.inf, name=name, latex_label=latex_label)
  
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1302,7 +1302,7 @@ class Cauchy(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return scipy.stats.cauchy.ppf(val, loc=alpha, scale=beta)
+        return scipy.stats.cauchy.ppf(val, loc=self.alpha, scale=self.beta)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1315,10 +1315,10 @@ class Cauchy(Prior):
         -------
         float: Prior probability of val
         """
-        return scipy.stats.cauchy.pdf(val, loc=alpha, scale=beta)
+        return scipy.stats.cauchy.pdf(val, loc=self.alpha, scale=self.beta)
 
     def ln_prob(self, val):
-        return scipy.stats.cauchy.logpdf(val, loc=alpha, scale=beta)
+        return scipy.stats.cauchy.logpdf(val, loc=self.alpha, scale=self.beta)
 
     def __repr__(self):
         """Call to helper method in the super class."""
