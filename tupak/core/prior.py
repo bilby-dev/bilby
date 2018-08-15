@@ -983,6 +983,10 @@ class LogGaussian(Prior):
             See superclass
         """
         Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+
+        if sigma <= 0.:
+            raise ValueError("For the LogGaussian prior the standard deviation must be positive")
+
         self.mu = mu
         self.sigma = sigma
 
@@ -1110,6 +1114,10 @@ class StudentT(Prior):
             See superclass
         """
         Prior.__init__(self, name, latex_label)
+        
+        if df <= 0. or scale <= 0.:
+            raise ValueError("For the StudentT prior the number of degrees of freedom and scale must be positive")
+
         self.df = df
         self.mu = mu
         self.scale = scale
@@ -1164,6 +1172,10 @@ class Beta(Prior):
             See superclass
         """
         Prior.__init__(self, minimum=0., maximum=1., name=name, latex_label=latex_label)
+
+        if alpha <= 0. or beta <= 0.:
+            raise ValueError("alpha and beta must both be positive values")
+
         self.alpha = alpha
         self.beta = beta
 
@@ -1217,6 +1229,10 @@ class Logistic(Prior):
             See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label)
+
+        if scale <= 0.:
+            raise ValueError("For the Logistic prior the scale must be positive")
+
         self.mu = mu
         self.scale = scale
 
@@ -1270,6 +1286,10 @@ class Cauchy(Prior):
             See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label)
+
+        if beta <= 0.:
+            raise ValueError("For the Cauchy prior the scale must be positive")
+
         self.alpha = alpha
         self.beta = beta
 
