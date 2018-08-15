@@ -1059,7 +1059,7 @@ class Exponential(Prior):
         latex_label: str
             See superclass
         """
-        Prior.__init__(self, name, latex_label)
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
         self.mu = mu
         self.logmu = np.log(mu)
 
@@ -1343,6 +1343,85 @@ class Lorentzian(Prior):
             See superclass
         """
         Cauchy.__init__(self, alpha, beta, name=name, latex_label=latex_label)
+
+
+class Gamma(Prior):
+    def __init__(self, k, theta=1., name=None, latex_label=None):
+        """Gamma distribution
+
+        https://en.wikipedia.org/wiki/Gamma_distribution
+
+        Parameters
+        ----------
+        k: float
+            The shape parameter
+        theta: float
+            The scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+
+        if k <= 0 or theta <= 0:
+            raise ValueError("For the Gamma prior the shape and scale must be positive")
+
+        self.k = k
+        self.theta = theta
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gamma prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.gamma.ppf(val, self.k, loc=0., scale=self.theta)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return scipy.stats.gamma.pdf(val, self.k, loc=0., scale=self.theta)
+
+    def ln_prob(self, val):
+        return scipy.stats.gamma.logpdf(val, self.k, loc=0., scale=self.theta)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['k', 'theta'])
+
+
+class ChiSquared(Gamma):
+    def __init__(self, nu, name=None, latex_label=None):
+        """Chi-squared distribution
+
+        https://en.wikipedia.org/wiki/Chi-squared_distribution
+
+        Parameters
+        ----------
+        nu: int
+            Number of degrees of freedom
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+
+        if nu <= 0 or not isinstance(nu, int):
+            raise ValueError("For the ChiSquared prior the number of degrees of freedom must be a positive integer")
+
+        Gamma.__init__(self, name=name, k=nu/2., theta=2., latex_label=latex_label)
 
 
 class Interped(Prior):

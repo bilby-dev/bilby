@@ -126,7 +126,9 @@ class TestPriorClasses(unittest.TestCase):
             tupak.core.prior.Beta(name='test', alpha=0.5, beta=0.5),
             tupak.core.prior.Logistic(name='test', mu=0, scale=1),
             tupak.core.prior.Cauchy(name='test', alpha=0, beta=1),
-            tupak.core.prior.Lorentzian(name='test', alpha=0, beta=1)
+            tupak.core.prior.Lorentzian(name='test', alpha=0, beta=1),
+            tupak.core.prior.Gamma(name='test', k=1, theta=1),
+            tupak.core.prior.ChiSquared(name='test', nu=2)
         ]
 
     def test_minimum_rescaling(self):
