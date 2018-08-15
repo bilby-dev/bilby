@@ -215,6 +215,14 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             elif isinstance(prior, tupak.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
+            elif isinstance(prior, tupak.core.prior.Cauchy):
+                domain = np.linspace(-1e2, 1e2, 1000)
+            elif isinstance(prior, tupak.core.prior.StudentT):
+                domain = np.linspace(-1e2, 1e2, 1000)
+            elif isinstance(prior, tupak.core.prior.HalfGaussian):
+                domain = np.linspace(0., 1e2, 1000)
+            elif isinstance(prior, tupak.core.prior.Gamma):
+                domain = np.linspace(0., 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
