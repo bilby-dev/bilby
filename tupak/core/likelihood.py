@@ -219,7 +219,8 @@ class ExponentialLikelihood(Likelihood):
 
         x, y: array_like
             The data to analyse
-        The python function to fit to the data. Note, this must take the
+        func:
+            The python function to fit to the data. Note, this must take the
             dependent variable as its first argument. The other arguments
             will require a prior and will be sampled over (unless a fixed
             value is given). The model should return the expected mean of
