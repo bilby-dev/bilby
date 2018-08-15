@@ -583,7 +583,7 @@ class PowerLaw(Prior):
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         """Return the logarithmic prior probability of val
 
         Parameters
@@ -816,7 +816,7 @@ class Gaussian(Prior):
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):
