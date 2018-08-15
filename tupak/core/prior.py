@@ -1114,9 +1114,6 @@ class StudentT(Prior):
         self.mu = mu
         self.scale = scale
 
-        # set scipy distribution
-        self.dist = scipy.stats.t(df, loc=self.mu, scale=self.scale)
-
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the appropriate Student's t-prior.
@@ -1126,7 +1123,7 @@ class StudentT(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return self.dist.ppf(val)
+        return scipy.stats.t.ppf(val, self.df, loc=self.mu, scale=self.scale)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1139,10 +1136,10 @@ class StudentT(Prior):
         -------
         float: Prior probability of val
         """
-        return self.dist.pdf(val)
+        return scipy.stats.t.pdf(val, self.df, loc=self.mu, scale=self.scale)
 
     def ln_prob(self, val):
-        return self.dist.logpdf(val)
+        return scipy.stats.t.logpdf(val, self.df, loc=self.mu, scale=self.scale)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1170,9 +1167,6 @@ class Beta(Prior):
         self.alpha = alpha
         self.beta = beta
 
-        # set scipy distribution
-        self.dist = scipy.stats.beta(alpha, beta)
-
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the appropriate Beta prior.
@@ -1182,7 +1176,7 @@ class Beta(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return self.dist.ppf(val)
+        return scipy.stats.beta.ppf(val, self.alpha, self.beta)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1195,10 +1189,10 @@ class Beta(Prior):
         -------
         float: Prior probability of val
         """
-        return self.dist.pdf(val)
+        return scipy.stats.beta.pdf(val, self.alpha, self.beta)
 
     def ln_prob(self, val):
-        return self.dist.logpdf(val)
+        return scipy.stats.beta.logpdf(val, self.alpha, self.beta)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1226,9 +1220,6 @@ class Logistic(Prior):
         self.mu = mu
         self.scale = scale
 
-        # set scipy distribution
-        self.dist = scipy.stats.logistic(loc=self.mu, scale=self.scale)
-
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the appropriate Logistic prior.
@@ -1238,7 +1229,7 @@ class Logistic(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return self.dist.ppf(val)
+        return scipy.stats.logistic.ppf(val, loc=self.mu, scale=self.scale)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1251,10 +1242,10 @@ class Logistic(Prior):
         -------
         float: Prior probability of val
         """
-        return self.dist.pdf(val)
+        return scipy.stats.logistic.pdf(val, loc=self.mu, scale=self.scale)
 
     def ln_prob(self, val):
-        return self.dist.logpdf(val)
+        return scipy.stats.logistic.logpdf(val, loc=self.mu, scale=self.scale)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -1282,9 +1273,6 @@ class Cauchy(Prior):
         self.alpha = alpha
         self.beta = beta
 
-        # set scipy distribution
-        self.dist = scipy.stats.cauchy(loc=alpha, scale=beta)
-
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the appropriate Cauchy prior.
@@ -1294,7 +1282,7 @@ class Cauchy(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return self.dist.ppf(val)
+        return scipy.stats.cauchy.ppf(val, loc=alpha, scale=beta)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1307,10 +1295,10 @@ class Cauchy(Prior):
         -------
         float: Prior probability of val
         """
-        return self.dist.pdf(val)
+        return scipy.stats.cauchy.pdf(val, loc=alpha, scale=beta)
 
     def ln_prob(self, val):
-        return self.dist.logpdf(val)
+        return scipy.stats.cauchy.logpdf(val, loc=alpha, scale=beta)
 
     def __repr__(self):
         """Call to helper method in the super class."""
