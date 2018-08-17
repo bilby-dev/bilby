@@ -109,7 +109,7 @@ class TestStudentTLikelihood(unittest.TestCase):
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         self.assertTrue(likelihood.nu is None)
-        with self.assertRaises(TypeError):
+        with self.assertRaises((TypeError, ValueError)):
             likelihood.log_likelihood()
         likelihood.parameters['nu'] = 98
         likelihood.log_likelihood()
