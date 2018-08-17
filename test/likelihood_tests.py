@@ -81,22 +81,18 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.N = 100
         self.mu = 5
         self.x = np.linspace(0, 1, self.N)
-        self.y = np.random.poisson(self.mu, self.N)
+        self.y = np.random.exponential(self.mu, self.N)
         self.yneg = np.copy(self.y)
         self.yneg[0] = -1.
 
-        def test_function(x):
-            return self.mu
+        def test_function(x, c):
+            return c
 
-        def test_function_neg(x):
-            return -self.mu
-
-        def test_function_array_neg(x):
-            return -self.mu*np.ones(len(x))
+        def test_function_array(x, c):
+            return c*np.ones(len(x))
 
         self.function = test_function
-        self.function_neg = test_function_neg
-        self.function_array_neg = test_function_array_neg
+        self.function_array = test_function_array
 
     def tearDown(self):
         del self.N
@@ -105,8 +101,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         del self.y
         del self.yneg
         del self.function
-        del self.function_neg
-        del self.function_array_neg
+        del self.function_array
 
     def test_negative_data(self):
         with self.assertRaises(ValueError):
@@ -114,12 +109,14 @@ class TestExponentialLikelihood(unittest.TestCase):
 
     def test_negative_function(self):
         likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function_neg)
+            self.x, self.y, self.function)
+        likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
     def test_negative_array_function(self):
         likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function_array_neg)
+            self.x, self.y, self.function_array)
+        likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
     def test_y(self):
