@@ -241,7 +241,7 @@ class StudentTLikelihood(Likelihood):
             to 1, which specifies a standard (central) Student's t-distribution
         """
 
-        parameters = self._infer_parameters_from_function(function)
+        parameters = self._infer_parameters_from_function(func)
         Likelihood.__init__(self, dict.fromkeys(parameters))
 
         self.x = x
@@ -286,10 +286,10 @@ class StudentTLikelihood(Likelihood):
         res = self.y - self.function(self.x, **model_parameters)
 
         # convert "scale" to "precision"
-        lam = 1./sigma**2
+        lam = 1./self.sigma**2
 
         # Return the summed log likelihood
-        return N*(gammaln((nu + 1.0) / 2.0)
+        return (self.N*(gammaln((nu + 1.0) / 2.0)
                      + .5 * np.log(lam / (nu * np.pi))
                      - gammaln(nu / 2.0))
-                     - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res**2 / nu))
+                     - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res**2 / nu)))
