@@ -75,5 +75,68 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertTrue(likelihood.N == len(self.x))
 
 
+class TestExponentialLikelihood(unittest.TestCase):
+    
+    def setUp(self):
+        self.N = 100
+        self.mu = 5
+        self.x = np.linspace(0, 1, self.N)
+        self.y = np.random.poisson(self.mu, self.N)
+        self.yneg = np.copy(self.y)
+        self.yneg[0] = -1.
+
+        def test_function(x):
+            return self.mu
+
+        def test_function_neg(x):
+            return -self.mu
+
+        def test_function_array_neg(x):
+            return -self.mu*np.ones(len(x))
+
+        self.function = test_function
+        self.function_neg = test_function_neg
+        self.function_array_neg = test_function_array_neg
+
+    def tearDown(self):
+        del self.N
+        del self.mu
+        del self.x
+        del self.y
+        del self.yneg
+        del self.function
+        del self.function_neg
+        del self.function_array_neg
+
+    def test_negative_data(self):
+        with self.assertRaises(ValueError):
+            tupak.core.likelihood.ExponentialLikelihood(self.x, self.yneg, self.function)
+
+    def test_negative_function(self):
+        likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            self.x, self.y, self.function_neg)
+        self.assertEqual(likelihood.log_likelihood(), -np.inf)
+
+    def test_negative_array_function(self):
+        likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            self.x, self.y, self.function_array_neg)
+        self.assertEqual(likelihood.log_likelihood(), -np.inf)
+
+    def test_y(self):
+        likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(all(likelihood.y == self.y))
+
+    def test_x(self):
+        likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(all(likelihood.x == self.x))
+
+    def test_N(self):
+        likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(likelihood.N == len(self.x))
+
+
 if __name__ == '__main__':
     unittest.main()
