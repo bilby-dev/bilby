@@ -595,7 +595,7 @@ class PowerLaw(Prior):
         float:
 
         """
-        in_prior = np.log(1.*((val >= self.minimum) & (val <= self.maximum)))
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
 
         if self.alpha == -1:
             normalising = 1. / np.log(self.maximum / self.minimum)
@@ -604,7 +604,7 @@ class PowerLaw(Prior):
                                               - self.minimum ** (
                                                           1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) + in_prior
+        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1.*in_prior)
 
     def __repr__(self):
         """Call to helper method in the super class."""
