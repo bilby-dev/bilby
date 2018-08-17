@@ -211,26 +211,34 @@ class PoissonLikelihood(Likelihood):
 
 
 class StudentTLikelihood(Likelihood):
-    def __init__(self, x, y, function, sigma=None):
+    def __init__(self, x, y, func, nu=None, sigma=1.):
         """
-        A general Student's t-likelihood for known or unknown noise - the model
+        A general Student's t-likelihood for known or unknown number of degrees
+        of freedom, and known or unknown scale (which tends toward the standard
+        deviation for large numbers of degrees of freedom) - the model
         parameters are inferred from the arguments of function
+
+        https://en.wikipedia.org/wiki/Student%27s_t-distribution#Generalized_Student's_t-distribution
 
         Parameters
         ----------
         x, y: array_like
             The data to analyse
-        function:
+        func:
             The python function to fit to the data. Note, this must take the
             dependent variable as its first argument. The other arguments
             will require a prior and will be sampled over (unless a fixed
             value is given).
-        sigma: None, float, array_like
-            If None, the standard deviation of the noise is unknown and will be
-            estimated (note: this requires a prior to be given for sigma). If
-            not None, this defines the standard-deviation of the data points.
-            This can either be a single float, or an array with length equal
-            to that for `x` and `y`.
+        nu: None, float
+            If None, the number of degrees of freedom of the noise is unknown
+            and will be estimated (note: this requires a prior to be given for
+            nu). If not None, this defines the number of degrees of freedom of
+            the data points. As an example a `nu` of `len(x)-2` is equivalent
+            to having marginalised a Gaussian distribution over an unknown
+            standard deviation parameter using a uniform prior.
+        sigma: 1.0, float
+            Set the scale of the distribution. If not given then this defaults
+            to 1, which specifies a standard (central) Student's t-distribution
         """
 
         parameters = self._infer_parameters_from_function(function)
@@ -238,13 +246,14 @@ class StudentTLikelihood(Likelihood):
 
         self.x = x
         self.y = y
+        self.nu = nu
         self.sigma = sigma
-        self.function = function
+        self.function = func
 
-        # Check if sigma was provided, if not it is a parameter
+        # Check if nu was provided, if not it is a parameter
         self.function_keys = list(self.parameters.keys())
-        if self.sigma is None:
-            self.parameters['sigma'] = None
+        if self.nu is None:
+            self.parameters['nu'] = None
 
     @staticmethod
     def _infer_parameters_from_function(func):
@@ -261,11 +270,14 @@ class StudentTLikelihood(Likelihood):
         return len(self.x)
 
     def log_likelihood(self):
-        # This checks if sigma has been set in parameters. If so, that value
-        # will be used. Otherwise, the attribute sigma is used. The logic is
-        # that if sigma is not in parameters the attribute is used which was
-        # given at init (i.e. the known sigma as either a float or array).
-        sigma = self.parameters.get('sigma', self.sigma)
+        # This checks if nu or sigma have been set in parameters. If so, those
+        # values will be used. Otherwise, the attribute sigma is used. The logic is
+        # that if nu is not in parameters the attribute is used which was
+        # given at init (i.e. the known nu as a float).
+        nu = self.parameters.get('nu', self.nu)
+
+        if nu <= 0.:
+            raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
         # This sets up the function only parameters (i.e. not sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
@@ -273,6 +285,11 @@ class StudentTLikelihood(Likelihood):
         # Calculate the residual
         res = self.y - self.function(self.x, **model_parameters)
 
+        # convert "scale" to "precision"
+        lam = 1./sigma**2
+
         # Return the summed log likelihood
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N * np.log(2 * np.pi * sigma**2))
+        return N*(gammaln((nu + 1.0) / 2.0)
+                     + .5 * np.log(lam / (nu * np.pi))
+                     - gammaln(nu / 2.0))
+                     - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res**2 / nu))
