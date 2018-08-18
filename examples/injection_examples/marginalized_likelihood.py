@@ -29,9 +29,13 @@ waveform_generator = tupak.gw.WaveformGenerator(
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+IFOs = []
+for name in ["H1", "L1", "V1"]:
+    IFOs.append(
+        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+            name, injection_polarizations=hf_signal,
+            injection_parameters=injection_parameters, duration=duration,
+            sampling_frequency=sampling_frequency, outdir=outdir))
 
 # Set up prior
 priors = tupak.gw.prior.BBHPriorSet()

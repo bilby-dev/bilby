@@ -7,12 +7,13 @@ from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import scipy.stats
 import os
+from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core import utils
 
 
-class PriorSet(dict):
+class PriorSet(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -23,8 +24,8 @@ class PriorSet(dict):
         filename: str, None
             If given, a file containing the prior to generate the prior set.
         """
-        dict.__init__(self)
-        if type(dictionary) is dict:
+        OrderedDict.__init__(self)
+        if type(dictionary) in [dict, OrderedDict]:
             self.update(dictionary)
         elif type(dictionary) is str:
             logger.debug('Argument "dictionary" is a string.'
@@ -32,6 +33,8 @@ class PriorSet(dict):
             self.read_in_file(dictionary)
         elif type(filename) is str:
             self.read_in_file(filename)
+        elif dictionary is not None:
+            raise ValueError("PriorSet input dictionay not understood")
 
     def write_to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -580,7 +583,7 @@ class PowerLaw(Prior):
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         """Return the logarithmic prior probability of val
 
         Parameters
@@ -593,9 +596,15 @@ class PowerLaw(Prior):
 
         """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
-        normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                          - self.minimum ** (1 + self.alpha))
-        return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
+        if self.alpha == -1:
+            normalising = 1. / np.log(self.maximum / self.minimum)
+        else:
+            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                              - self.minimum ** (
+                                                          1 + self.alpha))
+
+        return (self.alpha * np.log(val) + np.log(normalising)) * in_prior
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -807,7 +816,7 @@ class Gaussian(Prior):
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):
