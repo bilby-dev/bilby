@@ -15,7 +15,7 @@ class TestBasicGWTransient(unittest.TestCase):
             phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
-        self.interferometers = tupak.gw.detector.InterferometerSet(['H1'])
+        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4)
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
@@ -65,7 +65,7 @@ class TestGWTransient(unittest.TestCase):
             phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
-        self.interferometers = tupak.gw.detector.InterferometerSet(['H1'])
+        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
