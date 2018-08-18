@@ -106,8 +106,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def _check_prior_is_set(self, key):
         if key not in self.prior or not isinstance(
                 self.prior[key], tupak.core.prior.Prior):
-            raise ValueError("You can't use a {key} marginalized likelihood\
-                    without specifying a prior for {key}".format(key=key))
+            logger.warning(
+                'Prior not provided for {}, using the BBH default.'.format(key))
+            if key == 'geocent_time':
+                self.prior[key] = tupak.prior.Uniform(
+                        self.interferometerfos.start_time,
+                        self.interferometers.start_time + self.interferometers.duration)
+            else:
+                self.prior[key] = tupak.gw.prior.BBHPriorSet()[key]
 
     @property
     def prior(self):
