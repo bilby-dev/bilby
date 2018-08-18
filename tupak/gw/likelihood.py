@@ -65,6 +65,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
         if self.time_marginalization:
+            logger.warning('The time marginalised likelihood is incorrectly normalised.')
+            logger.warning('Results should be regarded with suspicion.')
             self._check_prior_is_set()
             prior['geocent_time'] = self.interferometers.start_time
 
