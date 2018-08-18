@@ -2,9 +2,6 @@ from __future__ import division
 import numpy as np
 from scipy.interpolate import interp2d, interp1d
 
-from tupak.gw.prior import BBHPriorSet
-from tupak.prior import Uniform
-
 try:
     from scipy.special import logsumexp
 except ImportError:
@@ -14,6 +11,8 @@ from scipy.special import i0e
 import tupak
 from tupak.core import likelihood as likelihood
 from tupak.core.utils import logger
+from tupak.gw.prior import BBHPriorSet
+from tupak.core.prior import Uniform
 
 
 class GravitationalWaveTransient(likelihood.Likelihood):
@@ -251,9 +250,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                               np.logspace(-3, 10, self._dist_margd_loglikelihood_array.shape[1] / 2)))
 
     def _setup_distance_marginalization(self):
-        if 'luminosity_distance' not in self.prior.keys():
-            logger.info('No prior provided for distance, using default prior.')
-            self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
         self._create_lookup_table()
         self._interp_dist_margd_loglikelihood = interp2d(self._rho_mf_ref_array, self._rho_opt_ref_array,
                                                          self._dist_margd_loglikelihood_array)
@@ -280,9 +276,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self._dist_margd_loglikelihood_array -= log_norm
 
     def _setup_phase_marginalization(self):
-        if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
-            logger.info('No prior provided for phase at coalescence, using default prior.')
-            self.prior['phase'] = tupak.core.prior.create_default_prior('phase')
         self._bessel_function_interped = interp1d(
             np.logspace(-5, 10, int(1e6)), np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))])
             + np.logspace(-5, 10, int(1e6)), bounds_error=False, fill_value=(0, np.nan))
