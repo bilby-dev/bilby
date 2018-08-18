@@ -75,5 +75,75 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertTrue(likelihood.N == len(self.x))
 
 
+class TestPoissonLikelihood(unittest.TestCase):
+    
+    def setUp(self):
+        self.N = 100
+        self.mu = 5
+        self.x = np.linspace(0, 1, self.N)
+        self.y = np.random.poisson(self.mu, self.N)
+        self.yfloat = np.copy(self.y)*1.
+        self.yneg = np.copy(self.y)
+        self.yneg[0] = -1
+
+        def test_function(x, c):
+            return c
+
+        def test_function_array(x, c):
+            return np.ones(len(x))*c
+
+        self.function = test_function
+        self.function_array = test_function_array
+
+    def tearDown(self):
+        del self.N
+        del self.mu
+        del self.x
+        del self.y
+        del self.yfloat
+        del self.yneg
+        del self.function
+        del self.function_array
+
+    def test_non_integer(self):
+        with self.assertRaises(ValueError):
+            tupak.core.likelihood.PoissonLikelihood(
+                self.x, self.yfloat, self.function)
+
+    def test_negative(self):
+        with self.assertRaises(ValueError):
+            tupak.core.likelihood.PoissonLikelihood(
+                self.x, self.yneg, self.function)
+
+    def test_neg_rate(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function)
+        likelihood.parameters['c'] = -2
+        with self.assertRaises(ValueError):
+            likelihood.log_likelihood()
+
+    def test_neg_rate_array(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function_array)
+        likelihood.parameters['c'] = -2
+        with self.assertRaises(ValueError):
+            likelihood.log_likelihood()
+
+    def test_y(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(all(likelihood.y == self.y))
+
+    def test_x(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(all(likelihood.x == self.x))
+
+    def test_N(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function)
+        self.assertTrue(likelihood.N == len(self.x))
+
+
 if __name__ == '__main__':
     unittest.main()
