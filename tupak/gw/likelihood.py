@@ -65,9 +65,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
         if self.time_marginalization:
-            logger.warning('The time marginalised likelihood is incorrectly normalised.')
-            logger.warning('Results should be regarded with suspicion.')
             self._check_prior_is_set()
+            self._setup_time_marginalization()
             prior['geocent_time'] = self.interferometers.start_time
 
         if self.phase_marginalization:
@@ -164,43 +163,42 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             optimal_snr_squared += tupak.gw.utils.optimal_snr_squared(
                 signal_ifo, interferometer, self.waveform_generator.duration)
             if self.time_marginalization:
-                interferometer.time_marginalization = self.time_marginalization
                 matched_filter_snr_squared_tc_array +=\
-                    4. * (1. / self.waveform_generator.duration) * np.fft.fft(
+                    4 / self.waveform_generator.duration * np.fft.fft(
                         signal_ifo.conjugate()[0:-1]
                         * interferometer.frequency_domain_strain[0:-1]
                         / interferometer.power_spectral_density_array[0:-1])
 
         if self.time_marginalization:
 
-            delta_tc = 1. / self.waveform_generator.sampling_frequency
-            tc_log_norm = np.log(self.waveform_generator.duration * delta_tc)
             if self.distance_marginalization:
-                rho_mf_ref_tc_array, rho_opt_ref = self._setup_rho(matched_filter_snr_squared_tc_array,
-                                                                   optimal_snr_squared)
+                rho_mf_ref_tc_array, rho_opt_ref = self._setup_rho(
+                    matched_filter_snr_squared_tc_array, optimal_snr_squared)
                 if self.phase_marginalization:
                     dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
-                            abs(rho_mf_ref_tc_array), rho_opt_ref)
-                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - tc_log_norm
+                        abs(rho_mf_ref_tc_array), rho_opt_ref)
+                    log_l = logsumexp(dist_marged_log_l_tc_array) + self.tc_log_norm
                 else:
                     dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
-                            rho_mf_ref_tc_array.real, rho_opt_ref)
-                    log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
+                        rho_mf_ref_tc_array.real, rho_opt_ref)
+                    log_l = logsumexp(dist_marged_log_l_tc_array) + self.tc_log_norm
             elif self.phase_marginalization:
-                log_l = logsumexp(
-                    self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array)), b=delta_tc) \
-                        - optimal_snr_squared / 2. - tc_log_norm
+                log_l = logsumexp(self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array)))\
+                        - optimal_snr_squared / 2 + self.tc_log_norm
             else:
-                log_l = logsumexp(matched_filter_snr_squared_tc_array.real, axis=0,
-                                  b=delta_tc) - optimal_snr_squared / 2. - tc_log_norm
+                log_l = logsumexp(matched_filter_snr_squared_tc_array.real) + self.tc_log_norm\
+                        - optimal_snr_squared / 2
+
         elif self.distance_marginalization:
             rho_mf_ref, rho_opt_ref = self._setup_rho(matched_filter_snr_squared, optimal_snr_squared)
             if self.phase_marginalization:
                 rho_mf_ref = abs(rho_mf_ref)
             log_l = self._interp_dist_margd_loglikelihood(rho_mf_ref.real, rho_opt_ref)[0]
+
         elif self.phase_marginalization:
             matched_filter_snr_squared = self._bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
+
         else:
             log_l = matched_filter_snr_squared.real - optimal_snr_squared / 2
 
@@ -229,15 +227,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     @property
     def _rho_opt_ref_array(self):
         """ Optimal filter snr at fiducial distance of ref_dist Mpc """
-        return np.logspace(-3, 4, self._dist_margd_loglikelihood_array.shape[0])
+        return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[0])
 
     @property
     def _rho_mf_ref_array(self):
         """ Matched filter snr at fiducial distance of ref_dist Mpc """
         if self.phase_marginalization:
-            return np.logspace(-5, 4, self._dist_margd_loglikelihood_array.shape[1])
-        return np.hstack((-np.logspace(2, -3, self._dist_margd_loglikelihood_array.shape[1] / 2),
-                          np.logspace(-3, 4, self._dist_margd_loglikelihood_array.shape[1] / 2)))
+            return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[1])
+        else:
+            return np.hstack((-np.logspace(3, -3, self._dist_margd_loglikelihood_array.shape[1] / 2),
+                              np.logspace(-3, 10, self._dist_margd_loglikelihood_array.shape[1] / 2)))
 
     def _setup_distance_marginalization(self):
         if 'luminosity_distance' not in self.prior.keys():
@@ -275,6 +274,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self._bessel_function_interped = interp1d(
             np.logspace(-5, 10, int(1e6)), np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))])
             + np.logspace(-5, 10, int(1e6)), bounds_error=False, fill_value=(0, np.nan))
+
+    def _setup_time_marginalization(self):
+        delta_tc = 2 / self.waveform_generator.sampling_frequency
+        self.tc_log_norm = np.log(delta_tc / self.waveform_generator.duration)
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
