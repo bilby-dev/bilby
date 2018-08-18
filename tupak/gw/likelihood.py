@@ -64,11 +64,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.prior = prior
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
-        if self.distance_marginalization:
+        if self.time_marginalization:
             self._check_prior_is_set()
-            self._distance_array = np.array([])
-            self._setup_distance_marginalization()
-            prior['luminosity_distance'] = self._ref_dist
+            prior['geocent_time'] = self.interferometers.start_time
 
         if self.phase_marginalization:
             self._check_prior_is_set()
@@ -76,9 +74,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._setup_phase_marginalization()
             prior['phase'] = 0
 
-        if self.time_marginalization:
+        if self.distance_marginalization:
             self._check_prior_is_set()
-            prior['geocent_time'] = self.interferometers.start_time
+            self._distance_array = np.array([])
+            self._setup_distance_marginalization()
+            prior['luminosity_distance'] = self._ref_dist
 
     def _check_set_duration_and_sampling_frequency_of_waveform_generator(self):
         """ Check the waveform_generator has the same duration and
