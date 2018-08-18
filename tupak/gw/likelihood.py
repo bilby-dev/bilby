@@ -278,10 +278,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
             logger.info('No prior provided for phase at coalescence, using default prior.')
             self.prior['phase'] = tupak.core.prior.create_default_prior('phase')
-        self._bessel_function_interped = interp1d(np.linspace(0, 1e6, int(1e5)),
-                                                  np.log([i0e(snr) for snr in np.linspace(0, 1e6, int(1e5))])
-                                                  + np.linspace(0, 1e6, int(1e5)),
-                                                  bounds_error=False, fill_value=-np.inf)
+        self._bessel_function_interped = interp1d(
+            np.logspace(-5, 10, int(1e6)), np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))])
+            + np.logspace(-5, 10, int(1e6)), bounds_error=False, fill_value=(0, np.nan))
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
