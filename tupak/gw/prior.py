@@ -40,8 +40,9 @@ class BBHPriorSet(PriorSet):
         if dictionary is None and filename is None:
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_black_holes.prior')
             logger.info('No prior given, using default BBH priors in {}.'.format(filename))
-        elif not os.path.isfile(filename):
-            filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
+        elif filename is not None:
+            if not os.path.isfile(filename):
+                filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
         PriorSet.__init__(self, dictionary=dictionary, filename=filename)
 
     def test_redundancy(self, key):
