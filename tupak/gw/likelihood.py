@@ -2,7 +2,8 @@ from __future__ import division
 import numpy as np
 from scipy.interpolate import interp2d, interp1d
 
-import tupak.gw.prior
+from tupak.gw.prior import BBHPriorSet
+from tupak.prior import Uniform
 
 try:
     from scipy.special import logsumexp
@@ -109,11 +110,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             logger.warning(
                 'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
-                self.prior[key] = tupak.prior.Uniform(
+                self.prior[key] = Uniform(
                         self.interferometerfos.start_time,
                         self.interferometers.start_time + self.interferometers.duration)
             else:
-                self.prior[key] = tupak.gw.prior.BBHPriorSet()[key]
+                self.prior[key] = BBHPriorSet()[key]
 
     @property
     def prior(self):
