@@ -36,18 +36,22 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.WaveformGenerator(duration=duration,
-                                             sampling_frequency=sampling_frequency,
-                                             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-                                             parameters=injection_parameters,
-                                             waveform_arguments=waveform_arguments)
+waveform_generator = tupak.gw.WaveformGenerator(
+    duration=duration, sampling_frequency=sampling_frequency,
+    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    parameters=injection_parameters, waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain()
 
-# Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
-# and Virgo (V1)).  These default to their design sensitivity
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1']]
+# Set up interferometers.  In this case we'll use two interferometers
+# (LIGO-Hanford (H1), LIGO-Livingston (L1). These default to their design
+# sensitivity
+IFOs = []
+for name in ["H1", "L1"]:
+    IFOs.append(
+        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+            name, injection_polarizations=hf_signal,
+            injection_parameters=injection_parameters, duration=duration,
+            sampling_frequency=sampling_frequency, outdir=outdir))
 
 # Set up prior, which is a dictionary
 # By default we will sample all terms in the signal models.  However, this will take a long time for the calculation,
@@ -64,7 +68,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra', '
     priors[key] = injection_parameters[key]
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,
+likelihood = tupak.gw.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator,
                                               time_marginalization=False, phase_marginalization=False,
                                               distance_marginalization=False, prior=priors)
 

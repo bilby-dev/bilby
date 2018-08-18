@@ -7,11 +7,13 @@ from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import scipy.stats
 import os
+from collections import OrderedDict
 
 from tupak.core.utils import logger
+from tupak.core import utils
 
 
-class PriorSet(dict):
+class PriorSet(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -22,11 +24,17 @@ class PriorSet(dict):
         filename: str, None
             If given, a file containing the prior to generate the prior set.
         """
-        dict.__init__(self)
-        if type(dictionary) is dict:
+        OrderedDict.__init__(self)
+        if type(dictionary) in [dict, OrderedDict]:
             self.update(dictionary)
-        elif filename:
+        elif type(dictionary) is str:
+            logger.debug('Argument "dictionary" is a string.'
+                         + ' Assuming it is intended as a file name.')
+            self.read_in_file(dictionary)
+        elif type(filename) is str:
             self.read_in_file(filename)
+        elif dictionary is not None:
+            raise ValueError("PriorSet input dictionay not understood")
 
     def write_to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -39,7 +47,8 @@ class PriorSet(dict):
             Output file naming scheme
         """
 
-        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():
@@ -143,14 +152,9 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the samples
         """
-        self.convert_floats_to_delta_functions()
-        samples = dict()
-        for key in self:
-            if isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
-        return samples
+        return self.sample_subset(keys=self.keys(), size=size)
 
-    def sample_subset(self, keys=list(), size=None):
+    def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -164,6 +168,7 @@ class PriorSet(dict):
         -------
         dict: Dictionary of the drawn samples
         """
+        self.convert_floats_to_delta_functions()
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
@@ -219,7 +224,7 @@ class PriorSet(dict):
         return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
 
     def test_redundancy(self, key):
-        """Empty redundancy test, should be overwritten"""
+        """Empty redundancy test, should be overwritten in subclasses"""
         return False
 
 
@@ -257,6 +262,8 @@ def create_default_prior(name, default_priors_file=None):
 
 
 class Prior(object):
+
+    _default_latex_labels = dict()
 
     def __init__(self, name=None, latex_label=None, minimum=-np.inf, maximum=np.inf):
         """ Implements a Prior object
@@ -377,7 +384,7 @@ class Prior(object):
         """
         return self._subclass_repr_helper()
 
-    def _subclass_repr_helper(self, subclass_args=list()):
+    def _subclass_repr_helper(self, subclass_args=iter([])):
         """Helps out subclass _repr__ methods by creating a common template
 
         Parameters
@@ -459,8 +466,6 @@ class Prior(object):
         else:
             label = self.name
         return label
-
-    _default_latex_labels = dict()
 
 
 class DeltaFunction(Prior):
@@ -578,7 +583,7 @@ class PowerLaw(Prior):
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         """Return the logarithmic prior probability of val
 
         Parameters
@@ -591,9 +596,15 @@ class PowerLaw(Prior):
 
         """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
-        normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                          - self.minimum ** (1 + self.alpha))
-        return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
+        if self.alpha == -1:
+            normalising = 1. / np.log(self.maximum / self.minimum)
+        else:
+            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                              - self.minimum ** (
+                                                          1 + self.alpha))
+
+        return (self.alpha * np.log(val) + np.log(normalising)) * in_prior
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -805,7 +816,7 @@ class Gaussian(Prior):
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):

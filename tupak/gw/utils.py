@@ -2,9 +2,9 @@ from __future__ import division
 import os
 
 import numpy as np
-from scipy import signal
 
-from tupak.core.utils import gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, nfft, logger
+from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
+                          nfft, logger)
 
 try:
     from gwpy.signal import filter_design
@@ -183,10 +183,10 @@ def inner_product(aa, bb, frequency, PSD):
     The matched filter inner product for aa and bb
 
     """
-    PSD_interp = PSD.power_spectral_density_interpolated(frequency)
+    psd_interp = PSD.power_spectral_density_interpolated(frequency)
 
     # calculate the inner product
-    integrand = np.conj(aa) * bb / PSD_interp
+    integrand = np.conj(aa) * bb / psd_interp
 
     df = frequency[1] - frequency[0]
     integral = np.sum(integrand) * df
