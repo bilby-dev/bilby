@@ -76,7 +76,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         if self.distance_marginalization:
             self._check_prior_is_set()
-            self._distance_array = np.array([])
+            self._distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
+                                               self.prior['luminosity_distance'].maximum, int(1e4))
             self._setup_distance_marginalization()
             prior['luminosity_distance'] = self._ref_dist
 
@@ -199,7 +200,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             else:
                 rho_mf_ref = rho_mf_ref.real
 
-            log_l = self.interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
+            log_l = self._interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
         elif self.phase_marginalization:
             matched_filter_snr_squared = self._bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
@@ -225,8 +226,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     @property
     def _ref_dist(self):
-        """ 1000 Mpc """
-        return 1000
+        """ Smallest distance contained in prior """
+        return self._distance_array[0]
 
     @property
     def _rho_opt_ref_array(self):
@@ -243,8 +244,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         if 'luminosity_distance' not in self.prior.keys():
             logger.info('No prior provided for distance, using default prior.')
             self.prior['luminosity_distance'] = tupak.core.prior.create_default_prior('luminosity_distance')
-        self._distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
-                                           self.prior['luminosity_distance'].maximum, int(1e4))
         self._create_lookup_table()
         self._interp_dist_margd_loglikelihood = interp2d(self._rho_mf_ref_array, self._rho_opt_ref_array,
                                                          self._dist_margd_loglikelihood_array)
@@ -269,10 +268,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         log_norm = logsumexp(0. / self._distance_array - 0. / self._distance_array ** 2.,
                              b=self.distance_prior_array * self._delta_distance)
         self._dist_margd_loglikelihood_array -= log_norm
-
-        self.interp_dist_margd_loglikelihood = interp2d(
-            self._rho_mf_ref_array, self._rho_opt_ref_array,
-            self._dist_margd_loglikelihood_array)
 
     def _setup_phase_marginalization(self):
         if 'phase' not in self.prior.keys() or not isinstance(self.prior['phase'], tupak.core.prior.Prior):
