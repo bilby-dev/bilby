@@ -65,18 +65,18 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
         if self.time_marginalization:
-            self._check_prior_is_set()
+            self._check_prior_is_set(key='geocent_time')
             self._setup_time_marginalization()
             prior['geocent_time'] = self.interferometers.start_time
 
         if self.phase_marginalization:
-            self._check_prior_is_set()
+            self._check_prior_is_set(key='phase')
             self._bessel_function_interped = None
             self._setup_phase_marginalization()
             prior['phase'] = 0
 
         if self.distance_marginalization:
-            self._check_prior_is_set()
+            self._check_prior_is_set(key='luminosity_distance')
             self._distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
                                                self.prior['luminosity_distance'].maximum, int(1e4))
             self._setup_distance_marginalization()
@@ -103,9 +103,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                     "waveform_generator.".format(attr))
             setattr(self.waveform_generator, attr, ifo_attr)
 
-    def _check_prior_is_set(self):
-        if self.prior is None:
-            raise ValueError("You can't use a marginalized likelihood without specifying a prior")
+    def _check_prior_is_set(self, key):
+        if key not in self.prior or not isinstance(
+                self.prior[key], tupak.core.prior.Prior):
+            raise ValueError("You can't use a {key} marginalized likelihood\
+                    without specifying a prior for {key}".format(key=key))
 
     @property
     def prior(self):
@@ -114,9 +116,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     @prior.setter
     def prior(self, prior):
         if prior is not None:
-            self.__prior = prior
+            self.__prior = prior.copy()
+        elif any([self.time_marginalization, self.phase_marginalization,
+                  self.distance_marginalization]):
+            raise ValueError("You can't use a marginalized likelihood without specifying a prior")
         else:
-            self.__prior = dict()
+            self.__prior = None
 
     @property
     def non_standard_sampling_parameter_keys(self):
