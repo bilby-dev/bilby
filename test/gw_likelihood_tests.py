@@ -90,11 +90,11 @@ class TestGWTransient(unittest.TestCase):
             phase_marginalization=True, prior=self.prior.copy()
         )
 
-        # self.time = tupak.gw.likelihood.GravitationalWaveTransient(
-        #     interferometers=self.interferometers,
-        #     waveform_generator=self.waveform_generator,
-        #     time_marginalization=True, prior=self.prior.copy()
-        # )
+        self.time = tupak.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+            time_marginalization=True, prior=self.prior.copy()
+        )
         # self.distance = tupak.gw.likelihood.GravitationalWaveTransient(
         #     interferometers=self.interferometers,
         #     waveform_generator=self.waveform_generator,
@@ -120,7 +120,7 @@ class TestGWTransient(unittest.TestCase):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4051.754299050376, 3)
+                               -4051.754299050375, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -142,20 +142,20 @@ class TestGWTransient(unittest.TestCase):
         self.assertAlmostEqual(marg_like, self.phase.log_likelihood_ratio(),
                                delta=0.5)
 
-    # def test_time_marginalisation(self):
-    #     """Test time marginalised likelihood matches brute force version"""
-    #     like = []
-    #     times = np.linspace(self.prior['geocent_time'].minimum,
-    #                         self.prior['geocent_time'].maximum, 4000)
-    #     for time in times:
-    #         self.waveform_generator.parameters['geocent_time'] = time
-    #         like.append(np.exp(self.likelihood.log_likelihood_ratio()))
+    def test_time_marginalisation(self):
+        """Test time marginalised likelihood matches brute force version"""
+        like = []
+        times = np.linspace(self.prior['geocent_time'].minimum,
+                            self.prior['geocent_time'].maximum, 4097)[:-1]
+        for time in times:
+            self.waveform_generator.parameters['geocent_time'] = time
+            like.append(np.exp(self.likelihood.log_likelihood_ratio()))
 
-    #     marg_like = np.log(np.trapz(like, times)
-    #                        / self.waveform_generator.duration)
-    #     self.waveform_generator.parameters = self.parameters.copy()
-    #     self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
-    #                            delta=0.5)
+        marg_like = np.log(np.trapz(like, times)
+                           / self.waveform_generator.duration)
+        self.waveform_generator.parameters = self.parameters.copy()
+        self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
+                               delta=0.5)
 
 
 if __name__ == '__main__':
