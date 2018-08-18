@@ -177,13 +177,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 rho_mf_ref_tc_array, rho_opt_ref = self._setup_rho(matched_filter_snr_squared_tc_array,
                                                                    optimal_snr_squared)
                 if self.phase_marginalization:
-                    phase_marged_rho_mf_tc_array = self._bessel_function_interped(abs(rho_mf_ref_tc_array))
-                    dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(phase_marged_rho_mf_tc_array,
-                                                                                       rho_opt_ref)
+                    dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
+                            abs(rho_mf_ref_tc_array), rho_opt_ref)
                     log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc) - tc_log_norm
                 else:
-                    dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(rho_mf_ref_tc_array.real,
-                                                                                       rho_opt_ref)
+                    dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
+                            rho_mf_ref_tc_array.real, rho_opt_ref)
                     log_l = logsumexp(dist_marged_log_l_tc_array, axis=0, b=delta_tc)
             elif self.phase_marginalization:
                 log_l = logsumexp(
@@ -195,12 +194,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         elif self.distance_marginalization:
             rho_mf_ref, rho_opt_ref = self._setup_rho(matched_filter_snr_squared, optimal_snr_squared)
             if self.phase_marginalization:
-                rho_mf_ref = self.bessel_function_interped(abs(rho_mf_ref))
-
-            else:
-                rho_mf_ref = rho_mf_ref.real
-
-            log_l = self._interp_dist_margd_loglikelihood(rho_mf_ref, rho_opt_ref)[0]
+                rho_mf_ref = abs(rho_mf_ref)
+            log_l = self._interp_dist_margd_loglikelihood(rho_mf_ref.real, rho_opt_ref)[0]
         elif self.phase_marginalization:
             matched_filter_snr_squared = self._bessel_function_interped(abs(matched_filter_snr_squared))
             log_l = matched_filter_snr_squared - optimal_snr_squared / 2
@@ -237,6 +232,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     @property
     def _rho_mf_ref_array(self):
         """ Matched filter snr at fiducial distance of ref_dist Mpc """
+        if self.phase_marginalization:
+            return np.logspace(-5, 4, self._dist_margd_loglikelihood_array.shape[1])
         return np.hstack((-np.logspace(2, -3, self._dist_margd_loglikelihood_array.shape[1] / 2),
                           np.logspace(-3, 4, self._dist_margd_loglikelihood_array.shape[1] / 2)))
 
