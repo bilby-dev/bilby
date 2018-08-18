@@ -1,6 +1,5 @@
 from __future__ import division
 
-import tupak
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
@@ -11,6 +10,7 @@ from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core import utils
+import tupak
 
 
 class PriorSet(OrderedDict):
@@ -25,7 +25,7 @@ class PriorSet(OrderedDict):
             If given, a file containing the prior to generate the prior set.
         """
         OrderedDict.__init__(self)
-        if type(dictionary) in [dict, OrderedDict]:
+        if isinstance(dictionary, dict):
             self.update(dictionary)
         elif type(dictionary) is str:
             logger.debug('Argument "dictionary" is a string.'
