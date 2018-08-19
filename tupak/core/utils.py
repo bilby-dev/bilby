@@ -455,6 +455,7 @@ else:
                    matplotlib.pyplot with non-interactive "Agg" backend.')
     import matplotlib
     import matplotlib.pyplot as plt
+
     non_gui_backends = matplotlib.rcsetup.non_interactive_bk
     for backend in non_gui_backends:
         try:
