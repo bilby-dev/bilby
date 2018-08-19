@@ -231,6 +231,9 @@ the following common likelihood functions:
 .. autoclass:: tupak.core.likelihood.StudentTLikelihood
    :members:
 
+.. autoclass:: tupak.core.likelihood.ExponentialLikelihood
+   :members:
+
 Likelihood for transient gravitational waves
 --------------------------------------------
 
