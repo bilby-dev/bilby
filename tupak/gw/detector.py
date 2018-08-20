@@ -393,6 +393,8 @@ class InterferometerStrainData(object):
         elif self._time_domain_strain is not None:
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
+            logger.info("Applying a tukey window with alpha={}, roll off={}".format(
+                self.alpha, self.roll_off))
             # self.low_pass_filter()
             window = self.time_domain_window()
             frequency_domain_strain, self.frequency_array = utils.nfft(
@@ -458,6 +460,8 @@ class InterferometerStrainData(object):
         """
         strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
         psd_alpha = 2 * self.roll_off / fft_length
+        logger.info("Creating PSD with non-overlapping tukey window, alpha={}, roll off={}".format(
+            psd_alpha, self.roll_off))
         psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', psd_alpha))
 
         if outdir:
