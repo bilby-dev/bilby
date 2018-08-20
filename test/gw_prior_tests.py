@@ -40,13 +40,35 @@ class TestBBHPriorSet(unittest.TestCase):
         tupak.gw.prior.BBHPriorSet(filename=self.filename)
 
     def test_key_in_prior_not_redundant(self):
-        self.assertFalse(self.default_prior.test_redundancy('mass_1'))
+        test = self.default_prior.test_redundancy('mass_1')
+        self.assertFalse(test)
 
     def test_chirp_mass_redundant(self):
-        self.assertTrue(self.default_prior.test_redundancy('chirp_mass'))
+        test = self.default_prior.test_redundancy('chirp_mass')
+        self.assertTrue(test)
 
     def test_comoving_distance_redundant(self):
-        self.assertTrue(self.default_prior.test_redundancy('comoving_distance'))
+        test = self.default_prior.test_redundancy('comoving_distance')
+        self.assertTrue(test)
+
+
+class TestCalibrationPrior(unittest.TestCase):
+
+    def setUp(self):
+        self.minimum_frequency = 20
+        self.maximum_frequency = 1024
+
+    def test_create_constant_uncertainty_spline_prior(self):
+        "Test that generated spline prior has the correct number of elements."
+        amplitude_sigma = 0.1
+        phase_sigma = 0.1
+        n_nodes = 9
+        label = 'test'
+        test = tupak.gw.prior.CalibrationPriorSet.constant_uncertainty_spline(
+            amplitude_sigma, phase_sigma, self.minimum_frequency,
+            self.maximum_frequency, n_nodes, label)
+
+        self.assertEqual(len(test), n_nodes * 3)
 
 
 if __name__ == '__main__':
