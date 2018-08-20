@@ -95,6 +95,14 @@ class TestGWTransient(unittest.TestCase):
             waveform_generator=self.waveform_generator,
             time_marginalization=True, prior=self.prior.copy()
         )
+
+        self.time_phase = tupak.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+            time_marginalization=True, phase_marginalization=True,
+            prior=self.prior.copy()
+        )
+
         # self.distance = tupak.gw.likelihood.GravitationalWaveTransient(
         #     interferometers=self.interferometers,
         #     waveform_generator=self.waveform_generator,
@@ -108,6 +116,8 @@ class TestGWTransient(unittest.TestCase):
         del self.prior
         del self.likelihood
         del self.phase
+        del self.time
+        del self.time_phase
         # del self.distance
 
     def test_noise_log_likelihood(self):
@@ -155,6 +165,34 @@ class TestGWTransient(unittest.TestCase):
                            / self.waveform_generator.duration)
         self.waveform_generator.parameters = self.parameters.copy()
         self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
+                               delta=0.5)
+
+    def test_time_phase_marginalisation(self):
+        """Test time marginalised likelihood matches brute force version"""
+        like = []
+        times = np.linspace(self.prior['geocent_time'].minimum,
+                            self.prior['geocent_time'].maximum, 4097)[:-1]
+        for time in times:
+            self.waveform_generator.parameters['geocent_time'] = time
+            like.append(np.exp(self.phase.log_likelihood_ratio()))
+
+        marg_like = np.log(np.trapz(like, times)
+                           / self.waveform_generator.duration)
+        self.waveform_generator.parameters = self.parameters.copy()
+        self.assertAlmostEqual(marg_like,
+                               self.time_phase.log_likelihood_ratio(),
+                               delta=0.5)
+
+        like = []
+        phases = np.linspace(0, 2 * np.pi, 1000)
+        for phase in phases:
+            self.waveform_generator.parameters['phase'] = phase
+            like.append(np.exp(self.time.log_likelihood_ratio()))
+
+        marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
+        self.waveform_generator.parameters = self.parameters.copy()
+        self.assertAlmostEqual(marg_like,
+                               self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
 
 
