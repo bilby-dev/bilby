@@ -226,6 +226,13 @@ As well as the Gaussian likelihood defined above, tupak provides
 the following common likelihood functions:
 
 .. autoclass:: tupak.core.likelihood.PoissonLikelihood
+   :members:
+
+.. autoclass:: tupak.core.likelihood.StudentTLikelihood
+   :members:
+
+.. autoclass:: tupak.core.likelihood.ExponentialLikelihood
+   :members:
 
 Likelihood for transient gravitational waves
 --------------------------------------------
