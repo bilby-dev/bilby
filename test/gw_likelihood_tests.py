@@ -211,6 +211,14 @@ class TestGWTransient(unittest.TestCase):
                 waveform_generator=self.waveform_generator,
                 phase_marginalization=True))
 
+    def test_likelihood_zero_when_waveform_is_none(self):
+        """Test log likelihood returns np.nan_to_num(-np.inf) when the
+        waveform is None"""
+        self.likelihood.waveform_generator.parameters['mass_2'] = 32
+        self.assertEqual(self.likelihood.log_likelihood_ratio(),
+                         np.nan_to_num(-np.inf))
+        self.likelihood.waveform_generator.parameters['mass_2'] = 29
+
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):
 
