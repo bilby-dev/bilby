@@ -39,6 +39,15 @@ class TestBBHPriorSet(unittest.TestCase):
     def test_create_from_filename(self):
         tupak.gw.prior.BBHPriorSet(filename=self.filename)
 
+    def test_key_in_prior_not_redundant(self):
+        self.assertFalse(self.default_prior.test_redundancy('mass_1'))
+
+    def test_chirp_mass_redundant(self):
+        self.assertTrue(self.default_prior.test_redundancy('chirp_mass'))
+
+    def test_comoving_distance_redundant(self):
+        self.assertTrue(self.default_prior.test_redundancy('comoving_distance'))
+
 
 if __name__ == '__main__':
     unittest.main()
