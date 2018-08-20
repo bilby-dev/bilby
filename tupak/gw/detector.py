@@ -1598,7 +1598,7 @@ class PowerSpectralDensity(object):
 
         """
 
-        strain = tupak.gw.detector.InterferometerStrainData(roll_off=roll_off)
+        strain = InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
