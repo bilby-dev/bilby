@@ -53,6 +53,14 @@ class TestBasicGWTransient(unittest.TestCase):
             - self.likelihood.noise_log_likelihood(),
             self.likelihood.log_likelihood_ratio(), 3)
 
+    def test_likelihood_zero_when_waveform_is_none(self):
+        """Test log likelihood returns np.nan_to_num(-np.inf) when the
+        waveform is None"""
+        self.likelihood.waveform_generator.parameters['mass_2'] = 32
+        self.assertEqual(self.likelihood.log_likelihood_ratio(),
+                         np.nan_to_num(-np.inf))
+        self.likelihood.waveform_generator.parameters['mass_2'] = 29
+
 
 class TestGWTransient(unittest.TestCase):
 
@@ -194,6 +202,20 @@ class TestGWTransient(unittest.TestCase):
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
+
+
+class TestBBHLikelihoodSetUp(unittest.TestCase):
+
+    def setUp(self):
+        self.ifos = tupak.gw.detector.InterferometerList(['H1'])
+
+    def tearDown(self):
+        del self.ifos
+        del self.like
+
+    def test_instantiation(self):
+        self.like = tupak.gw.likelihood.get_binary_black_hole_likelihood(
+            self.ifos)
 
 
 if __name__ == '__main__':
