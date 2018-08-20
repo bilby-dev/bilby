@@ -1432,10 +1432,52 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get rate function
-                rate = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
-                pymc3.Poisson('likelihood', mu=rate, observed=self.likelihood.y)
+                pymc3.Poisson('likelihood', mu=model, observed=self.likelihood.y)
+            elif self.likelihood.__class__.__name__ == 'ExponentialLikelihood':
+                # check required attributes exist
+                if (not hasattr(self.likelihood, 'x') or
+                    not hasattr(self.likelihood, 'y') or
+                    not hasattr(self.likelihood, 'function') or
+                    not hasattr(self.likelihood, 'function_keys')):
+                    raise ValueError("Exponential Likelihood does not have all the correct attributes!")
+
+                for key in self.pymc3_priors:
+                    if key not in self.likelihood.function_keys:
+                        raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+                # get mean function
+                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+
+                # set the distribution
+                pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
+            elif self.likelihood.__class__.__name__ == 'StudentTLikelihood':
+                # check required attributes exist
+                if (not hasattr(self.likelihood, 'x') or
+                    not hasattr(self.likelihood, 'y') or
+                    not hasattr(self.likelihood, 'nu') or
+                    not hasattr(self.likelihood, 'sigma') or
+                    not hasattr(self.likelihood, 'function') or
+                    not hasattr(self.likelihood, 'function_keys')):
+                    raise ValueError("StudentT Likelihood does not have all the correct attributes!")
+
+                if 'nu' in self.pymc3_priors:
+                    # if nu is suppled use that value
+                    if self.likelihood.nu is None:
+                        self.likelihood.nu = self.pymc3_priors.pop('nu')
+                    else:
+                        del self.pymc3_priors['nu']
+
+                for key in self.pymc3_priors:
+                    if key not in self.likelihood.function_keys:
+                        raise ValueError("Prior key '{}' is not a function key!".format(key))
+
+                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+
+                # set the distribution
+                pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
             else:
                 raise ValueError("Unknown likelihood has been provided")
 
