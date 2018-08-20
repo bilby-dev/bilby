@@ -91,7 +91,9 @@ class InterferometerList(list):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note: if your signal takes a substantial amount of time to generate, or
+        Note
+        ----------
+        if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
@@ -228,9 +230,7 @@ class InterferometerStrainData(object):
         self.roll_off = roll_off
         self.window_factor = 1
 
-        self.sampling_frequency = None
-        self.duration = None
-        self.start_time = None
+        self._set_time_and_frequency_array_parameters(None, None, None)
 
         self._frequency_domain_strain = None
         self._frequency_array = None
@@ -393,6 +393,8 @@ class InterferometerStrainData(object):
         elif self._time_domain_strain is not None:
             logger.info("Generating frequency domain strain from given time "
                         "domain strain.")
+            logger.info("Applying a tukey window with alpha={}, roll off={}".format(
+                self.alpha, self.roll_off))
             # self.low_pass_filter()
             window = self.time_domain_window()
             frequency_domain_strain, self.frequency_array = utils.nfft(
@@ -458,6 +460,8 @@ class InterferometerStrainData(object):
         """
         strain = gwpy.timeseries.TimeSeries(self.time_domain_strain, sample_rate=self.sampling_frequency)
         psd_alpha = 2 * self.roll_off / fft_length
+        logger.info("Creating PSD with non-overlapping tukey window, alpha={}, roll off={}".format(
+            psd_alpha, self.roll_off))
         psd = strain.psd(fftlength=fft_length, overlap=0, window=('tukey', psd_alpha))
 
         if outdir:
@@ -469,30 +473,45 @@ class InterferometerStrainData(object):
         return psd.frequencies.value, psd.value
 
     def _infer_time_domain_dependence(
-            self, sampling_frequency, duration, time_array):
+            self, start_time, sampling_frequency, duration, time_array):
         """ Helper function to figure out if the time_array, or
             sampling_frequency and duration where given
         """
+        self._infer_dependence(domain='time', array=time_array, duration=duration,
+                               sampling_frequency=sampling_frequency, start_time=start_time)
+
+    def _infer_frequency_domain_dependence(
+            self, start_time, sampling_frequency, duration, frequency_array):
+        """ Helper function to figure out if the frequency_array, or
+            sampling_frequency and duration where given
+        """
+
+        self._infer_dependence(domain='frequency', array=frequency_array,
+                               duration=duration, sampling_frequency=sampling_frequency, start_time=start_time)
+
+    def _infer_dependence(self, domain, array, duration, sampling_frequency, start_time):
         if (sampling_frequency is not None) and (duration is not None):
-            if time_array is not None:
+            if array is not None:
                 raise ValueError(
                     "You have given the sampling_frequency, duration, and "
-                    "time_array")
-            self.sampling_frequency = sampling_frequency
-            self.duration = duration
-            self.time_array = utils.create_time_series(sampling_frequency=sampling_frequency,
-                                                       duration=duration)
-        elif time_array is not None:
-            self.sampling_frequency, self.duration = (
-                utils.get_sampling_frequency_and_duration_from_time_array(
-                    time_array))
-            self.time_array = np.array(time_array)
+                    "an array")
+            pass
+        elif array is not None:
+            if domain == 'time':
+                self.time_array = array
+                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_time_array(array)
+            elif domain == 'frequency':
+                self.frequency_array = array
+                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_frequency_array(array)
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
         else:
             raise ValueError(
-                "Insufficient information given to set time_array")
+                "Insufficient information given to set arrays")
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -518,10 +537,10 @@ class InterferometerStrainData(object):
             given.
 
         """
-        self.start_time = start_time
-        self._infer_time_domain_dependence(
-            sampling_frequency=sampling_frequency, duration=duration,
-            time_array=time_array)
+        self._infer_time_domain_dependence(start_time=start_time,
+                                           sampling_frequency=sampling_frequency,
+                                           duration=duration,
+                                           time_array=time_array)
 
         logger.debug('Setting data using provided time_domain_strain')
         if np.shape(time_domain_strain) == np.shape(self.time_array):
@@ -545,9 +564,9 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided gwpy TimeSeries object')
         if type(time_series) != gwpy.timeseries.TimeSeries:
             raise ValueError("Input time_series is not a gwpy TimeSeries")
-        self.start_time = time_series.epoch.value
-        self.sampling_frequency = time_series.sample_rate.value
-        self.duration = time_series.duration.value
+        self._set_time_and_frequency_array_parameters(duration=time_series.duration.value,
+                                                      sampling_frequency=time_series.sample_rate.value,
+                                                      start_time=time_series.epoch.value)
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
 
@@ -596,33 +615,6 @@ class InterferometerStrainData(object):
         timeseries = gwpy.timeseries.TimeSeries.read(filename, format='csv')
         self.set_from_gwpy_timeseries(timeseries)
 
-    def _infer_frequency_domain_dependence(
-            self, sampling_frequency, duration, frequency_array):
-        """ Helper function to figure out if the frequency_array, or
-            sampling_frequency and duration where given
-        """
-
-        if (sampling_frequency is not None) and (duration is not None):
-            if frequency_array is not None:
-                raise ValueError(
-                    "You have given the sampling_frequency, duration, and "
-                    "frequency_array")
-            self.sampling_frequency = sampling_frequency
-            self.duration = duration
-            self.frequency_array = utils.create_frequency_series(sampling_frequency=sampling_frequency,
-                                                                 duration=duration)
-        elif frequency_array is not None:
-            self.sampling_frequency, self.duration = (
-                utils.get_sampling_frequency_and_duration_from_frequency_array(
-                    frequency_array))
-            self.frequency_array = np.array(frequency_array)
-        elif sampling_frequency is None or duration is None:
-            raise ValueError(
-                "You must provide both sampling_frequency and duration")
-        else:
-            raise ValueError(
-                "Insufficient information given to set frequency_array")
-
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
             duration=None, start_time=0, frequency_array=None):
@@ -644,10 +636,10 @@ class InterferometerStrainData(object):
 
         """
 
-        self.start_time = start_time
-        self._infer_frequency_domain_dependence(
-            sampling_frequency=sampling_frequency, duration=duration,
-            frequency_array=frequency_array)
+        self._infer_frequency_domain_dependence(start_time=start_time,
+                                                sampling_frequency=sampling_frequency,
+                                                duration=duration,
+                                                frequency_array=frequency_array)
 
         logger.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
@@ -674,9 +666,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
-        self.start_time = start_time
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.debug(
             'Setting data using noise realization from provided'
@@ -704,9 +696,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
-        self.start_time = start_time
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
@@ -735,9 +727,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
-        self.start_time = start_time
+        self._set_time_and_frequency_array_parameters(duration=duration,
+                                                      sampling_frequency=sampling_frequency,
+                                                      start_time=start_time)
 
         logger.info('Reading data from frame')
         strain = gwutils.read_frame_file(
@@ -746,6 +738,11 @@ class InterferometerStrainData(object):
             resample=sampling_frequency)
 
         self.set_from_gwpy_timeseries(strain)
+
+    def _set_time_and_frequency_array_parameters(self, duration, sampling_frequency, start_time):
+        self.sampling_frequency = sampling_frequency
+        self.duration = duration
+        self.start_time = start_time
 
 
 class Interferometer(object):
@@ -803,7 +800,6 @@ class Interferometer(object):
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
-        self.time_marginalization = False
         self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
@@ -1191,12 +1187,7 @@ class Interferometer(object):
             parameters['ra'],
             parameters['dec'],
             self.strain_data.start_time)
-        if self.time_marginalization:
-            dt = time_shift
-            # when marginalizing over time we only care about relative time shifts
-            # between detectors and marginalized over all candidate coalescence times
-        else:
-            dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
+        dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
@@ -1600,8 +1591,6 @@ class PowerSpectralDensity(object):
         sampling_frequency: float, optional
             Sampling frequency for time series.
             This is twice the maximum frequency.
-        filter_freq: float
-            Low pass filter frequency
         roll_off: float, optional
             Rise time in seconds of tukey window.
         channel: str, optional
