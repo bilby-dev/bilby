@@ -800,7 +800,6 @@ class Interferometer(object):
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
-        self.time_marginalization = False
         self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
@@ -1188,12 +1187,7 @@ class Interferometer(object):
             parameters['ra'],
             parameters['dec'],
             self.strain_data.start_time)
-        if self.time_marginalization:
-            dt = time_shift
-            # when marginalizing over time we only care about relative time shifts
-            # between detectors and marginalized over all candidate coalescence times
-        else:
-            dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
+        dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
