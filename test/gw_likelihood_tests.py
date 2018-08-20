@@ -168,7 +168,7 @@ class TestGWTransient(unittest.TestCase):
                                delta=0.5)
 
     def test_time_phase_marginalisation(self):
-        """Test time marginalised likelihood matches brute force version"""
+        """Test time and marginalised likelihood matches brute force version"""
         like = []
         times = np.linspace(self.prior['geocent_time'].minimum,
                             self.prior['geocent_time'].maximum, 4097)[:-1]
