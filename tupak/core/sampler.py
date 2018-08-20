@@ -1045,9 +1045,50 @@ class Pymc3(Sampler):
                                                'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
         self.prior_map['TruncatedNormal'] = self.prior_map['TruncatedGaussian']
 
+        # Half-Gaussian
+        self.prior_map['HalfGaussian'] = {'pymc3': 'HalfNormal',
+                                          'argmap': {'sigma': 'sd'}}
+        self.prior_map['HalfNormal'] = self.prior_map['HalfGaussian']
+
         # Uniform
         self.prior_map['Uniform'] = {'pymc3': 'Uniform',
                                      'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
+
+        # LogNormal
+        self.prior_map['LogNormal'] = {'pymc3': 'Lognormal',
+                                       'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        self.prior_map['LogGaussian'] = self.prior_map['LogNormal']
+
+        # Exponential
+        self.prior_map['Exponential'] = {'pymc3': 'Exponential',
+                                         'argmap': {'mu': 'lam'},
+                                         'argtransform': {'mu': lambda mu: 1./mu}}
+
+        # Student's t
+        self.prior_map['StudentT'] = {'pymc3': 'StudentT',
+                                      'argmap': {'df': 'nu', 'mu': 'mu', 'scale': 'sd'}}
+
+        # Beta
+        self.prior_map['Beta'] = {'pymc3': 'Beta',
+                                  'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
+
+        # Logistic
+        self.prior_map['Logistic'] = {'pymc3': 'Logistic',
+                                      'argmap': {'mu': 'mu', 'scale': 's'}}
+
+        # Cauchy
+        self.prior_map['Cauchy'] = {'pymc3': 'Cauchy',
+                                    'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
+        self.prior_map['Lorentzian'] = self.prior_map['Cauchy']
+
+        # Gamma
+        self.prior_map['Gamma'] = {'pymc3': 'Gamma',
+                                   'argmap': {'k': 'alpha', 'theta': 'beta'},
+                                   'argtransform': {'theta': lambda theta: 1./theta}}
+
+        # ChiSquared
+        self.prior_map['ChiSquared'] = {'pymc3': 'ChiSquared',
+                                        'argmap': {'nu': 'nu'}}
 
         # Interpolated
         self.prior_map['Interped'] = {'pymc3': 'Interpolated',
@@ -1322,7 +1363,15 @@ class Pymc3(Sampler):
                             for (targ, parg) in self.prior_map[distname]['argmap'].items():
                                 if hasattr(self.priors[key], targ):
                                     if parg in reqargs:
-                                        priorkwargs[parg] = getattr(self.priors[key], targ)
+                                        if 'argtransform' in self.prior_map[distname]:
+                                            if targ in self.prior_map[distname]['argtransform']:
+                                                tfunc = self.prior_map[distname]['argtransform'][targ]
+                                            else:
+                                                tfunc = lambda x: x
+                                        else:
+                                            tfunc = lambda x: x
+
+                                        priorkwargs[parg] = tfunc(getattr(self.priors[key], targ))
                                     else:
                                         raise ValueError("Unknown argument {}".format(parg))
                                 else:

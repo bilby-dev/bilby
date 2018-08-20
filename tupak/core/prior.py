@@ -1056,7 +1056,6 @@ class Exponential(Prior):
         """
         Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
         self.mu = mu
-        self.logmu = np.log(mu)
 
     def rescale(self, val):
         """
