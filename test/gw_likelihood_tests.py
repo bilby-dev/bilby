@@ -203,6 +203,14 @@ class TestGWTransient(unittest.TestCase):
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
 
+    def test_cannot_instantiate_marginalised_likelihood_without_prior(self):
+        self.assertRaises(
+            ValueError,
+            lambda: tupak.gw.likelihood.GravitationalWaveTransient(
+                interferometers=self.interferometers,
+                waveform_generator=self.waveform_generator,
+                phase_marginalization=True))
+
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):
 
