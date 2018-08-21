@@ -236,7 +236,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         return -np.sum(np.log(mu) + (self.y/mu))
 
 
-class StudentTLikelihood(Likelihood):
+class StudentTLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, func, nu=None, sigma=1.):
         """
         A general Student's t-likelihood for known or unknown number of degrees
@@ -266,34 +266,15 @@ class StudentTLikelihood(Likelihood):
             Set the scale of the distribution. If not given then this defaults
             to 1, which specifies a standard (central) Student's t-distribution
         """
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
-        parameters = self._infer_parameters_from_function(func)
-        Likelihood.__init__(self, dict.fromkeys(parameters))
-
-        self.x = x
-        self.y = y
         self.nu = nu
         self.sigma = sigma
-        self.function = func
 
         # Check if nu was provided, if not it is a parameter
         self.function_keys = list(self.parameters.keys())
         if self.nu is None:
             self.parameters['nu'] = None
-
-    @staticmethod
-    def _infer_parameters_from_function(func):
-        """ Infers the arguments of function (except the first arg which is
-            assumed to be the dep. variable)
-        """
-        parameters = inspect.getargspec(func).args
-        parameters.pop(0)
-        return parameters
-
-    @property
-    def N(self):
-        """ The number of data points """
-        return len(self.x)
 
     def log_likelihood(self):
         # This checks if nu or sigma have been set in parameters. If so, those
