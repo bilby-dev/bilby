@@ -29,14 +29,18 @@ waveform_generator = tupak.gw.WaveformGenerator(
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+IFOs = []
+for name in ["H1", "L1", "V1"]:
+    IFOs.append(
+        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+            name, injection_polarizations=hf_signal,
+            injection_parameters=injection_parameters, duration=duration,
+            sampling_frequency=sampling_frequency, outdir=outdir))
 
 # Set up prior
 priors = tupak.gw.prior.BBHPriorSet()
 # These parameters will not be sampled
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time']:
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
 
 # Initialise GravitationalWaveTransient

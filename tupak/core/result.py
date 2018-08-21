@@ -107,7 +107,7 @@ class Result(dict):
 
     def __repr__(self):
         """Print a summary """
-        if hasattr(self, 'samples'):
+        if hasattr(self, 'posterior'):
             if hasattr(self, 'log_noise_evidence'):
                 return ("nsamples: {:d}\n"
                         "log_noise_evidence: {:6.3f}\n"

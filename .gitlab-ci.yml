@@ -20,6 +20,7 @@ python-2:
   before_script:
     - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
+    - pip install -r optional_requirements.txt
     - pip install lalsuite enum gwpy
   script:
     - python setup.py install
@@ -34,6 +35,7 @@ python-3:
     - sed -i '/lalsuite/d' requirements.txt
     - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
+    - pip install -r optional_requirements.txt
     - pip install 'coverage>=4.5'
     - pip install coverage-badge
   script:
@@ -42,6 +44,7 @@ python-3:
     - coverage --version
     - coverage erase
     - coverage run --debug=trace --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/conversion_tests.py
+    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/calibration_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/detector_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/utils_tests.py
     - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/prior_tests.py
@@ -52,6 +55,7 @@ python-3:
     - coverage-badge -o coverage_badge.svg -f
     # Run all other tests (no coverage data collected)
     - python test/example_tests.py
+    - python test/gw_example_tests.py
     - python test/noise_realisation_tests.py
 
     # Make the documentation

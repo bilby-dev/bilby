@@ -7,7 +7,7 @@ import numpy as np
 import datetime
 import deepdish
 import pandas as pd
-from future.utils import iteritems
+from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core.result import Result, read_in_result
@@ -987,6 +987,7 @@ class Ptemcee(Emcee):
                 total=self.nsteps):
             pass
 
+        self.result.nburn = self.nburn
         self.result.sampler_output = np.nan
         self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
@@ -1062,12 +1063,12 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if priors is None:
         priors = dict()
 
-    if type(priors) == dict:
+    if type(priors) in [dict, OrderedDict]:
         priors = tupak.core.prior.PriorSet(priors)
     elif isinstance(priors, tupak.core.prior.PriorSet):
         pass
     else:
-        raise ValueError
+        raise ValueError("Input priors not understood")
 
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
 

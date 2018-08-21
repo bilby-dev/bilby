@@ -1,18 +1,19 @@
 from __future__ import division
 
-import tupak
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from scipy.special import erf, erfinv
 import scipy.stats
 import os
+from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core import utils
+import tupak
 
 
-class PriorSet(dict):
+class PriorSet(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -23,11 +24,17 @@ class PriorSet(dict):
         filename: str, None
             If given, a file containing the prior to generate the prior set.
         """
-        dict.__init__(self)
-        if type(dictionary) is dict:
+        OrderedDict.__init__(self)
+        if isinstance(dictionary, dict):
             self.update(dictionary)
-        elif filename:
+        elif type(dictionary) is str:
+            logger.debug('Argument "dictionary" is a string.'
+                         + ' Assuming it is intended as a file name.')
+            self.read_in_file(dictionary)
+        elif type(filename) is str:
             self.read_in_file(filename)
+        elif dictionary is not None:
+            raise ValueError("PriorSet input dictionay not understood")
 
     def write_to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -41,7 +48,7 @@ class PriorSet(dict):
         """
 
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        prior_file = os.path.join(outdir, "{}_prior.txt".format(label))
+        prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
             for key in self.keys():
@@ -147,7 +154,7 @@ class PriorSet(dict):
         """
         return self.sample_subset(keys=self.keys(), size=size)
 
-    def sample_subset(self, keys=list(), size=None):
+    def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -377,7 +384,7 @@ class Prior(object):
         """
         return self._subclass_repr_helper()
 
-    def _subclass_repr_helper(self, subclass_args=list()):
+    def _subclass_repr_helper(self, subclass_args=iter([])):
         """Helps out subclass _repr__ methods by creating a common template
 
         Parameters
@@ -576,7 +583,7 @@ class PowerLaw(Prior):
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
                                                                          - self.minimum ** (1 + self.alpha))) * in_prior
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         """Return the logarithmic prior probability of val
 
         Parameters
@@ -589,9 +596,15 @@ class PowerLaw(Prior):
 
         """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
-        normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                          - self.minimum ** (1 + self.alpha))
-        return self.alpha * np.log(val) * np.log(normalising) * in_prior
+
+        if self.alpha == -1:
+            normalising = 1. / np.log(self.maximum / self.minimum)
+        else:
+            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
+                                              - self.minimum ** (
+                                                          1 + self.alpha))
+
+        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1.*in_prior)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -768,10 +781,6 @@ class Gaussian(Prior):
             Mean of the Gaussian prior
         sigma:
             Width/Standard deviation of the Gaussian prior
-        minimum: float
-            See superclass
-        maximum: float
-            See superclass
         name: str
             See superclass
         latex_label: str
@@ -803,12 +812,31 @@ class Gaussian(Prior):
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
-    def lnprob(self, val):
+    def ln_prob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class Normal(Gaussian):
+    
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """A synonym for the Gaussian distribution.
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma: float
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Gaussian.__init__(self, mu, sigma, name=name, latex_label=latex_label)
 
 
 class TruncatedGaussian(Prior):
@@ -876,6 +904,541 @@ class TruncatedGaussian(Prior):
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class TruncatedNormal(TruncatedGaussian):
+    
+    def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
+        """A synonym for the TruncatedGaussian distribution.
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        TruncatedGaussian.__init__(self, mu, sigma, minimum, maximum, name=name, latex_label=latex_label)
+
+
+class HalfGaussian(TruncatedGaussian):
+    def __init__(self, sigma, name=None, latex_label=None):
+        """A Gaussian with its mode at zero, and truncated to only be positive.
+
+        Parameters
+        ----------
+        sigma: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        TruncatedGaussian.__init__(self, 0., sigma, minimum=0., maximum=np.inf, name=name, latex_label=latex_label)
+ 
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['sigma'])
+
+
+class HalfNormal(HalfGaussian):
+    def __init__(self, sigma, name=None, latex_label=None):
+        """A synonym for the HalfGaussian distribution.
+
+        Parameters
+        ----------
+        sigma: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        HalfGaussian.__init__(self, sigma, name=name, latex_label=latex_label)
+
+
+class LogNormal(Prior):
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """Log-normal prior with mean mu and width sigma
+
+        https://en.wikipedia.org/wiki/Log-normal_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+
+        if sigma <= 0.:
+            raise ValueError("For the LogGaussian prior the standard deviation must be positive")
+
+        self.mu = mu
+        self.sigma = sigma
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate LogNormal prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+        return scipy.stats.lognorm.ppf(val, self.sigma, scale=np.exp(self.mu))
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+
+        return scipy.stats.lognorm.pdf(val, self.sigma, scale=np.exp(self.mu))
+
+    def ln_prob(self, val):
+        return scipy.stats.lognorm.logpdf(val, self.sigma, scale=np.exp(self.mu))
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+
+
+class LogGaussian(LogNormal):
+    def __init__(self, mu, sigma, name=None, latex_label=None):
+        """Synonym of LogNormal prior
+
+        https://en.wikipedia.org/wiki/Log-normal_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        LogNormal.__init__(self, mu, sigma, name, latex_label)
+
+
+class Exponential(Prior):
+    def __init__(self, mu, name=None, latex_label=None):
+        """Exponential prior with mean mu
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Exponential prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+        self.mu = mu
+        self.logmu = np.log(mu)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Exponential prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+        return scipy.stats.expon.ppf(val, scale=self.mu)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+
+        return scipy.stats.expon.pdf(val, scale=self.mu)
+
+    def ln_prob(self, val):
+        return scipy.stats.expon.logpdf(val, scale=self.mu)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu'])
+
+
+class StudentT(Prior):
+    def __init__(self, df, mu=0., scale=1., name=None, latex_label=None):
+        """Student's t-distribution prior with number of degrees of freedom df,
+        mean mu and scale
+
+        https://en.wikipedia.org/wiki/Student%27s_t-distribution#Generalized_Student's_t-distribution
+
+        Parameters
+        ----------
+        df: float
+            Number of degrees of freedom for distribution
+        mu: float
+            Mean of the Student's t-prior
+        scale:
+            Width of the Student's t-prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name, latex_label)
+        
+        if df <= 0. or scale <= 0.:
+            raise ValueError("For the StudentT prior the number of degrees of freedom and scale must be positive")
+
+        self.df = df
+        self.mu = mu
+        self.scale = scale
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Student's t-prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.t.ppf(val, self.df, loc=self.mu, scale=self.scale)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return scipy.stats.t.pdf(val, self.df, loc=self.mu, scale=self.scale)
+
+    def ln_prob(self, val):
+        return scipy.stats.t.logpdf(val, self.df, loc=self.mu, scale=self.scale)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['df', 'mu', 'scale'])
+
+
+class Beta(Prior):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Beta distribution
+
+        https://en.wikipedia.org/wiki/Beta_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            first shape parameter
+        beta: float
+            second shape parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, minimum=0., maximum=1., name=name, latex_label=latex_label)
+
+        if alpha <= 0. or beta <= 0.:
+            raise ValueError("alpha and beta must both be positive values")
+
+        self.alpha = alpha
+        self.beta = beta
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Beta prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.beta.ppf(val, self.alpha, self.beta)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+
+        spdf = scipy.stats.beta.pdf(val, self.alpha, self.beta)
+        if np.all(np.isfinite(spdf)):
+            return spdf
+
+        # deal with the fact that if alpha or beta are < 1 you get infinities at 0 and 1
+        if isinstance(val, np.ndarray):
+            pdf = np.zeros(len(val))
+            pdf[np.isfinite(spdf)] = spdf[np.isfinite]
+            return spdf
+        else:
+            return 0.
+
+    def ln_prob(self, val):
+        spdf = scipy.stats.beta.logpdf(val, self.alpha, self.beta)
+        if np.all(np.isfinite(spdf)):
+            return spdf
+
+        if isinstance(val, np.ndarray):
+            pdf = -np.inf*np.ones(len(val))
+            pdf[np.isfinite(spdf)] = spdf[np.isfinite]
+            return spdf
+        else:
+            return -np.inf
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
+
+
+class Logistic(Prior):
+    def __init__(self, mu, scale, name=None, latex_label=None):
+        """Logistic distribution
+
+        https://en.wikipedia.org/wiki/Logistic_distribution
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the distribution
+        scale: float
+            Width of the distribution
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label)
+
+        if scale <= 0.:
+            raise ValueError("For the Logistic prior the scale must be positive")
+
+        self.mu = mu
+        self.scale = scale
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Logistic prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.logistic.ppf(val, loc=self.mu, scale=self.scale)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return scipy.stats.logistic.pdf(val, loc=self.mu, scale=self.scale)
+
+    def ln_prob(self, val):
+        return scipy.stats.logistic.logpdf(val, loc=self.mu, scale=self.scale)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'scale'])
+
+
+class Cauchy(Prior):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Cauchy distribution
+
+        https://en.wikipedia.org/wiki/Cauchy_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            Location parameter
+        beta: float
+            Scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label)
+
+        if beta <= 0.:
+            raise ValueError("For the Cauchy prior the scale must be positive")
+
+        self.alpha = alpha
+        self.beta = beta
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Cauchy prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.cauchy.ppf(val, loc=self.alpha, scale=self.beta)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return scipy.stats.cauchy.pdf(val, loc=self.alpha, scale=self.beta)
+
+    def ln_prob(self, val):
+        return scipy.stats.cauchy.logpdf(val, loc=self.alpha, scale=self.beta)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
+
+
+class Lorentzian(Cauchy):
+    def __init__(self, alpha, beta, name=None, latex_label=None):
+        """Synonym for the Cauchy distribution
+
+        https://en.wikipedia.org/wiki/Cauchy_distribution
+
+        Parameters
+        ----------
+        alpha: float
+            Location parameter
+        beta: float
+            Scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Cauchy.__init__(self, alpha, beta, name=name, latex_label=latex_label)
+
+
+class Gamma(Prior):
+    def __init__(self, k, theta=1., name=None, latex_label=None):
+        """Gamma distribution
+
+        https://en.wikipedia.org/wiki/Gamma_distribution
+
+        Parameters
+        ----------
+        k: float
+            The shape parameter
+        theta: float
+            The scale parameter
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, minimum=0., latex_label=latex_label)
+
+        if k <= 0 or theta <= 0:
+            raise ValueError("For the Gamma prior the shape and scale must be positive")
+
+        self.k = k
+        self.theta = theta
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gamma prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        # use scipy distribution percentage point function (ppf)
+        return scipy.stats.gamma.ppf(val, self.k, loc=0., scale=self.theta)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+
+        return scipy.stats.gamma.pdf(val, self.k, loc=0., scale=self.theta)
+
+    def ln_prob(self, val):
+        return scipy.stats.gamma.logpdf(val, self.k, loc=0., scale=self.theta)
+
+    def __repr__(self):
+        """Call to helper method in the super class."""
+        return Prior._subclass_repr_helper(self, subclass_args=['k', 'theta'])
+
+
+class ChiSquared(Gamma):
+    def __init__(self, nu, name=None, latex_label=None):
+        """Chi-squared distribution
+
+        https://en.wikipedia.org/wiki/Chi-squared_distribution
+
+        Parameters
+        ----------
+        nu: int
+            Number of degrees of freedom
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        """
+
+        if nu <= 0 or not isinstance(nu, int):
+            raise ValueError("For the ChiSquared prior the number of degrees of freedom must be a positive integer")
+
+        Gamma.__init__(self, name=name, k=nu/2., theta=2., latex_label=latex_label)
 
 
 class Interped(Prior):
