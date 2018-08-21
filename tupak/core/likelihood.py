@@ -42,6 +42,29 @@ class Likelihood(object):
         """
         return self.log_likelihood() - self.noise_log_likelihood()
 
+class Analytical1DLikelihood(Likelihood):
+
+    def __init__(self, x, y, func):
+        parameters = self._infer_parameters_from_function(func)
+        Likelihood.__init__(self, dict.fromkeys(parameters))
+        self.x = x
+        self.y = y
+        self.func = func
+
+    @staticmethod
+    def _infer_parameters_from_function(func):
+        """ Infers the arguments of function (except the first arg which is
+            assumed to be the dep. variable)
+        """
+        parameters = inspect.getargspec(func).args
+        parameters.pop(0)
+        return parameters
+
+    @property
+    def N(self):
+        """ The number of data points """
+        return len(self.x)
+
 
 class GaussianLikelihood(Likelihood):
     def __init__(self, x, y, function, sigma=None):
@@ -71,8 +94,8 @@ class GaussianLikelihood(Likelihood):
 
         self.x = x
         self.y = y
-        self.sigma = sigma
         self.function = function
+        self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
         self.function_keys = list(self.parameters.keys())
