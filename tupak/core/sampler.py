@@ -1404,7 +1404,9 @@ class Pymc3(Sampler):
         def like_(values):
             for i, key in enumerate(pymc3_parameters):
                 pymc3_log_like.parameters[key] = values[i]
-            return pymc3_log_like.loglikelihood()
+            return pymc3_log_like.log_likelihood()
+
+        pymc3 = self.external_sampler
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function
@@ -1497,16 +1499,14 @@ class Pymc3(Sampler):
                 parameters = OrderedDict()
                 for key in self.pymc3_priors:
                     try:
-                        #self.likelihood.parameters[key] = tt.cast(self.pymc3_priors[key], 'float64')
-                        #self.likelihood.parameters[key] = self.pymc3_priors[key]
                         parameters[key] = self.pymc3_priors[key]
                     except KeyError:
                         raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
 
-                values = tt.as_tensor_variable(parameters.values())
+                values = tt.as_tensor_variable(list(parameters.values()))
                 pymc3_log_like = self.likelihood
                 pymc3_parameters = parameters.keys()
-                pymc3.DensityDist('likelihood', _like, observed={'values': values})
+                pymc3.DensityDist('likelihood', lambda v: like_(v), observed={'values': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
 

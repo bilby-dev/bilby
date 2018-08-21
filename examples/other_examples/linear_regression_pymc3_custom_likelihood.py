@@ -89,15 +89,12 @@ class GaussianLikelihoodPyMC3(tupak.Likelihood):
         """
 
         from tupak.core.sampler import Pymc3
-        import theano.tensor as tt
 
         if not isinstance(sampler, Pymc3):
             raise ValueError("Sampler is not a tupak Pymc3 sampler object")
 
         if not hasattr(sampler, 'pymc3_model'):
             raise AttributeError("Sampler has not PyMC3 model attribute")
-
-        pymc3 = sampler.external_sampler
 
         with sampler.pymc3_model:
             mdist = sampler.pymc3_priors['m']
