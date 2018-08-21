@@ -294,8 +294,8 @@ class TestDetector(unittest.TestCase):
             signal = 1
             duration = 2
             self.assertListEqual(
-                [signal, signal, self.ifo.power_spectral_density, duration],
-                self.ifo.test_optimal_snr_squared(signal=signal, duration=duration))
+                [signal, signal, self.ifo.power_spectral_density_array, duration],
+                self.ifo.optimal_snr_squared(signal=signal, duration=duration))
 
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
@@ -304,7 +304,7 @@ class TestDetector(unittest.TestCase):
             signal = 1
             duration = 2
             self.assertListEqual(
-                [signal, self.ifo.frequency_domain_strain, self.ifo.power_spectral_density, duration],
+                [signal, self.ifo.frequency_domain_strain, self.ifo.power_spectral_density_array, duration],
                 self.ifo.matched_filter_snr_squared(signal=signal, duration=duration))
 
 
