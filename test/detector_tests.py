@@ -300,15 +300,13 @@ class TestDetector(unittest.TestCase):
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
         with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
-            m.side_effect = lambda a, b, c, d: [a, b, c, d]
+            m.side_effect = lambda a, b, c, d: [b, [a, c, d]]
             signal = 1
             duration = 2
-            expected = [signal, self.ifo.frequency_domain_strain, self.ifo.power_spectral_density_array, duration]
+            expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array, duration]]
             actual = self.ifo.matched_filter_snr_squared(signal=signal, duration=duration)
-            self.assertTrue(np.array_equal(expected[1], actual[1]))  # array-like element has to be evaluated separately
-            del actual[1]
-            del expected[1]
-            self.assertListEqual(expected, actual)
+            self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
+            self.assertListEqual(expected[1], actual[1])
 
 
 class TestInterferometerStrainData(unittest.TestCase):
