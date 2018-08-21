@@ -122,7 +122,7 @@ class GaussianLikelihood(_Analytical1DLikelihood):
         sigma = self.parameters.get('sigma', self.sigma)
 
         # Calculate the residual
-        res = self.y - self.function(self.x, **self.model_parameters)
+        res = self.y - self.func(self.x, **self.model_parameters)
 
         # Return the summed log likelihood
         return -0.5 * (np.sum((res / sigma) ** 2)
@@ -169,7 +169,7 @@ class PoissonLikelihood(_Analytical1DLikelihood):
 
     def log_likelihood(self):
         # Calculate the rate
-        rate = self.function(self.x, **self.model_parameters)
+        rate = self.func(self.x, **self.model_parameters)
 
         # sum of log factorial of counts
         sumlogfactorial = np.sum(gammaln(self.y + 1))
@@ -227,7 +227,7 @@ class ExponentialLikelihood(_Analytical1DLikelihood):
 
     def log_likelihood(self):
         # Calculate the mean of the distribution
-        mu = self.function(self.x, **self.model_parameters)
+        mu = self.func(self.x, **self.model_parameters)
 
         # return -inf if any mean values are negative
         if np.any(mu < 0.):
@@ -287,7 +287,7 @@ class StudentTLikelihood(_Analytical1DLikelihood):
             raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
         # Calculate the residual
-        res = self.y - self.function(self.x, **self.model_parameters)
+        res = self.y - self.func(self.x, **self.model_parameters)
 
         # convert "scale" to "precision"
         lam = 1. / self.sigma ** 2
