@@ -54,9 +54,6 @@ class _Analytical1DLikelihood(Likelihood):
         self.__func = func
         self.__function_keys = list(self.parameters.keys())
 
-        # This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)
-        self.__model_parameters = {k: self.parameters[k] for k in self.function_keys}
-
     @property
     def func(self):
         return self.__func
@@ -68,7 +65,8 @@ class _Analytical1DLikelihood(Likelihood):
 
     @property
     def model_parameters(self):
-        return self.__model_parameters
+        # This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)
+        return {k: self.parameters[k] for k in self.function_keys}
 
     @property
     def function_keys(self):
