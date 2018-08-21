@@ -171,8 +171,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                     signal_ifo, interferometer,
                     self.waveform_generator.duration)
 
-            optimal_snr_squared += tupak.gw.utils.optimal_snr_squared(
-                signal_ifo, interferometer, self.waveform_generator.duration)
+            optimal_snr_squared += interferometer.optimal_snr_squared(
+                signal=signal_ifo, duration=self.waveform_generator.duration)
             if self.time_marginalization:
                 matched_filter_snr_squared_tc_array +=\
                     4 / self.waveform_generator.duration * np.fft.fft(

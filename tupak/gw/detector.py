@@ -1257,9 +1257,8 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(gwutils.optimal_snr_squared(
-            signal=signal_ifo, interferometer=self,
-            duration=self.strain_data.duration).real)
+        opt_snr = np.sqrt(self.optimal_snr_squared(
+            signal=signal_ifo, duration=self.strain_data.duration).real)
         mf_snr = np.sqrt(gwutils.matched_filter_snr_squared(
             signal=signal_ifo, interferometer=self,
             duration=self.strain_data.duration).real)
