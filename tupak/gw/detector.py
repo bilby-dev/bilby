@@ -1259,8 +1259,8 @@ class Interferometer(object):
                 start_time=self.strain_data.start_time)
         opt_snr = np.sqrt(self.optimal_snr_squared(
             signal=signal_ifo, duration=self.strain_data.duration).real)
-        mf_snr = np.sqrt(gwutils.matched_filter_snr_squared(
-            signal=signal_ifo, interferometer=self,
+        mf_snr = np.sqrt(self.matched_filter_snr_squared(
+            signal=signal_ifo,
             duration=self.strain_data.duration).real)
 
         logger.info("Injected signal in {}:".format(self.name))

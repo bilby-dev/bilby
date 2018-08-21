@@ -522,8 +522,8 @@ def compute_snrs(sample, likelihood):
                 signal = interferometer.get_detector_response(signal_polarizations,
                                                               likelihood.waveform_generator.parameters)
                 sample['{}_matched_filter_snr'.format(interferometer.name)] = \
-                    tupak.gw.utils.matched_filter_snr_squared(signal, interferometer,
-                                                              likelihood.waveform_generator.duration) ** 0.5
+                    interferometer.matched_filter_snr_squared(signal=signal,
+                                                              duration=likelihood.waveform_generator.duration) ** 0.5
                 sample['{}_optimal_snr'.format(interferometer.name)] = interferometer.optimal_snr_squared(
                     signal=signal, duration=likelihood.waveform_generator.duration) ** 0.5
         else:
@@ -541,8 +541,8 @@ def compute_snrs(sample, likelihood):
                 for interferometer in all_interferometers:
                     signal = interferometer.get_detector_response(signal_polarizations,
                                                                   likelihood.waveform_generator.parameters)
-                    matched_filter_snrs[interferometer.name].append(tupak.gw.utils.matched_filter_snr_squared(
-                        signal, interferometer, likelihood.waveform_generator.duration) ** 0.5)
+                    matched_filter_snrs[interferometer.name].append(interferometer.matched_filter_snr_squared(
+                        signal=signal, duration=likelihood.waveform_generator.duration) ** 0.5)
                     optimal_snrs[interferometer.name].append(interferometer.optimal_snr_squared(
                         signal=signal, duration=likelihood.waveform_generator.duration) ** 0.5)
 
