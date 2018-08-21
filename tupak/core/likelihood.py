@@ -4,6 +4,7 @@ import inspect
 import numpy as np
 from scipy.special import gammaln
 
+
 class Likelihood(object):
 
     def __init__(self, parameters=None):
@@ -51,6 +52,11 @@ class Analytical1DLikelihood(Likelihood):
         self.x = x
         self.y = y
         self.func = func
+        self.__function_keys = list(self.parameters.keys())
+
+    @property
+    def function_keys(self):
+        return self.__function_keys
 
     @staticmethod
     def _infer_parameters_from_function(func):
@@ -94,7 +100,6 @@ class GaussianLikelihood(Analytical1DLikelihood):
         self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
-        self.function_keys = list(self.parameters.keys())
         if self.sigma is None:
             self.parameters['sigma'] = None
 
@@ -112,8 +117,8 @@ class GaussianLikelihood(Analytical1DLikelihood):
         res = self.y - self.function(self.x, **model_parameters)
 
         # Return the summed log likelihood
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N * np.log(2 * np.pi * sigma**2))
+        return -0.5 * (np.sum((res / sigma) ** 2)
+                       + self.N * np.log(2 * np.pi * sigma ** 2))
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
@@ -154,9 +159,6 @@ class PoissonLikelihood(Analytical1DLikelihood):
         if np.any(self.y < 0):
             raise ValueError("Data must be non-negative integers")
 
-        self.function_keys = list(self.parameters.keys())
-
-
     def log_likelihood(self):
         # This sets up the function only parameters (i.e. not sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
@@ -178,8 +180,8 @@ class PoissonLikelihood(Analytical1DLikelihood):
                 return -np.inf
             else:
                 # Return the summed log likelihood
-                return (-self.N*rate + np.sum(self.y*np.log(rate))
-                        -sumlogfactorial)
+                return (-self.N * rate + np.sum(self.y * np.log(rate))
+                        - sumlogfactorial)
         elif isinstance(rate, np.ndarray):
             # check rates are positive
             if np.any(rate < 0.):
@@ -189,8 +191,8 @@ class PoissonLikelihood(Analytical1DLikelihood):
             if np.any(rate == 0.):
                 return -np.inf
             else:
-                return (np.sum(-rate + self.counts*np.log(rate))
-                        -sumlogfactorial)
+                return (np.sum(-rate + self.counts * np.log(rate))
+                        - sumlogfactorial)
         else:
             raise ValueError("Poisson rate function returns wrong value type!")
 
@@ -218,9 +220,6 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         if np.any(self.y < 0):
             raise ValueError("Data must be non-negative")
 
-        # Check if sigma was provided, if not it is a parameter
-        self.function_keys = list(self.parameters.keys())
-
     def log_likelihood(self):
         # This sets up the function only parameters (i.e. not sigma)
         model_parameters = {k: self.parameters[k] for k in self.function_keys}
@@ -233,7 +232,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             return -np.inf
 
         # Return the summed log likelihood
-        return -np.sum(np.log(mu) + (self.y/mu))
+        return -np.sum(np.log(mu) + (self.y / mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
@@ -272,7 +271,6 @@ class StudentTLikelihood(Analytical1DLikelihood):
         self.sigma = sigma
 
         # Check if nu was provided, if not it is a parameter
-        self.function_keys = list(self.parameters.keys())
         if self.nu is None:
             self.parameters['nu'] = None
 
@@ -293,10 +291,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
         res = self.y - self.function(self.x, **model_parameters)
 
         # convert "scale" to "precision"
-        lam = 1./self.sigma**2
+        lam = 1. / self.sigma ** 2
 
         # Return the summed log likelihood
-        return (self.N*(gammaln((nu + 1.0) / 2.0)
-                     + .5 * np.log(lam / (nu * np.pi))
-                     - gammaln(nu / 2.0))
-                     - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res**2 / nu)))
+        return (self.N * (gammaln((nu + 1.0) / 2.0)
+                          + .5 * np.log(lam / (nu * np.pi))
+                          - gammaln(nu / 2.0))
+                - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res ** 2 / nu)))
