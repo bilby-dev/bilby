@@ -218,43 +218,18 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
 
 
 def matched_filter_snr_squared(signal, interferometer, duration):
-    """
-
-    Parameters
-    ----------
-    signal: array_like
-        Array containing the signal
-    interferometer: tupak.gw.detector.Interferometer
-        Interferometer which we want to have the data and noise from
-    duration: float
-        Time duration of the signal
-
-    Returns
-    -------
-    float: The matched filter signal to noise ratio squared
-
-    """
+    """ DEPRECATED: USE tupak.gw.detector.matched_filter_snr_squared """
+    logger.warning("tupak.gw.utils.matched_filter_snr_squared is DEPRECATED and will soon be removed, "
+                   "use tupak.gw.detector.matched_filter_snr_squared instead")
     return noise_weighted_inner_product(
         signal, interferometer.frequency_domain_strain,
         interferometer.power_spectral_density_array, duration)
 
 
 def optimal_snr_squared(signal, interferometer, duration):
-    """
-
-    Parameters
-    ----------
-    signal: array_like
-        Array containing the signal
-    interferometer: tupak.gw.detector.Interferometer
-        Interferometer which we want to have the data and noise from
-    duration: float
-        Time duration of the signal
-
-    Returns
-    -------
-    float: The optimal signal to noise ratio possible squared
-    """
+    """ DEPRECATED: USE tupak.gw.detector.optimal_snr_squared"""
+    logger.warning("tupak.gw.utils.optimal_snr_squared is DEPRECATED and will soon be removed, "
+                   "use tupak.gw.detector.optimal_snr_squared instead")
     return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, duration)
 
 
