@@ -555,6 +555,9 @@ class Dynesty(Sampler):
         self.result.log_likelihood_evaluations = out.logl
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
+        self.result.nested_samples = pd.DataFrame(
+            out.samples, columns=self.search_parameter_keys)
+        self.result.nested_samples['weights'] = weights
 
         if self.plot:
             self.generate_trace_plots(out)
