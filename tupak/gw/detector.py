@@ -1382,11 +1382,37 @@ class Interferometer(object):
         return gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
 
     def optimal_snr_squared(self, signal, duration):
-        # return gwutils.optimal_snr_squared(signal=signal, interferometer=self, duration=duration)
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+        duration: float
+            Time duration of the signal
+
+        Returns
+        -------
+        float: The optimal signal to noise ratio possible squared
+        """
+
         return noise_weighted_inner_product(signal, signal, self.power_spectral_density_array, duration)
 
     def matched_filter_snr_squared(self, signal, duration):
-        # return gwutils.matched_filter_snr_squared(signal=signal, interferometer=self, duration=duration)
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+        duration: float
+            Time duration of the signal
+
+        Returns
+        -------
+        float: The matched filter signal to noise ratio squared
+
+        """
         return noise_weighted_inner_product(signal, self.frequency_domain_strain, self.power_spectral_density_array,
                                             duration)
 
