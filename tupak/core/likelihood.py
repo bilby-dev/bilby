@@ -62,6 +62,11 @@ class _Analytical1DLikelihood(Likelihood):
         return self.__func
 
     @property
+    def function(self):
+        """Alias"""
+        return self.__func
+
+    @property
     def model_parameters(self):
         return self.__model_parameters
 
@@ -79,7 +84,7 @@ class _Analytical1DLikelihood(Likelihood):
         return parameters
 
     @property
-    def N(self):
+    def n(self):
         """ The number of data points """
         return len(self.x)
 
@@ -126,7 +131,7 @@ class GaussianLikelihood(_Analytical1DLikelihood):
 
         # Return the summed log likelihood
         return -0.5 * (np.sum((res / sigma) ** 2)
-                       + self.N * np.log(2 * np.pi * sigma ** 2))
+                       + self.n * np.log(2 * np.pi * sigma ** 2))
 
 
 class PoissonLikelihood(_Analytical1DLikelihood):
@@ -185,7 +190,7 @@ class PoissonLikelihood(_Analytical1DLikelihood):
                 return -np.inf
             else:
                 # Return the summed log likelihood
-                return (-self.N * rate + np.sum(self.y * np.log(rate))
+                return (-self.n * rate + np.sum(self.y * np.log(rate))
                         - sumlogfactorial)
         elif isinstance(rate, np.ndarray):
             # check rates are positive
@@ -293,7 +298,7 @@ class StudentTLikelihood(_Analytical1DLikelihood):
         lam = 1. / self.sigma ** 2
 
         # Return the summed log likelihood
-        return (self.N * (gammaln((nu + 1.0) / 2.0)
+        return (self.n * (gammaln((nu + 1.0) / 2.0)
                           + .5 * np.log(lam / (nu * np.pi))
                           - gammaln(nu / 2.0))
                 - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res ** 2 / nu)))

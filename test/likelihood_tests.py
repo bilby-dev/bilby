@@ -72,7 +72,7 @@ class TestGaussianLikelihood(unittest.TestCase):
     def test_N(self):
         likelihood = tupak.core.likelihood.GaussianLikelihood(
             self.x, self.y, self.function, self.sigma)
-        self.assertTrue(likelihood.N == len(self.x))
+        self.assertTrue(likelihood.n == len(self.x))
 
 
 class TestStudentTLikelihood(unittest.TestCase):
@@ -128,7 +128,7 @@ class TestStudentTLikelihood(unittest.TestCase):
     def test_N(self):
         likelihood = tupak.core.likelihood.StudentTLikelihood(
             self.x, self.y, self.function, self.nu, self.sigma)
-        self.assertTrue(likelihood.N == len(self.x))
+        self.assertTrue(likelihood.n == len(self.x))
 
 
 class TestPoissonLikelihood(unittest.TestCase):
@@ -198,7 +198,7 @@ class TestPoissonLikelihood(unittest.TestCase):
     def test_N(self):
         likelihood = tupak.core.likelihood.PoissonLikelihood(
             self.x, self.y, self.function)
-        self.assertTrue(likelihood.N == len(self.x))
+        self.assertTrue(likelihood.n == len(self.x))
 
 
 class TestExponentialLikelihood(unittest.TestCase):
@@ -258,7 +258,7 @@ class TestExponentialLikelihood(unittest.TestCase):
     def test_N(self):
         likelihood = tupak.core.likelihood.ExponentialLikelihood(
             self.x, self.y, self.function)
-        self.assertTrue(likelihood.N == len(self.x))
+        self.assertTrue(likelihood.n == len(self.x))
 
 
 if __name__ == '__main__':
