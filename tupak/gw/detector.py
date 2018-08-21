@@ -208,7 +208,7 @@ class InterferometerStrainData(object):
     """ Strain data for an interferometer """
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
-                 roll_off=0.4):
+                 roll_off=0.2):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -221,7 +221,7 @@ class InterferometerStrainData(object):
         maximum_frequency: float
             Maximum frequency to analyse for detector. Default is infinity.
         roll_off: float
-            The roll-off (in seconds) used in the Tukey window, default=0.4s.
+            The roll-off (in seconds) used in the Tukey window, default=0.2s.
             This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
@@ -1574,7 +1574,7 @@ class PowerSpectralDensity(object):
                 "You may have intended to provide this as an amplitude spectral density.")
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
-                            fft_length=4, sampling_frequency=4096, roll_off=0.1,
+                            fft_length=4, sampling_frequency=4096, roll_off=0.2,
                             channel=None):
         """ Generate power spectral density from a frame file
 
@@ -1598,7 +1598,7 @@ class PowerSpectralDensity(object):
 
         """
 
-        strain = tupak.gw.detector.InterferometerStrainData(roll_off=roll_off)
+        strain = InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
@@ -1784,7 +1784,7 @@ def load_interferometer(filename):
 
 
 def get_interferometer_with_open_data(
-        name, trigger_time, duration=4, start_time=None, roll_off=0.4,
+        name, trigger_time, duration=4, start_time=None, roll_off=0.2,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
         label=None, plot=True, filter_freq=None, **kwargs):
     """
@@ -1949,7 +1949,7 @@ def get_interferometer_with_fake_noise_and_injection(
 
 
 def get_event_data(
-        event, interferometer_names=None, duration=4, roll_off=0.4,
+        event, interferometer_names=None, duration=4, roll_off=0.2,
         psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
         label=None, plot=True, filter_freq=None, **kwargs):
     """
