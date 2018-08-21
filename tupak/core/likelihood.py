@@ -116,7 +116,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
                        + self.N * np.log(2 * np.pi * sigma**2))
 
 
-class PoissonLikelihood(Likelihood):
+class PoissonLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, func):
         """
         A general Poisson likelihood for a rate - the model parameters are
@@ -139,11 +139,7 @@ class PoissonLikelihood(Likelihood):
             fixed value is given).
         """
 
-        parameters = self._infer_parameters_from_function(func)
-        Likelihood.__init__(self, dict.fromkeys(parameters))
-
-        self.x = x           # the dependent variable
-        self.y = y           # the counts
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
         # check values are non-negative integers
         if isinstance(self.y, int):
@@ -158,23 +154,8 @@ class PoissonLikelihood(Likelihood):
         if np.any(self.y < 0):
             raise ValueError("Data must be non-negative integers")
 
-        self.function = func
-
         self.function_keys = list(self.parameters.keys())
 
-    @staticmethod
-    def _infer_parameters_from_function(func):
-        """ Infers the arguments of function (except the first arg which is
-            assumed to be the dep. variable)
-        """
-        parameters = inspect.getargspec(func).args
-        parameters.pop(0)
-        return parameters
-
-    @property
-    def N(self):
-        """ The number of data points """
-        return len(self.y)
 
     def log_likelihood(self):
         # This sets up the function only parameters (i.e. not sigma)
