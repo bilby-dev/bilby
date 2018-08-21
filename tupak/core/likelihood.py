@@ -54,6 +54,13 @@ class _Analytical1DLikelihood(Likelihood):
         self.func = func
         self.__function_keys = list(self.parameters.keys())
 
+        # This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)
+        self.__model_parameters = {k: self.parameters[k] for k in self.function_keys}
+
+    @property
+    def model_parameters(self):
+        return self.__model_parameters
+
     @property
     def function_keys(self):
         return self.__function_keys
@@ -110,11 +117,8 @@ class GaussianLikelihood(_Analytical1DLikelihood):
         # given at init (i.e. the known sigma as either a float or array).
         sigma = self.parameters.get('sigma', self.sigma)
 
-        # This sets up the function only parameters (i.e. not sigma)
-        model_parameters = {k: self.parameters[k] for k in self.function_keys}
-
         # Calculate the residual
-        res = self.y - self.function(self.x, **model_parameters)
+        res = self.y - self.function(self.x, **self.model_parameters)
 
         # Return the summed log likelihood
         return -0.5 * (np.sum((res / sigma) ** 2)
@@ -160,11 +164,8 @@ class PoissonLikelihood(_Analytical1DLikelihood):
             raise ValueError("Data must be non-negative integers")
 
     def log_likelihood(self):
-        # This sets up the function only parameters (i.e. not sigma)
-        model_parameters = {k: self.parameters[k] for k in self.function_keys}
-
         # Calculate the rate
-        rate = self.function(self.x, **model_parameters)
+        rate = self.function(self.x, **self.model_parameters)
 
         # sum of log factorial of counts
         sumlogfactorial = np.sum(gammaln(self.y + 1))
@@ -221,11 +222,8 @@ class ExponentialLikelihood(_Analytical1DLikelihood):
             raise ValueError("Data must be non-negative")
 
     def log_likelihood(self):
-        # This sets up the function only parameters (i.e. not sigma)
-        model_parameters = {k: self.parameters[k] for k in self.function_keys}
-
         # Calculate the mean of the distribution
-        mu = self.function(self.x, **model_parameters)
+        mu = self.function(self.x, **self.model_parameters)
 
         # return -inf if any mean values are negative
         if np.any(mu < 0.):
@@ -284,11 +282,8 @@ class StudentTLikelihood(_Analytical1DLikelihood):
         if nu <= 0.:
             raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
-        # This sets up the function only parameters (i.e. not sigma)
-        model_parameters = {k: self.parameters[k] for k in self.function_keys}
-
         # Calculate the residual
-        res = self.y - self.function(self.x, **model_parameters)
+        res = self.y - self.function(self.x, **self.model_parameters)
 
         # convert "scale" to "precision"
         lam = 1. / self.sigma ** 2
