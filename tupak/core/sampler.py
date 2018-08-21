@@ -1390,11 +1390,25 @@ class Pymc3(Sampler):
         Convert any tupak likelihoods to PyMC3 distributions.
         """
 
-        pymc3 = self.external_sampler
+        try:
+            import theano
+            import theano.tensor as tt
+            from theano.compile.ops import as_op
+        except ImportError:
+            raise ImportError("Could not import theano")
+
+        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, StudentTLikelihood
+        from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
+
+        @as_op(itypes=[tt.dvector], otypes=[tt.dscalar])
+        def like_(values):
+            for i, key in enumerate(pymc3_parameters):
+                pymc3_log_like.parameters[key] = values[i]
+            return pymc3_log_like.loglikelihood()
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function
-            if self.likelihood.__class__.__name__ == 'GaussianLikelihood':
+            if isinstance(self.likelihood, GaussianLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'sigma') or
                     not hasattr(self.likelihood, 'x') or
@@ -1419,7 +1433,7 @@ class Pymc3(Sampler):
                 # set the distribution
                 pymc3.Normal('likelihood', mu=model, sd=self.likelihood.sigma,
                              observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'PoissonLikelihood':
+            elif isinstance(self.likelihood, PoissonLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
@@ -1436,7 +1450,7 @@ class Pymc3(Sampler):
 
                 # set the distribution
                 pymc3.Poisson('likelihood', mu=model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'ExponentialLikelihood':
+            elif isinstance(self.likelihood, ExponentialLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
@@ -1453,7 +1467,7 @@ class Pymc3(Sampler):
 
                 # set the distribution
                 pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'StudentTLikelihood':
+            elif isinstance(self.likelihood, StudentTLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
@@ -1478,6 +1492,21 @@ class Pymc3(Sampler):
 
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
+            elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
+                # cast prior distributions into float64 values
+                parameters = OrderedDict()
+                for key in self.pymc3_priors:
+                    try:
+                        #self.likelihood.parameters[key] = tt.cast(self.pymc3_priors[key], 'float64')
+                        #self.likelihood.parameters[key] = self.pymc3_priors[key]
+                        parameters[key] = self.pymc3_priors[key]
+                    except KeyError:
+                        raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
+
+                values = tt.as_tensor_variable(parameters.values())
+                pymc3_log_like = self.likelihood
+                pymc3_parameters = parameters.keys()
+                pymc3.DensityDist('likelihood', _like, observed={'values': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
 
