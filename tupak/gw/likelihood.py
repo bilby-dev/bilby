@@ -26,7 +26,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     Parameters
     ----------
-    interferometers: list
+    interferometers: list, tupak.gw.detector.InterferometerList
         A list of `tupak.detector.Interferometer` instances - contains the
         detector data and power spectral densities
     waveform_generator: `tupak.waveform_generator.WaveformGenerator`
@@ -110,7 +110,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
                 self.prior[key] = Uniform(
-                        self.interferometerfos.start_time,
+                        self.interferometers.start_time,
                         self.interferometers.start_time + self.interferometers.duration)
             else:
                 self.prior[key] = BBHPriorSet()[key]
