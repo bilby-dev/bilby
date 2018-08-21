@@ -303,9 +303,12 @@ class TestDetector(unittest.TestCase):
             m.side_effect = lambda a, b, c, d: [a, b, c, d]
             signal = 1
             duration = 2
-            self.assertListEqual(
-                [signal, self.ifo.frequency_domain_strain, self.ifo.power_spectral_density_array, duration],
-                self.ifo.matched_filter_snr_squared(signal=signal, duration=duration))
+            expected = [signal, self.ifo.frequency_domain_strain, self.ifo.power_spectral_density_array, duration]
+            actual = self.ifo.matched_filter_snr_squared(signal=signal, duration=duration)
+            self.assertTrue(np.array_equal(expected[1], actual[1]))  # array-like element has to be evaluated separately
+            del actual[1]
+            del expected[1]
+            self.assertListEqual(expected, actual)
 
 
 class TestInterferometerStrainData(unittest.TestCase):
