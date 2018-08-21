@@ -167,9 +167,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             signal_ifo = interferometer.get_detector_response(
                 waveform_polarizations, self.waveform_generator.parameters)
             matched_filter_snr_squared +=\
-                tupak.gw.utils.matched_filter_snr_squared(
-                    signal_ifo, interferometer,
-                    self.waveform_generator.duration)
+                interferometer.matched_filter_snr_squared(
+                    signal=signal_ifo,
+                    duration=self.waveform_generator.duration)
 
             optimal_snr_squared += interferometer.optimal_snr_squared(
                 signal=signal_ifo, duration=self.waveform_generator.duration)
