@@ -1396,7 +1396,7 @@ class Interferometer(object):
         float: The optimal signal to noise ratio possible squared
         """
 
-        return noise_weighted_inner_product(signal, signal, self.power_spectral_density_array, duration)
+        return gwutils.noise_weighted_inner_product(signal, signal, self.power_spectral_density_array, duration)
 
     def matched_filter_snr_squared(self, signal, duration):
         """
@@ -1413,8 +1413,8 @@ class Interferometer(object):
         float: The matched filter signal to noise ratio squared
 
         """
-        return noise_weighted_inner_product(signal, self.frequency_domain_strain, self.power_spectral_density_array,
-                                            duration)
+        return gwutils.noise_weighted_inner_product(signal, self.frequency_domain_strain,
+                                                    self.power_spectral_density_array, duration)
 
     @property
     def whitened_frequency_domain_strain(self):
