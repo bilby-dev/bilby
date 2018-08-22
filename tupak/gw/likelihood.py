@@ -166,13 +166,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(
                 waveform_polarizations, self.waveform_generator.parameters)
-            matched_filter_snr_squared +=\
-                interferometer.matched_filter_snr_squared(
-                    signal=signal_ifo,
-                    duration=self.waveform_generator.duration)
 
-            optimal_snr_squared += interferometer.optimal_snr_squared(
-                signal=signal_ifo, duration=self.waveform_generator.duration)
+            matched_filter_snr_squared += interferometer.matched_filter_snr_squared(signal=signal_ifo)
+            optimal_snr_squared += interferometer.optimal_snr_squared(signal=signal_ifo)
             if self.time_marginalization:
                 matched_filter_snr_squared_tc_array +=\
                     4 / self.waveform_generator.duration * np.fft.fft(
