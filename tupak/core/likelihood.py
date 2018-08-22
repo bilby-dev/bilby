@@ -241,16 +241,15 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             raise ValueError("Data must be non-negative")
         self.__y = y
 
+    @property
+    def mu(self):
+        """ Returns the mean of the distribution """
+        return self.func(self.x, **self.model_parameters)
+
     def log_likelihood(self):
-        # Calculate the mean of the distribution
-        mu = self.func(self.x, **self.model_parameters)
-
-        # return -inf if any mean values are negative
-        if np.any(mu < 0.):
+        if np.any(self.mu < 0.):
             return -np.inf
-
-        # Return the summed log likelihood
-        return -np.sum(np.log(mu) + (self.y / mu))
+        return -np.sum(np.log(self.mu) + (self.y / self.mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
