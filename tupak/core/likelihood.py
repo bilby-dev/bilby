@@ -289,22 +289,22 @@ class StudentTLikelihood(Analytical1DLikelihood):
         if self.nu is None:
             self.parameters['nu'] = None
 
+    @property
+    def lam(self):
+        """ Converts 'scale' to 'precision' """
+        return 1. / self.sigma ** 2
+
     def log_likelihood(self):
         # This checks if nu or sigma have been set in parameters. If so, those
         # values will be used. Otherwise, the attribute sigma is used. The logic is
         # that if nu is not in parameters the attribute is used which was
         # given at init (i.e. the known nu as a float).
         nu = self.parameters.get('nu', self.nu)
-
         if nu <= 0.:
             raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
+        return self.__summed_log_likelihood(nu)
 
-        # convert "scale" to "precision"
-        lam = 1. / self.sigma ** 2
-
-        # Return the summed log likelihood
-        return (self.n * (gammaln((nu + 1.0) / 2.0)
-                          + .5 * np.log(lam / (nu * np.pi))
-                          - gammaln(nu / 2.0))
-                - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * self.residual ** 2 / nu)))
+    def __summed_log_likelihood(self, nu):
+        return self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) - gammaln(nu / 2.0)) \
+               - (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu))
