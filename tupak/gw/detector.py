@@ -1257,11 +1257,8 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(self.optimal_snr_squared(
-            signal=signal_ifo, duration=self.strain_data.duration).real)
-        mf_snr = np.sqrt(self.matched_filter_snr_squared(
-            signal=signal_ifo,
-            duration=self.strain_data.duration).real)
+        opt_snr = np.sqrt(self.optimal_snr_squared(signal=signal_ifo).real)
+        mf_snr = np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo).real)
 
         logger.info("Injected signal in {}:".format(self.name))
         logger.info("  optimal SNR = {:.2f}".format(opt_snr))
