@@ -199,6 +199,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
     @property
     def y(self):
+        """ Property assures that y-value is a positive integer. """
         return self.__y
 
     @y.setter
@@ -209,10 +210,6 @@ class PoissonLikelihood(Analytical1DLikelihood):
         if y.dtype.kind not in 'ui' or np.any(y < 0):
             raise ValueError("Data must be non-negative integers")
         self.__y = y
-
-    @property
-    def rate(self):
-        return self.residual
 
     @property
     def sum_log_factorial(self):
@@ -253,6 +250,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     @property
     def y(self):
+        """ Property assures that y-value is positive. """
         return self.__y
 
     @y.setter
@@ -314,15 +312,17 @@ class StudentTLikelihood(Analytical1DLikelihood):
         return 1. / self.sigma ** 2
 
     def log_likelihood(self):
-        # This checks if nu or sigma have been set in parameters. If so, those
-        # values will be used. Otherwise, the attribute sigma is used. The logic is
-        # that if nu is not in parameters the attribute is used which was
-        # given at init (i.e. the known nu as a float).
-        nu = self.parameters.get('nu', self.nu)
-        if nu <= 0.:
+        if self.__get_nu() <= 0.:
             raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
-        return self.__summed_log_likelihood(nu)
+        return self.__summed_log_likelihood(self.__get_nu())
+
+    def __get_nu(self):
+        """ This checks if nu or sigma have been set in parameters. If so, those
+        values will be used. Otherwise, the attribute sigma is used. The logic is
+        that if nu is not in parameters the attribute is used which was
+        given at init (i.e. the known nu as a float)."""
+        return self.parameters.get('nu', self.nu)
 
     def __summed_log_likelihood(self, nu):
         return self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) - gammaln(nu / 2.0)) \
