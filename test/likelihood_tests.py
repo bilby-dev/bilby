@@ -20,6 +20,7 @@ class TestGaussianLikelihood(unittest.TestCase):
 
         def test_function(x, m, c):
             return m * x + c
+
         self.function = test_function
 
     def tearDown(self):
@@ -76,16 +77,17 @@ class TestGaussianLikelihood(unittest.TestCase):
 
 
 class TestStudentTLikelihood(unittest.TestCase):
-    
+
     def setUp(self):
         self.N = 100
-        self.nu = self.N-2
+        self.nu = self.N - 2
         self.sigma = 1
         self.x = np.linspace(0, 1, self.N)
         self.y = 2 * self.x + 1 + np.random.normal(0, self.sigma, self.N)
 
         def test_function(x, m, c):
             return m * x + c
+
         self.function = test_function
 
     def tearDown(self):
@@ -132,13 +134,13 @@ class TestStudentTLikelihood(unittest.TestCase):
 
 
 class TestPoissonLikelihood(unittest.TestCase):
-    
+
     def setUp(self):
         self.N = 100
         self.mu = 5
         self.x = np.linspace(0, 1, self.N)
         self.y = np.random.poisson(self.mu, self.N)
-        self.yfloat = np.copy(self.y)*1.
+        self.yfloat = np.copy(self.y) * 1.
         self.yneg = np.copy(self.y)
         self.yneg[0] = -1
 
@@ -146,7 +148,7 @@ class TestPoissonLikelihood(unittest.TestCase):
             return c
 
         def test_function_array(x, c):
-            return np.ones(len(x))*c
+            return np.ones(len(x)) * c
 
         self.function = test_function
         self.function_array = test_function_array
@@ -202,7 +204,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
 
 class TestExponentialLikelihood(unittest.TestCase):
-    
+
     def setUp(self):
         self.N = 100
         self.mu = 5
@@ -215,7 +217,7 @@ class TestExponentialLikelihood(unittest.TestCase):
             return c
 
         def test_function_array(x, c):
-            return c*np.ones(len(x))
+            return c * np.ones(len(x))
 
         self.function = test_function
         self.function_array = test_function_array
