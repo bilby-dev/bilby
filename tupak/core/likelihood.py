@@ -211,26 +211,18 @@ class PoissonLikelihood(Analytical1DLikelihood):
             raise ValueError("Data must be non-negative integers")
         self.__y = y
 
-    @property
-    def rate(self):
-        return self.func(self.x, **self.model_parameters)
-
-    @property
-    def sum_log_factorial(self):
-        return np.sum(gammaln(self.y + 1))
-
     def log_likelihood(self):
-        if not isinstance(self.rate, np.ndarray):
+        rate = self.func(self.x, **self.model_parameters)
+        if not isinstance(rate, np.ndarray):
             raise ValueError("Poisson rate function returns wrong value type! "
-                             "Is {} when it should be numpy.ndarray".format(type(self.rate)))
-        elif np.any(self.rate < 0.):
+                             "Is {} when it should be numpy.ndarray".format(type(rate)))
+        elif np.any(rate < 0.):
             raise ValueError(("Poisson rate function returns a negative",
                               " value!"))
-        elif np.any(self.rate == 0.):
+        elif np.any(rate == 0.):
             return -np.inf
         else:
-            return (np.sum(-self.rate + self.y * np.log(self.rate))
-                    - self.sum_log_factorial)
+            return np.sum(-rate + self.y * np.log(rate)) - np.sum(gammaln(self.y + 1))
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
@@ -265,14 +257,11 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             raise ValueError("Data must be non-negative")
         self.__y = y
 
-    @property
-    def mu(self):
-        return self.func(self.x, **self.model_parameters)
-
     def log_likelihood(self):
-        if np.any(self.mu < 0.):
+        mu = self.func(self.x, **self.model_parameters)
+        if np.any(mu < 0.):
             return -np.inf
-        return -np.sum(np.log(self.mu) + (self.y / self.mu))
+        return -np.sum(np.log(mu) + (self.y / mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
