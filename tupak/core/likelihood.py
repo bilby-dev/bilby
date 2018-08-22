@@ -191,7 +191,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
         return self.func(self.x, **self.model_parameters)
 
     @property
-    def sumlogfactorial(self):
+    def sum_log_factorial(self):
         return np.sum(gammaln(self.y + 1))
 
     def log_likelihood(self):
@@ -206,7 +206,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
             return -np.inf
         else:
             return (np.sum(-self.rate + self.counts * np.log(self.rate))
-                    - self.sumlogfactorial)
+                    - self.sum_log_factorial)
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
