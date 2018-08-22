@@ -10,6 +10,78 @@ import os
 import copy
 
 
+class TestAnalytical1DLikelihood(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.arange(start=0, stop=100, step=1)
+        self.y = np.arange(start=0, stop=100, step=1)
+
+        def test_func(x, parameter1, parameter2):
+            return parameter1 * x + parameter2
+
+        self.func = test_func
+        self.parameter1_value = 4
+        self.parameter2_value = 7
+        self.analytical_1d_likelihood = tupak.likelihood.Analytical1DLikelihood(x=self.x, y=self.y, func=self.func)
+        self.analytical_1d_likelihood.parameters['parameter1'] = self.parameter1_value
+        self.analytical_1d_likelihood.parameters['parameter2'] = self.parameter2_value
+
+    def tearDown(self):
+        del self.x
+        del self.y
+        del self.func
+        del self.analytical_1d_likelihood
+        del self.parameter1_value
+        del self.parameter2_value
+
+    def test_init_x(self):
+        self.assertTrue(np.array_equal(self.x, self.analytical_1d_likelihood.x))
+
+    def test_set_x(self):
+        new_array = np.arange(start=0, stop=50, step=2)
+        self.analytical_1d_likelihood.x = new_array
+        self.assertTrue(np.array_equal(new_array, self.analytical_1d_likelihood.x))
+
+    def test_init_y(self):
+        self.assertTrue(np.array_equal(self.y, self.analytical_1d_likelihood.y))
+
+    def test_set_y(self):
+        new_array = np.arange(start=0, stop=50, step=2)
+        self.analytical_1d_likelihood.y = new_array
+        self.assertTrue(np.array_equal(new_array, self.analytical_1d_likelihood.y))
+
+    def test_init_func(self):
+        self.assertEqual(self.func, self.analytical_1d_likelihood.func)
+
+    def test_set_func(self):
+        def new_func(x):
+            return x
+        with self.assertRaises(AttributeError):
+            # noinspection PyPropertyAccess
+            self.analytical_1d_likelihood.func = new_func
+
+    def test_parameters(self):
+        expected_parameters = dict(parameter1=self.parameter1_value,
+                                   parameter2=self.parameter2_value)
+        self.assertDictEqual(expected_parameters, self.analytical_1d_likelihood.parameters)
+
+    def test_n(self):
+        self.assertEqual(len(self.x), self.analytical_1d_likelihood.n)
+
+    def test_set_n(self):
+        with self.assertRaises(AttributeError):
+            # noinspection PyPropertyAccess
+            self.analytical_1d_likelihood.n = 2
+
+    def test_model_parameters(self):
+        sigma = 5
+        self.analytical_1d_likelihood.sigma = sigma
+        self.analytical_1d_likelihood.parameters['sigma'] = sigma
+        expected_model_parameters = dict(parameter1=self.parameter1_value,
+                                         parameter2=self.parameter2_value)
+        self.assertDictEqual(expected_model_parameters, self.analytical_1d_likelihood.model_parameters)
+
+
 class TestGaussianLikelihood(unittest.TestCase):
 
     def setUp(self):
