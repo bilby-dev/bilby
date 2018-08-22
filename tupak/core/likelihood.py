@@ -118,11 +118,13 @@ class GaussianLikelihood(Analytical1DLikelihood):
         # that if sigma is not in parameters the attribute is used which was
         # given at init (i.e. the known sigma as either a float or array).
         sigma = self.parameters.get('sigma', self.sigma)
+        res = self.__calculate_residual()
+        return self.summed_log_likelihood(res, sigma)
 
-        # Calculate the residual
-        res = self.y - self.func(self.x, **self.model_parameters)
+    def __calculate_residual(self):
+        return self.y - self.func(self.x, **self.model_parameters)
 
-        # Return the summed log likelihood
+    def summed_log_likelihood(self, res, sigma):
         return -0.5 * (np.sum((res / sigma) ** 2)
                        + self.n * np.log(2 * np.pi * sigma ** 2))
 
