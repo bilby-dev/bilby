@@ -60,21 +60,6 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.log_likelihood()
         self.assertTrue(likelihood.sigma is None)
 
-    def test_y(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
-            self.x, self.y, self.function, self.sigma)
-        self.assertTrue(all(likelihood.y == self.y))
-
-    def test_x(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
-            self.x, self.y, self.function, self.sigma)
-        self.assertTrue(all(likelihood.x == self.x))
-
-    def test_N(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
-            self.x, self.y, self.function, self.sigma)
-        self.assertTrue(likelihood.n == len(self.x))
-
 
 class TestStudentTLikelihood(unittest.TestCase):
 
@@ -116,21 +101,6 @@ class TestStudentTLikelihood(unittest.TestCase):
         likelihood.parameters['nu'] = 98
         likelihood.log_likelihood()
         self.assertTrue(likelihood.nu is None)
-
-    def test_y(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
-            self.x, self.y, self.function, self.nu, self.sigma)
-        self.assertTrue(all(likelihood.y == self.y))
-
-    def test_x(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
-            self.x, self.y, self.function, self.nu, self.sigma)
-        self.assertTrue(all(likelihood.x == self.x))
-
-    def test_N(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
-            self.x, self.y, self.function, self.nu, self.sigma)
-        self.assertTrue(likelihood.n == len(self.x))
 
 
 class TestPoissonLikelihood(unittest.TestCase):
@@ -187,21 +157,6 @@ class TestPoissonLikelihood(unittest.TestCase):
         with self.assertRaises(ValueError):
             likelihood.log_likelihood()
 
-    def test_y(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(all(likelihood.y == self.y))
-
-    def test_x(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(all(likelihood.x == self.x))
-
-    def test_N(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(likelihood.n == len(self.x))
-
 
 class TestExponentialLikelihood(unittest.TestCase):
 
@@ -247,20 +202,6 @@ class TestExponentialLikelihood(unittest.TestCase):
         likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
-    def test_y(self):
-        likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(all(likelihood.y == self.y))
-
-    def test_x(self):
-        likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(all(likelihood.x == self.x))
-
-    def test_N(self):
-        likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function)
-        self.assertTrue(likelihood.n == len(self.x))
 
 
 if __name__ == '__main__':
