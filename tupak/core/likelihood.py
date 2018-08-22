@@ -81,6 +81,26 @@ class Analytical1DLikelihood(Likelihood):
         """ The number of data points """
         return len(self.x)
 
+    @property
+    def x(self):
+        return self.__x
+
+    @x.setter
+    def x(self, x):
+        if isinstance(x, int):
+            x = np.array([x])
+        self.x = x
+
+    @property
+    def y(self):
+        return self.__y
+
+    @y.setter
+    def y(self, y):
+        if isinstance(y, int):
+            y = np.array([y])
+        self.y = y
+
 
 class GaussianLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, function, sigma=None):
