@@ -1406,8 +1406,6 @@ class Interferometer(object):
         ----------
         signal: array_like
             Array containing the signal
-        duration: float
-            Time duration of the signal
 
         Returns
         -------
