@@ -44,7 +44,7 @@ class Likelihood(object):
         return self.log_likelihood() - self.noise_log_likelihood()
 
 
-class _Analytical1DLikelihood(Likelihood):
+class Analytical1DLikelihood(Likelihood):
 
     def __init__(self, x, y, func):
         parameters = self._infer_parameters_from_function(func)
@@ -87,7 +87,7 @@ class _Analytical1DLikelihood(Likelihood):
         return len(self.x)
 
 
-class GaussianLikelihood(_Analytical1DLikelihood):
+class GaussianLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, function, sigma=None):
         """
         A general Gaussian likelihood for known or unknown noise - the model
@@ -110,7 +110,7 @@ class GaussianLikelihood(_Analytical1DLikelihood):
             to that for `x` and `y`.
         """
 
-        _Analytical1DLikelihood.__init__(self, x=x, y=y, func=function)
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=function)
         self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
@@ -132,7 +132,7 @@ class GaussianLikelihood(_Analytical1DLikelihood):
                        + self.n * np.log(2 * np.pi * sigma ** 2))
 
 
-class PoissonLikelihood(_Analytical1DLikelihood):
+class PoissonLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, func):
         """
         A general Poisson likelihood for a rate - the model parameters are
@@ -155,7 +155,7 @@ class PoissonLikelihood(_Analytical1DLikelihood):
             fixed value is given).
         """
 
-        _Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
         # check values are non-negative integers
         if isinstance(self.y, int):
@@ -205,7 +205,7 @@ class PoissonLikelihood(_Analytical1DLikelihood):
             raise ValueError("Poisson rate function returns wrong value type!")
 
 
-class ExponentialLikelihood(_Analytical1DLikelihood):
+class ExponentialLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, func):
         """
         An exponential likelihood function.
@@ -222,7 +222,7 @@ class ExponentialLikelihood(_Analytical1DLikelihood):
             value is given). The model should return the expected mean of
             the exponential distribution for each data point.
         """
-        _Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
         # check for non-negative values
         if np.any(self.y < 0):
@@ -240,7 +240,7 @@ class ExponentialLikelihood(_Analytical1DLikelihood):
         return -np.sum(np.log(mu) + (self.y / mu))
 
 
-class StudentTLikelihood(_Analytical1DLikelihood):
+class StudentTLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, func, nu=None, sigma=1.):
         """
         A general Student's t-likelihood for known or unknown number of degrees
@@ -270,7 +270,7 @@ class StudentTLikelihood(_Analytical1DLikelihood):
             Set the scale of the distribution. If not given then this defaults
             to 1, which specifies a standard (central) Student's t-distribution
         """
-        _Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
         self.nu = nu
         self.sigma = sigma
