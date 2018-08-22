@@ -1257,12 +1257,8 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(gwutils.optimal_snr_squared(
-            signal=signal_ifo, interferometer=self,
-            duration=self.strain_data.duration).real)
-        mf_snr = np.sqrt(gwutils.matched_filter_snr_squared(
-            signal=signal_ifo, interferometer=self,
-            duration=self.strain_data.duration).real)
+        opt_snr = np.sqrt(self.optimal_snr_squared(signal=signal_ifo).real)
+        mf_snr = np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo).real)
 
         logger.info("Injected signal in {}:".format(self.name))
         logger.info("  optimal SNR = {:.2f}".format(opt_snr))
@@ -1381,6 +1377,40 @@ class Interferometer(object):
         array_like: A 3D array representation of the vertex
         """
         return gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+
+    def optimal_snr_squared(self, signal):
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+
+        Returns
+        -------
+        float: The optimal signal to noise ratio possible squared
+        """
+        return gwutils.optimal_snr_squared(signal=signal,
+                                           power_spectral_density=self.power_spectral_density_array,
+                                           duration=self.strain_data.duration)
+
+    def matched_filter_snr_squared(self, signal):
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+
+        Returns
+        -------
+        float: The matched filter signal to noise ratio squared
+
+        """
+        return gwutils.matched_filter_snr_squared(signal=signal,
+                                                  frequency_domain_strain=self.frequency_domain_strain,
+                                                  power_spectral_density=self.power_spectral_density_array,
+                                                  duration=self.strain_data.duration)
 
     @property
     def whitened_frequency_domain_strain(self):
