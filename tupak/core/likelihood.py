@@ -45,6 +45,20 @@ class Likelihood(object):
 
 
 class Analytical1DLikelihood(Likelihood):
+    """
+    A general class for 1D analytical functions. The model
+    parameters are inferred from the arguments of function
+
+    Parameters
+    ----------
+    x, y: array_like
+        The data to analyse
+    func:
+        The python function to fit to the data. Note, this must take the
+        dependent variable as its first argument. The other arguments
+        will require a prior and will be sampled over (unless a fixed
+        value is given).
+    """
 
     def __init__(self, x, y, func):
         parameters = self._infer_parameters_from_function(func)
@@ -56,15 +70,17 @@ class Analytical1DLikelihood(Likelihood):
 
     @property
     def func(self):
+        """ Make func read-only """
         return self.__func
 
     @property
     def model_parameters(self):
-        # This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)
+        """ This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood) """
         return {key: self.parameters[key] for key in self.function_keys}
 
     @property
     def function_keys(self):
+        """ Makes function_keys read_only """
         return self.__function_keys
 
     @staticmethod
@@ -83,6 +99,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @property
     def x(self):
+        """ The independent variable. Setter assures that single numbers will be converted to arrays internally """
         return self.__x
 
     @x.setter
@@ -93,6 +110,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @property
     def y(self):
+        """ The dependent variable. Setter assures that single numbers will be converted to arrays internally """
         return self.__y
 
     @y.setter
@@ -103,6 +121,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @property
     def residual(self):
+        """ Residual of the function against the data. """
         return self.y - self.func(self.x, **self.model_parameters)
 
 
@@ -137,11 +156,16 @@ class GaussianLikelihood(Analytical1DLikelihood):
             self.parameters['sigma'] = None
 
     def log_likelihood(self):
-        # This checks if sigma has been set in parameters. If so, that value
-        # will be used. Otherwise, the attribute sigma is used. The logic is
-        # that if sigma is not in parameters the attribute is used which was
-        # given at init (i.e. the known sigma as either a float or array).
-        return self.__summed_log_likelihood(sigma=self.parameters.get('sigma', self.sigma))
+        return self.__summed_log_likelihood(sigma=self.__get_sigma())
+
+    def __get_sigma(self):
+        """
+        This checks if sigma has been set in parameters. If so, that value
+        will be used. Otherwise, the attribute sigma is used. The logic is
+        that if sigma is not in parameters the attribute is used which was
+        given at init (i.e. the known sigma as either a float or array).
+        """
+        return self.parameters.get('sigma', self.sigma)
 
     def __summed_log_likelihood(self, sigma):
         return -0.5 * (np.sum((self.residual / sigma) ** 2)
