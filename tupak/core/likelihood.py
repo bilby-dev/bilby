@@ -101,6 +101,10 @@ class Analytical1DLikelihood(Likelihood):
             y = np.array([y])
         self.__y = y
 
+    @property
+    def residual(self):
+        return self.y - self.func(self.x, **self.model_parameters)
+
 
 class GaussianLikelihood(Analytical1DLikelihood):
     def __init__(self, x, y, function, sigma=None):
@@ -138,10 +142,6 @@ class GaussianLikelihood(Analytical1DLikelihood):
         # that if sigma is not in parameters the attribute is used which was
         # given at init (i.e. the known sigma as either a float or array).
         return self.__summed_log_likelihood(sigma=self.parameters.get('sigma', self.sigma))
-
-    @property
-    def residual(self):
-        return self.y - self.func(self.x, **self.model_parameters)
 
     def __summed_log_likelihood(self, sigma):
         return -0.5 * (np.sum((self.residual / sigma) ** 2)
@@ -188,7 +188,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
     @property
     def rate(self):
-        return self.func(self.x, **self.model_parameters)
+        return self.residual
 
     @property
     def sum_log_factorial(self):
@@ -242,7 +242,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
     @property
     def mu(self):
         """ Returns the mean of the distribution """
-        return self.func(self.x, **self.model_parameters)
+        return self.residual
 
     def log_likelihood(self):
         if np.any(self.mu < 0.):
@@ -299,8 +299,6 @@ class StudentTLikelihood(Analytical1DLikelihood):
         if nu <= 0.:
             raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
 
-        # Calculate the residual
-        res = self.y - self.func(self.x, **self.model_parameters)
 
         # convert "scale" to "precision"
         lam = 1. / self.sigma ** 2
@@ -309,4 +307,4 @@ class StudentTLikelihood(Analytical1DLikelihood):
         return (self.n * (gammaln((nu + 1.0) / 2.0)
                           + .5 * np.log(lam / (nu * np.pi))
                           - gammaln(nu / 2.0))
-                - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * res ** 2 / nu)))
+                - (nu + 1.0) / 2.0 * np.sum(np.log1p(lam * self.residual ** 2 / nu)))
