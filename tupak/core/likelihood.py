@@ -198,11 +198,10 @@ class PoissonLikelihood(Analytical1DLikelihood):
         if not isinstance(self.rate, np.ndarray):
             raise ValueError("Poisson rate function returns wrong value type! "
                              "Is {} when it should be numpy.ndarray".format(type(self.rate)))
-
-        if np.any(self.rate < 0.):
+        elif np.any(self.rate < 0.):
             raise ValueError(("Poisson rate function returns a negative",
                               " value!"))
-        if np.any(self.rate == 0.):
+        elif np.any(self.rate == 0.):
             return -np.inf
         else:
             return (np.sum(-self.rate + self.counts * np.log(self.rate))
@@ -236,7 +235,6 @@ class ExponentialLikelihood(Analytical1DLikelihood):
     def y(self, y):
         if isinstance(y, int):
             y = np.array([y])
-        # check array is a non-negative integer array
         if np.any(y < 0):
             raise ValueError("Data must be non-negative")
         self.__y = y
