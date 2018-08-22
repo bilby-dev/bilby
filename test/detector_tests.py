@@ -292,19 +292,18 @@ class TestDetector(unittest.TestCase):
         with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
             m.side_effect = lambda a, b, c, d: [a, b, c, d]
             signal = 1
-            duration = 2
-            self.assertListEqual(
-                [signal, signal, self.ifo.power_spectral_density_array, duration],
-                self.ifo.optimal_snr_squared(signal=signal, duration=duration))
+            expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
+            actual = self.ifo.optimal_snr_squared(signal=signal)
+            self.assertListEqual(expected, actual)
 
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
         with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
             m.side_effect = lambda a, b, c, d: [b, [a, c, d]]
             signal = 1
-            duration = 2
-            expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array, duration]]
-            actual = self.ifo.matched_filter_snr_squared(signal=signal, duration=duration)
+            expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array,
+                                                           self.ifo.strain_data.duration]]
+            actual = self.ifo.matched_filter_snr_squared(signal=signal)
             self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
             self.assertListEqual(expected[1], actual[1])
 
