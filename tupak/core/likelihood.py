@@ -153,18 +153,18 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
-        # check values are non-negative integers
-        if isinstance(self.y, int):
-            # convert to numpy array if passing a single integer
-            self.y = np.array([self.y])
+    @property
+    def y(self):
+        return self.__y
 
-        # check array is an integer array
-        if self.y.dtype.kind not in 'ui':
+    @y.setter
+    def y(self, y):
+        if isinstance(y, int):
+            y = np.array([y])
+        # check array is a non-negative integer array
+        if y.dtype.kind not in 'ui' or np.any(y < 0):
             raise ValueError("Data must be non-negative integers")
-
-        # check for non-negative integers
-        if np.any(self.y < 0):
-            raise ValueError("Data must be non-negative integers")
+        self.y = y
 
     def log_likelihood(self):
         # Calculate the rate
