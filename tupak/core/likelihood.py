@@ -59,14 +59,9 @@ class Analytical1DLikelihood(Likelihood):
         return self.__func
 
     @property
-    def function(self):
-        """Alias"""
-        return self.__func
-
-    @property
     def model_parameters(self):
         # This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)
-        return {k: self.parameters[k] for k in self.function_keys}
+        return {key: self.parameters[key] for key in self.function_keys}
 
     @property
     def function_keys(self):
