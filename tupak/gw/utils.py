@@ -217,20 +217,18 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     return 4 / duration * np.sum(integrand)
 
 
-def matched_filter_snr_squared(signal, interferometer, duration):
+def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_density, duration):
     """ DEPRECATED: USE tupak.gw.detector.matched_filter_snr_squared """
     logger.warning("tupak.gw.utils.matched_filter_snr_squared is DEPRECATED and will soon be removed, "
                    "use tupak.gw.detector.matched_filter_snr_squared instead")
-    return noise_weighted_inner_product(
-        signal, interferometer.frequency_domain_strain,
-        interferometer.power_spectral_density_array, duration)
+    return noise_weighted_inner_product(signal, frequency_domain_strain, power_spectral_density, duration)
 
 
-def optimal_snr_squared(signal, interferometer, duration):
+def optimal_snr_squared(signal, power_spectral_density, duration):
     """ DEPRECATED: USE tupak.gw.detector.optimal_snr_squared"""
     logger.warning("tupak.gw.utils.optimal_snr_squared is DEPRECATED and will soon be removed, "
                    "use tupak.gw.detector.optimal_snr_squared instead")
-    return noise_weighted_inner_product(signal, signal, interferometer.power_spectral_density_array, duration)
+    return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
 
 
 def get_event_time(event):
