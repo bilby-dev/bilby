@@ -1506,7 +1506,7 @@ class Pymc3(Sampler):
                 values = tt.as_tensor_variable(list(parameters.values()))
                 pymc3_log_like = self.likelihood
                 pymc3_parameters = parameters.keys()
-                pymc3.DensityDist('likelihood', lambda v: like_(v), observed={'values': values})
+                pymc3.DensityDist('likelihood', lambda v: like_(v), observed={'v': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
 
