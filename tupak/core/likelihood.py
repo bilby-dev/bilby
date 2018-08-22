@@ -115,7 +115,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @y.setter
     def y(self, y):
-        if isinstance(x, int) or isinstance(x, float):
+        if isinstance(y, int) or isinstance(y, float):
             y = np.array([y])
         self.__y = y
 
@@ -212,20 +212,24 @@ class PoissonLikelihood(Analytical1DLikelihood):
         self.__y = y
 
     @property
+    def rate(self):
+        return self.func(self.x, **self.model_parameters)
+
+    @property
     def sum_log_factorial(self):
         return np.sum(gammaln(self.y + 1))
 
     def log_likelihood(self):
-        if not isinstance(self.residual, np.ndarray):
+        if not isinstance(self.rate, np.ndarray):
             raise ValueError("Poisson rate function returns wrong value type! "
-                             "Is {} when it should be numpy.ndarray".format(type(self.residual)))
-        elif np.any(self.residual < 0.):
+                             "Is {} when it should be numpy.ndarray".format(type(self.rate)))
+        elif np.any(self.rate < 0.):
             raise ValueError(("Poisson rate function returns a negative",
                               " value!"))
-        elif np.any(self.residual == 0.):
+        elif np.any(self.rate == 0.):
             return -np.inf
         else:
-            return (np.sum(-self.residual + self.counts * np.log(self.residual))
+            return (np.sum(-self.rate + self.y * np.log(self.rate))
                     - self.sum_log_factorial)
 
 
@@ -261,10 +265,14 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             raise ValueError("Data must be non-negative")
         self.__y = y
 
+    @property
+    def mu(self):
+        return self.func(self.x, **self.model_parameters)
+
     def log_likelihood(self):
-        if np.any(self.residual < 0.):
+        if np.any(self.mu < 0.):
             return -np.inf
-        return -np.sum(np.log(self.residual) + (self.y / self.residual))
+        return -np.sum(np.log(self.mu) + (self.y / self.mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
