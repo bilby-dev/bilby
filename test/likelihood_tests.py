@@ -48,7 +48,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertTrue(type(likelihood.sigma) == type(sigma_array))
         self.assertTrue(all(likelihood.sigma == sigma_array))
 
-    def test_unknown_float_sigma(self):
+    def test_set_sigma_None(self):
         likelihood = tupak.core.likelihood.GaussianLikelihood(
             self.x, self.y, self.function, sigma=None)
         likelihood.parameters['m'] = 2
@@ -56,6 +56,12 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertTrue(likelihood.sigma is None)
         with self.assertRaises(TypeError):
             likelihood.log_likelihood()
+
+    def test_sigma_float(self):
+        likelihood = tupak.core.likelihood.GaussianLikelihood(
+            self.x, self.y, self.function, sigma=None)
+        likelihood.parameters['m'] = 2
+        likelihood.parameters['c'] = 0
         likelihood.parameters['sigma'] = 1
         likelihood.log_likelihood()
         self.assertTrue(likelihood.sigma is None)
