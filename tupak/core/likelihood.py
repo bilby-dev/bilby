@@ -89,7 +89,7 @@ class Analytical1DLikelihood(Likelihood):
     def x(self, x):
         if isinstance(x, int):
             x = np.array([x])
-        self.x = x
+        self.__x = x
 
     @property
     def y(self):
@@ -99,7 +99,7 @@ class Analytical1DLikelihood(Likelihood):
     def y(self, y):
         if isinstance(y, int):
             y = np.array([y])
-        self.y = y
+        self.__y = y
 
 
 class GaussianLikelihood(Analytical1DLikelihood):
@@ -184,7 +184,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
         # check array is a non-negative integer array
         if y.dtype.kind not in 'ui' or np.any(y < 0):
             raise ValueError("Data must be non-negative integers")
-        self.y = y
+        self.__y = y
 
     @property
     def rate(self):
@@ -228,9 +228,18 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         """
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
-        # check for non-negative values
-        if np.any(self.y < 0):
+    @property
+    def y(self):
+        return self.__y
+
+    @y.setter
+    def y(self, y):
+        if isinstance(y, int):
+            y = np.array([y])
+        # check array is a non-negative integer array
+        if np.any(y < 0):
             raise ValueError("Data must be non-negative")
+        self.__y = y
 
     def log_likelihood(self):
         # Calculate the mean of the distribution
