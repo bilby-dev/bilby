@@ -126,7 +126,7 @@ class Analytical1DLikelihood(Likelihood):
 
 
 class GaussianLikelihood(Analytical1DLikelihood):
-    def __init__(self, x, y, function, sigma=None):
+    def __init__(self, x, y, func, sigma=None):
         """
         A general Gaussian likelihood for known or unknown noise - the model
         parameters are inferred from the arguments of function
@@ -135,7 +135,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         ----------
         x, y: array_like
             The data to analyse
-        function:
+        func:
             The python function to fit to the data. Note, this must take the
             dependent variable as its first argument. The other arguments
             will require a prior and will be sampled over (unless a fixed
@@ -148,7 +148,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
             to that for `x` and `y`.
         """
 
-        Analytical1DLikelihood.__init__(self, x=x, y=y, func=function)
+        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
         self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
