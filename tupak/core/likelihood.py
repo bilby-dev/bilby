@@ -186,39 +186,27 @@ class PoissonLikelihood(Analytical1DLikelihood):
             raise ValueError("Data must be non-negative integers")
         self.y = y
 
+    @property
+    def rate(self):
+        return self.func(self.x, **self.model_parameters)
+
+    @property
+    def sumlogfactorial(self):
+        return np.sum(gammaln(self.y + 1))
+
     def log_likelihood(self):
-        # Calculate the rate
-        rate = self.func(self.x, **self.model_parameters)
+        if not isinstance(self.rate, np.ndarray):
+            raise ValueError("Poisson rate function returns wrong value type! "
+                             "Is {} when it should be numpy.ndarray".format(type(self.rate)))
 
-        # sum of log factorial of counts
-        sumlogfactorial = np.sum(gammaln(self.y + 1))
-
-        # check if rate is a single value
-        if isinstance(rate, float):
-            # check rate is positive
-            if rate < 0.:
-                raise ValueError(("Poisson rate function returns a negative ",
-                                  "value!"))
-
-            if rate == 0.:
-                return -np.inf
-            else:
-                # Return the summed log likelihood
-                return (-self.n * rate + np.sum(self.y * np.log(rate))
-                        - sumlogfactorial)
-        elif isinstance(rate, np.ndarray):
-            # check rates are positive
-            if np.any(rate < 0.):
-                raise ValueError(("Poisson rate function returns a negative",
-                                  " value!"))
-
-            if np.any(rate == 0.):
-                return -np.inf
-            else:
-                return (np.sum(-rate + self.counts * np.log(rate))
-                        - sumlogfactorial)
+        if np.any(self.rate < 0.):
+            raise ValueError(("Poisson rate function returns a negative",
+                              " value!"))
+        if np.any(self.rate == 0.):
+            return -np.inf
         else:
-            raise ValueError("Poisson rate function returns wrong value type!")
+            return (np.sum(-self.rate + self.counts * np.log(self.rate))
+                    - self.sumlogfactorial)
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
