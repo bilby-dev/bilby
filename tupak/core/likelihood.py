@@ -87,7 +87,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @x.setter
     def x(self, x):
-        if isinstance(x, int):
+        if isinstance(x, int) or isinstance(x, float):
             x = np.array([x])
         self.__x = x
 
@@ -97,7 +97,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @y.setter
     def y(self, y):
-        if isinstance(y, int):
+        if isinstance(x, int) or isinstance(x, float):
             y = np.array([y])
         self.__y = y
 
