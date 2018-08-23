@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-import inspect
 import numpy as np
 from scipy.special import gammaln
 from tupak.core.utils import infer_parameters_from_function

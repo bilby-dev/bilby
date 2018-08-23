@@ -1,5 +1,3 @@
-import inspect
-
 from tupak.core import utils
 import numpy as np
 
