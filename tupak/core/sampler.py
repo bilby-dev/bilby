@@ -1070,6 +1070,9 @@ class Pymc3(Sampler):
         prior_map['Lorentzian'] = prior_map['Cauchy']
         prior_map['FromFile'] = prior_map['Interped']
 
+        # GW specific priors
+        prior_map['UniformComovingVolume'] = prior_map['Interped']
+
         # internally defined mappings for tupak priors
         prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
         prior_map['Sine'] =          {'internal': self._sine_prior}
@@ -1291,7 +1294,7 @@ class Pymc3(Sampler):
 
         self.setup_prior_mapping()
 
-        self.pymc3_priors = dict()
+        self.pymc3_priors = OrderedDict()
 
         pymc3 = self.external_sampler
 
@@ -1370,17 +1373,23 @@ class Pymc3(Sampler):
             itypes = [tt.dvector]
             otypes = [tt.dscalar]
 
-            def __init__(self, parameters, loglike):
+            def __init__(self, parameters, loglike, priors):
                 self.parameters = parameters
                 self.Nparams = len(parameters)
                 self.likelihood = loglike
+                self.priors = priors
+
+                # get indexes of fixed variables from priors
+                self.fixedidx = []
+                for i, key in enumerate(self.priors.keys()):
+                    if isinstance(self.priors[key], float):
+                        self.fixedidx.append(i)
 
             def perform(self, node, inputs, outputs):
                 theta, = inputs
-                print(theta)
                 for i, k in enumerate(self.parameters):
                     self.likelihood.parameters[k] = theta[i]
-                    
+
                 outputs[0][0] = np.array(self.likelihood.log_likelihood())
 
             #def grad(self, inputs, g):
@@ -1476,8 +1485,8 @@ class Pymc3(Sampler):
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
             elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
-                logl = LogLike(self.__search_parameter_keys, self.likelihood)
-                
+                logl = LogLike(self.pymc3_priors.keys(), self.likelihood, self.pymc3_priors)
+
                 # cast prior distributions into float64 values
                 parameters = OrderedDict()
                 for key in self.pymc3_priors:
