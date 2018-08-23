@@ -242,6 +242,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
         self.function = test_function
         self.function_array = test_function_array
+        self.poisson_likelihood = tupak.core.likelihood.PoissonLikelihood(self.x, self.y, self.function)
 
     def tearDown(self):
         del self.N
@@ -252,23 +253,22 @@ class TestPoissonLikelihood(unittest.TestCase):
         del self.yneg
         del self.function
         del self.function_array
+        del self.poisson_likelihood
 
-    def test_non_integer(self):
+    def test_init_y_non_integer(self):
         with self.assertRaises(ValueError):
             tupak.core.likelihood.PoissonLikelihood(
                 self.x, self.yfloat, self.function)
 
-    def test_negative(self):
+    def test_init__y_negative(self):
         with self.assertRaises(ValueError):
             tupak.core.likelihood.PoissonLikelihood(
                 self.x, self.yneg, self.function)
 
     def test_neg_rate(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
-            self.x, self.y, self.function)
-        likelihood.parameters['c'] = -2
+        self.poisson_likelihood.parameters['c'] = -2
         with self.assertRaises(ValueError):
-            likelihood.log_likelihood()
+            self.poisson_likelihood.log_likelihood()
 
     def test_neg_rate_array(self):
         likelihood = tupak.core.likelihood.PoissonLikelihood(
@@ -276,6 +276,28 @@ class TestPoissonLikelihood(unittest.TestCase):
         likelihood.parameters['c'] = -2
         with self.assertRaises(ValueError):
             likelihood.log_likelihood()
+
+    def test_init_y(self):
+        self.assertTrue(np.array_equal(self.y, self.poisson_likelihood.y))
+
+    def test_set_y_to_array(self):
+        new_y = np.arange(start=0, stop=50, step=2)
+        self.poisson_likelihood.y = new_y
+        self.assertTrue(np.array_equal(new_y, self.poisson_likelihood.y))
+
+    def test_set_y_to_positive_int(self):
+        new_y = 5
+        self.poisson_likelihood.y = new_y
+        expected_y = np.array([new_y])
+        self.assertTrue(np.array_equal(expected_y, self.poisson_likelihood.y))
+
+    def test_set_y_to_negative_int(self):
+        with self.assertRaises(ValueError):
+            self.poisson_likelihood.y = -5
+
+    def test_set_y_to_float(self):
+        with self.assertRaises(ValueError):
+            self.poisson_likelihood.y = 5.3
 
 
 class TestExponentialLikelihood(unittest.TestCase):
