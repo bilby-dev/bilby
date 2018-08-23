@@ -16,6 +16,15 @@ solar_mass = 1.98855 * 1e30
 radius_of_earth = 6371 * 1e3  # metres
 
 
+def infer_parameters_from_function(func):
+    """ Infers the arguments of function (except the first arg which is
+        assumed to be the dep. variable)
+    """
+    parameters = inspect.getargspec(func).args
+    parameters.pop(0)
+    return parameters
+
+
 def get_sampling_frequency(time_series):
     """
     Calculate sampling frequency from a time series
