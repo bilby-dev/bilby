@@ -400,6 +400,14 @@ class TestExponentialLikelihood(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.exponential_likelihood.y = np.array([4.3, -1.2, 4])
 
+    def test_log_likelihood_default(self):
+        """ Merely tests that it ends up at the right place in the code """
+        exponential_likelihood = tupak.core.likelihood.ExponentialLikelihood(x=self.x, y=self.y,
+                                                                             func=lambda x: np.array([4.2]))
+        with mock.patch('numpy.sum') as m:
+            m.return_value = 3
+            self.assertEqual(-3, exponential_likelihood.log_likelihood())
+
 
 if __name__ == '__main__':
     unittest.main()
