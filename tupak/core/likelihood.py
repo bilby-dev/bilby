@@ -251,7 +251,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     @y.setter
     def y(self, y):
-        if isinstance(y, int):
+        if not isinstance(y, np.ndarray):
             y = np.array([y])
         if np.any(y < 0):
             raise ValueError("Data must be non-negative")
