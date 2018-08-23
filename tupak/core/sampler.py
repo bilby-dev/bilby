@@ -1364,11 +1364,28 @@ class Pymc3(Sampler):
         from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, StudentTLikelihood
         from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
-        @as_op(itypes=[tt.dvector], otypes=[tt.dscalar])
-        def like_(values):
-            for i, key in enumerate(pymc3_parameters):
-                pymc3_log_like.parameters[key] = values[i]
-            return pymc3_log_like.log_likelihood()
+        # create theano Op for the log likelihood if not using a predefined model
+        class LogLike(tt.Op):
+
+            itypes = [tt.dvector]
+            otypes = [tt.dscalar]
+
+            def __init__(self, parameters, loglike):
+                self.parameters = parameters
+                self.Nparams = len(parameters)
+                self.likelihood = loglike
+
+            def perform(self, node, inputs, outputs):
+                theta, = inputs
+                print(theta)
+                for i, k in enumerate(self.parameters):
+                    self.likelihood.parameters[k] = theta[i]
+                    
+                outputs[0][0] = np.array(self.likelihood.log_likelihood())
+
+            #def grad(self, inputs, g):
+            #    # add a grad method using another Op 
+            #    pass
 
         pymc3 = self.external_sampler
 
@@ -1459,6 +1476,8 @@ class Pymc3(Sampler):
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
             elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
+                logl = LogLike(self.__search_parameter_keys, self.likelihood)
+                
                 # cast prior distributions into float64 values
                 parameters = OrderedDict()
                 for key in self.pymc3_priors:
@@ -1468,9 +1487,8 @@ class Pymc3(Sampler):
                         raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
 
                 values = tt.as_tensor_variable(list(parameters.values()))
-                pymc3_log_like = self.likelihood
-                pymc3_parameters = parameters.keys()
-                pymc3.DensityDist('likelihood', lambda v: like_(v), observed={'v': values})
+
+                pymc3.DensityDist('likelihood', lambda v: logl(v), observed={'v': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
 
