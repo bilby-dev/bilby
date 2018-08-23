@@ -55,18 +55,42 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
     def test_init_x(self):
         self.assertTrue(np.array_equal(self.x, self.analytical_1d_likelihood.x))
 
-    def test_set_x(self):
-        new_array = np.arange(start=0, stop=50, step=2)
-        self.analytical_1d_likelihood.x = new_array
-        self.assertTrue(np.array_equal(new_array, self.analytical_1d_likelihood.x))
+    def test_set_x_to_array(self):
+        new_x = np.arange(start=0, stop=50, step=2)
+        self.analytical_1d_likelihood.x = new_x
+        self.assertTrue(np.array_equal(new_x, self.analytical_1d_likelihood.x))
+
+    def test_set_x_to_int(self):
+        new_x = 5
+        self.analytical_1d_likelihood.x = new_x
+        expected_x = np.array([new_x])
+        self.assertTrue(np.array_equal(expected_x, self.analytical_1d_likelihood.x))
+
+    def test_set_x_to_float(self):
+        new_x = 5.3
+        self.analytical_1d_likelihood.x = new_x
+        expected_x = np.array([new_x])
+        self.assertTrue(np.array_equal(expected_x, self.analytical_1d_likelihood.x))
 
     def test_init_y(self):
         self.assertTrue(np.array_equal(self.y, self.analytical_1d_likelihood.y))
 
-    def test_set_y(self):
-        new_array = np.arange(start=0, stop=50, step=2)
-        self.analytical_1d_likelihood.y = new_array
-        self.assertTrue(np.array_equal(new_array, self.analytical_1d_likelihood.y))
+    def test_set_y_to_array(self):
+        new_y = np.arange(start=0, stop=50, step=2)
+        self.analytical_1d_likelihood.y = new_y
+        self.assertTrue(np.array_equal(new_y, self.analytical_1d_likelihood.y))
+
+    def test_set_y_to_int(self):
+        new_y = 5
+        self.analytical_1d_likelihood.y = new_y
+        expected_y = np.array([new_y])
+        self.assertTrue(np.array_equal(expected_y, self.analytical_1d_likelihood.y))
+
+    def test_set_y_to_float(self):
+        new_y = 5.3
+        self.analytical_1d_likelihood.y = new_y
+        expected_y = np.array([new_y])
+        self.assertTrue(np.array_equal(expected_y, self.analytical_1d_likelihood.y))
 
     def test_init_func(self):
         self.assertEqual(self.func, self.analytical_1d_likelihood.func)
