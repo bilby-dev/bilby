@@ -341,6 +341,8 @@ class TestExponentialLikelihood(unittest.TestCase):
 
         self.function = test_function
         self.function_array = test_function_array
+        self.exponential_likelihood = tupak.core.likelihood.ExponentialLikelihood(x=self.x, y=self.y,
+                                                                                  func=self.function)
 
     def tearDown(self):
         del self.N
@@ -367,6 +369,36 @@ class TestExponentialLikelihood(unittest.TestCase):
         likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
+    def test_init_y(self):
+        self.assertTrue(np.array_equal(self.y, self.exponential_likelihood.y))
+
+    def test_set_y_to_array(self):
+        new_y = np.arange(start=0, stop=50, step=2)
+        self.exponential_likelihood.y = new_y
+        self.assertTrue(np.array_equal(new_y, self.exponential_likelihood.y))
+
+    def test_set_y_to_positive_int(self):
+        new_y = 5
+        self.exponential_likelihood.y = new_y
+        expected_y = np.array([new_y])
+        self.assertTrue(np.array_equal(expected_y, self.exponential_likelihood.y))
+
+    def test_set_y_to_negative_int(self):
+        with self.assertRaises(ValueError):
+            self.exponential_likelihood.y = -5
+
+    def test_set_y_to_positive_float(self):
+        new_y = 5.3
+        self.exponential_likelihood.y = new_y
+        self.assertTrue(np.array_equal(np.array([5.3]), self.exponential_likelihood.y))
+
+    def test_set_y_to_negative_float(self):
+        with self.assertRaises(ValueError):
+            self.exponential_likelihood.y = -5.3
+
+    def test_set_y_to_nd_array_with_negative_element(self):
+        with self.assertRaises(ValueError):
+            self.exponential_likelihood.y = np.array([4.3, -1.2, 4])
 
 
 if __name__ == '__main__':
