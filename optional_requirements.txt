@@ -1,3 +1,4 @@
 astropy
 lalsuite
 gwpy
+theano

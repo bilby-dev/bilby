@@ -1101,7 +1101,6 @@ class Pymc3(Sampler):
         if isinstance(self.priors[key], Sine):
             pymc3 = self.external_sampler
 
-            # import theano
             try:
                 import theano.tensor as tt
                 from pymc3.theanof import floatX
