@@ -316,7 +316,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
 
     def __get_nu(self):
         """ This checks if nu or sigma have been set in parameters. If so, those
-        values will be used. Otherwise, the attribute sigma is used. The logic is
+        values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
         return self.parameters.get('nu', self.nu)
