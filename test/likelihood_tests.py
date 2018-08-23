@@ -10,6 +10,24 @@ import os
 import copy
 
 
+class TestLikelihoodBase(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = tupak.core.likelihood.Likelihood()
+
+    def tearDown(self):
+        del self.likelihood
+
+    def test_base_log_likelihood(self):
+        self.assertTrue(np.isnan(self.likelihood.log_likelihood()))
+
+    def test_base_noise_log_likelihood(self):
+        self.assertTrue(np.isnan(self.likelihood.noise_log_likelihood()))
+
+    def test_base_log_likelihood_ratio(self):
+        self.assertTrue(np.isnan(self.likelihood.log_likelihood_ratio()))
+
+
 class TestAnalytical1DLikelihood(unittest.TestCase):
 
     def setUp(self):
