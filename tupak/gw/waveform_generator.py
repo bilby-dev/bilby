@@ -49,6 +49,7 @@ class WaveformGenerator(object):
         self.start_time = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
+        self.__parameters_from_source_model()
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         self.parameter_conversion = parameter_conversion
@@ -64,7 +65,6 @@ class WaveformGenerator(object):
         self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
         self.__full_source_model_keyword_arguments.update(self.parameters)
         self.__added_keys = []
-        self.__parameters_from_source_model()
 
     def frequency_domain_strain(self):
         """ Rapper to source_model.
@@ -212,7 +212,7 @@ class WaveformGenerator(object):
 
     def __parameters_from_source_model(self):
         if self.frequency_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_mode))
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
         elif self.time_domain_source_model is not None:
             self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
 
