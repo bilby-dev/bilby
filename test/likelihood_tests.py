@@ -4,6 +4,7 @@ from tupak.core import prior
 from tupak.core.result import Result
 import unittest
 from mock import MagicMock
+import mock
 import numpy as np
 import inspect
 import os
@@ -298,6 +299,28 @@ class TestPoissonLikelihood(unittest.TestCase):
     def test_set_y_to_float(self):
         with self.assertRaises(ValueError):
             self.poisson_likelihood.y = 5.3
+
+    def test_log_likelihood_wrong_func_return_type(self):
+        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: 'test')
+        with self.assertRaises(ValueError):
+            poisson_likelihood.log_likelihood()
+
+    def test_log_likelihood_negative_func_return_element(self):
+        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2]))
+        with self.assertRaises(ValueError):
+            poisson_likelihood.log_likelihood()
+
+    def test_log_likelihood_zero_func_return_element(self):
+        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0]))
+        self.assertEqual(-np.inf, poisson_likelihood.log_likelihood())
+
+    def test_log_likelihood_dummy(self):
+        """ Merely tests if it goes into the right if else bracket """
+        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y,
+                                                                func=lambda x: np.linspace(1, 100, self.N))
+        with mock.patch('numpy.sum') as m:
+            m.return_value = 1
+            self.assertEqual(0, poisson_likelihood.log_likelihood())
 
 
 class TestExponentialLikelihood(unittest.TestCase):
