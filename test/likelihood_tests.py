@@ -211,17 +211,50 @@ class TestStudentTLikelihood(unittest.TestCase):
         likelihood.log_likelihood()
         self.assertEqual(likelihood.sigma, self.sigma)
 
-    def test_unknown_float_nu(self):
+    def test_set_nu_none(self):
         likelihood = tupak.core.likelihood.StudentTLikelihood(
             self.x, self.y, self.function, nu=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         self.assertTrue(likelihood.nu is None)
-        with self.assertRaises((TypeError, ValueError)):
+
+    def test_log_likelihood_nu_none(self):
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=None)
+        likelihood.parameters['m'] = 2
+        likelihood.parameters['c'] = 0
+        with self.assertRaises(TypeError):
             likelihood.log_likelihood()
+
+    def test_log_likelihood_nu_zero(self):
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=0)
+        likelihood.parameters['m'] = 2
+        likelihood.parameters['c'] = 0
+        with self.assertRaises(ValueError):
+            likelihood.log_likelihood()
+
+    def test_log_likelihood_nu_negative(self):
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=-1)
+        likelihood.parameters['m'] = 2
+        likelihood.parameters['c'] = 0
+        with self.assertRaises(ValueError):
+            likelihood.log_likelihood()
+
+    def test_setting_nu_positive_does_not_change_class_attribute(self):
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=None)
+        likelihood.parameters['m'] = 2
+        likelihood.parameters['c'] = 0
         likelihood.parameters['nu'] = 98
-        likelihood.log_likelihood()
         self.assertTrue(likelihood.nu is None)
+
+    def test_lam(self):
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=0, sigma=0.5)
+
+        self.assertAlmostEqual(4.0, likelihood.lam)
 
 
 class TestPoissonLikelihood(unittest.TestCase):
