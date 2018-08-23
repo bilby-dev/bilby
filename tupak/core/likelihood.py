@@ -15,7 +15,7 @@ class Likelihood(object):
         """
         self.parameters = parameters
 
-    def log_likelihood(self, *args, **kwargs):
+    def log_likelihood(self):
         """
 
         Returns

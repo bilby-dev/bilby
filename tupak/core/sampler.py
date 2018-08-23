@@ -1031,86 +1031,51 @@ class Pymc3(Sampler):
         PyMC3 distributions.
         """
 
-        self.prior_map = {}
+        prior_map = {}
+        self.prior_map = prior_map
         
         # predefined PyMC3 distributions 
-
-        # Gaussian
-        self.prior_map['Gaussian'] = {'pymc3': 'Normal',
-                                      'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        self.prior_map['Normal'] = self.prior_map['Gaussian']
-        
-        # Truncated Gaussian
-        self.prior_map['TruncatedGaussian'] = {'pymc3': 'TruncatedNormal',
-                                               'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
-        self.prior_map['TruncatedNormal'] = self.prior_map['TruncatedGaussian']
-
-        # Half-Gaussian
-        self.prior_map['HalfGaussian'] = {'pymc3': 'HalfNormal',
+        prior_map['Gaussian'] =          {'pymc3': 'Normal',
+                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        prior_map['TruncatedGaussian'] = {'pymc3': 'TruncatedNormal',
+                                          'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
+        prior_map['HalfGaussian'] =      {'pymc3': 'HalfNormal',
                                           'argmap': {'sigma': 'sd'}}
-        self.prior_map['HalfNormal'] = self.prior_map['HalfGaussian']
-
-        # Uniform
-        self.prior_map['Uniform'] = {'pymc3': 'Uniform',
-                                     'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
-
-        # LogNormal
-        self.prior_map['LogNormal'] = {'pymc3': 'Lognormal',
-                                       'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        self.prior_map['LogGaussian'] = self.prior_map['LogNormal']
-
-        # Exponential
-        self.prior_map['Exponential'] = {'pymc3': 'Exponential',
-                                         'argmap': {'mu': 'lam'},
-                                         'argtransform': {'mu': lambda mu: 1./mu}}
-
-        # Student's t
-        self.prior_map['StudentT'] = {'pymc3': 'StudentT',
-                                      'argmap': {'df': 'nu', 'mu': 'mu', 'scale': 'sd'}}
-
-        # Beta
-        self.prior_map['Beta'] = {'pymc3': 'Beta',
-                                  'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-
-        # Logistic
-        self.prior_map['Logistic'] = {'pymc3': 'Logistic',
-                                      'argmap': {'mu': 'mu', 'scale': 's'}}
-
-        # Cauchy
-        self.prior_map['Cauchy'] = {'pymc3': 'Cauchy',
-                                    'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-        self.prior_map['Lorentzian'] = self.prior_map['Cauchy']
-
-        # Gamma
-        self.prior_map['Gamma'] = {'pymc3': 'Gamma',
-                                   'argmap': {'k': 'alpha', 'theta': 'beta'},
-                                   'argtransform': {'theta': lambda theta: 1./theta}}
-
-        # ChiSquared
-        self.prior_map['ChiSquared'] = {'pymc3': 'ChiSquared',
-                                        'argmap': {'nu': 'nu'}}
-
-        # Interpolated
-        self.prior_map['Interped'] = {'pymc3': 'Interpolated',
-                                      'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
-        self.prior_map['FromFile'] = self.prior_map['Interped']
+        prior_map['Uniform'] =           {'pymc3': 'Uniform',
+                                          'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
+        prior_map['LogNormal'] =         {'pymc3': 'Lognormal',
+                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        prior_map['Exponential'] =       {'pymc3': 'Exponential',
+                                          'argmap': {'mu': 'lam'},
+                                          'argtransform': {'mu': lambda mu: 1./mu}}
+        prior_map['StudentT'] =          {'pymc3': 'StudentT',
+                                          'argmap': {'df': 'nu', 'mu': 'mu', 'scale': 'sd'}}
+        prior_map['Beta'] =              {'pymc3': 'Beta',
+                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
+        prior_map['Logistic'] =          {'pymc3': 'Logistic',
+                                          'argmap': {'mu': 'mu', 'scale': 's'}}
+        prior_map['Cauchy'] =            {'pymc3': 'Cauchy',
+                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
+        prior_map['Gamma'] =             {'pymc3': 'Gamma',
+                                          'argmap': {'k': 'alpha', 'theta': 'beta'},
+                                          'argtransform': {'theta': lambda theta: 1./theta}}
+        prior_map['ChiSquared'] =        {'pymc3': 'ChiSquared',
+                                          'argmap': {'nu': 'nu'}}
+        prior_map['Interped'] =          {'pymc3': 'Interpolated',
+                                          'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
+        prior_map['Normal'] = prior_map['Gaussian']
+        prior_map['TruncatedNormal'] = prior_map['TruncatedGaussian']
+        prior_map['HalfNormal'] = prior_map['HalfGaussian']
+        prior_map['LogGaussian'] = prior_map['LogNormal']
+        prior_map['Lorentzian'] = prior_map['Cauchy']
+        prior_map['FromFile'] = prior_map['Interped']
 
         # internally defined mappings for tupak priors
-
-        # DeltaFunction
-        self.prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
-
-        # Sine
-        self.prior_map['Sine'] = {'internal': self._sine_prior}
-
-        # Cosine
-        self.prior_map['Cosine'] = {'internal': self._cosine_prior}
-
-        # PowerLaw
-        self.prior_map['PowerLaw'] = {'internal': self._powerlaw_prior}
-
-        # LogUniform
-        self.prior_map['LogUniform'] = {'internal': self._powerlaw_prior}
+        prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
+        prior_map['Sine'] =          {'internal': self._sine_prior}
+        prior_map['Cosine'] =        {'internal': self._cosine_prior}
+        prior_map['PowerLaw'] =      {'internal': self._powerlaw_prior}
+        prior_map['LogUniform'] =    {'internal': self._powerlaw_prior}
 
     def _deltafunction_prior(self, key, **kwargs):
         """
@@ -1136,7 +1101,6 @@ class Pymc3(Sampler):
         if isinstance(self.priors[key], Sine):
             pymc3 = self.external_sampler
 
-            # import theano
             try:
                 import theano.tensor as tt
                 from pymc3.theanof import floatX
