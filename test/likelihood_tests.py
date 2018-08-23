@@ -223,7 +223,8 @@ class TestStudentTLikelihood(unittest.TestCase):
             self.x, self.y, self.function, nu=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
-        with self.assertRaises(TypeError):
+        with self.assertRaises((ValueError, TypeError)):
+            # ValueError in Python2, TypeError in Python3
             likelihood.log_likelihood()
 
     def test_log_likelihood_nu_zero(self):
