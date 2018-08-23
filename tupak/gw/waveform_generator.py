@@ -66,6 +66,7 @@ class WaveformGenerator(object):
         self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
         self.__full_source_model_keyword_arguments.update(self.parameters)
         self.__added_keys = []
+        self.__parameters_from_source_model()
 
     def frequency_domain_strain(self):
         """ Rapper to source_model.
@@ -207,20 +208,15 @@ class WaveformGenerator(object):
     def parameters(self, parameters):
         """ Does some introspection into the source_model to figure out the parameters if none are given.
         """
-        self.__parameters_from_source_model()
         if isinstance(parameters, dict):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
 
     def __parameters_from_source_model(self):
         if self.frequency_domain_source_model is not None:
-            parameters = inspect.getargspec(self.frequency_domain_source_model).args
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_mode))
         elif self.time_domain_source_model is not None:
-            parameters = inspect.getargspec(self.time_domain_source_model).args
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
 
     @property
     def duration(self):
