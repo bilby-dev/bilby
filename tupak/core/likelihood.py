@@ -204,7 +204,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
     @y.setter
     def y(self, y):
-        if isinstance(y, int):
+        if not isinstance(y, np.ndarray):
             y = np.array([y])
         # check array is a non-negative integer array
         if y.dtype.kind not in 'ui' or np.any(y < 0):
