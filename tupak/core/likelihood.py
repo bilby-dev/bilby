@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import inspect
 import numpy as np
 from scipy.special import gammaln
+from tupak.core.utils import infer_parameters_from_function
 
 
 class Likelihood(object):
@@ -61,7 +62,7 @@ class Analytical1DLikelihood(Likelihood):
     """
 
     def __init__(self, x, y, func):
-        parameters = self._infer_parameters_from_function(func)
+        parameters = infer_parameters_from_function(func)
         Likelihood.__init__(self, dict.fromkeys(parameters))
         self.x = x
         self.y = y
@@ -82,15 +83,6 @@ class Analytical1DLikelihood(Likelihood):
     def function_keys(self):
         """ Makes function_keys read_only """
         return self.__function_keys
-
-    @staticmethod
-    def _infer_parameters_from_function(func):
-        """ Infers the arguments of function (except the first arg which is
-            assumed to be the dep. variable)
-        """
-        parameters = inspect.getargspec(func).args
-        parameters.pop(0)
-        return parameters
 
     @property
     def n(self):
