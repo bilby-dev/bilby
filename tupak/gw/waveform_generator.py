@@ -204,8 +204,6 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
-        """ Does some introspection into the source_model to figure out the parameters if none are given.
-        """
         if isinstance(parameters, dict):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
