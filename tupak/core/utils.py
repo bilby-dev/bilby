@@ -5,6 +5,7 @@ import numpy as np
 from math import fmod
 import argparse
 import traceback
+import inspect
 
 logger = logging.getLogger('tupak')
 
@@ -14,6 +15,15 @@ speed_of_light = 299792458.0  # speed of light in m/s
 parsec = 3.085677581 * 1e16
 solar_mass = 1.98855 * 1e30
 radius_of_earth = 6371 * 1e3  # metres
+
+
+def infer_parameters_from_function(func):
+    """ Infers the arguments of function (except the first arg which is
+        assumed to be the dep. variable)
+    """
+    parameters = inspect.getargspec(func).args
+    parameters.pop(0)
+    return parameters
 
 
 def get_sampling_frequency(time_series):
