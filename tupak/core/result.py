@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from tupak.core import utils
 from tupak.core.utils import logger
+from tupak.core.prior import DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -365,6 +366,24 @@ class Result(dict):
         self.posterior = data_frame
         # We save the samples in the posterior and remove the array of samples
         del self.samples
+
+    def store_prior_values(self, priors=None):
+        """
+        Evaluate prior probability for each parameter for each sample.
+
+        Parameters
+        ----------
+        priors: dict, PriorSet
+            Prior distributions
+        """
+        self.prior_values = pd.DataFrame()
+        for key in priors:
+            if key in self.posterior.keys():
+                if isinstance(priors[key], DeltaFunction):
+                    continue
+                else:
+                    self.prior_values[key]\
+                        = priors[key].prob(self.posterior[key].values)
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
