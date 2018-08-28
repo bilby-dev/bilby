@@ -420,5 +420,128 @@ class TestInterferometerStrainData(unittest.TestCase):
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
 
 
+class TestInterferometerList(unittest.TestCase):
+
+    def setUp(self):
+        self.frequency_arrays = np.linspace(0, 4096, 4097)
+        self.name1 = 'name1'
+        self.name2 = 'name2'
+        self.power_spectral_density1 = MagicMock()
+        self.power_spectral_density1.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.power_spectral_density2 = MagicMock()
+        self.power_spectral_density2.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.minimum_frequency1 = 10
+        self.minimum_frequency2 = 10
+        self.maximum_frequency1 = 20
+        self.maximum_frequency2 = 20
+        self.length1 = 30
+        self.length2 = 30
+        self.latitude1 = 1
+        self.latitude2 = 1
+        self.longitude1 = 2
+        self.longitude2 = 2
+        self.elevation1 = 3
+        self.elevation2 = 3
+        self.xarm_azimuth1 = 4
+        self.xarm_azimuth2 = 4
+        self.yarm_azimuth1 = 5
+        self.yarm_azimuth2 = 5
+        self.xarm_tilt1 = 0.
+        self.xarm_tilt2 = 0.
+        self.yarm_tilt1 = 0.
+        self.yarm_tilt2 = 0.
+        # noinspection PyTypeChecker
+        self.ifo1 = tupak.gw.detector.Interferometer(name=self.name1,
+                                                     power_spectral_density=self.power_spectral_density1,
+                                                     minimum_frequency=self.minimum_frequency1,
+                                                     maximum_frequency=self.maximum_frequency1, length=self.length1,
+                                                     latitude=self.latitude1, longitude=self.longitude1,
+                                                     elevation=self.elevation1,
+                                                     xarm_azimuth=self.xarm_azimuth1, yarm_azimuth=self.yarm_azimuth1,
+                                                     xarm_tilt=self.xarm_tilt1, yarm_tilt=self.yarm_tilt1)
+        self.ifo2 = tupak.gw.detector.Interferometer(name=self.name2,
+                                                     power_spectral_density=self.power_spectral_density2,
+                                                     minimum_frequency=self.minimum_frequency2,
+                                                     maximum_frequency=self.maximum_frequency2, length=self.length2,
+                                                     latitude=self.latitude2, longitude=self.longitude2,
+                                                     elevation=self.elevation2,
+                                                     xarm_azimuth=self.xarm_azimuth2, yarm_azimuth=self.yarm_azimuth2,
+                                                     xarm_tilt=self.xarm_tilt2, yarm_tilt=self.yarm_tilt2)
+        self.ifo1.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def tearDown(self):
+        del self.frequency_arrays
+        del self.name1
+        del self.name2
+        del self.power_spectral_density1
+        del self.power_spectral_density2
+        del self.minimum_frequency1
+        del self.minimum_frequency2
+        del self.maximum_frequency1
+        del self.maximum_frequency2
+        del self.length1
+        del self.length2
+        del self.latitude1
+        del self.latitude2
+        del self.longitude1
+        del self.longitude2
+        del self.elevation1
+        del self.elevation2
+        del self.xarm_azimuth1
+        del self.xarm_azimuth2
+        del self.yarm_azimuth1
+        del self.yarm_azimuth2
+        del self.xarm_tilt1
+        del self.xarm_tilt2
+        del self.yarm_tilt1
+        del self.yarm_tilt2
+        del self.ifo1
+        del self.ifo2
+        del self.ifo_list
+
+    def test_init_with_string(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList("string")
+
+    def test_init_with_string_list(self):
+        """ Merely checks if this ends up in the right bracket """
+        with mock.patch('tupak.gw.detector.get_empty_interferometer') as m:
+            m.side_effect = ValueError
+            with self.assertRaises(ValueError):
+                tupak.gw.detector.InterferometerList(['string'])
+
+    def test_init_with_other_object(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([object()])
+
+    def test_init_with_actual_ifos(self):
+        ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        self.assertEqual(self.ifo1, ifo_list[0])
+        self.assertEqual(self.ifo2, ifo_list[1])
+
+    def test_init_inconsistent_duration(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=3)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_sampling_frequency(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=234, duration=2)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_start_time(self):
+        self.ifo2.strain_data.start_time = 1
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+
 if __name__ == '__main__':
     unittest.main()
