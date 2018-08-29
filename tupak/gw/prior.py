@@ -60,6 +60,9 @@ class BBHPriorSet(PriorSet):
             Whether the key is redundant or not
         """
         redundant = False
+        if key in self:
+            logger.debug('{} already in prior'.format(key))
+            return redundant
         mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
         spin_magnitude_parameters = {'a_1', 'a_2'}
         spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
