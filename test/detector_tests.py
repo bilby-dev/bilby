@@ -6,7 +6,8 @@ import mock
 from mock import MagicMock
 from mock import patch
 import numpy as np
-
+import scipy.signal.windows
+import gwpy
 
 class TestDetector(unittest.TestCase):
 
@@ -419,6 +420,160 @@ class TestInterferometerStrainData(unittest.TestCase):
 
         self.assertTrue(np.all(
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
+
+    def test_time_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.time_array = test_array
+        self.assertTrue(test_array, self.ifosd.time_array)
+
+    @patch.object(tupak.core.utils, 'create_time_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.start_time = 3
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.time_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration,
+                             starting_time=self.ifosd.start_time)
+
+    def test_time_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_time_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_frequency_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.frequency_array = test_array
+        self.assertTrue(test_array, self.ifosd.frequency_array)
+
+    @patch.object(tupak.core.utils, 'create_frequency_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.frequency_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration)
+
+    def test_frequency_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_frequency_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_time_within_data_before(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(2))
+
+    def test_time_within_data_during(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertTrue(self.ifosd.time_within_data(3))
+        self.assertTrue(self.ifosd.time_within_data(4))
+        self.assertTrue(self.ifosd.time_within_data(5))
+
+    def test_time_within_data_after(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(6))
+
+    def test_time_domain_window_no_roll_off_no_alpha(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_window = scipy.signal.windows.tukey(len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha)
+        self.assertEqual(expected_window,
+                         self.ifosd.time_domain_window())
+        self.assertEqual(np.mean(expected_window ** 2), self.ifosd.window_factor)
+
+    def test_time_domain_window_sets_roll_off_directly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_roll_off = 6
+        self.ifosd.time_domain_window(roll_off=expected_roll_off)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_window_sets_roll_off_indirectly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        alpha = 4
+        expected_roll_off = alpha * self.ifosd.duration / 2
+        self.ifosd.time_domain_window(alpha=alpha)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_strain_when_set(self):
+        expected_strain = 5
+        self.ifosd._time_domain_strain = expected_strain
+        self.assertEqual(expected_strain, self.ifosd.time_domain_strain)
+
+    @patch('tupak.core.utils.infft')
+    def test_time_domain_strain_from_frequency_domain_strain(self, m):
+        m.return_value = 5
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        self.ifosd._frequency_domain_strain = self.ifosd.frequency_array
+        self.ifosd.sampling_frequency = 123
+        self.assertEqual(m.return_value, self.ifosd.time_domain_strain)
+
+    def test_time_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_domain_strain
+
+    def test_frequency_domain_strain_when_set(self):
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        expected_strain = self.ifosd.frequency_array*self.ifosd.frequency_mask
+        self.ifosd._frequency_domain_strain = expected_strain
+        self.assertTrue(np.array_equal(expected_strain,
+                                        self.ifosd.frequency_domain_strain))
+
+    @patch('tupak.core.utils.nfft')
+    def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
+        self.ifosd.start_time = 0
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        m.return_value = self.ifosd.frequency_array, self.ifosd.frequency_array
+        self.ifosd._time_domain_strain = self.ifosd.time_array
+        self.assertTrue(np.array_equal(self.ifosd.frequency_array * self.ifosd.frequency_mask,
+                                       self.ifosd.frequency_domain_strain))
+
+    def test_frequency_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_domain_strain
+
+    def test_set_frequency_domain_strain(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.frequency_domain_strain = np.ones(len(self.ifosd.frequency_array))
+        self.assertTrue(np.array_equal(np.ones(len(self.ifosd.frequency_array)),
+                                       self.ifosd._frequency_domain_strain))
+
+    def test_set_frequency_domain_strain_wrong_length(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        with self.assertRaises(ValueError):
+            self.ifosd.frequency_domain_strain = np.array([1])
 
 
 class TestInterferometerList(unittest.TestCase):
