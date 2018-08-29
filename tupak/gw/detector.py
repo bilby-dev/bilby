@@ -399,9 +399,8 @@ class InterferometerStrainData(object):
                 self.alpha, self.roll_off))
             # self.low_pass_filter()
             window = self.time_domain_window()
-            frequency_domain_strain, self.frequency_array = utils.nfft(
+            self._frequency_domain_strain, self.frequency_array = utils.nfft(
                 self._time_domain_strain * window, self.sampling_frequency)
-            self._frequency_domain_strain = frequency_domain_strain
             return self._frequency_domain_strain * self.frequency_mask
         else:
             raise ValueError("frequency domain strain data not yet set")
