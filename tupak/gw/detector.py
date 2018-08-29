@@ -2023,10 +2023,7 @@ def get_event_data(
     interferometers = []
 
     if interferometer_names is None:
-        if utils.command_line_args.detectors:
-            interferometer_names = utils.command_line_args.detectors
-        else:
-            interferometer_names = ['H1', 'L1', 'V1']
+        interferometer_names = ['H1', 'L1', 'V1']
 
     for name in interferometer_names:
         try:
