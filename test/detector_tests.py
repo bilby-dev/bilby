@@ -4,6 +4,7 @@ import tupak
 import unittest
 import mock
 from mock import MagicMock
+from mock import patch
 import numpy as np
 
 
@@ -541,6 +542,96 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo2.strain_data.start_time = 1
         with self.assertRaises(ValueError):
             tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
+    def test_set_strain_data_from_power_spectral_density(self, m):
+        self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
+        m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_inject_signal_pol_and_wg_none(self):
+        with self.assertRaises(ValueError):
+            self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
+        self.assertTrue(m.called)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_sets_wg_parameters(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        parameters = dict(y=1, z=2)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=parameters, waveform_generator=waveform_generator)
+        self.assertDictEqual(parameters, waveform_generator.parameters)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_with_inj_pol(self, m):
+        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
+        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_returns_expected_polarisations(self, m):
+        m.return_value = dict(plus=1, cross=2)
+        injection_polarizations = dict(plus=1, cross=2)
+        ifos_pol = self.ifo_list.inject_signal(injection_polarizations=injection_polarizations)
+        self.assertDictEqual(self.ifo1.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[0])
+        self.assertDictEqual(self.ifo2.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[1])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'save_data')
+    def test_save_data(self, m):
+        self.ifo_list.save_data(outdir='test_outdir', label='test_outdir')
+        m.assert_called_with(outdir='test_outdir', label='test_outdir')
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_number_of_interferometers(self):
+        self.assertEqual(len(self.ifo_list), self.ifo_list.number_of_interferometers)
+
+    def test_duration(self):
+        self.assertEqual(self.ifo1.strain_data.duration, self.ifo_list.duration)
+        self.assertEqual(self.ifo2.strain_data.duration, self.ifo_list.duration)
+
+    def test_sampling_frequency(self):
+        self.assertEqual(self.ifo1.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+        self.assertEqual(self.ifo2.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+
+    def test_start_time(self):
+        self.assertEqual(self.ifo1.strain_data.start_time, self.ifo_list.start_time)
+        self.assertEqual(self.ifo2.strain_data.start_time, self.ifo_list.start_time)
+
+    def test_frequency_array(self):
+        self.assertTrue(np.array_equal(self.ifo1.strain_data.frequency_array, self.ifo_list.frequency_array))
+        self.assertTrue(np.array_equal(self.ifo2.strain_data.frequency_array, self.ifo_list.frequency_array))
+
+    def test_append_with_ifo(self):
+        self.ifo_list.append(self.ifo2)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo2.name], names)
+
+    def test_append_with_ifo_list(self):
+        self.ifo_list.append(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_extend(self):
+        self.ifo_list.extend(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_insert(self):
+        new_ifo = self.ifo1
+        new_ifo.name = 'name3'
+        self.ifo_list.insert(1, new_ifo)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
 
 
 if __name__ == '__main__':
