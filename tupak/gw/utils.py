@@ -1,6 +1,5 @@
 from __future__ import division
 import os
-import urllib2
 
 import numpy as np
 
@@ -343,7 +342,7 @@ def get_open_strain_data(
             strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
             logger.info('Saving cache of data to {}'.format(filename))
             strain.write(filename)
-        except urllib2.URLError as e:
+        except Exception as e:
             logger.info("Unable to fetch open data, see debug for detailed info")
             logger.info("Call to gwpy.timeseries.TimeSeries.fetch_open_data returned {}"
                         .format(e))
