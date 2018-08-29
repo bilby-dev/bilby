@@ -407,6 +407,8 @@ class InterferometerStrainData(object):
 
     @frequency_domain_strain.setter
     def frequency_domain_strain(self, frequency_domain_strain):
+        if not len(self.frequency_array) == len(frequency_domain_strain):
+            raise ValueError("The frequency_array and the set strain have different lengths")
         self._frequency_domain_strain = frequency_domain_strain
 
     def add_to_frequency_domain_strain(self, x):
@@ -425,7 +427,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                    .format(filter_freq))
+                .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
