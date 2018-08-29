@@ -73,7 +73,9 @@ class InterferometerList(list):
 
         """
         for interferometer in self:
-            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency, duration, start_time)
+            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency=sampling_frequency,
+                                                                       duration=duration,
+                                                                       start_time=start_time)
 
     def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
         """ Inject a signal into noise in each of the three detectors.
