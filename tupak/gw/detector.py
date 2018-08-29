@@ -131,7 +131,7 @@ class InterferometerList(list):
             The string labelling the data
         """
         for interferometer in self:
-            interferometer.save_data(outdir, label)
+            interferometer.save_data(outdir=outdir, label=label)
 
     def plot_data(self, signal=None, outdir='.', label=None):
         if utils.command_line_args.test:
