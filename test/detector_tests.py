@@ -9,6 +9,7 @@ import numpy as np
 import scipy.signal.windows
 import gwpy
 
+
 class TestDetector(unittest.TestCase):
 
     def setUp(self):
