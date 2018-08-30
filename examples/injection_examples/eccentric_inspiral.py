@@ -66,7 +66,7 @@ priors["luminosity_distance"] =  tupak.gw.prior.UniformComovingVolume(name='lumi
 priors["dec"] =  tupak.core.prior.Cosine(name='dec')
 priors["ra"] =  tupak.core.prior.Uniform(name='ra', minimum=0, maximum=2 * np.pi)
 priors["iota"] =  tupak.core.prior.Sine(name='iota')
-priors["psi"] =  tupak.core.prior.Uniform(name='psi', minimum=0, maximum=2 * np.pi)
+priors["psi"] =  tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
 priors["phase"] =  tupak.core.prior.Uniform(name='phase', minimum=0, maximum=2 * np.pi)
 priors["geocent_time"] = tupak.core.prior.Uniform(1180002600.9, 1180002601.1, name='geocent_time')
 
