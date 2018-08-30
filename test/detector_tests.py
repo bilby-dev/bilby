@@ -26,7 +26,8 @@ class TestDetector(unittest.TestCase):
         self.ifo = tupak.gw.detector.Interferometer(name=self.name, power_spectral_density=self.power_spectral_density,
                                                     minimum_frequency=self.minimum_frequency,
                                                     maximum_frequency=self.maximum_frequency, length=self.length,
-                                                    latitude=self.latitude, longitude=self.longitude, elevation=self.elevation,
+                                                    latitude=self.latitude, longitude=self.longitude,
+                                                    elevation=self.elevation,
                                                     xarm_azimuth=self.xarm_azimuth, yarm_azimuth=self.yarm_azimuth,
                                                     xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
         self.ifo.strain_data.set_from_frequency_domain_strain(
@@ -209,45 +210,46 @@ class TestDetector(unittest.TestCase):
 
     def test_get_detector_response_default_behaviour(self):
         self.ifo.antenna_response = MagicMock(return_value=1)
-        self.ifo.time_delay_from_geocenter = MagicMock(return_value = 0)
+        self.ifo.time_delay_from_geocenter = MagicMock(return_value=0)
         self.ifo.epoch = 0
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
+        # self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
         plus = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
-        self.assertTrue(np.array_equal(response, plus*self.ifo.frequency_mask*np.exp(-0j)))
+        self.assertTrue(np.array_equal(response, plus * self.ifo.frequency_mask * np.exp(-0j)))
 
     def test_get_detector_response_with_dt(self):
         self.ifo.antenna_response = MagicMock(return_value=1)
-        self.ifo.time_delay_from_geocenter = MagicMock(return_value = 0)
+        self.ifo.time_delay_from_geocenter = MagicMock(return_value=0)
         self.ifo.epoch = 1
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
+        # self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
         plus = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
-        expected_response = plus*self.ifo.frequency_mask*np.exp(-1j*2*np.pi*self.ifo.frequency_array)
+        expected_response = plus * self.ifo.frequency_mask * np.exp(-1j * 2 * np.pi * self.ifo.frequency_array)
         self.assertTrue(np.allclose(abs(response),
-                                    abs(plus*self.ifo.frequency_mask*np.exp(-1j*2*np.pi*self.ifo.frequency_array))))
+                                    abs(plus * self.ifo.frequency_mask * np.exp(
+                                        -1j * 2 * np.pi * self.ifo.frequency_array))))
 
     def test_get_detector_response_multiple_modes(self):
         self.ifo.antenna_response = MagicMock(return_value=1)
-        self.ifo.time_delay_from_geocenter = MagicMock(return_value = 0)
+        self.ifo.time_delay_from_geocenter = MagicMock(return_value=0)
         self.ifo.epoch = 0
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        #self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
+        # self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
         plus = np.linspace(0, 4096, 4097)
         cross = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus, cross=cross),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
-        self.assertTrue(np.array_equal(response, (plus+cross)*self.ifo.frequency_mask*np.exp(-0j)))
+        self.assertTrue(np.array_equal(response, (plus + cross) * self.ifo.frequency_mask * np.exp(-0j)))
 
     def test_inject_signal_no_waveform_polarizations(self):
         with self.assertRaises(ValueError):
@@ -284,6 +286,26 @@ class TestDetector(unittest.TestCase):
         with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
+
+    def test_optimal_snr_squared(self):
+        """ Merely checks parameters are given in the right order """
+        with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
+            m.side_effect = lambda a, b, c, d: [a, b, c, d]
+            signal = 1
+            expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
+            actual = self.ifo.optimal_snr_squared(signal=signal)
+            self.assertListEqual(expected, actual)
+
+    def test_matched_filter_snr_squared(self):
+        """ Merely checks parameters are given in the right order """
+        with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
+            m.side_effect = lambda a, b, c, d: [b, [a, c, d]]
+            signal = 1
+            expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array,
+                                                           self.ifo.strain_data.duration]]
+            actual = self.ifo.matched_filter_snr_squared(signal=signal)
+            self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
+            self.assertListEqual(expected[1], actual[1])
 
 
 class TestInterferometerStrainData(unittest.TestCase):

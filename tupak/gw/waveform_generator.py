@@ -1,5 +1,3 @@
-import inspect
-
 from tupak.core import utils
 import numpy as np
 
@@ -51,6 +49,7 @@ class WaveformGenerator(object):
         self.start_time = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
+        self.__parameters_from_source_model()
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         self.parameter_conversion = parameter_conversion
@@ -205,22 +204,15 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
-        """ Does some introspection into the source_model to figure out the parameters if none are given.
-        """
-        self.__parameters_from_source_model()
         if isinstance(parameters, dict):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
 
     def __parameters_from_source_model(self):
         if self.frequency_domain_source_model is not None:
-            parameters = inspect.getargspec(self.frequency_domain_source_model).args
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
         elif self.time_domain_source_model is not None:
-            parameters = inspect.getargspec(self.time_domain_source_model).args
-            parameters.pop(0)
-            self.__parameters = dict.fromkeys(parameters)
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
 
     @property
     def duration(self):
