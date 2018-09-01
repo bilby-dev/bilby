@@ -1187,7 +1187,7 @@ class Interferometer(object):
             parameters['ra'],
             parameters['dec'],
             self.strain_data.start_time)
-        dt = self.strain_data.start_time - (parameters['geocent_time'] - time_shift)
+        dt = parameters['geocent_time'] + time_shift - self.strain_data.start_time
 
         signal_ifo = signal_ifo * np.exp(
             -1j * 2 * np.pi * dt * self.frequency_array)
