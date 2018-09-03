@@ -2,3 +2,4 @@ astropy
 lalsuite<=6.48.1.dev20180823
 gwpy
 theano
+cpnest
