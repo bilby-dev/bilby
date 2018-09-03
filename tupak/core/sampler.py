@@ -809,7 +809,13 @@ class Pymultinest(Sampler):
 
 
 class Cpnest(Sampler):
-    """ https://github.com/johnveitch/cpnest """
+    """
+    https://github.com/johnveitch/cpnest
+
+    TODO:
+        - allow custom jump proposals to be specified, ideally by parameter name
+        - figure out how to resume from a previous run
+    """
 
     @property
     def kwargs(self):
