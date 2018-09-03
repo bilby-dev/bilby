@@ -862,8 +862,8 @@ class Cpnest(Sampler):
             def _check_bounds(self):
                 for bound in self.bounds:
                     if not all(np.isfinite(bound)):
-                        raise(ValueError,
-                              'CPNest requires priors to have finite bounds.')
+                        raise ValueError(
+                            'CPNest requires priors to have finite bounds.')
 
         bounds = [[self.priors[key].minimum, self.priors[key].maximum]
                   for key in self.search_parameter_keys]

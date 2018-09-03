@@ -130,16 +130,21 @@ class TestSampler(unittest.TestCase):
 class TestCPNest(unittest.TestCase):
 
     def setUp(self):
-        self.likelihood = tupak.core.likelihood.Likelihood()
-        self.likelihood.parameters = dict()
-        self.priors = dict(a=tupak.prior.Uniform(0, 1))
+        def func(x, mu, sigma): return (mu-x) ** 2 / (2 * sigma**2)
+        self.likelihood = tupak.core.likelihood.GaussianLikelihood(
+            np.random.uniform(0, 1, 100), np.random.uniform(0, 1, 100),
+            func)
+
+    def tearDown(self):
+        del self.likelihood
 
     def test_cannot_run_with_gaussian_prior(self):
-        self.priors['b'] = tupak.prior.Gaussian(0, 1)
-        sampler = tupak.core.sampler.Sampler(
-            likelihood=self.likelihood, priors=self.priors,
+        priors = dict(mu=tupak.prior.Gaussian(0, 1),
+                      sigma=tupak.prior.Uniform(0, 1))
+        sampler = tupak.core.sampler.Cpnest(
+            likelihood=self.likelihood, priors=priors,
             external_sampler='cpnest')
-        self.assertRaises(ValueError, sampler._run_external_sampler())
+        self.assertRaises(ValueError, lambda: sampler._run_external_sampler())
 
 
 if __name__ == '__main__':
