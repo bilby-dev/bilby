@@ -127,5 +127,20 @@ class TestSampler(unittest.TestCase):
         self.assertDictEqual(sampler_copy.__dict__, self.sampler.__dict__)
 
 
+class TestCPNest(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = tupak.core.likelihood.Likelihood()
+        self.likelihood.parameters = dict()
+        self.priors = dict(a=tupak.prior.Uniform(0, 1))
+
+    def test_cannot_run_with_gaussian_prior(self):
+        self.priors['b'] = tupak.prior.Gaussian(0, 1)
+        sampler = tupak.core.sampler.Sampler(
+            likelihood=self.likelihood, priors=self.priors,
+            external_sampler='cpnest')
+        self.assertRaises(ValueError, sampler._run_external_sampler())
+
+
 if __name__ == '__main__':
     unittest.main()

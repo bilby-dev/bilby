@@ -841,6 +841,7 @@ class Cpnest(Sampler):
             def __init__(self, names, bounds):
                 self.names = names
                 self.bounds = bounds
+                self._check_bounds()
 
             @staticmethod
             def log_likelihood(x):
@@ -851,6 +852,12 @@ class Cpnest(Sampler):
             def log_prior(x):
                 theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_prior(theta)
+
+            def _check_bounds(self):
+                for bound in self.bounds:
+                    if not all(np.isfinite(bound)):
+                        raise(ValueError,
+                              'CPNest requires priors to have finite bounds.')
 
         bounds = [[self.priors[key].minimum, self.priors[key].maximum]
                   for key in self.search_parameter_keys]
