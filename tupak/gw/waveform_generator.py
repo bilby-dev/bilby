@@ -54,6 +54,7 @@ class WaveformGenerator(object):
         self.sampling_frequency = sampling_frequency
         self.parameter_conversion = parameter_conversion
         self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
+        self.__parameters=[]
         self.parameters = parameters
         if waveform_arguments is not None:
             self.waveform_arguments = waveform_arguments
