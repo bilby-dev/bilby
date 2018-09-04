@@ -1676,6 +1676,21 @@ class PowerSpectralDensity(object):
         self.__power_spectral_density = amplitude_spectral_density ** 2
         self._interpolate_power_spectral_density()
 
+    def _check_frequency_array_matches_density_array(self, density_array):
+        """Check the provided frequency and spectral density arrays match."""
+        try:
+            self.frequency_array - density_array
+        except ValueError as e:
+            raise (e, 'Provided spectral density does not match frequency array. Not updating.')
+
+    def _interpolate_power_spectral_density(self):
+        """Interpolate the loaded power spectral density so it can be resampled
+           for arbitrary frequency arrays.
+        """
+        self.power_spectral_density_interpolated = interp1d(
+            self.frequency_array, self.power_spectral_density, bounds_error=False,
+            fill_value=np.inf)
+
     @property
     def amplitude_spectral_density_file(self):
         """
@@ -1727,21 +1742,6 @@ class PowerSpectralDensity(object):
 
         self.frequency_array, self.power_spectral_density = np.genfromtxt(
             self.power_spectral_density_file).T
-
-    def _check_frequency_array_matches_density_array(self, density_array):
-        """Check the provided frequency and spectral density arrays match."""
-        try:
-            self.frequency_array - density_array
-        except ValueError as e:
-            raise (e, 'Provided spectral density does not match frequency array. Not updating.')
-
-    def _interpolate_power_spectral_density(self):
-        """Interpolate the loaded power spectral density so it can be resampled
-           for arbitrary frequency arrays.
-        """
-        self.power_spectral_density_interpolated = interp1d(
-            self.frequency_array, self.power_spectral_density, bounds_error=False,
-            fill_value=np.inf)
 
     def get_noise_realisation(self, sampling_frequency, duration):
         """
