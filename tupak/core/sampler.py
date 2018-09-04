@@ -1240,21 +1240,40 @@ class Pymc3(Sampler):
 
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
-            step_method = self.__kwargs.pop('step').lower()
+            self.step_method = self.__kwargs.pop('step')
 
-            if step_method not in step_methods:
-                raise ValueError("Using invalid step method '{}'".format(step_method))
+            # 'step' could be a dictionary of methods for different parameters, so check for this
+            if isinstance(self.step_method, (dict, OrderedDict)):
+                for key in self.step_method:
+                    if key not in self.__search_parameter_keys:
+                        raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
+                    else:
+                        if self.step_method[key].lower() not in step_methods:
+                            raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
+            else:
+                self.step_method = self.step_method.lower()
+
+                if self.step_method not in step_methods:
+                    raise ValueError("Using invalid step method '{}'".format(self.step_method))
         else:
-            step_method = None
+            self.step_method = None
 
         # initialise the PyMC3 model
         self.pymc3_model = pymc3.Model()
 
-        # set the step method
-        sm = None if step_method is None else pymc3.__dict__[step_methods[step_method]]()
-
         # set the prior
         self.set_prior()
+
+        # set the step method
+        if isinstance(self.step_method, (dict, OrderedDict)):
+            # create list of step methods (any not given will default to NUTS)
+            sm = []
+            with self.pymc3_model:
+                for key in self.step_method:
+                    curmethod = self.step_method[key].lower()
+                    sm.append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
+        else:
+            sm = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
@@ -1435,9 +1454,7 @@ class Pymc3(Sampler):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'sigma') or
                     not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
                 
                 if 'sigma' in self.pymc3_priors:
@@ -1451,7 +1468,7 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Normal('likelihood', mu=model, sd=self.likelihood.sigma,
@@ -1459,9 +1476,7 @@ class Pymc3(Sampler):
             elif isinstance(self.likelihood, PoissonLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Poisson Likelihood does not have all the correct attributes!")
                 
                 for key in self.pymc3_priors:
@@ -1469,16 +1484,14 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get rate function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Poisson('likelihood', mu=model, observed=self.likelihood.y)
             elif isinstance(self.likelihood, ExponentialLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Exponential Likelihood does not have all the correct attributes!")
 
                 for key in self.pymc3_priors:
@@ -1486,7 +1499,7 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get mean function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
@@ -1495,9 +1508,7 @@ class Pymc3(Sampler):
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
                     not hasattr(self.likelihood, 'nu') or
-                    not hasattr(self.likelihood, 'sigma') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'sigma')):
                     raise ValueError("StudentT Likelihood does not have all the correct attributes!")
 
                 if 'nu' in self.pymc3_priors:
@@ -1511,7 +1522,7 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)

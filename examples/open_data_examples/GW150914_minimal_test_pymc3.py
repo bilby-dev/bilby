@@ -28,6 +28,12 @@ prior['phase'] = Uniform(name='phase', minimum=0, maximum=2 * np.pi)
 prior['geocent_time'] = Uniform(1126259462.322, 1126259462.522, name='geocent_time')
 
 interferometers = tupak.gw.detector.get_event_data("GW150914")
-likelihood = tupak.gw.likelihood.get_binary_black_hole_likelihood(interferometers)
-result = tupak.run_sampler(likelihood, prior, label='GW150914', sampler='pymc3', draws=2000)
+
+waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        duration=interferometers.duration, sampling_frequency=interferometers.sampling_frequency,
+        frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+        parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
+
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator, time_marginalization=True, prior=prior)
+result = tupak.run_sampler(likelihood, prior, label='GW150914', sampler='pymc3', draws=50, tune=50)
 result.plot_corner()
