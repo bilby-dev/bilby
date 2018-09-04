@@ -129,6 +129,10 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
                                          parameter2=self.parameter2_value)
         self.assertDictEqual(expected_model_parameters, self.analytical_1d_likelihood.model_parameters)
 
+    def test_repr(self):
+        expected = 'Analytical1DLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
+        self.assertEqual(expected, repr(self.analytical_1d_likelihood))
+
 
 class TestGaussianLikelihood(unittest.TestCase):
 
