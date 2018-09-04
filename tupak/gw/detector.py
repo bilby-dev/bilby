@@ -1660,7 +1660,7 @@ class PowerSpectralDensity(object):
         if self.__power_spectral_density is not None:
             return self.__power_spectral_density
         else:
-            self.set_to_aLIGO()
+            self.set_from_aLIGO()
             return self.__power_spectral_density
 
     @power_spectral_density.setter
