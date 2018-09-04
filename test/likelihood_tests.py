@@ -19,6 +19,11 @@ class TestLikelihoodBase(unittest.TestCase):
     def tearDown(self):
         del self.likelihood
 
+    def test_repr(self):
+        self.likelihood = tupak.core.likelihood.Likelihood(parameters=['a', 'b'])
+        expected = 'Likelihood(parameters=[\'a\', \'b\'])'
+        self.assertEqual(expected, repr(self.likelihood))
+
     def test_base_log_likelihood(self):
         self.assertTrue(np.isnan(self.likelihood.log_likelihood()))
 
