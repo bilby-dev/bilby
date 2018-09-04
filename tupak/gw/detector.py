@@ -1562,7 +1562,6 @@ class PowerSpectralDensity(object):
 
         """
         power_spectral_density = cls(asd_file=asd_file)
-        power_spectral_density.import_amplitude_spectral_density()
         power_spectral_density.__check_file_was_asd_file()
         return power_spectral_density
 
@@ -1583,10 +1582,9 @@ class PowerSpectralDensity(object):
             File containing power spectral density, format 'f h_f'
 
         """
-        psd = cls(psd_file=psd_file)
-        psd.import_power_spectral_density()
-        psd.__check_file_was_psd_file()
-        return psd
+        power_spectral_density = cls(psd_file=psd_file)
+        power_spectral_density.__check_file_was_psd_file()
+        return power_spectral_density
 
     def __check_file_was_psd_file(self):
         if min(self.psd_array) > 1e-30:
@@ -1694,6 +1692,7 @@ class PowerSpectralDensity(object):
         if '/' not in asd_file:
             asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', asd_file)
         self.__asd_file = asd_file
+        self.import_amplitude_spectral_density()
 
     @property
     def psd_file(self):
@@ -1708,6 +1707,7 @@ class PowerSpectralDensity(object):
         if '/' not in psd_file:
             psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', psd_file)
         self.__psd_file = psd_file
+        self.import_power_spectral_density()
 
     def import_amplitude_spectral_density(self):
         """
