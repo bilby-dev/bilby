@@ -21,6 +21,9 @@ class Recalibrate(object):
         self.params = dict()
         self.prefix = prefix
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(prefix={})'.format(self.prefix)
+
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
 

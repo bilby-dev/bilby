@@ -11,6 +11,11 @@ class TestBaseClass(unittest.TestCase):
     def tearDown(self):
         del self.model
 
+    def test_repr(self):
+        expected = 'Recalibrate(prefix={})'.format('recalib_')
+        actual = repr(self.model)
+        self.assertEqual(expected, actual)
+
     def test_calibration_factor(self):
         frequency_array = np.linspace(20, 1024, 1000)
         cal_factor = self.model.get_calibration_factor(frequency_array)
