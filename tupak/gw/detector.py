@@ -1512,7 +1512,8 @@ class TriangularInterferometer(InterferometerList):
 
 class PowerSpectralDensity(object):
 
-    def __init__(self, **kwargs):
+    def __init__(self, frequency_array=None, power_spectral_density=None, amplitude_spectral_density=None,
+                 power_spectral_density_file=None, amplitude_spectral_density_file=None):
         """
         Instantiate a new PowerSpectralDensity object.
 
@@ -1524,10 +1525,9 @@ class PowerSpectralDensity(object):
 
         Example
         -------
-        Using the `set_from` method directly (here `psd_file` is a string
+        Using the `from` method directly (here `psd_file` is a string
         containing the path to the file to load):
-        >>> power_spectral_density = PowerSpectralDensity()
-        >>> power_spectral_density.set_from_power_spectral_density_file(psd_file)
+        >>> power_spectral_density = PowerSpectralDensity.from_power_spectral_density_file(psd_file)
 
         Alternatively (and equivalently) setting the psd_file directly:
         >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
@@ -1551,22 +1551,16 @@ class PowerSpectralDensity(object):
             Interpolated function of the PSD
 
         """
-        self.__power_spectral_density = None
-        self.__amplitude_spectral_density = None
+        self.__power_spectral_density = power_spectral_density
+        self.__amplitude_spectral_density = amplitude_spectral_density
+        self.power_spectral_density_file = power_spectral_density_file
+        self.amplitude_spectral_density_file = amplitude_spectral_density_file
 
-        self.frequency_array = []
+        self.frequency_array = frequency_array
         self.power_spectral_density_interpolated = None
 
-        for key in kwargs:
-            try:
-                expanded_key = (key.replace('psd', 'power_spectral_density')
-                                .replace('asd', 'amplitude_spectral_density'))
-                m = getattr(self, 'set_from_{}'.format(expanded_key))
-                m(**kwargs)
-            except AttributeError:
-                logger.info("Tried setting PSD from init kwarg {} and failed".format(key))
-
-    def set_from_amplitude_spectral_density_file(self, asd_file):
+    @classmethod
+    def from_amplitude_spectral_density_file(cls, asd_file):
         """ Set the amplitude spectral density from a given file
 
         Parameters
@@ -1575,9 +1569,8 @@ class PowerSpectralDensity(object):
             File containing amplitude spectral density, format 'f h_f'
 
         """
-
-        self.amplitude_spectral_density_file = asd_file
-        self.import_amplitude_spectral_density()
+        psd = cls(amplitude_spectral_density_file=asd_file)
+        psd.import_amplitude_spectral_density()
         if min(self.amplitude_spectral_density) < 1e-30:
             logger.warning("You specified an amplitude spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
@@ -1586,10 +1579,6 @@ class PowerSpectralDensity(object):
             logger.warning(
                 "You may have intended to provide this as a power spectral density.")
 
-    @classmethod
-    def from_amplitude_spectral_density_file(cls, asd_file):
-        psd = cls()
-        psd.set_from_amplitude_spectral_density_file(asd_file=asd_file)
         return psd
 
     @classmethod
