@@ -427,7 +427,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                .format(filter_freq))
+                    .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
@@ -807,6 +807,16 @@ class Interferometer(object):
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(name={}, power_spectral_density={}, minimum_frequency={}, ' \
+                                         'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
+                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
+                    float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
+                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
+                    float(self.yarm_tilt))
+
 
     @property
     def minimum_frequency(self):
