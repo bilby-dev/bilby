@@ -427,7 +427,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                .format(filter_freq))
+                    .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
@@ -1586,6 +1586,12 @@ class PowerSpectralDensity(object):
             logger.warning(
                 "You may have intended to provide this as a power spectral density.")
 
+    @classmethod
+    def from_amplitude_spectral_density_file(cls, asd_file):
+        psd = cls()
+        psd.set_from_amplitude_spectral_density_file(asd_file=asd_file)
+        return psd
+
     def set_from_power_spectral_density_file(self, psd_file):
         """ Set the power spectral density from a given file
 
@@ -1605,6 +1611,12 @@ class PowerSpectralDensity(object):
                 min(self.power_spectral_density)))
             logger.warning(
                 "You may have intended to provide this as an amplitude spectral density.")
+
+    @classmethod
+    def from_power_spectral_density_file(cls, psd_file):
+        psd = cls()
+        psd.set_from_power_spectral_density_file(psd_file=psd_file)
+        return psd
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
                             fft_length=4, sampling_frequency=4096, roll_off=0.2,
@@ -1640,20 +1652,48 @@ class PowerSpectralDensity(object):
         self.frequency_array = f
         self.power_spectral_density = psd
 
+    @classmethod
+    def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
+                        fft_length=4, sampling_frequency=4096, roll_off=0.2,
+                        channel=None):
+        psd = cls()
+        psd.set_from_frame_file(frame_file=frame_file, psd_start_time=psd_start_time, psd_duration=psd_duration,
+                                fft_length=fft_length, sampling_frequency=sampling_frequency, roll_off=roll_off,
+                                channel=channel)
+        return psd
+
     def set_from_amplitude_spectral_density_array(self, frequency_array,
                                                   asd_array):
         self.frequency_array = frequency_array
         self.amplitude_spectral_density = asd_array
 
+    @classmethod
+    def from_amplitude_spectral_density_array(cls, frequency_array, asd_array):
+        psd = cls()
+        psd.set_from_amplitude_spectral_density_array(frequency_array=frequency_array, asd_array=asd_array)
+        return psd
+
     def set_from_power_spectral_density_array(self, frequency_array, psd_array):
         self.frequency_array = frequency_array
         self.power_spectral_density = psd_array
+
+    @classmethod
+    def from_power_spectral_density_array(cls, frequency_array, psd_array):
+        psd = cls()
+        psd.set_from_power_spectral_density_array(frequency_array=frequency_array, psd_array=psd_array)
+        return psd
 
     def set_from_aLIGO(self):
         psd_file = 'aLIGO_ZERO_DET_high_P_psd.txt'
         logger.info("No power spectral density provided, using aLIGO,"
                     "zero detuning, high power.")
         self.set_from_power_spectral_density_file(psd_file)
+
+    @classmethod
+    def from_aligo(cls):
+        psd = cls()
+        psd.set_from_aLIGO()
+        return psd
 
     @property
     def power_spectral_density(self):
