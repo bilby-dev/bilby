@@ -104,6 +104,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
     def test_set_func(self):
         def new_func(x):
             return x
+
         with self.assertRaises(AttributeError):
             # noinspection PyPropertyAccess
             self.analytical_1d_likelihood.func = new_func
@@ -193,7 +194,7 @@ class TestGaussianLikelihood(unittest.TestCase):
     def test_repr(self):
         likelihood = tupak.core.likelihood.GaussianLikelihood(
             self.x, self.y, self.function, sigma=self.sigma)
-        expected = 'GaussianLikelihood(x={}, y={}, func={}, sigma={})'\
+        expected = 'GaussianLikelihood(x={}, y={}, func={}, sigma={})' \
             .format(self.x, self.y, self.function.__name__, self.sigma)
         self.assertEqual(expected, repr(likelihood))
 
@@ -278,7 +279,7 @@ class TestStudentTLikelihood(unittest.TestCase):
         sigma = 0.5
         likelihood = tupak.core.likelihood.StudentTLikelihood(
             self.x, self.y, self.function, nu=nu, sigma=sigma)
-        expected = 'StudentTLikelihood(x={}, y={}, func={}, nu={}, sigma={})'\
+        expected = 'StudentTLikelihood(x={}, y={}, func={}, nu={}, sigma={})' \
             .format(self.x, self.y, self.function.__name__, nu, sigma)
         self.assertEqual(expected, repr(likelihood))
 
@@ -510,7 +511,26 @@ class TestGravitationalWaveTransient(unittest.TestCase):
                    'time_marginalization={}, distance_marginalization={}, phase_marginalization={}, ' \
                    'prior={})'.format(self.interferometers, self.waveform_generator, self.time_marginalization,
                                       self.distance_marginalization, self.phase_marginalization, self.prior)
-        print(expected)
+        self.assertEqual(expected, repr(self.gw_transient))
+
+
+class TestBasicGravitationalWaveTransient(unittest.TestCase):
+
+    def setUp(self):
+        self.interferometers = [tupak.gw.detector.get_empty_interferometer('H1'),
+                                tupak.gw.detector.get_empty_interferometer('L1')]
+        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(duration=2, sampling_frequency=100)
+        self.gw_transient = tupak.gw.likelihood.BasicGravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator)
+
+    def tearDown(self):
+        del self.interferometers
+        del self.waveform_generator
+
+    def test_repr(self):
+        expected = 'BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})'.format(
+            self.interferometers, self.waveform_generator)
         self.assertEqual(expected, repr(self.gw_transient))
 
 
