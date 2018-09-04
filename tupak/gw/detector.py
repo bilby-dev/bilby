@@ -1676,6 +1676,20 @@ class PowerSpectralDensity(object):
         self.__power_spectral_density = amplitude_spectral_density ** 2
         self._interpolate_power_spectral_density()
 
+    @property
+    def amplitude_spectral_density_file(self):
+        """
+        Test if the file contains a path (i.e., contains '/').
+        If not assume the file is in the default directory.
+        """
+        return self.__amplitude_spectral_density_file
+
+    @amplitude_spectral_density_file.setter
+    def amplitude_spectral_density_file(self, asd_file):
+        if '/' not in asd_file:
+            asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', asd_file)
+        self.__amplitude_spectral_density_file = asd_file
+
     def import_amplitude_spectral_density(self):
         """
         Automagically load one of the amplitude spectral density curves
@@ -1685,12 +1699,7 @@ class PowerSpectralDensity(object):
         If not assume the file is in the default directory.
         """
 
-        if '/' not in self.amplitude_spectral_density_file:
-            self.amplitude_spectral_density_file = os.path.join(
-                os.path.dirname(__file__), 'noise_curves',
-                self.amplitude_spectral_density_file)
-
-        self.frequency_array, self.amplitude_spectral_density = np.genfromtxt(
+        self. frequency_array, self.amplitude_spectral_density = np.genfromtxt(
             self.amplitude_spectral_density_file).T
 
     def import_power_spectral_density(self):
