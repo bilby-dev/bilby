@@ -1548,7 +1548,7 @@ class PowerSpectralDensity(object):
         self.asd_file = asd_file
 
         self.frequency_array = frequency_array
-        self.power_spectral_density_interpolated = None
+        self.__power_spectral_density_interpolated = None
 
     @classmethod
     def from_amplitude_spectral_density_file(cls, asd_file):
@@ -1644,10 +1644,10 @@ class PowerSpectralDensity(object):
 
     @psd_array.setter
     def psd_array(self, psd_array):
-        self._check_frequency_array_matches_density_array(psd_array)
+        self.__check_frequency_array_matches_density_array(psd_array)
         self.__psd_array = psd_array
         self.__asd_array = psd_array ** 0.5
-        self._interpolate_power_spectral_density()
+        self.__interpolate_power_spectral_density()
 
     @property
     def asd_array(self):
@@ -1655,25 +1655,29 @@ class PowerSpectralDensity(object):
 
     @asd_array.setter
     def asd_array(self, asd_array):
-        self._check_frequency_array_matches_density_array(asd_array)
+        self.__check_frequency_array_matches_density_array(asd_array)
         self.__asd_array = asd_array
         self.__psd_array = asd_array ** 2
-        self._interpolate_power_spectral_density()
+        self.__interpolate_power_spectral_density()
 
-    def _check_frequency_array_matches_density_array(self, density_array):
+    def __check_frequency_array_matches_density_array(self, density_array):
         if len(self.frequency_array) != len(density_array):
             raise ValueError('Provided spectral density does not match frequency array. Not updating.\n'
                              'Length spectral density {}\n Length frequency array {}\n'
                              .format(density_array, self.frequency_array))
 
-    def _interpolate_power_spectral_density(self):
+    def __interpolate_power_spectral_density(self):
         """Interpolate the loaded power spectral density so it can be resampled
            for arbitrary frequency arrays.
         """
-        self.power_spectral_density_interpolated = interp1d(self.frequency_array,
-                                                            self.psd_array,
-                                                            bounds_error=False,
-                                                            fill_value=np.inf)
+        self.__power_spectral_density_interpolated = interp1d(self.frequency_array,
+                                                              self.psd_array,
+                                                              bounds_error=False,
+                                                              fill_value=np.inf)
+
+    @property
+    def power_spectral_density_interpolated(self):
+        return self.__power_spectral_density_interpolated
 
     @property
     def asd_file(self):
