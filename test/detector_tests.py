@@ -311,7 +311,7 @@ class TestDetector(unittest.TestCase):
             self.assertListEqual(expected[1], actual[1])
 
     def test_repr(self):
-        expected = 'Interferometer(name={}, power_spectral_density={}, minimum_frequency={}, ' \
+        expected = 'Interferometer(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
                    'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
                    'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
             .format(self.name, self.power_spectral_density, float(self.minimum_frequency),

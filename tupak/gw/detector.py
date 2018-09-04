@@ -809,7 +809,7 @@ class Interferometer(object):
             maximum_frequency=maximum_frequency)
 
     def __repr__(self):
-        return self.__class__.__name__ + '(name={}, power_spectral_density={}, minimum_frequency={}, ' \
+        return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
                                          'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
                                          'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
             .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
