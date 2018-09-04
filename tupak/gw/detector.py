@@ -1525,7 +1525,6 @@ class PowerSpectralDensity(object):
 
         Alternatively (and equivalently) setting the psd_file directly:
         >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
-        >>> power_spectral_density.import_power_spectral_density()
 
         Attributes
         ----------
@@ -1623,8 +1622,7 @@ class PowerSpectralDensity(object):
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
         frequency_array, psd_array = strain.create_power_spectral_density(fft_length=fft_length)
-        return cls(frequency_array=frequency_array,
-                   psd_array=psd_array)
+        return cls(frequency_array=frequency_array, psd_array=psd_array)
 
     @classmethod
     def from_amplitude_spectral_density_array(cls, frequency_array, asd_array):
@@ -1648,8 +1646,8 @@ class PowerSpectralDensity(object):
     def psd_array(self, psd_array):
         self._check_frequency_array_matches_density_array(psd_array)
         self.__psd_array = psd_array
-        self._interpolate_power_spectral_density()
         self.__asd_array = psd_array ** 0.5
+        self._interpolate_power_spectral_density()
 
     @property
     def asd_array(self):
@@ -1663,8 +1661,6 @@ class PowerSpectralDensity(object):
         self._interpolate_power_spectral_density()
 
     def _check_frequency_array_matches_density_array(self, density_array):
-        """Check the provided frequency and spectral density arrays match."""
-
         if len(self.frequency_array) != len(density_array):
             raise ValueError('Provided spectral density does not match frequency array. Not updating.\n'
                              'Length spectral density {}\n Length frequency array {}\n'
