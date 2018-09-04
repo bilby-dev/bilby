@@ -1,0 +1,16 @@
+.coverage
+build/
+dist/
+docs/_*
+tupak.egg-info/
+MANIFEST
+*.pyc
+*.png
+*.h5
+*.h5.old
+*.txt
+*.log
+*.dat
+*.version
+*.ipynb_checkpoints
+outdir/*

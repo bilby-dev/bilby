@@ -44,7 +44,7 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4051.754299050376, 3)
+                               -4048.5113284032036, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -116,7 +116,7 @@ class TestGWTransient(unittest.TestCase):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4051.754299050375, 3)
+                               -4048.5113284032036, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""

@@ -31,6 +31,17 @@ Changes currently on master, but not under a tag.
 - Clean up of `detectors.py`: adds an `InterferometerStrainData` to handle strain data and `InterferometerSet` to handle multiple interferometers. All data setting should primarily be done through the `Interferometer.set_strain_data..` methods.
 - Fix the comments and units of `nfft` and `infft` and general improvement to documentation of data.
 - Fixed a bug in create_time_series
+- Enable marginalisation over calibration uncertainty in Inteferemeter data.
+- Fixed the normalisation of the marginalised `GravtitationalWaveTransient` likelihood.
+- Fixed a bug in the detector response.
+- Specifying detectors by name from the default command line options has been removed.
+- The prior on polarisation phase has been reduced to [0, pi].
+- More prior distributions added.
+- More samplers supported, pymc3
+- More core likelihoods, Poisson, Student's-t
+- Add support for eccentric BBH
+- Result print function fixed
+- Add snr functions as methods of `Interferometer`
 
 ## [0.2.0] 2018-06-17
 

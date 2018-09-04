@@ -11,7 +11,7 @@ luminosity_distance =  tupak.gw.prior.UniformComovingVolume(name='luminosity_dis
 dec =  Cosine(name='dec')
 ra =  Uniform(name='ra', minimum=0, maximum=2 * np.pi)
 iota =  Sine(name='iota')
-psi =  Uniform(name='psi', minimum=0, maximum=2 * np.pi)
+psi =  Uniform(name='psi', minimum=0, maximum=np.pi)
 phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi)
 geocent_time = Uniform(1126259462.322, 1126259462.522, name='geocent_time')
 # These are the calibration parameters as described in

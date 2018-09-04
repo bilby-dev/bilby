@@ -357,14 +357,18 @@ class Result(dict):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        data_frame = pd.DataFrame(
-            self.samples, columns=self.search_parameter_keys)
-        data_frame['log_likelihood'] = getattr(self, 'log_likelihood_evaluations', np.nan)
+        if hasattr(self, 'posterior') is False:
+            data_frame = pd.DataFrame(
+                self.samples, columns=self.search_parameter_keys)
+            data_frame['log_likelihood'] = getattr(
+                self, 'log_likelihood_evaluations', np.nan)
+            # We save the samples in the posterior and remove the array of samples
+            del self.samples
+        else:
+            data_frame = self.posterior
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
-        # We save the samples in the posterior and remove the array of samples
-        del self.samples
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
@@ -377,7 +381,7 @@ class Result(dict):
         self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
                                      + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
                                             1 + self.posterior.q)
-        self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
+        self.posterior['chi_p'] = np.maximum(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 
