@@ -71,6 +71,9 @@ class Analytical1DLikelihood(Likelihood):
         self.__func = func
         self.__function_keys = list(self.parameters.keys())
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
+
     @property
     def func(self):
         """ Make func read-only """
