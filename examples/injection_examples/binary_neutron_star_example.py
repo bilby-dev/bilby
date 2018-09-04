@@ -18,8 +18,7 @@ label = 'bns_example'
 tupak.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
-np.random.seed(881705)
-
+np.random.seed(88170235)
 
 # We are going to inject a binary neutron star waveform.  We first establish a dictionary of parameters that
 # includes all of the different waveform parameters, including masses of the two black holes (mass_1, mass_2),
@@ -31,12 +30,12 @@ injection_parameters = dict(mass_1=1.5, mass_2=1.3, a_1=0.0, a_2=0.0, tilt_1=0.0
                             ra=1.375, dec=-1.2108, lambda1=400, lambda2=450)
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into. For the 
-# TaylorF2 waveform we cut the waveform at the isco frequency
-duration = 4.
+# TaylorF2 waveform, we cut the signal close to the isco frequency
+duration = 8
 sampling_frequency = 2*1570.
-start_time = injection_parameters['geocent_time'] // 4 * 4
+start_time = injection_parameters['geocent_time'] + 2 - duration
 
-# Fixed arguments passed into the source model
+# Fixed arguments passed into the source model. The analysis is started at 40 Hz.
 waveform_arguments = dict(waveform_approximant='TaylorF2',
                           reference_frequency=50.,minimum_frequency=40.0)
 
@@ -49,7 +48,7 @@ waveform_generator = tupak.gw.WaveformGenerator(duration=duration,
 hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
-# and Virgo (V1)).  These default to their design sensitivity
+# and Virgo (V1)).  These default to their design sensitivity and start at 40 Hz.
 H1 = tupak.gw.detector.get_empty_interferometer('H1')
 H1.minimum_frequency = 40
 H1.set_strain_data_from_power_spectral_density(sampling_frequency=sampling_frequency, duration=duration,
