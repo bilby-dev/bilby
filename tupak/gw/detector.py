@@ -1690,6 +1690,20 @@ class PowerSpectralDensity(object):
             asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', asd_file)
         self.__amplitude_spectral_density_file = asd_file
 
+    @property
+    def power_spectral_density_file(self):
+        """
+        Test if the file contains a path (i.e., contains '/').
+        If not assume the file is in the default directory.
+        """
+        return self.__power_spectral_density_file
+
+    @power_spectral_density_file.setter
+    def power_spectral_density_file(self, psd_file):
+        if '/' not in psd_file:
+            psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', psd_file)
+        self.__power_spectral_density_file = psd_file
+
     def import_amplitude_spectral_density(self):
         """
         Automagically load one of the amplitude spectral density curves
@@ -1710,10 +1724,7 @@ class PowerSpectralDensity(object):
         Test if the file contains a path (i.e., contains '/').
         If not assume the file is in the default directory.
         """
-        if '/' not in self.power_spectral_density_file:
-            self.power_spectral_density_file = os.path.join(
-                os.path.dirname(__file__), 'noise_curves',
-                self.power_spectral_density_file)
+
         self.frequency_array, self.power_spectral_density = np.genfromtxt(
             self.power_spectral_density_file).T
 
