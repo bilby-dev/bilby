@@ -82,6 +82,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._setup_distance_marginalization()
             prior['luminosity_distance'] = float(self._ref_dist)
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\ttime_marginalization={}, ' \
+                                         'distance_marginalization={}, phase_marginalization={}, prior={})'\
+            .format(self.interferometers, self.waveform_generator, self.time_marginalization,
+                    self.distance_marginalization, self.phase_marginalization, self.prior)
+
     def _check_set_duration_and_sampling_frequency_of_waveform_generator(self):
         """ Check the waveform_generator has the same duration and
         sampling_frequency as the interferometers. If they are unset, then
