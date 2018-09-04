@@ -12,8 +12,9 @@ class TestBaseClass(unittest.TestCase):
         del self.model
 
     def test_repr(self):
-        expected = 'Recalibrate(prefix={})'.format('recalib_')
+        expected = 'Recalibrate(prefix={})'.format('\'recalib_\'')
         actual = repr(self.model)
+        print(expected)
         self.assertEqual(expected, actual)
 
     def test_calibration_factor(self):
