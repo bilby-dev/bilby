@@ -1652,11 +1652,7 @@ class PowerSpectralDensity(object):
 
     @property
     def psd_array(self):
-        if self.__psd_array is not None:
-            return self.__psd_array
-        else:
-            self.set_from_aLIGO()
-            return self.__psd_array
+        return self.__psd_array
 
     @psd_array.setter
     def psd_array(self, psd_array):
