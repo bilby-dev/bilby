@@ -1592,7 +1592,8 @@ class PowerSpectralDensity(object):
         psd.set_from_amplitude_spectral_density_file(asd_file=asd_file)
         return psd
 
-    def set_from_power_spectral_density_file(self, psd_file):
+    @classmethod
+    def from_power_spectral_density_file(cls, psd_file):
         """ Set the power spectral density from a given file
 
         Parameters
@@ -1601,9 +1602,8 @@ class PowerSpectralDensity(object):
             File containing power spectral density, format 'f h_f'
 
         """
-
-        self.power_spectral_density_file = psd_file
-        self.import_power_spectral_density()
+        psd = cls(power_spectral_density_file=psd_file)
+        psd.import_power_spectral_density()
         if min(self.power_spectral_density) > 1e-30:
             logger.warning("You specified a power spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
@@ -1612,15 +1612,12 @@ class PowerSpectralDensity(object):
             logger.warning(
                 "You may have intended to provide this as an amplitude spectral density.")
 
-    @classmethod
-    def from_power_spectral_density_file(cls, psd_file):
-        psd = cls()
-        psd.set_from_power_spectral_density_file(psd_file=psd_file)
         return psd
 
-    def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
-                            fft_length=4, sampling_frequency=4096, roll_off=0.2,
-                            channel=None):
+    @classmethod
+    def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
+                        fft_length=4, sampling_frequency=4096, roll_off=0.2,
+                        channel=None):
         """ Generate power spectral density from a frame file
 
         Parameters
@@ -1642,58 +1639,27 @@ class PowerSpectralDensity(object):
             Name of channel to use to generate PSD.
 
         """
-
         strain = InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
-
-        f, psd = strain.create_power_spectral_density(fft_length=fft_length)
-        self.frequency_array = f
-        self.power_spectral_density = psd
-
-    @classmethod
-    def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
-                        fft_length=4, sampling_frequency=4096, roll_off=0.2,
-                        channel=None):
-        psd = cls()
-        psd.set_from_frame_file(frame_file=frame_file, psd_start_time=psd_start_time, psd_duration=psd_duration,
-                                fft_length=fft_length, sampling_frequency=sampling_frequency, roll_off=roll_off,
-                                channel=channel)
-        return psd
-
-    def set_from_amplitude_spectral_density_array(self, frequency_array,
-                                                  asd_array):
-        self.frequency_array = frequency_array
-        self.amplitude_spectral_density = asd_array
+        frequency_array, power_spectral_density = strain.create_power_spectral_density(fft_length=fft_length)
+        return cls(frequency_array=frequency_array,
+                   power_spectral_density=power_spectral_density)
 
     @classmethod
     def from_amplitude_spectral_density_array(cls, frequency_array, asd_array):
-        psd = cls()
-        psd.set_from_amplitude_spectral_density_array(frequency_array=frequency_array, asd_array=asd_array)
-        return psd
-
-    def set_from_power_spectral_density_array(self, frequency_array, psd_array):
-        self.frequency_array = frequency_array
-        self.power_spectral_density = psd_array
+        return cls(frequency_array=frequency_array, amplitude_spectral_density=asd_array)
 
     @classmethod
     def from_power_spectral_density_array(cls, frequency_array, psd_array):
-        psd = cls()
-        psd.set_from_power_spectral_density_array(frequency_array=frequency_array, psd_array=psd_array)
-        return psd
-
-    def set_from_aLIGO(self):
-        psd_file = 'aLIGO_ZERO_DET_high_P_psd.txt'
-        logger.info("No power spectral density provided, using aLIGO,"
-                    "zero detuning, high power.")
-        self.set_from_power_spectral_density_file(psd_file)
+        return cls(frequency_array=frequency_array, power_spectral_density=psd_array)
 
     @classmethod
     def from_aligo(cls):
-        psd = cls()
-        psd.set_from_aLIGO()
-        return psd
+        logger.info("No power spectral density provided, using aLIGO,"
+                    "zero detuning, high power.")
+        return cls.from_power_spectral_density_file(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
 
     @property
     def power_spectral_density(self):
@@ -1929,7 +1895,7 @@ def get_interferometer_with_open_data(
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity(
-        psd_array=psd_array, frequency_array=psd_frequencies)
+        power_spectral_density=psd_array, frequency_array=psd_frequencies)
     interferometer.strain_data = strain
 
     if plot:
@@ -1994,7 +1960,7 @@ def get_interferometer_with_fake_noise_and_injection(
         start_time = injection_parameters['geocent_time'] + 2 - duration
 
     interferometer = get_empty_interferometer(name)
-    interferometer.power_spectral_density.set_from_aLIGO()
+    interferometer.power_spectral_density = PowerSpectralDensity.from_aligo()
     if zero_noise:
         interferometer.set_strain_data_from_zero_noise(
             sampling_frequency=sampling_frequency, duration=duration,
