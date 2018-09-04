@@ -1569,17 +1569,17 @@ class PowerSpectralDensity(object):
             File containing amplitude spectral density, format 'f h_f'
 
         """
-        psd = cls(asd_file=asd_file)
-        psd.import_amplitude_spectral_density()
+        power_spectral_density = cls(asd_file=asd_file)
+        power_spectral_density.import_amplitude_spectral_density()
+        power_spectral_density.__check_file_was_asd_file()
+        return power_spectral_density
+
+    def __check_file_was_asd_file(self):
         if min(self.asd_array) < 1e-30:
             logger.warning("You specified an amplitude spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(
-                min(self.asd_array)))
-            logger.warning(
-                "You may have intended to provide this as a power spectral density.")
-
-        return psd
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.asd_array)))
+            logger.warning("You may have intended to provide this as a power spectral density.")
 
     @classmethod
     def from_power_spectral_density_file(cls, psd_file):
@@ -1593,15 +1593,15 @@ class PowerSpectralDensity(object):
         """
         psd = cls(psd_file=psd_file)
         psd.import_power_spectral_density()
+        psd.__check_file_was_psd_file()
+        return psd
+
+    def __check_file_was_psd_file(self):
         if min(self.psd_array) > 1e-30:
             logger.warning("You specified a power spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(
-                min(self.psd_array)))
-            logger.warning(
-                "You may have intended to provide this as an amplitude spectral density.")
-
-        return psd
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.psd_array)))
+            logger.warning("You may have intended to provide this as an amplitude spectral density.")
 
     @classmethod
     def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
