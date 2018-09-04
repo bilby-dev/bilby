@@ -254,7 +254,7 @@ def supernova_pca_model(
     return {'plus': h_plus, 'cross': h_cross}
 
 def lal_binary_neutron_star(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, a_2,
         iota, phase, ra, dec, geocent_time, psi, lambda1, lambda2, **kwargs):
     """ A Binary Black Hole waveform model using lalsimulation
 
@@ -269,17 +269,9 @@ def lal_binary_neutron_star(
     luminosity_distance: float
         The luminosity distance in megaparsec
     a_1: float
-        Dimensionless primary spin magnitude
-    tilt_1: float
-        Primary tilt angle. TaylorF2 and IMRPhenomD_NRTidal only handle aligned spin, set this value to 0
-    phi_12: float
-        TaylorF2 and IMRPhenomD_NRTidal only handle aligned spin, set this value to 0
+        Dimensionless spin magnitude
     a_2: float
         Dimensionless secondary spin magnitude. 
-    tilt_2: float
-        Secondary tilt angle. TaylorF2 and IMRPhenomD_NRTidal only handle aligned spin, set this value to 0
-    phi_jl: float
-        TaylorF2 and IMRPhenomD_NRTidal only handle aligned spin, set this value to 0
     iota: float
         Orbital inclination
     phase: float
@@ -319,15 +311,12 @@ def lal_binary_neutron_star(
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    if tilt_1 == 0 and tilt_2 == 0 and phi_12 == 0 and phi_jl==0:
-        spin_1x = 0
-        spin_1y = 0
-        spin_1z = a_1
-        spin_2x = 0
-        spin_2y = 0
-        spin_2z = a_2
-    else:
-        raise ValueError('The waveform approximants TaylorF2 and IMRPhenomD_NRTidal only support aligned spins')
+    spin_1x = 0
+    spin_1y = 0
+    spin_1z = a_1
+    spin_2x = 0
+    spin_2y = 0
+    spin_2z = a_2
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
