@@ -1517,12 +1517,6 @@ class PowerSpectralDensity(object):
         """
         Instantiate a new PowerSpectralDensity object.
 
-        If called with no argument, `PowerSpectralDensity()` will return an
-        empty instance which can be filled with one of the `set_from` methods.
-        You can also initialise a new PowerSpectralDensity object giving the
-        arguments of any `set_from` method and an attempt will be made to use
-        this information to load/create the power spectral density.
-
         Example
         -------
         Using the `from` method directly (here `psd_file` is a string
@@ -1531,21 +1525,19 @@ class PowerSpectralDensity(object):
 
         Alternatively (and equivalently) setting the psd_file directly:
         >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
-
-        Note: for the "direct" method to work, you must provide the input
-        as a keyword argument as above.
+        >>> power_spectral_density.import_power_spectral_density()
 
         Attributes
         ----------
-        amplitude_spectral_density: array_like
+        asd_array: array_like
             Array representation of the ASD
-        amplitude_spectral_density_file: str
+        asd_file: str
             Name of the ASD file
         frequency_array: array_like
             Array containing the frequencies of the ASD/PSD values
-        power_spectral_density: array_like
+        psd_array: array_like
             Array representation of the PSD
-        power_spectral_density_file: str
+        psd_file: str
             Name of the PSD file
         power_spectral_density_interpolated: scipy.interpolated.interp1d
             Interpolated function of the PSD
