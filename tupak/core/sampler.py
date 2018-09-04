@@ -385,6 +385,48 @@ class Sampler(object):
             logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
+    def setup_nburn(self):
+        """ Handles calculating nburn, either from a given value or inferred """
+        if type(self.nburn) in [float, int]:
+            self.nburn = int(self.nburn)
+            logger.info("Discarding {} steps for burn-in".format(self.nburn))
+        elif self.result.max_autocorrelation_time is None:
+            self.nburn = int(self.burn_in_fraction * self.nsteps)
+            logger.info("Autocorrelation time not calculated, discarding {} "
+                        " steps for burn-in".format(self.nburn))
+        else:
+            self.nburn = int(
+                self.burn_in_act * self.result.max_autocorrelation_time)
+            logger.info("Discarding {} steps for burn-in, estimated from "
+                        "autocorr".format(self.nburn))
+
+    def calculate_autocorrelation(self, samples, c=3):
+        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
+
+        Parameters
+        ----------
+        samples: array_like
+            A chain of samples.
+        c: float
+            The minimum number of autocorrelation times needed to trust the
+            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
+        """
+
+        try:
+            import emcee
+        except ImportError:
+            self.result.max_autocorrelation_time = None
+            logger.info("emcee not available, so unable to calculate autocorr time")
+
+        try:
+            self.result.max_autocorrelation_time = int(np.max(
+                emcee.autocorr.integrated_time(samples, c=c)))
+            logger.info("Max autocorr time = {}".format(
+                self.result.max_autocorrelation_time))
+        except emcee.autocorr.AutocorrError as e:
+            self.result.max_autocorrelation_time = None
+            logger.info("Unable to calculate autocorr time: {}".format(e))
+
 
 class Nestle(Sampler):
 
@@ -923,7 +965,7 @@ class Emcee(Sampler):
             pass
 
         self.result.sampler_output = np.nan
-        self.calculate_autocorrelation(sampler)
+        self.calculate_autocorrelation(sampler.chain[:, :, :].reshape((-1, self.ndim)))
         self.setup_nburn()
         self.result.nburn = self.nburn
         self.result.samples = sampler.chain[:, self.nburn:, :].reshape(
@@ -939,41 +981,6 @@ class Emcee(Sampler):
             return -np.inf
         else:
             return self.log_likelihood(theta) + p
-
-    def setup_nburn(self):
-        """ Handles calculating nburn, either from a given value or inferred """
-        if type(self.nburn) in [float, int]:
-            self.nburn = int(self.nburn)
-            logger.info("Discarding {} steps for burn-in".format(self.nburn))
-        elif self.result.max_autocorrelation_time is None:
-            self.nburn = int(self.burn_in_fraction * self.nsteps)
-            logger.info("Autocorrelation time not calculated, discarding {} "
-                        " steps for burn-in".format(self.nburn))
-        else:
-            self.nburn = int(
-                self.burn_in_act * self.result.max_autocorrelation_time)
-            logger.info("Discarding {} steps for burn-in, estimated from "
-                        "autocorr".format(self.nburn))
-
-    def calculate_autocorrelation(self, sampler, c=3):
-        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
-
-        Parameters
-        ----------
-        c: float
-            The minimum number of autocorrelation times needed to trust the
-            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
-        """
-
-        import emcee
-        try:
-            self.result.max_autocorrelation_time = int(np.max(
-                sampler.get_autocorr_time(c=c)))
-            logger.info("Max autocorr time = {}".format(
-                self.result.max_autocorrelation_time))
-        except emcee.autocorr.AutocorrError as e:
-            self.result.max_autocorrelation_time = None
-            logger.info("Unable to calculate autocorr time: {}".format(e))
 
 
 class Ptemcee(Emcee):
@@ -1518,26 +1525,6 @@ class Pymc3(Sampler):
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
             else:
                 raise ValueError("Unknown likelihood has been provided")
-
-    def calculate_autocorrelation(self, samples, c=3):
-        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
-
-        Parameters
-        ----------
-        c: float
-            The minimum number of autocorrelation times needed to trust the
-            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
-        """
-
-        import emcee
-        try:
-            self.result.max_autocorrelation_time = int(np.max(
-                emcee.autocorr.integrated_time(samples, c=c)))
-            logger.info("Max autocorr time = {}".format(
-                self.result.max_autocorrelation_time))
-        except emcee.autocorr.AutocorrError as e:
-            self.result.max_autocorrelation_time = None
-            logger.info("Unable to calculate autocorr time: {}".format(e))
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
