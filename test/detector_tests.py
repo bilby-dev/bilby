@@ -310,6 +310,14 @@ class TestDetector(unittest.TestCase):
             self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
             self.assertListEqual(expected[1], actual[1])
 
+    def test_repr(self):
+        expected = 'Interferometer(name={}, power_spectral_density={} minimum_frequency={}, ' \
+                          'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
+                          'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(self.name, self.power_spectral_density, self.minimum_frequency, self.maximum_frequency, self.length,
+                    self.latitude, self.longitude, self.elevation, self.xarm_azimuth, self.yarm_azimuth, self.xarm_tilt,
+                    self.yarm_tilt)
+        self.assertEqual(expected, repr(self.ifo))
 
 class TestInterferometerStrainData(unittest.TestCase):
 
@@ -542,10 +550,10 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_frequency_domain_strain_when_set(self):
         self.ifosd.sampling_frequency = 200
         self.ifosd.duration = 4
-        expected_strain = self.ifosd.frequency_array*self.ifosd.frequency_mask
+        expected_strain = self.ifosd.frequency_array * self.ifosd.frequency_mask
         self.ifosd._frequency_domain_strain = expected_strain
         self.assertTrue(np.array_equal(expected_strain,
-                                        self.ifosd.frequency_domain_strain))
+                                       self.ifosd.frequency_domain_strain))
 
     @patch('tupak.core.utils.nfft')
     def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
