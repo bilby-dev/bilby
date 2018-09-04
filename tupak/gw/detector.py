@@ -1331,7 +1331,7 @@ class Interferometer(object):
         array_like: An array representation of the PSD
 
         """
-        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array) \
+        return self.power_spectral_density.__power_spectral_density_interpolated(self.frequency_array) \
                * self.strain_data.window_factor
 
     @property
@@ -1681,54 +1681,40 @@ class PowerSpectralDensity(object):
 
     @property
     def asd_file(self):
-        """
-        Test if the file contains a path (i.e., contains '/').
-        If not assume the file is in the default directory.
-        """
         return self.__asd_file
 
     @asd_file.setter
     def asd_file(self, asd_file):
-        if '/' not in asd_file:
-            asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', asd_file)
+        asd_file = self.__validate_file_name(file=asd_file)
         self.__asd_file = asd_file
-        self.import_amplitude_spectral_density()
+        self.__import_amplitude_spectral_density()
 
     @property
     def psd_file(self):
-        """
-        Test if the file contains a path (i.e., contains '/').
-        If not assume the file is in the default directory.
-        """
         return self.__psd_file
 
     @psd_file.setter
     def psd_file(self, psd_file):
-        if '/' not in psd_file:
-            psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', psd_file)
+        psd_file = self.__validate_file_name(file=psd_file)
         self.__psd_file = psd_file
-        self.import_power_spectral_density()
+        self.__import_power_spectral_density()
 
-    def import_amplitude_spectral_density(self):
+    @staticmethod
+    def __validate_file_name(file):
         """
-        Automagically load one of the amplitude spectral density curves
-        contained in the noise_curves directory.
-
         Test if the file contains a path (i.e., contains '/').
         If not assume the file is in the default directory.
         """
+        if '/' not in file:
+            file = os.path.join(os.path.dirname(__file__), 'noise_curves', file)
+        return file
 
+    def __import_amplitude_spectral_density(self):
+        """ Automagically load an amplitude spectral density curve """
         self. frequency_array, self.asd_array = np.genfromtxt(self.asd_file).T
 
-    def import_power_spectral_density(self):
-        """
-        Automagically load one of the power spectral density curves contained
-        in the noise_curves directory.
-
-        Test if the file contains a path (i.e., contains '/').
-        If not assume the file is in the default directory.
-        """
-
+    def __import_power_spectral_density(self):
+        """ Automagically load a power spectral density curve """
         self.frequency_array, self.power_spectral_density = np.genfromtxt(self.psd_file).T
 
     def get_noise_realisation(self, sampling_frequency, duration):
@@ -1749,7 +1735,7 @@ class PowerSpectralDensity(object):
 
         """
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
-        frequency_domain_strain = self.power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
+        frequency_domain_strain = self.__power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
