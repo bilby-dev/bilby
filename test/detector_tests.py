@@ -4,7 +4,10 @@ import tupak
 import unittest
 import mock
 from mock import MagicMock
+from mock import patch
 import numpy as np
+import scipy.signal.windows
+import gwpy
 
 
 class TestDetector(unittest.TestCase):
@@ -418,6 +421,373 @@ class TestInterferometerStrainData(unittest.TestCase):
 
         self.assertTrue(np.all(
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
+
+    def test_time_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.time_array = test_array
+        self.assertTrue(test_array, self.ifosd.time_array)
+
+    @patch.object(tupak.core.utils, 'create_time_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.start_time = 3
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.time_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration,
+                             starting_time=self.ifosd.start_time)
+
+    def test_time_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_time_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_frequency_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.frequency_array = test_array
+        self.assertTrue(test_array, self.ifosd.frequency_array)
+
+    @patch.object(tupak.core.utils, 'create_frequency_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.frequency_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration)
+
+    def test_frequency_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_frequency_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_time_within_data_before(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(2))
+
+    def test_time_within_data_during(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertTrue(self.ifosd.time_within_data(3))
+        self.assertTrue(self.ifosd.time_within_data(4))
+        self.assertTrue(self.ifosd.time_within_data(5))
+
+    def test_time_within_data_after(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(6))
+
+    def test_time_domain_window_no_roll_off_no_alpha(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_window = scipy.signal.windows.tukey(len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha)
+        self.assertEqual(expected_window,
+                         self.ifosd.time_domain_window())
+        self.assertEqual(np.mean(expected_window ** 2), self.ifosd.window_factor)
+
+    def test_time_domain_window_sets_roll_off_directly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_roll_off = 6
+        self.ifosd.time_domain_window(roll_off=expected_roll_off)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_window_sets_roll_off_indirectly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        alpha = 4
+        expected_roll_off = alpha * self.ifosd.duration / 2
+        self.ifosd.time_domain_window(alpha=alpha)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_strain_when_set(self):
+        expected_strain = 5
+        self.ifosd._time_domain_strain = expected_strain
+        self.assertEqual(expected_strain, self.ifosd.time_domain_strain)
+
+    @patch('tupak.core.utils.infft')
+    def test_time_domain_strain_from_frequency_domain_strain(self, m):
+        m.return_value = 5
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        self.ifosd._frequency_domain_strain = self.ifosd.frequency_array
+        self.ifosd.sampling_frequency = 123
+        self.assertEqual(m.return_value, self.ifosd.time_domain_strain)
+
+    def test_time_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_domain_strain
+
+    def test_frequency_domain_strain_when_set(self):
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        expected_strain = self.ifosd.frequency_array*self.ifosd.frequency_mask
+        self.ifosd._frequency_domain_strain = expected_strain
+        self.assertTrue(np.array_equal(expected_strain,
+                                        self.ifosd.frequency_domain_strain))
+
+    @patch('tupak.core.utils.nfft')
+    def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
+        self.ifosd.start_time = 0
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        m.return_value = self.ifosd.frequency_array, self.ifosd.frequency_array
+        self.ifosd._time_domain_strain = self.ifosd.time_array
+        self.assertTrue(np.array_equal(self.ifosd.frequency_array * self.ifosd.frequency_mask,
+                                       self.ifosd.frequency_domain_strain))
+
+    def test_frequency_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_domain_strain
+
+    def test_set_frequency_domain_strain(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.frequency_domain_strain = np.ones(len(self.ifosd.frequency_array))
+        self.assertTrue(np.array_equal(np.ones(len(self.ifosd.frequency_array)),
+                                       self.ifosd._frequency_domain_strain))
+
+    def test_set_frequency_domain_strain_wrong_length(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        with self.assertRaises(ValueError):
+            self.ifosd.frequency_domain_strain = np.array([1])
+
+
+class TestInterferometerList(unittest.TestCase):
+
+    def setUp(self):
+        self.frequency_arrays = np.linspace(0, 4096, 4097)
+        self.name1 = 'name1'
+        self.name2 = 'name2'
+        self.power_spectral_density1 = MagicMock()
+        self.power_spectral_density1.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.power_spectral_density2 = MagicMock()
+        self.power_spectral_density2.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.minimum_frequency1 = 10
+        self.minimum_frequency2 = 10
+        self.maximum_frequency1 = 20
+        self.maximum_frequency2 = 20
+        self.length1 = 30
+        self.length2 = 30
+        self.latitude1 = 1
+        self.latitude2 = 1
+        self.longitude1 = 2
+        self.longitude2 = 2
+        self.elevation1 = 3
+        self.elevation2 = 3
+        self.xarm_azimuth1 = 4
+        self.xarm_azimuth2 = 4
+        self.yarm_azimuth1 = 5
+        self.yarm_azimuth2 = 5
+        self.xarm_tilt1 = 0.
+        self.xarm_tilt2 = 0.
+        self.yarm_tilt1 = 0.
+        self.yarm_tilt2 = 0.
+        # noinspection PyTypeChecker
+        self.ifo1 = tupak.gw.detector.Interferometer(name=self.name1,
+                                                     power_spectral_density=self.power_spectral_density1,
+                                                     minimum_frequency=self.minimum_frequency1,
+                                                     maximum_frequency=self.maximum_frequency1, length=self.length1,
+                                                     latitude=self.latitude1, longitude=self.longitude1,
+                                                     elevation=self.elevation1,
+                                                     xarm_azimuth=self.xarm_azimuth1, yarm_azimuth=self.yarm_azimuth1,
+                                                     xarm_tilt=self.xarm_tilt1, yarm_tilt=self.yarm_tilt1)
+        self.ifo2 = tupak.gw.detector.Interferometer(name=self.name2,
+                                                     power_spectral_density=self.power_spectral_density2,
+                                                     minimum_frequency=self.minimum_frequency2,
+                                                     maximum_frequency=self.maximum_frequency2, length=self.length2,
+                                                     latitude=self.latitude2, longitude=self.longitude2,
+                                                     elevation=self.elevation2,
+                                                     xarm_azimuth=self.xarm_azimuth2, yarm_azimuth=self.yarm_azimuth2,
+                                                     xarm_tilt=self.xarm_tilt2, yarm_tilt=self.yarm_tilt2)
+        self.ifo1.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def tearDown(self):
+        del self.frequency_arrays
+        del self.name1
+        del self.name2
+        del self.power_spectral_density1
+        del self.power_spectral_density2
+        del self.minimum_frequency1
+        del self.minimum_frequency2
+        del self.maximum_frequency1
+        del self.maximum_frequency2
+        del self.length1
+        del self.length2
+        del self.latitude1
+        del self.latitude2
+        del self.longitude1
+        del self.longitude2
+        del self.elevation1
+        del self.elevation2
+        del self.xarm_azimuth1
+        del self.xarm_azimuth2
+        del self.yarm_azimuth1
+        del self.yarm_azimuth2
+        del self.xarm_tilt1
+        del self.xarm_tilt2
+        del self.yarm_tilt1
+        del self.yarm_tilt2
+        del self.ifo1
+        del self.ifo2
+        del self.ifo_list
+
+    def test_init_with_string(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList("string")
+
+    def test_init_with_string_list(self):
+        """ Merely checks if this ends up in the right bracket """
+        with mock.patch('tupak.gw.detector.get_empty_interferometer') as m:
+            m.side_effect = ValueError
+            with self.assertRaises(ValueError):
+                tupak.gw.detector.InterferometerList(['string'])
+
+    def test_init_with_other_object(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([object()])
+
+    def test_init_with_actual_ifos(self):
+        ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        self.assertEqual(self.ifo1, ifo_list[0])
+        self.assertEqual(self.ifo2, ifo_list[1])
+
+    def test_init_inconsistent_duration(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=3)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_sampling_frequency(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=234, duration=2)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_start_time(self):
+        self.ifo2.strain_data.start_time = 1
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
+    def test_set_strain_data_from_power_spectral_density(self, m):
+        self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
+        m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_inject_signal_pol_and_wg_none(self):
+        with self.assertRaises(ValueError):
+            self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
+        self.assertTrue(m.called)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_sets_wg_parameters(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        parameters = dict(y=1, z=2)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=parameters, waveform_generator=waveform_generator)
+        self.assertDictEqual(parameters, waveform_generator.parameters)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_with_inj_pol(self, m):
+        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
+        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_returns_expected_polarisations(self, m):
+        m.return_value = dict(plus=1, cross=2)
+        injection_polarizations = dict(plus=1, cross=2)
+        ifos_pol = self.ifo_list.inject_signal(injection_polarizations=injection_polarizations)
+        self.assertDictEqual(self.ifo1.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[0])
+        self.assertDictEqual(self.ifo2.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[1])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'save_data')
+    def test_save_data(self, m):
+        self.ifo_list.save_data(outdir='test_outdir', label='test_outdir')
+        m.assert_called_with(outdir='test_outdir', label='test_outdir')
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_number_of_interferometers(self):
+        self.assertEqual(len(self.ifo_list), self.ifo_list.number_of_interferometers)
+
+    def test_duration(self):
+        self.assertEqual(self.ifo1.strain_data.duration, self.ifo_list.duration)
+        self.assertEqual(self.ifo2.strain_data.duration, self.ifo_list.duration)
+
+    def test_sampling_frequency(self):
+        self.assertEqual(self.ifo1.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+        self.assertEqual(self.ifo2.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+
+    def test_start_time(self):
+        self.assertEqual(self.ifo1.strain_data.start_time, self.ifo_list.start_time)
+        self.assertEqual(self.ifo2.strain_data.start_time, self.ifo_list.start_time)
+
+    def test_frequency_array(self):
+        self.assertTrue(np.array_equal(self.ifo1.strain_data.frequency_array, self.ifo_list.frequency_array))
+        self.assertTrue(np.array_equal(self.ifo2.strain_data.frequency_array, self.ifo_list.frequency_array))
+
+    def test_append_with_ifo(self):
+        self.ifo_list.append(self.ifo2)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo2.name], names)
+
+    def test_append_with_ifo_list(self):
+        self.ifo_list.append(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_extend(self):
+        self.ifo_list.extend(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_insert(self):
+        new_ifo = self.ifo1
+        new_ifo.name = 'name3'
+        self.ifo_list.insert(1, new_ifo)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
 
 
 if __name__ == '__main__':
