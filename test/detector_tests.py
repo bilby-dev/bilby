@@ -311,13 +311,16 @@ class TestDetector(unittest.TestCase):
             self.assertListEqual(expected[1], actual[1])
 
     def test_repr(self):
-        expected = 'Interferometer(name={}, power_spectral_density={} minimum_frequency={}, ' \
-                          'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
-                          'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
-            .format(self.name, self.power_spectral_density, self.minimum_frequency, self.maximum_frequency, self.length,
-                    self.latitude, self.longitude, self.elevation, self.xarm_azimuth, self.yarm_azimuth, self.xarm_tilt,
-                    self.yarm_tilt)
+        expected = 'Interferometer(name={}, power_spectral_density={}, minimum_frequency={}, ' \
+                   'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
+                   'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
+                    float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
+                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
+                    float(self.yarm_tilt))
+        print(repr(self.ifo))
         self.assertEqual(expected, repr(self.ifo))
+
 
 class TestInterferometerStrainData(unittest.TestCase):
 
