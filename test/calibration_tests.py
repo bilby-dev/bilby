@@ -14,7 +14,6 @@ class TestBaseClass(unittest.TestCase):
     def test_repr(self):
         expected = 'Recalibrate(prefix={})'.format('\'recalib_\'')
         actual = repr(self.model)
-        print(expected)
         self.assertEqual(expected, actual)
 
     def test_calibration_factor(self):
@@ -52,7 +51,7 @@ class TestCubicSpline(unittest.TestCase):
         assert np.alltrue(cal_factor.real == np.ones_like(frequency_array))
 
     def test_repr(self):
-        expected = 'CubicSpline(prefix={}, minimum_frequency={}, maximum_frequency={}, n_points={})'\
+        expected = 'CubicSpline(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
             .format(self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points)
         actual = repr(self.model)
         self.assertEqual(expected, actual)

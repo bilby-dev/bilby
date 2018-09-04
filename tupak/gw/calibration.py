@@ -83,7 +83,7 @@ class CubicSpline(Recalibrate):
         self.spline_points = np.logspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
 
     def __repr__(self):
-        return self.__class__.__name__ + '(prefix={}, minimum_frequency={}, maximum_frequency={}, n_points={})'\
+        return self.__class__.__name__ + '(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
             .format(self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points)
 
     def get_calibration_factor(self, frequency_array, **params):
