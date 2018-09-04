@@ -16,6 +16,9 @@ class Likelihood(object):
         """
         self.parameters = parameters
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(parameters={})'.format(self.parameters)
+
     def log_likelihood(self):
         """
 
