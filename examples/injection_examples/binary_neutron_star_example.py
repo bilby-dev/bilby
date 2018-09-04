@@ -14,7 +14,7 @@ import tupak
 
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
-label = 'tupak_bns_example'
+label = 'bns_example'
 tupak.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
@@ -43,16 +43,11 @@ waveform_arguments = dict(waveform_approximant='TaylorF2',
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = tupak.gw.WaveformGenerator(duration=duration,
                                              sampling_frequency=sampling_frequency,
-                                             frequency_domain_source_model=lal_binary_neutron_star,
+                                             frequency_domain_source_model=tupak.gw.source.lal_binary_neutron_star,
                                              parameters=injection_parameters,
                                              waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain()
-ff =waveform_generator.frequency_array
 
-plt.loglog(ff,np.abs(hf_signal['plus']))
-plt.axvline(1540)
-
-np.random.seed(881705)
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity
 H1 = tupak.gw.detector.get_empty_interferometer('H1')
@@ -92,7 +87,6 @@ V1.save_data(outdir, label=label)
 V1.plot_data(signal=V1.get_detector_response(hf_signal,injection_parameters), outdir=outdir, label=label)
 IFOs = np.array([H1,L1,V1])
 
-np.random.seed(881705)
 #priors
 priors = tupak.gw.prior.BBHPriorSet()
 priors['lambda1'] = tupak.prior.Uniform(0, 3000, '$\\Lambda_1$')
@@ -108,7 +102,7 @@ likelihood = tupak.gw.GravitationalWaveTransient(interferometers=IFOs, waveform_
                                               time_marginalization=False, phase_marginalization=False,
                                               distance_marginalization=False, prior=priors)
 
-# Run sampler.  In this case we're going to use the `dynesty` sampler
+# Run sampler.  In this case we're going to use the `nestle` sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='nestle', npoints=500,
                            injection_parameters=injection_parameters, outdir=outdir, label=label)
 

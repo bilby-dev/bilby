@@ -7,6 +7,7 @@ from tupak.core import utils
 
 try:
     import lalsimulation as lalsim
+    import lal
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will "
                    " not be able to use some of the prebuilt functions.")
@@ -314,9 +315,9 @@ def lal_binary_neutron_star(
     if mass_2 > mass_1:
         return None
 
-    luminosity_distance = luminosity_distance * 1e6 * lal.PC_SI
-    mass_1 = mass_1 * lal.MSUN_SI
-    mass_2 = mass_2 * lal.MSUN_SI
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
 
     if tilt_1 == 0 and tilt_2 == 0 and phi_12 == 0 and phi_jl==0:
         spin_1x = 0
@@ -331,8 +332,6 @@ def lal_binary_neutron_star(
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
     mean_per_ano = 0.0
-
-    #waveform_dictionary = None
     
     waveform_dictionary = lal.CreateDict()
     lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda1)
