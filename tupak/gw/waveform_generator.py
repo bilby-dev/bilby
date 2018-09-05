@@ -57,7 +57,6 @@ class WaveformGenerator(object):
         else:
             self.parameter_conversion = parameter_conversion
         self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
-        self.__parameters = []
         self.parameters = parameters
         if waveform_arguments is not None:
             self.waveform_arguments = waveform_arguments
@@ -232,12 +231,6 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
-
-    def __parameters_from_source_model(self):
-        if self.frequency_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
-        elif self.time_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
 
     @property
     def duration(self):
