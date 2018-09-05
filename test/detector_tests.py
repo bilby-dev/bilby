@@ -191,14 +191,6 @@ class TestDetector(unittest.TestCase):
             self.ifo.yarm_azimuth = 12
             self.assertEqual(self.ifo.detector_tensor, 0)
 
-    def test_amplitude_spectral_density_array(self):
-        self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1, 4]))
-        self.assertTrue(np.array_equal(self.ifo.amplitude_spectral_density_array, np.array([1, 2])))
-
-    def test_power_spectral_density_array(self):
-        self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1, 4]))
-        self.assertTrue(np.array_equal(self.ifo.power_spectral_density_array, np.array([1, 4])))
-
     def test_antenna_response_default(self):
         with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
             with mock.patch('numpy.einsum') as n:
