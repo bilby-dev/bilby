@@ -1550,8 +1550,6 @@ class PowerSpectralDensity(object):
         self.psd_file = psd_file
         self.asd_file = asd_file
 
-        self.__power_spectral_density_interpolated = None
-
     @classmethod
     def from_amplitude_spectral_density_file(cls, asd_file):
         """ Set the amplitude spectral density from a given file
@@ -1715,7 +1713,7 @@ class PowerSpectralDensity(object):
 
     def __import_amplitude_spectral_density(self):
         """ Automagically load an amplitude spectral density curve """
-        self. frequency_array, self.asd_array = np.genfromtxt(self.asd_file).T
+        self.frequency_array, self.asd_array = np.genfromtxt(self.asd_file).T
 
     def __import_power_spectral_density(self):
         """ Automagically load a power spectral density curve """
