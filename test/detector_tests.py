@@ -920,10 +920,10 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
 
     def test_from_aligo(self):
         psd = tupak.gw.detector.PowerSpectralDensity.from_aligo()
-        expected_file = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                     'tupak/gw/noise_curves', 'aLIGO_ZERO_DET_high_P_psd.txt')
-        expected = tupak.gw.detector.PowerSpectralDensity(psd_file=expected_file)
-        self.assertEqual(expected_file, psd.psd_file)
+        expected_filename = 'aLIGO_ZERO_DET_high_P_psd.txt'
+        expected = tupak.gw.detector.PowerSpectralDensity(psd_file=expected_filename)
+        actual_filename = psd.psd_file.split('/')[-1]
+        self.assertEqual(expected_filename, actual_filename)
         self.assertTrue(np.allclose(expected.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(expected.asd_array, psd.asd_array))
 
