@@ -315,3 +315,23 @@ class StudentTLikelihood(Analytical1DLikelihood):
     def __summed_log_likelihood(self, nu):
         return self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) - gammaln(nu / 2.0)) \
                - (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu))
+
+class JointLikelihood(tupak.core.likelihood.Likelihood):
+    def __init__(self, likelihoodA, likelihoodB):
+        """
+        A likelihood for combining two separate pre-defined likelihoods
+
+        Parameters
+        ----------
+        likelihoodA, likelihoodB: tupak.core.likelihood.Likelihood
+            The two likelihoods to be combined
+        """
+        self.likelihoodA = likelihoodA
+        self.likelihoodB = likelihoodB
+        self.parameters = self.likelihoodA.parameters
+        self.parameters.update(self.likelihoodB.parameters)
+
+    def log_likelihood(self):
+        self.likelihoodA.parameters.update(self.parameters)
+        self.likelihoodB.parameters.update(self.parameters)
+        return self.likelihoodA.log_likelihood() + self.likelihoodB.log_likelihood()
