@@ -1719,7 +1719,7 @@ class PowerSpectralDensity(object):
 
     def __import_power_spectral_density(self):
         """ Automagically load a power spectral density curve """
-        self.frequency_array, self.power_spectral_density = np.genfromtxt(self.psd_file).T
+        self.frequency_array, self.psd_array = np.genfromtxt(self.psd_file).T
 
     def get_noise_realisation(self, sampling_frequency, duration):
         """
