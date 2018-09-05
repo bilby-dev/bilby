@@ -1576,9 +1576,6 @@ class PowerSpectralDensity(object):
             except AttributeError:
                 logger.info("Tried setting PSD from init kwarg {} and failed".format(key))
 
-    def __repr__(self):
-        return self.__repr_string
-
     def set_from_amplitude_spectral_density_file(self, asd_file):
         """ Set the amplitude spectral density from a given file
 
@@ -1598,7 +1595,6 @@ class PowerSpectralDensity(object):
                 min(self.amplitude_spectral_density)))
             logger.warning(
                 "You may have intended to provide this as a power spectral density.")
-        self.__repr_string = 'PowerSpectralDensity.set_from_amplitude_spectral_density_file(\'{}\')'.format(asd_file)
 
     def set_from_power_spectral_density_file(self, psd_file):
         """ Set the power spectral density from a given file
@@ -1619,7 +1615,6 @@ class PowerSpectralDensity(object):
                 min(self.power_spectral_density)))
             logger.warning(
                 "You may have intended to provide this as an amplitude spectral density.")
-        self.__repr_string = 'PowerSpectralDensity.set_from_power_spectral_density_file(\'{}\')'.format(psd_file)
 
     def set_from_frame_file(self, frame_file, psd_start_time, psd_duration,
                             fft_length=4, sampling_frequency=4096, roll_off=0.2,
@@ -1654,29 +1649,21 @@ class PowerSpectralDensity(object):
         f, psd = strain.create_power_spectral_density(fft_length=fft_length)
         self.frequency_array = f
         self.power_spectral_density = psd
-        self.__repr_string = 'PowerSpectralDensity.set_from_frame_file(frame_file=\'{}\', psd_start_time={}, ' \
-                           'psd_duration={}, fft_length={}, sampling_frequency={}, roll_off{}, channel={})'\
-            .format(frame_file, psd_start_time, psd_duration, fft_length, sampling_frequency, roll_off, channel)
 
     def set_from_amplitude_spectral_density_array(self, frequency_array,
                                                   asd_array):
         self.frequency_array = frequency_array
         self.amplitude_spectral_density = asd_array
-        self.__repr_string = 'PowerSpectralDensity.set_from_amplitude_spectral_density_array(frequency_array={}, ' \
-                           'asd_array={})'.format(frequency_array, asd_array)
 
     def set_from_power_spectral_density_array(self, frequency_array, psd_array):
         self.frequency_array = frequency_array
         self.power_spectral_density = psd_array
-        self.__repr_string = 'PowerSpectralDensity.set_from_power_spectral_density_array(frequency_array={}, ' \
-                           'asd_array={})'.format(frequency_array, psd_array)
 
     def set_from_aLIGO(self):
         psd_file = 'aLIGO_ZERO_DET_high_P_psd.txt'
         logger.info("No power spectral density provided, using aLIGO,"
                     "zero detuning, high power.")
         self.set_from_power_spectral_density_file(psd_file)
-        self.__repr_string = 'PowerSpectralDensity.set_from_aLigo()'
 
     @property
     def power_spectral_density(self):
