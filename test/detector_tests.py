@@ -967,5 +967,6 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
                 self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
                 self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
 
+
 if __name__ == '__main__':
     unittest.main()
