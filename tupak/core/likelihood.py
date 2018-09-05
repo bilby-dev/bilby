@@ -337,3 +337,9 @@ class JointLikelihood(Likelihood):
         self.first_likelihood.parameters.update(self.parameters)
         self.second_likelihood.parameters.update(self.parameters)
         return self.first_likelihood.log_likelihood() + self.second_likelihood.log_likelihood()
+
+    def noise_log_likelihood(self):
+        return self.first_likelihood.noise_log_likelihood() + self.second_likelihood.noise_log_likelihood()
+
+    def log_likelihood_ratio(self):
+        return self.log_likelihood() - self.noise_log_likelihood()
