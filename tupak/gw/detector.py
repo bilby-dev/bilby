@@ -1560,16 +1560,7 @@ class PowerSpectralDensity(object):
             File containing amplitude spectral density, format 'f h_f'
 
         """
-        power_spectral_density = cls(asd_file=asd_file)
-        power_spectral_density.__check_file_was_asd_file()
-        return power_spectral_density
-
-    def __check_file_was_asd_file(self):
-        if min(self.asd_array) < 1e-30:
-            logger.warning("You specified an amplitude spectral density file.")
-            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.asd_array)))
-            logger.warning("You may have intended to provide this as a power spectral density.")
+        return cls(asd_file=asd_file)
 
     @classmethod
     def from_power_spectral_density_file(cls, psd_file):
@@ -1581,16 +1572,7 @@ class PowerSpectralDensity(object):
             File containing power spectral density, format 'f h_f'
 
         """
-        power_spectral_density = cls(psd_file=psd_file)
-        power_spectral_density.__check_file_was_psd_file()
-        return power_spectral_density
-
-    def __check_file_was_psd_file(self):
-        if min(self.psd_array) > 1e-30:
-            logger.warning("You specified a power spectral density file.")
-            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.psd_array)))
-            logger.warning("You may have intended to provide this as an amplitude spectral density.")
+        return cls(psd_file=psd_file)
 
     @classmethod
     def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
@@ -1689,6 +1671,14 @@ class PowerSpectralDensity(object):
         self.__asd_file = asd_file
         if asd_file is not None:
             self.__import_amplitude_spectral_density()
+            self.__check_file_was_asd_file()
+
+    def __check_file_was_asd_file(self):
+        if min(self.asd_array) < 1e-30:
+            logger.warning("You specified an amplitude spectral density file.")
+            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.asd_array)))
+            logger.warning("You may have intended to provide this as a power spectral density.")
 
     @property
     def psd_file(self):
@@ -1700,6 +1690,14 @@ class PowerSpectralDensity(object):
         self.__psd_file = psd_file
         if psd_file is not None:
             self.__import_power_spectral_density()
+            self.__check_file_was_psd_file()
+
+    def __check_file_was_psd_file(self):
+        if min(self.psd_array) > 1e-30:
+            logger.warning("You specified a power spectral density file.")
+            logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
+            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.psd_array)))
+            logger.warning("You may have intended to provide this as an amplitude spectral density.")
 
     @staticmethod
     def __validate_file_name(file):
