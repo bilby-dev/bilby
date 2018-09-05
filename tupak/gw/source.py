@@ -256,7 +256,7 @@ def supernova_pca_model(
 def lal_binary_neutron_star(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, a_2,
         iota, phase, ra, dec, geocent_time, psi, lambda1, lambda2, **kwargs):
-    """ A Binary Black Hole waveform model using lalsimulation
+    """ A Binary Neutron Star waveform model using lalsimulation
 
     Parameters
     ----------
