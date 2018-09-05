@@ -1542,12 +1542,14 @@ class PowerSpectralDensity(object):
             Interpolated function of the PSD
 
         """
-        self.__psd_array = psd_array
-        self.__asd_array = asd_array
+        self.frequency_array = frequency_array
+        if psd_array is not None:
+            self.psd_array = psd_array
+        if asd_array is not None:
+            self.asd_array = asd_array
         self.psd_file = psd_file
         self.asd_file = asd_file
 
-        self.frequency_array = frequency_array
         self.__power_spectral_density_interpolated = None
 
     @classmethod
@@ -1687,7 +1689,8 @@ class PowerSpectralDensity(object):
     def asd_file(self, asd_file):
         asd_file = self.__validate_file_name(file=asd_file)
         self.__asd_file = asd_file
-        self.__import_amplitude_spectral_density()
+        if asd_file is not None:
+            self.__import_amplitude_spectral_density()
 
     @property
     def psd_file(self):
@@ -1697,7 +1700,8 @@ class PowerSpectralDensity(object):
     def psd_file(self, psd_file):
         psd_file = self.__validate_file_name(file=psd_file)
         self.__psd_file = psd_file
-        self.__import_power_spectral_density()
+        if psd_file is not None:
+            self.__import_power_spectral_density()
 
     @staticmethod
     def __validate_file_name(file):
@@ -1705,7 +1709,7 @@ class PowerSpectralDensity(object):
         Test if the file contains a path (i.e., contains '/').
         If not assume the file is in the default directory.
         """
-        if '/' not in file:
+        if file is not None and '/' not in file:
             file = os.path.join(os.path.dirname(__file__), 'noise_curves', file)
         return file
 
