@@ -1542,7 +1542,7 @@ class PowerSpectralDensity(object):
             Interpolated function of the PSD
 
         """
-        self.frequency_array = frequency_array
+        self.frequency_array = np.array(frequency_array)
         if psd_array is not None:
             self.psd_array = psd_array
         if asd_array is not None:
@@ -1635,7 +1635,7 @@ class PowerSpectralDensity(object):
     @psd_array.setter
     def psd_array(self, psd_array):
         self.__check_frequency_array_matches_density_array(psd_array)
-        self.__psd_array = psd_array
+        self.__psd_array = np.array(psd_array)
         self.__asd_array = psd_array ** 0.5
         self.__interpolate_power_spectral_density()
 
@@ -1646,7 +1646,7 @@ class PowerSpectralDensity(object):
     @asd_array.setter
     def asd_array(self, asd_array):
         self.__check_frequency_array_matches_density_array(asd_array)
-        self.__asd_array = asd_array
+        self.__asd_array = np.array(asd_array)
         self.__psd_array = asd_array ** 2
         self.__interpolate_power_spectral_density()
 
