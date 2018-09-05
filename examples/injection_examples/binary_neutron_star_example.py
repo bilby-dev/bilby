@@ -2,8 +2,7 @@
 """
 Tutorial to demonstrate running parameter estimation on a binary neutron star system taking into account tidal deformabilities.
 
-This example estimates the masses using a uniform prior in both component masses and also estimates the tidal deformabilities
-using a uniform prior in both tidal deformabilities
+This example estimates the masses using a uniform prior in both component masses and also estimates the tidal deformabilities using a uniform prior in both tidal deformabilities
 """
 
 from __future__ import division, print_function
@@ -37,13 +36,12 @@ start_time = injection_parameters['geocent_time'] + 2 - duration
 waveform_arguments = dict(waveform_approximant='TaylorF2',
                           reference_frequency=50.,minimum_frequency=40.0)
 
-# Create the waveform_generator using a LAL BinaryBlackHole source function
+# Create the waveform_generator using a LAL Binary Neutron Star source function
 waveform_generator = tupak.gw.WaveformGenerator(duration=duration,
                                              sampling_frequency=sampling_frequency,
                                              frequency_domain_source_model=tupak.gw.source.lal_binary_neutron_star,
                                              parameters=injection_parameters,
                                              waveform_arguments=waveform_arguments)
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity and start at 40 Hz.
@@ -57,22 +55,13 @@ interferometers.inject_signal(parameters=injection_parameters, waveform_generato
 
 
 #priors
-priors = tupak.gw.prior.BBHPriorSet()
-priors.pop('tilt_1')
-priors.pop('tilt_2')
-priors.pop('phi_12')
-priors.pop('phi_jl')
-priors['lambda1'] = tupak.prior.Uniform(0, 3000, '$\\Lambda_1$')
-priors['lambda2'] = tupak.prior.Uniform(0, 3000, '$\\Lambda_2$')
-priors['mass_1'] = tupak.prior.Uniform(1, 2, '$m_1$')
-priors['mass_2'] = tupak.prior.Uniform(1, 2, '$m_2$')
+priors = tupak.gw.prior.BNSPriorSet()
 for key in ['a_1', 'a_2', 'psi','geocent_time','ra','dec',
             'iota','luminosity_distance','phase']:
     priors[key] = injection_parameters[key]
     
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.gw.GravitationalWaveTransient(interferometers=interferometers, waveform_generator=waveform_generator,
-                                              time_marginalization=False, phase_marginalization=False,
+likelihood = tupak.gw.GravitationalWaveTransient(interferometers=interferometers, waveform_generator=waveform_generator, time_marginalization=False, phase_marginalization=False,
                                               distance_marginalization=False, prior=priors)
 
 # Run sampler.  In this case we're going to use the `nestle` sampler

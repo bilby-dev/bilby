@@ -94,8 +94,27 @@ class BBHPriorSet(PriorSet):
                     break
 
         return redundant
+    
+class BNSPriorSet(PriorSet):
+    def __init__(self, dictionary=None, filename=None):
+        """ Initialises a Prior set for Binary Black holes
 
+        Parameters
+        ----------
+        dictionary: dict, optional
+            See superclass
+        filename: str, optional
+            See superclass
+        """
+        if dictionary is None and filename is None:
+            filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_neutron_stars.prior')
+            logger.info('No prior given, using default BNS priors in {}.'.format(filename))
+        elif filename is not None:
+            if not os.path.isfile(filename):
+                filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
+        PriorSet.__init__(self, dictionary=dictionary, filename=filename)
 
+    
 Prior._default_latex_labels = {
     'mass_1': '$m_1$',
     'mass_2': '$m_2$',
@@ -118,7 +137,9 @@ Prior._default_latex_labels = {
     'cos_iota': '$\cos\iota$',
     'psi': '$\psi$',
     'phase': '$\phi$',
-    'geocent_time': '$t_c$'}
+    'geocent_time': '$t_c$',
+    'lambda1' : '$\\Lambda_1$',
+    'lambda2' : '$\\Lambda_2$'}
 
 
 class CalibrationPriorSet(PriorSet):
@@ -284,3 +305,6 @@ class CalibrationPriorSet(PriorSet):
                                         latex_label=latex_label)
 
         return prior
+    
+
+
