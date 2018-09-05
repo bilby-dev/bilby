@@ -1550,6 +1550,14 @@ class PowerSpectralDensity(object):
         self.psd_file = psd_file
         self.asd_file = asd_file
 
+    def __repr__(self):
+        if self.asd_file is not None or self.psd_file is not None:
+            return self.__class__.__name__ + '(psd_file=\'{}\', asd_file=\'{}\')'\
+                .format(self.psd_file, self.asd_file)
+        else:
+            return self.__class__.__name__ + '(frequency_array={}, psd_array={}, asd_array={})' \
+                .format(self.frequency_array, self.psd_array, self.asd_array)
+
     @classmethod
     def from_amplitude_spectral_density_file(cls, asd_file):
         """ Set the amplitude spectral density from a given file

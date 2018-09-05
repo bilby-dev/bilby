@@ -844,6 +844,13 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
+    def test_repr(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        expected = 'PowerSpectralDensity(frequency_array={}, psd_array={}, asd_array={})'.format(self.frequency_array,
+                                                                                                 self.psd_array,
+                                                                                                 self.asd_array)
+        self.assertEqual(expected, repr(psd))
+
 
 class TestPowerSpectralDensityWithFiles(unittest.TestCase):
 
@@ -966,6 +973,11 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
                                                                              psd_duration=4)
                 self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
                 self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
+
+    def test_repr(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
+        expected = 'PowerSpectralDensity(psd_file=\'{}\', asd_file=\'{}\')'.format(self.psd_file, None)
+        self.assertEqual(expected, repr(psd))
 
 
 if __name__ == '__main__':
