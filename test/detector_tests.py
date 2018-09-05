@@ -955,5 +955,6 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
         self.assertEqual(0, m.call_count)
 
+
 if __name__ == '__main__':
     unittest.main()
