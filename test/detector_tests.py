@@ -852,9 +852,9 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         os.mkdir(self.dir)
         self.asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', 'asd_test_file.txt')
         self.psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', 'psd_test_file.txt')
-        with open(self.asd_file, "x") as f:
+        with open(self.asd_file, 'w') as f:
             f.write('1.\t1.0e-21\n2.\t2.0e-21\n3.\t3.0e-21')
-        with open(self.psd_file, "x") as f:
+        with open(self.psd_file, 'w') as f:
             f.write('1.\t1.0e-42\n2.\t4.0e-42\n3.\t9.0e-42')
         self.frequency_array = np.array([1.0, 2.0, 3.0])
         self.asd_array = np.array([1.0e-21, 2.0e-21, 3.0e-21])
