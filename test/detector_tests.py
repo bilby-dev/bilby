@@ -955,6 +955,17 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
         self.assertEqual(0, m.call_count)
 
+    def test_from_frame_file(self):
+        expected_frequency_array = np.array([1., 2., 3.])
+        expected_psd_array = np.array([16., 25., 36.])
+        with mock.patch('tupak.gw.detector.InterferometerStrainData.set_from_frame_file') as m:
+            with mock.patch('tupak.gw.detector.InterferometerStrainData.create_power_spectral_density') as n:
+                n.return_value = expected_frequency_array, expected_psd_array
+                psd = tupak.gw.detector.PowerSpectralDensity.from_frame_file(frame_file=self.asd_file,
+                                                                             psd_start_time=0,
+                                                                             psd_duration=4)
+                self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
+                self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
 
 if __name__ == '__main__':
     unittest.main()
