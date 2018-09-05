@@ -97,7 +97,7 @@ class BBHPriorSet(PriorSet):
     
 class BNSPriorSet(PriorSet):
     def __init__(self, dictionary=None, filename=None):
-        """ Initialises a Prior set for Binary Black holes
+        """ Initialises a Prior set for Binary Neutron Stars
 
         Parameters
         ----------
