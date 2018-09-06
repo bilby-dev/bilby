@@ -318,28 +318,37 @@ class StudentTLikelihood(Analytical1DLikelihood):
 
 
 class JointLikelihood(Likelihood):
-    def __init__(self, first_likelihood, second_likelihood):
+    def __init__(self, *likelihoods):
         """
-        A likelihood for combining two separate pre-defined likelihoods
+        A likelihood for combining pre-defined likelihoods
 
         Parameters
         ----------
-        first_likelihood, second_likelihood: tupak.core.likelihood.Likelihood
-            The two likelihoods to be combined
+        *likelihoods:
+            likelihoods to be combined parsed as arguments
         """
-        self.first_likelihood = first_likelihood
-        self.second_likelihood = second_likelihood
-        parameters = self.first_likelihood.parameters
-        parameters.update(self.second_likelihood.parameters)
+        self.likelihoods = likelihoods
+
+        parameters = {}
+        for likelihood in self.likelihoods:
+            parameters.update(likelihood.parameters)
+
         Likelihood.__init__(self, parameters=parameters)
 
     def log_likelihood(self):
-        self.first_likelihood.parameters.update(self.parameters)
-        self.second_likelihood.parameters.update(self.parameters)
-        return self.first_likelihood.log_likelihood() + self.second_likelihood.log_likelihood()
+        logl = 0
+        for likelihood in self.likelihoods:
+            likelihood.parameters.update(self.parameters)
+            logl += likelihood.log_likelihood()
+
+        return logl
 
     def noise_log_likelihood(self):
-        return self.first_likelihood.noise_log_likelihood() + self.second_likelihood.noise_log_likelihood()
+        logl_noise = 0
+        for likelihood in self.likelihoods:
+            logl_noise += likelihood.noise_log_likelihood()
+
+        return logl_noise
 
     def log_likelihood_ratio(self):
         return self.log_likelihood() - self.noise_log_likelihood()
