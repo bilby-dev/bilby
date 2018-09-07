@@ -324,7 +324,7 @@ class JointLikelihood(Likelihood):
 
         Parameters
         ----------
-        *likelihoods: list
+        *likelihoods: tupak.core.likelihood.Likelihood
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
@@ -334,6 +334,25 @@ class JointLikelihood(Likelihood):
             parameters.update(likelihood.parameters)
 
         Likelihood.__init__(self, parameters=parameters)
+
+    @property
+    def likelihoods(self):
+        return self.__likelihoods
+
+    @likelihoods.setter
+    def likelihoods(self, likelihoods):
+        if isinstance(likelihoods, tuple) or isinstance(likelihoods, list):
+            if all(isinstance(likelihood, Likelihood) for likelihood in likelihoods):
+                self.__likelihoods = list(likelihoods)
+            else:
+                raise ValueError('Try setting the JointLikelihood like this\n'
+                                 'JointLikelihood(first_likelihood, second_likelihood, ...)')
+        elif isinstance(likelihoods, Likelihood):
+            self.__likelihoods = [likelihoods]
+        else:
+            raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
+
+
 
     def log_likelihood(self):
         logl = 0
