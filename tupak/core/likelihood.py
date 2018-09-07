@@ -324,7 +324,7 @@ class JointLikelihood(Likelihood):
 
         Parameters
         ----------
-        *likelihoods:
+        *likelihoods: list
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
