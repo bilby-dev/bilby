@@ -507,6 +507,13 @@ class TestJointLikelihood(unittest.TestCase):
             self.third_likelihood.log_likelihood()
         self.assertEqual(expected, self.joint_likelihood.log_likelihood())
 
+    def test_list_element_parameters_are_updated(self):
+        self.joint_likelihood.parameters['param2'] = 7
+        self.assertEqual(self.joint_likelihood.parameters['param2'],
+                         self.joint_likelihood.likelihoods[0].parameters['param2'])
+        self.assertEqual(self.joint_likelihood.parameters['param2'],
+                         self.joint_likelihood.likelihoods[1].parameters['param2'])
+
     def test_log_noise_likelihood(self):
         self.first_likelihood.noise_log_likelihood = MagicMock(return_value=1)
         self.second_likelihood.noise_log_likelihood = MagicMock(return_value=2)
@@ -518,6 +525,14 @@ class TestJointLikelihood(unittest.TestCase):
             self.second_likelihood.noise_log_likelihood() + \
             self.third_likelihood.noise_log_likelihood()
         self.assertEqual(expected, self.joint_likelihood.noise_log_likelihood())
+
+    def test_init_with_list_of_likelihoods(self):
+        with self.assertRaises(ValueError):
+            tupak.core.likelihood.JointLikelihood([self.first_likelihood, self.second_likelihood, self.third_likelihood])
+
+    def test_setting_single_likelihood(self):
+        self.joint_likelihood.likelihoods = self.first_likelihood
+        self.assertEqual(self.first_likelihood.log_likelihood(), self.joint_likelihood.log_likelihood())
 
 
 if __name__ == '__main__':
