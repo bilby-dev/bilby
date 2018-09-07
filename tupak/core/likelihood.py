@@ -349,6 +349,3 @@ class JointLikelihood(Likelihood):
             logl_noise += likelihood.noise_log_likelihood()
 
         return logl_noise
-
-    def log_likelihood_ratio(self):
-        return self.log_likelihood() - self.noise_log_likelihood()
