@@ -328,12 +328,7 @@ class JointLikelihood(Likelihood):
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
-
-        parameters = {}
-        for likelihood in self.likelihoods:
-            parameters.update(likelihood.parameters)
-
-        Likelihood.__init__(self, parameters=parameters)
+        Likelihood.__init__(self, parameters={})
 
     @property
     def likelihoods(self):
@@ -352,19 +347,23 @@ class JointLikelihood(Likelihood):
         else:
             raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
 
+    @property
+    def parameters(self):
+        parameters = {}
+        for likelihood in self.likelihoods:
+            parameters.update(likelihood.parameters)
+        return parameters
 
+    @parameters.setter
+    def parameters(self, parameters):
+        for likelihood in self.likelihoods:
+            likelihood.parameters.update(parameters)
 
     def log_likelihood(self):
-        logl = 0
-        for likelihood in self.likelihoods:
-            likelihood.parameters.update(self.parameters)
-            logl += likelihood.log_likelihood()
-
-        return logl
+        """ This is just the sum of the log likelihoods of all parts of the joint likelihood"""
+        return sum([likelihood.log_likelihood() for likelihood in self.likelihoods])
 
     def noise_log_likelihood(self):
-        logl_noise = 0
-        for likelihood in self.likelihoods:
-            logl_noise += likelihood.noise_log_likelihood()
+        """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
+        return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
 
-        return logl_noise
