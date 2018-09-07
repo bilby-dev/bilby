@@ -356,7 +356,7 @@ class JointLikelihood(Likelihood):
 
     @property
     def parameters(self):
-        """ The parameters are automatically synchronized among the different likelihoods. """
+        """ The parameters are automagically synchronized among the different likelihoods. """
         parameters = {}
         for likelihood in self.likelihoods:
             parameters.update(likelihood.parameters)
