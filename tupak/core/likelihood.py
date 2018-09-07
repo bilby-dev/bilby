@@ -320,7 +320,13 @@ class StudentTLikelihood(Analytical1DLikelihood):
 class JointLikelihood(Likelihood):
     def __init__(self, *likelihoods):
         """
-        A likelihood for combining pre-defined likelihoods
+        A likelihood for combining pre-defined likelihoods.
+        The parameters dict is automagically combined through parameters dicts
+        of the given likelihoods. If parameters have different values have
+        initially different values across different likelihoods, the value
+        of the last given likelihood is chosen. This does not matter when
+        using the JointLikelihood for sampling, because the parameters will be
+        set consistently
 
         Parameters
         ----------
@@ -332,6 +338,7 @@ class JointLikelihood(Likelihood):
 
     @property
     def likelihoods(self):
+        """ The list of likelihoods """
         return self.__likelihoods
 
     @likelihoods.setter
@@ -349,6 +356,7 @@ class JointLikelihood(Likelihood):
 
     @property
     def parameters(self):
+        """ The parameters are automatically synchronized among the different likelihoods. """
         parameters = {}
         for likelihood in self.likelihoods:
             parameters.update(likelihood.parameters)
