@@ -99,6 +99,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
     def test_set_func(self):
         def new_func(x):
             return x
+
         with self.assertRaises(AttributeError):
             # noinspection PyPropertyAccess
             self.analytical_1d_likelihood.func = new_func
@@ -441,6 +442,103 @@ class TestExponentialLikelihood(unittest.TestCase):
         with mock.patch('numpy.sum') as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood())
+
+
+class TestJointLikelihood(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.array([1, 2, 3])
+        self.y = np.array([1, 2, 3])
+        self.first_likelihood = tupak.core.likelihood.GaussianLikelihood(
+            x=self.x,
+            y=self.y,
+            func=lambda x, param1, param2: (param1 + param2) * x,
+            sigma=1)
+        self.second_likelihood = tupak.core.likelihood.PoissonLikelihood(
+            x=self.x,
+            y=self.y,
+            func=lambda x, param2, param3: (param2 + param3) * x)
+        self.third_likelihood = tupak.core.likelihood.ExponentialLikelihood(
+            x=self.x,
+            y=self.y,
+            func=lambda x, param4, param5: (param4 + param5) * x
+        )
+        self.joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood,
+                                                                      self.second_likelihood,
+                                                                      self.third_likelihood)
+
+        self.first_likelihood.parameters['param1'] = 1
+        self.first_likelihood.parameters['param2'] = 2
+        self.second_likelihood.parameters['param2'] = 2
+        self.second_likelihood.parameters['param3'] = 3
+        self.third_likelihood.parameters['param4'] = 4
+        self.third_likelihood.parameters['param5'] = 5
+
+        self.joint_likelihood.parameters['param1'] = 1
+        self.joint_likelihood.parameters['param2'] = 2
+        self.joint_likelihood.parameters['param3'] = 3
+        self.joint_likelihood.parameters['param4'] = 4
+        self.joint_likelihood.parameters['param5'] = 5
+
+    def tearDown(self):
+        del self.x
+        del self.y
+        del self.first_likelihood
+        del self.second_likelihood
+        del self.third_likelihood
+        del self.joint_likelihood
+
+    def test_parameters_consistent_from_init(self):
+        expected = dict(param1=1, param2=2, param3=3, param4=4, param5=5, )
+        self.assertDictEqual(expected, self.joint_likelihood.parameters)
+
+    def test_log_likelihood_correctly_sums(self):
+        expected = self.first_likelihood.log_likelihood() + \
+            self.second_likelihood.log_likelihood() + \
+            self.third_likelihood.log_likelihood()
+        self.assertEqual(expected, self.joint_likelihood.log_likelihood())
+
+    def test_log_likelihood_checks_parameter_updates(self):
+        self.first_likelihood.parameters['param2'] = 7
+        self.second_likelihood.parameters['param2'] = 7
+        self.joint_likelihood.parameters['param2'] = 7
+        expected = self.first_likelihood.log_likelihood() + \
+            self.second_likelihood.log_likelihood() + \
+            self.third_likelihood.log_likelihood()
+        self.assertEqual(expected, self.joint_likelihood.log_likelihood())
+
+    def test_list_element_parameters_are_updated(self):
+        self.joint_likelihood.parameters['param2'] = 7
+        self.assertEqual(self.joint_likelihood.parameters['param2'],
+                         self.joint_likelihood.likelihoods[0].parameters['param2'])
+        self.assertEqual(self.joint_likelihood.parameters['param2'],
+                         self.joint_likelihood.likelihoods[1].parameters['param2'])
+
+    def test_log_noise_likelihood(self):
+        self.first_likelihood.noise_log_likelihood = MagicMock(return_value=1)
+        self.second_likelihood.noise_log_likelihood = MagicMock(return_value=2)
+        self.third_likelihood.noise_log_likelihood = MagicMock(return_value=3)
+        self.joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood,
+                                                                      self.second_likelihood,
+                                                                      self.third_likelihood)
+        expected = self.first_likelihood.noise_log_likelihood() + \
+            self.second_likelihood.noise_log_likelihood() + \
+            self.third_likelihood.noise_log_likelihood()
+        self.assertEqual(expected, self.joint_likelihood.noise_log_likelihood())
+
+    def test_init_with_list_of_likelihoods(self):
+        with self.assertRaises(ValueError):
+            tupak.core.likelihood.JointLikelihood([self.first_likelihood, self.second_likelihood, self.third_likelihood])
+
+    def test_setting_single_likelihood(self):
+        self.joint_likelihood.likelihoods = self.first_likelihood
+        self.assertEqual(self.first_likelihood.log_likelihood(), self.joint_likelihood.log_likelihood())
+
+    # Appending is not supported
+    # def test_appending(self):
+    #     joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
+    #     joint_likelihood.likelihoods.append(self.third_likelihood)
+    #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
 
 
 if __name__ == '__main__':
