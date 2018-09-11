@@ -449,10 +449,8 @@ def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
         Tidal parameter of less massive neutron star.
     """
     eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
-    q = mass_2 / mass_1
-    coefficient_1 = (1 + 7 * eta - 31 * eta**2) * (1 + q**5)
-    coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)\
-                    * (1 - q**0.5)
+    coefficient_1 = (1 + 7 * eta - 31 * eta**2)
+    coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)
     coefficient_3 = (1 - 4 * eta)**0.5\
                     * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
     coefficient_4 = (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2
@@ -497,10 +495,10 @@ def lambda_tilde_to_lambda_1_lambda_2(
     eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
     q = mass_2 / mass_1
     lambda_1 = 13 / 8 * lambda_tilde / (
-            (1 + 7 * eta - 31 * eta**2) * (1 + q**5)
-            + (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (1 - q**0.5)
+            (1 + 7 * eta - 31 * eta**2) * (1 + q**-5)
+            + (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (1 - q**-5)
         )
-    lambda_2 = lambda_1 / q**0.5
+    lambda_2 = lambda_1 / q**5
     return lambda_1, lambda_2
 
 
