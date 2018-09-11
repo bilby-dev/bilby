@@ -381,7 +381,7 @@ class Result(dict):
         self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
                                      + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
                                             1 + self.posterior.q)
-        self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
+        self.posterior['chi_p'] = np.maximum(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
                                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
                                       * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
 

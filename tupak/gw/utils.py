@@ -319,8 +319,10 @@ def get_open_strain_data(
         Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
 
     Returns
-    -----------
+    -------
     strain: gwpy.timeseries.TimeSeries
+        The object containing the strain data. If the connection to the open-data server
+        fails, this function retruns `None`.
 
     """
     filename = '{}/{}_{}_{}.txt'.format(outdir, name, start_time, end_time)
@@ -336,9 +338,16 @@ def get_open_strain_data(
     else:
         logger.info('Fetching open data from {} to {} with buffer time {}'
                     .format(start_time, end_time, buffer_time))
-        strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
-        logger.info('Saving data to {}'.format(filename))
-        strain.write(filename)
+        try:
+            strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
+            logger.info('Saving cache of data to {}'.format(filename))
+            strain.write(filename)
+        except Exception as e:
+            logger.info("Unable to fetch open data, see debug for detailed info")
+            logger.info("Call to gwpy.timeseries.TimeSeries.fetch_open_data returned {}"
+                        .format(e))
+            strain = None
+
     return strain
 
 
