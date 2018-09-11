@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 from scipy.special import gammaln
 from tupak.core.utils import infer_parameters_from_function
+import copy
 
 
 class Likelihood(object):
@@ -335,6 +336,15 @@ class JointLikelihood(Likelihood):
         """
         self.likelihoods = likelihoods
         Likelihood.__init__(self, parameters={})
+        self.__sync_parameters()
+
+    def __sync_parameters(self):
+        """ Synchronizes parameters between the likelihoods
+        so that all likelihoods share a single parameter dict."""
+        for likelihood in self.likelihoods:
+            self.parameters.update(likelihood.parameters)
+        for likelihood in self.likelihoods:
+            likelihood.parameters = self.parameters
 
     @property
     def likelihoods(self):
@@ -343,6 +353,7 @@ class JointLikelihood(Likelihood):
 
     @likelihoods.setter
     def likelihoods(self, likelihoods):
+        likelihoods = copy.deepcopy(likelihoods)
         if isinstance(likelihoods, tuple) or isinstance(likelihoods, list):
             if all(isinstance(likelihood, Likelihood) for likelihood in likelihoods):
                 self.__likelihoods = list(likelihoods)
@@ -353,19 +364,6 @@ class JointLikelihood(Likelihood):
             self.__likelihoods = [likelihoods]
         else:
             raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
-
-    @property
-    def parameters(self):
-        """ The parameters are automagically synchronized among the different likelihoods. """
-        parameters = {}
-        for likelihood in self.likelihoods:
-            parameters.update(likelihood.parameters)
-        return parameters
-
-    @parameters.setter
-    def parameters(self, parameters):
-        for likelihood in self.likelihoods:
-            likelihood.parameters.update(parameters)
 
     def log_likelihood(self):
         """ This is just the sum of the log likelihoods of all parts of the joint likelihood"""
