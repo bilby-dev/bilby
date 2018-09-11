@@ -104,7 +104,7 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, starting_time+duration, 1./sampling_frequency)
+    return np.arange(starting_time, starting_time + duration, 1. / sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
@@ -175,8 +175,8 @@ def create_frequency_series(sampling_frequency, duration):
     number_of_samples = int(np.round(number_of_samples))
 
     # prepare for FFT
-    number_of_frequencies = (number_of_samples-1)//2
-    delta_freq = 1./duration
+    number_of_frequencies = (number_of_samples - 1) // 2
+    delta_freq = 1. / duration
 
     frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
 
@@ -207,14 +207,14 @@ def create_white_noise(sampling_frequency, duration):
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
 
-    delta_freq = 1./duration
+    delta_freq = 1. / duration
 
     frequencies = create_frequency_series(sampling_frequency, duration)
 
-    norm1 = 0.5*(1./delta_freq)**0.5
+    norm1 = 0.5 * (1. / delta_freq)**0.5
     re1 = np.random.normal(0, norm1, len(frequencies))
     im1 = np.random.normal(0, norm1, len(frequencies))
-    htilde1 = re1 + 1j*im1
+    htilde1 = re1 + 1j * im1
 
     # convolve data with instrument transfer function
     otilde1 = htilde1 * 1.
@@ -260,7 +260,7 @@ def nfft(time_domain_strain, sampling_frequency):
         time_domain_strain = np.append(time_domain_strain, 0)
     LL = len(time_domain_strain)
     # frequency range
-    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL/2+1))
+    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL / 2 + 1))
 
     # calculate FFT
     # rfft computes the fft for real inputs

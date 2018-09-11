@@ -1247,7 +1247,7 @@ class Interferometer(object):
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
-                    .format(self.strain_data.start_time, parameters['geocent_time']))
+                .format(self.strain_data.start_time, parameters['geocent_time']))
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
@@ -1305,9 +1305,9 @@ class Interferometer(object):
         e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
                         np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
 
-        return np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long + \
-               np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat + \
-               np.sin(arm_tilt) * e_h
+        return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
+                np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
+                np.sin(arm_tilt) * e_h)
 
     @property
     def amplitude_spectral_density_array(self):
@@ -1331,8 +1331,8 @@ class Interferometer(object):
         array_like: An array representation of the PSD
 
         """
-        return self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array) \
-               * self.strain_data.window_factor
+        return (self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array) *
+                self.strain_data.window_factor)
 
     @property
     def frequency_array(self):
@@ -1786,7 +1786,7 @@ def get_empty_interferometer(name):
     try:
         interferometer = load_interferometer(filename)
         return interferometer
-    except FileNotFoundError:
+    except OSError:
         logger.warning('Interferometer {} not implemented'.format(name))
 
 
