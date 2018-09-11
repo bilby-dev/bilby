@@ -255,7 +255,7 @@ def supernova_pca_model(
 
 def lal_binary_neutron_star(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, a_2,
-        iota, phase, ra, dec, geocent_time, psi, lambda1, lambda2, **kwargs):
+        iota, phase, lambda_1, lambda_2, ra, dec, geocent_time, psi, **kwargs):
     """ A Binary Neutron Star waveform model using lalsimulation
 
     Parameters
@@ -284,9 +284,9 @@ def lal_binary_neutron_star(
         The time at coalescence
     psi: float
         Orbital polarisation
-    lambda1: float
+    lambda_1: float
         Dimensionless tidal deformability of mass_1
-    lambda2: float
+    lambda_2: float
         Dimensionless tidal deformability of mass_2
         
     kwargs: dict
@@ -323,8 +323,8 @@ def lal_binary_neutron_star(
     mean_per_ano = 0.0
     
     waveform_dictionary = lal.CreateDict()
-    lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda1)
-    lalsim.SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda2)
+    lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
+    lalsim.SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
 
     approximant = lalsim.GetApproximantFromString(waveform_approximant)
 
