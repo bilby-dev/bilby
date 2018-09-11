@@ -232,6 +232,12 @@ class WaveformGenerator(object):
             for key in parameters.keys():
                 self.__parameters[key] = parameters[key]
 
+    def __parameters_from_source_model(self):
+        if self.frequency_domain_source_model is not None:
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
+        elif self.time_domain_source_model is not None:
+            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
+
     @property
     def duration(self):
         """ Allows one to set the time duration and automatically updates the frequency and time array.
@@ -274,10 +280,3 @@ class WaveformGenerator(object):
     def start_time(self, starting_time):
         self.__start_time = starting_time
         self.__time_array_updated = False
-
-    def __parameters_from_source_model(self):
-        if self.frequency_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
-        elif self.time_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
-
