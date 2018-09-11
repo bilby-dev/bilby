@@ -1558,8 +1558,8 @@ class PowerSpectralDensity(object):
             return self.__class__.__name__ + '(frequency_array={}, psd_array={}, asd_array={})' \
                 .format(self.frequency_array, self.psd_array, self.asd_array)
 
-    @classmethod
-    def from_amplitude_spectral_density_file(cls, asd_file):
+    @staticmethod
+    def from_amplitude_spectral_density_file(asd_file):
         """ Set the amplitude spectral density from a given file
 
         Parameters
@@ -1568,10 +1568,10 @@ class PowerSpectralDensity(object):
             File containing amplitude spectral density, format 'f h_f'
 
         """
-        return cls(asd_file=asd_file)
+        return PowerSpectralDensity(asd_file=asd_file)
 
-    @classmethod
-    def from_power_spectral_density_file(cls, psd_file):
+    @staticmethod
+    def from_power_spectral_density_file(psd_file):
         """ Set the power spectral density from a given file
 
         Parameters
@@ -1580,10 +1580,10 @@ class PowerSpectralDensity(object):
             File containing power spectral density, format 'f h_f'
 
         """
-        return cls(psd_file=psd_file)
+        return PowerSpectralDensity(psd_file=psd_file)
 
-    @classmethod
-    def from_frame_file(cls, frame_file, psd_start_time, psd_duration,
+    @staticmethod
+    def from_frame_file(frame_file, psd_start_time, psd_duration,
                         fft_length=4, sampling_frequency=4096, roll_off=0.2,
                         channel=None):
         """ Generate power spectral density from a frame file
@@ -1612,21 +1612,21 @@ class PowerSpectralDensity(object):
             frame_file, start_time=psd_start_time, duration=psd_duration,
             channel=channel, sampling_frequency=sampling_frequency)
         frequency_array, psd_array = strain.create_power_spectral_density(fft_length=fft_length)
-        return cls(frequency_array=frequency_array, psd_array=psd_array)
+        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
-    @classmethod
-    def from_amplitude_spectral_density_array(cls, frequency_array, asd_array):
-        return cls(frequency_array=frequency_array, asd_array=asd_array)
+    @staticmethod
+    def from_amplitude_spectral_density_array(frequency_array, asd_array):
+        return PowerSpectralDensity(frequency_array=frequency_array, asd_array=asd_array)
 
-    @classmethod
-    def from_power_spectral_density_array(cls, frequency_array, psd_array):
-        return cls(frequency_array=frequency_array, psd_array=psd_array)
+    @staticmethod
+    def from_power_spectral_density_array(frequency_array, psd_array):
+        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
-    @classmethod
-    def from_aligo(cls):
+    @staticmethod
+    def from_aligo():
         logger.info("No power spectral density provided, using aLIGO,"
                     "zero detuning, high power.")
-        return cls.from_power_spectral_density_file(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
+        return PowerSpectralDensity.from_power_spectral_density_file(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
 
     @property
     def psd_array(self):
