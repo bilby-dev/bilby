@@ -139,7 +139,9 @@ Prior._default_latex_labels = {
     'phase': '$\phi$',
     'geocent_time': '$t_c$',
     'lambda_1': '$\\Lambda_1$',
-    'lambda_2': '$\\Lambda_2$'}
+    'lambda_2': '$\\Lambda_2$',
+    'lambda_tilde': '$\\tilde{\\Lambda}$',
+    'delta_lambda': '$\\delta\\Lambda$'}
 
 
 class CalibrationPriorSet(PriorSet):
