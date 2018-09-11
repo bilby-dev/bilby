@@ -534,6 +534,12 @@ class TestJointLikelihood(unittest.TestCase):
         self.joint_likelihood.likelihoods = self.first_likelihood
         self.assertEqual(self.first_likelihood.log_likelihood(), self.joint_likelihood.log_likelihood())
 
+    # Appending is not supported
+    # def test_appending(self):
+    #     joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
+    #     joint_likelihood.likelihoods.append(self.third_likelihood)
+    #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
+
 
 if __name__ == '__main__':
     unittest.main()
