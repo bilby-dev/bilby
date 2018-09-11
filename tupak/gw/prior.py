@@ -94,8 +94,10 @@ class BBHPriorSet(PriorSet):
                     break
 
         return redundant
-    
+
+
 class BNSPriorSet(PriorSet):
+
     def __init__(self, dictionary=None, filename=None):
         """ Initialises a Prior set for Binary Neutron Stars
 
@@ -113,6 +115,24 @@ class BNSPriorSet(PriorSet):
             if not os.path.isfile(filename):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
         PriorSet.__init__(self, dictionary=dictionary, filename=filename)
+
+    def test_redundancy(self, key):
+        bbh_redundancy = BBHPriorSet.test_redundancy(self, key)
+        if bbh_redundancy:
+            return True
+        redundant = False
+
+        tidal_parameters =\
+            {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda'}
+
+        if key in tidal_parameters:
+            if len(tidal_parameters.intersection(self)) > 2:
+                redundant = True
+                logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
+                    tidal_parameters.intersection(self)))
+            elif len(tidal_parameters.intersection(self)) == 2:
+                redundant = True
+        return redundant
 
     
 Prior._default_latex_labels = {
