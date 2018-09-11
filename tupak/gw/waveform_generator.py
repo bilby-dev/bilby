@@ -47,8 +47,8 @@ class WaveformGenerator(object):
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         self.start_time = start_time
-        self._frequency_domain_source_model = frequency_domain_source_model
-        self._time_domain_source_model = time_domain_source_model
+        self.frequency_domain_source_model = frequency_domain_source_model
+        self.time_domain_source_model = time_domain_source_model
         self.__parameters_from_source_model()
         self.duration = duration
         self.sampling_frequency = sampling_frequency
@@ -274,24 +274,6 @@ class WaveformGenerator(object):
     def start_time(self, starting_time):
         self.__start_time = starting_time
         self.__time_array_updated = False
-
-    @property
-    def time_domain_source_model(self):
-        return self._time_domain_source_model
-
-    @time_domain_source_model.setter
-    def time_domain_source_model(self, time_domain_source_model):
-        self._time_domain_source_model = time_domain_source_model
-        self.__parameters_from_source_model()
-
-    @property
-    def frequency_domain_source_model(self):
-        return self._frequency_domain_source_model
-
-    @frequency_domain_source_model.setter
-    def frequency_domain_source_model(self, frequency_domain_source_model):
-        self._frequency_domain_source_model = frequency_domain_source_model
-        self.__parameters_from_source_model()
 
     def __parameters_from_source_model(self):
         if self.frequency_domain_source_model is not None:
