@@ -514,14 +514,14 @@ class Dynesty(Sampler):
                              resume=True, walks=self.ndim * 5, verbose=True,
                              check_point_delta_t=60 * 10, nlive=250)
 
+        # Check if nlive was instead given by another name
+        if 'nlive' not in kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
+                if equiv in kwargs:
+                    kwargs['nlive'] = kwargs.pop(equiv)
+
         # Overwrite default values with user specified values
         self.__kwargs.update(kwargs)
-
-        # Check if nlive was instead given by another name
-        if 'nlive' not in self.__kwargs:
-            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
-                if equiv in self.__kwargs:
-                    self.__kwargs['nlive'] = self.__kwargs.pop(equiv)
 
         # Set the update interval
         if 'update_interval' not in self.__kwargs:
