@@ -427,7 +427,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                    .format(filter_freq))
+                .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
@@ -816,7 +816,6 @@ class Interferometer(object):
                     float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
-
 
     @property
     def minimum_frequency(self):
@@ -1257,7 +1256,7 @@ class Interferometer(object):
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
-                .format(self.strain_data.start_time, parameters['geocent_time']))
+                    .format(self.strain_data.start_time, parameters['geocent_time']))
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
@@ -1562,7 +1561,7 @@ class PowerSpectralDensity(object):
 
     def __repr__(self):
         if self.asd_file is not None or self.psd_file is not None:
-            return self.__class__.__name__ + '(psd_file=\'{}\', asd_file=\'{}\')'\
+            return self.__class__.__name__ + '(psd_file=\'{}\', asd_file=\'{}\')' \
                 .format(self.psd_file, self.asd_file)
         else:
             return self.__class__.__name__ + '(frequency_array={}, psd_array={}, asd_array={})' \
