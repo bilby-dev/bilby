@@ -372,8 +372,9 @@ class Result(dict):
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
-        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
-                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
+        self.posterior['mass_chirp'] = (
+            (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2)
         self.search_parameter_keys.append('mass_chirp')
         self.parameter_labels.append('$\mathcal{M}$')
 
@@ -381,20 +382,24 @@ class Result(dict):
         self.search_parameter_keys.append('q')
         self.parameter_labels.append('$q$')
 
-        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) / (
-                self.posterior.mass_1 + self.posterior.mass_2) ** 2
+        self.posterior['eta'] = (
+            (self.posterior.mass_1 * self.posterior.mass_2) / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 2)
         self.search_parameter_keys.append('eta')
         self.parameter_labels.append('$\eta$')
 
-        self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
-                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
-                                            1 + self.posterior.q)
+        self.posterior['chi_eff'] = (
+            (self.posterior.a_1 * np.cos(self.posterior.tilt_1) +
+                self.posterior.q * self.posterior.a_2 *
+                np.cos(self.posterior.tilt_2)) / (1 + self.posterior.q))
         self.search_parameter_keys.append('chi_eff')
         self.parameter_labels.append('$\chi_{\mathrm eff}$')
 
-        self.posterior['chi_p'] = np.maximum(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
-                                      (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
-                                      * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
+        self.posterior['chi_p'] = (
+            np.maximum(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
+                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) *
+                       self.posterior.q * self.posterior.a_2 *
+                       np.sin(self.posterior.tilt_2)))
         self.search_parameter_keys.append('chi_p')
         self.parameter_labels.append('$\chi_{\mathrm p}$')
 

@@ -1498,9 +1498,9 @@ class Pymc3(Sampler):
         """
 
         try:
-            import theano
+            import theano  # noqa
             import theano.tensor as tt
-            from theano.compile.ops import as_op
+            from theano.compile.ops import as_op  # noqa
         except ImportError:
             raise ImportError("Could not import theano")
 
@@ -1534,7 +1534,7 @@ class Pymc3(Sampler):
 
             def grad(self, inputs, g):
                 theta, = inputs
-                return [g[0]*self.logpgrad(theta)]
+                return [g[0] * self.logpgrad(theta)]
 
         # create theano Op for calculating the gradient of the log likelihood
         class LogLikeGrad(tt.Op):
