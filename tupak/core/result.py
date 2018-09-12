@@ -236,7 +236,8 @@ class Result(dict):
         """
         return self.posterior_volume / self.prior_volume(priors)
 
-    def plot_corner(self, parameters=None, save=True, dpi=300, **kwargs):
+    def plot_corner(self, parameters=None, save=True, priors=None, dpi=300,
+                    **kwargs):
         """ Plot a corner-plot using corner
 
         See https://corner.readthedocs.io/en/latest/ for a detailed API.
@@ -423,6 +424,9 @@ class Result(dict):
                 self.samples, columns=self.search_parameter_keys)
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
+            for key in priors:
+                if getattr(priors[key], 'is_fixed', False):
+                    data_frame[key] = priors[key].peak
             # We save the samples in the posterior and remove the array of samples
             del self.samples
         else:
