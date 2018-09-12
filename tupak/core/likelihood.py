@@ -17,6 +17,9 @@ class Likelihood(object):
         """
         self.parameters = parameters
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(parameters={})'.format(self.parameters)
+
     def log_likelihood(self):
         """
 
@@ -68,6 +71,9 @@ class Analytical1DLikelihood(Likelihood):
         self.y = y
         self.__func = func
         self.__function_keys = list(self.parameters.keys())
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
 
     @property
     def func(self):
@@ -147,6 +153,10 @@ class GaussianLikelihood(Analytical1DLikelihood):
         if self.sigma is None:
             self.parameters['sigma'] = None
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})'\
+            .format(self.x, self.y, self.func.__name__, self.sigma)
+
     def log_likelihood(self):
         return self.__summed_log_likelihood(sigma=self.__get_sigma())
 
@@ -188,6 +198,9 @@ class PoissonLikelihood(Analytical1DLikelihood):
         """
 
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+
+    def __repr__(self):
+        return Analytical1DLikelihood.__repr__(self)
 
     @property
     def y(self):
@@ -235,6 +248,9 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             the exponential distribution for each data point.
         """
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+
+    def __repr__(self):
+        return Analytical1DLikelihood.__repr__(self)
 
     @property
     def y(self):
@@ -294,6 +310,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
         # Check if nu was provided, if not it is a parameter
         if self.nu is None:
             self.parameters['nu'] = None
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={}, nu={}, sigma={})'\
+            .format(self.x, self.y, self.func.__name__, self.nu, self.sigma)
 
     @property
     def lam(self):
