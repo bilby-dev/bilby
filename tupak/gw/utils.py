@@ -3,11 +3,9 @@ import os
 
 import numpy as np
 
-from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light,
-                          nfft, logger)
+from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, logger)
 
 try:
-    from gwpy.signal import filter_design
     from gwpy.timeseries import TimeSeries
 except ImportError:
     logger.warning("You do not have gwpy installed currently. You will "
@@ -158,8 +156,8 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     """
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
-    radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(latitude)**2
-                                   + semi_minor_axis**2 * np.sin(latitude)**2)**(-0.5)
+    radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(latitude)**2 +
+                                   semi_minor_axis**2 * np.sin(latitude)**2)**(-0.5)
     x_comp = (radius + elevation) * np.cos(latitude) * np.cos(longitude)
     y_comp = (radius + elevation) * np.cos(latitude) * np.sin(longitude)
     z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * np.sin(latitude)
@@ -282,8 +280,12 @@ def get_event_time(event):
     event_time: float
         Merger time
     """
-    event_times = {'150914': 1126259462.422, '151012': 1128678900.4443,  '151226': 1135136350.65,
-                   '170104': 1167559936.5991, '170608': 1180922494.4902, '170814': 1186741861.5268,
+    event_times = {'150914': 1126259462.422,
+                   '151012': 1128678900.4443,
+                   '151226': 1135136350.65,
+                   '170104': 1167559936.5991,
+                   '170608': 1180922494.4902,
+                   '170814': 1186741861.5268,
                    '170817': 1187008882.4457}
     if 'GW' or 'LVT' in event:
         event = event[-6:]

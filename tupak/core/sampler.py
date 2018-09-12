@@ -535,8 +535,8 @@ class Dynesty(Sampler):
 
         # If n_check_point is not already set, set it checkpoint every 10 mins
         if 'n_check_point' not in self.__kwargs:
-            n_check_point_raw = (self.__kwargs['check_point_delta_t']
-                                 / self._log_likelihood_eval_time)
+            n_check_point_raw = (self.__kwargs['check_point_delta_t'] /
+                                 self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.__kwargs['n_check_point'] = n_check_point_rnd
 
@@ -1117,36 +1117,61 @@ class Pymc3(Sampler):
 
         prior_map = {}
         self.prior_map = prior_map
-        
-        # predefined PyMC3 distributions 
-        prior_map['Gaussian'] =          {'pymc3': 'Normal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        prior_map['TruncatedGaussian'] = {'pymc3': 'TruncatedNormal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
-        prior_map['HalfGaussian'] =      {'pymc3': 'HalfNormal',
-                                          'argmap': {'sigma': 'sd'}}
-        prior_map['Uniform'] =           {'pymc3': 'Uniform',
-                                          'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
-        prior_map['LogNormal'] =         {'pymc3': 'Lognormal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        prior_map['Exponential'] =       {'pymc3': 'Exponential',
-                                          'argmap': {'mu': 'lam'},
-                                          'argtransform': {'mu': lambda mu: 1./mu}}
-        prior_map['StudentT'] =          {'pymc3': 'StudentT',
-                                          'argmap': {'df': 'nu', 'mu': 'mu', 'scale': 'sd'}}
-        prior_map['Beta'] =              {'pymc3': 'Beta',
-                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-        prior_map['Logistic'] =          {'pymc3': 'Logistic',
-                                          'argmap': {'mu': 'mu', 'scale': 's'}}
-        prior_map['Cauchy'] =            {'pymc3': 'Cauchy',
-                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-        prior_map['Gamma'] =             {'pymc3': 'Gamma',
-                                          'argmap': {'k': 'alpha', 'theta': 'beta'},
-                                          'argtransform': {'theta': lambda theta: 1./theta}}
-        prior_map['ChiSquared'] =        {'pymc3': 'ChiSquared',
-                                          'argmap': {'nu': 'nu'}}
-        prior_map['Interped'] =          {'pymc3': 'Interpolated',
-                                          'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
+
+        # predefined PyMC3 distributions
+        prior_map['Gaussian'] = {
+            'pymc3': 'Normal',
+            'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        prior_map['TruncatedGaussian'] = {
+            'pymc3': 'TruncatedNormal',
+            'argmap': {'mu': 'mu',
+                       'sigma': 'sd',
+                       'minimum': 'lower',
+                       'maximum': 'upper'}}
+        prior_map['HalfGaussian'] = {
+            'pymc3': 'HalfNormal',
+            'argmap': {'sigma': 'sd'}}
+        prior_map['Uniform'] = {
+            'pymc3': 'Uniform',
+            'argmap': {'minimum': 'lower',
+                       'maximum': 'upper'}}
+        prior_map['LogNormal'] = {
+            'pymc3': 'Lognormal',
+            'argmap': {'mu': 'mu',
+                       'sigma': 'sd'}}
+        prior_map['Exponential'] = {
+            'pymc3': 'Exponential',
+            'argmap': {'mu': 'lam'},
+            'argtransform': {'mu': lambda mu: 1. / mu}}
+        prior_map['StudentT'] = {
+            'pymc3': 'StudentT',
+            'argmap': {'df': 'nu',
+                       'mu': 'mu',
+                       'scale': 'sd'}}
+        prior_map['Beta'] = {
+            'pymc3': 'Beta',
+            'argmap': {'alpha': 'alpha',
+                       'beta': 'beta'}}
+        prior_map['Logistic'] = {
+            'pymc3': 'Logistic',
+            'argmap': {'mu': 'mu',
+                       'scale': 's'}}
+        prior_map['Cauchy'] = {
+            'pymc3': 'Cauchy',
+            'argmap': {'alpha': 'alpha',
+                       'beta': 'beta'}}
+        prior_map['Gamma'] = {
+            'pymc3': 'Gamma',
+            'argmap': {'k': 'alpha',
+                       'theta': 'beta'},
+            'argtransform': {'theta': lambda theta: 1. / theta}}
+        prior_map['ChiSquared'] = {
+            'pymc3': 'ChiSquared',
+            'argmap': {'nu': 'nu'}}
+        prior_map['Interped'] = {
+            'pymc3': 'Interpolated',
+            'argmap': {'xx': 'x_points',
+                       'yy': 'pdf_points'}}
         prior_map['Normal'] = prior_map['Gaussian']
         prior_map['TruncatedNormal'] = prior_map['TruncatedGaussian']
         prior_map['HalfNormal'] = prior_map['HalfGaussian']
@@ -1159,10 +1184,10 @@ class Pymc3(Sampler):
 
         # internally defined mappings for tupak priors
         prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
-        prior_map['Sine'] =          {'internal': self._sine_prior}
-        prior_map['Cosine'] =        {'internal': self._cosine_prior}
-        prior_map['PowerLaw'] =      {'internal': self._powerlaw_prior}
-        prior_map['LogUniform'] =    {'internal': self._powerlaw_prior}
+        prior_map['Sine'] = {'internal': self._sine_prior}
+        prior_map['Cosine'] = {'internal': self._cosine_prior}
+        prior_map['PowerLaw'] = {'internal': self._powerlaw_prior}
+        prior_map['LogUniform'] = {'internal': self._powerlaw_prior}
 
     def _deltafunction_prior(self, key, **kwargs):
         """
@@ -1181,7 +1206,7 @@ class Pymc3(Sampler):
         """
         Map the tupak Sine prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import Sine
 
         # check prior is a Sine
@@ -1203,7 +1228,9 @@ class Pymc3(Sampler):
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.cos(lower) - tt.cos(upper))
-                    self.mean = (tt.sin(upper)+lower*tt.cos(lower) - tt.sin(lower) - upper*tt.cos(upper))/self.norm
+                    self.mean = (
+                        tt.sin(upper) + lower * tt.cos(lower) - tt.sin(lower) -
+                        upper * tt.cos(upper)) / self.norm
 
                     transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1212,7 +1239,9 @@ class Pymc3(Sampler):
                 def logp(self, value):
                     upper = self.upper
                     lower = self.lower
-                    return pymc3.distributions.dist_math.bound(tt.log(tt.sin(value)/self.norm), lower <= value, value <= upper)
+                    return pymc3.distributions.dist_math.bound(
+                        tt.log(tt.sin(value) / self.norm),
+                        lower <= value, value <= upper)
 
             return Pymc3Sine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
@@ -1222,7 +1251,7 @@ class Pymc3(Sampler):
         """
         Map the tupak Cosine prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import Cosine
 
         # check prior is a Cosine
@@ -1237,14 +1266,16 @@ class Pymc3(Sampler):
                 raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Cosine(pymc3.Continuous):
-                def __init__(self, lower=-np.pi/2., upper=np.pi/2.):
+                def __init__(self, lower=-np.pi / 2., upper=np.pi / 2.):
                     if lower >= upper:
                         raise ValueError("Lower bound is above upper bound!")
 
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.sin(upper) - tt.sin(lower))
-                    self.mean = (upper*tt.sin(upper) + tt.cos(upper)-lower*tt.sin(lower)-tt.cos(lower))/self.norm
+                    self.mean = (
+                        upper * tt.sin(upper) + tt.cos(upper) -
+                        lower * tt.sin(lower) - tt.cos(lower)) / self.norm
 
                     transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1253,7 +1284,9 @@ class Pymc3(Sampler):
                 def logp(self, value):
                     upper = self.upper
                     lower = self.lower
-                    return pymc3.distributions.dist_math.bound(tt.log(tt.cos(value)/self.norm), lower <= value, value <= upper)
+                    return pymc3.distributions.dist_math.bound(
+                        tt.log(tt.cos(value) / self.norm),
+                        lower <= value, value <= upper)
 
             return Pymc3Cosine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
@@ -1263,7 +1296,7 @@ class Pymc3(Sampler):
         """
         Map the tupak PowerLaw prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import PowerLaw
 
         # check prior is a PowerLaw
@@ -1295,11 +1328,11 @@ class Pymc3(Sampler):
                         self.alpha = alpha = tt.as_tensor_variable(floatX(alpha))
 
                         if falpha == -1:
-                            self.norm = 1./(tt.log(self.upper/self.lower))
+                            self.norm = 1. / (tt.log(self.upper / self.lower))
                         else:
                             beta = (1. + self.alpha)
-                            self.norm = 1. /(beta * (tt.pow(self.upper, beta) 
-                                          - tt.pow(self.lower, beta)))
+                            self.norm = 1. / (beta * (tt.pow(self.upper, beta) -
+                                                      tt.pow(self.lower, beta)))
 
                         transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1310,7 +1343,9 @@ class Pymc3(Sampler):
                         lower = self.lower
                         alpha = self.alpha
 
-                        return pymc3.distributions.dist_math.bound(self.alpha*tt.log(value) + tt.log(self.norm), lower <= value, value <= upper)
+                        return pymc3.distributions.dist_math.bound(
+                            alpha * tt.log(value) + tt.log(self.norm),
+                            lower <= value, value <= upper)
 
                 return Pymc3PowerLaw(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum, alpha=self.priors[key].alpha)
         else:
@@ -1375,13 +1410,13 @@ class Pymc3(Sampler):
             trace = pymc3.sample(self.draws, step=sm, **self.kwargs)
 
         nparams = len([key for key in self.priors.keys() if self.priors[key].__class__.__name__ != 'DeltaFunction'])
-        nsamples = len(trace)*self.chains
+        nsamples = len(trace) * self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
         count = 0
         for key in self.priors.keys():
-            if self.priors[key].__class__.__name__ != 'DeltaFunction': # ignore DeltaFunction variables
-                self.result.samples[:,count] = trace[key]
+            if self.priors[key].__class__.__name__ != 'DeltaFunction':  # ignore DeltaFunction variables
+                self.result.samples[:, count] = trace[key]
                 count += 1
 
         self.result.sampler_output = np.nan
@@ -1412,7 +1447,7 @@ class Pymc3(Sampler):
                         self.pymc3_priors[key] = self.priors[key].ln_prob(sampler=self)
                     except RuntimeError:
                         raise RuntimeError(("Problem setting PyMC3 prior for ",
-                            "'{}'".format(key)))
+                                            "'{}'".format(key)))
                 else:
                     # use Prior distribution name
                     distname = self.priors[key].__class__.__name__
@@ -1437,9 +1472,11 @@ class Pymc3(Sampler):
                                             if targ in self.prior_map[distname]['argtransform']:
                                                 tfunc = self.prior_map[distname]['argtransform'][targ]
                                             else:
-                                                tfunc = lambda x: x
+                                                def tfunc(x):
+                                                    return x
                                         else:
-                                            tfunc = lambda x: x
+                                            def tfunc(x):
+                                                return x
 
                                         priorkwargs[parg] = tfunc(getattr(self.priors[key], targ))
                                     else:
@@ -1461,9 +1498,9 @@ class Pymc3(Sampler):
         """
 
         try:
-            import theano
+            import theano  # noqa
             import theano.tensor as tt
-            from theano.compile.ops import as_op
+            from theano.compile.ops import as_op  # noqa
         except ImportError:
             raise ImportError("Could not import theano")
 
@@ -1497,7 +1534,7 @@ class Pymc3(Sampler):
 
             def grad(self, inputs, g):
                 theta, = inputs
-                return [g[0]*self.logpgrad(theta)]
+                return [g[0] * self.logpgrad(theta)]
 
         # create theano Op for calculating the gradient of the log likelihood
         class LogLikeGrad(tt.Op):
@@ -1540,7 +1577,7 @@ class Pymc3(Sampler):
                     not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y')):
                     raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
-                
+
                 if 'sigma' in self.pymc3_priors:
                     # if sigma is suppled use that value
                     if self.likelihood.sigma is None:
@@ -1562,7 +1599,7 @@ class Pymc3(Sampler):
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y')):
                     raise ValueError("Poisson Likelihood does not have all the correct attributes!")
-                
+
                 for key in self.pymc3_priors:
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
@@ -1586,7 +1623,7 @@ class Pymc3(Sampler):
                 model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
-                pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
+                pymc3.Exponential('likelihood', lam=1. / model, observed=self.likelihood.y)
             elif isinstance(self.likelihood, StudentTLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or

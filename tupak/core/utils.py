@@ -104,7 +104,7 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, starting_time+duration, 1./sampling_frequency)
+    return np.arange(starting_time, starting_time + duration, 1. / sampling_frequency)
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
@@ -175,8 +175,8 @@ def create_frequency_series(sampling_frequency, duration):
     number_of_samples = int(np.round(number_of_samples))
 
     # prepare for FFT
-    number_of_frequencies = (number_of_samples-1)//2
-    delta_freq = 1./duration
+    number_of_frequencies = (number_of_samples - 1) // 2
+    delta_freq = 1. / duration
 
     frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
 
@@ -207,14 +207,14 @@ def create_white_noise(sampling_frequency, duration):
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
 
-    delta_freq = 1./duration
+    delta_freq = 1. / duration
 
     frequencies = create_frequency_series(sampling_frequency, duration)
 
-    norm1 = 0.5*(1./delta_freq)**0.5
+    norm1 = 0.5 * (1. / delta_freq)**0.5
     re1 = np.random.normal(0, norm1, len(frequencies))
     im1 = np.random.normal(0, norm1, len(frequencies))
-    htilde1 = re1 + 1j*im1
+    htilde1 = re1 + 1j * im1
 
     # convolve data with instrument transfer function
     otilde1 = htilde1 * 1.
@@ -260,7 +260,7 @@ def nfft(time_domain_strain, sampling_frequency):
         time_domain_strain = np.append(time_domain_strain, 0)
     LL = len(time_domain_strain)
     # frequency range
-    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL/2+1))
+    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL / 2 + 1))
 
     # calculate FFT
     # rfft computes the fft for real inputs
@@ -479,7 +479,7 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
         An array of indices in `vals` that are _not_ fixed values and therefore
         can have derivatives taken. If `None` then derivatives of all values
         are calculated.
-        
+
     Returns
     -------
     grads: array_like
@@ -488,10 +488,10 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
 
     if nonfixedidx is None:
         nonfixedidx = range(len(vals))
-    
+
     if len(nonfixedidx) > len(vals):
         raise ValueError("To many non-fixed values")
-        
+
     if max(nonfixedidx) >= len(vals) or min(nonfixedidx) < 0:
         raise ValueError("Non-fixed indexes contain non-existant indices")
 
@@ -503,9 +503,9 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
     # set steps
     if abseps is None:
         if isinstance(releps, float):
-            eps = np.abs(vals)*releps
-            eps[eps == 0.] = releps # if any values are zero set eps to releps
-            teps = releps*np.ones(len(vals))
+            eps = np.abs(vals) * releps
+            eps[eps == 0.] = releps  # if any values are zero set eps to releps
+            teps = releps * np.ones(len(vals))
         elif isinstance(releps, (list, np.ndarray)):
             if len(releps) != len(vals):
                 raise ValueError("Problem with input relative step sizes")
@@ -516,7 +516,7 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
             raise RuntimeError("Relative step sizes are not a recognised type!")
     else:
         if isinstance(abseps, float):
-            eps = abseps*np.ones(len(vals))
+            eps = abseps * np.ones(len(vals))
         elif isinstance(abseps, (list, np.ndarray)):
             if len(abseps) != len(vals):
                 raise ValueError("Problem with input absolute step sizes")
@@ -539,13 +539,13 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
         bvals = np.copy(vals)
 
         # central difference
-        fvals[i] += 0.5*leps  # change forwards distance to half eps
-        bvals[i] -= 0.5*leps  # change backwards distance to half eps
-        cdiff = (func(fvals)-func(bvals))/leps
+        fvals[i] += 0.5 * leps  # change forwards distance to half eps
+        bvals[i] -= 0.5 * leps  # change backwards distance to half eps
+        cdiff = (func(fvals) - func(bvals)) / leps
 
         while 1:
-            fvals[i] -= 0.5*leps  # remove old step
-            bvals[i] += 0.5*leps
+            fvals[i] -= 0.5 * leps  # remove old step
+            bvals[i] += 0.5 * leps
 
             # change the difference by a factor of two
             cureps *= epsscale
@@ -557,19 +557,19 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
             leps *= epsscale
 
             # central difference
-            fvals[i] += 0.5*leps  # change forwards distance to half eps
-            bvals[i] -= 0.5*leps  # change backwards distance to half eps
-            cdiffnew = (func(fvals)-func(bvals))/leps
+            fvals[i] += 0.5 * leps  # change forwards distance to half eps
+            bvals[i] -= 0.5 * leps  # change backwards distance to half eps
+            cdiffnew = (func(fvals) - func(bvals)) / leps
 
             if cdiffnew == cdiff:
                 grads[count] = cdiff
                 break
 
             # check whether previous diff and current diff are the same within reltol
-            rat = (cdiff/cdiffnew)
+            rat = (cdiff / cdiffnew)
             if np.isfinite(rat) and rat > 0.:
                 # gradient has not changed sign
-                if np.abs(1.-rat) < reltol:
+                if np.abs(1. - rat) < reltol:
                     grads[count] = cdiffnew
                     break
                 else:

@@ -120,4 +120,3 @@ class CubicSpline(Recalibrate):
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
 
         return calibration_factor
-

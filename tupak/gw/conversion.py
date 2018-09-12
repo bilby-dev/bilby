@@ -128,8 +128,10 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             converted_parameters['mass_ratio'] = \
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
             temp = (parameters['chirp_mass'] / parameters['mass_1']) ** 5
-            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (
-                    1 / 3) + (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3)
+            parameters['mass_ratio'] = (
+                (2 * temp / 3 / (
+                    (51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (1 / 3) +
+                (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3))
             if remove:
                 added_keys.append('chirp_mass')
         elif 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
@@ -462,12 +464,12 @@ def generate_component_spins(sample):
         output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], \
             output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'], output_sample['phi_jl'],
-                    output_sample['tilt_1'], output_sample['tilt_2'],
-                    output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
-                    output_sample['mass_1'] * tupak.core.utils.solar_mass,
-                    output_sample['mass_2'] * tupak.core.utils.solar_mass,
-                    output_sample['reference_frequency'], output_sample['phase'])
+                output_sample['iota'], output_sample['phi_jl'],
+                output_sample['tilt_1'], output_sample['tilt_2'],
+                output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
+                output_sample['mass_1'] * tupak.core.utils.solar_mass,
+                output_sample['mass_2'] * tupak.core.utils.solar_mass,
+                output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
