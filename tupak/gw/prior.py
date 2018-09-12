@@ -117,7 +117,7 @@ class BNSPriorSet(PriorSet):
         PriorSet.__init__(self, dictionary=dictionary, filename=filename)
 
     def test_redundancy(self, key):
-        bbh_redundancy = BBHPriorSet.test_redundancy(self, key)
+        bbh_redundancy = BBHPriorSet().test_redundancy(key)
         if bbh_redundancy:
             return True
         redundant = False
@@ -134,7 +134,7 @@ class BNSPriorSet(PriorSet):
                 redundant = True
         return redundant
 
-    
+
 Prior._default_latex_labels = {
     'mass_1': '$m_1$',
     'mass_2': '$m_2$',
@@ -327,6 +327,3 @@ class CalibrationPriorSet(PriorSet):
                                         latex_label=latex_label)
 
         return prior
-    
-
-
