@@ -248,6 +248,9 @@ class Result(dict):
             If given, a list of the parameter names to include
         save: bool, optional
             If true, save the image using the given label and outdir
+        priors: tupak.core.prior.PriorSet
+            If given, add the prior probability density functions to the
+            one-dimensional marginal distributions
         dpi: int, optional
             Dots per inch resolution of the plot
         **kwargs:
@@ -306,6 +309,13 @@ class Result(dict):
             kwargs['truths'] = truths
 
         fig = corner.corner(xs, **kwargs)
+
+        axes = fig.get_axes()
+        if priors is not None:
+            for i, par in enumerate(parameters):
+                ax = axes[i + i * len(parameters)]
+                theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
+                ax.plot(theta, priors[par].prob(theta), color='C2')
 
         if save:
             utils.check_directory_exists_and_if_not_mkdir(self.outdir)
