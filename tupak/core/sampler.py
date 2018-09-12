@@ -1151,6 +1151,9 @@ class Pymc3(Sampler):
         prior_map['Lorentzian'] = prior_map['Cauchy']
         prior_map['FromFile'] = prior_map['Interped']
 
+        # GW specific priors
+        prior_map['UniformComovingVolume'] = prior_map['Interped']
+
         # internally defined mappings for tupak priors
         prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
         prior_map['Sine'] =          {'internal': self._sine_prior}
@@ -1318,21 +1321,40 @@ class Pymc3(Sampler):
 
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
-            step_method = self.__kwargs.pop('step').lower()
+            self.step_method = self.__kwargs.pop('step')
 
-            if step_method not in step_methods:
-                raise ValueError("Using invalid step method '{}'".format(step_method))
+            # 'step' could be a dictionary of methods for different parameters, so check for this
+            if isinstance(self.step_method, (dict, OrderedDict)):
+                for key in self.step_method:
+                    if key not in self.__search_parameter_keys:
+                        raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
+                    else:
+                        if self.step_method[key].lower() not in step_methods:
+                            raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
+            else:
+                self.step_method = self.step_method.lower()
+
+                if self.step_method not in step_methods:
+                    raise ValueError("Using invalid step method '{}'".format(self.step_method))
         else:
-            step_method = None
+            self.step_method = None
 
         # initialise the PyMC3 model
         self.pymc3_model = pymc3.Model()
 
-        # set the step method
-        sm = None if step_method is None else pymc3.__dict__[step_methods[step_method]]()
-
         # set the prior
         self.set_prior()
+
+        # set the step method
+        if isinstance(self.step_method, (dict, OrderedDict)):
+            # create list of step methods (any not given will default to NUTS)
+            sm = []
+            with self.pymc3_model:
+                for key in self.step_method:
+                    curmethod = self.step_method[key].lower()
+                    sm.append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
+        else:
+            sm = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
@@ -1372,7 +1394,7 @@ class Pymc3(Sampler):
 
         self.setup_prior_mapping()
 
-        self.pymc3_priors = dict()
+        self.pymc3_priors = OrderedDict()
 
         pymc3 = self.external_sampler
 
@@ -1435,17 +1457,85 @@ class Pymc3(Sampler):
         Convert any tupak likelihoods to PyMC3 distributions.
         """
 
+        try:
+            import theano
+            import theano.tensor as tt
+            from theano.compile.ops import as_op
+        except ImportError:
+            raise ImportError("Could not import theano")
+
+        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, StudentTLikelihood
+        from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
+
+        # create theano Op for the log likelihood if not using a predefined model
+        class LogLike(tt.Op):
+
+            itypes = [tt.dvector]
+            otypes = [tt.dscalar]
+
+            def __init__(self, parameters, loglike, priors):
+                self.parameters = parameters
+                self.likelihood = loglike
+                self.priors = priors
+
+                # set the fixed parameters
+                for key in self.priors.keys():
+                    if isinstance(self.priors[key], float):
+                        self.likelihood.parameters[key] = self.priors[key]
+
+                self.logpgrad = LogLikeGrad(self.parameters, self.likelihood, self.priors)
+
+            def perform(self, node, inputs, outputs):
+                theta, = inputs
+                for i, key in enumerate(self.parameters):
+                    self.likelihood.parameters[key] = theta[i]
+
+                outputs[0][0] = np.array(self.likelihood.log_likelihood())
+
+            def grad(self, inputs, g):
+                theta, = inputs
+                return [g[0]*self.logpgrad(theta)]
+
+        # create theano Op for calculating the gradient of the log likelihood
+        class LogLikeGrad(tt.Op):
+
+            itypes = [tt.dvector]
+            otypes = [tt.dvector]
+
+            def __init__(self, parameters, loglike, priors):
+                self.parameters = parameters
+                self.Nparams = len(parameters)
+                self.likelihood = loglike
+                self.priors = priors
+
+                # set the fixed parameters
+                for key in self.priors.keys():
+                    if isinstance(self.priors[key], float):
+                        self.likelihood.parameters[key] = self.priors[key]
+
+            def perform(self, node, inputs, outputs):
+                theta, = inputs
+
+                # define version of likelihood function to pass to derivative function
+                def lnlike(values):
+                    for i, key in enumerate(self.parameters):
+                        self.likelihood.parameters[key] = values[i]
+                    return self.likelihood.log_likelihood()
+
+                # calculate gradients
+                grads = utils.derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
+
+                outputs[0][0] = grads
+
         pymc3 = self.external_sampler
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function
-            if self.likelihood.__class__.__name__ == 'GaussianLikelihood':
+            if isinstance(self.likelihood, GaussianLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'sigma') or
                     not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
                 
                 if 'sigma' in self.pymc3_priors:
@@ -1459,17 +1549,15 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Normal('likelihood', mu=model, sd=self.likelihood.sigma,
                              observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'PoissonLikelihood':
+            elif isinstance(self.likelihood, PoissonLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Poisson Likelihood does not have all the correct attributes!")
                 
                 for key in self.pymc3_priors:
@@ -1477,16 +1565,14 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get rate function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Poisson('likelihood', mu=model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'ExponentialLikelihood':
+            elif isinstance(self.likelihood, ExponentialLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Exponential Likelihood does not have all the correct attributes!")
 
                 for key in self.pymc3_priors:
@@ -1494,18 +1580,16 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get mean function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'StudentTLikelihood':
+            elif isinstance(self.likelihood, StudentTLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
                     not hasattr(self.likelihood, 'nu') or
-                    not hasattr(self.likelihood, 'sigma') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'sigma')):
                     raise ValueError("StudentT Likelihood does not have all the correct attributes!")
 
                 if 'nu' in self.pymc3_priors:
@@ -1519,10 +1603,25 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
+            elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
+                # set theano Op - pass __search_parameter_keys, which only contains non-fixed variables
+                logl = LogLike(self.__search_parameter_keys, self.likelihood, self.pymc3_priors)
+
+                parameters = OrderedDict()
+                for key in self.__search_parameter_keys:
+                    try:
+                        parameters[key] = self.pymc3_priors[key]
+                    except KeyError:
+                        raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
+
+                # convert to theano tensor variable
+                values = tt.as_tensor_variable(list(parameters.values()))
+
+                pymc3.DensityDist('likelihood', lambda v: logl(v), observed={'v': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
 
