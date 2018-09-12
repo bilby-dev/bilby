@@ -19,6 +19,11 @@ class TestLikelihoodBase(unittest.TestCase):
     def tearDown(self):
         del self.likelihood
 
+    def test_repr(self):
+        self.likelihood = tupak.core.likelihood.Likelihood(parameters=['a', 'b'])
+        expected = 'Likelihood(parameters=[\'a\', \'b\'])'
+        self.assertEqual(expected, repr(self.likelihood))
+
     def test_base_log_likelihood(self):
         self.assertTrue(np.isnan(self.likelihood.log_likelihood()))
 
@@ -125,6 +130,10 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
                                          parameter2=self.parameter2_value)
         self.assertDictEqual(expected_model_parameters, self.analytical_1d_likelihood.model_parameters)
 
+    def test_repr(self):
+        expected = 'Analytical1DLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
+        self.assertEqual(expected, repr(self.analytical_1d_likelihood))
+
 
 class TestGaussianLikelihood(unittest.TestCase):
 
@@ -181,6 +190,13 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.parameters['sigma'] = 1
         likelihood.log_likelihood()
         self.assertTrue(likelihood.sigma is None)
+
+    def test_repr(self):
+        likelihood = tupak.core.likelihood.GaussianLikelihood(
+            self.x, self.y, self.function, sigma=self.sigma)
+        expected = 'GaussianLikelihood(x={}, y={}, func={}, sigma={})' \
+            .format(self.x, self.y, self.function.__name__, self.sigma)
+        self.assertEqual(expected, repr(likelihood))
 
 
 class TestStudentTLikelihood(unittest.TestCase):
@@ -257,6 +273,15 @@ class TestStudentTLikelihood(unittest.TestCase):
             self.x, self.y, self.function, nu=0, sigma=0.5)
 
         self.assertAlmostEqual(4.0, likelihood.lam)
+
+    def test_repr(self):
+        nu = 0
+        sigma = 0.5
+        likelihood = tupak.core.likelihood.StudentTLikelihood(
+            self.x, self.y, self.function, nu=nu, sigma=sigma)
+        expected = 'StudentTLikelihood(x={}, y={}, func={}, nu={}, sigma={})' \
+            .format(self.x, self.y, self.function.__name__, nu, sigma)
+        self.assertEqual(expected, repr(likelihood))
 
 
 class TestPoissonLikelihood(unittest.TestCase):
@@ -356,6 +381,12 @@ class TestPoissonLikelihood(unittest.TestCase):
         with mock.patch('numpy.sum') as m:
             m.return_value = 1
             self.assertEqual(0, poisson_likelihood.log_likelihood())
+
+    def test_repr(self):
+        likelihood = tupak.core.likelihood.PoissonLikelihood(
+            self.x, self.y, self.function)
+        expected = 'PoissonLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.function.__name__)
+        self.assertEqual(expected, repr(likelihood))
 
 
 class TestExponentialLikelihood(unittest.TestCase):

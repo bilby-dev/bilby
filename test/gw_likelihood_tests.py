@@ -61,6 +61,11 @@ class TestBasicGWTransient(unittest.TestCase):
                          np.nan_to_num(-np.inf))
         self.likelihood.waveform_generator.parameters['mass_2'] = 29
 
+    def test_repr(self):
+        expected = 'BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})'.format(
+            self.interferometers, self.waveform_generator)
+        self.assertEqual(expected, repr(self.likelihood))
+
 
 class TestGWTransient(unittest.TestCase):
 
@@ -132,6 +137,12 @@ class TestGWTransient(unittest.TestCase):
         self.assertEqual(self.likelihood.log_likelihood_ratio(),
                          np.nan_to_num(-np.inf))
         self.likelihood.waveform_generator.parameters['mass_2'] = 29
+
+    def test_repr(self):
+        expected = 'GravitationalWaveTransient(interferometers={},\n\twaveform_generator={},\n\t' \
+                   'time_marginalization={}, distance_marginalization={}, phase_marginalization={}, ' \
+                   'prior={})'.format(self.interferometers, self.waveform_generator, False, False, False, self.prior)
+        self.assertEqual(expected, repr(self.likelihood))
 
 
 class TestTimeMarginalization(unittest.TestCase):
