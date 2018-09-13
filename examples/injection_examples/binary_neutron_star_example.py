@@ -29,7 +29,7 @@ np.random.seed(88170235)
 injection_parameters = dict(
     mass_1=1.5, mass_2=1.3, a_1=0.0, a_2=0.0, luminosity_distance=50.,
     iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
-    ra=1.375, dec=-1.2108, lambda1=400, lambda2=450)
+    ra=1.375, dec=-1.2108, lambda_1=400, lambda_2=450)
 
 # Set the duration and sampling frequency of the data segment that we're going
 # to inject the signal into. For the
