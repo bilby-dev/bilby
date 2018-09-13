@@ -435,11 +435,11 @@ def set_up_command_line_arguments():
                         help="Force clean data, never use cached data")
     parser.add_argument("-u", "--use-cached", action="store_true",
                         help="Force cached data and do not check its validity")
+    parser.add_argument("--sampler-help", help=("Print help for given sampler"))
     parser.add_argument("-t", "--test", action="store_true",
                         help=("Used for testing only: don't run full PE, but"
                               " just check nothing breaks"))
     args, _ = parser.parse_known_args()
-
     if args.quiet:
         args.log_level = logging.WARNING
     elif args.verbose:

@@ -429,6 +429,25 @@ class Sampler(object):
 
 
 class Nestle(Sampler):
+    """tupak wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
+
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `nestle.sample`, see documentation for
+    that function for further help. Under Keyword Arguments, we list commonly
+    used kwargs and the tupak defaults
+
+    Keyword Arguments
+   ------------------
+    npoints: int
+        The number of live points, note this can also equivalently be given as
+        one of [nlive, nlives, n_live_points]
+    method: {'classic', 'single', 'multi'} ('multi')
+        Method used to select new points
+    verbose: Bool
+        If true, print information information about the convergance during
+        sampling
+
+    """
 
     @property
     def kwargs(self):
@@ -502,7 +521,37 @@ class Nestle(Sampler):
 
 
 class Dynesty(Sampler):
+    """tupak wrapper of `dynesty.NestedSampler` (https://dynesty.readthedocs.io/en/latest/)
 
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `dynesty.NestedSampler`, see
+    documentation for that class for further help. Under Keyword Arguments, we
+    list commonly used kwargs and the tupak defaults.
+
+    Keyword Arguments
+    -----------------
+    npoints: int, (250)
+        The number of live points, note this can also equivalently be given as
+        one of [nlive, nlives, n_live_points]
+    bound: {'none', 'single', 'multi', 'balls', 'cubes'}, ('multi')
+        Method used to select new points
+    sample: {'unif', 'rwalk', 'slice', 'rslice', 'hslice'}, ('rwalk')
+        Method used to sample uniformly within the likelihood constraints,
+        conditioned on the provided bounds
+    walks: int
+        Number of walks taken if using `sample='rwalk'`, defaults to `ndim * 5`
+    dlogz: float, (0.1)
+        Stopping criteria
+    verbose: Bool
+        If true, print information information about the convergance during
+    check_point_delta_t: float (600)
+        The approximate checkpoint period (in seconds). Should the run be
+        intererupted, it can be resumed from the last checkpoint. Set to
+        `None` to turn-off check pointing
+    resume: bool
+        If true, resume run from checkpoint (if available)
+ 
+    """
     @property
     def kwargs(self):
         return self.__kwargs
@@ -813,6 +862,28 @@ class Dynesty(Sampler):
 
 
 class Pymultinest(Sampler):
+    """tupak wrapper of pymultinest (https://github.com/JohannesBuchner/PyMultiNest)
+
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `pymultinest.run`, see documentation
+    for that class for further help. Under Keyword Arguments, we list commonly
+    used kwargs and the tupak defaults.
+
+    Keyword Arguments
+    ------------------
+    npoints: int
+        The number of live points, note this can also equivalently be given as
+        one of [nlive, nlives, n_live_points]
+    importance_nested_sampling: bool, (False)
+        If true, use importance nested sampling
+    sampling_efficiency: float or {'parameter', 'model'}, ('parameter')
+        Defines the sampling efficiency
+    verbose: Bool
+        If true, print information information about the convergance during
+    resume: bool
+        If true, resume run from checkpoint (if available)
+
+    """
 
     @property
     def kwargs(self):
@@ -854,12 +925,27 @@ class Pymultinest(Sampler):
 
 
 class Cpnest(Sampler):
-    """
-    https://github.com/johnveitch/cpnest
+    """ tupak wrapper of cpnest (https://github.com/johnveitch/cpnest)
 
-    TODO:
-        - allow custom jump proposals to be specified, ideally by parameter name
-        - figure out how to resume from a previous run
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `cpnest.CPNest`, see documentation
+    for that class for further help. Under Keyword Arguments, we list commonly
+    used kwargs and the tupak defaults.
+
+    Keyword Arguments
+    -----------------
+    npoints: int
+        The number of live points, note this can also equivalently be given as
+        one of [nlive, nlives, n_live_points]
+    seed: int (1234)
+        Initialised random seed
+    Nthreads: int, (1)
+        Number of threads to use
+    maxmcmc: int (1000)
+        The maximum number of MCMC steps to take
+    verbose: Bool
+        If true, print information information about the convergance during
+
     """
 
     @property
@@ -928,7 +1014,32 @@ class Cpnest(Sampler):
 
 
 class Emcee(Sampler):
-    """ https://github.com/dfm/emcee """
+    """tupak wrapper emcee (https://github.com/dfm/emcee)
+
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `emcee.EnsembleSampler`, see
+    documentation for that class for further help. Under Keyword Arguments, we
+    list commonly used kwargs and the tupak defaults.
+
+    Keyword Arguments
+    -----------------
+    nwalkers: int, (100)
+        The number of walkers
+    nsteps: int, (100)
+        The number of steps
+    nburn: int (None)
+        If given, the fixed number of steps to discard as burn-in. Else,
+        nburn is estimated from the autocorrelation time
+    burn_in_fraction: float, (0.25)
+        The fraction of steps to discard as burn-in in the evnt that the
+        autocorrelation time cannot be calculated
+    burn_in_act: float
+        The number of autocorrelation times to discard as burn-in
+    a: float (2)
+        The proposal scale factor
+
+
+    """
 
     def _run_external_sampler(self):
         self.nwalkers = self.kwargs.get('nwalkers', 100)
@@ -987,7 +1098,25 @@ class Emcee(Sampler):
 
 
 class Ptemcee(Emcee):
-    """ https://github.com/willvousden/ptemcee """
+    """tupak wrapper ptemcee (https://github.com/willvousden/ptemcee)
+
+    All positional and keyword arguments (i.e., the args and kwargs) passed to
+    `run_sampler` will be propogated to `ptemcee.Sampler`, see
+    documentation for that class for further help. Under Keyword Arguments, we
+    list commonly used kwargs and the tupak defaults.
+
+    Keyword Arguments
+    -----------------
+    nwalkers: int, (100)
+        The number of walkers
+    nsteps: int, (100)
+        The number of steps to take
+    nburn: int (50)
+        The fixed number of steps to discard as burn-in
+    ntemps: int (2)
+        The number of temperatures used by ptemcee
+
+    """
 
     def _run_external_sampler(self):
         self.ntemps = self.kwargs.pop('ntemps', 2)
@@ -1026,7 +1155,7 @@ class Ptemcee(Emcee):
 
 
 class Pymc3(Sampler):
-    """ https://docs.pymc.io/ """
+    """ tupak wrapper of the pymc3 sampler (https://docs.pymc.io/) """
 
     def _verify_parameters(self):
         """
@@ -1764,6 +1893,24 @@ def get_implemented_samplers():
     """
     implemented_samplers = []
     for name, obj in inspect.getmembers(sys.modules[__name__]):
+        # Don't add non-sampler classes from the list
+        if name in ['OrderedDict', 'Prior', 'Result']:
+            continue
         if inspect.isclass(obj):
             implemented_samplers.append(obj.__name__)
     return implemented_samplers
+
+
+if utils.command_line_args.sampler_help:
+    sampler = utils.command_line_args.sampler_help
+    implemented_samplers = get_implemented_samplers()
+    if implemented_samplers.__contains__(sampler.title()):
+        sampler_class = globals()[sampler.title()]
+        print('Help for sampler "{}":'.format(sampler))
+        print(sampler_class.__doc__)
+    else:
+        print('Requested sampler {} not implemented.')
+        print('Available samplers = {}'.format(implemented_samplers))
+
+    sys.exit()
+
