@@ -96,45 +96,6 @@ class BBHPriorSet(PriorSet):
         return redundant
 
 
-class BNSPriorSet(PriorSet):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ Initialises a Prior set for Binary Neutron Stars
-
-        Parameters
-        ----------
-        dictionary: dict, optional
-            See superclass
-        filename: str, optional
-            See superclass
-        """
-        if dictionary is None and filename is None:
-            filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_neutron_stars.prior')
-            logger.info('No prior given, using default BNS priors in {}.'.format(filename))
-        elif filename is not None:
-            if not os.path.isfile(filename):
-                filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorSet.__init__(self, dictionary=dictionary, filename=filename)
-
-    def test_redundancy(self, key):
-        bbh_redundancy = BBHPriorSet().test_redundancy(key)
-        if bbh_redundancy:
-            return True
-        redundant = False
-
-        tidal_parameters =\
-            {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda'}
-
-        if key in tidal_parameters:
-            if len(tidal_parameters.intersection(self)) > 2:
-                redundant = True
-                logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                    tidal_parameters.intersection(self)))
-            elif len(tidal_parameters.intersection(self)) == 2:
-                redundant = True
-        return redundant
-
-
 Prior._default_latex_labels = {
     'mass_1': '$m_1$',
     'mass_2': '$m_2$',
@@ -157,11 +118,7 @@ Prior._default_latex_labels = {
     'cos_iota': '$\cos\iota$',
     'psi': '$\psi$',
     'phase': '$\phi$',
-    'geocent_time': '$t_c$',
-    'lambda_1': '$\\Lambda_1$',
-    'lambda_2': '$\\Lambda_2$',
-    'lambda_tilde': '$\\tilde{\\Lambda}$',
-    'delta_lambda': '$\\delta\\Lambda$'}
+    'geocent_time': '$t_c$'}
 
 
 class CalibrationPriorSet(PriorSet):
