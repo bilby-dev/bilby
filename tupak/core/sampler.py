@@ -1155,7 +1155,44 @@ class Ptemcee(Emcee):
 
 
 class Pymc3(Sampler):
-    """ tupak wrapper of the pymc3 sampler (https://docs.pymc.io/) """
+    """ tupak wrapper of the PyMC3 sampler (https://docs.pymc.io/)
+    
+    All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
+    propogated to `pymc3.sample` where appropriate, see documentation for that
+    class for further help. Under Keyword Arguments, we list commonly used
+    kwargs and the tupak, or where appropriate, PyMC3 defaults.
+
+    Keyword Arguments
+    -----------------
+    draws: int, (1000)
+        The number of sample draws from the posterior per chain.
+    chains: int, (2)
+        The number of independent MCMC chains to run.
+    cores: int, (1)
+        The number of CPU cores to use.
+    tune: int, (500)
+        The number of tuning (or burn-in) samples per chain.
+    discard_tuned_samples: bool, True
+        Set whether to automatically discard the tuning samples from the final
+        chains.
+    step: str, dict
+        Provide a step method name, or dictionary of step method names keyed to
+        particular variable names (these are case insensitive). If no method is
+        provided for any particular variable then PyMC3 will automatically
+        decide upon a default, with the first option being the NUTS sampler.
+        The currently allowed methods are 'NUTS', 'HamiltonianMC',
+        'Metropolis', 'BinaryMetropolis', 'BinaryGibbsMetropolis', 'Slice', and
+        'CategoricalGibbsMetropolis'. Note: you cannot provide a PyMC3 step
+        method function itself here as it is outside of the model context
+        manager.
+    nuts_kwargs: dict
+        Keyword arguments for the NUTS sampler.
+    step_kwargs: dict
+        Options for steps methods other than NUTS. The dictionary is keyed on
+        lowercase step method names with values being dictionaries of keywords
+        for the given step method.
+        
+    """
 
     def _verify_parameters(self):
         """
