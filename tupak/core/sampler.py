@@ -192,6 +192,9 @@ class Sampler(object):
         result.parameter_labels = [
             self.priors[k].latex_label for k in
             self.__search_parameter_keys]
+        result.parameter_labels_with_unit = [
+            self.priors[k].latex_label_with_unit for k in
+            self.__search_parameter_keys]
         result.label = self.label
         result.outdir = self.outdir
         result.kwargs = self.kwargs

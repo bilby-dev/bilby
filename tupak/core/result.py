@@ -197,7 +197,7 @@ class Result(dict):
         for k in keys:
             if k in self.search_parameter_keys:
                 idx = self.search_parameter_keys.index(k)
-                latex_labels.append(self.parameter_labels[idx])
+                latex_labels.append(self.parameter_labels_with_unit[idx])
             elif k in self.parameter_labels:
                 latex_labels.append(k)
             else:
