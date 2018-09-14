@@ -1909,7 +1909,11 @@ if utils.command_line_args.sampler_help:
         print('Help for sampler "{}":'.format(sampler))
         print(sampler_class.__doc__)
     else:
-        print('Requested sampler {} not implemented.')
+        if sampler == "None":
+            print('For help with a specific sampler, call sampler-help with '
+                  'the name of the sampler')
+        else:
+            print('Requested sampler {} not implemented'.format(sampler))
         print('Available samplers = {}'.format(implemented_samplers))
 
     sys.exit()
