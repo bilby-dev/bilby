@@ -435,7 +435,7 @@ class Nestle(Sampler):
     """tupak wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `nestle.sample`, see documentation for
+    `run_sampler` will be propagated to `nestle.sample`, see documentation for
     that function for further help. Under Keyword Arguments, we list commonly
     used kwargs and the tupak defaults
 
@@ -447,7 +447,7 @@ class Nestle(Sampler):
     method: {'classic', 'single', 'multi'} ('multi')
         Method used to select new points
     verbose: Bool
-        If true, print information information about the convergance during
+        If true, print information information about the convergence during
         sampling
 
     """
@@ -527,7 +527,7 @@ class Dynesty(Sampler):
     """tupak wrapper of `dynesty.NestedSampler` (https://dynesty.readthedocs.io/en/latest/)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `dynesty.NestedSampler`, see
+    `run_sampler` will be propagated to `dynesty.NestedSampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
     list commonly used kwargs and the tupak defaults.
 
@@ -546,10 +546,10 @@ class Dynesty(Sampler):
     dlogz: float, (0.1)
         Stopping criteria
     verbose: Bool
-        If true, print information information about the convergance during
+        If true, print information information about the convergence during
     check_point_delta_t: float (600)
         The approximate checkpoint period (in seconds). Should the run be
-        intererupted, it can be resumed from the last checkpoint. Set to
+        interrupted, it can be resumed from the last checkpoint. Set to
         `None` to turn-off check pointing
     resume: bool
         If true, resume run from checkpoint (if available)
@@ -868,7 +868,7 @@ class Pymultinest(Sampler):
     """tupak wrapper of pymultinest (https://github.com/JohannesBuchner/PyMultiNest)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `pymultinest.run`, see documentation
+    `run_sampler` will be propagated to `pymultinest.run`, see documentation
     for that class for further help. Under Keyword Arguments, we list commonly
     used kwargs and the tupak defaults.
 
@@ -882,7 +882,7 @@ class Pymultinest(Sampler):
     sampling_efficiency: float or {'parameter', 'model'}, ('parameter')
         Defines the sampling efficiency
     verbose: Bool
-        If true, print information information about the convergance during
+        If true, print information information about the convergence during
     resume: bool
         If true, resume run from checkpoint (if available)
 
@@ -931,7 +931,7 @@ class Cpnest(Sampler):
     """ tupak wrapper of cpnest (https://github.com/johnveitch/cpnest)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `cpnest.CPNest`, see documentation
+    `run_sampler` will be propagated to `cpnest.CPNest`, see documentation
     for that class for further help. Under Keyword Arguments, we list commonly
     used kwargs and the tupak defaults.
 
@@ -947,7 +947,7 @@ class Cpnest(Sampler):
     maxmcmc: int (1000)
         The maximum number of MCMC steps to take
     verbose: Bool
-        If true, print information information about the convergance during
+        If true, print information information about the convergence during
 
     """
 
@@ -1020,7 +1020,7 @@ class Emcee(Sampler):
     """tupak wrapper emcee (https://github.com/dfm/emcee)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `emcee.EnsembleSampler`, see
+    `run_sampler` will be propagated to `emcee.EnsembleSampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
     list commonly used kwargs and the tupak defaults.
 
@@ -1034,7 +1034,7 @@ class Emcee(Sampler):
         If given, the fixed number of steps to discard as burn-in. Else,
         nburn is estimated from the autocorrelation time
     burn_in_fraction: float, (0.25)
-        The fraction of steps to discard as burn-in in the evnt that the
+        The fraction of steps to discard as burn-in in the event that the
         autocorrelation time cannot be calculated
     burn_in_act: float
         The number of autocorrelation times to discard as burn-in
@@ -1104,7 +1104,7 @@ class Ptemcee(Emcee):
     """tupak wrapper ptemcee (https://github.com/willvousden/ptemcee)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
-    `run_sampler` will be propogated to `ptemcee.Sampler`, see
+    `run_sampler` will be propagated to `ptemcee.Sampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
     list commonly used kwargs and the tupak defaults.
 
@@ -1161,7 +1161,7 @@ class Pymc3(Sampler):
     """ tupak wrapper of the PyMC3 sampler (https://docs.pymc.io/)
 
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
-    propogated to `pymc3.sample` where appropriate, see documentation for that
+    propapated to `pymc3.sample` where appropriate, see documentation for that
     class for further help. Under Keyword Arguments, we list commonly used
     kwargs and the tupak, or where appropriate, PyMC3 defaults.
 
