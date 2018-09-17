@@ -23,7 +23,7 @@ class UniformComovingVolume(FromFile):
         """
         file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
         FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label)
+                          latex_label=latex_label, unit='Mpc')
 
 
 class BBHPriorSet(PriorSet):
