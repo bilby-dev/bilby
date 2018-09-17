@@ -553,8 +553,8 @@ class Dynesty(Sampler):
         `None` to turn-off check pointing
     resume: bool
         If true, resume run from checkpoint (if available)
- 
     """
+
     @property
     def kwargs(self):
         return self.__kwargs
@@ -1159,7 +1159,7 @@ class Ptemcee(Emcee):
 
 class Pymc3(Sampler):
     """ tupak wrapper of the PyMC3 sampler (https://docs.pymc.io/)
-    
+
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
     propogated to `pymc3.sample` where appropriate, see documentation for that
     class for further help. Under Keyword Arguments, we list commonly used
@@ -1194,7 +1194,7 @@ class Pymc3(Sampler):
         Options for steps methods other than NUTS. The dictionary is keyed on
         lowercase step method names with values being dictionaries of keywords
         for the given step method.
-        
+
     """
 
     def _verify_parameters(self):
@@ -1994,4 +1994,3 @@ if utils.command_line_args.sampler_help:
         print('Available samplers = {}'.format(implemented_samplers))
 
     sys.exit()
-
