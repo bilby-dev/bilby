@@ -1,26 +1,24 @@
 from __future__ import absolute_import
-import tupak
-from tupak.core import prior
-from tupak.core.result import Result
+# import tupak
 import unittest
 from mock import MagicMock
 import mock
 import numpy as np
-import inspect
-import os
-import copy
+from tupak.core.likelihood import (
+    Likelihood, GaussianLikelihood, PoissonLikelihood, StudentTLikelihood,
+    Analytical1DLikelihood, ExponentialLikelihood, JointLikelihood)
 
 
 class TestLikelihoodBase(unittest.TestCase):
 
     def setUp(self):
-        self.likelihood = tupak.core.likelihood.Likelihood()
+        self.likelihood = Likelihood()
 
     def tearDown(self):
         del self.likelihood
 
     def test_repr(self):
-        self.likelihood = tupak.core.likelihood.Likelihood(parameters=['a', 'b'])
+        self.likelihood = Likelihood(parameters=['a', 'b'])
         expected = 'Likelihood(parameters=[\'a\', \'b\'])'
         self.assertEqual(expected, repr(self.likelihood))
 
@@ -46,7 +44,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.func = test_func
         self.parameter1_value = 4
         self.parameter2_value = 7
-        self.analytical_1d_likelihood = tupak.likelihood.Analytical1DLikelihood(x=self.x, y=self.y, func=self.func)
+        self.analytical_1d_likelihood = Analytical1DLikelihood(x=self.x, y=self.y, func=self.func)
         self.analytical_1d_likelihood.parameters['parameter1'] = self.parameter1_value
         self.analytical_1d_likelihood.parameters['parameter2'] = self.parameter2_value
 
@@ -156,7 +154,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         del self.function
 
     def test_known_sigma(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
+        likelihood = GaussianLikelihood(
             self.x, self.y, self.function, self.sigma)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -165,7 +163,7 @@ class TestGaussianLikelihood(unittest.TestCase):
 
     def test_known_array_sigma(self):
         sigma_array = np.ones(self.N) * self.sigma
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
+        likelihood = GaussianLikelihood(
             self.x, self.y, self.function, sigma_array)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -174,7 +172,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertTrue(all(likelihood.sigma == sigma_array))
 
     def test_set_sigma_None(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
+        likelihood = GaussianLikelihood(
             self.x, self.y, self.function, sigma=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -183,16 +181,16 @@ class TestGaussianLikelihood(unittest.TestCase):
             likelihood.log_likelihood()
 
     def test_sigma_float(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
+        likelihood = GaussianLikelihood(
             self.x, self.y, self.function, sigma=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         likelihood.parameters['sigma'] = 1
         likelihood.log_likelihood()
-        self.assertTrue(likelihood.sigma is None)
+        self.assertTrue(likelihood.sigma == 1)
 
     def test_repr(self):
-        likelihood = tupak.core.likelihood.GaussianLikelihood(
+        likelihood = GaussianLikelihood(
             self.x, self.y, self.function, sigma=self.sigma)
         expected = 'GaussianLikelihood(x={}, y={}, func={}, sigma={})' \
             .format(self.x, self.y, self.function.__name__, self.sigma)
@@ -221,7 +219,7 @@ class TestStudentTLikelihood(unittest.TestCase):
         del self.function
 
     def test_known_sigma(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, self.nu, self.sigma)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -229,14 +227,14 @@ class TestStudentTLikelihood(unittest.TestCase):
         self.assertEqual(likelihood.sigma, self.sigma)
 
     def test_set_nu_none(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         self.assertTrue(likelihood.nu is None)
 
     def test_log_likelihood_nu_none(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -245,7 +243,7 @@ class TestStudentTLikelihood(unittest.TestCase):
             likelihood.log_likelihood()
 
     def test_log_likelihood_nu_zero(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=0)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -253,7 +251,7 @@ class TestStudentTLikelihood(unittest.TestCase):
             likelihood.log_likelihood()
 
     def test_log_likelihood_nu_negative(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=-1)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
@@ -261,15 +259,15 @@ class TestStudentTLikelihood(unittest.TestCase):
             likelihood.log_likelihood()
 
     def test_setting_nu_positive_does_not_change_class_attribute(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=None)
         likelihood.parameters['m'] = 2
         likelihood.parameters['c'] = 0
         likelihood.parameters['nu'] = 98
-        self.assertTrue(likelihood.nu is None)
+        self.assertTrue(likelihood.nu == 98)
 
     def test_lam(self):
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=0, sigma=0.5)
 
         self.assertAlmostEqual(4.0, likelihood.lam)
@@ -277,7 +275,7 @@ class TestStudentTLikelihood(unittest.TestCase):
     def test_repr(self):
         nu = 0
         sigma = 0.5
-        likelihood = tupak.core.likelihood.StudentTLikelihood(
+        likelihood = StudentTLikelihood(
             self.x, self.y, self.function, nu=nu, sigma=sigma)
         expected = 'StudentTLikelihood(x={}, y={}, func={}, nu={}, sigma={})' \
             .format(self.x, self.y, self.function.__name__, nu, sigma)
@@ -303,7 +301,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
         self.function = test_function
         self.function_array = test_function_array
-        self.poisson_likelihood = tupak.core.likelihood.PoissonLikelihood(self.x, self.y, self.function)
+        self.poisson_likelihood = PoissonLikelihood(self.x, self.y, self.function)
 
     def tearDown(self):
         del self.N
@@ -318,13 +316,11 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_init_y_non_integer(self):
         with self.assertRaises(ValueError):
-            tupak.core.likelihood.PoissonLikelihood(
-                self.x, self.yfloat, self.function)
+            PoissonLikelihood(self.x, self.yfloat, self.function)
 
     def test_init__y_negative(self):
         with self.assertRaises(ValueError):
-            tupak.core.likelihood.PoissonLikelihood(
-                self.x, self.yneg, self.function)
+            PoissonLikelihood(self.x, self.yneg, self.function)
 
     def test_neg_rate(self):
         self.poisson_likelihood.parameters['c'] = -2
@@ -332,8 +328,7 @@ class TestPoissonLikelihood(unittest.TestCase):
             self.poisson_likelihood.log_likelihood()
 
     def test_neg_rate_array(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
-            self.x, self.y, self.function_array)
+        likelihood = PoissonLikelihood(self.x, self.y, self.function_array)
         likelihood.parameters['c'] = -2
         with self.assertRaises(ValueError):
             likelihood.log_likelihood()
@@ -361,29 +356,29 @@ class TestPoissonLikelihood(unittest.TestCase):
             self.poisson_likelihood.y = 5.3
 
     def test_log_likelihood_wrong_func_return_type(self):
-        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: 'test')
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: 'test')
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood()
 
     def test_log_likelihood_negative_func_return_element(self):
-        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2]))
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2]))
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood()
 
     def test_log_likelihood_zero_func_return_element(self):
-        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0]))
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0]))
         self.assertEqual(-np.inf, poisson_likelihood.log_likelihood())
 
     def test_log_likelihood_dummy(self):
         """ Merely tests if it goes into the right if else bracket """
-        poisson_likelihood = tupak.likelihood.PoissonLikelihood(x=self.x, y=self.y,
-                                                                func=lambda x: np.linspace(1, 100, self.N))
+        poisson_likelihood = PoissonLikelihood(
+            x=self.x, y=self.y, func=lambda x: np.linspace(1, 100, self.N))
         with mock.patch('numpy.sum') as m:
             m.return_value = 1
-            self.assertEqual(0, poisson_likelihood.log_likelihood())
+            self.assertEqual(1, poisson_likelihood.log_likelihood())
 
     def test_repr(self):
-        likelihood = tupak.core.likelihood.PoissonLikelihood(
+        likelihood = PoissonLikelihood(
             self.x, self.y, self.function)
         expected = 'PoissonLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.function.__name__)
         self.assertEqual(expected, repr(likelihood))
@@ -407,8 +402,8 @@ class TestExponentialLikelihood(unittest.TestCase):
 
         self.function = test_function
         self.function_array = test_function_array
-        self.exponential_likelihood = tupak.core.likelihood.ExponentialLikelihood(x=self.x, y=self.y,
-                                                                                  func=self.function)
+        self.exponential_likelihood = ExponentialLikelihood(
+            x=self.x, y=self.y, func=self.function)
 
     def tearDown(self):
         del self.N
@@ -421,17 +416,15 @@ class TestExponentialLikelihood(unittest.TestCase):
 
     def test_negative_data(self):
         with self.assertRaises(ValueError):
-            tupak.core.likelihood.ExponentialLikelihood(self.x, self.yneg, self.function)
+            ExponentialLikelihood(self.x, self.yneg, self.function)
 
     def test_negative_function(self):
-        likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function)
+        likelihood = ExponentialLikelihood(self.x, self.y, self.function)
         likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
     def test_negative_array_function(self):
-        likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            self.x, self.y, self.function_array)
+        likelihood = ExponentialLikelihood(self.x, self.y, self.function_array)
         likelihood.parameters['c'] = -1
         self.assertEqual(likelihood.log_likelihood(), -np.inf)
 
@@ -468,8 +461,8 @@ class TestExponentialLikelihood(unittest.TestCase):
 
     def test_log_likelihood_default(self):
         """ Merely tests that it ends up at the right place in the code """
-        exponential_likelihood = tupak.core.likelihood.ExponentialLikelihood(x=self.x, y=self.y,
-                                                                             func=lambda x: np.array([4.2]))
+        exponential_likelihood = ExponentialLikelihood(
+            x=self.x, y=self.y, func=lambda x: np.array([4.2]))
         with mock.patch('numpy.sum') as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood())
@@ -480,23 +473,18 @@ class TestJointLikelihood(unittest.TestCase):
     def setUp(self):
         self.x = np.array([1, 2, 3])
         self.y = np.array([1, 2, 3])
-        self.first_likelihood = tupak.core.likelihood.GaussianLikelihood(
-            x=self.x,
-            y=self.y,
-            func=lambda x, param1, param2: (param1 + param2) * x,
-            sigma=1)
-        self.second_likelihood = tupak.core.likelihood.PoissonLikelihood(
-            x=self.x,
-            y=self.y,
+        self.first_likelihood = GaussianLikelihood(
+            x=self.x, y=self.y,
+            func=lambda x, param1, param2: (param1 + param2) * x, sigma=1)
+        self.second_likelihood = PoissonLikelihood(
+            x=self.x, y=self.y,
             func=lambda x, param2, param3: (param2 + param3) * x)
-        self.third_likelihood = tupak.core.likelihood.ExponentialLikelihood(
-            x=self.x,
-            y=self.y,
-            func=lambda x, param4, param5: (param4 + param5) * x
-        )
-        self.joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood,
-                                                                      self.second_likelihood,
-                                                                      self.third_likelihood)
+        self.third_likelihood = ExponentialLikelihood(
+            x=self.x, y=self.y,
+            func=lambda x, param4, param5: (param4 + param5) * x)
+        self.joint_likelihood = JointLikelihood(
+            self.first_likelihood, self.second_likelihood,
+            self.third_likelihood)
 
         self.first_likelihood.parameters['param1'] = 1
         self.first_likelihood.parameters['param2'] = 2
@@ -549,9 +537,9 @@ class TestJointLikelihood(unittest.TestCase):
         self.first_likelihood.noise_log_likelihood = MagicMock(return_value=1)
         self.second_likelihood.noise_log_likelihood = MagicMock(return_value=2)
         self.third_likelihood.noise_log_likelihood = MagicMock(return_value=3)
-        self.joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood,
-                                                                      self.second_likelihood,
-                                                                      self.third_likelihood)
+        self.joint_likelihood = JointLikelihood(
+            self.first_likelihood, self.second_likelihood,
+            self.third_likelihood)
         expected = self.first_likelihood.noise_log_likelihood() + \
             self.second_likelihood.noise_log_likelihood() + \
             self.third_likelihood.noise_log_likelihood()
@@ -559,7 +547,8 @@ class TestJointLikelihood(unittest.TestCase):
 
     def test_init_with_list_of_likelihoods(self):
         with self.assertRaises(ValueError):
-            tupak.core.likelihood.JointLikelihood([self.first_likelihood, self.second_likelihood, self.third_likelihood])
+            JointLikelihood([self.first_likelihood, self.second_likelihood,
+                             self.third_likelihood])
 
     def test_setting_single_likelihood(self):
         self.joint_likelihood.likelihoods = self.first_likelihood
