@@ -21,6 +21,9 @@ class Recalibrate(object):
         self.params = dict()
         self.prefix = prefix
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(prefix=\'{}\')'.format(self.prefix)
+
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
 
@@ -75,7 +78,17 @@ class CubicSpline(Recalibrate):
         if n_points < 4:
             raise ValueError('Cubic spline calibration requires at least 4 spline nodes.')
         self.n_points = n_points
-        self.spline_points = np.logspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
+        self.minimum_frequency = minimum_frequency
+        self.maximum_frequency = maximum_frequency
+        self.__spline_points = np.logspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
+
+    @property
+    def spline_points(self):
+        return self.__spline_points
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
+            .format(self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points)
 
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
@@ -107,4 +120,3 @@ class CubicSpline(Recalibrate):
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
 
         return calibration_factor
-

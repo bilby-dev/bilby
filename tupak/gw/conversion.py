@@ -128,8 +128,10 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
             converted_parameters['mass_ratio'] = \
                 mass_1_and_chirp_mass_to_mass_ratio(parameters['mass_1'], parameters['chirp_mass'])
             temp = (parameters['chirp_mass'] / parameters['mass_1']) ** 5
-            parameters['mass_ratio'] = (2 * temp / 3 / ((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (
-                    1 / 3) + (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3)
+            parameters['mass_ratio'] = (
+                (2 * temp / 3 / (
+                    (51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp)) ** (1 / 3) +
+                (((51 * temp ** 2 - 12 * temp ** 3) ** 0.5 + 9 * temp) / 9 / 2 ** 0.5) ** (1 / 3))
             if remove:
                 added_keys.append('chirp_mass')
         elif 'symmetric_mass_ratio' in converted_parameters.keys() and 'symmetric_mass_ratio' not in added_keys:
@@ -165,71 +167,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters, search_keys, remove=
                 added_keys.append('comoving_distance')
 
     added_keys = [key for key in added_keys if key not in search_keys]
-
-    return converted_parameters, added_keys
-
-
-def convert_to_lal_binary_neutron_star_parameters(parameters, search_keys, remove=True):
-    """
-    Convert parameters we have into parameters we need.
-
-    This is defined by the parameters of tupak.source.lal_binary_black_hole()
-
-
-    Mass: mass_1, mass_2
-    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
-    Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
-
-    This involves popping a lot of things from parameters.
-    The keys in added_keys should be popped after evaluating the waveform.
-
-    Parameters
-    ----------
-    parameters: dict
-        dictionary of parameter values to convert into the required parameters
-    search_keys: list
-        parameters which are needed for the waveform generation
-    remove: bool, optional
-        Whether or not to remove the extra key, necessary for sampling, default=True.
-
-    Return
-    ------
-    converted_parameters: dict
-        dict of the required parameters
-    added_keys: list
-        keys which are added to parameters during function call
-    """
-    converted_parameters = parameters.copy()
-    converted_parameters, added_keys = convert_to_lal_binary_black_hole_parameters(
-        converted_parameters, search_keys, remove=remove)
-
-    if 'lambda_1' not in search_keys and 'lambda_2' not in search_keys:
-        if 'delta_lambda' in converted_parameters.keys():
-            converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
-                lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
-                    converted_parameters['lambda_tilde'], parameters['delta_lambda'],
-                    converted_parameters['mass_1'], converted_parameters['mass_2'])
-            added_keys.append('lambda_1')
-            added_keys.append('lambda_2')
-        elif 'lambda_tilde' in converted_parameters.keys():
-            converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
-                lambda_tilde_to_lambda_1_lambda_2(
-                    converted_parameters['lambda_tilde'],
-                    converted_parameters['mass_1'], converted_parameters['mass_2'])
-            added_keys.append('lambda_1')
-            added_keys.append('lambda_2')
-    if 'lambda_2' not in converted_parameters.keys():
-        converted_parameters['lambda_2'] =\
-            converted_parameters['lambda_1']\
-            * converted_parameters['mass_1']**5\
-            / converted_parameters['mass_2']**5
-        added_keys.append('lambda_2')
-    elif converted_parameters['lambda_2'] is None:
-        converted_parameters['lambda_2'] =\
-            converted_parameters['lambda_1']\
-            * converted_parameters['mass_1']**5\
-            / converted_parameters['mass_2']**5
-        added_keys.append('lambda_2')
 
     return converted_parameters, added_keys
 
@@ -423,85 +360,6 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
     return mass_ratio
 
 
-def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
-        lambda_tilde, delta_lambda, mass_1, mass_2):
-    """
-    Convert from dominant tidal terms to individual tidal parameters.
-
-    See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
-
-    Parameters
-    ----------
-    lambda_tilde: float
-        Dominant tidal term.
-    delta_lambda: float
-        Secondary tidal term.
-    mass_1: float
-        Mass of more massive neutron star.
-    mass_2: float
-        Mass of less massive neutron star.
-
-    Return
-    ------
-    lambda_1: float
-        Tidal parameter of more massive neutron star.
-    lambda_2: float
-        Tidal parameter of less massive neutron star.
-    """
-    eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
-    coefficient_1 = (1 + 7 * eta - 31 * eta**2)
-    coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)
-    coefficient_3 = (1 - 4 * eta)**0.5\
-                    * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
-    coefficient_4 = (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2
-                     + 3380 / 1319 * eta**3)
-    lambda_1 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4)
-         - 2 * delta_lambda * (coefficient_1 - coefficient_2))\
-        / ((coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4)
-           - (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4))
-    lambda_2 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4)
-         - 2 * delta_lambda * (coefficient_1 + coefficient_2)) \
-        / ((coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4)
-           - (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4))
-    return lambda_1, lambda_2
-
-
-def lambda_tilde_to_lambda_1_lambda_2(
-        lambda_tilde, mass_1, mass_2):
-    """
-    Convert from dominant tidal term to individual tidal parameters
-    assuming lambda_1 * mass_1**5 = lambda_2 * mass_2**5.
-
-    See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
-
-    Parameters
-    ----------
-    lambda_tilde: float
-        Dominant tidal term.
-    mass_1: float
-        Mass of more massive neutron star.
-    mass_2: float
-        Mass of less massive neutron star.
-
-    Return
-    ------
-    lambda_1: float
-        Tidal parameter of more massive neutron star.
-    lambda_2: float
-        Tidal parameter of less massive neutron star.
-    """
-    eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
-    q = mass_2 / mass_1
-    lambda_1 = 13 / 8 * lambda_tilde / (
-            (1 + 7 * eta - 31 * eta**2) * (1 + q**-5)
-            + (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (1 - q**-5)
-        )
-    lambda_2 = lambda_1 / q**5
-    return lambda_1, lambda_2
-
-
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     """
     From either a single sample or a set of samples fill in all missing BBH parameters, in place.
@@ -606,12 +464,12 @@ def generate_component_spins(sample):
         output_sample['iota'], output_sample['spin_1x'], output_sample['spin_1y'], output_sample['spin_1z'], \
             output_sample['spin_2x'], output_sample['spin_2y'], output_sample['spin_2z'] = \
             lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'], output_sample['phi_jl'],
-                    output_sample['tilt_1'], output_sample['tilt_2'],
-                    output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
-                    output_sample['mass_1'] * tupak.core.utils.solar_mass,
-                    output_sample['mass_2'] * tupak.core.utils.solar_mass,
-                    output_sample['reference_frequency'], output_sample['phase'])
+                output_sample['iota'], output_sample['phi_jl'],
+                output_sample['tilt_1'], output_sample['tilt_2'],
+                output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
+                output_sample['mass_1'] * tupak.core.utils.solar_mass,
+                output_sample['mass_2'] * tupak.core.utils.solar_mass,
+                output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] = np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] = np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])

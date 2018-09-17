@@ -99,7 +99,7 @@ class GaussianLikelihoodPyMC3(tupak.Likelihood):
         with sampler.pymc3_model:
             mdist = sampler.pymc3_priors['m']
             cdist = sampler.pymc3_priors['c']
-            
+
             mu = model(time, mdist, cdist)
 
             # set the likelihood distribution

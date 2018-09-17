@@ -43,8 +43,8 @@ class HyperparameterLikelihood(Likelihood):
 
     def log_likelihood(self):
         self.hyper_prior.parameters.update(self.parameters)
-        log_l = np.sum(np.log(np.sum(self.hyper_prior.prob(self.data)
-                                     / self.sampling_prior.prob(self.data), axis=-1))) + self.log_factor
+        log_l = np.sum(np.log(np.sum(self.hyper_prior.prob(self.data) /
+                       self.sampling_prior.prob(self.data), axis=-1))) + self.log_factor
         return np.nan_to_num(log_l)
 
     def resample_posteriors(self, max_samples=None):

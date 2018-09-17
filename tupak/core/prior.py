@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from tupak.core.utils import logger
 from tupak.core import utils
-import tupak
+import tupak  # noqa
 
 
 class PriorSet(OrderedDict):
@@ -28,8 +28,8 @@ class PriorSet(OrderedDict):
         if isinstance(dictionary, dict):
             self.update(dictionary)
         elif type(dictionary) is str:
-            logger.debug('Argument "dictionary" is a string.'
-                         + ' Assuming it is intended as a file name.')
+            logger.debug('Argument "dictionary" is a string.' +
+                         ' Assuming it is intended as a file name.')
             self.read_in_file(dictionary)
         elif type(filename) is str:
             self.read_in_file(filename)
@@ -580,8 +580,9 @@ class PowerLaw(Prior):
         if self.alpha == -1:
             return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * in_prior
         else:
-            return np.nan_to_num(val ** self.alpha * (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                                                         - self.minimum ** (1 + self.alpha))) * in_prior
+            return np.nan_to_num(val ** self.alpha * (1 + self.alpha) /
+                                 (self.maximum ** (1 + self.alpha) -
+                                  self.minimum ** (1 + self.alpha))) * in_prior
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -600,11 +601,10 @@ class PowerLaw(Prior):
         if self.alpha == -1:
             normalising = 1. / np.log(self.maximum / self.minimum)
         else:
-            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha)
-                                              - self.minimum ** (
-                                                          1 + self.alpha))
+            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
+                                              self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1.*in_prior)
+        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1. * in_prior)
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -645,7 +645,7 @@ class Uniform(Prior):
         float: Prior probability of val
         """
         return scipy.stats.uniform.pdf(val, loc=self.minimum,
-                                       scale=self.maximum-self.minimum)
+                                       scale=self.maximum - self.minimum)
 
     def ln_prob(self, val):
         """Return the log prior probability of val
@@ -659,7 +659,7 @@ class Uniform(Prior):
         float: log probability of val
         """
         return scipy.stats.uniform.logpdf(val, loc=self.minimum,
-                                          scale=self.maximum-self.minimum)
+                                          scale=self.maximum - self.minimum)
 
 
 class LogUniform(PowerLaw):
@@ -821,7 +821,7 @@ class Gaussian(Prior):
 
 
 class Normal(Gaussian):
-    
+
     def __init__(self, mu, sigma, name=None, latex_label=None):
         """A synonym for the Gaussian distribution.
 
@@ -899,7 +899,7 @@ class TruncatedGaussian(Prior):
         """
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-                2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
+            2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
 
     def __repr__(self):
         """Call to helper method in the super class."""
@@ -907,7 +907,7 @@ class TruncatedGaussian(Prior):
 
 
 class TruncatedNormal(TruncatedGaussian):
-    
+
     def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None):
         """A synonym for the TruncatedGaussian distribution.
 
@@ -943,7 +943,7 @@ class HalfGaussian(TruncatedGaussian):
             See superclass
         """
         TruncatedGaussian.__init__(self, 0., sigma, minimum=0., maximum=np.inf, name=name, latex_label=latex_label)
- 
+
     def __repr__(self):
         """Call to helper method in the super class."""
         return Prior._subclass_repr_helper(self, subclass_args=['sigma'])
@@ -1109,7 +1109,7 @@ class StudentT(Prior):
             See superclass
         """
         Prior.__init__(self, name, latex_label)
-        
+
         if df <= 0. or scale <= 0.:
             raise ValueError("For the StudentT prior the number of degrees of freedom and scale must be positive")
 
@@ -1215,7 +1215,7 @@ class Beta(Prior):
             return spdf
 
         if isinstance(val, np.ndarray):
-            pdf = -np.inf*np.ones(len(val))
+            pdf = -np.inf * np.ones(len(val))
             pdf[np.isfinite(spdf)] = spdf[np.isfinite]
             return spdf
         else:
@@ -1437,7 +1437,7 @@ class ChiSquared(Gamma):
         if nu <= 0 or not isinstance(nu, int):
             raise ValueError("For the ChiSquared prior the number of degrees of freedom must be a positive integer")
 
-        Gamma.__init__(self, name=name, k=nu/2., theta=2., latex_label=latex_label)
+        Gamma.__init__(self, name=name, k=nu / 2., theta=2., latex_label=latex_label)
 
 
 class Interped(Prior):
