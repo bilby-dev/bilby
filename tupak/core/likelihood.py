@@ -154,8 +154,8 @@ class GaussianLikelihood(Analytical1DLikelihood):
             self.parameters['sigma'] = None
 
     def log_likelihood(self):
-        log_l = np.sum(- (self.residual / self.sigma)**2 / 2
-                       - np.log(2 * np.pi * self.sigma**2) / 2)
+        log_l = np.sum(- (self.residual / self.sigma)**2 / 2 -
+                       np.log(2 * np.pi * self.sigma**2) / 2)
         return log_l
 
     def __repr__(self):
@@ -329,8 +329,8 @@ class StudentTLikelihood(Analytical1DLikelihood):
 
         nu = self.nu
         log_l =\
-            np.sum(- (nu + 1) * np.log1p(self.lam * self.residual**2 / nu) / 2
-                   + np.log(self.lam / (nu * np.pi)) / 2 +
+            np.sum(- (nu + 1) * np.log1p(self.lam * self.residual**2 / nu) / 2 +
+                   np.log(self.lam / (nu * np.pi)) / 2 +
                    gammaln((nu + 1) / 2) - gammaln(nu / 2))
         return log_l
 
