@@ -38,8 +38,13 @@ python-3:
     - pip install -r optional_requirements.txt
     - pip install 'coverage>=4.5'
     - pip install coverage-badge
+    - pip install flake8
   script:
     - python setup.py install
+
+    # Run pyflakes
+    - flake8 .
+
     # Run tests and collect coverage data
     - coverage --version
     - coverage erase

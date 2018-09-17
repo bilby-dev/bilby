@@ -17,6 +17,9 @@ class Likelihood(object):
         """
         self.parameters = parameters
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(parameters={})'.format(self.parameters)
+
     def log_likelihood(self):
         """
 
@@ -68,6 +71,9 @@ class Analytical1DLikelihood(Likelihood):
         self.y = y
         self.__func = func
         self.__function_keys = list(self.parameters.keys())
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
 
     @property
     def func(self):
@@ -147,6 +153,10 @@ class GaussianLikelihood(Analytical1DLikelihood):
         if self.sigma is None:
             self.parameters['sigma'] = None
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})'\
+            .format(self.x, self.y, self.func.__name__, self.sigma)
+
     def log_likelihood(self):
         return self.__summed_log_likelihood(sigma=self.__get_sigma())
 
@@ -160,8 +170,8 @@ class GaussianLikelihood(Analytical1DLikelihood):
         return self.parameters.get('sigma', self.sigma)
 
     def __summed_log_likelihood(self, sigma):
-        return -0.5 * (np.sum((self.residual / sigma) ** 2)
-                       + self.n * np.log(2 * np.pi * sigma ** 2))
+        return -0.5 * (np.sum((self.residual / sigma) ** 2) +
+                       self.n * np.log(2 * np.pi * sigma ** 2))
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
@@ -188,6 +198,9 @@ class PoissonLikelihood(Analytical1DLikelihood):
         """
 
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+
+    def __repr__(self):
+        return Analytical1DLikelihood.__repr__(self)
 
     @property
     def y(self):
@@ -235,6 +248,9 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             the exponential distribution for each data point.
         """
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+
+    def __repr__(self):
+        return Analytical1DLikelihood.__repr__(self)
 
     @property
     def y(self):
@@ -295,6 +311,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
         if self.nu is None:
             self.parameters['nu'] = None
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={}, nu={}, sigma={})'\
+            .format(self.x, self.y, self.func.__name__, self.nu, self.sigma)
+
     @property
     def lam(self):
         """ Converts 'scale' to 'precision' """
@@ -314,8 +334,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
         return self.parameters.get('nu', self.nu)
 
     def __summed_log_likelihood(self, nu):
-        return self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) - gammaln(nu / 2.0)) \
-               - (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu))
+        return (
+            self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) -
+                      gammaln(nu / 2.0)) -
+            (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu)))
 
 
 class JointLikelihood(Likelihood):
@@ -372,4 +394,3 @@ class JointLikelihood(Likelihood):
     def noise_log_likelihood(self):
         """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
         return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
-
