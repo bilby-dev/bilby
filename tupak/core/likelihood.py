@@ -155,7 +155,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self):
         log_l = np.sum(- (self.residual / self.sigma)**2 / 2
-                       - np.log(2 * np.pi * self.sigma) / 2)
+                       - np.log(2 * np.pi * self.sigma**2) / 2)
         return log_l
 
     def __repr__(self):
@@ -174,7 +174,11 @@ class GaussianLikelihood(Analytical1DLikelihood):
 
     @sigma.setter
     def sigma(self, sigma):
-        if isinstance(sigma, float) or len(sigma) == self.n:
+        if sigma is None:
+            self._sigma = sigma
+        elif isinstance(sigma, float) or isinstance(sigma, int):
+            self._sigma = sigma
+        elif len(sigma) == self.n:
             self._sigma = sigma
         else:
             raise ValueError('Sigma must be either float or array-like x.')
