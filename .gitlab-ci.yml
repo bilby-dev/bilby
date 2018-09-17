@@ -21,11 +21,11 @@ python-2:
     - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
     - pip install -r optional_requirements.txt
-    - pip install lalsuite enum gwpy
+    - pip install enum
   script:
     - python setup.py install
     # Run tests without finding coverage
-    - for test in test/*tests.py; do python $test; done
+    - pytest
 
 # test example on python 3
 python-3:
@@ -39,6 +39,7 @@ python-3:
     - pip install 'coverage>=4.5'
     - pip install coverage-badge
     - pip install flake8
+    - pip install pytest-cov
   script:
     - python setup.py install
 
@@ -46,23 +47,9 @@ python-3:
     - flake8 .
 
     # Run tests and collect coverage data
-    - coverage --version
-    - coverage erase
-    - coverage run --debug=trace --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/conversion_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/calibration_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/detector_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/gw_likelihood_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/likelihood_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/prior_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/sampler_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/utils_tests.py
-    - coverage run --include=/opt/conda/lib/python3.6/site-packages/tupak* -a test/waveform_generator_tests.py
+    - pytest --cov=tupak
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
-    # Run all other tests (no coverage data collected)
-    - python test/example_tests.py
-    - python test/gw_example_tests.py
-    - python test/noise_realisation_tests.py
 
     # Make the documentation
     - pip install -r docs/requirements.txt
