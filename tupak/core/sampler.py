@@ -192,6 +192,9 @@ class Sampler(object):
         result.parameter_labels = [
             self.priors[k].latex_label for k in
             self.__search_parameter_keys]
+        result.parameter_labels_with_unit = [
+            self.priors[k].latex_label_with_unit for k in
+            self.__search_parameter_keys]
         result.label = self.label
         result.outdir = self.outdir
         result.kwargs = self.kwargs
@@ -385,6 +388,48 @@ class Sampler(object):
             logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
+    def setup_nburn(self):
+        """ Handles calculating nburn, either from a given value or inferred """
+        if type(self.nburn) in [float, int]:
+            self.nburn = int(self.nburn)
+            logger.info("Discarding {} steps for burn-in".format(self.nburn))
+        elif self.result.max_autocorrelation_time is None:
+            self.nburn = int(self.burn_in_fraction * self.nsteps)
+            logger.info("Autocorrelation time not calculated, discarding {} "
+                        " steps for burn-in".format(self.nburn))
+        else:
+            self.nburn = int(
+                self.burn_in_act * self.result.max_autocorrelation_time)
+            logger.info("Discarding {} steps for burn-in, estimated from "
+                        "autocorr".format(self.nburn))
+
+    def calculate_autocorrelation(self, samples, c=3):
+        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
+
+        Parameters
+        ----------
+        samples: array_like
+            A chain of samples.
+        c: float
+            The minimum number of autocorrelation times needed to trust the
+            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
+        """
+
+        try:
+            import emcee
+        except ImportError:
+            self.result.max_autocorrelation_time = None
+            logger.info("emcee not available, so unable to calculate autocorr time")
+
+        try:
+            self.result.max_autocorrelation_time = int(np.max(
+                emcee.autocorr.integrated_time(samples, c=c)))
+            logger.info("Max autocorr time = {}".format(
+                self.result.max_autocorrelation_time))
+        except emcee.autocorr.AutocorrError as e:
+            self.result.max_autocorrelation_time = None
+            logger.info("Unable to calculate autocorr time: {}".format(e))
+
 
 class Nestle(Sampler):
 
@@ -472,14 +517,14 @@ class Dynesty(Sampler):
                              resume=True, walks=self.ndim * 5, verbose=True,
                              check_point_delta_t=60 * 10, nlive=250)
 
+        # Check if nlive was instead given by another name
+        if 'nlive' not in kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
+                if equiv in kwargs:
+                    kwargs['nlive'] = kwargs.pop(equiv)
+
         # Overwrite default values with user specified values
         self.__kwargs.update(kwargs)
-
-        # Check if nlive was instead given by another name
-        if 'nlive' not in self.__kwargs:
-            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
-                if equiv in self.__kwargs:
-                    self.__kwargs['nlive'] = self.__kwargs.pop(equiv)
 
         # Set the update interval
         if 'update_interval' not in self.__kwargs:
@@ -493,8 +538,8 @@ class Dynesty(Sampler):
 
         # If n_check_point is not already set, set it checkpoint every 10 mins
         if 'n_check_point' not in self.__kwargs:
-            n_check_point_raw = (self.__kwargs['check_point_delta_t']
-                                 / self._log_likelihood_eval_time)
+            n_check_point_raw = (self.__kwargs['check_point_delta_t'] /
+                                 self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.__kwargs['n_check_point'] = n_check_point_rnd
 
@@ -555,6 +600,9 @@ class Dynesty(Sampler):
         self.result.log_likelihood_evaluations = out.logl
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
+        self.result.nested_samples = pd.DataFrame(
+            out.samples, columns=self.search_parameter_keys)
+        self.result.nested_samples['weights'] = weights
 
         if self.plot:
             self.generate_trace_plots(out)
@@ -808,6 +856,80 @@ class Pymultinest(Sampler):
         return self.result
 
 
+class Cpnest(Sampler):
+    """
+    https://github.com/johnveitch/cpnest
+
+    TODO:
+        - allow custom jump proposals to be specified, ideally by parameter name
+        - figure out how to resume from a previous run
+    """
+
+    @property
+    def kwargs(self):
+        return self.__kwargs
+
+    @kwargs.setter
+    def kwargs(self, kwargs):
+        # Check if nlive was instead given by another name
+        if 'Nlive' not in kwargs:
+            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints',
+                          'nlive']:
+                if equiv in kwargs:
+                    kwargs['Nlive'] = kwargs.pop(equiv)
+        if 'seed' not in kwargs:
+            logger.warning('No seed provided, cpnest will use 1234.')
+
+        # Set some default values
+        self.__kwargs = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000)
+
+        # Overwrite default values with user specified values
+        self.__kwargs.update(kwargs)
+
+    def _run_external_sampler(self):
+        cpnest = self.external_sampler
+        import cpnest.model
+
+        class Model(cpnest.model.Model):
+            """ A wrapper class to pass our log_likelihood into cpnest """
+            def __init__(self, names, bounds):
+                self.names = names
+                self.bounds = bounds
+                self._check_bounds()
+
+            @staticmethod
+            def log_likelihood(x):
+                theta = [x[n] for n in self.search_parameter_keys]
+                return self.log_likelihood(theta)
+
+            @staticmethod
+            def log_prior(x):
+                theta = [x[n] for n in self.search_parameter_keys]
+                return self.log_prior(theta)
+
+            def _check_bounds(self):
+                for bound in self.bounds:
+                    if not all(np.isfinite(bound)):
+                        raise ValueError(
+                            'CPNest requires priors to have finite bounds.')
+
+        bounds = [[self.priors[key].minimum, self.priors[key].maximum]
+                  for key in self.search_parameter_keys]
+        model = Model(self.search_parameter_keys, bounds)
+        out = cpnest.CPNest(model, output=self.outdir, **self.kwargs)
+        out.run()
+
+        if self.plot:
+            out.plot()
+
+        # Since the output is not just samples, but log_likelihood as well,
+        # we turn this into a dataframe here. The index [0] here may be wrong
+        self.result.posterior = pd.DataFrame(out.posterior_samples[0])
+        self.result.log_evidence = out.NS.state.logZ
+        self.result.log_evidence_err = np.nan
+        return self.result
+
+
 class Emcee(Sampler):
     """ https://github.com/dfm/emcee """
 
@@ -849,7 +971,7 @@ class Emcee(Sampler):
             pass
 
         self.result.sampler_output = np.nan
-        self.calculate_autocorrelation(sampler)
+        self.calculate_autocorrelation(sampler.chain[:, :, :].reshape((-1, self.ndim)))
         self.setup_nburn()
         self.result.nburn = self.nburn
         self.result.samples = sampler.chain[:, self.nburn:, :].reshape(
@@ -865,41 +987,6 @@ class Emcee(Sampler):
             return -np.inf
         else:
             return self.log_likelihood(theta) + p
-
-    def setup_nburn(self):
-        """ Handles calculating nburn, either from a given value or inferred """
-        if type(self.nburn) in [float, int]:
-            self.nburn = int(self.nburn)
-            logger.info("Discarding {} steps for burn-in".format(self.nburn))
-        elif self.result.max_autocorrelation_time is None:
-            self.nburn = int(self.burn_in_fraction * self.nsteps)
-            logger.info("Autocorrelation time not calculated, discarding {} "
-                        " steps for burn-in".format(self.nburn))
-        else:
-            self.nburn = int(
-                self.burn_in_act * self.result.max_autocorrelation_time)
-            logger.info("Discarding {} steps for burn-in, estimated from "
-                        "autocorr".format(self.nburn))
-
-    def calculate_autocorrelation(self, sampler, c=3):
-        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
-
-        Parameters
-        ----------
-        c: float
-            The minimum number of autocorrelation times needed to trust the
-            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
-        """
-
-        import emcee
-        try:
-            self.result.max_autocorrelation_time = int(np.max(
-                sampler.get_autocorr_time(c=c)))
-            logger.info("Max autocorr time = {}".format(
-                self.result.max_autocorrelation_time))
-        except emcee.autocorr.AutocorrError as e:
-            self.result.max_autocorrelation_time = None
-            logger.info("Unable to calculate autocorr time: {}".format(e))
 
 
 class Ptemcee(Emcee):
@@ -1033,36 +1120,61 @@ class Pymc3(Sampler):
 
         prior_map = {}
         self.prior_map = prior_map
-        
-        # predefined PyMC3 distributions 
-        prior_map['Gaussian'] =          {'pymc3': 'Normal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        prior_map['TruncatedGaussian'] = {'pymc3': 'TruncatedNormal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd', 'minimum': 'lower', 'maximum': 'upper'}}
-        prior_map['HalfGaussian'] =      {'pymc3': 'HalfNormal',
-                                          'argmap': {'sigma': 'sd'}}
-        prior_map['Uniform'] =           {'pymc3': 'Uniform',
-                                          'argmap': {'minimum': 'lower', 'maximum': 'upper'}}
-        prior_map['LogNormal'] =         {'pymc3': 'Lognormal',
-                                          'argmap': {'mu': 'mu', 'sigma': 'sd'}}
-        prior_map['Exponential'] =       {'pymc3': 'Exponential',
-                                          'argmap': {'mu': 'lam'},
-                                          'argtransform': {'mu': lambda mu: 1./mu}}
-        prior_map['StudentT'] =          {'pymc3': 'StudentT',
-                                          'argmap': {'df': 'nu', 'mu': 'mu', 'scale': 'sd'}}
-        prior_map['Beta'] =              {'pymc3': 'Beta',
-                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-        prior_map['Logistic'] =          {'pymc3': 'Logistic',
-                                          'argmap': {'mu': 'mu', 'scale': 's'}}
-        prior_map['Cauchy'] =            {'pymc3': 'Cauchy',
-                                          'argmap': {'alpha': 'alpha', 'beta': 'beta'}}
-        prior_map['Gamma'] =             {'pymc3': 'Gamma',
-                                          'argmap': {'k': 'alpha', 'theta': 'beta'},
-                                          'argtransform': {'theta': lambda theta: 1./theta}}
-        prior_map['ChiSquared'] =        {'pymc3': 'ChiSquared',
-                                          'argmap': {'nu': 'nu'}}
-        prior_map['Interped'] =          {'pymc3': 'Interpolated',
-                                          'argmap': {'xx': 'x_points', 'yy': 'pdf_points'}}
+
+        # predefined PyMC3 distributions
+        prior_map['Gaussian'] = {
+            'pymc3': 'Normal',
+            'argmap': {'mu': 'mu', 'sigma': 'sd'}}
+        prior_map['TruncatedGaussian'] = {
+            'pymc3': 'TruncatedNormal',
+            'argmap': {'mu': 'mu',
+                       'sigma': 'sd',
+                       'minimum': 'lower',
+                       'maximum': 'upper'}}
+        prior_map['HalfGaussian'] = {
+            'pymc3': 'HalfNormal',
+            'argmap': {'sigma': 'sd'}}
+        prior_map['Uniform'] = {
+            'pymc3': 'Uniform',
+            'argmap': {'minimum': 'lower',
+                       'maximum': 'upper'}}
+        prior_map['LogNormal'] = {
+            'pymc3': 'Lognormal',
+            'argmap': {'mu': 'mu',
+                       'sigma': 'sd'}}
+        prior_map['Exponential'] = {
+            'pymc3': 'Exponential',
+            'argmap': {'mu': 'lam'},
+            'argtransform': {'mu': lambda mu: 1. / mu}}
+        prior_map['StudentT'] = {
+            'pymc3': 'StudentT',
+            'argmap': {'df': 'nu',
+                       'mu': 'mu',
+                       'scale': 'sd'}}
+        prior_map['Beta'] = {
+            'pymc3': 'Beta',
+            'argmap': {'alpha': 'alpha',
+                       'beta': 'beta'}}
+        prior_map['Logistic'] = {
+            'pymc3': 'Logistic',
+            'argmap': {'mu': 'mu',
+                       'scale': 's'}}
+        prior_map['Cauchy'] = {
+            'pymc3': 'Cauchy',
+            'argmap': {'alpha': 'alpha',
+                       'beta': 'beta'}}
+        prior_map['Gamma'] = {
+            'pymc3': 'Gamma',
+            'argmap': {'k': 'alpha',
+                       'theta': 'beta'},
+            'argtransform': {'theta': lambda theta: 1. / theta}}
+        prior_map['ChiSquared'] = {
+            'pymc3': 'ChiSquared',
+            'argmap': {'nu': 'nu'}}
+        prior_map['Interped'] = {
+            'pymc3': 'Interpolated',
+            'argmap': {'xx': 'x_points',
+                       'yy': 'pdf_points'}}
         prior_map['Normal'] = prior_map['Gaussian']
         prior_map['TruncatedNormal'] = prior_map['TruncatedGaussian']
         prior_map['HalfNormal'] = prior_map['HalfGaussian']
@@ -1070,12 +1182,15 @@ class Pymc3(Sampler):
         prior_map['Lorentzian'] = prior_map['Cauchy']
         prior_map['FromFile'] = prior_map['Interped']
 
+        # GW specific priors
+        prior_map['UniformComovingVolume'] = prior_map['Interped']
+
         # internally defined mappings for tupak priors
         prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
-        prior_map['Sine'] =          {'internal': self._sine_prior}
-        prior_map['Cosine'] =        {'internal': self._cosine_prior}
-        prior_map['PowerLaw'] =      {'internal': self._powerlaw_prior}
-        prior_map['LogUniform'] =    {'internal': self._powerlaw_prior}
+        prior_map['Sine'] = {'internal': self._sine_prior}
+        prior_map['Cosine'] = {'internal': self._cosine_prior}
+        prior_map['PowerLaw'] = {'internal': self._powerlaw_prior}
+        prior_map['LogUniform'] = {'internal': self._powerlaw_prior}
 
     def _deltafunction_prior(self, key, **kwargs):
         """
@@ -1094,7 +1209,7 @@ class Pymc3(Sampler):
         """
         Map the tupak Sine prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import Sine
 
         # check prior is a Sine
@@ -1116,7 +1231,9 @@ class Pymc3(Sampler):
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.cos(lower) - tt.cos(upper))
-                    self.mean = (tt.sin(upper)+lower*tt.cos(lower) - tt.sin(lower) - upper*tt.cos(upper))/self.norm
+                    self.mean = (
+                        tt.sin(upper) + lower * tt.cos(lower) - tt.sin(lower) -
+                        upper * tt.cos(upper)) / self.norm
 
                     transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1125,7 +1242,9 @@ class Pymc3(Sampler):
                 def logp(self, value):
                     upper = self.upper
                     lower = self.lower
-                    return pymc3.distributions.dist_math.bound(tt.log(tt.sin(value)/self.norm), lower <= value, value <= upper)
+                    return pymc3.distributions.dist_math.bound(
+                        tt.log(tt.sin(value) / self.norm),
+                        lower <= value, value <= upper)
 
             return Pymc3Sine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
@@ -1135,7 +1254,7 @@ class Pymc3(Sampler):
         """
         Map the tupak Cosine prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import Cosine
 
         # check prior is a Cosine
@@ -1150,14 +1269,16 @@ class Pymc3(Sampler):
                 raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Cosine(pymc3.Continuous):
-                def __init__(self, lower=-np.pi/2., upper=np.pi/2.):
+                def __init__(self, lower=-np.pi / 2., upper=np.pi / 2.):
                     if lower >= upper:
                         raise ValueError("Lower bound is above upper bound!")
 
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.sin(upper) - tt.sin(lower))
-                    self.mean = (upper*tt.sin(upper) + tt.cos(upper)-lower*tt.sin(lower)-tt.cos(lower))/self.norm
+                    self.mean = (
+                        upper * tt.sin(upper) + tt.cos(upper) -
+                        lower * tt.sin(lower) - tt.cos(lower)) / self.norm
 
                     transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1166,7 +1287,9 @@ class Pymc3(Sampler):
                 def logp(self, value):
                     upper = self.upper
                     lower = self.lower
-                    return pymc3.distributions.dist_math.bound(tt.log(tt.cos(value)/self.norm), lower <= value, value <= upper)
+                    return pymc3.distributions.dist_math.bound(
+                        tt.log(tt.cos(value) / self.norm),
+                        lower <= value, value <= upper)
 
             return Pymc3Cosine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
@@ -1176,7 +1299,7 @@ class Pymc3(Sampler):
         """
         Map the tupak PowerLaw prior to a PyMC3 style function
         """
- 
+
         from tupak.core.prior import PowerLaw
 
         # check prior is a PowerLaw
@@ -1208,11 +1331,11 @@ class Pymc3(Sampler):
                         self.alpha = alpha = tt.as_tensor_variable(floatX(alpha))
 
                         if falpha == -1:
-                            self.norm = 1./(tt.log(self.upper/self.lower))
+                            self.norm = 1. / (tt.log(self.upper / self.lower))
                         else:
                             beta = (1. + self.alpha)
-                            self.norm = 1. /(beta * (tt.pow(self.upper, beta) 
-                                          - tt.pow(self.lower, beta)))
+                            self.norm = 1. / (beta * (tt.pow(self.upper, beta) -
+                                                      tt.pow(self.lower, beta)))
 
                         transform = pymc3.distributions.transforms.interval(lower, upper)
 
@@ -1223,7 +1346,9 @@ class Pymc3(Sampler):
                         lower = self.lower
                         alpha = self.alpha
 
-                        return pymc3.distributions.dist_math.bound(self.alpha*tt.log(value) + tt.log(self.norm), lower <= value, value <= upper)
+                        return pymc3.distributions.dist_math.bound(
+                            alpha * tt.log(value) + tt.log(self.norm),
+                            lower <= value, value <= upper)
 
                 return Pymc3PowerLaw(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum, alpha=self.priors[key].alpha)
         else:
@@ -1237,21 +1362,40 @@ class Pymc3(Sampler):
 
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
-            step_method = self.__kwargs.pop('step').lower()
+            self.step_method = self.__kwargs.pop('step')
 
-            if step_method not in step_methods:
-                raise ValueError("Using invalid step method '{}'".format(step_method))
+            # 'step' could be a dictionary of methods for different parameters, so check for this
+            if isinstance(self.step_method, (dict, OrderedDict)):
+                for key in self.step_method:
+                    if key not in self.__search_parameter_keys:
+                        raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
+                    else:
+                        if self.step_method[key].lower() not in step_methods:
+                            raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
+            else:
+                self.step_method = self.step_method.lower()
+
+                if self.step_method not in step_methods:
+                    raise ValueError("Using invalid step method '{}'".format(self.step_method))
         else:
-            step_method = None
+            self.step_method = None
 
         # initialise the PyMC3 model
         self.pymc3_model = pymc3.Model()
 
-        # set the step method
-        sm = None if step_method is None else pymc3.__dict__[step_methods[step_method]]()
-
         # set the prior
         self.set_prior()
+
+        # set the step method
+        if isinstance(self.step_method, (dict, OrderedDict)):
+            # create list of step methods (any not given will default to NUTS)
+            sm = []
+            with self.pymc3_model:
+                for key in self.step_method:
+                    curmethod = self.step_method[key].lower()
+                    sm.append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
+        else:
+            sm = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
@@ -1269,13 +1413,13 @@ class Pymc3(Sampler):
             trace = pymc3.sample(self.draws, step=sm, **self.kwargs)
 
         nparams = len([key for key in self.priors.keys() if self.priors[key].__class__.__name__ != 'DeltaFunction'])
-        nsamples = len(trace)*self.chains
+        nsamples = len(trace) * self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
         count = 0
         for key in self.priors.keys():
-            if self.priors[key].__class__.__name__ != 'DeltaFunction': # ignore DeltaFunction variables
-                self.result.samples[:,count] = trace[key]
+            if self.priors[key].__class__.__name__ != 'DeltaFunction':  # ignore DeltaFunction variables
+                self.result.samples[:, count] = trace[key]
                 count += 1
 
         self.result.sampler_output = np.nan
@@ -1291,7 +1435,7 @@ class Pymc3(Sampler):
 
         self.setup_prior_mapping()
 
-        self.pymc3_priors = dict()
+        self.pymc3_priors = OrderedDict()
 
         pymc3 = self.external_sampler
 
@@ -1306,7 +1450,7 @@ class Pymc3(Sampler):
                         self.pymc3_priors[key] = self.priors[key].ln_prob(sampler=self)
                     except RuntimeError:
                         raise RuntimeError(("Problem setting PyMC3 prior for ",
-                            "'{}'".format(key)))
+                                            "'{}'".format(key)))
                 else:
                     # use Prior distribution name
                     distname = self.priors[key].__class__.__name__
@@ -1331,9 +1475,11 @@ class Pymc3(Sampler):
                                             if targ in self.prior_map[distname]['argtransform']:
                                                 tfunc = self.prior_map[distname]['argtransform'][targ]
                                             else:
-                                                tfunc = lambda x: x
+                                                def tfunc(x):
+                                                    return x
                                         else:
-                                            tfunc = lambda x: x
+                                            def tfunc(x):
+                                                return x
 
                                         priorkwargs[parg] = tfunc(getattr(self.priors[key], targ))
                                     else:
@@ -1354,19 +1500,87 @@ class Pymc3(Sampler):
         Convert any tupak likelihoods to PyMC3 distributions.
         """
 
+        try:
+            import theano  # noqa
+            import theano.tensor as tt
+            from theano.compile.ops import as_op  # noqa
+        except ImportError:
+            raise ImportError("Could not import theano")
+
+        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, StudentTLikelihood
+        from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
+
+        # create theano Op for the log likelihood if not using a predefined model
+        class LogLike(tt.Op):
+
+            itypes = [tt.dvector]
+            otypes = [tt.dscalar]
+
+            def __init__(self, parameters, loglike, priors):
+                self.parameters = parameters
+                self.likelihood = loglike
+                self.priors = priors
+
+                # set the fixed parameters
+                for key in self.priors.keys():
+                    if isinstance(self.priors[key], float):
+                        self.likelihood.parameters[key] = self.priors[key]
+
+                self.logpgrad = LogLikeGrad(self.parameters, self.likelihood, self.priors)
+
+            def perform(self, node, inputs, outputs):
+                theta, = inputs
+                for i, key in enumerate(self.parameters):
+                    self.likelihood.parameters[key] = theta[i]
+
+                outputs[0][0] = np.array(self.likelihood.log_likelihood())
+
+            def grad(self, inputs, g):
+                theta, = inputs
+                return [g[0] * self.logpgrad(theta)]
+
+        # create theano Op for calculating the gradient of the log likelihood
+        class LogLikeGrad(tt.Op):
+
+            itypes = [tt.dvector]
+            otypes = [tt.dvector]
+
+            def __init__(self, parameters, loglike, priors):
+                self.parameters = parameters
+                self.Nparams = len(parameters)
+                self.likelihood = loglike
+                self.priors = priors
+
+                # set the fixed parameters
+                for key in self.priors.keys():
+                    if isinstance(self.priors[key], float):
+                        self.likelihood.parameters[key] = self.priors[key]
+
+            def perform(self, node, inputs, outputs):
+                theta, = inputs
+
+                # define version of likelihood function to pass to derivative function
+                def lnlike(values):
+                    for i, key in enumerate(self.parameters):
+                        self.likelihood.parameters[key] = values[i]
+                    return self.likelihood.log_likelihood()
+
+                # calculate gradients
+                grads = utils.derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
+
+                outputs[0][0] = grads
+
         pymc3 = self.external_sampler
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function
-            if self.likelihood.__class__.__name__ == 'GaussianLikelihood':
+            if isinstance(self.likelihood, GaussianLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'sigma') or
                     not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
-                
+
                 if 'sigma' in self.pymc3_priors:
                     # if sigma is suppled use that value
                     if self.likelihood.sigma is None:
@@ -1378,34 +1592,30 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Normal('likelihood', mu=model, sd=self.likelihood.sigma,
                              observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'PoissonLikelihood':
+            elif isinstance(self.likelihood, PoissonLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Poisson Likelihood does not have all the correct attributes!")
-                
+
                 for key in self.pymc3_priors:
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get rate function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.Poisson('likelihood', mu=model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'ExponentialLikelihood':
+            elif isinstance(self.likelihood, ExponentialLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
-                    not hasattr(self.likelihood, 'y') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'y')):
                     raise ValueError("Exponential Likelihood does not have all the correct attributes!")
 
                 for key in self.pymc3_priors:
@@ -1413,18 +1623,16 @@ class Pymc3(Sampler):
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
                 # get mean function
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
-                pymc3.Exponential('likelihood', lam=1./model, observed=self.likelihood.y)
-            elif self.likelihood.__class__.__name__ == 'StudentTLikelihood':
+                pymc3.Exponential('likelihood', lam=1. / model, observed=self.likelihood.y)
+            elif isinstance(self.likelihood, StudentTLikelihood):
                 # check required attributes exist
                 if (not hasattr(self.likelihood, 'x') or
                     not hasattr(self.likelihood, 'y') or
                     not hasattr(self.likelihood, 'nu') or
-                    not hasattr(self.likelihood, 'sigma') or
-                    not hasattr(self.likelihood, 'function') or
-                    not hasattr(self.likelihood, 'function_keys')):
+                    not hasattr(self.likelihood, 'sigma')):
                     raise ValueError("StudentT Likelihood does not have all the correct attributes!")
 
                 if 'nu' in self.pymc3_priors:
@@ -1438,32 +1646,27 @@ class Pymc3(Sampler):
                     if key not in self.likelihood.function_keys:
                         raise ValueError("Prior key '{}' is not a function key!".format(key))
 
-                model = self.likelihood.function(self.likelihood.x, **self.pymc3_priors)
+                model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
+            elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
+                # set theano Op - pass __search_parameter_keys, which only contains non-fixed variables
+                logl = LogLike(self.__search_parameter_keys, self.likelihood, self.pymc3_priors)
+
+                parameters = OrderedDict()
+                for key in self.__search_parameter_keys:
+                    try:
+                        parameters[key] = self.pymc3_priors[key]
+                    except KeyError:
+                        raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
+
+                # convert to theano tensor variable
+                values = tt.as_tensor_variable(list(parameters.values()))
+
+                pymc3.DensityDist('likelihood', lambda v: logl(v), observed={'v': values})
             else:
                 raise ValueError("Unknown likelihood has been provided")
-
-    def calculate_autocorrelation(self, samples, c=3):
-        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
-
-        Parameters
-        ----------
-        c: float
-            The minimum number of autocorrelation times needed to trust the
-            estimate (default: `3`). See `emcee.autocorr.integrated_time`.
-        """
-
-        import emcee
-        try:
-            self.result.max_autocorrelation_time = int(np.max(
-                emcee.autocorr.integrated_time(samples, c=c)))
-            logger.info("Max autocorr time = {}".format(
-                self.result.max_autocorrelation_time))
-        except emcee.autocorr.AutocorrError as e:
-            self.result.max_autocorrelation_time = None
-            logger.info("Unable to calculate autocorr time: {}".format(e))
 
 
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',

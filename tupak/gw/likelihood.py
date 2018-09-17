@@ -82,6 +82,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._setup_distance_marginalization()
             prior['luminosity_distance'] = float(self._ref_dist)
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\ttime_marginalization={}, ' \
+                                         'distance_marginalization={}, phase_marginalization={}, prior={})'\
+            .format(self.interferometers, self.waveform_generator, self.time_marginalization,
+                    self.distance_marginalization, self.phase_marginalization, self.prior)
+
     def _check_set_duration_and_sampling_frequency_of_waveform_generator(self):
         """ Check the waveform_generator has the same duration and
         sampling_frequency as the interferometers. If they are unset, then
@@ -110,8 +116,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
                 self.prior[key] = Uniform(
-                        self.interferometers.start_time,
-                        self.interferometers.start_time + self.interferometers.duration)
+                    self.interferometers.start_time,
+                    self.interferometers.start_time + self.interferometers.duration)
             else:
                 self.prior[key] = BBHPriorSet()[key]
 
@@ -172,9 +178,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             if self.time_marginalization:
                 matched_filter_snr_squared_tc_array +=\
                     4 / self.waveform_generator.duration * np.fft.fft(
-                        signal_ifo.conjugate()[0:-1]
-                        * interferometer.frequency_domain_strain[0:-1]
-                        / interferometer.power_spectral_density_array[0:-1])
+                        signal_ifo.conjugate()[0:-1] *
+                        interferometer.frequency_domain_strain[0:-1] /
+                        interferometer.power_spectral_density_array[0:-1])
 
         if self.time_marginalization:
 
@@ -190,11 +196,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                         rho_mf_ref_tc_array.real, rho_opt_ref)
                     log_l = logsumexp(dist_marged_log_l_tc_array) + self.tc_log_norm
             elif self.phase_marginalization:
-                log_l = logsumexp(self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array)))\
-                        - optimal_snr_squared / 2 + self.tc_log_norm
+                log_l = (
+                    logsumexp(self._bessel_function_interped(abs(matched_filter_snr_squared_tc_array))) -
+                    optimal_snr_squared / 2 + self.tc_log_norm)
             else:
-                log_l = logsumexp(matched_filter_snr_squared_tc_array.real) + self.tc_log_norm\
-                        - optimal_snr_squared / 2
+                log_l = (logsumexp(matched_filter_snr_squared_tc_array.real) +
+                         self.tc_log_norm - optimal_snr_squared / 2)
 
         elif self.distance_marginalization:
             rho_mf_ref, rho_opt_ref = self._setup_rho(matched_filter_snr_squared, optimal_snr_squared)
@@ -212,9 +219,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         return log_l.real
 
     def _setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
-        rho_opt_ref = optimal_snr_squared.real * \
-                      self.waveform_generator.parameters['luminosity_distance'] ** 2 \
-                      / self._ref_dist ** 2.
+        rho_opt_ref = (optimal_snr_squared.real *
+                       self.waveform_generator.parameters['luminosity_distance'] ** 2 /
+                       self._ref_dist ** 2.)
         rho_mf_ref = matched_filter_snr_squared * \
             self.waveform_generator.parameters['luminosity_distance'] / self._ref_dist
         return rho_mf_ref, rho_opt_ref
@@ -273,8 +280,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def _setup_phase_marginalization(self):
         self._bessel_function_interped = interp1d(
-            np.logspace(-5, 10, int(1e6)), np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))])
-            + np.logspace(-5, 10, int(1e6)), bounds_error=False, fill_value=(0, np.nan))
+            np.logspace(-5, 10, int(1e6)), np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))]) +
+            np.logspace(-5, 10, int(1e6)), bounds_error=False, fill_value=(0, np.nan))
 
     def _setup_time_marginalization(self):
         delta_tc = 2 / self.waveform_generator.sampling_frequency
@@ -306,6 +313,10 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
         likelihood.Likelihood.__init__(self, waveform_generator.parameters)
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={})'\
+            .format(self.interferometers, self.waveform_generator)
 
     def noise_log_likelihood(self):
         """ Calculates the real part of noise log-likelihood
@@ -360,8 +371,8 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
 
         log_l = - 2. / self.waveform_generator.duration * np.vdot(
             interferometer.frequency_domain_strain - signal_ifo,
-            (interferometer.frequency_domain_strain - signal_ifo)
-            / interferometer.power_spectral_density_array)
+            (interferometer.frequency_domain_strain - signal_ifo) /
+            interferometer.power_spectral_density_array)
         return log_l.real
 
 

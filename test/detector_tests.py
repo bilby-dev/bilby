@@ -4,7 +4,12 @@ import tupak
 import unittest
 import mock
 from mock import MagicMock
+from mock import patch
 import numpy as np
+import scipy.signal.windows
+import gwpy
+import os
+import logging
 
 
 class TestDetector(unittest.TestCase):
@@ -188,14 +193,6 @@ class TestDetector(unittest.TestCase):
             self.ifo.yarm_azimuth = 12
             self.assertEqual(self.ifo.detector_tensor, 0)
 
-    def test_amplitude_spectral_density_array(self):
-        self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1, 4]))
-        self.assertTrue(np.array_equal(self.ifo.amplitude_spectral_density_array, np.array([1, 2])))
-
-    def test_power_spectral_density_array(self):
-        self.ifo.power_spectral_density.power_spectral_density_interpolated = MagicMock(return_value=np.array([1, 4]))
-        self.assertTrue(np.array_equal(self.ifo.power_spectral_density_array, np.array([1, 4])))
-
     def test_antenna_response_default(self):
         with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
             with mock.patch('numpy.einsum') as n:
@@ -306,6 +303,17 @@ class TestDetector(unittest.TestCase):
             actual = self.ifo.matched_filter_snr_squared(signal=signal)
             self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
             self.assertListEqual(expected[1], actual[1])
+
+    def test_repr(self):
+        expected = 'Interferometer(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
+                   'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
+                   'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
+                    float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
+                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
+                    float(self.yarm_tilt))
+        print(repr(self.ifo))
+        self.assertEqual(expected, repr(self.ifo))
 
 
 class TestInterferometerStrainData(unittest.TestCase):
@@ -418,6 +426,569 @@ class TestInterferometerStrainData(unittest.TestCase):
 
         self.assertTrue(np.all(
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
+
+    def test_time_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.time_array = test_array
+        self.assertTrue(test_array, self.ifosd.time_array)
+
+    @patch.object(tupak.core.utils, 'create_time_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.start_time = 3
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.time_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration,
+                             starting_time=self.ifosd.start_time)
+
+    def test_time_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_time_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_array
+
+    def test_frequency_array_when_set(self):
+        test_array = np.array([1])
+        self.ifosd.frequency_array = test_array
+        self.assertTrue(test_array, self.ifosd.frequency_array)
+
+    @patch.object(tupak.core.utils, 'create_frequency_series')
+    def test_time_array_when_not_set(self, m):
+        self.ifosd.sampling_frequency = 1000
+        self.ifosd.duration = 5
+        m.return_value = 4
+        self.assertEqual(m.return_value, self.ifosd.frequency_array)
+        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
+                             duration=self.ifosd.duration)
+
+    def test_frequency_array_without_sampling_frequency(self):
+        self.ifosd.sampling_frequency = None
+        self.ifosd.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_frequency_array_without_duration(self):
+        self.ifosd.sampling_frequency = 4096
+        self.ifosd.duration = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_array
+
+    def test_time_within_data_before(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(2))
+
+    def test_time_within_data_during(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertTrue(self.ifosd.time_within_data(3))
+        self.assertTrue(self.ifosd.time_within_data(4))
+        self.assertTrue(self.ifosd.time_within_data(5))
+
+    def test_time_within_data_after(self):
+        self.ifosd.start_time = 3
+        self.ifosd.duration = 2
+        self.assertFalse(self.ifosd.time_within_data(6))
+
+    def test_time_domain_window_no_roll_off_no_alpha(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_window = scipy.signal.windows.tukey(len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha)
+        self.assertEqual(expected_window,
+                         self.ifosd.time_domain_window())
+        self.assertEqual(np.mean(expected_window ** 2), self.ifosd.window_factor)
+
+    def test_time_domain_window_sets_roll_off_directly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        expected_roll_off = 6
+        self.ifosd.time_domain_window(roll_off=expected_roll_off)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_window_sets_roll_off_indirectly(self):
+        self.ifosd._time_domain_strain = np.array([3])
+        self.ifosd.duration = 5
+        self.ifosd.roll_off = 2
+        alpha = 4
+        expected_roll_off = alpha * self.ifosd.duration / 2
+        self.ifosd.time_domain_window(alpha=alpha)
+        self.assertEqual(expected_roll_off, self.ifosd.roll_off)
+
+    def test_time_domain_strain_when_set(self):
+        expected_strain = 5
+        self.ifosd._time_domain_strain = expected_strain
+        self.assertEqual(expected_strain, self.ifosd.time_domain_strain)
+
+    @patch('tupak.core.utils.infft')
+    def test_time_domain_strain_from_frequency_domain_strain(self, m):
+        m.return_value = 5
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        self.ifosd._frequency_domain_strain = self.ifosd.frequency_array
+        self.ifosd.sampling_frequency = 123
+        self.assertEqual(m.return_value, self.ifosd.time_domain_strain)
+
+    def test_time_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.time_domain_strain
+
+    def test_frequency_domain_strain_when_set(self):
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.duration = 4
+        expected_strain = self.ifosd.frequency_array * self.ifosd.frequency_mask
+        self.ifosd._frequency_domain_strain = expected_strain
+        self.assertTrue(np.array_equal(expected_strain,
+                                       self.ifosd.frequency_domain_strain))
+
+    @patch('tupak.core.utils.nfft')
+    def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
+        self.ifosd.start_time = 0
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        m.return_value = self.ifosd.frequency_array, self.ifosd.frequency_array
+        self.ifosd._time_domain_strain = self.ifosd.time_array
+        self.assertTrue(np.array_equal(self.ifosd.frequency_array * self.ifosd.frequency_mask,
+                                       self.ifosd.frequency_domain_strain))
+
+    def test_frequency_domain_strain_not_set(self):
+        self.ifosd._time_domain_strain = None
+        self.ifosd._frequency_domain_strain = None
+        with self.assertRaises(ValueError):
+            test = self.ifosd.frequency_domain_strain
+
+    def test_set_frequency_domain_strain(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        self.ifosd.frequency_domain_strain = np.ones(len(self.ifosd.frequency_array))
+        self.assertTrue(np.array_equal(np.ones(len(self.ifosd.frequency_array)),
+                                       self.ifosd._frequency_domain_strain))
+
+    def test_set_frequency_domain_strain_wrong_length(self):
+        self.ifosd.duration = 4
+        self.ifosd.sampling_frequency = 200
+        with self.assertRaises(ValueError):
+            self.ifosd.frequency_domain_strain = np.array([1])
+
+
+class TestInterferometerList(unittest.TestCase):
+
+    def setUp(self):
+        self.frequency_arrays = np.linspace(0, 4096, 4097)
+        self.name1 = 'name1'
+        self.name2 = 'name2'
+        self.power_spectral_density1 = MagicMock()
+        self.power_spectral_density1.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.power_spectral_density2 = MagicMock()
+        self.power_spectral_density2.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
+                                                                                     self.frequency_arrays))
+        self.minimum_frequency1 = 10
+        self.minimum_frequency2 = 10
+        self.maximum_frequency1 = 20
+        self.maximum_frequency2 = 20
+        self.length1 = 30
+        self.length2 = 30
+        self.latitude1 = 1
+        self.latitude2 = 1
+        self.longitude1 = 2
+        self.longitude2 = 2
+        self.elevation1 = 3
+        self.elevation2 = 3
+        self.xarm_azimuth1 = 4
+        self.xarm_azimuth2 = 4
+        self.yarm_azimuth1 = 5
+        self.yarm_azimuth2 = 5
+        self.xarm_tilt1 = 0.
+        self.xarm_tilt2 = 0.
+        self.yarm_tilt1 = 0.
+        self.yarm_tilt2 = 0.
+        # noinspection PyTypeChecker
+        self.ifo1 = tupak.gw.detector.Interferometer(name=self.name1,
+                                                     power_spectral_density=self.power_spectral_density1,
+                                                     minimum_frequency=self.minimum_frequency1,
+                                                     maximum_frequency=self.maximum_frequency1, length=self.length1,
+                                                     latitude=self.latitude1, longitude=self.longitude1,
+                                                     elevation=self.elevation1,
+                                                     xarm_azimuth=self.xarm_azimuth1, yarm_azimuth=self.yarm_azimuth1,
+                                                     xarm_tilt=self.xarm_tilt1, yarm_tilt=self.yarm_tilt1)
+        self.ifo2 = tupak.gw.detector.Interferometer(name=self.name2,
+                                                     power_spectral_density=self.power_spectral_density2,
+                                                     minimum_frequency=self.minimum_frequency2,
+                                                     maximum_frequency=self.maximum_frequency2, length=self.length2,
+                                                     latitude=self.latitude2, longitude=self.longitude2,
+                                                     elevation=self.elevation2,
+                                                     xarm_azimuth=self.xarm_azimuth2, yarm_azimuth=self.yarm_azimuth2,
+                                                     xarm_tilt=self.xarm_tilt2, yarm_tilt=self.yarm_tilt2)
+        self.ifo1.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            self.frequency_arrays, sampling_frequency=4096, duration=2)
+        self.ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def tearDown(self):
+        del self.frequency_arrays
+        del self.name1
+        del self.name2
+        del self.power_spectral_density1
+        del self.power_spectral_density2
+        del self.minimum_frequency1
+        del self.minimum_frequency2
+        del self.maximum_frequency1
+        del self.maximum_frequency2
+        del self.length1
+        del self.length2
+        del self.latitude1
+        del self.latitude2
+        del self.longitude1
+        del self.longitude2
+        del self.elevation1
+        del self.elevation2
+        del self.xarm_azimuth1
+        del self.xarm_azimuth2
+        del self.yarm_azimuth1
+        del self.yarm_azimuth2
+        del self.xarm_tilt1
+        del self.xarm_tilt2
+        del self.yarm_tilt1
+        del self.yarm_tilt2
+        del self.ifo1
+        del self.ifo2
+        del self.ifo_list
+
+    def test_init_with_string(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList("string")
+
+    def test_init_with_string_list(self):
+        """ Merely checks if this ends up in the right bracket """
+        with mock.patch('tupak.gw.detector.get_empty_interferometer') as m:
+            m.side_effect = ValueError
+            with self.assertRaises(ValueError):
+                tupak.gw.detector.InterferometerList(['string'])
+
+    def test_init_with_other_object(self):
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([object()])
+
+    def test_init_with_actual_ifos(self):
+        ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        self.assertEqual(self.ifo1, ifo_list[0])
+        self.assertEqual(self.ifo2, ifo_list[1])
+
+    def test_init_inconsistent_duration(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=3)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_sampling_frequency(self):
+        self.ifo2.strain_data.set_from_frequency_domain_strain(
+            np.linspace(0, 4096, 4097), sampling_frequency=234, duration=2)
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    def test_init_inconsistent_start_time(self):
+        self.ifo2.strain_data.start_time = 1
+        with self.assertRaises(ValueError):
+            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
+    def test_set_strain_data_from_power_spectral_density(self, m):
+        self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
+        m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_inject_signal_pol_and_wg_none(self):
+        with self.assertRaises(ValueError):
+            self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
+        self.assertTrue(m.called)
+
+    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    def test_inject_signal_pol_none_sets_wg_parameters(self, m):
+        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=lambda x, y, z: x)
+        parameters = dict(y=1, z=2)
+        self.ifo1.inject_signal = MagicMock(return_value=None)
+        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo_list.inject_signal(parameters=parameters, waveform_generator=waveform_generator)
+        self.assertDictEqual(parameters, waveform_generator.parameters)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_with_inj_pol(self, m):
+        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
+        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    def test_inject_signal_returns_expected_polarisations(self, m):
+        m.return_value = dict(plus=1, cross=2)
+        injection_polarizations = dict(plus=1, cross=2)
+        ifos_pol = self.ifo_list.inject_signal(injection_polarizations=injection_polarizations)
+        self.assertDictEqual(self.ifo1.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[0])
+        self.assertDictEqual(self.ifo2.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[1])
+
+    @patch.object(tupak.gw.detector.Interferometer, 'save_data')
+    def test_save_data(self, m):
+        self.ifo_list.save_data(outdir='test_outdir', label='test_outdir')
+        m.assert_called_with(outdir='test_outdir', label='test_outdir')
+        self.assertEqual(len(self.ifo_list), m.call_count)
+
+    def test_number_of_interferometers(self):
+        self.assertEqual(len(self.ifo_list), self.ifo_list.number_of_interferometers)
+
+    def test_duration(self):
+        self.assertEqual(self.ifo1.strain_data.duration, self.ifo_list.duration)
+        self.assertEqual(self.ifo2.strain_data.duration, self.ifo_list.duration)
+
+    def test_sampling_frequency(self):
+        self.assertEqual(self.ifo1.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+        self.assertEqual(self.ifo2.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+
+    def test_start_time(self):
+        self.assertEqual(self.ifo1.strain_data.start_time, self.ifo_list.start_time)
+        self.assertEqual(self.ifo2.strain_data.start_time, self.ifo_list.start_time)
+
+    def test_frequency_array(self):
+        self.assertTrue(np.array_equal(self.ifo1.strain_data.frequency_array, self.ifo_list.frequency_array))
+        self.assertTrue(np.array_equal(self.ifo2.strain_data.frequency_array, self.ifo_list.frequency_array))
+
+    def test_append_with_ifo(self):
+        self.ifo_list.append(self.ifo2)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo2.name], names)
+
+    def test_append_with_ifo_list(self):
+        self.ifo_list.append(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_extend(self):
+        self.ifo_list.extend(self.ifo_list)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
+
+    def test_insert(self):
+        new_ifo = self.ifo1
+        new_ifo.name = 'name3'
+        self.ifo_list.insert(1, new_ifo)
+        names = [ifo.name for ifo in self.ifo_list]
+        self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
+
+
+class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
+
+    def setUp(self):
+        self.frequency_array = np.array([1., 2., 3.])
+        self.psd_array = np.array([16., 25., 36.])
+        self.asd_array = np.array([4., 5., 6.])
+
+    def tearDown(self):
+        del self.frequency_array
+        del self.psd_array
+        del self.asd_array
+
+    def test_init_with_asd_array(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
+        self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+
+    def test_init_with_psd_array(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+
+    def test_setting_asd_array_after_init(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd.asd_array = self.asd_array
+        self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+
+    def test_setting_psd_array_after_init(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd.psd_array = self.psd_array
+        self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+
+    def test_power_spectral_density_interpolated_from_asd_array(self):
+        expected = np.array([25.])
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array = self.asd_array)
+        self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
+
+    def test_power_spectral_density_interpolated_from_psd_array(self):
+        expected = np.array([25.])
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array = self.psd_array)
+        self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
+
+    def test_from_amplitude_spectral_density_array(self):
+        actual = tupak.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_array(
+            frequency_array=self.frequency_array, asd_array=self.asd_array)
+        self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
+        self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
+
+    def test_from_power_spectral_density_array(self):
+        actual = tupak.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+            frequency_array=self.frequency_array, psd_array=self.psd_array)
+        self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
+        self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
+
+    def test_repr(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        expected = 'PowerSpectralDensity(frequency_array={}, psd_array={}, asd_array={})'.format(self.frequency_array,
+                                                                                                 self.psd_array,
+                                                                                                 self.asd_array)
+        self.assertEqual(expected, repr(psd))
+
+
+class TestPowerSpectralDensityWithFiles(unittest.TestCase):
+
+    def setUp(self):
+        self.dir = os.path.join(os.path.dirname(__file__), 'noise_curves')
+        os.mkdir(self.dir)
+        self.asd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', 'asd_test_file.txt')
+        self.psd_file = os.path.join(os.path.dirname(__file__), 'noise_curves', 'psd_test_file.txt')
+        with open(self.asd_file, 'w') as f:
+            f.write('1.\t1.0e-21\n2.\t2.0e-21\n3.\t3.0e-21')
+        with open(self.psd_file, 'w') as f:
+            f.write('1.\t1.0e-42\n2.\t4.0e-42\n3.\t9.0e-42')
+        self.frequency_array = np.array([1.0, 2.0, 3.0])
+        self.asd_array = np.array([1.0e-21, 2.0e-21, 3.0e-21])
+        self.psd_array = np.array([1.0e-42, 4.0e-42, 9.0e-42])
+
+    def tearDown(self):
+        os.remove(self.asd_file)
+        os.remove(self.psd_file)
+        os.rmdir(self.dir)
+        del self.dir
+        del self.asd_array
+        del self.psd_array
+        del self.asd_file
+        del self.psd_file
+
+    def test_init_with_psd_file(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
+        self.assertEqual(self.psd_file, psd.psd_file)
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+        self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
+
+    def test_init_with_asd_file(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
+        self.assertEqual(self.asd_file, psd.asd_file)
+        self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+
+    def test_setting_psd_array_after_init(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd.psd_file = self.psd_file
+        self.assertEqual(self.psd_file, psd.psd_file)
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+        self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
+
+    def test_init_with_asd_array_after_init(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd.asd_file = self.asd_file
+        self.assertEqual(self.asd_file, psd.asd_file)
+        self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+
+    def test_power_spectral_density_interpolated_from_asd_file(self):
+        expected = np.array([4.0e-42])
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
+        self.assertTrue(np.allclose(expected, psd.power_spectral_density_interpolated(2), atol=1e-60))
+
+    def test_power_spectral_density_interpolated_from_psd_file(self):
+        expected = np.array([4.0e-42])
+        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
+        self.assertAlmostEqual(expected, psd.power_spectral_density_interpolated(2))
+
+    def test_from_amplitude_spectral_density_file(self):
+        psd = tupak.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(asd_file=self.asd_file)
+        self.assertEqual(self.asd_file, psd.asd_file)
+        self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
+        self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
+
+    def test_from_power_spectral_density_file(self):
+        psd = tupak.gw.detector.PowerSpectralDensity.from_power_spectral_density_file(psd_file=self.psd_file)
+        self.assertEqual(self.psd_file, psd.psd_file)
+        self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
+        self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
+
+    def test_from_aligo(self):
+        psd = tupak.gw.detector.PowerSpectralDensity.from_aligo()
+        expected_filename = 'aLIGO_ZERO_DET_high_P_psd.txt'
+        expected = tupak.gw.detector.PowerSpectralDensity(psd_file=expected_filename)
+        actual_filename = psd.psd_file.split('/')[-1]
+        self.assertEqual(expected_filename, actual_filename)
+        self.assertTrue(np.allclose(expected.psd_array, psd.psd_array, atol=1e-60))
+        self.assertTrue(np.array_equal(expected.asd_array, psd.asd_array))
+
+    def test_check_file_psd_file_set_to_asd_file(self):
+        logger = logging.getLogger('tupak')
+        m = MagicMock()
+        logger.warning = m
+        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.asd_file)
+        self.assertEqual(4, m.call_count)
+
+    def test_check_file_not_called_psd_file_set_to_psd_file(self):
+        logger = logging.getLogger('tupak')
+        m = MagicMock()
+        logger.warning = m
+        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
+        self.assertEqual(0, m.call_count)
+
+    def test_check_file_asd_file_set_to_psd_file(self):
+        logger = logging.getLogger('tupak')
+        m = MagicMock()
+        logger.warning = m
+        psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.psd_file)
+        self.assertEqual(4, m.call_count)
+
+    def test_check_file_not_called_asd_file_set_to_asd_file(self):
+        logger = logging.getLogger('tupak')
+        m = MagicMock()
+        logger.warning = m
+        psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
+        self.assertEqual(0, m.call_count)
+
+    def test_from_frame_file(self):
+        expected_frequency_array = np.array([1., 2., 3.])
+        expected_psd_array = np.array([16., 25., 36.])
+        with mock.patch('tupak.gw.detector.InterferometerStrainData.set_from_frame_file') as m:
+            with mock.patch('tupak.gw.detector.InterferometerStrainData.create_power_spectral_density') as n:
+                n.return_value = expected_frequency_array, expected_psd_array
+                psd = tupak.gw.detector.PowerSpectralDensity.from_frame_file(frame_file=self.asd_file,
+                                                                             psd_start_time=0,
+                                                                             psd_duration=4)
+                self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
+                self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
+
+    def test_repr(self):
+        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
+        expected = 'PowerSpectralDensity(psd_file=\'{}\', asd_file=\'{}\')'.format(self.psd_file, None)
+        self.assertEqual(expected, repr(psd))
 
 
 if __name__ == '__main__':

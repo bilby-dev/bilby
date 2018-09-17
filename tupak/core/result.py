@@ -198,7 +198,7 @@ class Result(dict):
         for k in keys:
             if k in self.search_parameter_keys:
                 idx = self.search_parameter_keys.index(k)
-                latex_labels.append(self.parameter_labels[idx])
+                latex_labels.append(self.parameter_labels_with_unit[idx])
             elif k in self.parameter_labels:
                 latex_labels.append(k)
             else:
@@ -358,14 +358,18 @@ class Result(dict):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        data_frame = pd.DataFrame(
-            self.samples, columns=self.search_parameter_keys)
-        data_frame['log_likelihood'] = getattr(self, 'log_likelihood_evaluations', np.nan)
+        if hasattr(self, 'posterior') is False:
+            data_frame = pd.DataFrame(
+                self.samples, columns=self.search_parameter_keys)
+            data_frame['log_likelihood'] = getattr(
+                self, 'log_likelihood_evaluations', np.nan)
+            # We save the samples in the posterior and remove the array of samples
+            del self.samples
+        else:
+            data_frame = self.posterior
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
-        # We save the samples in the posterior and remove the array of samples
-        del self.samples
 
     def store_prior_values(self, priors=None):
         """
@@ -387,18 +391,36 @@ class Result(dict):
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
-        self.posterior['mass_chirp'] = (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
-                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2
-        self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
-        self.posterior['eta'] = (self.posterior.mass_1 * self.posterior.mass_2) / (
-                self.posterior.mass_1 + self.posterior.mass_2) ** 2
+        self.posterior['mass_chirp'] = (
+            (self.posterior.mass_1 * self.posterior.mass_2) ** 0.6 / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 0.2)
+        self.search_parameter_keys.append('mass_chirp')
+        self.parameter_labels.append('$\mathcal{M}$')
 
-        self.posterior['chi_eff'] = (self.posterior.a_1 * np.cos(self.posterior.tilt_1)
-                                     + self.posterior.q * self.posterior.a_2 * np.cos(self.posterior.tilt_2)) / (
-                                            1 + self.posterior.q)
-        self.posterior['chi_p'] = max(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
-                                      (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) * self.posterior.q
-                                      * self.posterior.a_2 * np.sin(self.posterior.tilt_2))
+        self.posterior['q'] = self.posterior.mass_2 / self.posterior.mass_1
+        self.search_parameter_keys.append('q')
+        self.parameter_labels.append('$q$')
+
+        self.posterior['eta'] = (
+            (self.posterior.mass_1 * self.posterior.mass_2) / (
+                self.posterior.mass_1 + self.posterior.mass_2) ** 2)
+        self.search_parameter_keys.append('eta')
+        self.parameter_labels.append('$\eta$')
+
+        self.posterior['chi_eff'] = (
+            (self.posterior.a_1 * np.cos(self.posterior.tilt_1) +
+                self.posterior.q * self.posterior.a_2 *
+                np.cos(self.posterior.tilt_2)) / (1 + self.posterior.q))
+        self.search_parameter_keys.append('chi_eff')
+        self.parameter_labels.append('$\chi_{\mathrm eff}$')
+
+        self.posterior['chi_p'] = (
+            np.maximum(self.posterior.a_1 * np.sin(self.posterior.tilt_1),
+                       (4 * self.posterior.q + 3) / (3 * self.posterior.q + 4) *
+                       self.posterior.q * self.posterior.a_2 *
+                       np.sin(self.posterior.tilt_2)))
+        self.search_parameter_keys.append('chi_p')
+        self.parameter_labels.append('$\chi_{\mathrm p}$')
 
     def check_attribute_match_to_other_object(self, name, other_object):
         """ Check attribute name exists in other_object and is the same

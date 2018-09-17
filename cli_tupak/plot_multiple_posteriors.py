@@ -4,7 +4,7 @@ import argparse
 def setup_command_line_args():
     parser = argparse.ArgumentParser(
         description="Plot corner plots from results files")
-    parser.add_argument("-r", "--results",  nargs='+',
+    parser.add_argument("-r", "--results", nargs='+',
                         help="List of results files to use.")
     parser.add_argument("-f", "--filename", default=None,
                         help="Output file name.")

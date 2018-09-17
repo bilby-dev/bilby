@@ -22,8 +22,8 @@ def write_version_file(version):
     try:
         git_log = subprocess.check_output(
             ['git', 'log', '-1', '--pretty=%h %ai']).decode('utf-8')
-        git_diff = (subprocess.check_output(['git', 'diff', '.'])
-                    + subprocess.check_output(
+        git_diff = (subprocess.check_output(['git', 'diff', '.']) +
+                    subprocess.check_output(
                         ['git', 'diff', '--cached', '.'])).decode('utf-8')
         if git_diff == '':
             git_status = '(CLEAN) ' + git_log
@@ -50,7 +50,7 @@ def get_long_description():
     return long_description
 
 
-version = '0.2.1'
+version = '0.2.2'
 version_file = write_version_file(version)
 long_description = get_long_description()
 
