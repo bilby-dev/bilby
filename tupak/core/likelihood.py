@@ -319,32 +319,38 @@ class StudentTLikelihood(Analytical1DLikelihood):
             self.parameters['nu'] = None
 
     def log_likelihood(self):
-        if self.__get_nu() <= 0.:
-            raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
+        if self.nu <= 0.:
+            raise ValueError("Number of degrees of freedom for Student's "
+                             "t-likelihood must be positive")
 
-        return self.__summed_log_likelihood(self.__get_nu())
+        nu = self.nu
+        log_l =\
+            np.sum(- (nu + 1) * np.log1p(self.lam * self.residual**2 / nu) / 2
+                   + np.log(self.lam / (nu * np.pi)) / 2 +
+                   gammaln((nu + 1) / 2) - gammaln(nu / 2))
+        return log_l
 
     def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={}, nu={}, sigma={})'\
-            .format(self.x, self.y, self.func.__name__, self.nu, self.sigma)
+        base_string = '(x={}, y={}, func={}, nu={}, sigma={})'
+        return self.__class__.__name__ + base_string.format(
+            self.x, self.y, self.func.__name__, self.nu, self.sigma)
 
     @property
     def lam(self):
         """ Converts 'scale' to 'precision' """
         return 1. / self.sigma ** 2
 
-    def __get_nu(self):
+    @property
+    def nu(self):
         """ This checks if nu or sigma have been set in parameters. If so, those
         values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
-        return self.parameters.get('nu', self.nu)
+        return self.parameters.get('nu', self._nu)
 
-    def __summed_log_likelihood(self, nu):
-        return (
-            self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) -
-                      gammaln(nu / 2.0)) -
-            (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu)))
+    @nu.setter
+    def nu(self, nu):
+        self._nu = nu
 
 
 class JointLikelihood(Likelihood):
