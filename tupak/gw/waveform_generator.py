@@ -6,7 +6,7 @@ class WaveformGenerator(object):
 
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
-                 parameter_conversion=lambda parameters, search_keys: (parameters, []),
+                 parameter_conversion=None,
                  non_standard_sampling_parameter_keys=None,
                  waveform_arguments=None):
         """ A waveform generator
@@ -52,7 +52,10 @@ class WaveformGenerator(object):
         self.__parameters_from_source_model()
         self.duration = duration
         self.sampling_frequency = sampling_frequency
-        self.parameter_conversion = parameter_conversion
+        if parameter_conversion is None:
+            self.parameter_conversion = lambda params, search_keys: (params, [])
+        else:
+            self.parameter_conversion = parameter_conversion
         self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
         self.parameters = parameters
         if waveform_arguments is not None:
@@ -65,6 +68,27 @@ class WaveformGenerator(object):
         self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
         self.__full_source_model_keyword_arguments.update(self.parameters)
         self.__added_keys = []
+
+    def __repr__(self):
+        if self.frequency_domain_source_model is not None:
+            fdsm_name = self.frequency_domain_source_model.__name__
+        else:
+            fdsm_name = None
+        if self.time_domain_source_model is not None:
+            tdsm_name = self.frequency_domain_source_model.__name__
+        else:
+            tdsm_name = None
+        if self.parameter_conversion.__name__ == '<lambda>':
+            param_conv_name = None
+        else:
+            param_conv_name = self.parameter_conversion.__name__
+
+        return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
+                                         'frequency_domain_source_model={}, time_domain_source_model={}, ' \
+                                         'parameters={}, parameter_conversion={}, ' \
+                                         'non_standard_sampling_parameter_keys={}, waveform_arguments={})'\
+            .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name, self.parameters,
+                    param_conv_name, self.non_standard_sampling_parameter_keys, self.waveform_arguments)
 
     def frequency_domain_strain(self):
         """ Rapper to source_model.
