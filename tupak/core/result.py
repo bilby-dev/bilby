@@ -371,7 +371,7 @@ class Result(dict):
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
 
-    def store_prior_values(self, priors=None):
+    def store_prior_values(self, priors):
         """
         Evaluate prior probability for each parameter for each sample.
 
