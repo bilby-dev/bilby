@@ -153,14 +153,14 @@ class GaussianLikelihood(Analytical1DLikelihood):
         if self.sigma is None:
             self.parameters['sigma'] = None
 
-    def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})'\
-            .format(self.x, self.y, self.func.__name__, self.sigma)
-
     def log_likelihood(self):
         log_l = np.sum(- (self.residual / self.sigma)**2 / 2
                        - np.log(2 * np.pi * self.sigma) / 2)
         return log_l
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})' \
+            .format(self.x, self.y, self.func.__name__, self.sigma)
 
     @property
     def sigma(self):
@@ -205,6 +205,20 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
+    def log_likelihood(self):
+        rate = self.func(self.x, **self.model_parameters)
+        if not isinstance(rate, np.ndarray):
+            raise ValueError(
+                "Poisson rate function returns wrong value type! "
+                "Is {} when it should be numpy.ndarray".format(type(rate)))
+        elif np.any(rate < 0.):
+            raise ValueError(("Poisson rate function returns a negative",
+                              " value!"))
+        elif np.any(rate == 0.):
+            return -np.inf
+        else:
+            return np.sum(-rate + self.y * np.log(rate) - gammaln(self.y + 1))
+
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
 
@@ -221,19 +235,6 @@ class PoissonLikelihood(Analytical1DLikelihood):
         if y.dtype.kind not in 'ui' or np.any(y < 0):
             raise ValueError("Data must be non-negative integers")
         self.__y = y
-
-    def log_likelihood(self):
-        rate = self.func(self.x, **self.model_parameters)
-        if not isinstance(rate, np.ndarray):
-            raise ValueError("Poisson rate function returns wrong value type! "
-                             "Is {} when it should be numpy.ndarray".format(type(rate)))
-        elif np.any(rate < 0.):
-            raise ValueError(("Poisson rate function returns a negative",
-                              " value!"))
-        elif np.any(rate == 0.):
-            return -np.inf
-        else:
-            return np.sum(-rate + self.y * np.log(rate)) - np.sum(gammaln(self.y + 1))
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
@@ -255,6 +256,12 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         """
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
+    def log_likelihood(self):
+        mu = self.func(self.x, **self.model_parameters)
+        if np.any(mu < 0.):
+            return -np.inf
+        return -np.sum(np.log(mu) + (self.y / mu))
+
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
 
@@ -270,12 +277,6 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         if np.any(y < 0):
             raise ValueError("Data must be non-negative")
         self.__y = y
-
-    def log_likelihood(self):
-        mu = self.func(self.x, **self.model_parameters)
-        if np.any(mu < 0.):
-            return -np.inf
-        return -np.sum(np.log(mu) + (self.y / mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
@@ -317,6 +318,12 @@ class StudentTLikelihood(Analytical1DLikelihood):
         if self.nu is None:
             self.parameters['nu'] = None
 
+    def log_likelihood(self):
+        if self.__get_nu() <= 0.:
+            raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
+
+        return self.__summed_log_likelihood(self.__get_nu())
+
     def __repr__(self):
         return self.__class__.__name__ + '(x={}, y={}, func={}, nu={}, sigma={})'\
             .format(self.x, self.y, self.func.__name__, self.nu, self.sigma)
@@ -325,12 +332,6 @@ class StudentTLikelihood(Analytical1DLikelihood):
     def lam(self):
         """ Converts 'scale' to 'precision' """
         return 1. / self.sigma ** 2
-
-    def log_likelihood(self):
-        if self.__get_nu() <= 0.:
-            raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
-
-        return self.__summed_log_likelihood(self.__get_nu())
 
     def __get_nu(self):
         """ This checks if nu or sigma have been set in parameters. If so, those
