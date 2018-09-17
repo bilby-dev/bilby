@@ -1111,7 +1111,7 @@ class LogGaussian(LogNormal):
 
         """
         LogNormal.__init__(self, mu=mu, sigma=sigma, name=name,
-                           latex_label=latex_label)
+                           latex_label=latex_label, unit=unit)
 
 
 class Exponential(Prior):
