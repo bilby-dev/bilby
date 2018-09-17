@@ -712,7 +712,7 @@ class LogUniform(PowerLaw):
         unit: str
             See superclass
         """
-        PowerLaw.__init__(self, name=name, latex_label=latex_label,
+        PowerLaw.__init__(self, name=name, latex_label=latex_label, unit=unit,
                           minimum=minimum, maximum=maximum, alpha=-1)
         if self.minimum <= 0:
             logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
