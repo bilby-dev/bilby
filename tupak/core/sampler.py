@@ -1781,7 +1781,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.fixed_parameter_keys = sampler.fixed_parameter_keys
         result.samples_to_posterior(likelihood=likelihood, priors=priors,
                                     conversion_function=conversion_function)
-        result.store_prior_values(priors)
         result.kwargs = sampler.kwargs
         if save:
             result.save_to_file()
