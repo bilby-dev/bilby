@@ -158,20 +158,26 @@ class GaussianLikelihood(Analytical1DLikelihood):
             .format(self.x, self.y, self.func.__name__, self.sigma)
 
     def log_likelihood(self):
-        return self.__summed_log_likelihood(sigma=self.__get_sigma())
+        log_l = np.sum(- (self.residual / self.sigma)**2 / 2
+                       - np.log(2 * np.pi * self.sigma) / 2)
+        return log_l
 
-    def __get_sigma(self):
+    @property
+    def sigma(self):
         """
         This checks if sigma has been set in parameters. If so, that value
         will be used. Otherwise, the attribute sigma is used. The logic is
         that if sigma is not in parameters the attribute is used which was
         given at init (i.e. the known sigma as either a float or array).
         """
-        return self.parameters.get('sigma', self.sigma)
+        return self.parameters.get('sigma', self._sigma)
 
-    def __summed_log_likelihood(self, sigma):
-        return -0.5 * (np.sum((self.residual / sigma) ** 2) +
-                       self.n * np.log(2 * np.pi * sigma ** 2))
+    @sigma.setter
+    def sigma(self, sigma):
+        if isinstance(sigma, float) or len(sigma) == self.n:
+            self._sigma = sigma
+        else:
+            raise ValueError('Sigma must be either float or array-like x.')
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
