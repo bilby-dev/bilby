@@ -253,6 +253,7 @@ def supernova_pca_model(
 
     return {'plus': h_plus, 'cross': h_cross}
 
+
 def lal_binary_neutron_star(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, a_2,
         iota, phase, lambda_1, lambda_2, ra, dec, geocent_time, psi, **kwargs):
@@ -271,7 +272,7 @@ def lal_binary_neutron_star(
     a_1: float
         Dimensionless spin magnitude
     a_2: float
-        Dimensionless secondary spin magnitude. 
+        Dimensionless secondary spin magnitude
     iota: float
         Orbital inclination
     phase: float
@@ -288,7 +289,7 @@ def lal_binary_neutron_star(
         Dimensionless tidal deformability of mass_1
     lambda_2: float
         Dimensionless tidal deformability of mass_2
-        
+
     kwargs: dict
         Optional keyword arguments
 
@@ -321,7 +322,7 @@ def lal_binary_neutron_star(
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
     mean_per_ano = 0.0
-    
+
     waveform_dictionary = lal.CreateDict()
     lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
     lalsim.SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
@@ -340,7 +341,7 @@ def lal_binary_neutron_star(
 
     h_plus = hplus.data.data
     h_cross = hcross.data.data
-    
+
     h_plus = h_plus[:len(frequency_array)]
     h_cross = h_cross[:len(frequency_array)]
 
