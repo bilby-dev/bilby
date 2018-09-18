@@ -14,6 +14,7 @@ from .calibration import Recalibrate
 
 try:
     import gwpy
+    import gwpy.signal
 except ImportError:
     logger.warning("You do not have gwpy installed currently. You will "
                    " not be able to use some of the prebuilt functions.")
@@ -1356,6 +1357,15 @@ class Interferometer(object):
         """ The frequency domain strain in units of strain / Hz """
         return self.strain_data.frequency_domain_strain
 
+    @property
+    def time_domain_strain(self):
+        """ The time domain strain in units of s """
+        return self.strain_data.time_domain_strain
+
+    @property
+    def time_array(self):
+        return self.strain_data.time_array
+
     def time_delay_from_geocenter(self, ra, dec, time):
         """
         Calculate the time delay from the geocenter for the interferometer.
@@ -1490,6 +1500,73 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_frequency_domain_data.png'.format(
                     outdir, self.name, label))
+
+    def plot_time_domain_data(
+            self, outdir='.', label=None, bandpass_frequencies=(50, 250),
+            notches=None, start_end=None, t0=None):
+        """ Plots the strain data in the time domain
+
+        Parameters
+        ----------
+        outdir, label: str
+            Used in setting the saved filename.
+        bandpass: tuple, optional
+            A tuple of the (low, high) frequencies to use when bandpassing the
+            data, if None no bandpass is applied.
+        notches: list, optional
+            A list of frequencies specifying any lines to notch
+        start_end: tuple
+            A tuple of the (start, end) range of GPS times to plot
+        t0: float
+            If given, the reference time to subtract from the time series before
+            plotting.
+
+        """
+
+        # We use the gwpy timeseries to perform bandpass and notching
+        if notches is None:
+            notches = list()
+        timeseries = gwpy.timeseries.TimeSeries(
+            data=self.time_domain_strain, times=self.time_array)
+        zpks = []
+        if bandpass_frequencies is not None:
+            zpks.append(gwpy.signal.filter_design.bandpass(
+                bandpass_frequencies[0], bandpass_frequencies[1],
+                self.strain_data.sampling_frequency))
+        if notches is not None:
+            for line in notches:
+                zpks.append(gwpy.signal.filter_design.notch(
+                    line, self.strain_data.sampling_frequency))
+        if len(zpks) > 0:
+            zpk = gwpy.signal.filter_design.concatenate_zpks(*zpks)
+            strain = timeseries.filter(zpk, filtfilt=True)
+        else:
+            strain = timeseries
+
+        fig, ax = plt.subplots()
+
+        if t0:
+            x = self.time_array - t0
+            xlabel = 'GPS time [s] - {}'.format(t0)
+        else:
+            x = self.time_array
+            xlabel = 'GPS time [s]'
+
+        ax.plot(x, strain)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('Strain')
+
+        if start_end is not None:
+            ax.set_xlim(*start_end)
+
+        fig.tight_layout()
+
+        if label is None:
+            fig.savefig(
+                '{}/{}_time_domain_data.png'.format(outdir, self.name))
+        else:
+            fig.savefig(
+                '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
 
 
 class TriangularInterferometer(InterferometerList):

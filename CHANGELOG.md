@@ -22,6 +22,7 @@ Changes currently on master, but not under a tag.
 - Add functionality to sample in redshift and reconstruction of source frame masses.
 - Add functionality to combine result objects.
 - Enable initial values for emcee to be specified.
+- Added Interferometer.plot_time_domain_strain
 
 ### Changed
 - Changed to using `setuptools` for installation.
