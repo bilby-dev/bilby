@@ -1,11 +1,14 @@
-#!/bin/python
+#!/usr/bin/env python
 """
-An example of how to use tupak to perform paramater estimation for hyper params
+An example of how to use tupak to perform parameter estimation for hyper params
 """
 from __future__ import division
-import tupak
 import numpy as np
 import matplotlib.pyplot as plt
+from tupak.core.likelihood import GaussianLikelihood
+from tupak.core.prior import Uniform
+from tupak.core.sampler import run_sampler
+from tupak.hyper.likelihood import HyperparameterLikelihood
 
 outdir = 'outdir'
 
@@ -18,8 +21,8 @@ def model(x, c0, c1):
 N = 10
 x = np.linspace(0, 10, N)
 sigma = 1
-Nevents = 3
-labels = ['a', 'b', 'c']
+Nevents = 4
+labels = ['a', 'b', 'c', 'd']
 
 true_mu_c0 = 5
 true_sigma_c0 = 1
@@ -37,13 +40,13 @@ for i in range(Nevents):
     data = model(x, **injection_parameters) + np.random.normal(0, sigma, N)
     line = ax1.plot(x, data, '-x', label=labels[i])
 
-    likelihood = tupak.core.likelihood.GaussianLikelihood(x, data, model, sigma)
-    priors = dict(c0=tupak.core.prior.Uniform(-10, 10, 'c0'),
-                  c1=tupak.core.prior.Uniform(-10, 10, 'c1'))
+    likelihood = GaussianLikelihood(x, data, model, sigma)
+    priors = dict(c0=Uniform(-10, 10, 'c0'), c1=Uniform(-10, 10, 'c1'))
 
-    result = tupak.core.sampler.run_sampler(
-        likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-        outdir=outdir, verbose=False, label='individual_{}'.format(i))
+    result = run_sampler(
+        likelihood=likelihood, priors=priors, sampler='nestle', nlive=1000,
+        outdir=outdir, verbose=False, label='individual_{}'.format(i),
+        save=False)
     ax2.hist(result.posterior.c0, color=line[0].get_color(), normed=True,
              alpha=0.5, label=labels[i])
     samples.append(result.posterior)
@@ -59,21 +62,23 @@ fig2.savefig('outdir/hyper_parameter_combined_posteriors.png')
 
 
 def hyper_prior(data, mu, sigma):
-    return np.exp(- (data['c0'] - mu)**2 / (2 * sigma**2)) / (2 * np.pi * sigma**2)**0.5
+    return np.exp(- (data['c0'] - mu)**2 / (2 * sigma**2))\
+           / (2 * np.pi * sigma**2)**0.5
 
 
 def run_prior(data):
     return 1 / 20
 
 
-hp_likelihood = tupak.hyper.likelihood.HyperparameterLikelihood(
-        posteriors=samples, hyper_prior=hyper_prior, sampling_prior=run_prior)
+hp_likelihood = HyperparameterLikelihood(
+    posteriors=samples, hyper_prior=hyper_prior,
+    sampling_prior=run_prior, max_samples=500)
 
-hp_priors = dict(mu=tupak.core.prior.Uniform(-10, 10, 'mu', '$\mu_{c0}$'),
-                 sigma=tupak.core.prior.Uniform(0, 10, 'sigma', '$\sigma_{c0}$'))
+hp_priors = dict(mu=Uniform(-10, 10, 'mu', '$\mu_{c0}$'),
+                 sigma=Uniform(0, 10, 'sigma', '$\sigma_{c0}$'))
 
 # And run sampler
-result = tupak.core.sampler.run_sampler(
-    likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty',
-    npoints=1000, outdir=outdir, label='hyper_parameter', verbose=True, clean=True)
+result = run_sampler(
+    likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty', nlive=1000,
+    outdir=outdir, label='hyper_parameter', verbose=True, clean=True)
 result.plot_corner(truth=dict(mu=true_mu_c0, sigma=true_sigma_c0))

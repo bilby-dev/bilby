@@ -1,6 +1,6 @@
-#!/bin/python
+#!/usr/bin/env python
 """
-An example of how to use tupak to perform paramater estimation for
+An example of how to use tupak to perform parameter estimation for
 non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise with unknown variance.
 
@@ -28,7 +28,7 @@ injection_parameters = dict(m=0.5, c=0.2)
 sigma = 1
 
 # These lines of code generate the fake data. Note the ** just unpacks the
-# contents of the injection_paramsters when calling the model function.
+# contents of the injection_parameters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
 time = np.arange(0, time_duration, 1/sampling_frequency)
@@ -44,12 +44,14 @@ ax.set_ylabel('y')
 ax.legend()
 fig.savefig('{}/{}_data.png'.format(outdir, label))
 
+injection_parameters.update(dict(sigma=1))
+
 # Now lets instantiate the built-in GaussianLikelihood, giving it
 # the time, data and signal model. Note that, because we do not give it the
 # parameter, sigma is unknown and marginalised over during the sampling
 likelihood = tupak.core.likelihood.GaussianLikelihood(time, data, model)
 
-priors = {}
+priors = dict()
 priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
 priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
 priors['sigma'] = tupak.core.prior.Uniform(0, 10, 'sigma')
@@ -57,6 +59,6 @@ priors['sigma'] = tupak.core.prior.Uniform(0, 10, 'sigma')
 # And run sampler
 result = tupak.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
-    walks=10, injection_parameters=injection_parameters, outdir=outdir,
+    sample='unif', injection_parameters=injection_parameters, outdir=outdir,
     label=label)
 result.plot_corner()

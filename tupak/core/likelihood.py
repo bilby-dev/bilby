@@ -153,25 +153,35 @@ class GaussianLikelihood(Analytical1DLikelihood):
         if self.sigma is None:
             self.parameters['sigma'] = None
 
+    def log_likelihood(self):
+        log_l = np.sum(- (self.residual / self.sigma)**2 / 2 -
+                       np.log(2 * np.pi * self.sigma**2) / 2)
+        return log_l
+
     def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})'\
+        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})' \
             .format(self.x, self.y, self.func.__name__, self.sigma)
 
-    def log_likelihood(self):
-        return self.__summed_log_likelihood(sigma=self.__get_sigma())
-
-    def __get_sigma(self):
+    @property
+    def sigma(self):
         """
         This checks if sigma has been set in parameters. If so, that value
         will be used. Otherwise, the attribute sigma is used. The logic is
         that if sigma is not in parameters the attribute is used which was
         given at init (i.e. the known sigma as either a float or array).
         """
-        return self.parameters.get('sigma', self.sigma)
+        return self.parameters.get('sigma', self._sigma)
 
-    def __summed_log_likelihood(self, sigma):
-        return -0.5 * (np.sum((self.residual / sigma) ** 2) +
-                       self.n * np.log(2 * np.pi * sigma ** 2))
+    @sigma.setter
+    def sigma(self, sigma):
+        if sigma is None:
+            self._sigma = sigma
+        elif isinstance(sigma, float) or isinstance(sigma, int):
+            self._sigma = sigma
+        elif len(sigma) == self.n:
+            self._sigma = sigma
+        else:
+            raise ValueError('Sigma must be either float or array-like x.')
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
@@ -199,6 +209,20 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
+    def log_likelihood(self):
+        rate = self.func(self.x, **self.model_parameters)
+        if not isinstance(rate, np.ndarray):
+            raise ValueError(
+                "Poisson rate function returns wrong value type! "
+                "Is {} when it should be numpy.ndarray".format(type(rate)))
+        elif np.any(rate < 0.):
+            raise ValueError(("Poisson rate function returns a negative",
+                              " value!"))
+        elif np.any(rate == 0.):
+            return -np.inf
+        else:
+            return np.sum(-rate + self.y * np.log(rate) - gammaln(self.y + 1))
+
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
 
@@ -215,19 +239,6 @@ class PoissonLikelihood(Analytical1DLikelihood):
         if y.dtype.kind not in 'ui' or np.any(y < 0):
             raise ValueError("Data must be non-negative integers")
         self.__y = y
-
-    def log_likelihood(self):
-        rate = self.func(self.x, **self.model_parameters)
-        if not isinstance(rate, np.ndarray):
-            raise ValueError("Poisson rate function returns wrong value type! "
-                             "Is {} when it should be numpy.ndarray".format(type(rate)))
-        elif np.any(rate < 0.):
-            raise ValueError(("Poisson rate function returns a negative",
-                              " value!"))
-        elif np.any(rate == 0.):
-            return -np.inf
-        else:
-            return np.sum(-rate + self.y * np.log(rate)) - np.sum(gammaln(self.y + 1))
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
@@ -249,6 +260,12 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         """
         Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
 
+    def log_likelihood(self):
+        mu = self.func(self.x, **self.model_parameters)
+        if np.any(mu < 0.):
+            return -np.inf
+        return -np.sum(np.log(mu) + (self.y / mu))
+
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
 
@@ -264,12 +281,6 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         if np.any(y < 0):
             raise ValueError("Data must be non-negative")
         self.__y = y
-
-    def log_likelihood(self):
-        mu = self.func(self.x, **self.model_parameters)
-        if np.any(mu < 0.):
-            return -np.inf
-        return -np.sum(np.log(mu) + (self.y / mu))
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
@@ -311,33 +322,39 @@ class StudentTLikelihood(Analytical1DLikelihood):
         if self.nu is None:
             self.parameters['nu'] = None
 
+    def log_likelihood(self):
+        if self.nu <= 0.:
+            raise ValueError("Number of degrees of freedom for Student's "
+                             "t-likelihood must be positive")
+
+        nu = self.nu
+        log_l =\
+            np.sum(- (nu + 1) * np.log1p(self.lam * self.residual**2 / nu) / 2 +
+                   np.log(self.lam / (nu * np.pi)) / 2 +
+                   gammaln((nu + 1) / 2) - gammaln(nu / 2))
+        return log_l
+
     def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={}, nu={}, sigma={})'\
-            .format(self.x, self.y, self.func.__name__, self.nu, self.sigma)
+        base_string = '(x={}, y={}, func={}, nu={}, sigma={})'
+        return self.__class__.__name__ + base_string.format(
+            self.x, self.y, self.func.__name__, self.nu, self.sigma)
 
     @property
     def lam(self):
         """ Converts 'scale' to 'precision' """
         return 1. / self.sigma ** 2
 
-    def log_likelihood(self):
-        if self.__get_nu() <= 0.:
-            raise ValueError("Number of degrees of freedom for Student's t-likelihood must be positive")
-
-        return self.__summed_log_likelihood(self.__get_nu())
-
-    def __get_nu(self):
+    @property
+    def nu(self):
         """ This checks if nu or sigma have been set in parameters. If so, those
         values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
-        return self.parameters.get('nu', self.nu)
+        return self.parameters.get('nu', self._nu)
 
-    def __summed_log_likelihood(self, nu):
-        return (
-            self.n * (gammaln((nu + 1.0) / 2.0) + .5 * np.log(self.lam / (nu * np.pi)) -
-                      gammaln(nu / 2.0)) -
-            (nu + 1.0) / 2.0 * np.sum(np.log1p(self.lam * self.residual ** 2 / nu)))
+    @nu.setter
+    def nu(self, nu):
+        self._nu = nu
 
 
 class JointLikelihood(Likelihood):
