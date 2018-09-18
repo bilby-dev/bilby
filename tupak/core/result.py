@@ -10,6 +10,7 @@ from collections import OrderedDict
 
 from tupak.core import utils
 from tupak.core.utils import logger
+from tupak.core.prior import DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -434,6 +435,24 @@ class Result(dict):
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
+
+    def calculate_prior_values(self, priors):
+        """
+        Evaluate prior probability for each parameter for each sample.
+
+        Parameters
+        ----------
+        priors: dict, PriorSet
+            Prior distributions
+        """
+        self.prior_values = pd.DataFrame()
+        for key in priors:
+            if key in self.posterior.keys():
+                if isinstance(priors[key], DeltaFunction):
+                    continue
+                else:
+                    self.prior_values[key]\
+                        = priors[key].prob(self.posterior[key].values)
 
     def construct_cbc_derived_parameters(self):
         """ Construct widely used derived parameters of CBCs """
