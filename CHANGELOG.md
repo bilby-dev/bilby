@@ -49,6 +49,7 @@ Changes currently on master, but not under a tag.
   `tupak.WaveformGenerator` no longer work. Instead, we need to use
   `tupak.gw.WaveformGenerator`. This was done to keep things cleaner going
   forward (when, for example, there may be multiple wfg's).
+- Samplers reorganised into individual files.
 
 ## [0.2.1] 2018-07-18
 
