@@ -4,12 +4,51 @@
 
 Changes currently on master, but not under a tag.
 
+### Additions
+- Joint-likelihood added
+- PyMC3 works with the GravitationalWaveTransient likelihood
+- flake8 syntax checking in CI
+- Binary neutron star source model
+- Allow units to be included in parameter labels
+- Add nested samples to dynesty output
+- Add more __repr__ methods
+- Add ability to plot max likelihood and draws from the posterior
+- Document samplers in more detail
+- Added the CPNest sampler
+- Adds custom titles to corner plots
+- Adds plotting of the prior on 1D marginal distributions of corner plots
+- Adds a method to plot time-domain GW data
+
 ### Changes
+- Fix construct_cbc_derived_parameters
+- Autocorrelation calculation moved into parent class
+- Fix interpretation of kwargs for dynesty
+- PowerSpectralDensity structure modified
+- Fixed bug in get_open_data 
+
+### Removed
+- Removes the "--detectors" command line argument (not a general CLI requirement)
+
+## [0.2.2] 2018-09-04
+
+### Added
+- Add functionality to sample in redshift and reconstruction of source frame masses.
+- Add functionality to combine result objects.
+- Enable initial values for emcee to be specified.
+- Add support for eccentric BBH
+
+### Changed
+- Specifying detectors by name from the default command line options has been removed.
+- The prior on polarisation phase has been reduced to [0, pi].
+- More prior distributions added.
+- More samplers supported, pymc3
+- More core likelihoods, Poisson, Student's-t
+- Result print function fixed
+- Add snr functions as methods of `Interferometer`
 - The paths between imports where changed so that calls such as
   `tupak.WaveformGenerator` no longer work. Instead, we need to use
   `tupak.gw.WaveformGenerator`. This was done to keep things cleaner going
   forward (when, for example, there may be multiple wfg's).
-
 
 ## [0.2.1] 2018-07-18
 
@@ -19,10 +58,6 @@ Changes currently on master, but not under a tag.
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
 - Add functionality to plot multiple results in a corner plot, see `tupak.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
-- Add functionality to sample in redshift and reconstruction of source frame masses.
-- Add functionality to combine result objects.
-- Enable initial values for emcee to be specified.
-- Added Interferometer.plot_time_domain_strain
 
 ### Changed
 - Changed to using `setuptools` for installation.
@@ -35,14 +70,6 @@ Changes currently on master, but not under a tag.
 - Enable marginalisation over calibration uncertainty in Inteferemeter data.
 - Fixed the normalisation of the marginalised `GravtitationalWaveTransient` likelihood.
 - Fixed a bug in the detector response.
-- Specifying detectors by name from the default command line options has been removed.
-- The prior on polarisation phase has been reduced to [0, pi].
-- More prior distributions added.
-- More samplers supported, pymc3
-- More core likelihoods, Poisson, Student's-t
-- Add support for eccentric BBH
-- Result print function fixed
-- Add snr functions as methods of `Interferometer`
 
 ## [0.2.0] 2018-06-17
 
