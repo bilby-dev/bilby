@@ -237,8 +237,41 @@ class Result(dict):
         """
         return self.posterior_volume / self.prior_volume(priors)
 
+    def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
+                                                 quantiles=[0.16, 0.84]):
+        """ Calculate the median and error bar for a given key
+
+        Parameters
+        ----------
+        key: str
+            The parameter key for which to calculate the median and error bar
+        fmt: str, ('.2f')
+            A format string
+        quantiles: list
+            A length-2 list of the lower and upper-quantiles to calculate
+            the errors bars for.
+
+        Returns
+        -------
+        string: str
+            A string of latex-formatted text of the mean and 1-sigma quantiles
+
+        """
+        if len(quantiles) != 2:
+            raise ValueError("quantiles must be of length 2")
+
+        quants_to_compute = np.array([quantiles[0], 0.5, quantiles[1]])
+        quants = np.percentile(self.posterior[key], quants_to_compute * 100)
+        median = quants[1]
+        upper = quants[2] - median
+        lower = median - quants[0]
+
+        fmt = "{{0:{0}}}".format(fmt).format
+        string = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
+        return string.format(fmt(median), fmt(lower), fmt(upper))
+
     def plot_corner(self, parameters=None, save=True, priors=None, dpi=300,
-                    **kwargs):
+                    titles=True, **kwargs):
         """ Plot a corner-plot using corner
 
         See https://corner.readthedocs.io/en/latest/ for a detailed API.
@@ -254,6 +287,11 @@ class Result(dict):
             one-dimensional marginal distributions
         dpi: int, optional
             Dots per inch resolution of the plot
+        titles: bool
+            If true, add 1D titles of the median and (by default 1-sigma)
+            error bars. To change the error bars, pass in the quantiles kwarg.
+            See method `get_one_dimensional_median_and_error_bar` for further
+            details). If `quantiles=None` is passed in, no title is added.
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
@@ -271,7 +309,7 @@ class Result(dict):
         defaults_kwargs = dict(
             bins=50, smooth=0.9, label_kwargs=dict(fontsize=16),
             title_kwargs=dict(fontsize=16), color='#0072C1',
-            truth_color='tab:orange', show_titles=True,
+            truth_color='tab:orange',
             quantiles=[0.16, 0.84],
             levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
@@ -312,6 +350,17 @@ class Result(dict):
         fig = corner.corner(xs, **kwargs)
 
         axes = fig.get_axes()
+
+        #  Add the titles
+        if titles and kwargs.get('quantiles', None) is not None:
+            for i, par in enumerate(parameters):
+                ax = axes[i + i * len(parameters)]
+                if ax.title.get_text() == '':
+                    ax.set_title(self.get_one_dimensional_median_and_error_bar(
+                        par, quantiles=kwargs['quantiles']),
+                        **kwargs['title_kwargs'])
+
+        #  Add priors to the 1D plots
         if priors is not None:
             for i, par in enumerate(parameters):
                 ax = axes[i + i * len(parameters)]
