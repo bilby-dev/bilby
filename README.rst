@@ -1,4 +1,4 @@
-|pipeline status| |coverage report|
+|pipeline status| |coverage report| |pypi|
 
 Tupak
 =====
@@ -7,6 +7,7 @@ Fulfilling all your gravitational wave dreams.
 
 -  `Installation
    instructions <https://monash.docs.ligo.org/tupak/installation.html>`__
+-  `Contributing <https://git.ligo.org/Monash/tupak/blob/master/CONTRIBUTING.md>`__.
 -  `Documentation <https://monash.docs.ligo.org/tupak/index.html>`__.
 -  `Issue tracker <https://git.ligo.org/Monash/tupak/issues>`__
 
@@ -19,3 +20,5 @@ us directly.
    :target: https://git.ligo.org/Monash/tupak/commits/master
 .. |coverage report| image:: https://monash.docs.ligo.org/tupak/coverage_badge.svg
    :target: https://monash.docs.ligo.org/tupak/htmlcov/
+.. |pypi| image:: https://badge.fury.io/py/TUPAK.svg
+   :target: https://badge.fury.io/py/TUPAK
