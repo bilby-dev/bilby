@@ -20,8 +20,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
-                                                          frequency_domain_source_model=dummy_func_dict_return_value)
+            tupak.gw.waveform_generator.WaveformGenerator(
+                1, 4096,
+                frequency_domain_source_model=dummy_func_dict_return_value)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                           ra=1.375,
                                           dec=-1.2108,
@@ -35,7 +36,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
     def test_repr(self):
         expected = 'WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, ' \
                    'frequency_domain_source_model={}, time_domain_source_model={}, parameters={}, ' \
-                   'parameter_conversion={}, non_standard_sampling_parameter_keys={}, waveform_arguments={})'\
+                   'parameter_conversion={}, waveform_arguments={})'\
             .format(self.waveform_generator.duration,
                     self.waveform_generator.sampling_frequency,
                     self.waveform_generator.start_time,
@@ -43,7 +44,6 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                     self.waveform_generator.time_domain_source_model,
                     self.waveform_generator.parameters,
                     None,
-                    self.waveform_generator.non_standard_sampling_parameter_keys,
                     self.waveform_generator.waveform_arguments)
         self.assertEqual(expected, repr(self.waveform_generator))
 
