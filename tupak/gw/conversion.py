@@ -75,7 +75,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     """
 
     converted_parameters = parameters.copy()
-    original_keys = list(converted_parameters.keys()).copy()
+    original_keys = list(converted_parameters.keys())
 
     if 'chirp_mass' in converted_parameters.keys():
         if 'total_mass' in converted_parameters.keys():
@@ -183,7 +183,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         keys which are added to parameters during function call
     """
     converted_parameters = parameters.copy()
-    original_keys = list(converted_parameters.keys()).copy()
+    original_keys = list(converted_parameters.keys())
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
