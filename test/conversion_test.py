@@ -113,17 +113,15 @@ class TestConvertToLALBBHParams(unittest.TestCase):
     def test_cos_angle_to_angle_conversion(self):
         with mock.patch('numpy.arccos') as m:
             m.return_value = 42
-            self.search_keys.append('cos_tilt_1')
             self.parameters['cos_tilt_1'] = 1
-            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys)
+            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters)
             self.assertEqual(42, self.parameters['tilt_1'])
 
     def test_cos_angle_to_angle_conversion_removal(self):
         with mock.patch('numpy.arccos') as m:
             m.return_value = 42
-            self.search_keys.append('cos_tilt_1')
             self.parameters['cos_tilt_1'] = 1
-            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys, remove=True)
+            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters)
             self.assertDictEqual(self.parameters, dict(tilt_1=42, cos_tilt_1=1))
 
 
