@@ -24,7 +24,9 @@ Changes currently on master, but not under a tag.
 - Autocorrelation calculation moved into parent class
 - Fix interpretation of kwargs for dynesty
 - PowerSpectralDensity structure modified
-- Fixed bug in get_open_data 
+- Fixed bug in get_open_data
+- Modified how sampling in non-standard parameters is done, the
+  `non_standard_sampling_parameter_keys` kwarg has been removed
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)
