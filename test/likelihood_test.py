@@ -189,6 +189,12 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.log_likelihood()
         self.assertTrue(likelihood.sigma == 1)
 
+    def test_sigma_other(self):
+        likelihood = GaussianLikelihood(
+            self.x, self.y, self.function, sigma=None)
+        with self.assertRaises(ValueError):
+            likelihood.sigma = 'test'
+
     def test_repr(self):
         likelihood = GaussianLikelihood(
             self.x, self.y, self.function, sigma=self.sigma)
@@ -467,6 +473,10 @@ class TestExponentialLikelihood(unittest.TestCase):
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood())
 
+    def test_repr(self):
+        expected = 'ExponentialLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.function.__name__)
+        self.assertEqual(expected, repr(self.exponential_likelihood))
+
 
 class TestJointLikelihood(unittest.TestCase):
 
@@ -553,6 +563,10 @@ class TestJointLikelihood(unittest.TestCase):
     def test_setting_single_likelihood(self):
         self.joint_likelihood.likelihoods = self.first_likelihood
         self.assertEqual(self.first_likelihood.log_likelihood(), self.joint_likelihood.log_likelihood())
+
+    def test_setting_likelihood_other(self):
+        with self.assertRaises(ValueError):
+            self.joint_likelihood.likelihoods = 'test'
 
     # Appending is not supported
     # def test_appending(self):

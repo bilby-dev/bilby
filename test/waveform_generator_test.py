@@ -47,6 +47,43 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                     self.waveform_generator.waveform_arguments)
         self.assertEqual(expected, repr(self.waveform_generator))
 
+    def test_repr_with_time_domain_source_model(self):
+        self.waveform_generator = \
+            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                          time_domain_source_model=dummy_func_dict_return_value)
+        expected = 'WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, ' \
+                   'frequency_domain_source_model={}, time_domain_source_model={}, parameters={}, ' \
+                   'parameter_conversion={}, non_standard_sampling_parameter_keys={}, waveform_arguments={})'\
+            .format(self.waveform_generator.duration,
+                    self.waveform_generator.sampling_frequency,
+                    self.waveform_generator.start_time,
+                    self.waveform_generator.frequency_domain_source_model,
+                    self.waveform_generator.time_domain_source_model.__name__,
+                    self.waveform_generator.parameters,
+                    None,
+                    self.waveform_generator.non_standard_sampling_parameter_keys,
+                    self.waveform_generator.waveform_arguments)
+        self.assertEqual(expected, repr(self.waveform_generator))
+
+    def test_repr_with_param_conversion(self):
+        def conversion_func():
+            pass
+
+        self.waveform_generator.parameter_conversion = conversion_func
+        expected = 'WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, ' \
+                   'frequency_domain_source_model={}, time_domain_source_model={}, parameters={}, ' \
+                   'parameter_conversion={}, non_standard_sampling_parameter_keys={}, waveform_arguments={})'\
+            .format(self.waveform_generator.duration,
+                    self.waveform_generator.sampling_frequency,
+                    self.waveform_generator.start_time,
+                    self.waveform_generator.frequency_domain_source_model.__name__,
+                    self.waveform_generator.time_domain_source_model,
+                    self.waveform_generator.parameters,
+                    conversion_func.__name__,
+                    self.waveform_generator.non_standard_sampling_parameter_keys,
+                    self.waveform_generator.waveform_arguments)
+        self.assertEqual(expected, repr(self.waveform_generator))
+
     def test_duration(self):
         self.assertEqual(self.waveform_generator.duration, 1)
 
@@ -127,6 +164,16 @@ class TestSetters(unittest.TestCase):
         self.waveform_generator.time_domain_source_model = dummy_func_dict_return_value
         self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
                              sorted(list(self.simulation_parameters.keys())))
+
+    def test_set_parameter_conversion_at_init(self):
+        def conversion_func():
+            pass
+
+        self.waveform_generator = \
+            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+                                                          frequency_domain_source_model=dummy_func_dict_return_value,
+                                                          parameter_conversion=conversion_func)
+        self.assertEqual(conversion_func, self.waveform_generator.parameter_conversion)
 
 
 class TestFrequencyDomainStrainMethod(unittest.TestCase):
