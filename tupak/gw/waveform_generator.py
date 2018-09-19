@@ -7,7 +7,6 @@ class WaveformGenerator(object):
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
-                 non_standard_sampling_parameter_keys=None,
                  waveform_arguments=None):
         """ A waveform generator
 
@@ -33,8 +32,6 @@ class WaveformGenerator(object):
         Function to convert from sampled parameters to parameters of the
         waveform generator. Default value is the identity, i.e. it leaves
         the parameters unaffected.
-    non_standard_sampling_parameter_keys: list, optional
-        List of parameter name for *non-standard* sampling parameters.
     waveform_arguments: dict, optional
         A dictionary of fixed keyword arguments to pass to either
         `frequency_domain_source_model` or `time_domain_source_model`.
@@ -56,7 +53,6 @@ class WaveformGenerator(object):
             self.parameter_conversion = lambda params, search_keys: (params, [])
         else:
             self.parameter_conversion = parameter_conversion
-        self.non_standard_sampling_parameter_keys = non_standard_sampling_parameter_keys
         self.parameters = parameters
         if waveform_arguments is not None:
             self.waveform_arguments = waveform_arguments
@@ -86,9 +82,9 @@ class WaveformGenerator(object):
         return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
                                          'frequency_domain_source_model={}, time_domain_source_model={}, ' \
                                          'parameters={}, parameter_conversion={}, ' \
-                                         'non_standard_sampling_parameter_keys={}, waveform_arguments={})'\
+                                         'waveform_arguments={})'\
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name, self.parameters,
-                    param_conv_name, self.non_standard_sampling_parameter_keys, self.waveform_arguments)
+                    param_conv_name, self.waveform_arguments)
 
     def frequency_domain_strain(self):
         """ Rapper to source_model.
@@ -147,8 +143,8 @@ class WaveformGenerator(object):
         return model_strain
 
     def _apply_parameter_conversion(self):
-        self.parameters, self.__added_keys = self.parameter_conversion(self.parameters,
-                                                                       self.non_standard_sampling_parameter_keys)
+        self.parameters, self.__added_keys =\
+            self.parameter_conversion(self.parameters)
         self.__full_source_model_keyword_arguments.update(self.parameters)
 
     def _strain_from_model(self, model_data_points, model):
