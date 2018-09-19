@@ -119,18 +119,22 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
             symmetric_mass_ratio_to_mass_ratio(
                 converted_parameters['symmetric_mass_ratio'])
         if 'mass_1' in converted_parameters.keys():
-            converted_parameters['mass_2'] = converted_parameters['mass_1'] *\
-                                             converted_parameters['mass_ratio']
+            converted_parameters['mass_2'] =\
+                converted_parameters['mass_1'] *\
+                converted_parameters['mass_ratio']
         elif 'mass_2' in converted_parameters.keys():
-            converted_parameters['mass_1'] = converted_parameters['mass_2'] /\
-                                             converted_parameters['mass_ratio']
+            converted_parameters['mass_1'] =\
+                converted_parameters['mass_2'] /\
+                converted_parameters['mass_ratio']
     elif 'mass_ratio' in converted_parameters.keys():
         if 'mass_1' in converted_parameters.keys():
-            converted_parameters['mass_2'] = converted_parameters['mass_1'] *\
-                                             converted_parameters['mass_ratio']
+            converted_parameters['mass_2'] =\
+                converted_parameters['mass_1'] *\
+                converted_parameters['mass_ratio']
         if 'mass_2' in converted_parameters.keys():
-            converted_parameters['mass_1'] = converted_parameters['mass_2'] /\
-                                             converted_parameters['mass_ratio']
+            converted_parameters['mass_1'] = \
+                converted_parameters['mass_2'] /\
+                converted_parameters['mass_ratio']
 
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
@@ -395,10 +399,10 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
         Mass ratio of the binary
     """
     temp = (chirp_mass / mass_1) ** 5
-    mass_ratio = (2 / 3 / (3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5
-                           + 9 * temp)) ** (1 / 3) * temp + \
-                 ((3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5
-                   + 9 * temp) / (2 * 3 ** 2)) ** (1 / 3)
+    mass_ratio = (2 / 3 / (3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 +
+                           9 * temp)) ** (1 / 3) * temp + \
+                 ((3 ** 0.5 * (27 * temp ** 2 - 4 * temp ** 3) ** 0.5 +
+                   9 * temp) / (2 * 3 ** 2)) ** (1 / 3)
     return mass_ratio
 
 
