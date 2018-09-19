@@ -50,7 +50,7 @@ class WaveformGenerator(object):
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         if parameter_conversion is None:
-            self.parameter_conversion = lambda params, search_keys: (params, [])
+            self.parameter_conversion = lambda params: (params, [])
         else:
             self.parameter_conversion = parameter_conversion
         self.parameters = parameters
