@@ -1,9 +1,7 @@
 from __future__ import division, absolute_import
 import unittest
-import mock
 import tupak
 import numpy as np
-from scipy.special import logsumexp
 
 
 class TestBasicGWTransient(unittest.TestCase):
@@ -19,7 +17,7 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4)
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-            duration=4, sampling_frequency=2048, parameters=self.parameters,
+            duration=4, sampling_frequency=2048,
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
             )
 
@@ -27,6 +25,7 @@ class TestBasicGWTransient(unittest.TestCase):
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator
         )
+        self.likelihood.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.parameters
@@ -56,10 +55,10 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
-        self.likelihood.waveform_generator.parameters['mass_2'] = 32
+        self.likelihood.parameters['mass_2'] = 32
         self.assertEqual(self.likelihood.log_likelihood_ratio(),
                          np.nan_to_num(-np.inf))
-        self.likelihood.waveform_generator.parameters['mass_2'] = 29
+        self.likelihood.parameters['mass_2'] = 29
 
     def test_repr(self):
         expected = 'BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})'.format(
@@ -83,7 +82,6 @@ class TestGWTransient(unittest.TestCase):
             sampling_frequency=self.sampling_frequency, duration=self.duration)
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            parameters=self.parameters.copy(),
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         )
 
@@ -96,12 +94,7 @@ class TestGWTransient(unittest.TestCase):
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=self.prior.copy()
         )
-
-        # self.distance = tupak.gw.likelihood.GravitationalWaveTransient(
-        #     interferometers=self.interferometers,
-        #     waveform_generator=self.waveform_generator,
-        #     distance_marginalization=True, prior=self.prior
-        # )
+        self.likelihood.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.parameters
@@ -109,7 +102,6 @@ class TestGWTransient(unittest.TestCase):
         del self.waveform_generator
         del self.prior
         del self.likelihood
-        # del self.distance
 
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
@@ -133,10 +125,10 @@ class TestGWTransient(unittest.TestCase):
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
-        self.likelihood.waveform_generator.parameters['mass_2'] = 32
+        self.likelihood.parameters['mass_2'] = 32
         self.assertEqual(self.likelihood.log_likelihood_ratio(),
                          np.nan_to_num(-np.inf))
-        self.likelihood.waveform_generator.parameters['mass_2'] = 29
+        self.likelihood.parameters['mass_2'] = 29
 
     def test_repr(self):
         expected = 'GravitationalWaveTransient(interferometers={},\n\twaveform_generator={},\n\t' \
@@ -163,7 +155,6 @@ class TestTimeMarginalization(unittest.TestCase):
 
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            parameters=self.parameters.copy(),
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         )
 
@@ -182,6 +173,8 @@ class TestTimeMarginalization(unittest.TestCase):
             waveform_generator=self.waveform_generator,
             time_marginalization=True, prior=self.prior.copy()
         )
+        for like in [self.likelihood, self.time]:
+            like.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.duration
@@ -199,12 +192,12 @@ class TestTimeMarginalization(unittest.TestCase):
         times = np.linspace(self.prior['geocent_time'].minimum,
                             self.prior['geocent_time'].maximum, 4097)[:-1]
         for time in times:
-            self.waveform_generator.parameters['geocent_time'] = time
+            self.likelihood.parameters['geocent_time'] = time
             like.append(np.exp(self.likelihood.log_likelihood_ratio()))
 
         marg_like = np.log(np.trapz(like, times)
                            / self.waveform_generator.duration)
-        self.waveform_generator.parameters = self.parameters.copy()
+        self.time.parameters = self.parameters.copy()
         self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
                                delta=0.5)
 
@@ -228,7 +221,6 @@ class TestMarginalizedLikelihood(unittest.TestCase):
 
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            parameters=self.parameters.copy(),
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         )
 
@@ -292,7 +284,6 @@ class TestPhaseMarginalization(unittest.TestCase):
 
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            parameters=self.parameters.copy(),
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         )
 
@@ -311,6 +302,8 @@ class TestPhaseMarginalization(unittest.TestCase):
             waveform_generator=self.waveform_generator,
             phase_marginalization=True, prior=self.prior.copy()
         )
+        for like in [self.likelihood, self.phase]:
+            like.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.duration
@@ -327,11 +320,11 @@ class TestPhaseMarginalization(unittest.TestCase):
         like = []
         phases = np.linspace(0, 2 * np.pi, 1000)
         for phase in phases:
-            self.waveform_generator.parameters['phase'] = phase
+            self.likelihood.parameters['phase'] = phase
             like.append(np.exp(self.likelihood.log_likelihood_ratio()))
 
         marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
-        self.waveform_generator.parameters = self.parameters.copy()
+        self.phase.parameters = self.parameters.copy()
         self.assertAlmostEqual(marg_like, self.phase.log_likelihood_ratio(),
                                delta=0.5)
 
@@ -354,7 +347,6 @@ class TestTimePhaseMarginalization(unittest.TestCase):
 
         self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            parameters=self.parameters.copy(),
             frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
         )
 
@@ -386,6 +378,8 @@ class TestTimePhaseMarginalization(unittest.TestCase):
             time_marginalization=True, phase_marginalization=True,
             prior=self.prior.copy()
         )
+        for like in [self.likelihood, self.time, self.phase, self.time_phase]:
+            like.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.duration
@@ -405,12 +399,12 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         times = np.linspace(self.prior['geocent_time'].minimum,
                             self.prior['geocent_time'].maximum, 4097)[:-1]
         for time in times:
-            self.waveform_generator.parameters['geocent_time'] = time
+            self.phase.parameters['geocent_time'] = time
             like.append(np.exp(self.phase.log_likelihood_ratio()))
 
         marg_like = np.log(np.trapz(like, times)
                            / self.waveform_generator.duration)
-        self.waveform_generator.parameters = self.parameters.copy()
+        self.time_phase.parameters = self.parameters.copy()
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
@@ -418,11 +412,11 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         like = []
         phases = np.linspace(0, 2 * np.pi, 1000)
         for phase in phases:
-            self.waveform_generator.parameters['phase'] = phase
+            self.time.parameters['phase'] = phase
             like.append(np.exp(self.time.log_likelihood_ratio()))
 
         marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
-        self.waveform_generator.parameters = self.parameters.copy()
+        self.time_phase.parameters = self.parameters.copy()
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
@@ -435,7 +429,6 @@ class TestBBHLikelihoodSetUp(unittest.TestCase):
 
     def tearDown(self):
         del self.ifos
-        del self.like
 
     def test_instantiation(self):
         self.like = tupak.gw.likelihood.get_binary_black_hole_likelihood(

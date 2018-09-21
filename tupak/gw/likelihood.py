@@ -330,7 +330,9 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
 
         """
         log_l = 0
-        waveform_polarizations = self.waveform_generator.frequency_domain_strain()
+        waveform_polarizations =\
+            self.waveform_generator.frequency_domain_strain(
+                self.parameters.copy())
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
@@ -382,5 +384,5 @@ def get_binary_black_hole_likelihood(interferometers):
     waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
         duration=interferometers.duration, sampling_frequency=interferometers.sampling_frequency,
         frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-        parameters={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
+        waveform_arguments={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
     return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)

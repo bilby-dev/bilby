@@ -53,12 +53,12 @@ class WaveformGenerator(object):
             self.parameter_conversion = lambda params: (params, [])
         else:
             self.parameter_conversion = parameter_conversion
-        if isinstance(parameters, dict):
-            self.parameters = parameters
         if waveform_arguments is not None:
             self.waveform_arguments = waveform_arguments
         else:
             self.waveform_arguments = dict()
+        if isinstance(parameters, dict):
+            self.parameters = parameters
         self.__frequency_array_updated = False
         self.__time_array_updated = False
 
