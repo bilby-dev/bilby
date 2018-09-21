@@ -83,11 +83,18 @@ class WaveformGenerator(object):
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
                     param_conv_name, self.waveform_arguments)
 
-    def frequency_domain_strain(self, parameters):
+    def frequency_domain_strain(self, parameters=None):
         """ Rapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
+
+        Parameters
+        ----------
+        parameters: dict, optional
+            Parameters to evaluate the waveform for, this overwrites
+            `self.parameters`.
+            If not provided will fall back to `self.parameters`.
 
         Returns
         -------
@@ -105,12 +112,19 @@ class WaveformGenerator(object):
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
-    def time_domain_strain(self, parameters):
+    def time_domain_strain(self, parameters=None):
         """ Rapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the frequency_domain_source model via INFFT if no frequency_domain_source_model is
         given.
+
+        Parameters
+        ----------
+        parameters: dict, optional
+            Parameters to evaluate the waveform for, this overwrites
+            `self.parameters`.
+            If not provided will fall back to `self.parameters`.
 
         Returns
         -------
@@ -130,7 +144,8 @@ class WaveformGenerator(object):
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points, parameters):
-        self.parameters = parameters.copy()
+        if parameters is not None:
+            self.parameters = parameters.copy()
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
