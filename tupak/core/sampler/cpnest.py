@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 from pandas import DataFrame
 from ..utils import logger
@@ -50,10 +51,9 @@ class Cpnest(Sampler):
         self.__kwargs.update(kwargs)
 
     def _run_external_sampler(self):
-        cpnest = self.external_sampler
-        import cpnest.model
+        from cpnest import model as cpmodel, CPNest
 
-        class Model(cpnest.model.Model):
+        class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """
             def __init__(self, names, bounds):
                 self.names = names
@@ -79,7 +79,7 @@ class Cpnest(Sampler):
         bounds = [[self.priors[key].minimum, self.priors[key].maximum]
                   for key in self.search_parameter_keys]
         model = Model(self.search_parameter_keys, bounds)
-        out = cpnest.CPNest(model, output=self.outdir, **self.kwargs)
+        out = CPNest(model, output=self.outdir, **self.kwargs)
         out.run()
 
         if self.plot:
