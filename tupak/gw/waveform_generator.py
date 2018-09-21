@@ -53,14 +53,14 @@ class WaveformGenerator(object):
             self.parameter_conversion = lambda params: (params, [])
         else:
             self.parameter_conversion = parameter_conversion
-        self.parameters = parameters
+        if isinstance(parameters, dict):
+            self.parameters = parameters
         if waveform_arguments is not None:
             self.waveform_arguments = waveform_arguments
         else:
             self.waveform_arguments = dict()
         self.__frequency_array_updated = False
         self.__time_array_updated = False
-        self.__parameters = dict()
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -78,9 +78,9 @@ class WaveformGenerator(object):
 
         return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
                                          'frequency_domain_source_model={}, time_domain_source_model={}, ' \
-                                         'parameters={}, parameter_conversion={}, ' \
+                                         'parameter_conversion={}, ' \
                                          'waveform_arguments={})'\
-            .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name, self.parameters,
+            .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
                     param_conv_name, self.waveform_arguments)
 
     def frequency_domain_strain(self, parameters):
@@ -227,7 +227,7 @@ class WaveformGenerator(object):
             Input parameter dictionary, this is overwritten by the conversion
             function and has self.waveform_arguments added to it.
         """
-        if ~isinstance(parameters, dict):
+        if not isinstance(parameters, dict):
             raise TypeError('"parameters" must be a dictionary.')
         parameters, _ = self.parameter_conversion(parameters)
         for key in self.source_parameter_keys.symmetric_difference(parameters):
