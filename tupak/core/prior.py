@@ -119,12 +119,6 @@ class PriorSet(OrderedDict):
 
         missing_keys = set(likelihood.parameters) - set(self.keys())
 
-        if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
-            for parameter in likelihood.non_standard_sampling_parameter_keys:
-                if parameter in self:
-                    continue
-                self[parameter] = create_default_prior(parameter, default_priors_file)
-
         for missing_key in missing_keys:
             if not self.test_redundancy(missing_key):
                 default_prior = create_default_prior(missing_key, default_priors_file)
