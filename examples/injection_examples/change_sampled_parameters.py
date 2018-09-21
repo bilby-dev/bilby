@@ -35,7 +35,6 @@ waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
     parameter_conversion=
         tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments)
-# hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
 ifos = tupak.gw.detector.InterferometerList(['H1', 'L1', 'V1', 'K1'])

@@ -13,7 +13,7 @@ import numpy as np
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
 import tupak.gw.likelihood
 
-time_duration = 3.
+duration = 3.
 sampling_frequency = 4096.
 
 # Specify the output directory and the name of the simulation.
@@ -35,19 +35,19 @@ injection_parameters = dict(file_path='MuellerL15_example_inj.txt',
 
 # Create the waveform_generator using a supernova source function
 waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-    time_duration=time_duration, sampling_frequency=sampling_frequency,
+    duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.supernova,
     parameters=injection_parameters)
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers
 # (LIGO-Hanford (H1), LIGO-Livingston (L1), and Virgo (V1)).  These default to
 # their design sensitivity
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal,
-    injection_parameters=injection_parameters, time_duration=time_duration,
-    sampling_frequency=sampling_frequency, outdir=outdir)
-    for name in ['H1', 'L1', 'V1']]
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time']-3)
+ifos.inject_signal(waveform_generator=waveform_generator,
+                   parameters=injection_parameters)
 
 # read in from a file the PCs used to create the signal model.
 realPCs = np.loadtxt('SupernovaRealPCs.txt')
@@ -59,7 +59,7 @@ simulation_parameters = dict(
     realPCs=realPCs, imagPCs=imagPCs)
 
 search_waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-    time_duration=time_duration, sampling_frequency=sampling_frequency,
+    duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.supernova_pca_model,
     waveform_arguments=simulation_parameters)
 
@@ -85,7 +85,7 @@ priors['geocent_time'] = tupak.core.prior.Uniform(
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveoform generator
 likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
-    interferometers=IFOs, waveform_generator=search_waveform_generator)
+    interferometers=ifos, waveform_generator=search_waveform_generator)
 
 # Run sampler.
 result = tupak.run_sampler(

@@ -27,12 +27,14 @@ waveform_generator = tupak.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time'] - 3)
+ifos.inject_signal(waveform_generator=waveform_generator,
+                   parameters=injection_parameters)
 
 # Set up prior
 # This loads in a predefined set of priors for BBHs.
@@ -56,7 +58,7 @@ priors['a_2'] = tupak.core.prior.Interped(name='a_2', xx=a_2, yy=p_a_2, minimum=
 # Enjoy.
 
 # Initialise GravitationalWaveTransient
-likelihood = tupak.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
