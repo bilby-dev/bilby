@@ -56,7 +56,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                  phase_marginalization=False, prior=None):
 
         self.waveform_generator = waveform_generator
-        likelihood.Likelihood.__init__(self, waveform_generator.parameters)
+        likelihood.Likelihood.__init__(self, dict())
         self.interferometers = tupak.gw.detector.InterferometerList(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
@@ -135,18 +135,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         else:
             self.__prior = None
 
-    @property
-    def non_standard_sampling_parameter_keys(self):
-        return self.waveform_generator.non_standard_sampling_parameter_keys
-
-    @property
-    def parameters(self):
-        return self.waveform_generator.parameters
-
-    @parameters.setter
-    def parameters(self, parameters):
-        self.waveform_generator.parameters = parameters
-
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
@@ -159,7 +147,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def log_likelihood_ratio(self):
         waveform_polarizations =\
-            self.waveform_generator.frequency_domain_strain()
+            self.waveform_generator.frequency_domain_strain(self.parameters)
 
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
@@ -171,7 +159,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             dtype=np.complex128)
         for interferometer in self.interferometers:
             signal_ifo = interferometer.get_detector_response(
-                waveform_polarizations, self.waveform_generator.parameters)
+                waveform_polarizations, self.parameters)
 
             matched_filter_snr_squared += interferometer.matched_filter_snr_squared(signal=signal_ifo)
             optimal_snr_squared += interferometer.optimal_snr_squared(signal=signal_ifo)
@@ -220,10 +208,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def _setup_rho(self, matched_filter_snr_squared, optimal_snr_squared):
         rho_opt_ref = (optimal_snr_squared.real *
-                       self.waveform_generator.parameters['luminosity_distance'] ** 2 /
+                       self.parameters['luminosity_distance'] ** 2 /
                        self._ref_dist ** 2.)
         rho_mf_ref = matched_filter_snr_squared * \
-            self.waveform_generator.parameters['luminosity_distance'] / self._ref_dist
+            self.parameters['luminosity_distance'] / self._ref_dist
         return rho_mf_ref, rho_opt_ref
 
     def log_likelihood(self):
@@ -310,7 +298,7 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
             given some set of parameters
 
         """
-        likelihood.Likelihood.__init__(self, waveform_generator.parameters)
+        likelihood.Likelihood.__init__(self, dict())
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
@@ -367,7 +355,7 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
 
         """
         signal_ifo = interferometer.get_detector_response(
-            waveform_polarizations, self.waveform_generator.parameters)
+            waveform_polarizations, self.parameters)
 
         log_l = - 2. / self.waveform_generator.duration * np.vdot(
             interferometer.frequency_domain_strain - signal_ifo,

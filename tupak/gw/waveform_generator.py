@@ -46,7 +46,7 @@ class WaveformGenerator(object):
         self.start_time = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
-        self.__parameters_from_source_model()
+        self.source_parameter_keys = self.__parameters_from_source_model()
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         if parameter_conversion is None:
@@ -60,10 +60,7 @@ class WaveformGenerator(object):
             self.waveform_arguments = dict()
         self.__frequency_array_updated = False
         self.__time_array_updated = False
-        self.__full_source_model_keyword_arguments = {}
-        self.__full_source_model_keyword_arguments.update(self.waveform_arguments)
-        self.__full_source_model_keyword_arguments.update(self.parameters)
-        self.__added_keys = []
+        self.__parameters = dict()
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -86,7 +83,7 @@ class WaveformGenerator(object):
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name, self.parameters,
                     param_conv_name, self.waveform_arguments)
 
-    def frequency_domain_strain(self):
+    def frequency_domain_strain(self, parameters):
         """ Rapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
@@ -103,11 +100,12 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.frequency_domain_source_model,
                                       model_data_points=self.frequency_array,
+                                      parameters=parameters,
                                       transformation_function=utils.nfft,
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
-    def time_domain_strain(self):
+    def time_domain_strain(self, parameters):
         """ Rapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
@@ -125,13 +123,14 @@ class WaveformGenerator(object):
         """
         return self._calculate_strain(model=self.time_domain_source_model,
                                       model_data_points=self.time_array,
+                                      parameters=parameters,
                                       transformation_function=utils.infft,
                                       transformed_model=self.frequency_domain_source_model,
                                       transformed_model_data_points=self.frequency_array)
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
-                          transformed_model_data_points):
-        self._apply_parameter_conversion()
+                          transformed_model_data_points, parameters):
+        self.parameters = parameters.copy()
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -139,16 +138,10 @@ class WaveformGenerator(object):
                                                                transformation_function)
         else:
             raise RuntimeError("No source model given")
-        self._remove_added_keys()
         return model_strain
 
-    def _apply_parameter_conversion(self):
-        self.parameters, self.__added_keys =\
-            self.parameter_conversion(self.parameters)
-        self.__full_source_model_keyword_arguments.update(self.parameters)
-
     def _strain_from_model(self, model_data_points, model):
-        return model(model_data_points, **self.__full_source_model_keyword_arguments)
+        return model(model_data_points, **self.parameters)
 
     def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function):
         transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model)
@@ -164,10 +157,6 @@ class WaveformGenerator(object):
             else:
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         return model_strain
-
-    def _remove_added_keys(self):
-        for key in self.__added_keys:
-            self.parameters.pop(key)
 
     @property
     def frequency_array(self):
@@ -224,15 +213,44 @@ class WaveformGenerator(object):
 
     @parameters.setter
     def parameters(self, parameters):
-        if isinstance(parameters, dict):
-            for key in parameters.keys():
-                self.__parameters[key] = parameters[key]
+        """
+        Set parameters, this applies the conversion function and then removes
+        any parameters which aren't required by the source function.
+
+        WARNING: This will radically modify the input dictionary.
+
+        (set.symmetric_difference is the opposite of set.intersection)
+
+        Parameters
+        ----------
+        parameters: dict
+            Input parameter dictionary, this is overwritten by the conversion
+            function and has self.waveform_arguments added to it.
+        """
+        if ~isinstance(parameters, dict):
+            raise TypeError('"parameters" must be a dictionary.')
+        parameters, _ = self.parameter_conversion(parameters)
+        for key in self.source_parameter_keys.symmetric_difference(parameters):
+            parameters.pop(key)
+        self.__parameters = parameters
+        self.__parameters.update(self.waveform_arguments)
 
     def __parameters_from_source_model(self):
+        """
+        Infer the named arguments of the source model.
+
+        Returns
+        -------
+        set: The names of the arguments of the source model.
+        """
         if self.frequency_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.frequency_domain_source_model))
+            model = self.frequency_domain_source_model
         elif self.time_domain_source_model is not None:
-            self.__parameters = dict.fromkeys(utils.infer_parameters_from_function(self.time_domain_source_model))
+            model = self.time_domain_source_model
+        else:
+            raise AttributeError('Either time or frequency domain source '
+                                 'model must be provided.')
+        return set(utils.infer_parameters_from_function(model))
 
     @property
     def duration(self):
