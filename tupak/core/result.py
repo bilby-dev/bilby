@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from tupak.core import utils
 from tupak.core.utils import logger
-from tupak.core.prior import DeltaFunction
+from tupak.core.prior import PriorSet, DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -70,11 +70,18 @@ class Result(dict):
             A dictionary containing values to be set in this instance
         """
 
+        # Set some defaults
+        self.outdir = '.'
+        self.label = 'no_name'
+
         dict.__init__(self)
         if type(dictionary) is dict:
             for key in dictionary:
                 val = self._standardise_a_string(dictionary[key])
                 setattr(self, key, val)
+
+        if getattr(self, 'priors', None) is not None:
+            self.priors = PriorSet(self.priors)
 
     def __add__(self, other):
         matches = ['sampler', 'search_parameter_keys']
@@ -171,8 +178,14 @@ class Result(dict):
             os.rename(file_name, file_name + '.old')
 
         logger.debug("Saving result to {}".format(file_name))
+
+        # Convert the prior to a string representation for saving on disk
+        dictionary = dict(self)
+        if dictionary.get('priors', False):
+            dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
+
         try:
-            deepdish.io.save(file_name, dict(self))
+            deepdish.io.save(file_name, dictionary)
         except Exception as e:
             logger.error("\n\n Saving the data has failed with the "
                          "following message:\n {} \n\n".format(e))
@@ -270,8 +283,8 @@ class Result(dict):
         string = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
         return string.format(fmt(median), fmt(lower), fmt(upper))
 
-    def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
-                    filename=None, dpi=300, **kwargs):
+    def plot_corner(self, parameters=None, priors=False, titles=True,
+                    save=True, filename=None, dpi=300, **kwargs):
         """ Plot a corner-plot using corner
 
         See https://corner.readthedocs.io/en/latest/ for a detailed API.
@@ -280,9 +293,10 @@ class Result(dict):
         ----------
         parameters: list, optional
             If given, a list of the parameter names to include
-        priors: tupak.core.prior.PriorSet
-            If given, add the prior probability density functions to the
-            one-dimensional marginal distributions
+        priors: {bool (False), tupak.core.prior.PriorSet}
+            If true, add the stored prior probability density functions to the
+            one-dimensional marginal distributions. If instead a PriorSet
+            is provided, this will be plotted.
         titles: bool
             If true, add 1D titles of the median and (by default 1-sigma)
             error bars. To change the error bars, pass in the quantiles kwarg.
@@ -363,11 +377,17 @@ class Result(dict):
                         **kwargs['title_kwargs'])
 
         #  Add priors to the 1D plots
-        if priors is not None:
+        if priors is True:
+            priors = getattr(self, 'priors', False)
+        if isinstance(priors, dict):
             for i, par in enumerate(parameters):
                 ax = axes[i + i * len(parameters)]
                 theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
                 ax.plot(theta, priors[par].prob(theta), color='C2')
+        elif priors in [False, None]:
+            pass
+        else:
+            raise ValueError('Input priors={} not understood'.format(priors))
 
         if save:
             if filename is None:
