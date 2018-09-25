@@ -25,6 +25,7 @@ Changes currently on master, but not under a tag.
 - Fix interpretation of kwargs for dynesty
 - PowerSpectralDensity structure modified
 - Fixed bug in get_open_data 
+- .prior files are no longer created. The prior is stored in the result object.
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)
