@@ -31,7 +31,8 @@ fig1, ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 
 # Make the sample sets
-samples = []
+samples = list()
+evidences = list()
 for i in range(Nevents):
     c0 = np.random.normal(true_mu_c0, true_sigma_c0)
     c1 = np.random.uniform(-1, 1)
@@ -50,6 +51,7 @@ for i in range(Nevents):
     ax2.hist(result.posterior.c0, color=line[0].get_color(), normed=True,
              alpha=0.5, label=labels[i])
     samples.append(result.posterior)
+    evidences.append(result.log_evidence)
 
 ax1.set_xlabel('x')
 ax1.set_ylabel('y(x)')
@@ -72,7 +74,7 @@ def run_prior(data):
 
 hp_likelihood = HyperparameterLikelihood(
     posteriors=samples, hyper_prior=hyper_prior,
-    sampling_prior=run_prior, max_samples=500)
+    sampling_prior=run_prior, log_evidences=evidences, max_samples=500)
 
 hp_priors = dict(mu=Uniform(-10, 10, 'mu', '$\mu_{c0}$'),
                  sigma=Uniform(0, 10, 'sigma', '$\sigma_{c0}$'))
@@ -80,5 +82,6 @@ hp_priors = dict(mu=Uniform(-10, 10, 'mu', '$\mu_{c0}$'),
 # And run sampler
 result = run_sampler(
     likelihood=hp_likelihood, priors=hp_priors, sampler='dynesty', nlive=1000,
-    outdir=outdir, label='hyper_parameter', verbose=True, clean=True)
+    use_ratio=False, outdir=outdir, label='hyper_parameter',
+    verbose=True, clean=True)
 result.plot_corner(truth=dict(mu=true_mu_c0, sigma=true_sigma_c0))

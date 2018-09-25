@@ -18,6 +18,7 @@ Changes currently on master, but not under a tag.
 - Adds custom titles to corner plots
 - Adds plotting of the prior on 1D marginal distributions of corner plots
 - Adds a method to plot time-domain GW data
+- Hyperparameter estimation now enables the user to provide the single event evidences
 
 ### Changes
 - Fix construct_cbc_derived_parameters
