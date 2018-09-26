@@ -79,4 +79,9 @@ setup(name='tupak',
           'scipy'],
       entry_points={'console_scripts':
                     ['tupak_plot=cli_tupak.plot_multiple_posteriors:main']
-                    })
+                    },
+      classifiers=[
+          "Programming Language :: Python :: 2.7",
+          "Programming Language :: Python :: 3.7",
+          "License :: OSI Approved :: MIT License",
+          "Operating System :: OS Independent"])

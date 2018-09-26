@@ -68,7 +68,7 @@ class WaveformGenerator(object):
         else:
             fdsm_name = None
         if self.time_domain_source_model is not None:
-            tdsm_name = self.frequency_domain_source_model.__name__
+            tdsm_name = self.time_domain_source_model.__name__
         else:
             tdsm_name = None
         if self.parameter_conversion.__name__ == '<lambda>':

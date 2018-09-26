@@ -7,6 +7,7 @@ from scipy.special import erf, erfinv
 import scipy.stats
 import os
 from collections import OrderedDict
+from future.utils import iteritems
 
 from tupak.core.utils import logger
 from tupak.core import utils
@@ -26,17 +27,17 @@ class PriorSet(OrderedDict):
         """
         OrderedDict.__init__(self)
         if isinstance(dictionary, dict):
-            self.update(dictionary)
+            self.from_dictionary(dictionary)
         elif type(dictionary) is str:
             logger.debug('Argument "dictionary" is a string.' +
                          ' Assuming it is intended as a file name.')
-            self.read_in_file(dictionary)
+            self.from_file(dictionary)
         elif type(filename) is str:
-            self.read_in_file(filename)
+            self.from_file(filename)
         elif dictionary is not None:
-            raise ValueError("PriorSet input dictionay not understood")
+            raise ValueError("PriorSet input dictionary not understood")
 
-    def write_to_file(self, outdir, label):
+    def to_file(self, outdir, label):
         """ Write the prior distribution to file.
 
         Parameters
@@ -55,7 +56,7 @@ class PriorSet(OrderedDict):
                 outfile.write(
                     "{} = {}\n".format(key, self[key]))
 
-    def read_in_file(self, filename):
+    def from_file(self, filename):
         """ Reads in a prior from a file specification
 
         Parameters
@@ -74,6 +75,20 @@ class PriorSet(OrderedDict):
                 val = '='.join(elements[1:])
                 prior[key] = eval(val)
         self.update(prior)
+
+    def from_dictionary(self, dictionary):
+        for key, val in iteritems(dictionary):
+            if isinstance(val, str):
+                try:
+                    prior = eval(val)
+                    if isinstance(prior, Prior):
+                        val = prior
+                except (NameError, SyntaxError, TypeError):
+                    logger.debug(
+                        "Failed to load dictionary value {} correctlty"
+                        .format(key))
+                    pass
+            self[key] = val
 
     def convert_floats_to_delta_functions(self):
         """ Convert all float parameters to delta functions """

@@ -108,9 +108,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
 
-    if save:
-        priors.write_to_file(outdir, label)
-
     if isinstance(sampler, Sampler):
         pass
     elif isinstance(sampler, str):
@@ -147,6 +144,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if type(meta_data) == dict:
         result.update(meta_data)
+
+    result.priors = priors
 
     end_time = datetime.datetime.now()
     result.sampling_time = (end_time - start_time).total_seconds()
