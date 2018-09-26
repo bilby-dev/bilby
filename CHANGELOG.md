@@ -27,6 +27,7 @@ Changes currently on master, but not under a tag.
 - PowerSpectralDensity structure modified
 - Fixed bug in get_open_data 
 - .prior files are no longer created. The prior is stored in the result object.
+- Fix label creation in plot_multiple, evidences and repeated plots.
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)
