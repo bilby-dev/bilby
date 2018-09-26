@@ -665,11 +665,12 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
-            template = ' $\mathrm{{ln}}(Z)={:1.3g}$'
+            template = ' $\mathrm{{ln}}(Z)={lnz:1.3g}$'
         else:
-            template = ' $\mathrm{{ln}}(B)={:1.3g}$'
-        for i, label in enumerate(labels):
-            labels[i] = label + template.format(results[i].log_bayes_factor)
+            template = ' $\mathrm{{ln}}(B)={lnbf:1.3g}$'
+        labels = [template.format(lnz=result.log_evidence,
+                                  lnbf=result.log_bayes_factor)
+                  for ii, result in enumerate(results)]
 
     axes = fig.get_axes()
     ndim = int(np.sqrt(len(axes)))
