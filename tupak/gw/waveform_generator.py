@@ -84,7 +84,7 @@ class WaveformGenerator(object):
                     param_conv_name, self.waveform_arguments)
 
     def frequency_domain_strain(self, parameters=None):
-        """ Rapper to source_model.
+        """ Wrapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
@@ -113,7 +113,7 @@ class WaveformGenerator(object):
                                       transformed_model_data_points=self.time_array)
 
     def time_domain_strain(self, parameters=None):
-        """ Rapper to source_model.
+        """ Wrapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the frequency_domain_source model via INFFT if no frequency_domain_source_model is
