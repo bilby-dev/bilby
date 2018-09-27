@@ -145,7 +145,7 @@ class WaveformGenerator(object):
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points, parameters):
         if parameters is not None:
-            self.parameters = parameters.copy()
+            self.parameters = parameters
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -232,22 +232,22 @@ class WaveformGenerator(object):
         Set parameters, this applies the conversion function and then removes
         any parameters which aren't required by the source function.
 
-        WARNING: This will radically modify the input dictionary.
-
         (set.symmetric_difference is the opposite of set.intersection)
 
         Parameters
         ----------
         parameters: dict
-            Input parameter dictionary, this is overwritten by the conversion
+            Input parameter dictionary, this is copied, passed to the conversion
             function and has self.waveform_arguments added to it.
         """
         if not isinstance(parameters, dict):
             raise TypeError('"parameters" must be a dictionary.')
-        parameters, _ = self.parameter_conversion(parameters)
-        for key in self.source_parameter_keys.symmetric_difference(parameters):
-            parameters.pop(key)
-        self.__parameters = parameters
+        new_parameters = parameters.copy()
+        new_parameters, _ = self.parameter_conversion(new_parameters)
+        for key in self.source_parameter_keys.symmetric_difference(
+                new_parameters):
+            new_parameters.pop(key)
+        self.__parameters = new_parameters
         self.__parameters.update(self.waveform_arguments)
 
     def __parameters_from_source_model(self):
