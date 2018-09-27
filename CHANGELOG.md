@@ -20,14 +20,19 @@ Changes currently on master, but not under a tag.
 - Adds a method to plot time-domain GW data
 - Hyperparameter estimation now enables the user to provide the single event evidences
 - Add nested samples to nestle output
+- Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
 
 ### Changes
 - Fix construct_cbc_derived_parameters
 - Autocorrelation calculation moved into parent class
 - Fix interpretation of kwargs for dynesty
 - PowerSpectralDensity structure modified
-- Fixed bug in get_open_data 
+- Fixed bug in get_open_data
+- Modified how sampling in non-standard parameters is done, the
+  `non_standard_sampling_parameter_keys` kwarg has been removed
 - .prior files are no longer created. The prior is stored in the result object.
+- Changed the way repr works for priors. The repr can now be used to
+re-instantiate the Prior in most cases
 - Users can now choose to overwrite existing result files, rather than creating
   a .old file.
 - Make likelihood values stored in the posterior correct for dynesty and nestle

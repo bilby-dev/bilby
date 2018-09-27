@@ -723,16 +723,6 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
         self.assertTrue(m.called)
 
-    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
-    def test_inject_signal_pol_none_sets_wg_parameters(self, m):
-        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-            frequency_domain_source_model=lambda x, y, z: x)
-        parameters = dict(y=1, z=2)
-        self.ifo1.inject_signal = MagicMock(return_value=None)
-        self.ifo2.inject_signal = MagicMock(return_value=None)
-        self.ifo_list.inject_signal(parameters=parameters, waveform_generator=waveform_generator)
-        self.assertDictEqual(parameters, waveform_generator.parameters)
-
     @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
     def test_inject_signal_with_inj_pol(self, m):
         self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))

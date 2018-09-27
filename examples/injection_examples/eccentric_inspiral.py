@@ -40,7 +40,6 @@ waveform_generator = tupak.gw.WaveformGenerator(
     frequency_domain_source_model=tupak.gw.source.lal_eccentric_binary_black_hole_no_spins,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
 
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Setting up three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1), and
 # Virgo (V1)) at their design sensitivities. The maximum frequency is set just
@@ -49,13 +48,15 @@ hf_signal = waveform_generator.frequency_domain_strain()
 minimum_frequency = 10.
 maximum_frequency = 128.
 
-IFOs = tupak.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
-for IFO in IFOs:
-    IFO.minimum_frequency = minimum_frequency
-    IFO.maximum_frequency = maximum_frequency
-
-IFOs.set_strain_data_from_power_spectral_densities(sampling_frequency, duration)
-IFOs.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+for ifo in ifos:
+    ifo.minimum_frequency = minimum_frequency
+    ifo.maximum_frequency = maximum_frequency
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time'] - 3)
+ifos.inject_signal(waveform_generator=waveform_generator,
+                   parameters=injection_parameters)
 
 # Now we set up the priors on each of the binary parameters.
 priors = dict()
@@ -71,7 +72,7 @@ priors["phase"] =  tupak.core.prior.Uniform(name='phase', minimum=0, maximum=2 *
 priors["geocent_time"] = tupak.core.prior.Uniform(1180002600.9, 1180002601.1, name='geocent_time')
 
 # Initialising the likelihood function.
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs,
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=ifos,
                       waveform_generator=waveform_generator, time_marginalization=False,
                       phase_marginalization=False, distance_marginalization=False,
                       prior=priors)

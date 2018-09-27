@@ -107,8 +107,8 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                waveform_generator.parameters = parameters
-                injection_polarizations = waveform_generator.frequency_domain_strain()
+                injection_polarizations =\
+                    waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
                     "inject_signal needs one of waveform_generator or "
@@ -1241,8 +1241,8 @@ class Interferometer(object):
 
         if injection_polarizations is None:
             if waveform_generator is not None:
-                waveform_generator.parameters = parameters
-                injection_polarizations = waveform_generator.frequency_domain_strain()
+                injection_polarizations =\
+                    waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
                     "inject_signal needs one of waveform_generator or "

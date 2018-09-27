@@ -12,6 +12,7 @@ from future.utils import iteritems
 from tupak.core.utils import logger
 from tupak.core import utils
 import tupak  # noqa
+import inspect
 
 
 class PriorSet(OrderedDict):
@@ -133,12 +134,6 @@ class PriorSet(OrderedDict):
         self.convert_floats_to_delta_functions()
 
         missing_keys = set(likelihood.parameters) - set(self.keys())
-
-        if getattr(likelihood, 'non_standard_sampling_parameter_keys', None) is not None:
-            for parameter in likelihood.non_standard_sampling_parameter_keys:
-                if parameter in self:
-                    continue
-                self[parameter] = create_default_prior(parameter, default_priors_file)
 
         for missing_key in missing_keys:
             if not self.test_redundancy(missing_key):
@@ -277,7 +272,6 @@ def create_default_prior(name, default_priors_file=None):
 
 
 class Prior(object):
-
     _default_latex_labels = dict()
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=-np.inf,
@@ -312,6 +306,20 @@ class Prior(object):
         float: The return value of the sample method.
         """
         return self.sample()
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
+            return False
+        for key in self.__dict__:
+            if type(self.__dict__[key]) is np.ndarray:
+                if not np.array_equal(self.__dict__[key], other.__dict__[key]):
+                    return False
+            else:
+                if not self.__dict__[key] == other.__dict__[key]:
+                    return False
+        return True
 
     def sample(self, size=None):
         """Draw a sample from the prior
@@ -374,6 +382,20 @@ class Prior(object):
         """
         return np.log(self.prob(val))
 
+    def is_in_prior_range(self, val):
+        """Returns True if val is in the prior boundaries, zero otherwise
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        np.nan
+
+        """
+        return (val >= self.minimum) & (val <= self.maximum)
+
     @staticmethod
     def test_valid_for_rescaling(val):
         """Test if 0 < val < 1
@@ -394,38 +416,23 @@ class Prior(object):
     def __repr__(self):
         """Overrides the special method __repr__.
 
-        Should return a representation of this instance that resembles how it is instantiated
+        Returns a representation of this instance that resembles how it is instantiated.
+        Works correctly for all child classes
 
         Returns
         -------
         str: A string representation of this instance
 
         """
-        return self._subclass_repr_helper()
-
-    def _subclass_repr_helper(self, subclass_args=iter([])):
-        """Helps out subclass _repr__ methods by creating a common template
-
-        Parameters
-        ----------
-        subclass_args: list, optional
-            List of attributes in the subclass instance
-
-        Returns
-        -------
-        str: A string representation for this subclass instance.
-
-        """
+        subclass_args = inspect.getargspec(self.__init__).args
+        subclass_args.pop(0)
         prior_name = self.__class__.__name__
-        args = ['name', 'latex_label', 'unit', 'minimum', 'maximum']
-        args.extend(subclass_args)
 
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
-
-        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in args])
+        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in subclass_args])
         return "{}({})".format(prior_name, args)
 
     @property
@@ -550,14 +557,8 @@ class DeltaFunction(Prior):
         float: np.inf if val = peak, 0 otherwise
 
         """
-        if self.peak == val:
-            return np.inf
-        else:
-            return 0
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['peak'])
+        at_peak = (val == self.peak)
+        return np.nan_to_num(np.multiply(at_peak, np.inf))
 
 
 class PowerLaw(Prior):
@@ -618,13 +619,12 @@ class PowerLaw(Prior):
         -------
         float: Prior probability of val
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
         if self.alpha == -1:
-            return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * in_prior
+            return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * self.is_in_prior_range(val)
         else:
             return np.nan_to_num(val ** self.alpha * (1 + self.alpha) /
                                  (self.maximum ** (1 + self.alpha) -
-                                  self.minimum ** (1 + self.alpha))) * in_prior
+                                  self.minimum ** (1 + self.alpha))) * self.is_in_prior_range(val)
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -638,19 +638,13 @@ class PowerLaw(Prior):
         float:
 
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-
         if self.alpha == -1:
             normalising = 1. / np.log(self.maximum / self.minimum)
         else:
             normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
                                               self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1. * in_prior)
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['alpha'])
+        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
 
 
 class Uniform(Prior):
@@ -732,10 +726,6 @@ class LogUniform(PowerLaw):
         if self.minimum <= 0:
             logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self)
-
 
 class Cosine(Prior):
 
@@ -779,8 +769,7 @@ class Cosine(Prior):
         -------
         float: Prior probability of val
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-        return np.cos(val) / 2 * in_prior
+        return np.cos(val) / 2 * self.is_in_prior_range(val)
 
 
 class Sine(Prior):
@@ -825,11 +814,11 @@ class Sine(Prior):
         -------
         float: Prior probability of val
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
-        return np.sin(val) / 2 * in_prior
+        return np.sin(val) / 2 * self.is_in_prior_range(val)
 
 
 class Gaussian(Prior):
+
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
         """Gaussian prior with mean mu and width sigma
 
@@ -874,10 +863,6 @@ class Gaussian(Prior):
 
     def ln_prob(self, val):
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
 
 
 class Normal(Gaussian):
@@ -964,13 +949,8 @@ class TruncatedGaussian(Prior):
         -------
         float: Prior probability of val
         """
-        in_prior = (val >= self.minimum) & (val <= self.maximum)
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-            2 * np.pi) ** 0.5 / self.sigma / self.normalisation * in_prior
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
+            2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
 
 
 class TruncatedNormal(TruncatedGaussian):
@@ -1019,10 +999,6 @@ class HalfGaussian(TruncatedGaussian):
         TruncatedGaussian.__init__(self, 0., sigma, minimum=0., maximum=np.inf,
                                    name=name, latex_label=latex_label,
                                    unit=unit)
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['sigma'])
 
 
 class HalfNormal(HalfGaussian):
@@ -1100,10 +1076,6 @@ class LogNormal(Prior):
     def ln_prob(self, val):
         return scipy.stats.lognorm.logpdf(val, self.sigma, scale=np.exp(self.mu))
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'sigma'])
-
 
 class LogGaussian(LogNormal):
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
@@ -1175,10 +1147,6 @@ class Exponential(Prior):
     def ln_prob(self, val):
         return scipy.stats.expon.logpdf(val, scale=self.mu)
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['mu'])
-
 
 class StudentT(Prior):
     def __init__(self, df, mu=0., scale=1., name=None, latex_label=None,
@@ -1238,10 +1206,6 @@ class StudentT(Prior):
 
     def ln_prob(self, val):
         return scipy.stats.t.logpdf(val, self.df, loc=self.mu, scale=self.scale)
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['df', 'mu', 'scale'])
 
 
 class Beta(Prior):
@@ -1320,10 +1284,6 @@ class Beta(Prior):
         else:
             return -np.inf
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
-
 
 class Logistic(Prior):
     def __init__(self, mu, scale, name=None, latex_label=None, unit=None):
@@ -1379,10 +1339,6 @@ class Logistic(Prior):
     def ln_prob(self, val):
         return scipy.stats.logistic.logpdf(val, loc=self.mu, scale=self.scale)
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['mu', 'scale'])
-
 
 class Cauchy(Prior):
     def __init__(self, alpha, beta, name=None, latex_label=None, unit=None):
@@ -1437,10 +1393,6 @@ class Cauchy(Prior):
 
     def ln_prob(self, val):
         return scipy.stats.cauchy.logpdf(val, loc=self.alpha, scale=self.beta)
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['alpha', 'beta'])
 
 
 class Lorentzian(Cauchy):
@@ -1522,10 +1474,6 @@ class Gamma(Prior):
     def ln_prob(self, val):
         return scipy.stats.gamma.logpdf(val, self.k, loc=0., scale=self.theta)
 
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['k', 'theta'])
-
 
 class ChiSquared(Gamma):
     def __init__(self, nu, name=None, latex_label=None, unit=None):
@@ -1550,6 +1498,14 @@ class ChiSquared(Gamma):
 
         Gamma.__init__(self, name=name, k=nu / 2., theta=2.,
                        latex_label=latex_label, unit=unit)
+
+    @property
+    def nu(self):
+        return int(self.k * 2)
+
+    @nu.setter
+    def nu(self, nu):
+        self.k = nu / 2.
 
 
 class Interped(Prior):
@@ -1595,6 +1551,13 @@ class Interped(Prior):
                        maximum=np.nanmin(np.array((max(xx), maximum))))
         self.__initialize_attributes()
 
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        if np.array_equal(self.xx, other.xx) and np.array_equal(self.yy, other.yy):
+            return True
+        return False
+
     def prob(self, val):
         """Return the prior probability of val.
 
@@ -1619,10 +1582,6 @@ class Interped(Prior):
         if rescaled.shape == ():
             rescaled = float(rescaled)
         return rescaled
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['xx', 'yy'])
 
     @property
     def minimum(self):
@@ -1716,7 +1675,3 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.id))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
-
-    def __repr__(self):
-        """Call to helper method in the super class."""
-        return Prior._subclass_repr_helper(self, subclass_args=['id'])

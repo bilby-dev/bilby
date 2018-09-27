@@ -1,7 +1,7 @@
 from __future__ import division, absolute_import
 import unittest
 import mock
-import tupak
+from tupak.gw import conversion
 import numpy as np
 
 
@@ -47,52 +47,52 @@ class TestBasicConversions(unittest.TestCase):
         del self.symmetric_mass_ratio
 
     def test_total_mass_and_mass_ratio_to_component_masses(self):
-        mass_1, mass_2 = tupak.gw.conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_ratio, self.total_mass)
+        mass_1, mass_2 = conversion.total_mass_and_mass_ratio_to_component_masses(self.mass_ratio, self.total_mass)
         self.assertTrue(all([abs(mass_1 - self.mass_1) < 1e-5,
                              abs(mass_2 - self.mass_2) < 1e-5]))
 
     def test_symmetric_mass_ratio_to_mass_ratio(self):
-        mass_ratio = tupak.gw.conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
+        mass_ratio = conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
     def test_chirp_mass_and_total_mass_to_symmetric_mass_ratio(self):
-        symmetric_mass_ratio = tupak.gw.conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(self.chirp_mass, self.total_mass)
+        symmetric_mass_ratio = conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(self.chirp_mass, self.total_mass)
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
 
     def test_chirp_mass_and_mass_ratio_to_total_mass(self):
-        total_mass = tupak.gw.conversion.chirp_mass_and_mass_ratio_to_total_mass(self.chirp_mass, self.mass_ratio)
+        total_mass = conversion.chirp_mass_and_mass_ratio_to_total_mass(self.chirp_mass, self.mass_ratio)
         self.assertAlmostEqual(self.total_mass, total_mass)
 
     def test_component_masses_to_chirp_mass(self):
-        chirp_mass = tupak.gw.conversion.component_masses_to_chirp_mass(self.mass_1, self.mass_2)
+        chirp_mass = conversion.component_masses_to_chirp_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.chirp_mass, chirp_mass)
 
     def test_component_masses_to_total_mass(self):
-        total_mass = tupak.gw.conversion.component_masses_to_total_mass(self.mass_1, self.mass_2)
+        total_mass = conversion.component_masses_to_total_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.total_mass, total_mass)
 
     def test_component_masses_to_symmetric_mass_ratio(self):
-        symmetric_mass_ratio = tupak.gw.conversion.component_masses_to_symmetric_mass_ratio(self.mass_1, self.mass_2)
+        symmetric_mass_ratio = conversion.component_masses_to_symmetric_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
 
     def test_component_masses_to_mass_ratio(self):
-        mass_ratio = tupak.gw.conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
+        mass_ratio = conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
     def test_mass_1_and_chirp_mass_to_mass_ratio(self):
-        mass_ratio = tupak.gw.conversion.mass_1_and_chirp_mass_to_mass_ratio(self.mass_1, self.chirp_mass)
+        mass_ratio = conversion.mass_1_and_chirp_mass_to_mass_ratio(self.mass_1, self.chirp_mass)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
 
     def test_lambda_tilde_to_lambda_1_lambda_2(self):
         lambda_1, lambda_2 =\
-            tupak.gw.conversion.lambda_tilde_to_lambda_1_lambda_2(
+            conversion.lambda_tilde_to_lambda_1_lambda_2(
                 self.lambda_tilde, self.mass_1, self.mass_2)
         self.assertTrue(all([abs(self.lambda_1 - lambda_1) < 1e-5,
                              abs(self.lambda_2 - lambda_2) < 1e-5]))
 
     def test_lambda_tilde_delta_lambda_to_lambda_1_lambda_2(self):
         lambda_1, lambda_2 =\
-            tupak.gw.conversion.lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
+            conversion.lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
                 self.lambda_tilde, self.delta_lambda, self.mass_1, self.mass_2)
         self.assertTrue(all([abs(self.lambda_1 - lambda_1) < 1e-5,
                              abs(self.lambda_2 - lambda_2) < 1e-5]))
@@ -113,17 +113,10 @@ class TestConvertToLALBBHParams(unittest.TestCase):
     def test_cos_angle_to_angle_conversion(self):
         with mock.patch('numpy.arccos') as m:
             m.return_value = 42
-            self.search_keys.append('cos_tilt_1')
             self.parameters['cos_tilt_1'] = 1
-            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys)
-            self.assertEqual(42, self.parameters['tilt_1'])
-
-    def test_cos_angle_to_angle_conversion_removal(self):
-        with mock.patch('numpy.arccos') as m:
-            m.return_value = 42
-            self.search_keys.append('cos_tilt_1')
-            self.parameters['cos_tilt_1'] = 1
-            self.parameters, _ = tupak.gw.conversion.convert_to_lal_binary_black_hole_parameters(self.parameters, self.search_keys, remove=True)
+            self.parameters, _ =\
+                conversion.convert_to_lal_binary_black_hole_parameters(
+                    self.parameters)
             self.assertDictEqual(self.parameters, dict(tilt_1=42, cos_tilt_1=1))
 
 

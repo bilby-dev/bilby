@@ -25,7 +25,7 @@ waveform_generator = tupak.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
-hf_signal = waveform_generator.frequency_domain_strain()
+hf_signal = waveform_generator.frequency_domain_strain(injection_parameters)
 
 H1 = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
     'H1', injection_polarizations=hf_signal,
