@@ -297,7 +297,7 @@ def infft(frequency_domain_strain, sampling_frequency):
     return time_domain_strain
 
 
-def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
+def setup_logger(outdir=None, label=None, log_level='INFO', print_version=False):
     """ Setup logging output: call at the start of the script to use
 
     Parameters
@@ -317,8 +317,6 @@ def setup_logger(outdir=None, label=None, log_level=None, print_version=False):
             level = getattr(logging, log_level.upper())
         except AttributeError:
             raise ValueError('log_level {} not understood'.format(log_level))
-    elif log_level is None:
-        level = command_line_args.log_level
     else:
         level = int(log_level)
 
@@ -416,15 +414,48 @@ def check_directory_exists_and_if_not_mkdir(directory):
 
 
 def set_up_command_line_arguments():
-    """ Sets up some command line arguments that can be used to modify how scripts are run.
+    """ Sets up command line arguments that can be used to modify how scripts are run.
 
     Returns
     -------
-    list: A list of the used arguments
+    command_line_args, command_line_parser: tuple
+        The command_line_args is a Namespace of the command line arguments while
+        the command_line_parser can be given to a new `argparse.ArgumentParser`
+        as a parent object from which to inherit.
+
+    Notes
+    -----
+        The command line arguments are passed initially at runtime, but this parser
+        does not have a `--help` option (i.e., the command line options are
+        available for any script which includes `import tupak`, but no help command
+        is available. This is done to avoid conflicts with child argparse routines
+        (see the example below).
+
+    Example
+    -------
+    In the following example we demonstrate how to setup a custom command line for a
+    project which uses tupak.
+
+        # Here we import tupak, which initialses and parses the default command-line args
+        >>> import tupak
+        # The command line arguments can then be accessed via
+        >>> tupak.core.utils.command_line_args
+        Namespace(clean=False, log_level=20, quite=False)
+        # Next, we import argparse and define a new argparse object
+        >>> import argparse
+        >>> parser = argparse.ArgumentParser(parents=[tupak.core.utils.command_line_parser])
+        >>> parser.add_argument('--argument', type=int, default=1)
+        >>> args = parser.parse_args()
+        Namespace(clean=False, log_level=20, quite=False, argument=1)
+
+    Placing these lines into a script, you'll be able to pass in the usual tupak default
+    arguments, in addition to `--argument`. To see a list of all options, call the script
+    with `--help`.
 
     """
     parser = argparse.ArgumentParser(
-        description="Command line interface for tupak scripts")
+        description="Command line interface for tupak scripts",
+        add_help=False)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +
                               " Overridden by script level settings"))
@@ -440,7 +471,7 @@ def set_up_command_line_arguments():
     parser.add_argument("-t", "--test", action="store_true",
                         help=("Used for testing only: don't run full PE, but"
                               " just check nothing breaks"))
-    args, _ = parser.parse_known_args()
+    args, unknown_args = parser.parse_known_args()
     if args.quiet:
         args.log_level = logging.WARNING
     elif args.verbose:
@@ -448,7 +479,7 @@ def set_up_command_line_arguments():
     else:
         args.log_level = logging.INFO
 
-    return args
+    return args, parser
 
 
 def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
@@ -586,8 +617,10 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
     return grads
 
 
-command_line_args = set_up_command_line_arguments()
-setup_logger(print_version=True)
+#  Instantiate the default argument parser at runtime
+command_line_args, command_line_parser = set_up_command_line_arguments()
+#  Instantiate the default logging
+setup_logger(print_version=True, log_level=command_line_args.log_level)
 
 if 'DISPLAY' in os.environ:
     logger.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
