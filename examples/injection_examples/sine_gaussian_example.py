@@ -29,13 +29,15 @@ waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(duration=dura
                                                                    sampling_frequency=sampling_frequency,
                                                                    frequency_domain_source_model=tupak.gw.source.sinegaussian,
                                                                    parameters=injection_parameters)
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.  In this case we'll use three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1),
 # and Virgo (V1)).  These default to their design sensitivity
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-    name, injection_polarizations=hf_signal, injection_parameters=injection_parameters, duration=duration,
-    sampling_frequency=sampling_frequency, outdir=outdir) for name in ['H1', 'L1', 'V1']]
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time']-3)
+ifos.inject_signal(waveform_generator=waveform_generator,
+                   parameters=injection_parameters)
 
 # Set up prior, which is a dictionary
 priors = dict()
@@ -55,7 +57,7 @@ priors['frequency'] = tupak.core.prior.Uniform(30, 1000, 'frequency')
 priors['hrss'] = tupak.core.prior.Uniform(1e-23, 1e-21, 'hrss')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=IFOs, waveform_generator=waveform_generator)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = tupak.core.sampler.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,

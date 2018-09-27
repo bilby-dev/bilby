@@ -26,7 +26,9 @@ Changes currently on master, but not under a tag.
 - Autocorrelation calculation moved into parent class
 - Fix interpretation of kwargs for dynesty
 - PowerSpectralDensity structure modified
-- Fixed bug in get_open_data 
+- Fixed bug in get_open_data
+- Modified how sampling in non-standard parameters is done, the
+  `non_standard_sampling_parameter_keys` kwarg has been removed
 - .prior files are no longer created. The prior is stored in the result object.
 - Changed the way repr works for priors. The repr can now be used to
 re-instantiate the Prior in most cases

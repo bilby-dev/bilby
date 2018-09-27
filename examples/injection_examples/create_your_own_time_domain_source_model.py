@@ -36,23 +36,13 @@ waveform = tupak.gw.waveform_generator.WaveformGenerator(duration=duration, samp
                                                          time_domain_source_model=time_domain_damped_sinusoid,
                                                          parameters=injection_parameters)
 
-hf_signal = waveform.frequency_domain_strain()
-#note we could plot the time domain signal with the following code
-# import matplotlib.pyplot as plt
-# plt.plot(waveform.time_array, waveform.time_domain_strain()['plus'])
-
-# or the frequency-domain signal:
-# plt.loglog(waveform.frequency_array, abs(waveform.frequency_domain_strain()['plus']))
-
-
-
 # inject the signal into three interferometers
-IFOs = [tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-        name, injection_polarizations=hf_signal,
-        injection_parameters=injection_parameters, duration=duration,
-        sampling_frequency=sampling_frequency, outdir=outdir)
-        for name in ['H1', 'L1']]
-
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time'] - 3)
+ifos.inject_signal(waveform_generator=waveform,
+                   parameters=injection_parameters)
 
 #  create the priors
 prior = injection_parameters.copy()
@@ -61,9 +51,8 @@ prior['damping_time'] = tupak.core.prior.Uniform(0, 1, r'damping time')
 prior['frequency'] = tupak.core.prior.Uniform(0, 200, r'frequency')
 prior['phase'] = tupak.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 
-
 # define likelihood
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(IFOs, waveform)
+likelihood = tupak.gw.likelihood.GravitationalWaveTransient(ifos, waveform)
 
 # launch sampler
 result = tupak.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,

@@ -26,16 +26,14 @@ waveform_generator = tupak.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole, parameters=injection_parameters,
     waveform_arguments=waveform_arguments)
-hf_signal = waveform_generator.frequency_domain_strain()
 
 # Set up interferometers.
-IFOs = []
-for name in ["H1", "L1", "V1"]:
-    IFOs.append(
-        tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
-            name, injection_polarizations=hf_signal,
-            injection_parameters=injection_parameters, duration=duration,
-            sampling_frequency=sampling_frequency, outdir=outdir))
+ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos.set_strain_data_from_power_spectral_densities(
+    sampling_frequency=sampling_frequency, duration=duration,
+    start_time=injection_parameters['geocent_time'] - 3)
+ifos.inject_signal(waveform_generator=waveform_generator,
+                   parameters=injection_parameters)
 
 # Set up prior
 priors = tupak.gw.prior.BBHPriorSet()
@@ -47,7 +45,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 
 # Note that we now need to pass the: priors and flags for each thing that's being marginalised.
 # This is still under development so care should be taken with the marginalised likelihood.
 likelihood = tupak.gw.GravitationalWaveTransient(
-    interferometers=IFOs, waveform_generator=waveform_generator, prior=priors,
+    interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
     distance_marginalization=False, phase_marginalization=True,
     time_marginalization=False)
 
