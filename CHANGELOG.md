@@ -31,6 +31,7 @@ Changes currently on master, but not under a tag.
 - Modified how sampling in non-standard parameters is done, the
   `non_standard_sampling_parameter_keys` kwarg has been removed
 - .prior files are no longer created. The prior is stored in the result object.
+- Fix label creation in plot_multiple, evidences and repeated plots.
 - Changed the way repr works for priors. The repr can now be used to
 re-instantiate the Prior in most cases
 - Users can now choose to overwrite existing result files, rather than creating
