@@ -29,6 +29,8 @@ Changes currently on master, but not under a tag.
 - Modified how sampling in non-standard parameters is done, the
   `non_standard_sampling_parameter_keys` kwarg has been removed
 - .prior files are no longer created. The prior is stored in the result object.
+- Users can now choose to overwrite existing result files, rather than creating
+  a .old file.
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)

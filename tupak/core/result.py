@@ -167,15 +167,27 @@ class Result(dict):
             item = [Result._standardise_a_string(i) for i in item]
         return item
 
-    def save_to_file(self):
-        """ Writes the Result to a deepdish h5 file """
+    def save_to_file(self, overwrite=False):
+        """
+        Writes the Result to a deepdish h5 file
+
+        Parameters
+        ----------
+        overwrite: bool, optional
+            Whether or not to overwrite an existing result file.
+            default=False
+        """
         file_name = result_file_name(self.outdir, self.label)
         utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         if os.path.isfile(file_name):
-            logger.debug(
-                'Renaming existing file {} to {}.old'.format(file_name,
-                                                             file_name))
-            os.rename(file_name, file_name + '.old')
+            if overwrite:
+                logger.debug('Removing existing file {}'.format(file_name))
+                os.remove(file_name)
+            else:
+                logger.debug(
+                    'Renaming existing file {} to {}.old'.format(file_name,
+                                                                 file_name))
+                os.rename(file_name, file_name + '.old')
 
         logger.debug("Saving result to {}".format(file_name))
 
