@@ -131,14 +131,16 @@ class Dynesty(Sampler):
 
         # self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
-        self.result.samples = dynesty.utils.resample_equal(
-            out.samples, weights)
-        self.result.log_likelihood_evaluations = out.logl
-        self.result.log_evidence = out.logz[-1]
-        self.result.log_evidence_err = out.logzerr[-1]
+        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
         self.result.nested_samples = DataFrame(
             out.samples, columns=self.search_parameter_keys)
         self.result.nested_samples['weights'] = weights
+        self.result.nested_samples['log_likelihood'] = out.logl
+        idxs = [np.unique(np.where(self.result.samples[ii] == out.samples)[0])
+                for ii in range(len(out.logl))]
+        self.result.log_likelihood_evaluations = out.logl[idxs]
+        self.result.log_evidence = out.logz[-1]
+        self.result.log_evidence_err = out.logzerr[-1]
 
         if self.plot:
             self.generate_trace_plots(out)

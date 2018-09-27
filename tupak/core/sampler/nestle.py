@@ -1,4 +1,5 @@
 import numpy as np
+from pandas import DataFrame
 from .base_sampler import Sampler
 
 
@@ -69,7 +70,13 @@ class Nestle(Sampler):
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
-        self.result.log_likelihood_evaluations = out.logl
+        self.result.nested_samples = DataFrame(
+            out.samples, columns=self.search_parameter_keys)
+        self.result.nested_samples['weights'] = out.weights
+        self.result.nested_samples['log_likelihood'] = out.logl
+        idxs = [np.unique(np.where(self.result.samples[ii] == out.samples)[0])
+                for ii in range(len(out.logl))]
+        self.result.log_likelihood_evaluations = out.logl[idxs]
         self.result.log_evidence = out.logz
         self.result.log_evidence_err = out.logzerr
         return self.result
