@@ -19,6 +19,7 @@ Changes currently on master, but not under a tag.
 - Adds plotting of the prior on 1D marginal distributions of corner plots
 - Adds a method to plot time-domain GW data
 - Hyperparameter estimation now enables the user to provide the single event evidences
+- Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
 
 ### Changes
 - Fix construct_cbc_derived_parameters
@@ -28,6 +29,10 @@ Changes currently on master, but not under a tag.
 - Fixed bug in get_open_data 
 - .prior files are no longer created. The prior is stored in the result object.
 - Fix label creation in plot_multiple, evidences and repeated plots.
+- Changed the way repr works for priors. The repr can now be used to
+re-instantiate the Prior in most cases
+- Users can now choose to overwrite existing result files, rather than creating
+  a .old file.
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)

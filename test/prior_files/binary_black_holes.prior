@@ -1,0 +1,25 @@
+# These are the default priors we use for BBH systems.
+# Note that you may wish to use more specific mass and distance parameters.
+# These commands are all known to tupak.gw.prior.
+# Lines beginning "#" are ignored.
+mass_1 = Uniform(name='mass_1', minimum=5, maximum=100)
+mass_2 = Uniform(name='mass_2', minimum=5, maximum=100)
+# chirp_mass = Uniform(name='chirp_mass', minimum=25, maximum=100)
+# total_mass =  Uniform(name='total_mass', minimum=10, maximum=200)
+# mass_ratio =  Uniform(name='mass_ratio', minimum=0.125, maximum=1)
+# symmetric_mass_ratio =  Uniform(name='symmetric_mass_ratio', minimum=8 / 81, maximum=0.25)
+a_1 =  Uniform(name='a_1', minimum=0, maximum=0.8)
+a_2 =  Uniform(name='a_2', minimum=0, maximum=0.8)
+tilt_1 =  Sine(name='tilt_1')
+tilt_2 =  Sine(name='tilt_2')
+# cos_tilt_1 =  Uniform(name='cos_tilt_1', minimum=-1, maximum=1)
+# cos_tilt_2 =  Uniform(name='cos_tilt_2', minimum=-1, maximum=1)
+phi_12 =  Uniform(name='phi_12', minimum=0, maximum=2 * np.pi)
+phi_jl =  Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi)
+luminosity_distance =  tupak.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=1e2, maximum=5e3)
+dec =  Cosine(name='dec')
+ra =  Uniform(name='ra', minimum=0, maximum=2 * np.pi)
+iota =  Sine(name='iota')
+# cos_iota =  Uniform(name='cos_iota', minimum=-1, maximum=1)
+psi =  Uniform(name='psi', minimum=0, maximum=np.pi)
+phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi)
