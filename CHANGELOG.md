@@ -27,6 +27,8 @@ Changes currently on master, but not under a tag.
 - PowerSpectralDensity structure modified
 - Fixed bug in get_open_data 
 - .prior files are no longer created. The prior is stored in the result object.
+- Users can now choose to overwrite existing result files, rather than creating
+  a .old file.
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)
