@@ -19,6 +19,7 @@ Changes currently on master, but not under a tag.
 - Adds plotting of the prior on 1D marginal distributions of corner plots
 - Adds a method to plot time-domain GW data
 - Hyperparameter estimation now enables the user to provide the single event evidences
+- Add nested samples to nestle output
 
 ### Changes
 - Fix construct_cbc_derived_parameters
@@ -29,6 +30,7 @@ Changes currently on master, but not under a tag.
 - .prior files are no longer created. The prior is stored in the result object.
 - Users can now choose to overwrite existing result files, rather than creating
   a .old file.
+- Make likelihood values stored in the posterior correct for dynesty and nestle
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)
