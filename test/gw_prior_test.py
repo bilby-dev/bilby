@@ -12,11 +12,9 @@ class TestBBHPriorSet(unittest.TestCase):
         self.base_directory =\
             '/'.join(os.path.dirname(
                 os.path.abspath(sys.argv[0])).split('/')[:-1])
-        self.filename =\
-            self.base_directory + '/tupak/gw/prior_files/GW150914.prior'
+        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
         self.default_prior = tupak.gw.prior.BBHPriorSet(
-            filename=self.base_directory\
-                     + '/tupak/gw/prior_files/binary_black_holes.prior')
+            filename=self.filename)
 
     def tearDown(self):
         del self.prior_dict
