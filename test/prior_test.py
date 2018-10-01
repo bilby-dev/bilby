@@ -7,7 +7,6 @@ import os
 import shutil
 from collections import OrderedDict
 
-
 class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
 
     def setUp(self):
@@ -152,7 +151,8 @@ class TestPriorClasses(unittest.TestCase):
             tupak.core.prior.Cauchy(name='test', unit='unit', alpha=0, beta=1),
             tupak.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
             tupak.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
-            tupak.core.prior.ChiSquared(name='test', unit='unit', nu=2)
+            tupak.core.prior.ChiSquared(name='test', unit='unit', nu=2),
+            tupak.gw.prior.AlignedSpin(name='test', unit='unit')
         ]
 
     def test_minimum_rescaling(self):

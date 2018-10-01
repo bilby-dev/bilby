@@ -1,5 +1,6 @@
 import os
-from ..core.prior import PriorSet, FromFile, Prior, DeltaFunction, Gaussian
+from ..core.prior import (PriorSet, Uniform, FromFile, Prior, DeltaFunction,
+                          Gaussian, Interped)
 from ..core.utils import logger
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -24,6 +25,43 @@ class UniformComovingVolume(FromFile):
         file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
         FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
                           latex_label=latex_label, unit='Mpc')
+
+
+class AlignedSpin(Interped):
+
+    def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),
+                 name=None, latex_label=None, unit=None):
+        """
+        Prior distribution for the aligned (z) component of the spin.
+
+        This takes prior distributions for the magnitude and cosine of the tilt
+        and forms a compound prior.
+
+        This is useful when using aligned-spin only waveform approximants.
+
+        This is an extension of e.g., (A7) of https://arxiv.org/abs/1805.10457.
+
+        Parameters
+        ----------
+        a_prior: Prior
+            Prior distribution for spin magnitude
+        z_prior: Prior
+            Prior distribution for cosine spin tilt
+        name: see superclass
+        latex_label: see superclass
+        unit: see superclass
+        """
+        self.a_prior = a_prior
+        self.z_prior = z_prior
+        chi_min = min(a_prior.maximum * z_prior.minimum,
+                      a_prior.minimum * z_prior.maximum)
+        chi_max = a_prior.maximum * z_prior.maximum
+        xx = np.linspace(chi_min, chi_max, 800)
+        aas = np.linspace(a_prior.minimum, a_prior.maximum, 1000)
+        yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
+                                     z_prior.prob(x / aas)), aas) for x in xx]
+        Interped.__init__(self, xx=xx, yy=yy, name=name,
+                          latex_label=latex_label, unit=unit)
 
 
 class BBHPriorSet(PriorSet):
