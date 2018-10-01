@@ -362,12 +362,6 @@ class Result(dict):
         defaults_kwargs.update(kwargs)
         kwargs = defaults_kwargs
 
-        # If injection parameters where stored, use these as truth values
-        if getattr(self, 'injection_parameters', None) is not None:
-            injection_parameters = [self.injection_parameters.get(key, None)
-                                    for key in self.search_parameter_keys]
-            kwargs['truths'] = kwargs.get('truths', injection_parameters)
-
         # Handle if truths was passed in
         if 'truth' in kwargs:
             kwargs['truths'] = kwargs.pop('truth')
@@ -382,6 +376,14 @@ class Result(dict):
             else:
                 raise ValueError(
                     "Combination of parameters and truths not understood")
+
+        # If injection parameters where stored, use these as parameter values
+        # but do not overwrite input parameters (or truths)
+        cond1 = getattr(self, 'injection_parameters', None) is not None
+        cond2 = parameters is None
+        if cond1 and cond2:
+            parameters = {key: self.injection_parameters[key] for key in
+                          self.search_parameter_keys}
 
         # If parameters is a dictionary, use the keys to determine which
         # parameters to plot and the values as truths.
