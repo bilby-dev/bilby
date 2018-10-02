@@ -16,14 +16,10 @@ stages:
 # test example on python 2
 python-2:
   stage: test
-  image: continuumio/anaconda
+  image: bilbydev/test-suite-py2
   before_script:
-    - apt-get update
-    - apt-get install gcc -y
-    - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
     - pip install -r optional_requirements.txt
-    - pip install enum
   script:
     - python setup.py install
     # Run tests without finding coverage
@@ -32,7 +28,7 @@ python-2:
 # test example on python 3
 python-3:
   stage: test
-  image: gregoryashton/bilby-test-suite-py3
+  image: bilbydev/test-suite-py3
   before_script:
     - pip install -r requirements.txt
     - pip install -r optional_requirements.txt
