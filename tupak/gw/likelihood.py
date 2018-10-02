@@ -8,11 +8,14 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 
-import tupak
-from tupak.core import likelihood as likelihood
-from tupak.core.utils import logger
-from tupak.gw.prior import BBHPriorSet
-from tupak.core.prior import Uniform
+from ..core import likelihood
+from ..core.utils import logger
+from ..core.prior import Prior, Uniform
+from .detector import InterferometerList
+from .prior import BBHPriorSet
+from .source import lal_binary_black_hole
+from .utils import noise_weighted_inner_product
+from .waveform_generator import WaveformGenerator
 
 
 class GravitationalWaveTransient(likelihood.Likelihood):
@@ -57,7 +60,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, dict())
-        self.interferometers = tupak.gw.detector.InterferometerList(interferometers)
+        self.interferometers = InterferometerList(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -111,7 +114,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def _check_prior_is_set(self, key):
         if key not in self.prior or not isinstance(
-                self.prior[key], tupak.core.prior.Prior):
+                self.prior[key], Prior):
             logger.warning(
                 'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
@@ -138,7 +141,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= tupak.gw.utils.noise_weighted_inner_product(
+            log_l -= noise_weighted_inner_product(
                 interferometer.frequency_domain_strain,
                 interferometer.frequency_domain_strain,
                 interferometer.power_spectral_density_array,
@@ -381,8 +384,10 @@ def get_binary_black_hole_likelihood(interferometers):
     tupak.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
 
     """
-    waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
-        duration=interferometers.duration, sampling_frequency=interferometers.sampling_frequency,
-        frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
-        waveform_arguments={'waveform_approximant': 'IMRPhenomPv2', 'reference_frequency': 50})
-    return tupak.gw.likelihood.GravitationalWaveTransient(interferometers, waveform_generator)
+    waveform_generator = WaveformGenerator(
+        duration=interferometers.duration,
+        sampling_frequency=interferometers.sampling_frequency,
+        frequency_domain_source_model=lal_binary_black_hole,
+        waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
+                            'reference_frequency': 50})
+    return GravitationalWaveTransient(interferometers, waveform_generator)

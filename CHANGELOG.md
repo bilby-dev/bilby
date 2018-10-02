@@ -18,6 +18,7 @@ Changes currently on master, but not under a tag.
 - Adds custom titles to corner plots
 - Adds plotting of the prior on 1D marginal distributions of corner plots
 - Adds a method to plot time-domain GW data
+- Added pipenv as a dependency manager
 - Hyperparameter estimation now enables the user to provide the single event evidences
 - Add nested samples to nestle output
 - Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
@@ -25,6 +26,7 @@ Changes currently on master, but not under a tag.
 - Added NestedSampler and MCSampler helper classes
 - Added sampler_requirements.txt file
 - Add AlignedSpin gw prior
+- Add units to know prior files
 
 ### Changes
 - Fix construct_cbc_derived_parameters
@@ -43,6 +45,7 @@ re-instantiate the Prior in most cases
 - Users can now choose to overwrite existing result files, rather than creating
   a .old file.
 - Make likelihood values stored in the posterior correct for dynesty and nestle
+- pymultinest output now stored in {outdir}/pm_{label}/
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)

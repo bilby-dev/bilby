@@ -1,14 +1,15 @@
 import os
+import numpy as np
+from scipy.interpolate import UnivariateSpline
 from ..core.prior import (PriorSet, Uniform, FromFile, Prior, DeltaFunction,
                           Gaussian, Interped)
 from ..core.utils import logger
-import numpy as np
-from scipy.interpolate import UnivariateSpline
 
 
 class UniformComovingVolume(FromFile):
 
-    def __init__(self, minimum=None, maximum=None, name='luminosity distance', latex_label='$d_L$'):
+    def __init__(self, minimum=None, maximum=None,
+                 name='luminosity distance', latex_label='$d_L$', unit='Mpc'):
         """
 
         Parameters
@@ -24,7 +25,7 @@ class UniformComovingVolume(FromFile):
         """
         file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
         FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label, unit='Mpc')
+                          latex_label=latex_label, unit=unit)
 
 
 class AlignedSpin(Interped):

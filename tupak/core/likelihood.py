@@ -1,9 +1,9 @@
 from __future__ import division, print_function
 
+import copy
 import numpy as np
 from scipy.special import gammaln
-from tupak.core.utils import infer_parameters_from_function
-import copy
+from .utils import infer_parameters_from_function
 
 
 class Likelihood(object):

@@ -18,8 +18,8 @@ python-2:
   stage: test
   image: bilbydev/test-suite-py2
   before_script:
-    - pip install -r requirements.txt
-    - pip install -r optional_requirements.txt
+    # Install the dependencies specified in the Pipfile
+    - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
     - python setup.py install
     # Run tests without finding coverage
@@ -30,8 +30,8 @@ python-3:
   stage: test
   image: bilbydev/test-suite-py3
   before_script:
-    - pip install -r requirements.txt
-    - pip install -r optional_requirements.txt
+    # Install the dependencies specified in the Pipfile
+    - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
     - python setup.py install
 
@@ -44,7 +44,6 @@ python-3:
     - coverage-badge -o coverage_badge.svg -f
 
     # Make the documentation
-    - pip install -r docs/requirements.txt
     - cd docs
     - conda install -y make
     - make clean

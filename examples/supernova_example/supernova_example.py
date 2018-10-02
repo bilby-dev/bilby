@@ -68,7 +68,7 @@ priors = dict()
 for key in ['psi', 'geocent_time']:
     priors[key] = injection_parameters[key]
 priors['luminosity_distance'] = tupak.core.prior.Uniform(
-    2, 20, 'luminosity_distance')
+    2, 20, 'luminosity_distance', unit='$kpc$')
 priors['pc_coeff1'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff1')
 priors['pc_coeff2'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff2')
 priors['pc_coeff3'] = tupak.core.prior.Uniform(-1, 1, 'pc_coeff3')
@@ -80,7 +80,7 @@ priors['dec'] = tupak.core.prior.Sine(name='dec')
 priors['geocent_time'] = tupak.core.prior.Uniform(
     injection_parameters['geocent_time'] - 1,
     injection_parameters['geocent_time'] + 1,
-    'geocent_time')
+    'geocent_time', unit='$s$')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveoform generator

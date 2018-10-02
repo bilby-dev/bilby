@@ -8,9 +8,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
-from tupak.core import utils
-from tupak.core.utils import logger
-from tupak.core.prior import PriorSet, DeltaFunction
+from . import utils
+from .utils import logger
+from .prior import PriorSet, DeltaFunction
 
 
 def result_file_name(outdir, label):

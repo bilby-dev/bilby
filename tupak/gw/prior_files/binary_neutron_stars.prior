@@ -2,15 +2,15 @@
 # Note that you may wish to use more specific mass and distance parameters.
 # These commands are all known to tupak.gw.prior.
 # Lines beginning "#" are ignored.
-mass_1 = Uniform(name='mass_1', minimum=1, maximum=2)
-mass_2 = Uniform(name='mass_2', minimum=1, maximum=2)
-# chirp_mass = Uniform(name='chirp_mass', minimum=0.87, maximum=1.74)
-# total_mass =  Uniform(name='total_mass', minimum=2, maximum=4)
+mass_1 = Uniform(name='mass_1', minimum=1, maximum=2, unit='$M_{\\odot}$')
+mass_2 = Uniform(name='mass_2', minimum=1, maximum=2, unit='$M_{\\odot}$')
+# chirp_mass = Uniform(name='chirp_mass', minimum=0.87, maximum=1.74, unit='$M_{\\odot}$')
+# total_mass =  Uniform(name='total_mass', minimum=2, maximum=4, unit='$M_{\\odot}$')
 # mass_ratio =  Uniform(name='mass_ratio', minimum=0.5, maximum=1)
 # symmetric_mass_ratio =  Uniform(name='symmetric_mass_ratio', minimum=0.22, maximum=0.25)
 a_1 =  Uniform(name='a_1', minimum= -0.05, maximum= 0.05)
 a_2 =  Uniform(name='a_2', minimum= -0.05, maximum= 0.05)
-luminosity_distance =  tupak.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=10, maximum=500)
+luminosity_distance =  tupak.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=10, maximum=500, unit='Mpc')
 dec =  Cosine(name='dec')
 ra =  Uniform(name='ra', minimum=0, maximum=2 * np.pi)
 iota =  Sine(name='iota')

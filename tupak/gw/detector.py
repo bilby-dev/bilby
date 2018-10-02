@@ -7,9 +7,9 @@ import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 
-from tupak.gw import utils as gwutils
-from tupak.core import utils
-from tupak.core.utils import logger
+from . import utils as gwutils
+from ..core import utils
+from ..core.utils import logger
 from .calibration import Recalibrate
 
 try:

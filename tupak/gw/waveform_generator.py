@@ -1,5 +1,5 @@
-from tupak.core import utils
 import numpy as np
+from ..core import utils
 
 
 class WaveformGenerator(object):
