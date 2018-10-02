@@ -2,8 +2,8 @@ from __future__ import division, print_function
 
 import numpy as np
 
-from tupak.core.utils import logger
-from tupak.core import utils
+from ..core import utils
+from ..core.utils import logger
 
 try:
     import lalsimulation as lalsim

@@ -1,9 +1,9 @@
 from __future__ import division
-import tupak
 import numpy as np
 import pandas as pd
 
-from tupak.core.utils import logger
+from ..core.utils import logger, solar_mass
+from ..core.prior import DeltaFunction
 
 try:
     from astropy.cosmology import z_at_value, Planck15
@@ -535,7 +535,7 @@ def fill_from_fixed_priors(sample, priors):
     output_sample = sample.copy()
     if priors is not None:
         for name in priors:
-            if isinstance(priors[name], tupak.core.prior.DeltaFunction):
+            if isinstance(priors[name], DeltaFunction):
                 output_sample[name] = priors[name].peak
     return output_sample
 
@@ -610,8 +610,8 @@ def generate_component_spins(sample):
                 output_sample['tilt_1'], output_sample['tilt_2'],
                 output_sample['phi_12'], output_sample['a_1'],
                 output_sample['a_2'],
-                output_sample['mass_1'] * tupak.core.utils.solar_mass,
-                output_sample['mass_2'] * tupak.core.utils.solar_mass,
+                output_sample['mass_1'] * solar_mass,
+                output_sample['mass_2'] * solar_mass,
                 output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] =\
@@ -637,8 +637,8 @@ def generate_component_spins(sample):
                     output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
                     output_sample['phi_12'][ii], output_sample['a_1'][ii],
                     output_sample['a_2'][ii],
-                    output_sample['mass_1'][ii] * tupak.core.utils.solar_mass,
-                    output_sample['mass_2'][ii] * tupak.core.utils.solar_mass,
+                    output_sample['mass_1'][ii] * solar_mass,
+                    output_sample['mass_2'][ii] * solar_mass,
                     output_sample['reference_frequency'][ii],
                     output_sample['phase'][ii])
 

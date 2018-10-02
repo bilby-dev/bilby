@@ -3,7 +3,8 @@ import os
 
 import numpy as np
 
-from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi, speed_of_light, logger)
+from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
+                          speed_of_light, logger)
 
 try:
     from gwpy.timeseries import TimeSeries
