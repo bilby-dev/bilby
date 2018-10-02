@@ -9,8 +9,8 @@ import os
 from collections import OrderedDict
 from future.utils import iteritems
 
-from tupak.core.utils import logger
-from tupak.core import utils
+from .utils import logger
+from . import utils
 import tupak  # noqa
 import inspect
 

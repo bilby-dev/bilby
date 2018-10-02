@@ -16,12 +16,10 @@ https://monash.docs.ligo.org/tupak/installation.html.
 """
 
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import
 
-import tupak.core
-import tupak.gw
-import tupak.hyper
+from . import core, gw, hyper
 
-from tupak.core import utils, likelihood, prior, result, sampler
-from tupak.core.sampler import run_sampler
-from tupak.core.likelihood import Likelihood
+from .core import utils, likelihood, prior, result, sampler
+from .core.sampler import run_sampler
+from .core.likelihood import Likelihood
