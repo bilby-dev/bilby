@@ -60,16 +60,23 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 # Now we set up the priors on each of the binary parameters.
 priors = dict()
-priors["mass_1"] = tupak.core.prior.Uniform(name='mass_1', minimum=5, maximum=60)
-priors["mass_2"] = tupak.core.prior.Uniform(name='mass_2', minimum=5, maximum=60)
-priors["eccentricity"] = tupak.core.prior.PowerLaw(name='eccentricity', latex_label='$e$', alpha=-1, minimum=1e-4, maximum=0.4)
-priors["luminosity_distance"] =  tupak.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=1e2, maximum=2e3)
-priors["dec"] =  tupak.core.prior.Cosine(name='dec')
-priors["ra"] =  tupak.core.prior.Uniform(name='ra', minimum=0, maximum=2 * np.pi)
-priors["iota"] =  tupak.core.prior.Sine(name='iota')
-priors["psi"] =  tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
-priors["phase"] =  tupak.core.prior.Uniform(name='phase', minimum=0, maximum=2 * np.pi)
-priors["geocent_time"] = tupak.core.prior.Uniform(1180002600.9, 1180002601.1, name='geocent_time')
+priors["mass_1"] = tupak.core.prior.Uniform(
+    name='mass_1', minimum=5, maximum=60, unit='$M_{\\odot}$')
+priors["mass_2"] = tupak.core.prior.Uniform(
+    name='mass_2', minimum=5, maximum=60, unit='$M_{\\odot}$')
+priors["eccentricity"] = tupak.core.prior.PowerLaw(
+    name='eccentricity', latex_label='$e$', alpha=-1, minimum=1e-4, maximum=0.4)
+priors["luminosity_distance"] = tupak.gw.prior.UniformComovingVolume(
+    name='luminosity_distance', minimum=1e2, maximum=2e3)
+priors["dec"] = tupak.core.prior.Cosine(name='dec')
+priors["ra"] = tupak.core.prior.Uniform(
+    name='ra', minimum=0, maximum=2 * np.pi)
+priors["iota"] = tupak.core.prior.Sine(name='iota')
+priors["psi"] = tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
+priors["phase"] = tupak.core.prior.Uniform(
+    name='phase', minimum=0, maximum=2 * np.pi)
+priors["geocent_time"] = tupak.core.prior.Uniform(
+    1180002600.9, 1180002601.1, name='geocent_time', unit='s')
 
 # Initialising the likelihood function.
 likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=ifos,

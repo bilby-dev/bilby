@@ -25,6 +25,7 @@ Changes currently on master, but not under a tag.
 - Added NestedSampler and MCSampler helper classes
 - Added sampler_requirements.txt file
 - Add AlignedSpin gw prior
+- Add units to know prior files
 
 ### Changes
 - Fix construct_cbc_derived_parameters

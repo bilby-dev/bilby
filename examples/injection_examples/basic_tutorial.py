@@ -60,8 +60,9 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
 priors = tupak.gw.prior.BBHPriorSet()
 priors['geocent_time'] = tupak.core.prior.Uniform(
-    minimum=injection_parameters['geocent_time'] - 1, maximum=injection_parameters['geocent_time'] + 1,
-    name='geocent_time', latex_label='$t_c$')
+    minimum=injection_parameters['geocent_time'] - 1,
+    maximum=injection_parameters['geocent_time'] + 1,
+    name='geocent_time', latex_label='$t_c$', unit='$s$')
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra', 'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
 

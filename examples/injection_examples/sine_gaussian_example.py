@@ -53,7 +53,7 @@ for key in ['psi', 'ra', 'dec', 'geocent_time']:
 #priors['Q'] = tupak.prior.create_default_prior(name='Q')
 #priors['frequency'] = tupak.prior.create_default_prior(name='frequency')
 priors['Q'] = tupak.core.prior.Uniform(2, 50, 'Q')
-priors['frequency'] = tupak.core.prior.Uniform(30, 1000, 'frequency')
+priors['frequency'] = tupak.core.prior.Uniform(30, 1000, 'frequency', unit='Hz')
 priors['hrss'] = tupak.core.prior.Uniform(1e-23, 1e-21, 'hrss')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator

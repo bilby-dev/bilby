@@ -47,8 +47,9 @@ ifos.inject_signal(waveform_generator=waveform,
 #  create the priors
 prior = injection_parameters.copy()
 prior['amplitude'] = tupak.core.prior.Uniform(1e-23, 1e-21, r'$h_0$')
-prior['damping_time'] = tupak.core.prior.Uniform(0, 1, r'damping time')
-prior['frequency'] = tupak.core.prior.Uniform(0, 200, r'frequency')
+prior['damping_time'] = tupak.core.prior.Uniform(
+    0, 1, r'damping time', unit='$s$')
+prior['frequency'] = tupak.core.prior.Uniform(0, 200, r'frequency', unit='Hz')
 prior['phase'] = tupak.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 
 # define likelihood
