@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+
 import numpy as np
 from pandas import DataFrame
-from .base_sampler import Sampler
+from .base_sampler import NestedSampler
 
 
-class Nestle(Sampler):
+class Nestle(NestedSampler):
     """tupak wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
@@ -23,30 +25,25 @@ class Nestle(Sampler):
         sampling
 
     """
+    default_kwargs = dict(verbose=True, method='multi', npoints=500,
+                          update_interval=None, npdim=None, maxiter=None,
+                          maxcall=None, dlogz=None, decline_factor=None,
+                          rstate=None, callback=None)
 
-    @property
-    def kwargs(self):
-        """
-        Ensures that proper keyword arguments are used for the Nestle sampler.
+    def _translate_kwargs(self, kwargs):
+        if 'npoints' not in kwargs:
+            for equiv in self.npoints_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['npoints'] = kwargs.pop(equiv)
 
-        Returns
-        -------
-        dict: Keyword arguments used for the Nestle Sampler
+    def _verify_kwargs_against_default_kwargs(self):
+        if self.kwargs['verbose']:
+            import nestle
+            self.kwargs['callback'] = nestle.print_progress
+            self.kwargs.pop('verbose')
+        NestedSampler._verify_kwargs_against_default_kwargs(self)
 
-        """
-        return self.__kwargs
-
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        self.__kwargs = dict(verbose=True, method='multi')
-        self.__kwargs.update(kwargs)
-
-        if 'npoints' not in self.__kwargs:
-            for equiv in ['nlive', 'nlives', 'n_live_points']:
-                if equiv in self.__kwargs:
-                    self.__kwargs['npoints'] = self.__kwargs.pop(equiv)
-
-    def _run_external_sampler(self):
+    def run_sampler(self):
         """ Runs Nestle sampler with given kwargs and returns the result
 
         Returns
@@ -54,15 +51,8 @@ class Nestle(Sampler):
         tupak.core.result.Result: Packaged information about the result
 
         """
-        nestle = self.external_sampler
-        self.external_sampler_function = nestle.sample
-        if 'verbose' in self.kwargs:
-            if self.kwargs['verbose']:
-                self.kwargs['callback'] = nestle.print_progress
-            self.kwargs.pop('verbose')
-        self._verify_kwargs_against_external_sampler_function()
-
-        out = self.external_sampler_function(
+        import nestle
+        out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.kwargs)
@@ -91,12 +81,13 @@ class Nestle(Sampler):
         tupak.core.result.Result: Dummy container for sampling results.
 
         """
-        nestle = self.external_sampler
-        self.external_sampler_function = nestle.sample
-        self.external_sampler_function(
+        import nestle
+        kwargs = self.kwargs.copy()
+        kwargs['maxiter'] = 2
+        nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, maxiter=2, **self.kwargs)
+            ndim=self.ndim, **kwargs)
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan

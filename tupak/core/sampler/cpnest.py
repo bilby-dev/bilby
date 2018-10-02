@@ -2,10 +2,10 @@ from __future__ import absolute_import
 import numpy as np
 from pandas import DataFrame
 from ..utils import logger
-from .base_sampler import Sampler
+from .base_sampler import NestedSampler
 
 
-class Cpnest(Sampler):
+class Cpnest(NestedSampler):
     """ tupak wrapper of cpnest (https://github.com/johnveitch/cpnest)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
@@ -28,45 +28,35 @@ class Cpnest(Sampler):
         If true, print information information about the convergence during
 
     """
+    default_kwargs = dict(verbose=1, Nthreads=1, Nlive=500, maxmcmc=1000,
+                          Poolsize=100, seed=None, balance_samplers=True)
 
-    @property
-    def kwargs(self):
-        return self.__kwargs
-
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        # Check if nlive was instead given by another name
+    def _translate_kwargs(self, kwargs):
         if 'Nlive' not in kwargs:
-            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints',
-                          'nlive']:
+            for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['Nlive'] = kwargs.pop(equiv)
         if 'seed' not in kwargs:
             logger.warning('No seed provided, cpnest will use 1234.')
 
-        # Set some default values
-        self.__kwargs = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000)
-
-        # Overwrite default values with user specified values
-        self.__kwargs.update(kwargs)
-
-    def _run_external_sampler(self):
+    def run_sampler(self):
         from cpnest import model as cpmodel, CPNest
 
         class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """
+
             def __init__(self, names, bounds):
                 self.names = names
                 self.bounds = bounds
                 self._check_bounds()
 
             @staticmethod
-            def log_likelihood(x):
+            def log_likelihood(x, **kwargs):
                 theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_likelihood(theta)
 
             @staticmethod
-            def log_prior(x):
+            def log_prior(x, **kwargs):
                 theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_prior(theta)
 

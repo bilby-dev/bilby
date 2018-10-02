@@ -1,0 +1,7 @@
+cpnest
+dynesty
+emcee
+nestle
+ptemcee
+pymc3
+pymultinest

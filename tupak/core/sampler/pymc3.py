@@ -1,15 +1,16 @@
+from __future__ import absolute_import
+
 from collections import OrderedDict
 import inspect
 import numpy as np
-from pymc3.sampling import STEP_METHODS
 
 from ..utils import derivatives, logger
 from ..prior import Prior
 from ..result import Result
-from .base_sampler import Sampler
+from .base_sampler import Sampler, MCMCSampler
 
 
-class Pymc3(Sampler):
+class Pymc3(MCMCSampler):
     """ tupak wrapper of the PyMC3 sampler (https://docs.pymc.io/)
 
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
@@ -48,6 +49,21 @@ class Pymc3(Sampler):
         for the given step method.
 
     """
+
+    default_kwargs = dict(
+        draws=500, step=None, init='auto', n_init=200000, start=None, trace=None, chain_idx=0,
+        chains=2, cores=1, tune=500, nuts_kwargs=None, step_kwargs=None, progressbar=True,
+        model=None, random_seed=None, live_plot=False, discard_tuned_samples=True,
+        live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
+
+    def __init__(self, likelihood, priors, outdir='outdir', label='label',
+                 use_ratio=False, plot=False, draws=1000,
+                 skip_import_verification=False, **kwargs):
+        Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
+                         use_ratio=use_ratio, plot=plot,
+                         skip_import_verification=skip_import_verification, **kwargs)
+        self.draws = draws
+        self.chains = self.__kwargs['chains']
 
     def _verify_parameters(self):
         """
@@ -115,20 +131,9 @@ class Pymc3(Sampler):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = dict()
+        self.__kwargs = self.default_kwargs.copy()
         self.__kwargs.update(kwargs)
-
-        # set some defaults
-
-        # set the number of draws
-        self.draws = 1000 if 'draws' not in self.__kwargs else self.__kwargs.pop('draws')
-
-        if 'chains' not in self.__kwargs:
-            self.__kwargs['chains'] = 2
-            self.chains = self.__kwargs['chains']
-
-        if 'cores' not in self.__kwargs:
-            self.__kwargs['cores'] = 1
+        self._verify_kwargs_against_default_kwargs()
 
     def setup_prior_mapping(self):
         """
@@ -232,7 +237,7 @@ class Pymc3(Sampler):
 
         # check prior is a Sine
         if isinstance(self.priors[key], Sine):
-            pymc3 = self.external_sampler
+            import pymc3
 
             try:
                 import theano.tensor as tt
@@ -249,7 +254,7 @@ class Pymc3(Sampler):
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.cos(lower) - tt.cos(upper))
-                    self.mean =\
+                    self.mean = \
                         (tt.sin(upper) + lower * tt.cos(lower) -
                          tt.sin(lower) - upper * tt.cos(upper)) / self.norm
 
@@ -279,7 +284,7 @@ class Pymc3(Sampler):
 
         # check prior is a Cosine
         if isinstance(self.priors[key], Cosine):
-            pymc3 = self.external_sampler
+            import pymc3
 
             # import theano
             try:
@@ -296,7 +301,7 @@ class Pymc3(Sampler):
                     self.lower = lower = tt.as_tensor_variable(floatX(lower))
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = (tt.sin(upper) - tt.sin(lower))
-                    self.mean =\
+                    self.mean = \
                         (upper * tt.sin(upper) + tt.cos(upper) -
                          lower * tt.sin(lower) - tt.cos(lower)) / self.norm
 
@@ -326,7 +331,7 @@ class Pymc3(Sampler):
 
         # check prior is a PowerLaw
         if isinstance(self.priors[key], PowerLaw):
-            pymc3 = self.external_sampler
+            import pymc3
 
             # check power law is set
             if not hasattr(self.priors[key], 'alpha'):
@@ -345,7 +350,7 @@ class Pymc3(Sampler):
 
                 return pymc3.Bound(
                     pymc3.Pareto, upper=self.priors[key].minimum)(
-                        key, alpha=palpha, m=self.priors[key].maximum)
+                    key, alpha=palpha, m=self.priors[key].maximum)
             else:
                 class Pymc3PowerLaw(pymc3.Continuous):
                     def __init__(self, lower, upper, alpha, testval=1):
@@ -382,10 +387,11 @@ class Pymc3(Sampler):
         else:
             raise ValueError("Prior for '{}' is not a Power Law".format(key))
 
-    def _run_external_sampler(self):
-        pymc3 = self.external_sampler
-
+    def run_sampler(self):
+        import pymc3
         # set the step method
+
+        from pymc3.sampling import STEP_METHODS
 
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
@@ -393,7 +399,9 @@ class Pymc3(Sampler):
 
             # 'step' could be a dictionary of methods for different parameters,
             # so check for this
-            if isinstance(self.step_method, (dict, OrderedDict)):
+            if self.step_method is None:
+                pass
+            elif isinstance(self.step_method, (dict, OrderedDict)):
                 for key in self.step_method:
                     if key not in self.__search_parameter_keys:
                         raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
@@ -417,13 +425,13 @@ class Pymc3(Sampler):
         # set the step method
         if isinstance(self.step_method, (dict, OrderedDict)):
             # create list of step methods (any not given will default to NUTS)
-            sm = []
+            self.kwargs['step'] = []
             with self.pymc3_model:
                 for key in self.step_method:
                     curmethod = self.step_method[key].lower()
-                    sm.append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
+                    self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
         else:
-            sm = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
+            self.kwargs['step'] = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
@@ -438,7 +446,7 @@ class Pymc3(Sampler):
 
         with self.pymc3_model:
             # perform the sampling
-            trace = pymc3.sample(self.draws, step=sm, **self.kwargs)
+            trace = pymc3.sample(**self.kwargs)
 
         nparams = len([key for key in self.priors.keys() if self.priors[key].__class__.__name__ != 'DeltaFunction'])
         nsamples = len(trace) * self.chains
@@ -465,7 +473,7 @@ class Pymc3(Sampler):
 
         self.pymc3_priors = OrderedDict()
 
-        pymc3 = self.external_sampler
+        import pymc3
 
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
@@ -535,7 +543,8 @@ class Pymc3(Sampler):
         except ImportError:
             raise ImportError("Could not import theano")
 
-        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, StudentTLikelihood
+        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+            StudentTLikelihood
         from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
         # create theano Op for the log likelihood if not using a predefined model
@@ -598,7 +607,7 @@ class Pymc3(Sampler):
 
                 outputs[0][0] = grads
 
-        pymc3 = self.external_sampler
+        import pymc3
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function
@@ -677,7 +686,8 @@ class Pymc3(Sampler):
                 model = self.likelihood.func(self.likelihood.x, **self.pymc3_priors)
 
                 # set the distribution
-                pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma, observed=self.likelihood.y)
+                pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma,
+                               observed=self.likelihood.y)
             elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
                 # set theano Op - pass __search_parameter_keys, which only contains non-fixed variables
                 logl = LogLike(self.__search_parameter_keys, self.likelihood, self.pymc3_priors)
@@ -687,7 +697,8 @@ class Pymc3(Sampler):
                     try:
                         parameters[key] = self.pymc3_priors[key]
                     except KeyError:
-                        raise KeyError("Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
+                        raise KeyError(
+                            "Unknown key '{}' when setting GravitationalWaveTransient likelihood".format(key))
 
                 # convert to theano tensor variable
                 values = tt.as_tensor_variable(list(parameters.values()))

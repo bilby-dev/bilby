@@ -13,14 +13,14 @@ from .dynesty import Dynesty
 from .emcee import Emcee
 from .nestle import Nestle
 from .ptemcee import Ptemcee
+from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 
 implemented_samplers = {
     'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
-    'ptemcee': Ptemcee, 'pymultinest': Pymultinest}
+    'ptemcee': Ptemcee, 'pymc3': Pymc3, 'pymultinest': Pymultinest}
 
 if command_line_args.sampler_help:
-    from . import implemented_samplers
     sampler = command_line_args.sampler_help
     if sampler in implemented_samplers:
         sampler_class = implemented_samplers[sampler]
@@ -114,16 +114,15 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         if sampler.lower() in implemented_samplers:
             sampler_class = implemented_samplers[sampler.lower()]
             sampler = sampler_class(
-                likelihood, priors=priors, external_sampler=sampler,
-                outdir=outdir, label=label, use_ratio=use_ratio, plot=plot,
-                **kwargs)
+                likelihood, priors=priors, outdir=outdir, label=label,
+                use_ratio=use_ratio, plot=plot, **kwargs)
         else:
             print(implemented_samplers)
             raise ValueError(
                 "Sampler {} not yet implemented".format(sampler))
     elif inspect.isclass(sampler):
-        sampler = sampler(
-            likelihood, priors=priors, external_sampler=sampler,
+        sampler = sampler.__init__(
+            likelihood, priors=priors,
             outdir=outdir, label=label, use_ratio=use_ratio, plot=plot,
             **kwargs)
     else:
@@ -140,7 +139,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if command_line_args.test:
         result = sampler._run_test()
     else:
-        result = sampler._run_external_sampler()
+        result = sampler.run_sampler()
 
     if type(meta_data) == dict:
         result.update(meta_data)
