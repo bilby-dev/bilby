@@ -43,6 +43,7 @@ re-instantiate the Prior in most cases
 - Users can now choose to overwrite existing result files, rather than creating
   a .old file.
 - Make likelihood values stored in the posterior correct for dynesty and nestle
+- pymultinest output now stored in {outdir}/pm_{label}/
 
 ### Removed
 - Removes the "--detectors" command line argument (not a general CLI requirement)

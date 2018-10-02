@@ -360,7 +360,7 @@ class TestPymultinest(unittest.TestCase):
     def test_default_kwargs(self):
         expected = dict(importance_nested_sampling=False, resume=True,
                         verbose=True, sampling_efficiency='parameter',
-                        outputfiles_basename='outdir/pymultinest_label/',
+                        outputfiles_basename='outdir/pm_label/',
                         n_live_points=500, n_params=None,
                         n_clustering_params=None, wrapped_params=None,
                         multimodal=True, const_efficiency_mode=False,
@@ -374,7 +374,7 @@ class TestPymultinest(unittest.TestCase):
     def test_translate_kwargs(self):
         expected = dict(importance_nested_sampling=False, resume=True,
                         verbose=True, sampling_efficiency='parameter',
-                        outputfiles_basename='outdir/pymultinest_label/',
+                        outputfiles_basename='outdir/pm_label/',
                         n_live_points=123, n_params=None,
                         n_clustering_params=None, wrapped_params=None,
                         multimodal=True, const_efficiency_mode=False,
