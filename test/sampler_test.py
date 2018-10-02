@@ -31,8 +31,9 @@ class TestSampler(unittest.TestCase):
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
         self.sampler = tupak.core.sampler.Sampler(
-            likelihood=likelihood, priors=priors, external_sampler='dynesty',
-            outdir=test_directory, use_ratio=False)
+            likelihood=likelihood, priors=priors,
+            outdir=test_directory, use_ratio=False,
+            skip_import_verification=True)
 
     def tearDown(self):
         del self.sampler
@@ -54,27 +55,6 @@ class TestSampler(unittest.TestCase):
     def test_label(self):
         self.assertEqual(self.sampler.label, 'label')
 
-    def test_if_external_sampler_is_module(self):
-        self.assertTrue(inspect.ismodule(self.sampler.external_sampler))
-
-    def test_if_external_sampler_has_the_correct_module_name(self):
-        expected_name = 'dynesty'
-        self.assertEqual(self.sampler.external_sampler.__name__, expected_name)
-
-    def test_external_sampler_raises_if_sampler_not_installed(self):
-        with self.assertRaises(ImportError):
-            self.sampler.external_sampler = 'unexpected_sampler'
-
-    #def test_setting_custom_sampler(self):
-    #    other_sampler = tupak.core.sampler.Sampler(self.sampler.likelihood,
-    #                                               self.sampler.priors)
-    #    self.sampler.external_sampler = other_sampler
-    #    self.assertEqual(self.sampler.external_sampler, other_sampler)
-
-    def test_setting_external_sampler_to_something_else_raises_error(self):
-        with self.assertRaises(TypeError):
-            self.sampler.external_sampler = object()
-
     def test_result(self):
         expected_result = Result()
         expected_result.search_parameter_keys = ['c']
@@ -83,8 +63,6 @@ class TestSampler(unittest.TestCase):
         expected_result.label = 'label'
         expected_result.outdir = 'test_directory'
         expected_result.kwargs = {}
-        print(self.sampler.result.__dict__)
-        print(expected_result.__dict__)
         self.assertDictEqual(self.sampler.result.__dict__, expected_result.__dict__)
 
     def test_prior_transform_transforms_search_parameter_keys(self):
@@ -123,8 +101,294 @@ class TestSampler(unittest.TestCase):
 
     def test_base_run_sampler(self):
         sampler_copy = copy.copy(self.sampler)
-        self.sampler._run_external_sampler()
+        self.sampler.run_sampler()
         self.assertDictEqual(sampler_copy.__dict__, self.sampler.__dict__)
+
+
+class TestCPNest(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Cpnest(self.likelihood, self.priors,
+                                                 outdir='outdir', label='label',
+                                                 use_ratio=False, plot=False,
+                                                 skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(verbose=1, Nthreads=1, Nlive=500, maxmcmc=1000,
+                        Poolsize=100, seed=None, balance_samplers=True)
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000,
+                        Poolsize=100, seed=None, balance_samplers=True)
+        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['Nlive']
+            new_kwargs[equiv] = 250
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestDynesty(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Dynesty(self.likelihood, self.priors,
+                                                  outdir='outdir', label='label',
+                                                  use_ratio=False, plot=False,
+                                                  skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(bound='multi', sample='rwalk', verbose=True,
+                        check_point_delta_t=600, nlive=500, first_update=None,
+                        npdim=None, rstate=None, queue_size=None, pool=None,
+                        use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
+                        ptform_args=None, ptform_kwargs=None,
+                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
+                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=True,
+                        walks=0, update_interval=300, print_func='func')
+        self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(bound='multi', sample='rwalk', verbose=True,
+                        check_point_delta_t=600, nlive=250, first_update=None,
+                        npdim=None, rstate=None, queue_size=None, pool=None,
+                        use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
+                        ptform_args=None, ptform_kwargs=None,
+                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
+                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=True,
+                        walks=0, update_interval=300, print_func='func')
+
+        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['nlive']
+            new_kwargs[equiv] = 250
+            self.sampler.kwargs = new_kwargs
+            self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestEmcee(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Emcee(self.likelihood, self.priors,
+                                                outdir='outdir', label='label',
+                                                use_ratio=False, plot=False,
+                                                skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(nwalkers=500, a=2, args=[], kwargs={},
+                        postargs=None, threads=1, pool=None, live_dangerously=False,
+                        runtime_sortingfn=None, lnprob0=None, rstate0=None,
+                        blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None
+                        )
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(nwalkers=100, a=2, args=[], kwargs={},
+                        postargs=None, threads=1, pool=None, live_dangerously=False,
+                        runtime_sortingfn=None, lnprob0=None, rstate0=None,
+                        blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None)
+        for equiv in tupak.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['nwalkers']
+            new_kwargs[equiv] = 100
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestNestle(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Nestle(self.likelihood, self.priors,
+                                                 outdir='outdir', label='label',
+                                                 use_ratio=False, plot=False,
+                                                 skip_import_verification=True,
+                                                 verbose=False)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(verbose=False, method='multi', npoints=500,
+                        update_interval=None, npdim=None, maxiter=None,
+                        maxcall=None, dlogz=None, decline_factor=None,
+                        rstate=None, callback=None)
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(verbose=False, method='multi', npoints=345,
+                        update_interval=None, npdim=None, maxiter=None,
+                        maxcall=None, dlogz=None, decline_factor=None,
+                        rstate=None, callback=None)
+        self.sampler.kwargs['npoints'] = 123
+        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['npoints']
+            new_kwargs[equiv] = 345
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestPTEmcee(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Ptemcee(self.likelihood, self.priors,
+                                                  outdir='outdir', label='label',
+                                                  use_ratio=False, plot=False,
+                                                  skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(ntemps=2, nwalkers=500,
+                        Tmax=None, betas=None,
+                        threads=1, pool=None, a=2.0,
+                        loglargs=[], logpargs=[],
+                        loglkwargs={}, logpkwargs={},
+                        adaptation_lag=10000, adaptation_time=100,
+                        random=None, iterations=100, thin=1,
+                        storechain=True, adapt=True,
+                        swap_ratios=False,
+                        )
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(ntemps=2, nwalkers=150,
+                        Tmax=None, betas=None,
+                        threads=1, pool=None, a=2.0,
+                        loglargs=[], logpargs=[],
+                        loglkwargs={}, logpkwargs={},
+                        adaptation_lag=10000, adaptation_time=100,
+                        random=None, iterations=100, thin=1,
+                        storechain=True, adapt=True,
+                        swap_ratios=False,
+                        )
+        for equiv in tupak.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['nwalkers']
+            new_kwargs[equiv] = 150
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestPyMC3(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Pymc3(self.likelihood, self.priors,
+                                                outdir='outdir', label='label',
+                                                use_ratio=False, plot=False,
+                                                skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(
+            draws=500, step=None, init='auto', n_init=200000, start=None, trace=None, chain_idx=0,
+            chains=2, cores=1, tune=500, nuts_kwargs=None, step_kwargs=None, progressbar=True,
+            model=None, random_seed=None, live_plot=False, discard_tuned_samples=True,
+            live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(
+            draws=500, step=None, init='auto', n_init=200000, start=None, trace=None, chain_idx=0,
+            chains=2, cores=1, tune=500, nuts_kwargs=None, step_kwargs=None, progressbar=True,
+            model=None, random_seed=None, live_plot=False, discard_tuned_samples=True,
+            live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
+        self.sampler.kwargs['draws'] = 123
+        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['draws']
+            new_kwargs[equiv] = 500
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestPymultinest(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = tupak.core.sampler.Pymultinest(self.likelihood, self.priors,
+                                                      outdir='outdir', label='label',
+                                                      use_ratio=False, plot=False,
+                                                      skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(importance_nested_sampling=False, resume=True,
+                        verbose=True, sampling_efficiency='parameter',
+                        outputfiles_basename='outdir/pymultinest_label/',
+                        n_live_points=500, n_params=None,
+                        n_clustering_params=None, wrapped_params=None,
+                        multimodal=True, const_efficiency_mode=False,
+                        evidence_tolerance=0.5,
+                        n_iter_before_update=100, null_log_evidence=-1e90,
+                        max_modes=100, mode_tolerance=-1e90, seed=-1,
+                        context=0, write_output=True, log_zero=-1e100,
+                        max_iter=0, init_MPI=False, dump_callback=None)
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(importance_nested_sampling=False, resume=True,
+                        verbose=True, sampling_efficiency='parameter',
+                        outputfiles_basename='outdir/pymultinest_label/',
+                        n_live_points=123, n_params=None,
+                        n_clustering_params=None, wrapped_params=None,
+                        multimodal=True, const_efficiency_mode=False,
+                        evidence_tolerance=0.5,
+                        n_iter_before_update=100, null_log_evidence=-1e90,
+                        max_modes=100, mode_tolerance=-1e90, seed=-1,
+                        context=0, write_output=True, log_zero=-1e100,
+                        max_iter=0, init_MPI=False, dump_callback=None)
+        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['n_live_points']
+            new_kwargs[equiv] = 123
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
 
 
 if __name__ == '__main__':

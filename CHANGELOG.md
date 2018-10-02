@@ -11,7 +11,7 @@ Changes currently on master, but not under a tag.
 - Binary neutron star source model
 - Allow units to be included in parameter labels
 - Add nested samples to dynesty output
-- Add more __repr__ methods
+- Add more \_\_repr\_\_ methods
 - Add ability to plot max likelihood and draws from the posterior
 - Document samplers in more detail
 - Added the CPNest sampler
@@ -21,6 +21,9 @@ Changes currently on master, but not under a tag.
 - Hyperparameter estimation now enables the user to provide the single event evidences
 - Add nested samples to nestle output
 - Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
+- Added default kwargs for each sampler class
+- Added NestedSampler and MCSampler helper classes
+- Added sampler_requirements.txt file
 - Add AlignedSpin gw prior
 
 ### Changes
@@ -32,6 +35,8 @@ Changes currently on master, but not under a tag.
 - Modified how sampling in non-standard parameters is done, the
   `non_standard_sampling_parameter_keys` kwarg has been removed
 - .prior files are no longer created. The prior is stored in the result object.
+- Removed external_sampler and external_sampler_function attribute from Sampler
+- Made conversion of number of livepoint kwargs consistent and streamlined throughout the Nested sampler classes
 - Fix label creation in plot_multiple, evidences and repeated plots.
 - Changed the way repr works for priors. The repr can now be used to
 re-instantiate the Prior in most cases

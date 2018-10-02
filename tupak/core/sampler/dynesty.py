@@ -1,13 +1,15 @@
+from __future__ import absolute_import
+
 import os
 import sys
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
 from ..utils import logger
-from .base_sampler import Sampler
+from .base_sampler import Sampler, NestedSampler
 
 
-class Dynesty(Sampler):
+class Dynesty(NestedSampler):
     """
     tupak wrapper of `dynesty.NestedSampler`
     (https://dynesty.readthedocs.io/en/latest/)
@@ -40,43 +42,70 @@ class Dynesty(Sampler):
     resume: bool
         If true, resume run from checkpoint (if available)
     """
+    default_kwargs = dict(bound='multi', sample='rwalk',
+                          verbose=True,
+                          check_point_delta_t=600, nlive=500,
+                          first_update=None,
+                          npdim=None, rstate=None, queue_size=None, pool=None,
+                          use_pool=None, live_points=None,
+                          logl_args=None, logl_kwargs=None,
+                          ptform_args=None, ptform_kwargs=None,
+                          enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
+                          facc=0.5, slices=5,
+                          walks=None, update_interval=None, print_func=None,
+                          dlogz=0.1, maxiter=None, maxcall=None,
+                          logl_max=np.inf, add_live=True, print_progress=True,
+                          save_bounds=True)
+
+    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
+                 skip_import_verification=False, n_check_point=None, check_point_delta_t=600,
+                 resume=True, **kwargs):
+        NestedSampler.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                               use_ratio=use_ratio, plot=plot,
+                               skip_import_verification=skip_import_verification,
+                               **kwargs)
+        self.n_check_point = n_check_point
+        self.resume = resume
+        if not self.n_check_point:
+            # Set the checking pointing
+            # If the log_likelihood_eval_time was not able to be calculated
+            # then n_check_point is set to None (no checkpointing)
+            if np.isnan(self._log_likelihood_eval_time):
+                self.n_check_point = None
+            # If n_check_point is not already set, set it checkpoint every 10 mins
+            n_check_point_raw = (check_point_delta_t / self._log_likelihood_eval_time)
+            n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
+            self.n_check_point = n_check_point_rnd
 
     @property
-    def kwargs(self):
-        return self.__kwargs
+    def sampler_function_kwargs(self):
+        keys = ['dlogz', 'print_progress', 'print_func', 'maxiter',
+                'maxcall', 'logl_max', 'add_live', 'save_bounds']
+        return {key: self.kwargs[key] for key in keys}
 
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        # Set some default values
-        self.__kwargs = dict(dlogz=0.1, bound='multi', sample='rwalk',
-                             resume=True, walks=self.ndim * 5, verbose=True,
-                             check_point_delta_t=60 * 10, nlive=250)
+    @property
+    def sampler_init_kwargs(self):
+        return {key: value
+                for key, value in self.kwargs.items()
+                if key not in self.sampler_function_kwargs}
 
-        # Check if nlive was instead given by another name
+    def _translate_kwargs(self, kwargs):
         if 'nlive' not in kwargs:
-            for equiv in ['nlives', 'n_live_points', 'npoint', 'npoints']:
+            for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['nlive'] = kwargs.pop(equiv)
+        if 'print_progress' not in kwargs:
+            if 'verbose' in kwargs:
+                kwargs['print_progress'] = kwargs.pop('verbose')
 
-        # Overwrite default values with user specified values
-        self.__kwargs.update(kwargs)
-
-        # Set the update interval
-        if 'update_interval' not in self.__kwargs:
-            self.__kwargs['update_interval'] = int(0.6 * self.__kwargs['nlive'])
-
-        # Set the checking pointing
-        # If the log_likelihood_eval_time was not able to be calculated
-        # then n_check_point is set to None (no checkpointing)
-        if np.isnan(self._log_likelihood_eval_time):
-            self.__kwargs['n_check_point'] = None
-
-        # If n_check_point is not already set, set it checkpoint every 10 mins
-        if 'n_check_point' not in self.__kwargs:
-            n_check_point_raw = (self.__kwargs['check_point_delta_t'] /
-                                 self._log_likelihood_eval_time)
-            n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
-            self.__kwargs['n_check_point'] = n_check_point_rnd
+    def _verify_kwargs_against_default_kwargs(self):
+        if not self.kwargs['walks']:
+            self.kwargs['walks'] = self.ndim * 5
+        if not self.kwargs['update_interval']:
+            self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
+        if not self.kwargs['print_func']:
+            self.kwargs['print_func'] = self._print_func
+        Sampler._verify_kwargs_against_default_kwargs(self)
 
     def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
         """ Replacing status update for dynesty.result.print_func """
@@ -112,18 +141,17 @@ class Dynesty(Sampler):
         sys.stderr.write(print_str)
         sys.stderr.flush()
 
-    def _run_external_sampler(self):
-        dynesty = self.external_sampler
-
-        sampler = dynesty.NestedSampler(
+    def run_sampler(self):
+        import dynesty
+        self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
+            ndim=self.ndim, **self.sampler_init_kwargs)
 
-        if self.kwargs['n_check_point']:
-            out = self._run_external_sampler_with_checkpointing(sampler)
+        if self.n_check_point:
+            out = self._run_external_sampler_with_checkpointing()
         else:
-            out = self._run_external_sampler_without_checkpointing(sampler)
+            out = self._run_external_sampler_without_checkpointing()
 
         # Flushes the output to force a line break
         if self.kwargs["verbose"]:
@@ -147,51 +175,43 @@ class Dynesty(Sampler):
 
         return self.result
 
-    def _run_external_sampler_without_checkpointing(self, nested_sampler):
+    def _run_external_sampler_without_checkpointing(self):
         logger.debug("Running sampler without checkpointing")
-        nested_sampler.run_nested(
-            dlogz=self.kwargs['dlogz'],
-            print_progress=self.kwargs['verbose'],
-            print_func=self._print_func)
-        return nested_sampler.results
+        self.sampler.run_nested(**self.sampler_function_kwargs)
+        return self.sampler.results
 
-    def _run_external_sampler_with_checkpointing(self, nested_sampler):
+    def _run_external_sampler_with_checkpointing(self):
         logger.debug("Running sampler with checkpointing")
-        if self.kwargs['resume']:
-            resume = self.read_saved_state(nested_sampler, continuing=True)
+        if self.resume:
+            resume = self.read_saved_state(continuing=True)
             if resume:
                 logger.info('Resuming from previous run.')
 
-        old_ncall = nested_sampler.ncall
-        maxcall = self.kwargs['n_check_point']
+        old_ncall = self.sampler.ncall
+        sampler_kwargs = self.sampler_function_kwargs.copy()
+        sampler_kwargs['maxcall'] = self.n_check_point
+        sampler_kwargs['add_live'] = False
         while True:
-            maxcall += self.kwargs['n_check_point']
-            nested_sampler.run_nested(
-                dlogz=self.kwargs['dlogz'],
-                print_progress=self.kwargs['verbose'],
-                print_func=self._print_func, maxcall=maxcall,
-                add_live=False)
-            if nested_sampler.ncall == old_ncall:
+            sampler_kwargs['maxcall'] += self.n_check_point
+            self.sampler.run_nested(**sampler_kwargs)
+            if self.sampler.ncall == old_ncall:
                 break
-            old_ncall = nested_sampler.ncall
+            old_ncall = self.sampler.ncall
 
-            self.write_current_state(nested_sampler)
+            self.write_current_state()
 
-        self.read_saved_state(nested_sampler)
-
-        nested_sampler.run_nested(
-            dlogz=self.kwargs['dlogz'],
-            print_progress=self.kwargs['verbose'],
-            print_func=self._print_func, add_live=True)
+        self.read_saved_state()
+        sampler_kwargs['add_live'] = True
+        self.sampler.run_nested(**sampler_kwargs)
         self._remove_checkpoint()
-        return nested_sampler.results
+        return self.sampler.results
 
     def _remove_checkpoint(self):
         """Remove checkpointed state"""
         if os.path.isfile('{}/{}_resume.h5'.format(self.outdir, self.label)):
             os.remove('{}/{}_resume.h5'.format(self.outdir, self.label))
 
-    def read_saved_state(self, sampler, continuing=False):
+    def read_saved_state(self, continuing=False):
         """
         Read a saved state of the sampler to disk.
 
@@ -215,38 +235,38 @@ class Dynesty(Sampler):
         if os.path.isfile(resume_file):
             saved = load(resume_file)
 
-            sampler.saved_u = list(saved['unit_cube_samples'])
-            sampler.saved_v = list(saved['physical_samples'])
-            sampler.saved_logl = list(saved['sample_likelihoods'])
-            sampler.saved_logvol = list(saved['sample_log_volume'])
-            sampler.saved_logwt = list(saved['sample_log_weights'])
-            sampler.saved_logz = list(saved['cumulative_log_evidence'])
-            sampler.saved_logzvar = list(saved['cumulative_log_evidence_error'])
-            sampler.saved_id = list(saved['id'])
-            sampler.saved_it = list(saved['it'])
-            sampler.saved_nc = list(saved['nc'])
-            sampler.saved_boundidx = list(saved['boundidx'])
-            sampler.saved_bounditer = list(saved['bounditer'])
-            sampler.saved_scale = list(saved['scale'])
-            sampler.saved_h = list(saved['cumulative_information'])
-            sampler.ncall = saved['ncall']
-            sampler.live_logl = list(saved['live_logl'])
-            sampler.it = saved['iteration'] + 1
-            sampler.live_u = saved['live_u']
-            sampler.live_v = saved['live_v']
-            sampler.nlive = saved['nlive']
-            sampler.live_bound = saved['live_bound']
-            sampler.live_it = saved['live_it']
-            sampler.added_live = saved['added_live']
+            self.sampler.saved_u = list(saved['unit_cube_samples'])
+            self.sampler.saved_v = list(saved['physical_samples'])
+            self.sampler.saved_logl = list(saved['sample_likelihoods'])
+            self.sampler.saved_logvol = list(saved['sample_log_volume'])
+            self.sampler.saved_logwt = list(saved['sample_log_weights'])
+            self.sampler.saved_logz = list(saved['cumulative_log_evidence'])
+            self.sampler.saved_logzvar = list(saved['cumulative_log_evidence_error'])
+            self.sampler.saved_id = list(saved['id'])
+            self.sampler.saved_it = list(saved['it'])
+            self.sampler.saved_nc = list(saved['nc'])
+            self.sampler.saved_boundidx = list(saved['boundidx'])
+            self.sampler.saved_bounditer = list(saved['bounditer'])
+            self.sampler.saved_scale = list(saved['scale'])
+            self.sampler.saved_h = list(saved['cumulative_information'])
+            self.sampler.ncall = saved['ncall']
+            self.sampler.live_logl = list(saved['live_logl'])
+            self.sampler.it = saved['iteration'] + 1
+            self.sampler.live_u = saved['live_u']
+            self.sampler.live_v = saved['live_v']
+            self.sampler.nlive = saved['nlive']
+            self.sampler.live_bound = saved['live_bound']
+            self.sampler.live_it = saved['live_it']
+            self.sampler.added_live = saved['added_live']
             self._remove_checkpoint()
             if continuing:
-                self.write_current_state(sampler)
+                self.write_current_state()
             return True
 
         else:
             return False
 
-    def write_current_state(self, sampler):
+    def write_current_state(self):
         """
         Write the current state of the sampler to disk.
 
@@ -269,56 +289,56 @@ class Dynesty(Sampler):
 
             current_state = dict(
                 unit_cube_samples=np.vstack([
-                    saved['unit_cube_samples'], sampler.saved_u[1:]]),
+                    saved['unit_cube_samples'], self.sampler.saved_u[1:]]),
                 physical_samples=np.vstack([
-                    saved['physical_samples'], sampler.saved_v[1:]]),
+                    saved['physical_samples'], self.sampler.saved_v[1:]]),
                 sample_likelihoods=np.concatenate([
-                    saved['sample_likelihoods'], sampler.saved_logl[1:]]),
+                    saved['sample_likelihoods'], self.sampler.saved_logl[1:]]),
                 sample_log_volume=np.concatenate([
-                    saved['sample_log_volume'], sampler.saved_logvol[1:]]),
+                    saved['sample_log_volume'], self.sampler.saved_logvol[1:]]),
                 sample_log_weights=np.concatenate([
-                    saved['sample_log_weights'], sampler.saved_logwt[1:]]),
+                    saved['sample_log_weights'], self.sampler.saved_logwt[1:]]),
                 cumulative_log_evidence=np.concatenate([
-                    saved['cumulative_log_evidence'], sampler.saved_logz[1:]]),
+                    saved['cumulative_log_evidence'], self.sampler.saved_logz[1:]]),
                 cumulative_log_evidence_error=np.concatenate([
                     saved['cumulative_log_evidence_error'],
-                    sampler.saved_logzvar[1:]]),
+                    self.sampler.saved_logzvar[1:]]),
                 cumulative_information=np.concatenate([
-                    saved['cumulative_information'], sampler.saved_h[1:]]),
-                id=np.concatenate([saved['id'], sampler.saved_id[1:]]),
-                it=np.concatenate([saved['it'], sampler.saved_it[1:]]),
-                nc=np.concatenate([saved['nc'], sampler.saved_nc[1:]]),
+                    saved['cumulative_information'], self.sampler.saved_h[1:]]),
+                id=np.concatenate([saved['id'], self.sampler.saved_id[1:]]),
+                it=np.concatenate([saved['it'], self.sampler.saved_it[1:]]),
+                nc=np.concatenate([saved['nc'], self.sampler.saved_nc[1:]]),
                 boundidx=np.concatenate([
-                    saved['boundidx'], sampler.saved_boundidx[1:]]),
+                    saved['boundidx'], self.sampler.saved_boundidx[1:]]),
                 bounditer=np.concatenate([
-                    saved['bounditer'], sampler.saved_bounditer[1:]]),
-                scale=np.concatenate([saved['scale'], sampler.saved_scale[1:]]),
+                    saved['bounditer'], self.sampler.saved_bounditer[1:]]),
+                scale=np.concatenate([saved['scale'], self.sampler.saved_scale[1:]]),
             )
 
         else:
             current_state = dict(
-                unit_cube_samples=sampler.saved_u,
-                physical_samples=sampler.saved_v,
-                sample_likelihoods=sampler.saved_logl,
-                sample_log_volume=sampler.saved_logvol,
-                sample_log_weights=sampler.saved_logwt,
-                cumulative_log_evidence=sampler.saved_logz,
-                cumulative_log_evidence_error=sampler.saved_logzvar,
-                cumulative_information=sampler.saved_h,
-                id=sampler.saved_id,
-                it=sampler.saved_it,
-                nc=sampler.saved_nc,
-                boundidx=sampler.saved_boundidx,
-                bounditer=sampler.saved_bounditer,
-                scale=sampler.saved_scale,
+                unit_cube_samples=self.sampler.saved_u,
+                physical_samples=self.sampler.saved_v,
+                sample_likelihoods=self.sampler.saved_logl,
+                sample_log_volume=self.sampler.saved_logvol,
+                sample_log_weights=self.sampler.saved_logwt,
+                cumulative_log_evidence=self.sampler.saved_logz,
+                cumulative_log_evidence_error=self.sampler.saved_logzvar,
+                cumulative_information=self.sampler.saved_h,
+                id=self.sampler.saved_id,
+                it=self.sampler.saved_it,
+                nc=self.sampler.saved_nc,
+                boundidx=self.sampler.saved_boundidx,
+                bounditer=self.sampler.saved_bounditer,
+                scale=self.sampler.saved_scale,
             )
 
         current_state.update(
-            ncall=sampler.ncall, live_logl=sampler.live_logl,
-            iteration=sampler.it - 1, live_u=sampler.live_u,
-            live_v=sampler.live_v, nlive=sampler.nlive,
-            live_bound=sampler.live_bound, live_it=sampler.live_it,
-            added_live=sampler.added_live
+            ncall=self.sampler.ncall, live_logl=self.sampler.live_logl,
+            iteration=self.sampler.it - 1, live_u=self.sampler.live_u,
+            live_v=self.sampler.live_v, nlive=self.sampler.nlive,
+            live_bound=self.sampler.live_bound, live_it=self.sampler.live_it,
+            added_live=self.sampler.added_live
         )
 
         weights = np.exp(current_state['sample_log_weights'] -
@@ -328,20 +348,20 @@ class Dynesty(Sampler):
 
         save(resume_file, current_state)
 
-        sampler.saved_id = [sampler.saved_id[-1]]
-        sampler.saved_u = [sampler.saved_u[-1]]
-        sampler.saved_v = [sampler.saved_v[-1]]
-        sampler.saved_logl = [sampler.saved_logl[-1]]
-        sampler.saved_logvol = [sampler.saved_logvol[-1]]
-        sampler.saved_logwt = [sampler.saved_logwt[-1]]
-        sampler.saved_logz = [sampler.saved_logz[-1]]
-        sampler.saved_logzvar = [sampler.saved_logzvar[-1]]
-        sampler.saved_h = [sampler.saved_h[-1]]
-        sampler.saved_nc = [sampler.saved_nc[-1]]
-        sampler.saved_boundidx = [sampler.saved_boundidx[-1]]
-        sampler.saved_it = [sampler.saved_it[-1]]
-        sampler.saved_bounditer = [sampler.saved_bounditer[-1]]
-        sampler.saved_scale = [sampler.saved_scale[-1]]
+        self.sampler.saved_id = [self.sampler.saved_id[-1]]
+        self.sampler.saved_u = [self.sampler.saved_u[-1]]
+        self.sampler.saved_v = [self.sampler.saved_v[-1]]
+        self.sampler.saved_logl = [self.sampler.saved_logl[-1]]
+        self.sampler.saved_logvol = [self.sampler.saved_logvol[-1]]
+        self.sampler.saved_logwt = [self.sampler.saved_logwt[-1]]
+        self.sampler.saved_logz = [self.sampler.saved_logz[-1]]
+        self.sampler.saved_logzvar = [self.sampler.saved_logzvar[-1]]
+        self.sampler.saved_h = [self.sampler.saved_h[-1]]
+        self.sampler.saved_nc = [self.sampler.saved_nc[-1]]
+        self.sampler.saved_boundidx = [self.sampler.saved_boundidx[-1]]
+        self.sampler.saved_it = [self.sampler.saved_it[-1]]
+        self.sampler.saved_bounditer = [self.sampler.saved_bounditer[-1]]
+        self.sampler.saved_scale = [self.sampler.saved_scale[-1]]
 
     def generate_trace_plots(self, dynesty_results):
         filename = '{}/{}_trace.png'.format(self.outdir, self.label)
@@ -353,15 +373,15 @@ class Dynesty(Sampler):
         fig.savefig(filename)
 
     def _run_test(self):
-        dynesty = self.external_sampler
-        nested_sampler = dynesty.NestedSampler(
+        import dynesty
+        self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.kwargs)
-        nested_sampler.run_nested(
-            dlogz=self.kwargs['dlogz'],
-            print_progress=self.kwargs['verbose'],
-            maxiter=2)
+            ndim=self.ndim, **self.sampler_init_kwargs)
+        sampler_kwargs = self.sampler_function_kwargs.copy()
+        sampler_kwargs['maxiter'] = 2
+
+        self.sampler.run_nested(**sampler_kwargs)
 
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
         self.result.log_evidence = np.nan

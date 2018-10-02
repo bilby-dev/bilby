@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import numpy as np
 from ..utils import get_progress_bar, logger
 from . import Emcee
@@ -23,25 +25,47 @@ class Ptemcee(Emcee):
         The number of temperatures used by ptemcee
 
     """
+    default_kwargs = dict(ntemps=2, nwalkers=500,
+                          Tmax=None, betas=None,
+                          threads=1, pool=None, a=2.0,
+                          loglargs=[], logpargs=[],
+                          loglkwargs={}, logpkwargs={},
+                          adaptation_lag=10000, adaptation_time=100,
+                          random=None, iterations=100, thin=1,
+                          storechain=True, adapt=True,
+                          swap_ratios=False,
+                          )
 
-    def _run_external_sampler(self):
-        self.ntemps = self.kwargs.pop('ntemps', 2)
-        self.nwalkers = self.kwargs.pop('nwalkers', 100)
-        self.nsteps = self.kwargs.pop('nsteps', 100)
-        self.nburn = self.kwargs.pop('nburn', 50)
-        ptemcee = self.external_sampler
-        tqdm = get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
+    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
+                 skip_import_verification=False, nburn=None, burn_in_fraction=0.25,
+                 burn_in_act=3, **kwargs):
+        Emcee.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                       use_ratio=use_ratio, plot=plot, skip_import_verification=skip_import_verification,
+                       nburn=nburn, burn_in_fraction=burn_in_fraction, burn_in_act=burn_in_act, **kwargs)
 
-        sampler = ptemcee.Sampler(
-            ntemps=self.ntemps, nwalkers=self.nwalkers, dim=self.ndim,
-            logl=self.log_likelihood, logp=self.log_prior,
-            **self.kwargs)
-        pos0 = [[self.get_random_draw_from_prior()
-                 for _ in range(self.nwalkers)]
-                for _ in range(self.ntemps)]
+    @property
+    def sampler_function_kwargs(self):
+        keys = ['iterations', 'thin', 'storechain', 'adapt', 'swap_ratios']
+        return {key: self.kwargs[key] for key in keys}
+
+    @property
+    def sampler_init_kwargs(self):
+        return {key: value
+                for key, value in self.kwargs.items()
+                if key not in self.sampler_function_kwargs}
+
+    def run_sampler(self):
+        import ptemcee
+        tqdm = get_progress_bar()
+
+        sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,
+                                  logp=self.log_prior, **self.sampler_init_kwargs)
+        self.pos0 = [[self.get_random_draw_from_prior()
+                      for _ in range(self.nwalkers)]
+                     for _ in range(self.kwargs['ntemps'])]
 
         for _ in tqdm(
-                sampler.sample(pos0, iterations=self.nsteps, adapt=True),
+                sampler.sample(self.pos0, **self.sampler_function_kwargs),
                 total=self.nsteps):
             pass
 

@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import numpy as np
 from pandas import DataFrame
 from ..utils import logger, get_progress_bar
-from .base_sampler import Sampler
+from .base_sampler import MCMCSampler
 
 
-class Emcee(Sampler):
+class Emcee(MCMCSampler):
     """tupak wrapper emcee (https://github.com/dfm/emcee)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
@@ -32,53 +33,104 @@ class Emcee(Sampler):
 
     """
 
-    def _run_external_sampler(self):
-        self.nwalkers = self.kwargs.get('nwalkers', 100)
-        self.nsteps = self.kwargs.get('nsteps', 100)
-        self.nburn = self.kwargs.get('nburn', None)
-        self.burn_in_fraction = self.kwargs.get('burn_in_fraction', 0.25)
-        self.burn_in_act = self.kwargs.get('burn_in_act', 3)
-        a = self.kwargs.get('a', 2)
-        emcee = self.external_sampler
-        tqdm = get_progress_bar(self.kwargs.pop('tqdm', 'tqdm'))
+    default_kwargs = dict(nwalkers=500, a=2, args=[], kwargs={},
+                          postargs=None, threads=1, pool=None, live_dangerously=False,
+                          runtime_sortingfn=None, lnprob0=None, rstate0=None,
+                          blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None)
 
-        sampler = emcee.EnsembleSampler(
-            nwalkers=self.nwalkers, dim=self.ndim, lnpostfn=self.lnpostfn,
-            a=a)
+    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
+                 skip_import_verification=False, pos0=None, nburn=None, burn_in_fraction=0.25,
+                 burn_in_act=3, **kwargs):
+        MCMCSampler.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                             use_ratio=use_ratio, plot=plot,
+                             skip_import_verification=skip_import_verification,
+                             **kwargs)
+        self.pos0 = pos0
+        self.nburn = nburn
+        self.burn_in_fraction = burn_in_fraction
+        self.burn_in_act = burn_in_act
 
-        if 'pos0' in self.kwargs:
-            logger.debug("Using given initial positions for walkers")
-            pos0 = self.kwargs['pos0']
-            if isinstance(pos0, DataFrame):
-                pos0 = pos0[self.search_parameter_keys].values
-            elif type(pos0) in (list, np.ndarray):
-                pos0 = np.squeeze(self.kwargs['pos0'])
+    def _translate_kwargs(self, kwargs):
+        if 'nwalkers' not in kwargs:
+            for equiv in self.nwalkers_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['nwalkers'] = kwargs.pop(equiv)
+        if 'iterations' not in kwargs:
+            if 'nsteps' in kwargs:
+                kwargs['iterations'] = kwargs.pop('nsteps')
 
-            if pos0.shape != (self.nwalkers, self.ndim):
-                raise ValueError(
-                    'Input pos0 should be of shape ndim, nwalkers')
-            logger.debug("Checking input pos0")
-            for draw in pos0:
-                self.check_draw(draw)
+    @property
+    def sampler_function_kwargs(self):
+        keys = ['lnprob0', 'rstate0', 'blobs0', 'iterations', 'thin', 'storechain', 'mh_proposal']
+        return {key: self.kwargs[key] for key in keys}
+
+    @property
+    def sampler_init_kwargs(self):
+        return {key: value
+                for key, value in self.kwargs.items()
+                if key not in self.sampler_function_kwargs}
+
+    @property
+    def nburn(self):
+        if type(self.__nburn) in [float, int]:
+            return int(self.__nburn)
+        elif self.result.max_autocorrelation_time is None:
+            return int(self.burn_in_fraction * self.nsteps)
         else:
-            logger.debug("Generating initial walker positions from prior")
-            pos0 = [self.get_random_draw_from_prior()
-                    for _ in range(self.nwalkers)]
+            return int(self.burn_in_act * self.result.max_autocorrelation_time)
 
-        for _ in tqdm(sampler.sample(pos0, iterations=self.nsteps),
+    @nburn.setter
+    def nburn(self, nburn):
+        self.__nburn = nburn
+
+    @property
+    def nwalkers(self):
+        return self.kwargs['nwalkers']
+
+    @property
+    def nsteps(self):
+        return self.kwargs['iterations']
+
+    @nsteps.setter
+    def nsteps(self, nsteps):
+        self.kwargs['iterations'] = nsteps
+
+    def run_sampler(self):
+        import emcee
+        tqdm = get_progress_bar()
+        sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
+        self._set_pos0()
+        for _ in tqdm(sampler.sample(p0=self.pos0, **self.sampler_function_kwargs),
                       total=self.nsteps):
             pass
-
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
-        self.setup_nburn()
+        self.print_nburn_logging_info()
         self.result.nburn = self.nburn
-        self.result.samples = sampler.chain[:, self.nburn:, :].reshape(
-            (-1, self.ndim))
+        self.result.samples = sampler.chain[:, self.nburn:, :].reshape((-1, self.ndim))
         self.result.walkers = sampler.chain
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
+
+    def _set_pos0(self):
+        if self.pos0:
+            logger.debug("Using given initial positions for walkers")
+            if isinstance(self.pos0, DataFrame):
+                self.pos0 = self.pos0[self.search_parameter_keys].values
+            elif type(self.pos0) in (list, np.ndarray):
+                self.pos0 = np.squeeze(self.kwargs['pos0'])
+
+            if self.pos0.shape != (self.nwalkers, self.ndim):
+                raise ValueError(
+                    'Input pos0 should be of shape ndim, nwalkers')
+            logger.debug("Checking input pos0")
+            for draw in self.pos0:
+                self.check_draw(draw)
+        else:
+            logger.debug("Generating initial walker positions from prior")
+            self.pos0 = [self.get_random_draw_from_prior()
+                         for _ in range(self.nwalkers)]
 
     def lnpostfn(self, theta):
         p = self.log_prior(theta)

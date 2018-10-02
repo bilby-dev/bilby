@@ -1,4 +1,3 @@
-import inspect
 import datetime
 import numpy as np
 from pandas import DataFrame
@@ -49,6 +48,9 @@ class Sampler(object):
         or just the log-likelihood
     plot: bool
         Switch to set whether or not you want to create traceplots
+    skip_import_verification: bool
+        Skips the check if the sampler is installed if true. This is
+        only advisable for testing environments
     result: tupak.core.result.Result
         Container for the results of the sampling run
     kwargs: dict
@@ -65,11 +67,11 @@ class Sampler(object):
     AttributeError:
         If some of the priors can't be sampled
     """
+    default_kwargs = dict()
 
     def __init__(
-            self, likelihood, priors, external_sampler='dynesty',
-            outdir='outdir', label='label', use_ratio=False, plot=False,
-            **kwargs):
+            self, likelihood, priors, outdir='outdir', label='label',
+            use_ratio=False, plot=False, skip_import_verification=False, **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorSet):
             self.priors = priors
@@ -78,7 +80,8 @@ class Sampler(object):
         self.label = label
         self.outdir = outdir
         self.use_ratio = use_ratio
-        self.external_sampler = external_sampler
+        if not skip_import_verification:
+            self._verify_external_sampler()
         self.external_sampler_function = None
         self.plot = plot
 
@@ -120,40 +123,35 @@ class Sampler(object):
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = kwargs
+        self.__kwargs = self.default_kwargs.copy()
+        self._translate_kwargs(kwargs)
+        self.__kwargs.update(kwargs)
+        self._verify_kwargs_against_default_kwargs()
 
-    @property
-    def external_sampler(self):
-        """Module: An external sampler module imported to this code."""
-        return self.__external_sampler
+    def _translate_kwargs(self, kwargs):
+        """ Template for child classes """
+        pass
 
-    @external_sampler.setter
-    def external_sampler(self, sampler):
-        if type(sampler) is str:
-            try:
-                self.__external_sampler = __import__(sampler)
-            except ImportError:
-                raise ImportError(
-                    "Sampler {} not installed on this system".format(sampler))
-        elif isinstance(sampler, Sampler):
-            self.__external_sampler = sampler
-        else:
-            raise TypeError('sampler must either be a string referring to '
-                            'built in sampler or a custom made class that '
-                            'inherits from sampler')
+    def _verify_external_sampler(self):
+        external_sampler_name = self.__class__.__name__.lower()
+        try:
+            self.external_sampler = __import__(external_sampler_name)
+        except ImportError:
+            raise ImportError(
+                "Sampler {} not installed on this system".format(external_sampler_name))
 
-    def _verify_kwargs_against_external_sampler_function(self):
+    def _verify_kwargs_against_default_kwargs(self):
         """
         Check if the kwargs are contained in the list of available arguments
         of the external sampler.
         """
-        args = inspect.getargspec(self.external_sampler_function).args
+        args = self.default_kwargs
         bad_keys = []
         for user_input in self.kwargs.keys():
             if user_input not in args:
                 logger.warning(
                     "Supplied argument '{}' not an argument of '{}', removing."
-                    .format(user_input, self.external_sampler_function))
+                    .format(user_input, self.__class__.__name__))
                 bad_keys.append(user_input)
         for key in bad_keys:
             self.kwargs.pop(key)
@@ -337,7 +335,7 @@ class Sampler(object):
         if np.isinf(self.log_prior(draw)):
             logger.warning('Prior draw {} has inf prior'.format(draw))
 
-    def _run_external_sampler(self):
+    def run_sampler(self):
         """A template method to run in subclasses"""
         pass
 
@@ -397,18 +395,22 @@ class Sampler(object):
             logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
-    def setup_nburn(self):
-        """ Handles calculating nburn, either from a given value or inferred """
-        if type(self.nburn) in [float, int]:
-            self.nburn = int(self.nburn)
+
+class NestedSampler(Sampler):
+    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive']
+
+
+class MCMCSampler(Sampler):
+    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws']
+
+    def print_nburn_logging_info(self):
+        """ Prints logging info as to how nburn was calculated """
+        if type(self.kwargs['nburn']) in [float, int]:
             logger.info("Discarding {} steps for burn-in".format(self.nburn))
         elif self.result.max_autocorrelation_time is None:
-            self.nburn = int(self.burn_in_fraction * self.nsteps)
             logger.info("Autocorrelation time not calculated, discarding {} "
                         " steps for burn-in".format(self.nburn))
         else:
-            self.nburn = int(
-                self.burn_in_act * self.result.max_autocorrelation_time)
             logger.info("Discarding {} steps for burn-in, estimated from "
                         "autocorr".format(self.nburn))
 
@@ -423,14 +425,7 @@ class Sampler(object):
             The minimum number of autocorrelation times needed to trust the
             estimate (default: `3`). See `emcee.autocorr.integrated_time`.
         """
-
-        try:
-            import emcee
-        except ImportError:
-            self.result.max_autocorrelation_time = None
-            logger.info(
-                "emcee not available, so unable to calculate autocorr time")
-
+        import emcee
         try:
             self.result.max_autocorrelation_time = int(np.max(
                 emcee.autocorr.integrated_time(samples, c=c)))

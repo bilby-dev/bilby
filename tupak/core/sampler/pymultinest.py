@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 from ..utils import check_directory_exists_and_if_not_mkdir
-from .base_sampler import Sampler
+from .base_sampler import NestedSampler
 
 
-class Pymultinest(Sampler):
+class Pymultinest(NestedSampler):
     """
     tupak wrapper of pymultinest
     (https://github.com/JohannesBuchner/PyMultiNest)
@@ -27,35 +29,36 @@ class Pymultinest(Sampler):
         If true, resume run from checkpoint (if available)
 
     """
+    default_kwargs = dict(importance_nested_sampling=False, resume=True,
+                          verbose=True, sampling_efficiency='parameter',
+                          n_live_points=500, n_params=None,
+                          n_clustering_params=None, wrapped_params=None,
+                          multimodal=True, const_efficiency_mode=False,
+                          evidence_tolerance=0.5,
+                          n_iter_before_update=100, null_log_evidence=-1e90,
+                          max_modes=100, mode_tolerance=-1e90,
+                          outputfiles_basename=None, seed=-1,
+                          context=0, write_output=True, log_zero=-1e100,
+                          max_iter=0, init_MPI=False, dump_callback=None)
 
-    @property
-    def kwargs(self):
-        return self.__kwargs
+    def _translate_kwargs(self, kwargs):
+        if 'n_live_points' not in kwargs:
+            for equiv in self.npoints_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['n_live_points'] = kwargs.pop(equiv)
 
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        outputfiles_basename =\
-            self.outdir + '/pymultinest_{}/'.format(self.label)
-        check_directory_exists_and_if_not_mkdir(outputfiles_basename)
-        self.__kwargs = dict(importance_nested_sampling=False, resume=True,
-                             verbose=True, sampling_efficiency='parameter',
-                             outputfiles_basename=outputfiles_basename)
-        self.__kwargs.update(kwargs)
-        if self.__kwargs['outputfiles_basename'].endswith('/') is False:
-            self.__kwargs['outputfiles_basename'] = '{}/'.format(
-                self.__kwargs['outputfiles_basename'])
-        if 'n_live_points' not in self.__kwargs:
-            for equiv in ['nlive', 'nlives', 'npoints', 'npoint']:
-                if equiv in self.__kwargs:
-                    self.__kwargs['n_live_points'] = self.__kwargs.pop(equiv)
+    def _verify_kwargs_against_default_kwargs(self):
+        if not self.kwargs['outputfiles_basename']:
+            self.kwargs['outputfiles_basename'] = self.outdir + '/pymultinest_{}/'.format(self.label)
+        if self.kwargs['outputfiles_basename'].endswith('/') is False:
+            self.kwargs['outputfiles_basename'] = '{}/'.format(
+                self.kwargs['outputfiles_basename'])
+        check_directory_exists_and_if_not_mkdir(self.kwargs['outputfiles_basename'])
+        NestedSampler._verify_kwargs_against_default_kwargs(self)
 
-    def _run_external_sampler(self):
-        pymultinest = self.external_sampler
-        self.external_sampler_function = pymultinest.run
-        self._verify_kwargs_against_external_sampler_function()
-        # Note: pymultinest.solve adds some extra steps, but underneath
-        # we are calling pymultinest.run - hence why it is used in checking
-        # the arguments.
+    def run_sampler(self):
+        import pymultinest
+        self._verify_kwargs_against_default_kwargs()
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
