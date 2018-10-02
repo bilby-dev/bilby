@@ -7,7 +7,7 @@ import argparse
 import traceback
 import inspect
 
-logger = logging.getLogger('tupak')
+logger = logging.getLogger('bilby')
 
 # Constants
 
@@ -320,7 +320,7 @@ def setup_logger(outdir=None, label=None, log_level='INFO', print_version=False)
     else:
         level = int(log_level)
 
-    logger = logging.getLogger('tupak')
+    logger = logging.getLogger('bilby')
     logger.propagate = False
     logger.setLevel(level)
 
@@ -354,7 +354,7 @@ def setup_logger(outdir=None, label=None, log_level='INFO', print_version=False)
         version = f.readline().rstrip()
 
     if print_version:
-        logger.info('Running tupak version: {}'.format(version))
+        logger.info('Running bilby version: {}'.format(version))
 
 
 def get_progress_bar(module='tqdm'):
@@ -427,34 +427,34 @@ def set_up_command_line_arguments():
     -----
         The command line arguments are passed initially at runtime, but this parser
         does not have a `--help` option (i.e., the command line options are
-        available for any script which includes `import tupak`, but no help command
+        available for any script which includes `import bilby`, but no help command
         is available. This is done to avoid conflicts with child argparse routines
         (see the example below).
 
     Example
     -------
     In the following example we demonstrate how to setup a custom command line for a
-    project which uses tupak.
+    project which uses bilby.
 
-        # Here we import tupak, which initialses and parses the default command-line args
-        >>> import tupak
+        # Here we import bilby, which initialses and parses the default command-line args
+        >>> import bilby
         # The command line arguments can then be accessed via
-        >>> tupak.core.utils.command_line_args
+        >>> bilby.core.utils.command_line_args
         Namespace(clean=False, log_level=20, quite=False)
         # Next, we import argparse and define a new argparse object
         >>> import argparse
-        >>> parser = argparse.ArgumentParser(parents=[tupak.core.utils.command_line_parser])
+        >>> parser = argparse.ArgumentParser(parents=[bilby.core.utils.command_line_parser])
         >>> parser.add_argument('--argument', type=int, default=1)
         >>> args = parser.parse_args()
         Namespace(clean=False, log_level=20, quite=False, argument=1)
 
-    Placing these lines into a script, you'll be able to pass in the usual tupak default
+    Placing these lines into a script, you'll be able to pass in the usual bilby default
     arguments, in addition to `--argument`. To see a list of all options, call the script
     with `--help`.
 
     """
     parser = argparse.ArgumentParser(
-        description="Command line interface for tupak scripts",
+        description="Command line interface for bilby scripts",
         add_help=False)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +

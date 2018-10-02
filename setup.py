@@ -36,7 +36,7 @@ def write_version_file(version):
 
     version_file = '.version'
     if path.isfile(version_file) is False:
-        with open('tupak/' + version_file, 'w+') as f:
+        with open('bilby/' + version_file, 'w+') as f:
             f.write('{}: {}'.format(version, git_status))
 
     return version_file
@@ -54,20 +54,20 @@ version = '0.2.3'
 version_file = write_version_file(version)
 long_description = get_long_description()
 
-setup(name='tupak',
+setup(name='bilby',
       description='The User friendly Parameter estimAtion Kode',
       long_description=long_description,
-      url='https://git.ligo.org/Monash/tupak',
+      url='https://git.ligo.org/Monash/bilby',
       author='Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot',
       author_email='paul.lasky@monash.edu',
       license="MIT",
       version=version,
-      packages=['tupak', 'tupak.core', 'tupak.core.sampler',
-                'tupak.gw', 'tupak.hyper', 'cli_tupak'],
-      package_dir={'tupak': 'tupak'},
-      package_data={'tupak.gw': ['prior_files/*', 'noise_curves/*.txt',
+      packages=['bilby', 'bilby.core', 'bilby.core.sampler',
+                'bilby.gw', 'bilby.hyper', 'cli_bilby'],
+      package_dir={'bilby': 'bilby'},
+      package_data={'bilby.gw': ['prior_files/*', 'noise_curves/*.txt',
                                  'detectors/*'],
-                    'tupak': [version_file]},
+                    'bilby': [version_file]},
       install_requires=[
           'future',
           'dynesty',
@@ -78,7 +78,7 @@ setup(name='tupak',
           'pandas',
           'scipy'],
       entry_points={'console_scripts':
-                    ['tupak_plot=cli_tupak.plot_multiple_posteriors:main']
+                    ['bilby_plot=cli_bilby.plot_multiple_posteriors:main']
                     },
       classifiers=[
           "Programming Language :: Python :: 2.7",

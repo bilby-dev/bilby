@@ -5,7 +5,7 @@ two interferometers (LIGO Livingston and Hanford at design sensitivity),
 and then recovered.
 """
 
-import tupak
+import bilby
 import numpy as np
 
 
@@ -32,12 +32,12 @@ outdir='outdir'
 label='time_domain_source_model'
 
 # call the waveform_generator to create our waveform model.
-waveform = tupak.gw.waveform_generator.WaveformGenerator(duration=duration, sampling_frequency=sampling_frequency,
+waveform = bilby.gw.waveform_generator.WaveformGenerator(duration=duration, sampling_frequency=sampling_frequency,
                                                          time_domain_source_model=time_domain_damped_sinusoid,
                                                          parameters=injection_parameters)
 
 # inject the signal into three interferometers
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
     start_time=injection_parameters['geocent_time'] - 3)
@@ -46,17 +46,17 @@ ifos.inject_signal(waveform_generator=waveform,
 
 #  create the priors
 prior = injection_parameters.copy()
-prior['amplitude'] = tupak.core.prior.Uniform(1e-23, 1e-21, r'$h_0$')
-prior['damping_time'] = tupak.core.prior.Uniform(
+prior['amplitude'] = bilby.core.prior.Uniform(1e-23, 1e-21, r'$h_0$')
+prior['damping_time'] = bilby.core.prior.Uniform(
     0, 1, r'damping time', unit='$s$')
-prior['frequency'] = tupak.core.prior.Uniform(0, 200, r'frequency', unit='Hz')
-prior['phase'] = tupak.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
+prior['frequency'] = bilby.core.prior.Uniform(0, 200, r'frequency', unit='Hz')
+prior['phase'] = bilby.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 
 # define likelihood
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(ifos, waveform)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(ifos, waveform)
 
 # launch sampler
-result = tupak.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,
+result = bilby.core.sampler.run_sampler(likelihood, prior, sampler='dynesty', npoints=1000,
                                         injection_parameters=injection_parameters,
                                         outdir=outdir, label=label)
 

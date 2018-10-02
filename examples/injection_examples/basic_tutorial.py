@@ -9,7 +9,7 @@ from __future__ import division, print_function
 
 import numpy as np
 
-import tupak
+import bilby
 
 # Set the duration and sampling frequency of the data segment that we're going to inject the signal into
 
@@ -19,7 +19,7 @@ sampling_frequency = 2048.
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
 label = 'basic_tutorial'
-tupak.core.utils.setup_logger(outdir=outdir, label=label)
+bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
 np.random.seed(88170235)
@@ -36,15 +36,15 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.gw.WaveformGenerator(
+waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
 
 # Set up interferometers.  In this case we'll use two interferometers
 # (LIGO-Hanford (H1), LIGO-Livingston (L1). These default to their design
 # sensitivity
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
     start_time=injection_parameters['geocent_time']-3)
@@ -58,8 +58,8 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # not sample any parameter that has a delta-function prior.
 # The above list does *not* include mass_1, mass_2, iota and luminosity_distance, which means those are the parameters
 # that will be included in the sampler.  If we do nothing, then the default priors get used.
-priors = tupak.gw.prior.BBHPriorSet()
-priors['geocent_time'] = tupak.core.prior.Uniform(
+priors = bilby.gw.prior.BBHPriorSet()
+priors['geocent_time'] = bilby.core.prior.Uniform(
     minimum=injection_parameters['geocent_time'] - 1,
     maximum=injection_parameters['geocent_time'] + 1,
     name='geocent_time', latex_label='$t_c$', unit='$s$')
@@ -67,12 +67,12 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra', '
     priors[key] = injection_parameters[key]
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and the waveoform generator
-likelihood = tupak.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator,
+likelihood = bilby.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator,
                                               time_marginalization=False, phase_marginalization=False,
                                               distance_marginalization=False, prior=priors)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
-result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
+result = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
                            injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # make some plots of the outputs

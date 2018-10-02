@@ -29,10 +29,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     Parameters
     ----------
-    interferometers: list, tupak.gw.detector.InterferometerList
-        A list of `tupak.detector.Interferometer` instances - contains the
+    interferometers: list, bilby.gw.detector.InterferometerList
+        A list of `bilby.detector.Interferometer` instances - contains the
         detector data and power spectral densities
-    waveform_generator: `tupak.waveform_generator.WaveformGenerator`
+    waveform_generator: `bilby.waveform_generator.WaveformGenerator`
         An object which computes the frequency-domain strain of the signal,
         given some set of parameters
     distance_marginalization: bool, optional
@@ -49,7 +49,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     Returns
     -------
-    Likelihood: `tupak.core.likelihood.Likelihood`
+    Likelihood: `bilby.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
 
@@ -294,9 +294,9 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
         Parameters
         ----------
         interferometers: list
-            A list of `tupak.gw.detector.Interferometer` instances - contains the
+            A list of `bilby.gw.detector.Interferometer` instances - contains the
             detector data and power spectral densities
-        waveform_generator: tupak.gw.waveform_generator.WaveformGenerator
+        waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             An object which computes the frequency-domain strain of the signal,
             given some set of parameters
 
@@ -351,7 +351,7 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
         ----------
         waveform_polarizations: dict
             Dictionary containing the desired waveform polarization modes and the related strain
-        interferometer: tupak.gw.detector.Interferometer
+        interferometer: bilby.gw.detector.Interferometer
             The Interferometer object we want to have the log-likelihood for
 
         Returns
@@ -375,13 +375,13 @@ def get_binary_black_hole_likelihood(interferometers):
     Parameters
     ----------
     interferometers: list
-        A list of `tupak.detector.Interferometer` instances, typically the
-        output of either `tupak.detector.get_interferometer_with_open_data`
-        or `tupak.detector.get_interferometer_with_fake_noise_and_injection`
+        A list of `bilby.detector.Interferometer` instances, typically the
+        output of either `bilby.detector.get_interferometer_with_open_data`
+        or `bilby.detector.get_interferometer_with_fake_noise_and_injection`
 
     Returns
     -------
-    tupak.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
+    bilby.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
 
     """
     waveform_generator = WaveformGenerator(

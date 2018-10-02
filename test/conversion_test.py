@@ -1,7 +1,7 @@
 from __future__ import division, absolute_import
 import unittest
 import mock
-from tupak.gw import conversion
+from bilby.gw import conversion
 import numpy as np
 
 

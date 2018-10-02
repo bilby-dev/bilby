@@ -39,7 +39,7 @@ python-3:
     - flake8 .
 
     # Run tests and collect coverage data
-    - pytest --cov=tupak --ignore=test/gw_example_test.py
+    - pytest --cov=bilby --ignore=test/gw_example_test.py
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
 
@@ -63,7 +63,7 @@ pages:
   script:
     - mkdir public/
     - mv htmlcov/ public/
-    - mv /builds/Monash/tupak/coverage_badge.svg public/
+    - mv /builds/Monash/bilby/coverage_badge.svg public/
     - mv docs/_build/html/* public/
   artifacts:
     paths:

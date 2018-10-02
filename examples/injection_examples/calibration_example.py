@@ -6,7 +6,7 @@ uncertainties included.
 from __future__ import division, print_function
 
 import numpy as np
-import tupak
+import bilby
 
 # Set the duration and sampling frequency of the data segment
 # that we're going to create and inject the signal into.
@@ -17,7 +17,7 @@ sampling_frequency = 2048.
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
 label = 'calibration'
-tupak.core.utils.setup_logger(outdir=outdir, label=label)
+bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
 np.random.seed(88170235)
@@ -36,21 +36,21 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.gw.WaveformGenerator(
+waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
     parameters=injection_parameters,waveform_arguments=waveform_arguments)
 
 # Set up interferometers. In this case we'll use three interferometers
 # (LIGO-Hanford (H1), LIGO-Livingston (L1), and Virgo (V1)).
 # These default to their design sensitivity
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
 for ifo in ifos:
     injection_parameters.update({
         'recalib_{}_amplitude_{}'.format(ifo.name, ii): 0.1 for ii in range(5)})
     injection_parameters.update({
         'recalib_{}_phase_{}'.format(ifo.name, ii): 0.01 for ii in range(5)})
-    ifo.calibration_model = tupak.gw.calibration.CubicSpline(
+    ifo.calibration_model = bilby.gw.calibration.CubicSpline(
         prefix='recalib_{}_'.format(ifo.name),
         minimum_frequency=ifo.minimum_frequency,
         maximum_frequency=ifo.maximum_frequency, n_points=5)
@@ -68,16 +68,16 @@ for key in injection_parameters:
     if 'recalib' in key:
         priors[key] = injection_parameters[key]
 for name in ['recalib_H1_amplitude_0', 'recalib_H1_amplitude_1']:
-    priors[name] = tupak.prior.Gaussian(
+    priors[name] = bilby.prior.Gaussian(
         mu=0, sigma=0.2, name=name, latex_label='H1 $A_{}$'.format(name[-1]))
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveform generator
-likelihood = tupak.gw.GravitationalWaveTransient(
+likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 

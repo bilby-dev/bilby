@@ -3,7 +3,7 @@ Basics of parameter estimation
 ==============================
 
 In this example, we'll go into some of the basics of parameter estimation and
-how they are implemented in :code:`tupak`.
+how they are implemented in :code:`bilby`.
 
 Firstly, consider a situation where you have discrete data :math:`\{y_0,
 y_1,\ldots, y_n\}` taken at a set of times :math:`\{t_0, t_1, \ldots, y_n\}`.
@@ -20,7 +20,7 @@ least squares estimator for example).
 Here, we will describe a Bayesian approach using `nested sampling
 <https://en.wikipedia.org/wiki/Nested_sampling_algorithm>`_ which might feel
 like overkill for this problem. However, it is a useful way to introduce some
-of the basic features of :code:`tupak` before seeing them in more complicated
+of the basic features of :code:`bilby` before seeing them in more complicated
 settings.
 
 The maths
@@ -50,7 +50,7 @@ Next, we assume that all data points are independent. As such,
    P(\{y_i, t_i\}| m, c, H) = \prod_{i=1}^n P(y_i, t_i| m, c, H) \,.
 
 When solving problems on a computer, it is often convienient to work with
-the log-likelihood. Indeed, a :code:`tupak` *likelihood* must have a `log_likelihood()`
+the log-likelihood. Indeed, a :code:`bilby` *likelihood* must have a `log_likelihood()`
 method. For the normal distribution, the log-likelihood for *n* data points is
 
 .. math::
@@ -71,7 +71,7 @@ system and not the data in question.
 
 The key point to take away here is that the **likelihood** and **prior** are
 the inputs to figuring out the **posterior**. There are many ways to go about
-this, we will now show how to do so in :code:`tupak`. In this case, we explicitly
+this, we will now show how to do so in :code:`bilby`. In this case, we explicitly
 show how to write the `GaussianLikelihood` so that one can see how the
 maths above gets implemented. For the prior, this is done implicitly by the
 naming of the priors.
@@ -81,9 +81,9 @@ The code
 
 In the following example, also available under
 `examples/other_examples/linear_regression.py
-<https://git.ligo.org/Monash/tupak/tree/master/examples/other_examples/linear_regression.py>`_
+<https://git.ligo.org/Monash/bilby/tree/master/examples/other_examples/linear_regression.py>`_
 we will step through the process of generating some simulated data, writing
-a likelihood and prior, and running nested sampling using `tupak`.
+a likelihood and prior, and running nested sampling using `bilby`.
 
 .. literalinclude:: /../examples/other_examples/linear_regression.py
    :language: python

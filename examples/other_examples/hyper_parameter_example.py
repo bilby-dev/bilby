@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
-An example of how to use tupak to perform parameter estimation for hyper params
+An example of how to use bilby to perform parameter estimation for hyper params
 """
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-from tupak.core.likelihood import GaussianLikelihood
-from tupak.core.prior import Uniform
-from tupak.core.sampler import run_sampler
-from tupak.hyper.likelihood import HyperparameterLikelihood
+from bilby.core.likelihood import GaussianLikelihood
+from bilby.core.prior import Uniform
+from bilby.core.sampler import run_sampler
+from bilby.hyper.likelihood import HyperparameterLikelihood
 
 outdir = 'outdir'
 

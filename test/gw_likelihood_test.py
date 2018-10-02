@@ -1,6 +1,6 @@
 from __future__ import division, absolute_import
 import unittest
-import tupak
+import bilby
 import numpy as np
 
 
@@ -13,15 +13,15 @@ class TestBasicGWTransient(unittest.TestCase):
             phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4)
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=4, sampling_frequency=2048,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             )
 
-        self.likelihood = tupak.gw.likelihood.BasicGravitationalWaveTransient(
+        self.likelihood = bilby.gw.likelihood.BasicGravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator
         )
@@ -77,20 +77,20 @@ class TestGWTransient(unittest.TestCase):
             phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = tupak.gw.prior.BBHPriorSet()
-        self.prior['geocent_time'] = tupak.prior.Uniform(
+        self.prior = bilby.gw.prior.BBHPriorSet()
+        self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
-        self.likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=self.prior.copy()
         )
@@ -149,26 +149,26 @@ class TestTimeMarginalization(unittest.TestCase):
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = tupak.gw.prior.BBHPriorSet()
-        self.prior['geocent_time'] = tupak.prior.Uniform(
+        self.prior = bilby.gw.prior.BBHPriorSet()
+        self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
-        self.likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=self.prior.copy()
         )
 
-        self.time = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             time_marginalization=True, prior=self.prior.copy()
@@ -214,25 +214,25 @@ class TestMarginalizedLikelihood(unittest.TestCase):
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration,
             start_time=self.parameters['geocent_time'] - self.duration / 2)
 
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = tupak.gw.prior.BBHPriorSet()
-        self.prior['geocent_time'] = tupak.prior.Uniform(
+        self.prior = bilby.gw.prior.BBHPriorSet()
+        self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
     def test_cannot_instantiate_marginalised_likelihood_without_prior(self):
         self.assertRaises(
             ValueError,
-            lambda: tupak.gw.likelihood.GravitationalWaveTransient(
+            lambda: bilby.gw.likelihood.GravitationalWaveTransient(
                 interferometers=self.interferometers,
                 waveform_generator=self.waveform_generator,
                 phase_marginalization=True))
@@ -240,7 +240,7 @@ class TestMarginalizedLikelihood(unittest.TestCase):
     def test_generating_default_time_prior(self):
         temp = self.prior.pop('geocent_time')
         new_prior = self.prior.copy()
-        like = tupak.gw.likelihood.GravitationalWaveTransient(
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=new_prior,
             time_marginalization=True
@@ -254,7 +254,7 @@ class TestMarginalizedLikelihood(unittest.TestCase):
     def test_generating_default_phase_prior(self):
         temp = self.prior.pop('phase')
         new_prior = self.prior.copy()
-        like = tupak.gw.likelihood.GravitationalWaveTransient(
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=new_prior,
             phase_marginalization=True
@@ -278,26 +278,26 @@ class TestPhaseMarginalization(unittest.TestCase):
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = tupak.gw.prior.BBHPriorSet()
-        self.prior['geocent_time'] = tupak.prior.Uniform(
+        self.prior = bilby.gw.prior.BBHPriorSet()
+        self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
-        self.likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=self.prior.copy()
         )
 
-        self.phase = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             phase_marginalization=True, prior=self.prior.copy()
@@ -341,38 +341,38 @@ class TestTimePhaseMarginalization(unittest.TestCase):
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
-        self.interferometers = tupak.gw.detector.InterferometerList(['H1'])
+        self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
-        self.waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = tupak.gw.prior.BBHPriorSet()
-        self.prior['geocent_time'] = tupak.prior.Uniform(
+        self.prior = bilby.gw.prior.BBHPriorSet()
+        self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
-        self.likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator, prior=self.prior.copy()
         )
 
-        self.time = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             time_marginalization=True, prior=self.prior.copy()
         )
 
-        self.phase = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             phase_marginalization=True, prior=self.prior.copy()
         )
 
-        self.time_phase = tupak.gw.likelihood.GravitationalWaveTransient(
+        self.time_phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             time_marginalization=True, phase_marginalization=True,
@@ -425,13 +425,13 @@ class TestTimePhaseMarginalization(unittest.TestCase):
 class TestBBHLikelihoodSetUp(unittest.TestCase):
 
     def setUp(self):
-        self.ifos = tupak.gw.detector.InterferometerList(['H1'])
+        self.ifos = bilby.gw.detector.InterferometerList(['H1'])
 
     def tearDown(self):
         del self.ifos
 
     def test_instantiation(self):
-        self.like = tupak.gw.likelihood.get_binary_black_hole_likelihood(
+        self.like = bilby.gw.likelihood.get_binary_black_hole_likelihood(
             self.ifos)
 
 

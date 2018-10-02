@@ -4,7 +4,7 @@ Tutorial to demonstrate how to improve the speed and efficiency of parameter est
 phase and distance marginalisation.
 """
 from __future__ import division, print_function
-import tupak
+import bilby
 import numpy as np
 
 
@@ -22,13 +22,13 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
-waveform_generator = tupak.gw.WaveformGenerator(
+waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole, parameters=injection_parameters,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole, parameters=injection_parameters,
     waveform_arguments=waveform_arguments)
 
 # Set up interferometers.
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
     start_time=injection_parameters['geocent_time'] - 3)
@@ -36,7 +36,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
 # Set up prior
-priors = tupak.gw.prior.BBHPriorSet()
+priors = bilby.gw.prior.BBHPriorSet()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 'dec', 'geocent_time']:
     priors[key] = injection_parameters[key]
@@ -44,13 +44,13 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra', 
 # Initialise GravitationalWaveTransient
 # Note that we now need to pass the: priors and flags for each thing that's being marginalised.
 # This is still under development so care should be taken with the marginalised likelihood.
-likelihood = tupak.gw.GravitationalWaveTransient(
+likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
     distance_marginalization=False, phase_marginalization=True,
     time_marginalization=False)
 
 # Run sampler
-result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
+result = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
                            injection_parameters=injection_parameters, outdir=outdir, label='MarginalisedLikelihood')
 result.plot_corner()
 

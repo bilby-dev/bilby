@@ -4,17 +4,17 @@
 Transient gravitational wave data I/O
 =====================================
 
-This document describs how :code:`tupak` handles interferometer data and how
+This document describs how :code:`bilby` handles interferometer data and how
 you can load data.
 
 What is used by the likelihood?
 -------------------------------
 
 First up, the :ref:`likelihood` used for transient gravitational wave searches
-is either :code:`tupak.gw.likelihood.GravitationalWaveTransient` or
-:code:`tupak.gw.likelihood.BasicGravitationalWaveTransient`. Both of these take
+is either :code:`bilby.gw.likelihood.GravitationalWaveTransient` or
+:code:`bilby.gw.likelihood.BasicGravitationalWaveTransient`. Both of these take
 an argument `interferometers` which is a list of
-`tupak.gw.detector.Interferometer` objects. These objects know about the
+`bilby.gw.detector.Interferometer` objects. These objects know about the
 geometry of the detector, the noise properties of the detector, and the
 segment of data which is to be analysed. In the following, we'll describe
 difference ways to set this data.
@@ -24,7 +24,7 @@ Making an Interferometer
 
 First up, you can easily get one of the known interferometers using this command::
 
-   >>> H1 = tupak.gw.detector.get_empty_interferometer('H1')
+   >>> H1 = bilby.gw.detector.get_empty_interferometer('H1')
 
 By default, these will have power spectral densities based on typical behaviour
 of the detector. The strain data (i.e. the data about the segment of interferomer
@@ -57,7 +57,7 @@ this can also be done::
 
 Here is the full API:
 
-.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_frequency_domain_strain
+.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frequency_domain_strain
 
 
 Setting the strain data from a frame file
@@ -65,7 +65,7 @@ Setting the strain data from a frame file
 
 To set the data from a frame file, use this method
 
-.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_frame_file
+.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frame_file
 
 Setting the strain data to be Gaussian noise
 ============================================
@@ -74,19 +74,19 @@ Often, for testing, you may want to just generate a realization of coloured
 Gaussian noise from the power spectral density. This can be done using this
 method:
 
-.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_power_spectral_density
+.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_power_spectral_density
 
 Setting the strain data to be zero noise
 ========================================
 
-.. automethod:: tupak.gw.detector.Interferometer.set_strain_data_from_zero_noise
+.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_zero_noise
 
 Injecting a signal
 ------------------
 
 If you wish to inject a signal into the data, you can use this function
 
-.. automethod:: tupak.gw.detector.Interferometer.inject_signal
+.. automethod:: bilby.gw.detector.Interferometer.inject_signal
 
 Helper functions
 ----------------
@@ -94,9 +94,9 @@ Helper functions
 To help setting things up, we provide a few convienience functions for typical
 operations:
 
-.. autofunction:: tupak.gw.detector.get_interferometer_with_fake_noise_and_injection
+.. autofunction:: bilby.gw.detector.get_interferometer_with_fake_noise_and_injection
 
-.. autofunction:: tupak.gw.detector.get_interferometer_with_open_data
+.. autofunction:: bilby.gw.detector.get_interferometer_with_open_data
 
-.. autofunction:: tupak.gw.detector.get_event_data
+.. autofunction:: bilby.gw.detector.get_event_data
 

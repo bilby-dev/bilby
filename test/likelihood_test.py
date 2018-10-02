@@ -1,10 +1,10 @@
 from __future__ import absolute_import
-# import tupak
+# import bilby
 import unittest
 from mock import MagicMock
 import mock
 import numpy as np
-from tupak.core.likelihood import (
+from bilby.core.likelihood import (
     Likelihood, GaussianLikelihood, PoissonLikelihood, StudentTLikelihood,
     Analytical1DLikelihood, ExponentialLikelihood, JointLikelihood)
 
@@ -570,7 +570,7 @@ class TestJointLikelihood(unittest.TestCase):
 
     # Appending is not supported
     # def test_appending(self):
-    #     joint_likelihood = tupak.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
+    #     joint_likelihood = bilby.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
     #     joint_likelihood.likelihoods.append(self.third_likelihood)
     #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
 

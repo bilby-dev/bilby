@@ -71,8 +71,8 @@ re-instantiate the Prior in most cases
 - Result print function fixed
 - Add snr functions as methods of `Interferometer`
 - The paths between imports where changed so that calls such as
-  `tupak.WaveformGenerator` no longer work. Instead, we need to use
-  `tupak.gw.WaveformGenerator`. This was done to keep things cleaner going
+  `bilby.WaveformGenerator` no longer work. Instead, we need to use
+  `bilby.gw.WaveformGenerator`. This was done to keep things cleaner going
   forward (when, for example, there may be multiple wfg's).
 - Samplers reorganised into individual files.
 
@@ -80,9 +80,9 @@ re-instantiate the Prior in most cases
 
 ### Added
 - InterferometerStrainData now handles both time-domain and frequencu-domain data
-- Adds documentation on setting data (https://monash.docs.ligo.org/tupak/transient-gw-data.html)
+- Adds documentation on setting data (https://monash.docs.ligo.org/bilby/transient-gw-data.html)
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
-- Add functionality to plot multiple results in a corner plot, see `tupak.core.result.plot_multiple()`.
+- Add functionality to plot multiple results in a corner plot, see `bilby.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
 
 ### Changed
@@ -99,15 +99,15 @@ re-instantiate the Prior in most cases
 
 ## [0.2.0] 2018-06-17
 
-First `pip` installable version https://pypi.org/project/TUPAK/ .
+First `pip` installable version https://pypi.org/project/BILBY/ .
 
 ### Added
-- Reoriganisation of the directory into `tupak.core` and `tupak.gw`.
+- Reoriganisation of the directory into `bilby.core` and `bilby.gw`.
 - Reading of frame files.
 - Major effort to update all docstrings and add some documentation.
 - Marginalized likelihoods.
 - Examples of searches for gravitational waves from a Supernova and using a sine-Gaussian.
-- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://monash.docs.ligo.org/tupak/prior.html).
+- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://monash.docs.ligo.org/bilby/prior.html).
 - A standardised file for storing detector data.
 
 ### Removed

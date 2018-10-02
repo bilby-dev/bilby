@@ -11,7 +11,7 @@ from future.utils import iteritems
 
 from .utils import logger
 from . import utils
-import tupak  # noqa
+import bilby  # noqa
 import inspect
 
 
@@ -117,11 +117,11 @@ class PriorSet(OrderedDict):
 
         Parameters
         ----------
-        likelihood: tupak.likelihood.GravitationalWaveTransient instance
+        likelihood: bilby.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
         default_priors_file: str, optional
             If given, a file containing the default priors; otherwise defaults
-            to the tupak defaults for a binary black hole.
+            to the bilby defaults for a binary black hole.
 
 
         Returns
@@ -247,7 +247,7 @@ def create_default_prior(name, default_priors_file=None):
         Parameter name
     default_priors_file: str, optional
         If given, a file containing the default priors; otherwise defaults to
-        the tupak defaults for a binary black hole.
+        the bilby defaults for a binary black hole.
 
     Return
     ------

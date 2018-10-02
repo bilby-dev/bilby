@@ -1,7 +1,7 @@
 #!/bin/python
 """
 
-As part of the :code:`tupak.result.Result` object, we provide a method to
+As part of the :code:`bilby.result.Result` object, we provide a method to
 calculate the Occam factor (c.f., Chapter 28, `Mackay "Information Theory,
 Inference, and Learning Algorithms"
 <http://www.inference.org.uk/itprnn/book.html>`). This is an approximate
@@ -12,7 +12,7 @@ The Occam factor penalizes models with larger numbers of parameters (or
 equivalently a larger "prior volume"). This example won't try to go through
 explaining the meaning of this, or how it is calculated (those details are
 sufficiently well done in Mackay's book linked above). Insetad, it demonstrates
-how to calculate the Occam factor in :code:`tupak` and shows an example of it
+how to calculate the Occam factor in :code:`bilby` and shows an example of it
 working in practise.
 
 If you have a :code:`result` object, the Occam factor can be calculated simply
@@ -31,14 +31,14 @@ improved by increasing this to say 500 or 1000.
 
 """
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 import matplotlib.pyplot as plt
 
 # A few simple setup steps
 label = 'occam_factor'
 outdir = 'outdir'
-tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
+bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 sigma = 1
 
@@ -56,7 +56,7 @@ ax.legend()
 fig.savefig('{}/{}_data.png'.format(outdir, label))
 
 
-class Polynomial(tupak.Likelihood):
+class Polynomial(bilby.Likelihood):
     def __init__(self, x, y, sigma, n):
         """
         A Gaussian likelihood for polynomial of degree `n`.
@@ -93,9 +93,9 @@ def fit(n):
     priors = {}
     for i in range(n):
         k = 'c{}'.format(i)
-        priors[k] = tupak.core.prior.Uniform(0, 10, k)
+        priors[k] = bilby.core.prior.Uniform(0, 10, k)
 
-    result = tupak.run_sampler(
+    result = bilby.run_sampler(
         likelihood=likelihood, priors=priors, npoints=100, outdir=outdir,
         label=label)
     return (result.log_evidence, result.log_evidence_err,

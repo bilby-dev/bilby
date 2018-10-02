@@ -3,7 +3,7 @@
 """
 from __future__ import division, print_function
 import numpy as np
-import tupak
+import bilby
 
 np.random.seed(1)
 
@@ -21,13 +21,13 @@ injection_parameters = dict(
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
                           reference_frequency=50.)
 
-waveform_generator = tupak.gw.WaveformGenerator(
+waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.gw.source.lal_binary_black_hole,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
 hf_signal = waveform_generator.frequency_domain_strain(injection_parameters)
 
-H1 = tupak.gw.detector.get_interferometer_with_fake_noise_and_injection(
+H1 = bilby.gw.detector.get_interferometer_with_fake_noise_and_injection(
     'H1', injection_polarizations=hf_signal,
     injection_parameters=injection_parameters, duration=duration,
     sampling_frequency=sampling_frequency, outdir=outdir)

@@ -3,7 +3,7 @@ Compact binary coalescence parameter estimation
 ===============================================
 
 In this example, which can be found `here
-<https://git.ligo.org/Monash/tupak/blob/master/examples/injection_examples/basic_tutorial.py>`_,
+<https://git.ligo.org/Monash/bilby/blob/master/examples/injection_examples/basic_tutorial.py>`_,
 we demonstrate how to generate simulated data for a binary black hole
 coalescence observed by the two LIGO interferometers at Hanford and Livingston.
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import tupak
+import bilby
 import unittest
 import mock
 from mock import MagicMock
@@ -28,7 +28,7 @@ class TestDetector(unittest.TestCase):
         self.xarm_tilt = 0.
         self.yarm_tilt = 0.
         # noinspection PyTypeChecker
-        self.ifo = tupak.gw.detector.Interferometer(name=self.name, power_spectral_density=self.power_spectral_density,
+        self.ifo = bilby.gw.detector.Interferometer(name=self.name, power_spectral_density=self.power_spectral_density,
                                                     minimum_frequency=self.minimum_frequency,
                                                     maximum_frequency=self.maximum_frequency, length=self.length,
                                                     latitude=self.latitude, longitude=self.longitude,
@@ -91,24 +91,24 @@ class TestDetector(unittest.TestCase):
 
     def test_vertex_without_update(self):
         _ = self.ifo.vertex
-        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.assertFalse(np.array_equal(self.ifo.vertex, np.array([1])))
 
     def test_vertex_with_latitude_update(self):
-        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.latitude = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
 
     def test_vertex_with_longitude_update(self):
-        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.longitude = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
 
     def test_vertex_with_elevation_update(self):
-        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = np.array([1])
             self.ifo.elevation = 5
             self.assertEqual(self.ifo.vertex, np.array([1]))
@@ -194,14 +194,14 @@ class TestDetector(unittest.TestCase):
             self.assertEqual(self.ifo.detector_tensor, 0)
 
     def test_antenna_response_default(self):
-        with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
+        with mock.patch('bilby.gw.utils.get_polarization_tensor') as m:
             with mock.patch('numpy.einsum') as n:
                 m.return_value = 0
                 n.return_value = 1
                 self.assertEqual(self.ifo.antenna_response(234, 52, 54, 76, 'plus'), 1)
 
     def test_antenna_response_einsum(self):
-        with mock.patch('tupak.gw.utils.get_polarization_tensor') as m:
+        with mock.patch('bilby.gw.utils.get_polarization_tensor') as m:
             m.return_value = np.ones((3, 3))
             self.assertAlmostEqual(self.ifo.antenna_response(234, 52, 54, 76, 'plus'), self.ifo.detector_tensor.sum())
 
@@ -275,18 +275,18 @@ class TestDetector(unittest.TestCase):
             self.assertAlmostEqual(self.ifo.unit_vector_along_arm('y'), -1)
 
     def test_time_delay_from_geocenter(self):
-        with mock.patch('tupak.gw.utils.time_delay_geocentric') as m:
+        with mock.patch('bilby.gw.utils.time_delay_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.time_delay_from_geocenter(1, 2, 3), 1)
 
     def test_vertex_position_geocentric(self):
-        with mock.patch('tupak.gw.utils.get_vertex_position_geocentric') as m:
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
             m.return_value = 1
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 
     def test_optimal_snr_squared(self):
         """ Merely checks parameters are given in the right order """
-        with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
+        with mock.patch('bilby.gw.utils.noise_weighted_inner_product') as m:
             m.side_effect = lambda a, b, c, d: [a, b, c, d]
             signal = 1
             expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
@@ -295,7 +295,7 @@ class TestDetector(unittest.TestCase):
 
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
-        with mock.patch('tupak.gw.utils.noise_weighted_inner_product') as m:
+        with mock.patch('bilby.gw.utils.noise_weighted_inner_product') as m:
             m.side_effect = lambda a, b, c, d: [b, [a, c, d]]
             signal = 1
             expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array,
@@ -321,7 +321,7 @@ class TestInterferometerStrainData(unittest.TestCase):
     def setUp(self):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        self.ifosd = tupak.gw.detector.InterferometerStrainData(
+        self.ifosd = bilby.gw.detector.InterferometerStrainData(
             minimum_frequency=self.minimum_frequency,
             maximum_frequency=self.maximum_frequency)
 
@@ -333,29 +333,29 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_frequency_mask(self):
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = np.array([5, 15, 25])
             self.ifosd.set_from_frequency_domain_strain(
                 frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
             self.assertTrue(np.array_equal(self.ifosd.frequency_mask, [False, True, False]))
 
     def test_frequency_array_setting_direct(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = np.array([5, 15, 25])
             self.ifosd.set_from_frequency_domain_strain(
                 frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
             self.assertTrue(np.array_equal(self.ifosd.frequency_array, np.array(np.array([5, 15, 25]))))
 
     def test_duration_setting(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = np.array([0, 1, 2])
             self.ifosd.set_from_frequency_domain_strain(
                 frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
             self.assertAlmostEqual(self.ifosd.duration, 1)
 
     def test_sampling_frequency_setting(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as n:
-            with mock.patch('tupak.core.utils.get_sampling_frequency_and_duration_from_frequency_array') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as n:
+            with mock.patch('bilby.core.utils.get_sampling_frequency_and_duration_from_frequency_array') as m:
                 m.return_value = 8, 456
                 n.return_value = np.array([1, 2, 3])
                 self.ifosd.set_from_frequency_domain_strain(
@@ -365,25 +365,25 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_frequency_array_setting(self):
         duration = 3
         sampling_frequency = 1
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
             self.ifosd.set_from_frequency_domain_strain(
                 frequency_domain_strain=np.array([0, 1, 2]), duration=duration,
                 sampling_frequency=sampling_frequency)
             self.assertTrue(np.array_equal(
                 self.ifosd.frequency_array,
-                tupak.core.utils.create_frequency_series(duration=duration,
+                bilby.core.utils.create_frequency_series(duration=duration,
                                                          sampling_frequency=sampling_frequency)))
 
     def test_set_data_fails(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
             with self.assertRaises(ValueError):
                 self.ifosd.set_from_frequency_domain_strain(
                     frequency_domain_strain=np.array([0, 1, 2]))
 
     def test_set_data_fails_too_much(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
             with self.assertRaises(ValueError):
                 self.ifosd.set_from_frequency_domain_strain(
@@ -391,7 +391,7 @@ class TestInterferometerStrainData(unittest.TestCase):
                     duration=3, sampling_frequency=1)
 
     def test_start_time_init(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
             duration = 3
             sampling_frequency = 1
@@ -401,7 +401,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             self.assertTrue(self.ifosd.start_time == 0)
 
     def test_start_time_set(self):
-        with mock.patch('tupak.core.utils.create_frequency_series') as m:
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
             duration = 3
             sampling_frequency = 1
@@ -413,7 +413,7 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_time_array_frequency_array_consistency(self):
         duration = 1
         sampling_frequency = 10
-        time_array = tupak.core.utils.create_time_series(
+        time_array = bilby.core.utils.create_time_series(
             sampling_frequency=sampling_frequency, duration=duration)
         time_domain_strain = np.random.normal(0, 1, len(time_array))
         self.ifosd.roll_off = 0
@@ -421,7 +421,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             time_domain_strain=time_domain_strain, duration=duration,
             sampling_frequency=sampling_frequency)
 
-        frequency_domain_strain, freqs = tupak.core.utils.nfft(
+        frequency_domain_strain, freqs = bilby.core.utils.nfft(
             time_domain_strain, sampling_frequency)
 
         self.assertTrue(np.all(
@@ -432,7 +432,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd.time_array = test_array
         self.assertTrue(test_array, self.ifosd.time_array)
 
-    @patch.object(tupak.core.utils, 'create_time_series')
+    @patch.object(bilby.core.utils, 'create_time_series')
     def test_time_array_when_not_set(self, m):
         self.ifosd.start_time = 3
         self.ifosd.sampling_frequency = 1000
@@ -460,7 +460,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd.frequency_array = test_array
         self.assertTrue(test_array, self.ifosd.frequency_array)
 
-    @patch.object(tupak.core.utils, 'create_frequency_series')
+    @patch.object(bilby.core.utils, 'create_frequency_series')
     def test_time_array_when_not_set(self, m):
         self.ifosd.sampling_frequency = 1000
         self.ifosd.duration = 5
@@ -529,7 +529,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd._time_domain_strain = expected_strain
         self.assertEqual(expected_strain, self.ifosd.time_domain_strain)
 
-    @patch('tupak.core.utils.infft')
+    @patch('bilby.core.utils.infft')
     def test_time_domain_strain_from_frequency_domain_strain(self, m):
         m.return_value = 5
         self.ifosd.sampling_frequency = 200
@@ -552,7 +552,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.assertTrue(np.array_equal(expected_strain,
                                        self.ifosd.frequency_domain_strain))
 
-    @patch('tupak.core.utils.nfft')
+    @patch('bilby.core.utils.nfft')
     def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
         self.ifosd.start_time = 0
         self.ifosd.duration = 4
@@ -615,7 +615,7 @@ class TestInterferometerList(unittest.TestCase):
         self.yarm_tilt1 = 0.
         self.yarm_tilt2 = 0.
         # noinspection PyTypeChecker
-        self.ifo1 = tupak.gw.detector.Interferometer(name=self.name1,
+        self.ifo1 = bilby.gw.detector.Interferometer(name=self.name1,
                                                      power_spectral_density=self.power_spectral_density1,
                                                      minimum_frequency=self.minimum_frequency1,
                                                      maximum_frequency=self.maximum_frequency1, length=self.length1,
@@ -623,7 +623,7 @@ class TestInterferometerList(unittest.TestCase):
                                                      elevation=self.elevation1,
                                                      xarm_azimuth=self.xarm_azimuth1, yarm_azimuth=self.yarm_azimuth1,
                                                      xarm_tilt=self.xarm_tilt1, yarm_tilt=self.yarm_tilt1)
-        self.ifo2 = tupak.gw.detector.Interferometer(name=self.name2,
+        self.ifo2 = bilby.gw.detector.Interferometer(name=self.name2,
                                                      power_spectral_density=self.power_spectral_density2,
                                                      minimum_frequency=self.minimum_frequency2,
                                                      maximum_frequency=self.maximum_frequency2, length=self.length2,
@@ -635,7 +635,7 @@ class TestInterferometerList(unittest.TestCase):
             self.frequency_arrays, sampling_frequency=4096, duration=2)
         self.ifo2.strain_data.set_from_frequency_domain_strain(
             self.frequency_arrays, sampling_frequency=4096, duration=2)
-        self.ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        self.ifo_list = bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
     def tearDown(self):
         del self.frequency_arrays
@@ -669,21 +669,21 @@ class TestInterferometerList(unittest.TestCase):
 
     def test_init_with_string(self):
         with self.assertRaises(ValueError):
-            tupak.gw.detector.InterferometerList("string")
+            bilby.gw.detector.InterferometerList("string")
 
     def test_init_with_string_list(self):
         """ Merely checks if this ends up in the right bracket """
-        with mock.patch('tupak.gw.detector.get_empty_interferometer') as m:
+        with mock.patch('bilby.gw.detector.get_empty_interferometer') as m:
             m.side_effect = ValueError
             with self.assertRaises(ValueError):
-                tupak.gw.detector.InterferometerList(['string'])
+                bilby.gw.detector.InterferometerList(['string'])
 
     def test_init_with_other_object(self):
         with self.assertRaises(ValueError):
-            tupak.gw.detector.InterferometerList([object()])
+            bilby.gw.detector.InterferometerList([object()])
 
     def test_init_with_actual_ifos(self):
-        ifo_list = tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        ifo_list = bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
         self.assertEqual(self.ifo1, ifo_list[0])
         self.assertEqual(self.ifo2, ifo_list[1])
 
@@ -691,20 +691,20 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo2.strain_data.set_from_frequency_domain_strain(
             np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=3)
         with self.assertRaises(ValueError):
-            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+            bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
     def test_init_inconsistent_sampling_frequency(self):
         self.ifo2.strain_data.set_from_frequency_domain_strain(
             np.linspace(0, 4096, 4097), sampling_frequency=234, duration=2)
         with self.assertRaises(ValueError):
-            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+            bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
     def test_init_inconsistent_start_time(self):
         self.ifo2.strain_data.start_time = 1
         with self.assertRaises(ValueError):
-            tupak.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+            bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
-    @patch.object(tupak.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
+    @patch.object(bilby.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
     def test_set_strain_data_from_power_spectral_density(self, m):
         self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
         m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
@@ -714,22 +714,22 @@ class TestInterferometerList(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
 
-    @patch.object(tupak.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
+    @patch.object(bilby.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
     def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
-        waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(
+        waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=lambda x, y, z: x)
         self.ifo1.inject_signal = MagicMock(return_value=None)
         self.ifo2.inject_signal = MagicMock(return_value=None)
         self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
         self.assertTrue(m.called)
 
-    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    @patch.object(bilby.gw.detector.Interferometer, 'inject_signal')
     def test_inject_signal_with_inj_pol(self, m):
         self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
         m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
         self.assertEqual(len(self.ifo_list), m.call_count)
 
-    @patch.object(tupak.gw.detector.Interferometer, 'inject_signal')
+    @patch.object(bilby.gw.detector.Interferometer, 'inject_signal')
     def test_inject_signal_returns_expected_polarisations(self, m):
         m.return_value = dict(plus=1, cross=2)
         injection_polarizations = dict(plus=1, cross=2)
@@ -737,7 +737,7 @@ class TestInterferometerList(unittest.TestCase):
         self.assertDictEqual(self.ifo1.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[0])
         self.assertDictEqual(self.ifo2.inject_signal(injection_polarizations=injection_polarizations), ifos_pol[1])
 
-    @patch.object(tupak.gw.detector.Interferometer, 'save_data')
+    @patch.object(bilby.gw.detector.Interferometer, 'save_data')
     def test_save_data(self, m):
         self.ifo_list.save_data(outdir='test_outdir', label='test_outdir')
         m.assert_called_with(outdir='test_outdir', label='test_outdir')
@@ -798,26 +798,26 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         del self.asd_array
 
     def test_init_with_asd_array(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_init_with_psd_array(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_setting_asd_array_after_init(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.asd_array = self.asd_array
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_setting_psd_array_after_init(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.psd_array = self.psd_array
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
@@ -825,28 +825,28 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
 
     def test_power_spectral_density_interpolated_from_asd_array(self):
         expected = np.array([25.])
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array = self.asd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array = self.asd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_power_spectral_density_interpolated_from_psd_array(self):
         expected = np.array([25.])
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array = self.psd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array = self.psd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_array(self):
-        actual = tupak.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_array(
+        actual = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_array(
             frequency_array=self.frequency_array, asd_array=self.asd_array)
         self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
     def test_from_power_spectral_density_array(self):
-        actual = tupak.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+        actual = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
             frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
     def test_repr(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
         expected = 'PowerSpectralDensity(frequency_array={}, psd_array={}, asd_array={})'.format(self.frequency_array,
                                                                                                  self.psd_array,
                                                                                                  self.asd_array)
@@ -879,26 +879,26 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         del self.psd_file
 
     def test_init_with_psd_file(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
 
     def test_init_with_asd_file(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
 
     def test_setting_psd_array_after_init(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.psd_file = self.psd_file
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
 
     def test_init_with_asd_array_after_init(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.asd_file = self.asd_file
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
@@ -906,77 +906,77 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
 
     def test_power_spectral_density_interpolated_from_asd_file(self):
         expected = np.array([4.0e-42])
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
         self.assertTrue(np.allclose(expected, psd.power_spectral_density_interpolated(2), atol=1e-60))
 
     def test_power_spectral_density_interpolated_from_psd_file(self):
         expected = np.array([4.0e-42])
-        psd = tupak.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
         self.assertAlmostEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_file(self):
-        psd = tupak.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(asd_file=self.asd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(asd_file=self.asd_file)
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
 
     def test_from_power_spectral_density_file(self):
-        psd = tupak.gw.detector.PowerSpectralDensity.from_power_spectral_density_file(psd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_file(psd_file=self.psd_file)
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
 
     def test_from_aligo(self):
-        psd = tupak.gw.detector.PowerSpectralDensity.from_aligo()
+        psd = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         expected_filename = 'aLIGO_ZERO_DET_high_P_psd.txt'
-        expected = tupak.gw.detector.PowerSpectralDensity(psd_file=expected_filename)
+        expected = bilby.gw.detector.PowerSpectralDensity(psd_file=expected_filename)
         actual_filename = psd.psd_file.split('/')[-1]
         self.assertEqual(expected_filename, actual_filename)
         self.assertTrue(np.allclose(expected.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(expected.asd_array, psd.asd_array))
 
     def test_check_file_psd_file_set_to_asd_file(self):
-        logger = logging.getLogger('tupak')
+        logger = logging.getLogger('bilby')
         m = MagicMock()
         logger.warning = m
-        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.asd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(psd_file=self.asd_file)
         self.assertEqual(4, m.call_count)
 
     def test_check_file_not_called_psd_file_set_to_psd_file(self):
-        logger = logging.getLogger('tupak')
+        logger = logging.getLogger('bilby')
         m = MagicMock()
         logger.warning = m
-        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
         self.assertEqual(0, m.call_count)
 
     def test_check_file_asd_file_set_to_psd_file(self):
-        logger = logging.getLogger('tupak')
+        logger = logging.getLogger('bilby')
         m = MagicMock()
         logger.warning = m
-        psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(asd_file=self.psd_file)
         self.assertEqual(4, m.call_count)
 
     def test_check_file_not_called_asd_file_set_to_asd_file(self):
-        logger = logging.getLogger('tupak')
+        logger = logging.getLogger('bilby')
         m = MagicMock()
         logger.warning = m
-        psd = tupak.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
         self.assertEqual(0, m.call_count)
 
     def test_from_frame_file(self):
         expected_frequency_array = np.array([1., 2., 3.])
         expected_psd_array = np.array([16., 25., 36.])
-        with mock.patch('tupak.gw.detector.InterferometerStrainData.set_from_frame_file') as m:
-            with mock.patch('tupak.gw.detector.InterferometerStrainData.create_power_spectral_density') as n:
+        with mock.patch('bilby.gw.detector.InterferometerStrainData.set_from_frame_file') as m:
+            with mock.patch('bilby.gw.detector.InterferometerStrainData.create_power_spectral_density') as n:
                 n.return_value = expected_frequency_array, expected_psd_array
-                psd = tupak.gw.detector.PowerSpectralDensity.from_frame_file(frame_file=self.asd_file,
+                psd = bilby.gw.detector.PowerSpectralDensity.from_frame_file(frame_file=self.asd_file,
                                                                              psd_start_time=0,
                                                                              psd_duration=4)
                 self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
                 self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
 
     def test_repr(self):
-        psd = tupak.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
+        psd = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
         expected = 'PowerSpectralDensity(psd_file=\'{}\', asd_file=\'{}\')'.format(self.psd_file, None)
         self.assertEqual(expected, repr(psd))
 

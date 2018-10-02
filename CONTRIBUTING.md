@@ -1,56 +1,56 @@
 
-Contributing to tupak
+Contributing to bilby
 =================
 
-This is a short guide to help get you started contributing to tupak.
+This is a short guide to help get you started contributing to bilby.
 
 Getting started
 -------------------
 
 All the code lives in a git repository (for a short introduction to git, see
 [this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://git.ligo.org/Monash/tupak.  If you haven't
+which is hosted here: https://git.ligo.org/Monash/bilby.  If you haven't
 already, you should
 [fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the repository
 and clone your fork, i.e., on your local machine run
 
 ```bash
-$ git clone git@git.ligo.org:albert.einstein/tupak.git
+$ git clone git@git.ligo.org:albert.einstein/bilby.git
 ```
 
-replacing the SSH url to that of your fork. This will create a directory `/tupak`
+replacing the SSH url to that of your fork. This will create a directory `/bilby`
 containing a local copy of the code. From this directory, you can run
 
 ```bash
 $ python setup.py develop
 ```
 
-which will install `tupak` and, because we used `develop` instead of `install`
+which will install `bilby` and, because we used `develop` instead of `install`
 when you change the code your installed version will automatically be updated.
 
 --- 
 
 #### Removing previously installed versions
 
-If you have previously installed `tupak` using `pip` (or generally find buggy
+If you have previously installed `bilby` using `pip` (or generally find buggy
 behaviour). It may be worthwhile purging your system and reinstalling. To do
 this, first find out where the module is being imported from: from any
 directory that is *not* the source directory, do the following
 
 ```bash
 $ python
->>> import tupak
->>> print(tupak.__file__)
-/home/user/anaconda2/lib/python2.7/site-packages/tupak-0.2.2-py2.7.egg/tupak/__init__.pyc
+>>> import bilby
+>>> print(bilby.__file__)
+/home/user/anaconda2/lib/python2.7/site-packages/bilby-0.2.2-py2.7.egg/bilby/__init__.pyc
 ```
 In the example output above, we see that the directory that module is installed
 in. To purge our python installation, run
 
 ```bash
-$ rm -r /home/user/anaconda2/lib/python2.7/site-packages/tupak*
+$ rm -r /home/user/anaconda2/lib/python2.7/site-packages/bilby*
 ```
 
-You can then verify this was successful by trying to import tupak in the python
+You can then verify this was successful by trying to import bilby in the python
 interpreter.
 
 Discussion
@@ -62,13 +62,13 @@ you've found a bug or would like a feature it doesn't have, we want to
 hear from you!
 
 Our main forum for discussion is the project's [GitLab issue
-tracker](https://git.ligo.org/Monash/tupak/issues). This is the right
+tracker](https://git.ligo.org/Monash/bilby/issues). This is the right
 place to start a discussion of any of the above or most any other
 topic concerning the project.
 
 #### Code of Conduct
 
-Everyone participating in the tupak community, and in particular in our
+Everyone participating in the bilby community, and in particular in our
 issue tracker, pull requests, and IRC channel, is expected to treat
 other people with respect and more generally to follow the guidelines
 articulated in the [Python Community Code of
@@ -165,9 +165,9 @@ At the top level, the code is split into three modules containing the core, grav
 
 ```mermaid
 graph TD
-tupak[tupak] --> core[.core]
-tupak --> gw[.gw]
-tupak --> hyper[.hyper]
+bilby[bilby] --> core[.core]
+bilby --> gw[.gw]
+bilby --> hyper[.hyper]
 ```
 
 ### Core
@@ -175,7 +175,7 @@ The core module contains the core inference logic - methods to define a prior, l
 
 ```mermaid
 graph TD
-core[tupak.core] --> prior[.prior] 
+core[bilby.core] --> prior[.prior]
 core --> likelihood[.likelihood] 
 core --> result[.result] 
 core --> sampler[.sampler] 
@@ -206,7 +206,7 @@ Note this layout is not comprehensive, for example only a few example "Priors" a
 
 ```mermaid
 graph TD
-gw[tupak.gw] --> gw_likelihood[.likelihood]
+gw[bilby.gw] --> gw_likelihood[.likelihood]
 gw --> gw_prior[.prior]
 gw --> gw_source[.source]
 gw --> gw_waveform_generator[.waveform_generator]

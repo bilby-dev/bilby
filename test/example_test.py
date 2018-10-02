@@ -9,13 +9,13 @@ import logging
 
 # Required to run the tests
 from past.builtins import execfile
-import tupak.core.utils
+import bilby.core.utils
 
 # Imported to ensure the examples run
 import numpy as np
 import inspect
 
-tupak.core.utils.command_line_args.test = True
+bilby.core.utils.command_line_args.test = True
 
 
 class Test(unittest.TestCase):

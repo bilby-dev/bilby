@@ -1,6 +1,6 @@
 #!/bin/python
 """
-An example of how to use tupak with `gwin` (https://github.com/gwastro/gwin) to
+An example of how to use bilby with `gwin` (https://github.com/gwastro/gwin) to
 perform CBC parameter estimation.
 
 To run this example, it is sufficient to use the pip-installable pycbc package,
@@ -9,15 +9,15 @@ repository (https://github.com/gwastro/gwin) and running
 
 $ python setup.py install
 
-A practical difference between gwin and tupak is that while fixed parameters
-are specified via the prior in tupak, in gwin, these are fixed at instantiation
+A practical difference between gwin and bilby is that while fixed parameters
+are specified via the prior in bilby, in gwin, these are fixed at instantiation
 of the model. So, in the following, we only create priors for the parameters
 to be searched over.
 
 """
 from __future__ import division, print_function
 import numpy as np
-import tupak
+import bilby
 
 import gwin
 from pycbc import psd as pypsd
@@ -28,8 +28,8 @@ label = 'using_gwin'
 
 # Search priors
 priors = dict()
-priors['distance'] = tupak.core.prior.Uniform(500, 2000, 'distance')
-priors['polarization'] = tupak.core.prior.Uniform(0, np.pi, 'iota')
+priors['distance'] = bilby.core.prior.Uniform(500, 2000, 'distance')
+priors['polarization'] = bilby.core.prior.Uniform(0, np.pi, 'iota')
 
 # Data variables
 seglen = 4
@@ -62,8 +62,8 @@ model = gwin.models.GaussianNoise(
 model.update(**injection_parameters)
 
 
-# This create a dummy class to convert the model into a tupak.likelihood object
-class GWINLikelihood(tupak.core.likelihood.Likelihood):
+# This create a dummy class to convert the model into a bilby.likelihood object
+class GWINLikelihood(bilby.core.likelihood.Likelihood):
     def __init__(self, model):
         """ A likelihood to wrap around GWIN model objects
 
@@ -85,7 +85,7 @@ likelihood = GWINLikelihood(model)
 
 
 # Now run the inference
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     label=label)
 result.plot_corner()

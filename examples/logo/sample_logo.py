@@ -1,11 +1,11 @@
-""" Script used to generate the samples for the tupak logo """
-import tupak
+""" Script used to generate the samples for the bilby logo """
+import bilby
 import numpy as np
 import scipy.interpolate as si
 from skimage import io
 
 
-class Likelihood(tupak.Likelihood):
+class Likelihood(bilby.Likelihood):
     def __init__(self, interp):
         self.interp = interp
         self.parameters = dict(x=None, y=None)
@@ -23,10 +23,10 @@ for letter in ['t', 'u', 'p', 'a', 'k']:
     likelihood = Likelihood(interp)
 
     priors = {}
-    priors['x'] = tupak.prior.Uniform(0, max(x), 'x')
-    priors['y'] = tupak.prior.Uniform(0, max(y), 'y')
+    priors['x'] = bilby.prior.Uniform(0, max(x), 'x')
+    priors['y'] = bilby.prior.Uniform(0, max(y), 'y')
 
-    result = tupak.run_sampler(
+    result = bilby.run_sampler(
         likelihood=likelihood, priors=priors, sampler='nestle', npoints=5000,
         label=letter)
     fig = result.plot_corner(quantiles=None, smooth1d=4)

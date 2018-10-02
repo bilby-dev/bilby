@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division
 
-import tupak
+import bilby
 import unittest
 import numpy as np
 import pandas as pd
@@ -10,8 +10,8 @@ import shutil
 class TestResult(unittest.TestCase):
 
     def setUp(self):
-        tupak.utils.command_line_args.test = False
-        result = tupak.core.result.Result()
+        bilby.utils.command_line_args.test = False
+        result = bilby.core.result.Result()
         test_directory = 'test_directory'
         result.outdir = test_directory
         result.label = 'test'
@@ -26,7 +26,7 @@ class TestResult(unittest.TestCase):
         pass
 
     def tearDown(self):
-        tupak.utils.command_line_args.test = True
+        bilby.utils.command_line_args.test = True
         try:
             shutil.rmtree(self.result.outdir)
         except OSError:
@@ -59,9 +59,9 @@ class TestResult(unittest.TestCase):
         self.result.plot_corner(parameters=dict(x=1, y=1))
 
     def test_plot_corner_with_priors(self):
-        priors = tupak.core.prior.PriorSet()
-        priors['x'] = tupak.core.prior.Uniform(-1, 1, 'x')
-        priors['y'] = tupak.core.prior.Uniform(-1, 1, 'y')
+        priors = bilby.core.prior.PriorSet()
+        priors['x'] = bilby.core.prior.Uniform(-1, 1, 'x')
+        priors['y'] = bilby.core.prior.Uniform(-1, 1, 'y')
         self.result.plot_corner(priors=priors)
         self.result.priors = priors
         self.result.plot_corner(priors=True)
