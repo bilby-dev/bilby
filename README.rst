@@ -20,7 +20,7 @@ us directly.
    :target: https://git.ligo.org/Monash/bilby/commits/master
 .. |coverage report| image:: https://monash.docs.ligo.org/bilby/coverage_badge.svg
    :target: https://monash.docs.ligo.org/bilby/htmlcov/
-.. |pypi| image:: https://badge.fury.io/py/BILBY.svg
-   :target: https://pypi.org/project/BILBY/
+.. |pypi| image:: https://badge.fury.io/py/bilby.svg
+   :target: https://pypi.org/project/bilby/
 .. |version| image:: https://img.shields.io/pypi/pyversions/bilby.svg
-   :target: https://pypi.org/project/BILBY/
+   :target: https://pypi.org/project/bilby/
