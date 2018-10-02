@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from ..utils import check_directory_exists_and_if_not_mkdir
 from .base_sampler import NestedSampler
+from tupak.core.utils import logger
 
 
 class Pymultinest(NestedSampler):
@@ -48,12 +49,26 @@ class Pymultinest(NestedSampler):
                     kwargs['n_live_points'] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
+        """
+        Test the length of the directory where multinest will write the output.
+
+        This is an issue with MultiNest that we can't solve here.
+        https://github.com/JohannesBuchner/PyMultiNest/issues/115
+        """
         if not self.kwargs['outputfiles_basename']:
-            self.kwargs['outputfiles_basename'] = self.outdir + '/pymultinest_{}/'.format(self.label)
+            self.kwargs['outputfiles_basename'] =\
+                '{}/pm_{}/'.format(self.outdir, self.label)
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(
                 self.kwargs['outputfiles_basename'])
-        check_directory_exists_and_if_not_mkdir(self.kwargs['outputfiles_basename'])
+        if len(self.kwargs['outputfiles_basename']) > (100 - 22):
+            logger.warning(
+                'The length of {} exceeds 78 characters. '
+                ' Post-processing will fail because the file names will be cut'
+                ' off. Please choose a shorter "outdir" or "label".'
+                .format(self.__kwargs['outputfiles_basename']))
+        check_directory_exists_and_if_not_mkdir(
+            self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
     def run_sampler(self):
