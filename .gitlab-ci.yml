@@ -18,6 +18,8 @@ python-2:
   stage: test
   image: continuumio/anaconda
   before_script:
+    - apt-get update
+    - apt-get install gcc -y
     - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
     - pip install -r optional_requirements.txt
@@ -32,7 +34,8 @@ python-3:
   stage: test
   image: continuumio/anaconda3
   before_script:
-    - sed -i '/lalsuite/d' requirements.txt
+    - apt-get update
+    - apt-get install gcc -y
     - apt install -y libgl1-mesa-glx
     - pip install -r requirements.txt
     - pip install -r optional_requirements.txt
