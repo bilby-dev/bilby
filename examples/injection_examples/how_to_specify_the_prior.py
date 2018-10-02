@@ -40,25 +40,29 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # This loads in a predefined set of priors for BBHs.
 priors = tupak.gw.prior.BBHPriorSet()
 # These parameters will not be sampled
-for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra', 'dec', 'geocent_time', 'psi']:
+for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra',
+            'dec', 'geocent_time', 'psi']:
     priors[key] = injection_parameters[key]
 # We can make uniform distributions.
-priors['mass_2'] = tupak.core.prior.Uniform(name='mass_2', minimum=20, maximum=40)
+priors['mass_2'] = tupak.core.prior.Uniform(
+    name='mass_2', minimum=20, maximum=40, unit='$M_{\\odot}$')
 # We can make a power-law distribution, p(x) ~ x^{alpha}
 # Note: alpha=0 is a uniform distribution, alpha=-1 is uniform-in-log
-priors['a_1'] = tupak.core.prior.PowerLaw(name='a_1', alpha=-1, minimum=1e-2, maximum=1)
+priors['a_1'] = tupak.core.prior.PowerLaw(
+    name='a_1', alpha=-1, minimum=1e-2, maximum=1)
 # We can define a prior from an array as follows.
 # Note: this doesn't have to be properly normalised.
 a_2 = np.linspace(0, 1, 1001)
 p_a_2 = a_2 ** 4
-priors['a_2'] = tupak.core.prior.Interped(name='a_2', xx=a_2, yy=p_a_2, minimum=0, maximum=0.5)
+priors['a_2'] = tupak.core.prior.Interped(
+    name='a_2', xx=a_2, yy=p_a_2, minimum=0, maximum=0.5)
 # Additionally, we have Gaussian, TruncatedGaussian, Sine and Cosine.
 # It's also possible to load an interpolate a prior from a file.
 # Finally, if you don't specify any necessary parameters it will be filled in from the default when the sampler starts.
 # Enjoy.
 
 # Initialise GravitationalWaveTransient
-likelihood = tupak.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
+likelihood = tupak.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler
 result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',

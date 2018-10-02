@@ -50,7 +50,8 @@ priors.pop('mass_1')
 priors.pop('mass_2')
 priors.pop('luminosity_distance')
 priors['chirp_mass'] = tupak.prior.Uniform(
-    name='chirp_mass', latex_label='$m_c$', minimum=13, maximum=45)
+    name='chirp_mass', latex_label='$m_c$', minimum=13, maximum=45,
+    unit='$M_{\\odot}$')
 priors['symmetric_mass_ratio'] = tupak.prior.Uniform(
     name='symmetric_mass_ratio', latex_label='q', minimum=0.1, maximum=0.25)
 priors['redshift'] = tupak.prior.Uniform(
