@@ -4,7 +4,9 @@
 
 Changes currently on master, but not under a tag.
 
-### Additions
+## [0.3] 2018-01-02
+
+### Added
 - Joint-likelihood added
 - PyMC3 works with the GravitationalWaveTransient likelihood
 - flake8 syntax checking in CI
@@ -27,6 +29,8 @@ Changes currently on master, but not under a tag.
 - Added sampler_requirements.txt file
 - Add AlignedSpin gw prior
 - Add units to know prior files
+- Add pipenv functionality
+- Tests run in custom dockerfiles
 
 ### Changes
 - Fix construct_cbc_derived_parameters
