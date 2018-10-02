@@ -16,14 +16,9 @@ stages:
 # test example on python 2
 python-2:
   stage: test
-  image: continuumio/anaconda
+  image: bilbydev/test-suite-py2
   before_script:
-    - apt-get update -y
-    - apt-get install gcc -y
-    - apt install -y libgl1-mesa-glx
-    - pip install pip --upgrade
-    - pip install pipenv
-    - pip install enum
+    # Install the dependencies specified in the Pipfile
     - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
     - python setup.py install
@@ -33,17 +28,9 @@ python-2:
 # test example on python 3
 python-3:
   stage: test
-  image: continuumio/anaconda3
+  image: bilbydev/test-suite-py3
   before_script:
-    - apt-get update -y
-    - apt-get install gcc -y
-    - apt install -y libgl1-mesa-glx
-    - pip install pip --upgrade
-    - pip install 'coverage>=4.5'
-    - pip install coverage-badge
-    - pip install flake8
-    - pip install pytest-cov
-    - pip install pipenv
+    # Install the dependencies specified in the Pipfile
     - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
     - python setup.py install
@@ -57,7 +44,6 @@ python-3:
     - coverage-badge -o coverage_badge.svg -f
 
     # Make the documentation
-    - pip install -r docs/requirements.txt
     - cd docs
     - conda install -y make
     - make clean
