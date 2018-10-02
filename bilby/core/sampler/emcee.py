@@ -6,12 +6,12 @@ from .base_sampler import MCMCSampler
 
 
 class Emcee(MCMCSampler):
-    """tupak wrapper emcee (https://github.com/dfm/emcee)
+    """bilby wrapper emcee (https://github.com/dfm/emcee)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `emcee.EnsembleSampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
-    list commonly used kwargs and the tupak defaults.
+    list commonly used kwargs and the bilby defaults.
 
     Keyword Arguments
     -----------------

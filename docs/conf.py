@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# tupak documentation build configuration file, created by
+# bilby documentation build configuration file, created by
 # sphinx-quickstart on Fri May 25 12:08:01 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -18,7 +18,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../tupak/'))
+sys.path.insert(0, os.path.abspath('../bilby/'))
 
 
 # -- General configuration ------------------------------------------------
@@ -46,7 +46,7 @@ source_suffix = '.txt'
 master_doc = 'index'
 
 # General information about the project.
-project = u'tupak'
+project = u'bilby'
 copyright = u'2018, Paul Lasky'
 author = u'Paul Lasky'
 
@@ -115,7 +115,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'tupakdoc'
+htmlhelp_basename = 'bilbydoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -142,7 +142,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'tupak.tex', u'tupak Documentation',
+    (master_doc, 'bilby.tex', u'bilby Documentation',
      u'Paul Lasky', 'manual'),
 ]
 
@@ -152,7 +152,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'tupak', u'tupak Documentation',
+    (master_doc, 'bilby', u'bilby Documentation',
      [author], 1)
 ]
 
@@ -163,8 +163,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'tupak', u'tupak Documentation',
-     author, 'tupak', 'One line description of project.',
+    (master_doc, 'bilby', u'bilby Documentation',
+     author, 'bilby', 'One line description of project.',
      'Miscellaneous'),
 ]
 

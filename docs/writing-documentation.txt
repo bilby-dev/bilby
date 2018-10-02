@@ -2,13 +2,13 @@
 Writing documentation
 =====================
 
-This is a short tutorial on how to contribute to the documentation of ``tupak``.
+This is a short tutorial on how to contribute to the documentation of ``bilby``.
 
 Writing the basics
 ------------------
 
 First, open your terminal and head to the ``docs`` directory in your clone of
-`tupak`. Once here, you'll notice there are a number of `*txt` files. Each one
+`bilby`. Once here, you'll notice there are a number of `*txt` files. Each one
 is a page of the documentation.
 
 Let's say you want to write documentation about the your new feature (or update
@@ -16,7 +16,7 @@ the existing documentation). Simply open a new file ``a-new-feature.txt`` in
 your text editor. Then add a title and some text::
 
    ====================
-   A new tupak feature!
+   A new bilby feature!
    ====================
 
    Here we'll put a description of the new feature
@@ -70,13 +70,13 @@ with these features visit http://www.sphinx-doc.org/en/master/usage/restructured
 A useful feature is the ability to `format code examples <http://www.sphinx-doc.org/en/stable/markup/code.html>`_. This is done through the use of ``::`` and indendentation. For
 example, to make this code block::
 
-   import tupak
+   import bilby
 
 You would write::
 
    to make this code block::
 
-      import tupak
+      import bilby
 
 reStructured text is very powerful, but can be quite particular. For example,
 **all code blocks must be indented by 3 spaces**.
@@ -84,17 +84,17 @@ reStructured text is very powerful, but can be quite particular. For example,
 Sphinx autodoc
 --------------
 
-Most of the documentation for ``tupak`` should be written in the `docstrings
+Most of the documentation for ``bilby`` should be written in the `docstrings
 <https://www.python.org/dev/peps/pep-0257/>`_ of the functions themselves. We
 can add these into the online documentation using `autodoc
 <http://www.sphinx-doc.org/en/master/ext/autodoc.html>`_. To add the documentation
 for a class, add a line such as::
 
-   .. autoclass:: tupak.likelihood.GravitationalWaveTransient
+   .. autoclass:: bilby.likelihood.GravitationalWaveTransient
        :members:
 
 into your documentation file. Similarly, to document a function::
 
-   .. autofunction:: tupak.sampler.run_sampler
+   .. autofunction:: bilby.sampler.run_sampler
 
 

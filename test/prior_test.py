@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import tupak
+import bilby
 import unittest
 from mock import Mock
 import numpy as np
@@ -10,7 +10,7 @@ from collections import OrderedDict
 class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
 
     def setUp(self):
-        self.prior = tupak.core.prior.Prior()
+        self.prior = bilby.core.prior.Prior()
 
     def tearDown(self):
         del self.prior
@@ -25,7 +25,7 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertFalse(self.prior.is_fixed)
 
     def test_class_instance(self):
-        self.assertIsInstance(self.prior, tupak.core.prior.Prior)
+        self.assertIsInstance(self.prior, bilby.core.prior.Prior)
 
     def test_magic_call_is_the_same_as_sampling(self):
         self.prior.sample = Mock(return_value=0.5)
@@ -35,7 +35,7 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertIsNone(self.prior.rescale(1))
 
     def test_base_repr(self):
-        self.prior = tupak.core.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1)
+        self.prior = bilby.core.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1)
         expected_string = "Prior(name='test_name', latex_label='test_label', unit=None, minimum=0, maximum=1)"
         self.assertEqual(expected_string, self.prior.__repr__())
 
@@ -65,7 +65,7 @@ class TestPriorName(unittest.TestCase):
 
     def setUp(self):
         self.test_name = 'test_name'
-        self.prior = tupak.core.prior.Prior(self.test_name)
+        self.prior = bilby.core.prior.Prior(self.test_name)
 
     def tearDown(self):
         del self.prior
@@ -79,7 +79,7 @@ class TestPriorName(unittest.TestCase):
 class TestPriorLatexLabel(unittest.TestCase):
     def setUp(self):
         self.test_name = 'test_name'
-        self.prior = tupak.core.prior.Prior(self.test_name)
+        self.prior = bilby.core.prior.Prior(self.test_name)
 
     def tearDown(self):
         del self.test_name
@@ -108,15 +108,15 @@ class TestPriorIsFixed(unittest.TestCase):
         pass
 
     def test_is_fixed_parent_class(self):
-        self.prior = tupak.core.prior.Prior()
+        self.prior = bilby.core.prior.Prior()
         self.assertFalse(self.prior.is_fixed)
 
     def test_is_fixed_delta_function_class(self):
-        self.prior = tupak.core.prior.DeltaFunction(peak=0)
+        self.prior = bilby.core.prior.DeltaFunction(peak=0)
         self.assertTrue(self.prior.is_fixed)
 
     def test_is_fixed_uniform_class(self):
-        self.prior = tupak.core.prior.Uniform(minimum=0, maximum=10)
+        self.prior = bilby.core.prior.Uniform(minimum=0, maximum=10)
         self.assertFalse(self.prior.is_fixed)
 
 
@@ -125,34 +125,34 @@ class TestPriorClasses(unittest.TestCase):
     def setUp(self):
 
         self.priors = [
-            tupak.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
-            tupak.core.prior.Gaussian(name='test', unit='unit', mu=0, sigma=1),
-            tupak.core.prior.Normal(name='test', unit='unit', mu=0, sigma=1),
-            tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1),
-            tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
-            tupak.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
-            tupak.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
-            tupak.gw.prior.UniformComovingVolume(name='test', minimum=2e2, maximum=5e3),
-            tupak.core.prior.Sine(name='test', unit='unit'),
-            tupak.core.prior.Cosine(name='test', unit='unit'),
-            tupak.core.prior.Interped(name='test', unit='unit', xx=np.linspace(0, 10, 1000),
+            bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
+            bilby.core.prior.Gaussian(name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.Normal(name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1),
+            bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
+            bilby.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
+            bilby.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
+            bilby.gw.prior.UniformComovingVolume(name='test', minimum=2e2, maximum=5e3),
+            bilby.core.prior.Sine(name='test', unit='unit'),
+            bilby.core.prior.Cosine(name='test', unit='unit'),
+            bilby.core.prior.Interped(name='test', unit='unit', xx=np.linspace(0, 10, 1000),
                                       yy=np.linspace(0, 10, 1000) ** 4,
                                       minimum=3, maximum=5),
-            tupak.core.prior.TruncatedGaussian(name='test', unit='unit', mu=1, sigma=0.4, minimum=-1, maximum=1),
-            tupak.core.prior.TruncatedNormal(name='test', unit='unit', mu=1, sigma=0.4, minimum=-1, maximum=1),
-            tupak.core.prior.HalfGaussian(name='test', unit='unit', sigma=1),
-            tupak.core.prior.HalfNormal(name='test', unit='unit', sigma=1),
-            tupak.core.prior.LogGaussian(name='test', unit='unit', mu=0, sigma=1),
-            tupak.core.prior.LogNormal(name='test', unit='unit', mu=0, sigma=1),
-            tupak.core.prior.Exponential(name='test', unit='unit', mu=1),
-            tupak.core.prior.StudentT(name='test', unit='unit', df=3, mu=0, scale=1),
-            tupak.core.prior.Beta(name='test', unit='unit', alpha=2.0, beta=2.0),
-            tupak.core.prior.Logistic(name='test', unit='unit', mu=0, scale=1),
-            tupak.core.prior.Cauchy(name='test', unit='unit', alpha=0, beta=1),
-            tupak.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
-            tupak.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
-            tupak.core.prior.ChiSquared(name='test', unit='unit', nu=2),
-            tupak.gw.prior.AlignedSpin(name='test', unit='unit')
+            bilby.core.prior.TruncatedGaussian(name='test', unit='unit', mu=1, sigma=0.4, minimum=-1, maximum=1),
+            bilby.core.prior.TruncatedNormal(name='test', unit='unit', mu=1, sigma=0.4, minimum=-1, maximum=1),
+            bilby.core.prior.HalfGaussian(name='test', unit='unit', sigma=1),
+            bilby.core.prior.HalfNormal(name='test', unit='unit', sigma=1),
+            bilby.core.prior.LogGaussian(name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.LogNormal(name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.Exponential(name='test', unit='unit', mu=1),
+            bilby.core.prior.StudentT(name='test', unit='unit', df=3, mu=0, scale=1),
+            bilby.core.prior.Beta(name='test', unit='unit', alpha=2.0, beta=2.0),
+            bilby.core.prior.Logistic(name='test', unit='unit', mu=0, scale=1),
+            bilby.core.prior.Cauchy(name='test', unit='unit', alpha=0, beta=1),
+            bilby.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
+            bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
+            bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
+            bilby.gw.prior.AlignedSpin(name='test', unit='unit')
         ]
 
     def test_minimum_rescaling(self):
@@ -218,7 +218,7 @@ class TestPriorClasses(unittest.TestCase):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
             # skip delta function prior in this case
-            if isinstance(prior, tupak.core.prior.DeltaFunction):
+            if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
             prior.prob(surround_domain)
@@ -226,25 +226,25 @@ class TestPriorClasses(unittest.TestCase):
     def test_normalized(self):
         """Test that each of the priors are normalised, this needs care for delta function and Gaussian priors"""
         for prior in self.priors:
-            if isinstance(prior, tupak.core.prior.DeltaFunction):
+            if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
-            if isinstance(prior, tupak.core.prior.Cauchy):
+            if isinstance(prior, bilby.core.prior.Cauchy):
                 continue
-            elif isinstance(prior, tupak.core.prior.Gaussian):
+            elif isinstance(prior, bilby.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
-            elif isinstance(prior, tupak.core.prior.Cauchy):
+            elif isinstance(prior, bilby.core.prior.Cauchy):
                 domain = np.linspace(-1e2, 1e2, 1000)
-            elif isinstance(prior, tupak.core.prior.StudentT):
+            elif isinstance(prior, bilby.core.prior.StudentT):
                 domain = np.linspace(-1e2, 1e2, 1000)
-            elif isinstance(prior, tupak.core.prior.HalfGaussian):
+            elif isinstance(prior, bilby.core.prior.HalfGaussian):
                 domain = np.linspace(0., 1e2, 1000)
-            elif isinstance(prior, tupak.core.prior.Gamma):
+            elif isinstance(prior, bilby.core.prior.Gamma):
                 domain = np.linspace(0., 1e2, 5000)
-            elif isinstance(prior, tupak.core.prior.LogNormal):
+            elif isinstance(prior, bilby.core.prior.LogNormal):
                 domain = np.linspace(0., 1e2, 1000)
-            elif isinstance(prior, tupak.core.prior.Exponential):
+            elif isinstance(prior, bilby.core.prior.Exponential):
                 domain = np.linspace(0., 1e2, 5000)
-            elif isinstance(prior, tupak.core.prior.Logistic):
+            elif isinstance(prior, bilby.core.prior.Logistic):
                 domain = np.linspace(-1e2, 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
@@ -252,7 +252,7 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_unit_setting(self):
         for prior in self.priors:
-            if isinstance(prior, tupak.gw.prior.UniformComovingVolume):
+            if isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 self.assertEqual('Mpc', prior.unit)
             else:
                 self.assertEqual('unit', prior.unit)
@@ -266,31 +266,31 @@ class TestPriorClasses(unittest.TestCase):
                     self.assertNotEqual(self.priors[i], self.priors[j])
 
     def test_eq_other_condition(self):
-        prior_1 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
-        prior_2 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1.5)
+        prior_1 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
+        prior_2 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1.5)
         self.assertNotEqual(prior_1, prior_2)
 
     def test_eq_different_keys(self):
-        prior_1 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
-        prior_2 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
+        prior_1 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
+        prior_2 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
         prior_2.other_key = 5
         self.assertNotEqual(prior_1, prior_2)
 
     def test_np_array_eq(self):
-        prior_1 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
-        prior_2 = tupak.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
+        prior_1 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
+        prior_2 = bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1)
         prior_1.array_attribute = np.array([1, 2, 3])
         prior_2.array_attribute = np.array([2, 2, 3])
         self.assertNotEqual(prior_1, prior_2)
 
     def test_repr(self):
         for prior in self.priors:
-            if isinstance(prior, tupak.core.prior.Interped):
+            if isinstance(prior, bilby.core.prior.Interped):
                 continue  # we cannot test this because of the numpy arrays
-            elif isinstance(prior, tupak.gw.prior.UniformComovingVolume):
-                repr_prior_string = 'tupak.gw.prior.' + repr(prior)
+            elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
+                repr_prior_string = 'bilby.gw.prior.' + repr(prior)
             else:
-                repr_prior_string = 'tupak.core.prior.' + repr(prior)
+                repr_prior_string = 'bilby.core.prior.' + repr(prior)
             repr_prior = eval(repr_prior_string)
             self.assertEqual(prior, repr_prior)
 
@@ -298,16 +298,16 @@ class TestPriorClasses(unittest.TestCase):
 class TestPriorSet(unittest.TestCase):
 
     def setUp(self):
-        self.first_prior = tupak.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg')
-        self.second_prior = tupak.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s')
-        self.third_prior = tupak.core.prior.DeltaFunction(name='c', peak=42, unit='m')
+        self.first_prior = bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg')
+        self.second_prior = bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s')
+        self.third_prior = bilby.core.prior.DeltaFunction(name='c', peak=42, unit='m')
         self.prior_dict = dict(mass=self.first_prior,
                                speed=self.second_prior,
                                length=self.third_prior)
-        self.prior_set_from_dict = tupak.core.prior.PriorSet(dictionary=self.prior_dict)
+        self.prior_set_from_dict = bilby.core.prior.PriorSet(dictionary=self.prior_dict)
         self.default_prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                'prior_files/binary_black_holes.prior')
-        self.prior_set_from_file = tupak.core.prior.PriorSet(filename=self.default_prior_file)
+        self.prior_set_from_file = bilby.core.prior.PriorSet(filename=self.default_prior_file)
 
     def tearDown(self):
         del self.first_prior
@@ -348,27 +348,27 @@ class TestPriorSet(unittest.TestCase):
 
     def test_read_from_file(self):
         expected = dict(
-            mass_1=tupak.core.prior.Uniform(
+            mass_1=bilby.core.prior.Uniform(
                 name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_2=tupak.core.prior.Uniform(
+            mass_2=bilby.core.prior.Uniform(
                 name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            a_1=tupak.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
-            a_2=tupak.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
-            tilt_1=tupak.core.prior.Sine(name='tilt_1'),
-            tilt_2=tupak.core.prior.Sine(name='tilt_2'),
-            phi_12=tupak.core.prior.Uniform(
+            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
+            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
+            tilt_1=bilby.core.prior.Sine(name='tilt_1'),
+            tilt_2=bilby.core.prior.Sine(name='tilt_2'),
+            phi_12=bilby.core.prior.Uniform(
                 name='phi_12', minimum=0, maximum=2 * np.pi),
-            phi_jl=tupak.core.prior.Uniform(
+            phi_jl=bilby.core.prior.Uniform(
                 name='phi_jl', minimum=0, maximum=2 * np.pi),
-            luminosity_distance=tupak.gw.prior.UniformComovingVolume(
+            luminosity_distance=bilby.gw.prior.UniformComovingVolume(
                 name='luminosity_distance', minimum=1e2,
                 maximum=5e3, unit='Mpc'),
-            dec=tupak.core.prior.Cosine(name='dec'),
-            ra=tupak.core.prior.Uniform(
+            dec=bilby.core.prior.Cosine(name='dec'),
+            ra=bilby.core.prior.Uniform(
                 name='ra', minimum=0, maximum=2 * np.pi),
-            iota=tupak.core.prior.Sine(name='iota'),
-            psi=tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
-            phase=tupak.core.prior.Uniform(
+            iota=bilby.core.prior.Sine(name='iota'),
+            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
+            phase=bilby.core.prior.Uniform(
                 name='phase', minimum=0, maximum=2 * np.pi)
             )
         self.assertDictEqual(expected, self.prior_set_from_file)
@@ -378,45 +378,45 @@ class TestPriorSet(unittest.TestCase):
         self.prior_set_from_dict['e'] = 7.3
         self.prior_set_from_dict['f'] = 'unconvertable'
         self.prior_set_from_dict.convert_floats_to_delta_functions()
-        expected = dict(mass=tupak.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg'),
-                        speed=tupak.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s'),
-                        length=tupak.core.prior.DeltaFunction(name='c', peak=42, unit='m'),
-                        d=tupak.core.prior.DeltaFunction(peak=5),
-                        e=tupak.core.prior.DeltaFunction(peak=7.3),
+        expected = dict(mass=bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg'),
+                        speed=bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s'),
+                        length=bilby.core.prior.DeltaFunction(name='c', peak=42, unit='m'),
+                        d=bilby.core.prior.DeltaFunction(peak=5),
+                        e=bilby.core.prior.DeltaFunction(peak=7.3),
                         f='unconvertable')
         self.assertDictEqual(expected, self.prior_set_from_dict)
 
     def test_prior_set_from_dict_but_using_a_string(self):
-        prior_set = tupak.core.prior.PriorSet(dictionary=self.default_prior_file)
+        prior_set = bilby.core.prior.PriorSet(dictionary=self.default_prior_file)
         expected = dict(
-            mass_1=tupak.core.prior.Uniform(
+            mass_1=bilby.core.prior.Uniform(
                 name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_2=tupak.core.prior.Uniform(
+            mass_2=bilby.core.prior.Uniform(
                 name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            a_1=tupak.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
-            a_2=tupak.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
-            tilt_1=tupak.core.prior.Sine(name='tilt_1'),
-            tilt_2=tupak.core.prior.Sine(name='tilt_2'),
-            phi_12=tupak.core.prior.Uniform(
+            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
+            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
+            tilt_1=bilby.core.prior.Sine(name='tilt_1'),
+            tilt_2=bilby.core.prior.Sine(name='tilt_2'),
+            phi_12=bilby.core.prior.Uniform(
                 name='phi_12', minimum=0, maximum=2 * np.pi),
-            phi_jl=tupak.core.prior.Uniform(
+            phi_jl=bilby.core.prior.Uniform(
                 name='phi_jl', minimum=0, maximum=2 * np.pi),
-            luminosity_distance=tupak.gw.prior.UniformComovingVolume(
+            luminosity_distance=bilby.gw.prior.UniformComovingVolume(
                 name='luminosity_distance', minimum=1e2,
                 maximum=5e3, unit='Mpc'),
-            dec=tupak.core.prior.Cosine(name='dec'),
-            ra=tupak.core.prior.Uniform(
+            dec=bilby.core.prior.Cosine(name='dec'),
+            ra=bilby.core.prior.Uniform(
                 name='ra', minimum=0, maximum=2 * np.pi),
-            iota=tupak.core.prior.Sine(name='iota'),
-            psi=tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
-            phase=tupak.core.prior.Uniform(
+            iota=bilby.core.prior.Sine(name='iota'),
+            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
+            phase=bilby.core.prior.Uniform(
                 name='phase', minimum=0, maximum=2 * np.pi)
         )
         self.assertDictEqual(expected, prior_set)
 
     def test_dict_argument_is_not_string_or_dict(self):
         with self.assertRaises(ValueError):
-            tupak.core.prior.PriorSet(dictionary=list())
+            bilby.core.prior.PriorSet(dictionary=list())
 
     def test_sample_subset_correct_size(self):
         size = 7
@@ -475,8 +475,8 @@ class TestFillPrior(unittest.TestCase):
         self.likelihood = Mock()
         self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
-        self.priors = dict(a=1, b=1.1, c='string', d=tupak.core.prior.Uniform(0, 1))
-        self.priors = tupak.core.prior.PriorSet(dictionary=self.priors)
+        self.priors = dict(a=1, b=1.1, c='string', d=bilby.core.prior.Uniform(0, 1))
+        self.priors = bilby.core.prior.PriorSet(dictionary=self.priors)
         self.default_prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                'prior_files/binary_black_holes.prior')
         self.priors.fill_priors(self.likelihood, self.default_prior_file)
@@ -486,16 +486,16 @@ class TestFillPrior(unittest.TestCase):
         del self.priors
 
     def test_prior_instances_are_not_changed_by_parsing(self):
-        self.assertIsInstance(self.priors['d'], tupak.core.prior.Uniform)
+        self.assertIsInstance(self.priors['d'], bilby.core.prior.Uniform)
 
     def test_parsing_ints_to_delta_priors_class(self):
-        self.assertIsInstance(self.priors['a'], tupak.core.prior.DeltaFunction)
+        self.assertIsInstance(self.priors['a'], bilby.core.prior.DeltaFunction)
 
     def test_parsing_ints_to_delta_priors_with_right_value(self):
         self.assertEqual(self.priors['a'].peak, 1)
 
     def test_parsing_floats_to_delta_priors_class(self):
-        self.assertIsInstance(self.priors['b'], tupak.core.prior.DeltaFunction)
+        self.assertIsInstance(self.priors['b'], bilby.core.prior.DeltaFunction)
 
     def test_parsing_floats_to_delta_priors_with_right_value(self):
         self.assertAlmostEqual(self.priors['b'].peak, 1.1, 1e-8)
@@ -505,24 +505,24 @@ class TestFillPrior(unittest.TestCase):
             print(self.priors['asdf'])
 
     def test_with_available_default_priors_a_default_prior_is_set(self):
-        self.assertIsInstance(self.priors['ra'], tupak.core.prior.Uniform)
+        self.assertIsInstance(self.priors['ra'], bilby.core.prior.Uniform)
 
 
 class TestCreateDefaultPrior(unittest.TestCase):
 
     def test_none_behaviour(self):
-        self.assertIsNone(tupak.core.prior.create_default_prior(name='name', default_priors_file=None))
+        self.assertIsNone(bilby.core.prior.create_default_prior(name='name', default_priors_file=None))
 
     def test_bbh_params(self):
         prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
-        prior_set = tupak.core.prior.PriorSet(filename=prior_file)
+        prior_set = bilby.core.prior.PriorSet(filename=prior_file)
         for prior in prior_set:
-            self.assertEqual(prior_set[prior], tupak.core.prior.create_default_prior(name=prior,
+            self.assertEqual(prior_set[prior], bilby.core.prior.create_default_prior(name=prior,
                                                                                      default_priors_file=prior_file))
 
     def test_unknown_prior(self):
         prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
-        self.assertIsNone(tupak.core.prior.create_default_prior(name='name', default_priors_file=prior_file))
+        self.assertIsNone(bilby.core.prior.create_default_prior(name='name', default_priors_file=prior_file))
 
 
 if __name__ == '__main__':

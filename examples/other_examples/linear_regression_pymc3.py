@@ -1,22 +1,22 @@
 #!/bin/python
 """
-An example of how to use tupak to perform paramater estimation for
+An example of how to use bilby to perform paramater estimation for
 non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise
 
 """
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 import matplotlib.pyplot as plt
 import inspect
 
-from tupak.core.likelihood import GaussianLikelihood
+from bilby.core.likelihood import GaussianLikelihood
 
 # A few simple setup steps
 label = 'linear_regression_pymc3'
 outdir = 'outdir'
-tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
+bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 # First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
@@ -49,14 +49,14 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # the time, data and signal model
 likelihood = GaussianLikelihood(time, data, model, sigma=sigma)
 
-# From hereon, the syntax is exactly equivalent to other tupak examples
+# From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
 priors = {}
-priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
-priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
+priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
+priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='pymc3',
     injection_parameters=injection_parameters, outdir=outdir,
     draws=2000, label=label)

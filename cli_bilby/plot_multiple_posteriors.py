@@ -21,10 +21,10 @@ def setup_command_line_args():
 
 def main():
     args = setup_command_line_args()
-    import tupak
-    results = [tupak.core.result.read_in_result(filename=r)
+    import bilby
+    results = [bilby.core.result.read_in_result(filename=r)
                for r in args.results]
-    tupak.core.result.plot_multiple(results, filename=args.filename,
+    bilby.core.result.plot_multiple(results, filename=args.filename,
                                     labels=args.labels,
                                     parameters=args.parameters,
                                     evidences=args.evidences)

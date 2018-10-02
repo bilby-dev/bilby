@@ -2,18 +2,18 @@ from __future__ import absolute_import
 
 from ..utils import check_directory_exists_and_if_not_mkdir
 from .base_sampler import NestedSampler
-from tupak.core.utils import logger
+from ..utils import logger
 
 
 class Pymultinest(NestedSampler):
     """
-    tupak wrapper of pymultinest
+    bilby wrapper of pymultinest
     (https://github.com/JohannesBuchner/PyMultiNest)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `pymultinest.run`, see documentation
     for that class for further help. Under Keyword Arguments, we list commonly
-    used kwargs and the tupak defaults.
+    used kwargs and the bilby defaults.
 
     Keyword Arguments
     ------------------

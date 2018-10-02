@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 from past.builtins import execfile
 
-import tupak
+import bilby
 
 
 class Test(unittest.TestCase):
@@ -51,7 +51,7 @@ class Test(unittest.TestCase):
             0.00000000, 5)
 
     def test_recover_luminosity_distance(self):
-        likelihood = tupak.gw.likelihood.GravitationalWaveTransient(
+        likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             [self.msd['IFO']], self.msd['waveform_generator'])
 
         priors = {}
@@ -59,10 +59,10 @@ class Test(unittest.TestCase):
             priors[key] = self.msd['simulation_parameters'][key]
 
         dL = self.msd['simulation_parameters']['luminosity_distance']
-        priors['luminosity_distance'] = tupak.core.prior.Uniform(
+        priors['luminosity_distance'] = bilby.core.prior.Uniform(
             name='luminosity_distance', minimum=dL - 10, maximum=dL + 10)
 
-        result = tupak.core.sampler.run_sampler(
+        result = bilby.core.sampler.run_sampler(
             likelihood, priors, sampler='dynesty', verbose=False, npoints=100)
         self.assertAlmostEqual(
             np.mean(result.posterior.luminosity_distance), dL,

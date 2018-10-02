@@ -51,7 +51,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     """
     Convert parameters we have into parameters we need.
 
-    This is defined by the parameters of tupak.source.lal_binary_black_hole()
+    This is defined by the parameters of bilby.source.lal_binary_black_hole()
 
 
     Mass: mass_1, mass_2
@@ -160,7 +160,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     """
     Convert parameters we have into parameters we need.
 
-    This is defined by the parameters of tupak.source.lal_binary_black_hole()
+    This is defined by the parameters of bilby.source.lal_binary_black_hole()
 
 
     Mass: mass_1, mass_2
@@ -494,7 +494,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an
         injection or posterior samples.
-    likelihood: tupak.gw.likelihood.GravitationalWaveTransient, optional
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient, optional
         GravitationalWaveTransient used for sampling, used for waveform and
         likelihood.interferometers.
     priors: dict, optional
@@ -665,7 +665,7 @@ def compute_snrs(sample, likelihood):
     ----------
     sample: dict or array_like
 
-    likelihood: tupak.gw.likelihood.GravitationalWaveTransient
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
         Likelihood function to be applied on the posterior
 
     """

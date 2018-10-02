@@ -6,12 +6,12 @@ from .base_sampler import NestedSampler
 
 
 class Cpnest(NestedSampler):
-    """ tupak wrapper of cpnest (https://github.com/johnveitch/cpnest)
+    """ bilby wrapper of cpnest (https://github.com/johnveitch/cpnest)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `cpnest.CPNest`, see documentation
     for that class for further help. Under Keyword Arguments, we list commonly
-    used kwargs and the tupak defaults.
+    used kwargs and the bilby defaults.
 
     Keyword Arguments
     -----------------

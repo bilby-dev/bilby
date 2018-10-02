@@ -18,14 +18,14 @@ can be either
 
 - fixed number, in which case the value is held fixed at this value. In effect,
   this is a Delta-function prior,
-- or a :code:`tupak.prior.Prior` instance.
+- or a :code:`bilby.prior.Prior` instance.
 
 If the latter, it will be sampled during the parameter estimation. Here is a
 simple example that sets a uniform prior for :code:`a`, and a fixed value for
 :code:`b`::
 
    priors = {}
-   priors['a'] = tupak.prior.Uniform(minimum=0, maximum=10, name='a', latex_label='a')
+   priors['a'] = bilby.prior.Uniform(minimum=0, maximum=10, name='a', latex_label='a')
    priors['b'] = 5
 
 Notice, that the :code:`latex_label` is optional, but if given will be used
@@ -39,7 +39,7 @@ If any model parameter required by the :ref:`likelihood` are not defined in the
 will try to use a default prior. By default, these are setup for a binary black
 hole and defined in a file like this
 
-.. literalinclude:: /../tupak/gw/prior_files/binary_black_holes.prior
+.. literalinclude:: /../bilby/gw/prior_files/binary_black_holes.prior
 
 You can define your own default prior and pass a string pointing to that file
 to :ref:`run_sampler <run_sampler>`.
@@ -50,17 +50,17 @@ Available prior classes
 We have provided a number of standard priors. Here we document a few of them,
 note that this list is incomplete.
 
-.. autoclass:: tupak.core.prior.Uniform
+.. autoclass:: bilby.core.prior.Uniform
    :members:
    :special-members:
 
-.. autoclass:: tupak.core.prior.Gaussian
+.. autoclass:: bilby.core.prior.Gaussian
    :members:
    :special-members:
 
 You can also define your own by
-subclassing the :code:`tupak.prior.Prior` class.
+subclassing the :code:`bilby.prior.Prior` class.
 
-.. autoclass:: tupak.core.prior.Prior
+.. autoclass:: bilby.core.prior.Prior
    :members:
    :special-members:

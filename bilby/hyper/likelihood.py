@@ -16,9 +16,9 @@ class HyperparameterLikelihood(Likelihood):
     posteriors: list
         An list of pandas data frames of samples sets of samples.
         Each set may have a different size.
-    hyper_prior: `tupak.hyper.model.Model`
+    hyper_prior: `bilby.hyper.model.Model`
         The population model, this can alternatively be a function.
-    sampling_prior: `tupak.hyper.model.Model`
+    sampling_prior: `bilby.hyper.model.Model`
         The sampling prior, this can alternatively be a function.
     log_evidences: list, optional
         Log evidences for single runs to ensure proper normalisation

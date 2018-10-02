@@ -1,4 +1,4 @@
-from tupak.gw import calibration
+from bilby.gw import calibration
 import unittest
 import numpy as np
 

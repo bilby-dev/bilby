@@ -11,12 +11,12 @@ from .base_sampler import Sampler, MCMCSampler
 
 
 class Pymc3(MCMCSampler):
-    """ tupak wrapper of the PyMC3 sampler (https://docs.pymc.io/)
+    """ bilby wrapper of the PyMC3 sampler (https://docs.pymc.io/)
 
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
     propapated to `pymc3.sample` where appropriate, see documentation for that
     class for further help. Under Keyword Arguments, we list commonly used
-    kwargs and the tupak, or where appropriate, PyMC3 defaults.
+    kwargs and the bilby, or where appropriate, PyMC3 defaults.
 
     Keyword Arguments
     -----------------
@@ -137,7 +137,7 @@ class Pymc3(MCMCSampler):
 
     def setup_prior_mapping(self):
         """
-        Set the mapping between predefined tupak priors and the equivalent
+        Set the mapping between predefined bilby priors and the equivalent
         PyMC3 distributions.
         """
 
@@ -208,7 +208,7 @@ class Pymc3(MCMCSampler):
         # GW specific priors
         prior_map['UniformComovingVolume'] = prior_map['Interped']
 
-        # internally defined mappings for tupak priors
+        # internally defined mappings for bilby priors
         prior_map['DeltaFunction'] = {'internal': self._deltafunction_prior}
         prior_map['Sine'] = {'internal': self._sine_prior}
         prior_map['Cosine'] = {'internal': self._cosine_prior}
@@ -217,10 +217,10 @@ class Pymc3(MCMCSampler):
 
     def _deltafunction_prior(self, key, **kwargs):
         """
-        Map the tupak delta function prior to a single value for PyMC3.
+        Map the bilby delta function prior to a single value for PyMC3.
         """
 
-        from tupak.core.prior import DeltaFunction
+        from ..prior import DeltaFunction
 
         # check prior is a DeltaFunction
         if isinstance(self.priors[key], DeltaFunction):
@@ -230,10 +230,10 @@ class Pymc3(MCMCSampler):
 
     def _sine_prior(self, key):
         """
-        Map the tupak Sine prior to a PyMC3 style function
+        Map the bilby Sine prior to a PyMC3 style function
         """
 
-        from tupak.core.prior import Sine
+        from ..prior import Sine
 
         # check prior is a Sine
         if isinstance(self.priors[key], Sine):
@@ -277,10 +277,10 @@ class Pymc3(MCMCSampler):
 
     def _cosine_prior(self, key):
         """
-        Map the tupak Cosine prior to a PyMC3 style function
+        Map the bilby Cosine prior to a PyMC3 style function
         """
 
-        from tupak.core.prior import Cosine
+        from ..prior import Cosine
 
         # check prior is a Cosine
         if isinstance(self.priors[key], Cosine):
@@ -324,10 +324,10 @@ class Pymc3(MCMCSampler):
 
     def _powerlaw_prior(self, key):
         """
-        Map the tupak PowerLaw prior to a PyMC3 style function
+        Map the bilby PowerLaw prior to a PyMC3 style function
         """
 
-        from tupak.core.prior import PowerLaw
+        from ..prior import PowerLaw
 
         # check prior is a PowerLaw
         if isinstance(self.priors[key], PowerLaw):
@@ -533,7 +533,7 @@ class Pymc3(MCMCSampler):
 
     def set_likelihood(self):
         """
-        Convert any tupak likelihoods to PyMC3 distributions.
+        Convert any bilby likelihoods to PyMC3 distributions.
         """
 
         try:
@@ -543,9 +543,9 @@ class Pymc3(MCMCSampler):
         except ImportError:
             raise ImportError("Could not import theano")
 
-        from tupak.core.likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+        from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
             StudentTLikelihood
-        from tupak.gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
+        from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
         # create theano Op for the log likelihood if not using a predefined model
         class LogLike(tt.Op):

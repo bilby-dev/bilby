@@ -5,7 +5,7 @@ Hyper-parameters
 ================
 
 This short guide will illustrate how to estimate hyper-parameters from
-posterior samples using :code:`tupak` using a simplistic problem.
+posterior samples using :code:`bilby` using a simplistic problem.
 
 Setting up the problem
 ----------------------

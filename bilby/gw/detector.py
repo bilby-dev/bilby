@@ -61,7 +61,7 @@ class InterferometerList(list):
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
-        `tupak.gw.detector.InterferometerStrainData` for further information.
+        `bilby.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
         ----------
@@ -90,7 +90,7 @@ class InterferometerList(list):
            `waveform_generator.frequency_domain_strain()`. If
            `waveform_generator` is also given, the injection_polarizations will
            be calculated directly and this argument can be ignored.
-        waveform_generator: tupak.gw.waveform_generator.WaveformGenerator
+        waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
@@ -659,7 +659,7 @@ class InterferometerStrainData(object):
 
         Parameters
         ----------
-        power_spectral_density: tupak.gw.detector.PowerSpectralDensity
+        power_spectral_density: bilby.gw.detector.PowerSpectralDensity
             A PowerSpectralDensity object used to generate the data
         sampling_frequency: float
             The sampling frequency (in Hz)
@@ -836,7 +836,7 @@ class Interferometer(object):
 
     @property
     def strain_data(self):
-        """ A tupak.gw.detector.InterferometerStrainData instance """
+        """ A bilby.gw.detector.InterferometerStrainData instance """
         return self._strain_data
 
     @strain_data.setter
@@ -884,7 +884,7 @@ class Interferometer(object):
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
-        `tupak.gw.detector.InterferometerStrainData` for further information.
+        `bilby.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
         ----------
@@ -1223,7 +1223,7 @@ class Interferometer(object):
            `waveform_generator.frequency_domain_strain()`. If
            `waveform_generator` is also given, the injection_polarizations will
            be calculated directly and this argument can be ignored.
-        waveform_generator: tupak.gw.waveform_generator
+        waveform_generator: bilby.gw.waveform_generator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
@@ -1940,12 +1940,12 @@ def get_interferometer_with_open_data(
 
     Returns
     -------
-    tupak.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
+    bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
 
     logger.warning(
-        "Parameter estimation for real interferometer data in tupak is in "
+        "Parameter estimation for real interferometer data in bilby is in "
         "alpha testing at the moment: the routines for windowing and filtering"
         " have not been reviewed.")
 
@@ -2004,7 +2004,7 @@ def get_interferometer_with_fake_noise_and_injection(
        `waveform_generator.frequency_domain_strain()`. If
        `waveform_generator` is also given, the injection_polarizations will
        be calculated directly and this argument can be ignored.
-    waveform_generator: tupak.gw.waveform_generator
+    waveform_generator: bilby.gw.waveform_generator
         A WaveformGenerator instance using the source model to inject. If
         `injection_polarizations` is given, this will be ignored.
     sampling_frequency: float
@@ -2027,7 +2027,7 @@ def get_interferometer_with_fake_noise_and_injection(
 
     Returns
     -------
-    tupak.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
+    bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
 
@@ -2102,7 +2102,7 @@ def get_event_data(
 
     Return
     ------
-    list: A list of tupak.gw.detector.Interferometer objects
+    list: A list of bilby.gw.detector.Interferometer objects
     """
     event_time = gwutils.get_event_time(event)
 

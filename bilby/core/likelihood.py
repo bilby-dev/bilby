@@ -370,7 +370,7 @@ class JointLikelihood(Likelihood):
 
         Parameters
         ----------
-        *likelihoods: tupak.core.likelihood.Likelihood
+        *likelihoods: bilby.core.likelihood.Likelihood
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import unittest
-import tupak
+import bilby
 import numpy as np
 import mock
 from mock import MagicMock
@@ -20,7 +20,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(
+            bilby.gw.waveform_generator.WaveformGenerator(
                 1, 4096,
                 frequency_domain_source_model=dummy_func_dict_return_value)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
@@ -48,7 +48,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 
     def test_repr_with_time_domain_source_model(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+            bilby.gw.waveform_generator.WaveformGenerator(1, 4096,
                                                           time_domain_source_model=dummy_func_dict_return_value)
         expected = 'WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, ' \
                    'frequency_domain_source_model={}, time_domain_source_model={}, ' \
@@ -103,7 +103,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 class TestWaveformArgumentsSetting(unittest.TestCase):
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+            bilby.gw.waveform_generator.WaveformGenerator(1, 4096,
                                                           frequency_domain_source_model=dummy_func_dict_return_value,
                                                           waveform_arguments=dict(test='test', arguments='arguments'))
 
@@ -119,7 +119,7 @@ class TestSetters(unittest.TestCase):
 
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+            bilby.gw.waveform_generator.WaveformGenerator(1, 4096,
                                                           frequency_domain_source_model=dummy_func_dict_return_value)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                           ra=1.375,
@@ -169,7 +169,7 @@ class TestSetters(unittest.TestCase):
             pass
 
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+            bilby.gw.waveform_generator.WaveformGenerator(1, 4096,
                                                           frequency_domain_source_model=dummy_func_dict_return_value,
                                                           parameter_conversion=conversion_func)
         self.assertEqual(conversion_func, self.waveform_generator.parameter_conversion)
@@ -179,7 +179,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
 
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(duration=1, sampling_frequency=4096,
+            bilby.gw.waveform_generator.WaveformGenerator(duration=1, sampling_frequency=4096,
                                                           frequency_domain_source_model=dummy_func_dict_return_value)
         self.simulation_parameters = dict(amplitude=1e-2, mu=100, sigma=1,
                                           ra=1.375,
@@ -218,7 +218,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         def side_effect(value, value2):
             return value
 
-        with mock.patch('tupak.core.utils.nfft') as m:
+        with mock.patch('bilby.core.utils.nfft') as m:
             m.side_effect = side_effect
             expected = self.waveform_generator.time_domain_strain(
                 parameters=self.simulation_parameters)
@@ -233,7 +233,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         def side_effect(value, value2):
             return value, self.waveform_generator.frequency_array
 
-        with mock.patch('tupak.core.utils.nfft') as m:
+        with mock.patch('bilby.core.utils.nfft') as m:
             m.side_effect = side_effect
             expected = self.waveform_generator.time_domain_strain(
                 parameters=self.simulation_parameters)
@@ -268,7 +268,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
 
     def setUp(self):
         self.waveform_generator = \
-            tupak.gw.waveform_generator.WaveformGenerator(1, 4096,
+            bilby.gw.waveform_generator.WaveformGenerator(1, 4096,
                                                           time_domain_source_model=dummy_func_dict_return_value)
         self.simulation_parameters = dict(amplitude=1e-21, mu=100, sigma=1,
                                           ra=1.375,
@@ -307,7 +307,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         def side_effect(value, value2):
             return value
 
-        with mock.patch('tupak.core.utils.infft') as m:
+        with mock.patch('bilby.core.utils.infft') as m:
             m.side_effect = side_effect
             expected = self.waveform_generator.frequency_domain_strain(
                 parameters=self.simulation_parameters)
@@ -322,7 +322,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         def side_effect(value, value2):
             return value
 
-        with mock.patch('tupak.core.utils.infft') as m:
+        with mock.patch('bilby.core.utils.infft') as m:
             m.side_effect = side_effect
             expected = self.waveform_generator.frequency_domain_strain(
                 parameters=self.simulation_parameters)

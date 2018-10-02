@@ -1,7 +1,7 @@
 from __future__ import absolute_import
-import tupak
-from tupak.core import prior
-from tupak.core.result import Result
+import bilby
+from bilby.core import prior
+from bilby.core.result import Result
 import unittest
 from mock import MagicMock
 import numpy as np
@@ -13,7 +13,7 @@ import copy
 class TestSampler(unittest.TestCase):
 
     def setUp(self):
-        likelihood = tupak.core.likelihood.Likelihood()
+        likelihood = bilby.core.likelihood.Likelihood()
         likelihood.parameters = dict(a=1, b=2, c=3)
         delta_prior = prior.DeltaFunction(peak=0)
         delta_prior.rescale = MagicMock(return_value=prior.DeltaFunction(peak=1))
@@ -30,7 +30,7 @@ class TestSampler(unittest.TestCase):
         test_directory = 'test_directory'
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
-        self.sampler = tupak.core.sampler.Sampler(
+        self.sampler = bilby.core.sampler.Sampler(
             likelihood=likelihood, priors=priors,
             outdir=test_directory, use_ratio=False,
             skip_import_verification=True)
@@ -110,7 +110,7 @@ class TestCPNest(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Cpnest(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Cpnest(self.likelihood, self.priors,
                                                  outdir='outdir', label='label',
                                                  use_ratio=False, plot=False,
                                                  skip_import_verification=True)
@@ -128,7 +128,7 @@ class TestCPNest(unittest.TestCase):
     def test_translate_kwargs(self):
         expected = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000,
                         Poolsize=100, seed=None, balance_samplers=True)
-        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['Nlive']
             new_kwargs[equiv] = 250
@@ -141,7 +141,7 @@ class TestDynesty(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Dynesty(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Dynesty(self.likelihood, self.priors,
                                                   outdir='outdir', label='label',
                                                   use_ratio=False, plot=False,
                                                   skip_import_verification=True)
@@ -175,7 +175,7 @@ class TestDynesty(unittest.TestCase):
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=True,
                         walks=0, update_interval=300, print_func='func')
 
-        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nlive']
             new_kwargs[equiv] = 250
@@ -189,7 +189,7 @@ class TestEmcee(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Emcee(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Emcee(self.likelihood, self.priors,
                                                 outdir='outdir', label='label',
                                                 use_ratio=False, plot=False,
                                                 skip_import_verification=True)
@@ -212,7 +212,7 @@ class TestEmcee(unittest.TestCase):
                         postargs=None, threads=1, pool=None, live_dangerously=False,
                         runtime_sortingfn=None, lnprob0=None, rstate0=None,
                         blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None)
-        for equiv in tupak.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nwalkers']
             new_kwargs[equiv] = 100
@@ -225,7 +225,7 @@ class TestNestle(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Nestle(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Nestle(self.likelihood, self.priors,
                                                  outdir='outdir', label='label',
                                                  use_ratio=False, plot=False,
                                                  skip_import_verification=True,
@@ -249,7 +249,7 @@ class TestNestle(unittest.TestCase):
                         maxcall=None, dlogz=None, decline_factor=None,
                         rstate=None, callback=None)
         self.sampler.kwargs['npoints'] = 123
-        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['npoints']
             new_kwargs[equiv] = 345
@@ -262,7 +262,7 @@ class TestPTEmcee(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Ptemcee(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Ptemcee(self.likelihood, self.priors,
                                                   outdir='outdir', label='label',
                                                   use_ratio=False, plot=False,
                                                   skip_import_verification=True)
@@ -296,7 +296,7 @@ class TestPTEmcee(unittest.TestCase):
                         storechain=True, adapt=True,
                         swap_ratios=False,
                         )
-        for equiv in tupak.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nwalkers']
             new_kwargs[equiv] = 150
@@ -309,7 +309,7 @@ class TestPyMC3(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Pymc3(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Pymc3(self.likelihood, self.priors,
                                                 outdir='outdir', label='label',
                                                 use_ratio=False, plot=False,
                                                 skip_import_verification=True)
@@ -334,7 +334,7 @@ class TestPyMC3(unittest.TestCase):
             model=None, random_seed=None, live_plot=False, discard_tuned_samples=True,
             live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
         self.sampler.kwargs['draws'] = 123
-        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['draws']
             new_kwargs[equiv] = 500
@@ -347,7 +347,7 @@ class TestPymultinest(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = dict()
-        self.sampler = tupak.core.sampler.Pymultinest(self.likelihood, self.priors,
+        self.sampler = bilby.core.sampler.Pymultinest(self.likelihood, self.priors,
                                                       outdir='outdir', label='label',
                                                       use_ratio=False, plot=False,
                                                       skip_import_verification=True)
@@ -383,7 +383,7 @@ class TestPymultinest(unittest.TestCase):
                         max_modes=100, mode_tolerance=-1e90, seed=-1,
                         context=0, write_output=True, log_zero=-1e100,
                         max_iter=0, init_MPI=False, dump_callback=None)
-        for equiv in tupak.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
+        for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['n_live_points']
             new_kwargs[equiv] = 123

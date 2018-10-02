@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 """
-An example of how to use tupak to perform paramater estimation for
+An example of how to use bilby to perform paramater estimation for
 non-gravitational wave data. In this case, fitting the half-life and
 initial radionuclide number for Polonium 214.
 """
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tupak.core.likelihood import PoissonLikelihood
-from tupak.core.prior import LogUniform
+from bilby.core.likelihood import PoissonLikelihood
+from bilby.core.prior import LogUniform
 
 # A few simple setup steps
 label = 'radioactive_decay'
 outdir = 'outdir'
-tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
+bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 # generate a set of counts per minute for n_init atoms of
 # Polonium 214 in atto-moles with a half-life of 20 minutes
@@ -87,7 +87,7 @@ priors['n_init'] = LogUniform(
     1e-25 / atto, 1e-10 / atto, latex_label='$N_0$', unit='attomole')
 
 # And run sampler
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty',
     nlive=1000, sample='unif', injection_parameters=injection_parameters,
     outdir=outdir, label=label)

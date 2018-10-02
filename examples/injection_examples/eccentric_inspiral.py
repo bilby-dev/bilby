@@ -14,7 +14,7 @@ from __future__ import division, print_function
 
 import numpy as np
 
-import tupak
+import bilby
 
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,7 @@ sampling_frequency = 256.
 
 outdir = 'outdir'
 label = 'eccentric_GW140914'
-tupak.core.utils.setup_logger(outdir=outdir, label=label)
+bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.
 np.random.seed(150914)
@@ -35,9 +35,9 @@ injection_parameters = dict(mass_1=35., mass_2=30., eccentricity=0.1,
 waveform_arguments = dict(waveform_approximant='EccentricFD', reference_frequency=10., minimum_frequency=10.)
 
 # Create the waveform_generator using the LAL eccentric black hole no spins source function
-waveform_generator = tupak.gw.WaveformGenerator(
+waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=tupak.gw.source.lal_eccentric_binary_black_hole_no_spins,
+    frequency_domain_source_model=bilby.gw.source.lal_eccentric_binary_black_hole_no_spins,
     parameters=injection_parameters, waveform_arguments=waveform_arguments)
 
 
@@ -48,7 +48,7 @@ waveform_generator = tupak.gw.WaveformGenerator(
 minimum_frequency = 10.
 maximum_frequency = 128.
 
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 for ifo in ifos:
     ifo.minimum_frequency = minimum_frequency
     ifo.maximum_frequency = maximum_frequency
@@ -60,32 +60,32 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 # Now we set up the priors on each of the binary parameters.
 priors = dict()
-priors["mass_1"] = tupak.core.prior.Uniform(
+priors["mass_1"] = bilby.core.prior.Uniform(
     name='mass_1', minimum=5, maximum=60, unit='$M_{\\odot}$')
-priors["mass_2"] = tupak.core.prior.Uniform(
+priors["mass_2"] = bilby.core.prior.Uniform(
     name='mass_2', minimum=5, maximum=60, unit='$M_{\\odot}$')
-priors["eccentricity"] = tupak.core.prior.PowerLaw(
+priors["eccentricity"] = bilby.core.prior.PowerLaw(
     name='eccentricity', latex_label='$e$', alpha=-1, minimum=1e-4, maximum=0.4)
-priors["luminosity_distance"] = tupak.gw.prior.UniformComovingVolume(
+priors["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
     name='luminosity_distance', minimum=1e2, maximum=2e3)
-priors["dec"] = tupak.core.prior.Cosine(name='dec')
-priors["ra"] = tupak.core.prior.Uniform(
+priors["dec"] = bilby.core.prior.Cosine(name='dec')
+priors["ra"] = bilby.core.prior.Uniform(
     name='ra', minimum=0, maximum=2 * np.pi)
-priors["iota"] = tupak.core.prior.Sine(name='iota')
-priors["psi"] = tupak.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
-priors["phase"] = tupak.core.prior.Uniform(
+priors["iota"] = bilby.core.prior.Sine(name='iota')
+priors["psi"] = bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
+priors["phase"] = bilby.core.prior.Uniform(
     name='phase', minimum=0, maximum=2 * np.pi)
-priors["geocent_time"] = tupak.core.prior.Uniform(
+priors["geocent_time"] = bilby.core.prior.Uniform(
     1180002600.9, 1180002601.1, name='geocent_time', unit='s')
 
 # Initialising the likelihood function.
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(interferometers=ifos,
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(interferometers=ifos,
                       waveform_generator=waveform_generator, time_marginalization=False,
                       phase_marginalization=False, distance_marginalization=False,
                       prior=priors)
 
 # Now we run sampler (PyMultiNest in our case).
-result = tupak.run_sampler(likelihood=likelihood, priors=priors, sampler='pymultinest',
+result = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='pymultinest',
                            npoints=1000, injection_parameters=injection_parameters,
                            outdir=outdir, label=label)
 

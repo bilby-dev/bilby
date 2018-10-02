@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 """
-An example of how to use tupak to perform paramater estimation for
+An example of how to use bilby to perform paramater estimation for
 non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise
 
 """
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 import matplotlib.pyplot as plt
 
 # A few simple setup steps
 label = 'linear_regression'
 outdir = 'outdir'
-tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
+bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 
 # First, we define our "signal model", in this case a simple linear function
@@ -46,16 +46,16 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
-likelihood = tupak.likelihood.GaussianLikelihood(time, data, model, sigma)
+likelihood = bilby.likelihood.GaussianLikelihood(time, data, model, sigma)
 
-# From hereon, the syntax is exactly equivalent to other tupak examples
+# From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
 priors = dict()
-priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
-priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
+priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
+priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 
 # And run sampler
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', nlive=500,
     sample='unif', injection_parameters=injection_parameters, outdir=outdir,
     label=label)

@@ -42,12 +42,12 @@ def read_in_result(outdir=None, label=None, filename=None):
 
     Returns
     -------
-    result: tupak.core.result.Result
+    result: bilby.core.result.Result
 
     Raises
     -------
     ValueError: If no filename is given and either outdir or label is None
-                If no tupak.core.result.Result is found in the path
+                If no bilby.core.result.Result is found in the path
 
     """
     if filename is None:
@@ -304,7 +304,7 @@ class Result(dict):
         parameters: (list, dict), optional
             If given, either a list of the parameter names to include, or a
             dictionary of parameter names and their "true" values to plot.
-        priors: {bool (False), tupak.core.prior.PriorSet}
+        priors: {bool (False), bilby.core.prior.PriorSet}
             If true, add the stored prior probability density functions to the
             one-dimensional marginal distributions. If instead a PriorSet
             is provided, this will be plotted.
@@ -341,7 +341,7 @@ class Result(dict):
         if utils.command_line_args.test:
             return
 
-        # tupak default corner kwargs. Overwritten by anything passed to kwargs
+        # bilby default corner kwargs. Overwritten by anything passed to kwargs
         defaults_kwargs = dict(
             bins=50, smooth=0.9, label_kwargs=dict(fontsize=16),
             title_kwargs=dict(fontsize=16), color='#0072C1',
@@ -532,7 +532,7 @@ class Result(dict):
 
         Parameters
         ----------
-        likelihood: tupak.likelihood.GravitationalWaveTransient, optional
+        likelihood: bilby.likelihood.GravitationalWaveTransient, optional
             GravitationalWaveTransient likelihood used for sampling.
         priors: dict, optional
             Dictionary of prior object, used to fill in delta function priors.
@@ -646,7 +646,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     Parameters
     ----------
     results: list
-        A list of `tupak.core.result.Result` objects containing the samples to
+        A list of `bilby.core.result.Result` objects containing the samples to
         plot.
     filename: str
         File name to save the figure to. If None (default), a filename is

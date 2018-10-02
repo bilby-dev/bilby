@@ -3,7 +3,7 @@
 An example of running two sets of posterior sample estimations and adding them
 """
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 
 outdir = 'outdir'
@@ -21,18 +21,18 @@ time = np.arange(0, time_duration, 1/sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
-likelihood = tupak.core.likelihood.GaussianLikelihood(
+likelihood = bilby.core.likelihood.GaussianLikelihood(
     time, data, model, sigma=sigma)
 
 priors = {}
-priors['m'] = tupak.core.prior.Uniform(0, 1, 'm')
-priors['c'] = tupak.core.prior.Uniform(-2, 2, 'c')
+priors['m'] = bilby.core.prior.Uniform(0, 1, 'm')
+priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 
-resultA = tupak.run_sampler(
+resultA = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='emcee', nsteps=1000,
     nburn=500, outdir=outdir, label='A')
 
-resultB = tupak.run_sampler(
+resultB = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='emcee', nsteps=1000,
     nburn=500, outdir=outdir, label='B')
 

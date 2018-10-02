@@ -11,13 +11,13 @@ from .base_sampler import Sampler, NestedSampler
 
 class Dynesty(NestedSampler):
     """
-    tupak wrapper of `dynesty.NestedSampler`
+    bilby wrapper of `dynesty.NestedSampler`
     (https://dynesty.readthedocs.io/en/latest/)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `dynesty.NestedSampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
-    list commonly used kwargs and the tupak defaults.
+    list commonly used kwargs and the bilby defaults.
 
     Keyword Arguments
     -----------------

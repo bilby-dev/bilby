@@ -6,12 +6,12 @@ from . import Emcee
 
 
 class Ptemcee(Emcee):
-    """tupak wrapper ptemcee (https://github.com/willvousden/ptemcee)
+    """bilby wrapper ptemcee (https://github.com/willvousden/ptemcee)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `ptemcee.Sampler`, see
     documentation for that class for further help. Under Keyword Arguments, we
-    list commonly used kwargs and the tupak defaults.
+    list commonly used kwargs and the bilby defaults.
 
     Keyword Arguments
     -----------------

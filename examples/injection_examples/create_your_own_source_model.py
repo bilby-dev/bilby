@@ -3,7 +3,7 @@
 A script to demonstrate how to use your own source model
 """
 from __future__ import division, print_function
-import tupak
+import bilby
 import numpy as np
 
 # First set up logging and some output directories and labels
@@ -25,13 +25,13 @@ def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
 # We now define some parameters that we will inject and then a waveform generator
 injection_parameters = dict(A=1e-23, f0=100, tau=1, phi0=0, geocent_time=0,
                             ra=0, dec=0, psi=0)
-waveform_generator = tupak.gw.waveform_generator.WaveformGenerator(duration=duration,
+waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(duration=duration,
                                                                    sampling_frequency=sampling_frequency,
                                                                    frequency_domain_source_model=sine_gaussian,
                                                                    parameters=injection_parameters)
 
 # Set up interferometers.
-ifos = tupak.gw.detector.InterferometerList(['H1', 'L1'])
+ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
     start_time=injection_parameters['geocent_time'] - 3)
@@ -41,12 +41,12 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # Here we define the priors for the search. We use the injection parameters
 # except for the amplitude, f0, and geocent_time
 prior = injection_parameters.copy()
-prior['A'] = tupak.core.prior.PowerLaw(alpha=-1, minimum=1e-25, maximum=1e-21, name='A')
-prior['f0'] = tupak.core.prior.Uniform(90, 110, 'f')
+prior['A'] = bilby.core.prior.PowerLaw(alpha=-1, minimum=1e-25, maximum=1e-21, name='A')
+prior['f0'] = bilby.core.prior.Uniform(90, 110, 'f')
 
-likelihood = tupak.gw.likelihood.GravitationalWaveTransient(ifos, waveform_generator)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(ifos, waveform_generator)
 
-result = tupak.core.sampler.run_sampler(
+result = bilby.core.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,
     resume=False, sample='unif', injection_parameters=injection_parameters)
 result.plot_corner()

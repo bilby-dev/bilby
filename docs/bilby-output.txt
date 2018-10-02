@@ -1,8 +1,8 @@
 ============
-Tupak output
+Bilby output
 ============
 
-In this document, we will describe what :code:`tupak` outputs, where it is stored,
+In this document, we will describe what :code:`bilby` outputs, where it is stored,
 and how you can access it.
 
 When you call :code:`run_sampler`, there are two arguments :code:`outdir` and :code:`label` which
@@ -14,10 +14,10 @@ documents, we'll assume the defaults where used (which are :code:`outdir` and
 The raw data
 ------------
 
-First off, the primary data dump of :code:`tupak` goes into :code:`outdir/label_result.h5`.
+First off, the primary data dump of :code:`bilby` goes into :code:`outdir/label_result.h5`.
 This is a binary file, so isn't human readable, but you can use it using a
 command-line tool :code:`ddls` [#f1]_ (you have this installed already if you have installed
-the :code:`tupak` requirements). To have a look at what is inside run
+the :code:`bilby` requirements). To have a look at what is inside run
 
 .. code-block:: console
 
@@ -82,7 +82,7 @@ the :code:`tupak` requirements). To have a look at what is inside run
 This shows the different data that is stored in the :code:`h5` file. You can think of
 the file like a python dictionary - its a bag with lots of different kind of
 data which can be accessed via a :code:`key` (a string). We use `deepdish
-<http://deepdish.io/>`_ to handle the saving of :code:`h5` files in :code:`tupak`. In python,
+<http://deepdish.io/>`_ to handle the saving of :code:`h5` files in :code:`bilby`. In python,
 you can load any :code:`h5` file and access its contents like a dictionary::
 
    >>> import deepdish
@@ -97,15 +97,15 @@ the :code:`posterior` or any other attribute. For a full list, print the
 Reading in a result file
 ------------------------
 Rather than reading in the raw :code:`h5` file, may find it more convienient to
-instead load a :code:`*result.h5` as a :code:`tupak` :code:`result` object (i.e., like the output
+instead load a :code:`*result.h5` as a :code:`bilby` :code:`result` object (i.e., like the output
 of :code:`run_sampler`). To do this::
 
-   >>> import tupak
-   >>> result = tupak.result.read_in_result(outdir=outdir, label=label)
-   >>> result = tupak.result.read_in_result(filename='outdir/label_result.h5)
+   >>> import bilby
+   >>> result = bilby.result.read_in_result(outdir=outdir, label=label)
+   >>> result = bilby.result.read_in_result(filename='outdir/label_result.h5)
 
 Note, these two lines are equivalent, but show two different ways to read in
-the data. Using this method, :code:`result` is now a :code:`tupak.result.Result` instance
+the data. Using this method, :code:`result` is now a :code:`bilby.result.Result` instance
 and has all the methods and attributes. So, for example, you could call
 `result.plot_corner()` to generate a corner plot.
 

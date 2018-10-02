@@ -1,6 +1,5 @@
 import inspect
 import sys
-import numpy as np
 import datetime
 from collections import OrderedDict
 
@@ -46,9 +45,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Parameters
     ----------
-    likelihood: `tupak.Likelihood`
+    likelihood: `bilby.Likelihood`
         A `Likelihood` instance
-    priors: `tupak.PriorSet`
+    priors: `bilby.PriorSet`
         A PriorSet/dictionary of the priors for each parameter - missing
         parameters will use default priors, if None, all priors will be default
     label: str
@@ -57,7 +56,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         A string used in defining output files
     sampler: str, Sampler
         The name of the sampler to use - see
-        `tupak.sampler.get_implemented_samplers()` for a list of available
+        `bilby.sampler.get_implemented_samplers()` for a list of available
         samplers.
         Alternatively a Sampler object can be passed
     use_ratio: bool (False)
@@ -72,13 +71,13 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         Function to apply to posterior to generate additional parameters.
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
-        the tupak defaults for a binary black hole.
+        the bilby defaults for a binary black hole.
     clean: bool
         If given, override the command line interface `clean` option.
     meta_data: dict
         If given, adds the key-value pairs to the 'results' object before
         saving. For example, if `meta_data={dtype: 'signal'}`. Warning: in case
-        of conflict with keys saved by tupak, the meta_data keys will be
+        of conflict with keys saved by bilby, the meta_data keys will be
         overwritten.
     save: bool
         If true, save the priors and results to disk.

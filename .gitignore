@@ -2,7 +2,7 @@
 build/
 dist/
 docs/_*
-tupak.egg-info/
+bilby.egg-info/
 MANIFEST
 *.pyc
 *.png

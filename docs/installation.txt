@@ -2,20 +2,20 @@
 Installation
 ============
 
-The lastest stable release of Tupak can be `pip-installed
-<https://pypi.org/project/TUPAK/>`_ from
+The lastest stable release of Bilby can be `pip-installed
+<https://pypi.org/project/BILBY/>`_ from
 
 .. code-block:: console
 
-   $ pip install tupak
+   $ pip install bilby
 
 If you would like to install the development version, see the instructions
 below.
 
-Install tupak from source
+Install bilby from source
 -------------------------
 
-:code:`tupak` is developed to work with both Python 2.7+ and Python 3+. In the
+:code:`bilby` is developed to work with both Python 2.7+ and Python 3+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our
@@ -25,15 +25,15 @@ Clone the repository, install the requirements, and then install the software:
 
 .. code-block:: console
 
-   $ git clone git@git.ligo.org:Monash/tupak.git
-   $ cd tupak/
+   $ git clone git@git.ligo.org:Monash/bilby.git
+   $ cd bilby/
    $ pip install -r requirements.txt
    $ pip install -r optional_requirements.txt
    $ python setup.py install
 
-Once you have run these steps, you have :code:`tupak` installed. You can now try to
+Once you have run these steps, you have :code:`bilby` installed. You can now try to
 run the examples. You should install the `optional_requirements.txt` if you
-plan to use `tupak` for gravitational wave inference.
+plan to use `bilby` for gravitational wave inference.
 
 .. note::
    If you do not have a git.ligo account, and recieve and error message:
@@ -47,7 +47,7 @@ plan to use `tupak` for gravitational wave inference.
 
    .. code-block:: console
 
-      $ git clone https://git.ligo.org/Monash/tupak.git
+      $ git clone https://git.ligo.org/Monash/bilby.git
 
 .. _installing-python:
 
@@ -169,25 +169,25 @@ Finally, add the libraries to you path. Add this to the `.bashrc` file
 
 (you'll need to resource your `.bashrc` after this, i.e. run `bash`).
 
-Common problems: multiple tupak versions
+Common problems: multiple bilby versions
 ----------------------------------------
 
-Occasionally, it is possible to end up with multiple tupak installations.
+Occasionally, it is possible to end up with multiple bilby installations.
 To diagnose this, run the following
 
 .. code-block:: console
 
-   $ python -c 'import tupak; print(tupak.__file__)'
-   /home/user1/anaconda3/lib/python3.6/site-packages/tupak-0.2.10py3.6.egg/tupak/__init__.pyc
+   $ python -c 'import bilby; print(bilby.__file__)'
+   /home/user1/anaconda3/lib/python3.6/site-packages/bilby-0.2.10py3.6.egg/bilby/__init__.pyc
 
 Here we can see it's installed under `site-packages` within anaconda. Your
 installation path may differ. If you believe you have multiple installs, you
 can verify this by running :code:`ls` in that directory. Then, you
-can purge your installation of tupak by running
+can purge your installation of bilby by running
 
 .. code-block:: console
 
-   $ rm -r /home/user1/anaconda/lib/python3.6/site-packages/tupak*
+   $ rm -r /home/user1/anaconda/lib/python3.6/site-packages/bilby*
 
 Replacing the path with the output of the previous command.
 

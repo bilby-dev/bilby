@@ -1,6 +1,6 @@
 #!/bin/python
 """
-An example of how to use tupak to perform paramater estimation for
+An example of how to use bilby to perform paramater estimation for
 non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise. This example uses a custom
 likelihood function to show how it should be defined, although this
@@ -9,7 +9,7 @@ would give equivalent results as using the pre-defined 'Gaussian Likelihood'
 """
 
 from __future__ import division
-import tupak
+import bilby
 import numpy as np
 import matplotlib.pyplot as plt
 import inspect
@@ -18,7 +18,7 @@ import pymc3 as pm
 # A few simple setup steps
 label = 'linear_regression_pymc3_custom_likelihood'
 outdir = 'outdir'
-tupak.utils.check_directory_exists_and_if_not_mkdir(outdir)
+bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 # First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
@@ -50,7 +50,7 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
 # our model.
-class GaussianLikelihoodPyMC3(tupak.Likelihood):
+class GaussianLikelihoodPyMC3(bilby.Likelihood):
     def __init__(self, x, y, sigma, function):
         """
         A general Gaussian likelihood - the parameters are inferred from the
@@ -83,15 +83,15 @@ class GaussianLikelihoodPyMC3(tupak.Likelihood):
         """
         Parameters
         ----------
-        sampler: :class:`tupak.core.sampler.Pymc3`
+        sampler: :class:`bilby.core.sampler.Pymc3`
             A Sampler object must be passed containing the prior distributions
             and PyMC3 :class:`~pymc3.Model` to use as a context manager.
         """
 
-        from tupak.core.sampler import Pymc3
+        from bilby.core.sampler import Pymc3
 
         if not isinstance(sampler, Pymc3):
-            raise ValueError("Sampler is not a tupak Pymc3 sampler object")
+            raise ValueError("Sampler is not a bilby Pymc3 sampler object")
 
         if not hasattr(sampler, 'pymc3_model'):
             raise AttributeError("Sampler has not PyMC3 model attribute")
@@ -111,13 +111,13 @@ likelihood = GaussianLikelihoodPyMC3(time, data, sigma, model)
 
 
 # Define a custom prior for one of the parameter for use with PyMC3
-class PriorPyMC3(tupak.core.prior.Prior):
+class PriorPyMC3(bilby.core.prior.Prior):
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         """
-        Uniform prior with bounds (should be equivalent to tupak.prior.Uniform)
+        Uniform prior with bounds (should be equivalent to bilby.prior.Uniform)
         """
 
-        tupak.core.prior.Prior.__init__(self, name, latex_label,
+        bilby.core.prior.Prior.__init__(self, name, latex_label,
                                         minimum=minimum,
                                         maximum=maximum)
 
@@ -127,22 +127,22 @@ class PriorPyMC3(tupak.core.prior.Prior):
         distribution.
         """
 
-        from tupak.core.sampler import Pymc3
+        from bilby.core.sampler import Pymc3
 
         if not isinstance(sampler, Pymc3):
-            raise ValueError("Sampler is not a tupak Pymc3 sampler object")
+            raise ValueError("Sampler is not a bilby Pymc3 sampler object")
 
         return pm.Uniform(self.name, lower=self.minimum,
                           upper=self.maximum)
 
-# From hereon, the syntax is exactly equivalent to other tupak examples
+# From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
 priors = {}
-priors['m'] = tupak.core.prior.Uniform(0, 5, 'm')
+priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
 priors['c'] = PriorPyMC3(-2, 2, 'c')
 
 # And run sampler
-result = tupak.run_sampler(
+result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='pymc3', draws=1000,
     tune=1000, discard_tuned_samples=True, injection_parameters=injection_parameters, 
     outdir=outdir, label=label)

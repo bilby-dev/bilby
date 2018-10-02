@@ -1,7 +1,7 @@
-Welcome to tupak's documentation!
+Welcome to bilby's documentation!
 =================================
 
-.. automodule:: tupak
+.. automodule:: bilby
     :members:
 
 .. toctree::
@@ -14,7 +14,7 @@ Welcome to tupak's documentation!
    prior
    likelihood
    samplers
-   tupak-output
+   bilby-output
    compact-binary-coalescence-parameter-estimation
    transient-gw-data
    writing-documentation

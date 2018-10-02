@@ -175,7 +175,7 @@ def inner_product(aa, bb, frequency, PSD):
         Single-sided Fourier transform, created, e.g., by the nfft function above
     frequency: array_like
         An array of frequencies associated with aa, bb, also returned by nfft
-    PSD: tupak.gw.detector.PowerSpectralDensity
+    PSD: bilby.gw.detector.PowerSpectralDensity
 
     Returns
     -------

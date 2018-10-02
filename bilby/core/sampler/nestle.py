@@ -6,12 +6,12 @@ from .base_sampler import NestedSampler
 
 
 class Nestle(NestedSampler):
-    """tupak wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
+    """bilby wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `nestle.sample`, see documentation for
     that function for further help. Under Keyword Arguments, we list commonly
-    used kwargs and the tupak defaults
+    used kwargs and the bilby defaults
 
     Keyword Arguments
    ------------------
@@ -48,7 +48,7 @@ class Nestle(NestedSampler):
 
         Returns
         -------
-        tupak.core.result.Result: Packaged information about the result
+        bilby.core.result.Result: Packaged information about the result
 
         """
         import nestle
@@ -78,7 +78,7 @@ class Nestle(NestedSampler):
 
         Returns
         -------
-        tupak.core.result.Result: Dummy container for sampling results.
+        bilby.core.result.Result: Dummy container for sampling results.
 
         """
         import nestle

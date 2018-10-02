@@ -1,17 +1,17 @@
 """
-tupak
+Bilby
 =====
 
-Tupak is The User friendly Parameter estimAtion Kode.
+Bilby: a user friendly Bayesian inference library.
 
-The aim of tupak is to provide user friendly interface to perform parameter
+The aim of bilby is to provide user friendly interface to perform parameter
 estimation. It is primarily designed and built for inference of compact
 binary coalescence events in interferometric data, but it can also be used for
 more general problems.
 
-The code, and many examples are hosted at https://git.ligo.org/Monash/tupak.
+The code, and many examples are hosted at https://git.ligo.org/Monash/bilby.
 For installation instructions see
-https://monash.docs.ligo.org/tupak/installation.html.
+https://monash.docs.ligo.org/bilby/installation.html.
 
 """
 

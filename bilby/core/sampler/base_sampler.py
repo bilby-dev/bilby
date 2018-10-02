@@ -13,7 +13,7 @@ class Sampler(object):
     ----------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    priors: tupak.core.prior.PriorSet, dict
+    priors: bilby.core.prior.PriorSet, dict
         Priors to be used in the search.
         This has attributes for each parameter to be sampled.
     external_sampler: str, Sampler, optional
@@ -34,7 +34,7 @@ class Sampler(object):
     -------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    priors: tupak.core.prior.PriorSet
+    priors: bilby.core.prior.PriorSet
         Priors to be used in the search.
         This has attributes for each parameter to be sampled.
     external_sampler: Module
@@ -51,7 +51,7 @@ class Sampler(object):
     skip_import_verification: bool
         Skips the check if the sampler is installed if true. This is
         only advisable for testing environments
-    result: tupak.core.result.Result
+    result: bilby.core.result.Result
         Container for the results of the sampling run
     kwargs: dict
         Dictionary of keyword arguments that can be used in the external sampler
@@ -182,7 +182,7 @@ class Sampler(object):
         """
         Returns
         -------
-        tupak.core.result.Result: An initial template for the result
+        bilby.core.result.Result: An initial template for the result
 
         """
         result = Result()
