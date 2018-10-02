@@ -18,12 +18,13 @@ python-2:
   stage: test
   image: continuumio/anaconda
   before_script:
-    - apt-get update
+    - apt-get update -y
     - apt-get install gcc -y
     - apt install -y libgl1-mesa-glx
-    - pip install -r requirements.txt
-    - pip install -r optional_requirements.txt
+    - pip install pip --upgrade
+    - pip install pipenv
     - pip install enum
+    - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
     - python setup.py install
     # Run tests without finding coverage
@@ -34,15 +35,16 @@ python-3:
   stage: test
   image: continuumio/anaconda3
   before_script:
-    - apt-get update
+    - apt-get update -y
     - apt-get install gcc -y
     - apt install -y libgl1-mesa-glx
-    - pip install -r requirements.txt
-    - pip install -r optional_requirements.txt
+    - pip install pip --upgrade
     - pip install 'coverage>=4.5'
     - pip install coverage-badge
     - pip install flake8
     - pip install pytest-cov
+    - pip install pipenv
+    - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
     - python setup.py install
 
