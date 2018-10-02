@@ -1,0 +1,33 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+future = "*"
+corner = "*"
+numpy = ">=1.9"
+matplotlib = "<3"
+scipy = ">=0.16"
+pandas = "*"
+deepdish = "*"
+mock = "*"
+astropy = "<3"
+gwpy = "*"
+theano = "*"
+lalsuite = "*"
+
+# cpnest = "*"
+dynesty = "*"
+emcee = "*"
+nestle = "*"
+ptemcee = "*"
+pymc3 = "*"
+pymultinest = "*"
+
+[requires]
+
+[dev-packages]
+
+[pipenv]
+allow_prereleases = false

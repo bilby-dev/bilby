@@ -18,6 +18,7 @@ Changes currently on master, but not under a tag.
 - Adds custom titles to corner plots
 - Adds plotting of the prior on 1D marginal distributions of corner plots
 - Adds a method to plot time-domain GW data
+- Added pipenv as a dependency manager
 - Hyperparameter estimation now enables the user to provide the single event evidences
 - Add nested samples to nestle output
 - Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
