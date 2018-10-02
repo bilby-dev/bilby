@@ -55,7 +55,7 @@ version_file = write_version_file(version)
 long_description = get_long_description()
 
 setup(name='bilby',
-      description='The User friendly Parameter estimAtion Kode',
+      description='A user-friendly Bayesian inference library',
       long_description=long_description,
       url='https://git.ligo.org/Monash/bilby',
       author='Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot',
