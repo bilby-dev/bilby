@@ -22,6 +22,7 @@ Changes currently on master, but not under a tag.
 - Add nested samples to nestle output
 - Prior and child classes now implement the \_\_eq\_\_ magic method for comparisons
 - Add AlignedSpin gw prior
+- Add units to know prior files
 
 ### Changes
 - Fix construct_cbc_derived_parameters
