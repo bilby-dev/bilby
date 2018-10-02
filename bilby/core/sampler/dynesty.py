@@ -5,7 +5,7 @@ import sys
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
-from ..utils import logger
+from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
 
 
@@ -282,6 +282,7 @@ class Dynesty(NestedSampler):
         sampler: `dynesty.NestedSampler`
             NestedSampler to write to disk.
         """
+        check_directory_exists_and_if_not_mkdir(self.outdir)
         resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
 
         if os.path.isfile(resume_file):
