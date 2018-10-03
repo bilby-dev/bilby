@@ -1,6 +1,5 @@
 from __future__ import division
 import numpy as np
-import pandas as pd
 
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction
@@ -511,8 +510,8 @@ def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
     delta_lambda = 1 / 2 * (
-        (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
-        * lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
+        (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
+        lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
                          3380 / 1319 * eta**3) * lambda_minus)
 
     return delta_lambda
@@ -736,7 +735,7 @@ def generate_spin_parameters(sample):
 
     Parameters
     ----------
-    sample : dict, pd.DataFrame
+    sample : dict, pandas.DataFrame
         The input dictionary with some spin parameters
 
     Returns
@@ -829,12 +828,12 @@ def generate_tidal_parameters(sample):
 
     Parameters
     ----------
-    sample: dict, pd.DataFrame
+    sample: dict, pandas.DataFrame
         Should contain lambda_1, lambda_2
 
     Returns
     -------
-    output_sample: dict, pd.DataFrame
+    output_sample: dict, pandas.DataFrame
         Updated sample
     """
     output_sample = sample.copy()
@@ -857,11 +856,11 @@ def generate_source_frame_parameters(sample):
 
     Parameters
     ----------
-    sample: dict, pd.DataFrame
+    sample: dict, pandas.DataFrame
 
     Returns
     -------
-    output_sample: dict, pd.DataFrame
+    output_sample: dict, pandas.DataFrame
     """
     output_sample = sample.copy()
 
