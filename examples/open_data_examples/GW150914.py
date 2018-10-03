@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 Tutorial to demonstrate running parameter estimation on GW150914 using open
 data.

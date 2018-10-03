@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """ Helper script to faciliate downloading data from LOSC
 
 Usage: To download the GW150914 data from https://losc.ligo.org/events/ 
