@@ -72,7 +72,8 @@ priors.pop('mass_1')
 priors.pop('mass_2')
 priors.pop('lambda_1')
 priors.pop('lambda_2')
-priors['chirp_mass'] = bilby.core.prior.Gaussian(1.215, 0.1, name='chirp_mass')
+priors['chirp_mass'] = bilby.core.prior.Gaussian(
+    1.215, 0.1, name='chirp_mass', unit='$M_{\\odot}$')
 priors['symmetric_mass_ratio'] = bilby.core.prior.Uniform(
     0.1, 0.25, name='symmetric_mass_ratio')
 priors['lambda_tilde'] = bilby.core.prior.Uniform(0, 5000, name='lambda_tilde')
