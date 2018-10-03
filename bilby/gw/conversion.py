@@ -670,6 +670,7 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
         likelihood=likelihood, priors=priors)
+    output_sample = generate_tidal_parameters(output_sample)
     return output_sample
 
 
