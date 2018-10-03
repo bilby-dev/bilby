@@ -164,9 +164,9 @@ class Dynesty(NestedSampler):
             out.samples, columns=self.search_parameter_keys)
         self.result.nested_samples['weights'] = weights
         self.result.nested_samples['log_likelihood'] = out.logl
-        idxs = [np.unique(np.where(self.result.samples[ii] == out.samples)[0])
-                for ii in range(len(out.logl))]
-        self.result.log_likelihood_evaluations = out.logl[idxs]
+        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
+            unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
+            sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
 
