@@ -196,6 +196,12 @@ class Result(dict):
         if dictionary.get('priors', False):
             dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
 
+        # Convert callable kwargs to strings to avoid pickling issues
+        if hasattr(self, 'kwargs'):
+            for key in self.kwargs:
+                if hasattr(self.kwargs[key], '__call__'):
+                    self.kwargs[key] = str(self.kwargs[key])
+
         try:
             deepdish.io.save(file_name, dictionary)
         except Exception as e:
