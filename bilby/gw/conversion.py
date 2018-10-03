@@ -512,7 +512,7 @@ def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
     delta_lambda = 1 / 2 * (
         (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
         lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
-                         3380 / 1319 * eta**3) * lambda_minus)
+                       3380 / 1319 * eta**3) * lambda_minus)
 
     return delta_lambda
 
