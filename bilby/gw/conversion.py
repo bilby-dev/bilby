@@ -233,6 +233,14 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
+    # catch if tidal parameters aren't present
+    if not any([key in converted_parameters for key in
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
+        converted_parameters['lambda_1'] = 0
+        converted_parameters['lambda_2'] = 0
+        added_keys = added_keys + ['lambda_1', 'lambda_2']
+        return converted_parameters, added_keys
+
     if 'delta_lambda' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
             lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
