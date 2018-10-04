@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 A script to show how to create your own time domain source model.
 A simple damped Gaussian signal is defined in the time domain, injected into noise in

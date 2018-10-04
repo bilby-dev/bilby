@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 
 As part of the :code:`bilby.result.Result` object, we provide a method to

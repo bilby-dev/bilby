@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 An example of running two sets of posterior sample estimations and adding them
 """

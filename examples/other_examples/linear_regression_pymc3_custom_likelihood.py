@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 An example of how to use bilby to perform paramater estimation for
 non-gravitational wave data. In this case, fitting a linear function to

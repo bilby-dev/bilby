@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 Tutorial to demonstrate how to improve the speed and efficiency of parameter estimation on an injected signal using
 phase and distance marginalisation.

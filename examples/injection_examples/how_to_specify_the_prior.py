@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 Tutorial to demonstrate how to specify the prior distributions used for parameter estimation.
 """
