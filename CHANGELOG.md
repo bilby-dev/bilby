@@ -4,6 +4,9 @@
 
 Changes currently on master, but not under a tag.
 
+### Changes
+- Make filling in posterior with fixed parameters work
+
 ## [0.3] 2018-01-02
 
 ### Added
