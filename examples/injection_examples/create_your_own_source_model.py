@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 A script to demonstrate how to use your own source model
 """

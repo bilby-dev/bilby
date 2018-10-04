@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 Tutorial to demonstrate running parameter estimation on a reduced parameter space
 for an injected eccentric binary black hole signal with masses & distnace similar

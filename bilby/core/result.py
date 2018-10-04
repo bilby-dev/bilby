@@ -196,6 +196,12 @@ class Result(dict):
         if dictionary.get('priors', False):
             dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
 
+        # Convert callable kwargs to strings to avoid pickling issues
+        if hasattr(self, 'kwargs'):
+            for key in self.kwargs:
+                if hasattr(self.kwargs[key], '__call__'):
+                    self.kwargs[key] = str(self.kwargs[key])
+
         try:
             deepdish.io.save(file_name, dictionary)
         except Exception as e:
@@ -544,12 +550,14 @@ class Result(dict):
         if hasattr(self, 'posterior') is False:
             data_frame = pd.DataFrame(
                 self.samples, columns=self.search_parameter_keys)
+            for key in priors:
+                if isinstance(priors[key], DeltaFunction):
+                    data_frame[key] = priors[key].peak
+                elif isinstance(priors[key], float):
+                    data_frame[key] = priors[key]
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
-            for key in priors:
-                if getattr(priors[key], 'is_fixed', False):
-                    data_frame[key] = priors[key].peak
-            # We save the samples in the posterior and remove the array of samples
+            # remove the array of samples
             del self.samples
         else:
             data_frame = self.posterior

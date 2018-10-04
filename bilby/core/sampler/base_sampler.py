@@ -399,6 +399,40 @@ class Sampler(object):
 class NestedSampler(Sampler):
     npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive']
 
+    def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,
+                               sorted_samples):
+        """ Reorders the stored log-likelihood after they have been reweighted
+
+        This creates a sorting index by matching the reweights `result.samples`
+        against the raw samples, then uses this index to sort the
+        loglikelihoods
+
+        Parameters
+        ----------
+        sorted_samples, unsorted_samples: array
+            Sorted and unsorted values of the samples. These should be of the same
+            shape and contain the same sample values, but in different orders
+        unsorted_loglikelihoods: array
+            The loglikelihoods corresponding to the unsorted_samples
+
+        Returns
+        -------
+        sorted_loglikelihoods: array
+            The loglikelihoods reordered to match that of the sorted_samples
+
+
+        """
+
+        idxs = []
+        for ii in range(len(unsorted_loglikelihoods)):
+            idx = np.where(np.all(sorted_samples[ii] == unsorted_samples, axis=1))
+            if len(idx) > 1:
+                raise ValueError(
+                    "Multiple matches found between sorted and unsorted samples")
+            else:
+                idxs.append(idx[0])
+        return unsorted_loglikelihoods[idxs]
+
 
 class MCMCSampler(Sampler):
     nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws']

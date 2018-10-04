@@ -5,7 +5,7 @@ import sys
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
-from ..utils import logger
+from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
 
 
@@ -164,9 +164,9 @@ class Dynesty(NestedSampler):
             out.samples, columns=self.search_parameter_keys)
         self.result.nested_samples['weights'] = weights
         self.result.nested_samples['log_likelihood'] = out.logl
-        idxs = [np.unique(np.where(self.result.samples[ii] == out.samples)[0])
-                for ii in range(len(out.logl))]
-        self.result.log_likelihood_evaluations = out.logl[idxs]
+        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
+            unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
+            sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
 
@@ -282,6 +282,7 @@ class Dynesty(NestedSampler):
         sampler: `dynesty.NestedSampler`
             NestedSampler to write to disk.
         """
+        check_directory_exists_and_if_not_mkdir(self.outdir)
         resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
 
         if os.path.isfile(resume_file):

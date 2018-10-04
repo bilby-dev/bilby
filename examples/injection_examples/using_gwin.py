@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 An example of how to use bilby with `gwin` (https://github.com/gwastro/gwin) to
 perform CBC parameter estimation.
