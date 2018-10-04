@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 
 Tutorial to demonstrate running parameter estimation/model selection on an NR
@@ -9,10 +9,10 @@ factor. (See https://arxiv.org/pdf/1202.3256.pdf)
 """
 from __future__ import division, print_function
 import numpy as np
+import bilby
 
-# Set the duration and sampling frequency of the data segment that we're going to inject the signal into
-import bilby.gw.likelihood
-
+# Set the duration and sampling frequency of the data segment that we're going
+# to inject the signal into
 duration = 3.
 sampling_frequency = 4096.
 

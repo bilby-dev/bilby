@@ -18,9 +18,11 @@ label = 'linear_regression_pymc3'
 outdir = 'outdir'
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
+
 # First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
     return time * m + c
+
 
 # Now we define the injection parameters which we make simulated data with
 injection_parameters = dict(m=0.5, c=0.2)
@@ -51,7 +53,7 @@ likelihood = GaussianLikelihood(time, data, model, sigma=sigma)
 
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
-priors = {}
+priors = dict()
 priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
 priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 

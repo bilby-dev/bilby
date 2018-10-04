@@ -48,7 +48,8 @@ fixed_parameters = injection_parameters.copy()
 for key in priors:
     fixed_parameters.pop(key)
 
-# These lines generate the `model` object - see https://gwin.readthedocs.io/en/latest/api/gwin.models.gaussian_noise.html
+# These lines generate the `model` object - see
+# https://gwin.readthedocs.io/en/latest/api/gwin.models.gaussian_noise.html
 generator = FDomainDetFrameGenerator(
     FDomainCBCGenerator, 0.,
     variable_args=variable_parameters, detectors=['H1', 'L1'],
@@ -64,6 +65,7 @@ model.update(**injection_parameters)
 
 # This create a dummy class to convert the model into a bilby.likelihood object
 class GWINLikelihood(bilby.core.likelihood.Likelihood):
+
     def __init__(self, model):
         """ A likelihood to wrap around GWIN model objects
 

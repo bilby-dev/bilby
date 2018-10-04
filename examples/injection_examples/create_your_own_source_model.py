@@ -22,13 +22,14 @@ def sine_gaussian(f, A, f0, tau, phi0, geocent_time, ra, dec, psi):
     return {'plus': plus, 'cross': cross}
 
 
-# We now define some parameters that we will inject and then a waveform generator
+# We now define some parameters that we will inject
 injection_parameters = dict(A=1e-23, f0=100, tau=1, phi0=0, geocent_time=0,
                             ra=0, dec=0, psi=0)
-waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(duration=duration,
-                                                                   sampling_frequency=sampling_frequency,
-                                                                   frequency_domain_source_model=sine_gaussian,
-                                                                   parameters=injection_parameters)
+
+# Now we pass our source function to the WaveformGenerator
+waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+    duration=duration, sampling_frequency=sampling_frequency,
+    frequency_domain_source_model=sine_gaussian)
 
 # Set up interferometers.
 ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
@@ -41,10 +42,11 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # Here we define the priors for the search. We use the injection parameters
 # except for the amplitude, f0, and geocent_time
 prior = injection_parameters.copy()
-prior['A'] = bilby.core.prior.PowerLaw(alpha=-1, minimum=1e-25, maximum=1e-21, name='A')
+prior['A'] = bilby.core.prior.LogUniform(minimum=1e-25, maximum=1e-21, name='A')
 prior['f0'] = bilby.core.prior.Uniform(90, 110, 'f')
 
-likelihood = bilby.gw.likelihood.GravitationalWaveTransient(ifos, waveform_generator)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+    interferometers=ifos, waveform_generator=waveform_generator)
 
 result = bilby.core.sampler.run_sampler(
     likelihood, prior, sampler='dynesty', outdir=outdir, label=label,
