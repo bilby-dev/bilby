@@ -37,7 +37,7 @@ Aplus_psd = gwinc_noises['Total']
 # The location of this detector is not defined in Bilby, so we need to add it
 AusIFO = bilby.gw.detector.Interferometer(
     power_spectral_density=bilby.gw.detector.PowerSpectralDensity(
-    frequency_array=frequencies, psd_array=Aplus_psd),
+        frequency_array=frequencies, psd_array=Aplus_psd),
     name='AusIFO', length=4,
     minimum_frequency=min(frequencies), maximum_frequency=max(frequencies),
     latitude=-31.34, longitude=115.91,
@@ -83,7 +83,7 @@ for interferometer in interferometers:
     interferometer.inject_signal(
         parameters=injection_parameters, waveform_generator=waveform_generator)
 
-    ## plot the data for sanity
+    # plot the data for sanity
     signal = interferometer.get_detector_response(
         waveform_generator.frequency_domain_strain(), injection_parameters)
     interferometer.plot_data(signal=signal, outdir=outdir, label=label)
