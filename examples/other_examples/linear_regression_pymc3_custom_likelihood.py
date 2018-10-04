@@ -36,7 +36,7 @@ sigma = 1
 # contents of the injection_paramsters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
@@ -139,9 +139,10 @@ class PriorPyMC3(bilby.core.prior.Prior):
         return pm.Uniform(self.name, lower=self.minimum,
                           upper=self.maximum)
 
+
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
-priors = {}
+priors = dict()
 priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
 priors['c'] = PriorPyMC3(-2, 2, 'c')
 

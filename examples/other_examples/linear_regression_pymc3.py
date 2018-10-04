@@ -9,7 +9,6 @@ from __future__ import division
 import bilby
 import numpy as np
 import matplotlib.pyplot as plt
-import inspect
 
 from bilby.core.likelihood import GaussianLikelihood
 
@@ -34,7 +33,7 @@ sigma = 1
 # contents of the injection_paramsters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 

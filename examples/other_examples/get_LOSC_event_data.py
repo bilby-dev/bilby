@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Helper script to faciliate downloading data from LOSC
 
-Usage: To download the GW150914 data from https://losc.ligo.org/events/ 
+Usage: To download the GW150914 data from https://losc.ligo.org/events/
 
 $ python get_LOSC_event_data -e GW150914
 
@@ -52,7 +52,7 @@ for det, in ['H', 'L']:
                   event, detector, sampling_frequency, starttime, duration))
     os.remove(filename)
 
-time = np.arange(0, int(duration), 1/int(sampling_frequency)) + int(starttime)
+time = np.arange(0, int(duration), 1 / int(sampling_frequency)) + int(starttime)
 arr = [time] + data
 
 outfile = '{}/{}_strain_data.npy'.format(args.outdir, args.event)

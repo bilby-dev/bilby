@@ -50,7 +50,7 @@ waveform_generator = bilby.gw.WaveformGenerator(
 ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
-    start_time=injection_parameters['geocent_time']-3)
+    start_time=injection_parameters['geocent_time'] - 3)
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
@@ -85,4 +85,3 @@ result = bilby.run_sampler(
 
 # Make a corner plot.
 result.plot_corner()
-

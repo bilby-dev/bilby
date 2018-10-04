@@ -39,8 +39,8 @@ class SimpleGaussianLikelihood(bilby.Likelihood):
         mu = self.parameters['mu']
         sigma = self.parameters['sigma']
         res = self.data - mu
-        return -0.5 * (np.sum((res / sigma)**2)
-                       + self.N*np.log(2*np.pi*sigma**2))
+        return -0.5 * (np.sum((res / sigma)**2) +
+                       self.N * np.log(2 * np.pi * sigma**2))
 
 
 likelihood = SimpleGaussianLikelihood(data)

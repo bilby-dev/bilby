@@ -11,11 +11,11 @@ class Likelihood(bilby.Likelihood):
         self.parameters = dict(x=None, y=None)
 
     def log_likelihood(self):
-        return -1/(self.interp(self.parameters['x'], self.parameters['y'])[0])
+        return -1 / (self.interp(self.parameters['x'], self.parameters['y'])[0])
 
 
 for letter in ['t', 'u', 'p', 'a', 'k']:
-    img = 1-io.imread('{}.jpg'.format(letter), as_grey=True)[::-1, :]
+    img = 1 - io.imread('{}.jpg'.format(letter), as_grey=True)[::-1, :]
     x = np.arange(img.shape[0])
     y = np.arange(img.shape[1])
     interp = si.interpolate.interp2d(x, y, img.T)

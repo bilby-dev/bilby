@@ -62,4 +62,3 @@ result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 result.plot_corner()
-

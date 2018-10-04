@@ -58,4 +58,3 @@ result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty',
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 result.plot_corner()
-

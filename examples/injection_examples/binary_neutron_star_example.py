@@ -25,7 +25,7 @@ np.random.seed(88170235)
 # We are going to inject a binary neutron star waveform.  We first establish a
 # dictionary of parameters that includes all of the different waveform
 # parameters, including masses of the two black holes (mass_1, mass_2),
-# spins of both black holes (a_1,a_2) , etc. 
+# spins of both black holes (a_1, a_2), etc.
 injection_parameters = dict(
     mass_1=1.5, mass_2=1.3, a_1=0.0, a_2=0.0, luminosity_distance=50.,
     iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
@@ -35,7 +35,7 @@ injection_parameters = dict(
 # to inject the signal into. For the
 # TaylorF2 waveform, we cut the signal close to the isco frequency
 duration = 8
-sampling_frequency = 2*1570.
+sampling_frequency = 2 * 1570.
 start_time = injection_parameters['geocent_time'] + 2 - duration
 
 # Fixed arguments passed into the source model. The analysis starts at 40 Hz.
@@ -64,7 +64,7 @@ priors = bilby.gw.prior.BNSPriorSet()
 for key in ['a_1', 'a_2', 'psi', 'geocent_time', 'ra', 'dec',
             'iota', 'luminosity_distance', 'phase']:
     priors[key] = injection_parameters[key]
-    
+
 # Initialise the likelihood by passing in the interferometer data (IFOs)
 # and the waveoform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
@@ -78,4 +78,3 @@ result = bilby.run_sampler(
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 result.plot_corner()
-

@@ -34,15 +34,14 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
 waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
     sampling_frequency=sampling_frequency, duration=duration,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    parameter_conversion=
-        bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments)
 
 # Set up interferometers.
 ifos = bilby.gw.detector.InterferometerList(['H1', 'L1', 'V1', 'K1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
-    start_time=injection_parameters['geocent_time']-3)
+    start_time=injection_parameters['geocent_time'] - 3)
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
@@ -80,4 +79,3 @@ result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters, label='DifferentParameters',
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters)
 result.plot_corner()
-
