@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 
 from . import utils
-from .utils import logger
+from .utils import logger, infer_parameters_from_function
 from .prior import PriorSet, DeltaFunction
 
 
@@ -502,16 +502,22 @@ class Result(dict):
             from the outdir and label attributes.
 
         """
+
+        # Determine model_posterior, the subset of the full posterior which
+        # should be passed into the model
+        model_keys = infer_parameters_from_function(model)
+        model_posterior = self.posterior[model_keys]
+
         xsmooth = np.linspace(np.min(x), np.max(x), npoints)
         fig, ax = plt.subplots()
         logger.info('Plotting {} draws'.format(ndraws))
         for _ in range(ndraws):
-            s = self.posterior.sample().to_dict('records')[0]
+            s = model_posterior.sample().to_dict('records')[0]
             ax.plot(xsmooth, model(xsmooth, **s), alpha=0.25, lw=0.1, color='r',
                     label=draws_label)
         if all(~np.isnan(self.posterior.log_likelihood)):
             logger.info('Plotting maximum likelihood')
-            s = self.posterior.ix[self.posterior.log_likelihood.idxmax()]
+            s = model_posterior.ix[self.posterior.log_likelihood.idxmax()]
             ax.plot(xsmooth, model(xsmooth, **s), lw=1, color='k',
                     label=maxl_label)
 
