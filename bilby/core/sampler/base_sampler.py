@@ -431,7 +431,7 @@ class NestedSampler(Sampler):
                     "Multiple matches found between sorted and unsorted samples")
             else:
                 idxs.append(idx[0])
-        return unsorted_loglikelihoods(idxs)
+        return unsorted_loglikelihoods[idxs]
 
 
 class MCMCSampler(Sampler):
