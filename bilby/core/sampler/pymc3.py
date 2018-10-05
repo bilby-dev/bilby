@@ -2,12 +2,31 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 import inspect
+
 import numpy as np
 
 from ..utils import derivatives, logger
-from ..prior import Prior
+
+try:
+    import pymc3
+    from pymc3.sampling import STEP_METHODS
+    from pymc3.theanof import floatX
+except ImportError:
+    logger.warning('PyMC3 is not installed on this system, you will '
+                   'not be able to use the PyMC3 sampler')
+try:
+    import theano  # noqa
+    import theano.tensor as tt
+    from theano.compile.ops import as_op  # noqa
+except ImportError:
+    logger.warning("You must have Theano installed to use PyMC3")
+
+from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
 from ..result import Result
 from .base_sampler import Sampler, MCMCSampler
+from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+    StudentTLikelihood
+from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
 
 class Pymc3(MCMCSampler):
@@ -220,8 +239,6 @@ class Pymc3(MCMCSampler):
         Map the bilby delta function prior to a single value for PyMC3.
         """
 
-        from ..prior import DeltaFunction
-
         # check prior is a DeltaFunction
         if isinstance(self.priors[key], DeltaFunction):
             return self.priors[key].peak
@@ -233,17 +250,8 @@ class Pymc3(MCMCSampler):
         Map the bilby Sine prior to a PyMC3 style function
         """
 
-        from ..prior import Sine
-
         # check prior is a Sine
         if isinstance(self.priors[key], Sine):
-            import pymc3
-
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Sine(pymc3.Continuous):
                 def __init__(self, lower=0., upper=np.pi):
@@ -280,18 +288,8 @@ class Pymc3(MCMCSampler):
         Map the bilby Cosine prior to a PyMC3 style function
         """
 
-        from ..prior import Cosine
-
         # check prior is a Cosine
         if isinstance(self.priors[key], Cosine):
-            import pymc3
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Cosine(pymc3.Continuous):
                 def __init__(self, lower=-np.pi / 2., upper=np.pi / 2.):
@@ -327,22 +325,12 @@ class Pymc3(MCMCSampler):
         Map the bilby PowerLaw prior to a PyMC3 style function
         """
 
-        from ..prior import PowerLaw
-
         # check prior is a PowerLaw
         if isinstance(self.priors[key], PowerLaw):
-            import pymc3
 
             # check power law is set
             if not hasattr(self.priors[key], 'alpha'):
                 raise AttributeError("No 'alpha' attribute set for PowerLaw prior")
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             if self.priors[key].alpha < -1.:
                 # use Pareto distribution
@@ -388,10 +376,7 @@ class Pymc3(MCMCSampler):
             raise ValueError("Prior for '{}' is not a Power Law".format(key))
 
     def run_sampler(self):
-        import pymc3
         # set the step method
-
-        from pymc3.sampling import STEP_METHODS
 
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
@@ -473,8 +458,6 @@ class Pymc3(MCMCSampler):
 
         self.pymc3_priors = OrderedDict()
 
-        import pymc3
-
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
             for key in self.priors:
@@ -536,17 +519,6 @@ class Pymc3(MCMCSampler):
         Convert any bilby likelihoods to PyMC3 distributions.
         """
 
-        try:
-            import theano  # noqa
-            import theano.tensor as tt
-            from theano.compile.ops import as_op  # noqa
-        except ImportError:
-            raise ImportError("Could not import theano")
-
-        from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
-            StudentTLikelihood
-        from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
-
         # create theano Op for the log likelihood if not using a predefined model
         class LogLike(tt.Op):
 
@@ -606,8 +578,6 @@ class Pymc3(MCMCSampler):
                 grads = derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
 
                 outputs[0][0] = grads
-
-        import pymc3
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function

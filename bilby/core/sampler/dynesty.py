@@ -1,11 +1,17 @@
 from __future__ import absolute_import
-
 import os
 import sys
+
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
+
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
+try:
+    import dynesty
+except ImportError:
+    logger.warning('Dynesty is not installed on this system, you will '
+                   'not be able to use the Dynesty sampler')
 from .base_sampler import Sampler, NestedSampler
 
 
@@ -76,6 +82,10 @@ class Dynesty(NestedSampler):
             n_check_point_raw = (check_point_delta_t / self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
+        self.sampler = dynesty.NestedSampler(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, **self.sampler_init_kwargs)
 
     @property
     def sampler_function_kwargs(self):
@@ -142,12 +152,6 @@ class Dynesty(NestedSampler):
         sys.stderr.flush()
 
     def run_sampler(self):
-        import dynesty
-        self.sampler = dynesty.NestedSampler(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.sampler_init_kwargs)
-
         if self.n_check_point:
             out = self._run_external_sampler_with_checkpointing()
         else:

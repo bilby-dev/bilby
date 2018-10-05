@@ -1,7 +1,14 @@
 from __future__ import absolute_import
+
 import numpy as np
 from pandas import DataFrame
+
 from ..utils import logger, get_progress_bar
+try:
+    import emcee
+except ImportError:
+    logger.warning('Emcee is not installed on this system, you will '
+                   'not be able to use the Emcee sampler')
 from .base_sampler import MCMCSampler
 
 
@@ -96,7 +103,6 @@ class Emcee(MCMCSampler):
         self.kwargs['iterations'] = nsteps
 
     def run_sampler(self):
-        import emcee
         tqdm = get_progress_bar()
         sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
         self._set_pos0()

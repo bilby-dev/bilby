@@ -2,6 +2,13 @@ from __future__ import absolute_import
 
 import numpy as np
 from pandas import DataFrame
+
+from ..utils import logger
+try:
+    import nestle
+except ImportError:
+    logger.warning('Nestle is not installed on this system, you will '
+                   'not be able to use the Nestle sampler')
 from .base_sampler import NestedSampler
 
 
@@ -51,7 +58,6 @@ class Nestle(NestedSampler):
         bilby.core.result.Result: Packaged information about the result
 
         """
-        import nestle
         out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,

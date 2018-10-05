@@ -4,6 +4,12 @@ from ..utils import check_directory_exists_and_if_not_mkdir
 from .base_sampler import NestedSampler
 from ..utils import logger
 
+try:
+    import pymultinest
+except ImportError:
+    logger.warning('PyMultinest is not installed on this system, you will '
+                   'not be able to use the PyMultinest sampler')
+
 
 class Pymultinest(NestedSampler):
     """
@@ -56,7 +62,7 @@ class Pymultinest(NestedSampler):
         https://github.com/JohannesBuchner/PyMultiNest/issues/115
         """
         if not self.kwargs['outputfiles_basename']:
-            self.kwargs['outputfiles_basename'] =\
+            self.kwargs['outputfiles_basename'] = \
                 '{}/pm_{}/'.format(self.outdir, self.label)
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(
@@ -66,13 +72,12 @@ class Pymultinest(NestedSampler):
                 'The length of {} exceeds 78 characters. '
                 ' Post-processing will fail because the file names will be cut'
                 ' off. Please choose a shorter "outdir" or "label".'
-                .format(self.__kwargs['outputfiles_basename']))
+                    .format(self.__kwargs['outputfiles_basename']))
         check_directory_exists_and_if_not_mkdir(
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
     def run_sampler(self):
-        import pymultinest
         self._verify_kwargs_against_default_kwargs()
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,

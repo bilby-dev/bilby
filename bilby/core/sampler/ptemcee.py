@@ -1,7 +1,13 @@
 from __future__ import absolute_import
 
 import numpy as np
+
 from ..utils import get_progress_bar, logger
+try:
+    import ptemcee
+except ImportError:
+    logger.warning('PTEmcee is not installed on this system, you will '
+                   'not be able to use the PTEmcee sampler')
 from . import Emcee
 
 
@@ -55,7 +61,6 @@ class Ptemcee(Emcee):
                 if key not in self.sampler_function_kwargs}
 
     def run_sampler(self):
-        import ptemcee
         tqdm = get_progress_bar()
 
         sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,

@@ -1,6 +1,15 @@
 from __future__ import absolute_import
+
 import numpy as np
 from pandas import DataFrame
+
+from ..utils import logger
+try:
+    from cpnest import model as cpmodel, CPNest
+except ImportError:
+    logger.warning('CPNest is not installed on this system, you will '
+                   'not be able to use the CPNest sampler')
+
 from ..utils import logger
 from .base_sampler import NestedSampler
 
@@ -40,8 +49,6 @@ class Cpnest(NestedSampler):
             logger.warning('No seed provided, cpnest will use 1234.')
 
     def run_sampler(self):
-        from cpnest import model as cpmodel, CPNest
-
         class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """
 

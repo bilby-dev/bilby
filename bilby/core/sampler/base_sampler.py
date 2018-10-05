@@ -1,6 +1,8 @@
 import datetime
 import numpy as np
+
 from pandas import DataFrame
+
 from ..utils import logger, command_line_args
 from ..prior import Prior, PriorSet
 from ..result import Result, read_in_result
