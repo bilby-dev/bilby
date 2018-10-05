@@ -3,12 +3,13 @@ from __future__ import absolute_import
 import numpy as np
 
 from ..utils import get_progress_bar, logger
+from . import Emcee
+
 try:
     import ptemcee
 except ImportError:
     logger.warning('PTEmcee is not installed on this system, you will '
                    'not be able to use the PTEmcee sampler')
-from . import Emcee
 
 
 class Ptemcee(Emcee):

@@ -1,18 +1,18 @@
 from __future__ import division
 
-import numpy as np
-from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
-from scipy.special import erf, erfinv
-import scipy.stats
+import inspect
 import os
 from collections import OrderedDict
 from future.utils import iteritems
 
-from .utils import logger
+import numpy as np
+import scipy.stats
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
+from scipy.special import erf, erfinv
+
 from . import utils
-import bilby  # noqa
-import inspect
+from .utils import logger
 
 
 class PriorSet(OrderedDict):

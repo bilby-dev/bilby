@@ -4,12 +4,13 @@ import numpy as np
 from pandas import DataFrame
 
 from ..utils import logger
+from .base_sampler import NestedSampler
+
 try:
     import nestle
 except ImportError:
     logger.warning('Nestle is not installed on this system, you will '
                    'not be able to use the Nestle sampler')
-from .base_sampler import NestedSampler
 
 
 class Nestle(NestedSampler):

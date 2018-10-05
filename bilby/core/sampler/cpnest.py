@@ -3,15 +3,15 @@ from __future__ import absolute_import
 import numpy as np
 from pandas import DataFrame
 
+from .base_sampler import NestedSampler
 from ..utils import logger
+
 try:
     from cpnest import model as cpmodel, CPNest
 except ImportError:
     logger.warning('CPNest is not installed on this system, you will '
                    'not be able to use the CPNest sampler')
 
-from ..utils import logger
-from .base_sampler import NestedSampler
 
 
 class Cpnest(NestedSampler):

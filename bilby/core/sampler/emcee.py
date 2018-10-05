@@ -4,12 +4,13 @@ import numpy as np
 from pandas import DataFrame
 
 from ..utils import logger, get_progress_bar
+from .base_sampler import MCMCSampler
+
 try:
     import emcee
 except ImportError:
     logger.warning('Emcee is not installed on this system, you will '
                    'not be able to use the Emcee sampler')
-from .base_sampler import MCMCSampler
 
 
 class Emcee(MCMCSampler):

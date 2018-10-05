@@ -1,12 +1,13 @@
 import os
 from distutils.version import LooseVersion
+from collections import OrderedDict
+
 import numpy as np
 import deepdish
 import pandas as pd
 import corner
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import OrderedDict
 
 from . import utils
 from .utils import logger, infer_parameters_from_function

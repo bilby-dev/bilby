@@ -6,6 +6,12 @@ import inspect
 import numpy as np
 
 from ..utils import derivatives, logger
+from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
+from ..result import Result
+from .base_sampler import Sampler, MCMCSampler
+from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+    StudentTLikelihood
+from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
 try:
     import pymc3
@@ -20,13 +26,6 @@ try:
     from theano.compile.ops import as_op  # noqa
 except ImportError:
     logger.warning("You must have Theano installed to use PyMC3")
-
-from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
-from ..result import Result
-from .base_sampler import Sampler, MCMCSampler
-from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
-    StudentTLikelihood
-from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
 
 class Pymc3(MCMCSampler):

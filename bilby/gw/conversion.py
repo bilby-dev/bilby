@@ -1,10 +1,8 @@
 from __future__ import division
+
 import numpy as np
 import pandas as pd
-
 from ..core.utils import logger, solar_mass
-from ..core.prior import DeltaFunction
-
 try:
     from astropy.cosmology import z_at_value, Planck15
     import astropy.units as u
@@ -17,6 +15,8 @@ try:
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
+
+from ..core.prior import DeltaFunction
 
 
 def redshift_to_luminosity_distance(redshift):

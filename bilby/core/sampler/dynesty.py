@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import os
 import sys
 
@@ -7,12 +8,13 @@ from pandas import DataFrame
 from deepdish.io import load, save
 
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
+from .base_sampler import Sampler, NestedSampler
+
 try:
     import dynesty
 except ImportError:
     logger.warning('Dynesty is not installed on this system, you will '
                    'not be able to use the Dynesty sampler')
-from .base_sampler import Sampler, NestedSampler
 
 
 class Dynesty(NestedSampler):
