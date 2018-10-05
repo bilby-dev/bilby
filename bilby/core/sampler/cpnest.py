@@ -13,7 +13,6 @@ except ImportError:
                    'not be able to use the CPNest sampler')
 
 
-
 class Cpnest(NestedSampler):
     """ bilby wrapper of cpnest (https://github.com/johnveitch/cpnest)
 

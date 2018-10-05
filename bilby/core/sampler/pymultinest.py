@@ -72,7 +72,7 @@ class Pymultinest(NestedSampler):
                 'The length of {} exceeds 78 characters. '
                 ' Post-processing will fail because the file names will be cut'
                 ' off. Please choose a shorter "outdir" or "label".'
-                    .format(self.__kwargs['outputfiles_basename']))
+                .format(self.__kwargs['outputfiles_basename']))
         check_directory_exists_and_if_not_mkdir(
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
