@@ -5,6 +5,8 @@
 Changes currently on master, but not under a tag.
 
 ### Changes
+- Make BBH/BNS parameter conversion more logical
+- Source frame masses/spins included in posterior
 - Make filling in posterior with fixed parameters work
 
 ## [0.3] 2018-01-02

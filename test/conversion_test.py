@@ -97,8 +97,20 @@ class TestBasicConversions(unittest.TestCase):
         self.assertTrue(all([abs(self.lambda_1 - lambda_1) < 1e-5,
                              abs(self.lambda_2 - lambda_2) < 1e-5]))
 
+    def test_lambda_1_lambda_2_to_lambda_tilde(self):
+        lambda_tilde = \
+            conversion.lambda_1_lambda_2_to_lambda_tilde(
+                self.lambda_1, self.lambda_2, self.mass_1, self.mass_2)
+        self.assertTrue((self.lambda_tilde - lambda_tilde) < 1e-5)
 
-class TestConvertToLALBBHParams(unittest.TestCase):
+    def test_lambda_1_lambda_2_to_delta_lambda(self):
+        delta_lambda = \
+            conversion.lambda_1_lambda_2_to_lambda_tilde(
+                self.lambda_1, self.lambda_2, self.mass_1, self.mass_2)
+        self.assertTrue((self.delta_lambda - delta_lambda) < 1e-5)
+
+
+class TestConvertToLALParams(unittest.TestCase):
 
     def setUp(self):
         self.search_keys = []
@@ -110,7 +122,7 @@ class TestConvertToLALBBHParams(unittest.TestCase):
         del self.parameters
         del self.remove
 
-    def test_cos_angle_to_angle_conversion(self):
+    def test_bbh_cos_angle_to_angle_conversion(self):
         with mock.patch('numpy.arccos') as m:
             m.return_value = 42
             self.parameters['cos_tilt_1'] = 1
@@ -118,6 +130,16 @@ class TestConvertToLALBBHParams(unittest.TestCase):
                 conversion.convert_to_lal_binary_black_hole_parameters(
                     self.parameters)
             self.assertDictEqual(self.parameters, dict(tilt_1=42, cos_tilt_1=1))
+
+    def test_bns_cos_angle_to_angle_conversion(self):
+        with mock.patch('numpy.arccos') as m:
+            m.return_value = 42
+            self.parameters['cos_tilt_1'] = 1
+            self.parameters, _ = \
+                conversion.convert_to_lal_binary_neutron_star_parameters(
+                    self.parameters)
+            self.assertDictEqual(self.parameters, dict(
+                tilt_1=42, cos_tilt_1=1, lambda_1=0, lambda_2=0))
 
 
 if __name__ == '__main__':
