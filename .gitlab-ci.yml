@@ -23,7 +23,7 @@ python-2:
   script:
     - python setup.py install
     # Run tests without finding coverage
-    - pytest --ignore=test/gw_example_test.py
+    - pytest
 
 # test example on python 3
 python-3:
@@ -39,7 +39,7 @@ python-3:
     - flake8 .
 
     # Run tests and collect coverage data
-    - pytest --cov=bilby --ignore=test/gw_example_test.py
+    - pytest --cov=bilby
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
 
