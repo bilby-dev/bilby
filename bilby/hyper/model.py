@@ -23,11 +23,9 @@ class Model(object):
                 self.parameters[key] = None
 
     def prob(self, data):
+        probability = 1.0
         for ii, function in enumerate(self.models):
-            if ii == 0:
-                probability = function(data, **self._get_function_parameters(function))
-            else:
-                probability *= function(data, **self._get_function_parameters(function))
+            probability *= function(data, **self._get_function_parameters(function))
         return probability
 
     def _get_function_parameters(self, function):
