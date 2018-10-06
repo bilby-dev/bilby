@@ -255,7 +255,7 @@ def supernova_pca_model(
 
 
 def lal_binary_neutron_star(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, a_2,
+        frequency_array, mass_1, mass_2, luminosity_distance, chi_1, chi_2,
         iota, phase, lambda_1, lambda_2, ra, dec, geocent_time, psi, **kwargs):
     """ A Binary Neutron Star waveform model using lalsimulation
 
@@ -269,10 +269,10 @@ def lal_binary_neutron_star(
         The mass of the lighter object in solar masses
     luminosity_distance: float
         The luminosity distance in megaparsec
-    a_1: float
-        Dimensionless spin magnitude
-    a_2: float
-        Dimensionless secondary spin magnitude
+    chi_1: float
+        Dimensionless aligned spin
+    chi_2: float
+        Dimensionless aligned spin
     iota: float
         Orbital inclination
     phase: float
@@ -314,10 +314,10 @@ def lal_binary_neutron_star(
 
     spin_1x = 0
     spin_1y = 0
-    spin_1z = a_1
+    spin_1z = chi_1
     spin_2x = 0
     spin_2y = 0
-    spin_2z = a_2
+    spin_2z = chi_2
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
