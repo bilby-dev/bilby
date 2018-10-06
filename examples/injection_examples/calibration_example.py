@@ -39,7 +39,7 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    parameters=injection_parameters,waveform_arguments=waveform_arguments)
+    parameters=injection_parameters, waveform_arguments=waveform_arguments)
 
 # Set up interferometers. In this case we'll use three interferometers
 # (LIGO-Hanford (H1), LIGO-Livingston (L1), and Virgo (V1)).
@@ -83,4 +83,3 @@ result = bilby.run_sampler(
 
 # make some plots of the outputs
 result.plot_corner()
-

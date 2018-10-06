@@ -17,14 +17,14 @@ injection_parameters = dict(m=0.5, c=0.2)
 sigma = 1
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
 likelihood = bilby.core.likelihood.GaussianLikelihood(
     time, data, model, sigma=sigma)
 
-priors = {}
+priors = dict()
 priors['m'] = bilby.core.prior.Uniform(0, 1, 'm')
 priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 
@@ -40,5 +40,3 @@ resultA.plot_walkers()
 result = resultA + resultB
 result.plot_corner()
 print(result)
-
-

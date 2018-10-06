@@ -31,7 +31,7 @@ sigma = 1
 # contents of the injection_parameters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 

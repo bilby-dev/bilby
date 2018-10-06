@@ -35,7 +35,7 @@ injection_parameters = dict(
 # to inject the signal into. For the
 # TaylorF2 waveform, we cut the signal close to the isco frequency
 duration = 8
-sampling_frequency = 2*1570.
+sampling_frequency = 2 * 1570.
 start_time = injection_parameters['geocent_time'] + 2 - duration
 
 # Fixed arguments passed into the source model. The analysis starts at 40 Hz.
@@ -94,4 +94,3 @@ result = bilby.run_sampler(
     conversion_function=bilby.gw.conversion.generate_all_bns_parameters)
 
 result.plot_corner()
-

@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 """
 
 Tutorial to demonstrate running parameter estimation/model selection on an NR
@@ -9,10 +9,10 @@ factor. (See https://arxiv.org/pdf/1202.3256.pdf)
 """
 from __future__ import division, print_function
 import numpy as np
+import bilby
 
-# Set the duration and sampling frequency of the data segment that we're going to inject the signal into
-import bilby.gw.likelihood
-
+# Set the duration and sampling frequency of the data segment that we're going
+# to inject the signal into
 duration = 3.
 sampling_frequency = 4096.
 
@@ -45,7 +45,7 @@ waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
 ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
-    start_time=injection_parameters['geocent_time']-3)
+    start_time=injection_parameters['geocent_time'] - 3)
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
