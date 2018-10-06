@@ -4,12 +4,15 @@
 
 Changes currently on master, but not under a tag.
 
+## [0.3.1] 2018-11-06
+
 ### Changes
 - Make BBH/BNS parameter conversion more logical
 - Source frame masses/spins included in posterior
 - Make filling in posterior with fixed parameters work
+- Bug fixes
 
-## [0.3] 2018-01-02
+## [0.3] 2018-11-02
 
 ### Added
 - Joint-likelihood added
