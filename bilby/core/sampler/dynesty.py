@@ -84,10 +84,6 @@ class Dynesty(NestedSampler):
             n_check_point_raw = (check_point_delta_t / self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
-        self.sampler = dynesty.NestedSampler(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim, **self.sampler_init_kwargs)
 
     @property
     def sampler_function_kwargs(self):
@@ -154,6 +150,10 @@ class Dynesty(NestedSampler):
         sys.stderr.flush()
 
     def run_sampler(self):
+        self.sampler = dynesty.NestedSampler(
+            loglikelihood=self.log_likelihood,
+            prior_transform=self.prior_transform,
+            ndim=self.ndim, **self.sampler_init_kwargs)
         if self.n_check_point:
             out = self._run_external_sampler_with_checkpointing()
         else:
@@ -380,7 +380,6 @@ class Dynesty(NestedSampler):
         fig.savefig(filename)
 
     def _run_test(self):
-        import dynesty
         self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
