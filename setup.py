@@ -2,7 +2,8 @@
 
 from setuptools import setup
 import subprocess
-from os import path
+import re
+import os
 
 
 def write_version_file(version):
@@ -35,7 +36,7 @@ def write_version_file(version):
         git_status = ''
 
     version_file = '.version'
-    if path.isfile(version_file) is False:
+    if os.path.isfile(version_file) is False:
         with open('bilby/' + version_file, 'w+') as f:
             f.write('{}: {}'.format(version, git_status))
 
@@ -44,14 +45,27 @@ def write_version_file(version):
 
 def get_long_description():
     """ Finds the README and reads in the description """
-    here = path.abspath(path.dirname(__file__))
-    with open(path.join(here, 'README.rst')) as f:
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, 'README.rst')) as f:
             long_description = f.read()
     return long_description
 
 
-version = '0.3.1'
-version_file = write_version_file(version)
+# get version info from __init__.py
+def readfile(filename):
+    with open(filename) as fp:
+        filecontents = fp.read()
+    return filecontents
+
+
+VERSION_REGEX = re.compile(r"__version__ = \'(.*?)\'")
+CONTENTS = readfile(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "bilby", "__init__.py"))
+VERSION = VERSION_REGEX.findall(CONTENTS)[0]
+
+
+version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
 setup(name='bilby',
@@ -61,7 +75,7 @@ setup(name='bilby',
       author='Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot',
       author_email='paul.lasky@monash.edu',
       license="MIT",
-      version=version,
+      version=VERSION,
       packages=['bilby', 'bilby.core', 'bilby.core.sampler',
                 'bilby.gw', 'bilby.hyper', 'cli_bilby'],
       package_dir={'bilby': 'bilby'},
