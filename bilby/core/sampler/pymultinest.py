@@ -6,7 +6,7 @@ from ..utils import logger
 
 try:
     import pymultinest
-except ImportError:
+except SystemExit:
     logger.warning('PyMultinest is not installed on this system, you will '
                    'not be able to use the PyMultinest sampler')
 
