@@ -25,9 +25,9 @@ np.random.seed(88170235)
 # We are going to inject a binary neutron star waveform.  We first establish a
 # dictionary of parameters that includes all of the different waveform
 # parameters, including masses of the two black holes (mass_1, mass_2),
-# spins of both black holes (a_1,a_2) , etc. 
+# aligned spins of both black holes (chi_1, chi_2), etc.
 injection_parameters = dict(
-    mass_1=1.5, mass_2=1.3, a_1=0.0, a_2=0.0, luminosity_distance=50.,
+    mass_1=1.5, mass_2=1.3, chi_1=0.02, chi_2=0.02, luminosity_distance=50.,
     iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
     ra=1.375, dec=-1.2108, lambda_1=400, lambda_2=450)
 
@@ -35,7 +35,7 @@ injection_parameters = dict(
 # to inject the signal into. For the
 # TaylorF2 waveform, we cut the signal close to the isco frequency
 duration = 8
-sampling_frequency = 2*1570.
+sampling_frequency = 2 * 1570.
 start_time = injection_parameters['geocent_time'] + 2 - duration
 
 # Fixed arguments passed into the source model. The analysis starts at 40 Hz.
@@ -46,6 +46,7 @@ waveform_arguments = dict(waveform_approximant='TaylorF2',
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_neutron_star,
+    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_neutron_star_parameters,
     waveform_arguments=waveform_arguments)
 
 # Set up interferometers.  In this case we'll use three interferometers
@@ -60,11 +61,25 @@ interferometers.set_strain_data_from_power_spectral_densities(
 interferometers.inject_signal(parameters=injection_parameters,
                               waveform_generator=waveform_generator)
 
+# Load the default prior for binary neutron stars.
+# We're going to sample in chirp_mass, symmetric_mass_ratio, lambda_tilde, and
+# delta_lambda rather than mass_1, mass_2, lambda_1, and lambda_2.
 priors = bilby.gw.prior.BNSPriorSet()
-for key in ['a_1', 'a_2', 'psi', 'geocent_time', 'ra', 'dec',
+for key in ['psi', 'geocent_time', 'ra', 'dec', 'chi_1', 'chi_2',
             'iota', 'luminosity_distance', 'phase']:
     priors[key] = injection_parameters[key]
-    
+priors.pop('mass_1')
+priors.pop('mass_2')
+priors.pop('lambda_1')
+priors.pop('lambda_2')
+priors['chirp_mass'] = bilby.core.prior.Gaussian(
+    1.215, 0.1, name='chirp_mass', unit='$M_{\\odot}$')
+priors['symmetric_mass_ratio'] = bilby.core.prior.Uniform(
+    0.1, 0.25, name='symmetric_mass_ratio')
+priors['lambda_tilde'] = bilby.core.prior.Uniform(0, 5000, name='lambda_tilde')
+priors['delta_lambda'] = bilby.core.prior.Uniform(
+    -5000, 5000, name='delta_lambda')
+
 # Initialise the likelihood by passing in the interferometer data (IFOs)
 # and the waveoform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
@@ -75,7 +90,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 # Run sampler.  In this case we're going to use the `nestle` sampler
 result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='nestle', npoints=1000,
-    injection_parameters=injection_parameters, outdir=outdir, label=label)
+    injection_parameters=injection_parameters, outdir=outdir, label=label,
+    conversion_function=bilby.gw.conversion.generate_all_bns_parameters)
 
 result.plot_corner()
-

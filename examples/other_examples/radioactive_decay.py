@@ -45,8 +45,8 @@ def decay_rate(delta_t, halflife, n_init):
 
     n_atoms = n_init * atto * n_avogadro
 
-    rates = (np.exp(-np.log(2) * (times[:-1] / halflife))
-             - np.exp(- np.log(2) * (times[1:] / halflife))) * n_atoms / delta_t
+    rates = (np.exp(-np.log(2) * (times[:-1] / halflife)) -
+             np.exp(- np.log(2) * (times[1:] / halflife))) * n_atoms / delta_t
 
     return rates
 

@@ -20,9 +20,11 @@ label = 'linear_regression_pymc3_custom_likelihood'
 outdir = 'outdir'
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
+
 # First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
     return time * m + c
+
 
 # Now we define the injection parameters which we make simulated data with
 injection_parameters = dict(m=0.5, c=0.2)
@@ -34,7 +36,7 @@ sigma = 1
 # contents of the injection_paramsters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
@@ -51,6 +53,7 @@ fig.savefig('{}/{}_data.png'.format(outdir, label))
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
 # our model.
 class GaussianLikelihoodPyMC3(bilby.Likelihood):
+
     def __init__(self, x, y, sigma, function):
         """
         A general Gaussian likelihood - the parameters are inferred from the
@@ -105,6 +108,7 @@ class GaussianLikelihoodPyMC3(bilby.Likelihood):
             # set the likelihood distribution
             pm.Normal('likelihood', mu=mu, sd=self.sigma, observed=self.y)
 
+
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
 likelihood = GaussianLikelihoodPyMC3(time, data, sigma, model)
@@ -135,15 +139,16 @@ class PriorPyMC3(bilby.core.prior.Prior):
         return pm.Uniform(self.name, lower=self.minimum,
                           upper=self.maximum)
 
+
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
-priors = {}
+priors = dict()
 priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
 priors['c'] = PriorPyMC3(-2, 2, 'c')
 
 # And run sampler
 result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='pymc3', draws=1000,
-    tune=1000, discard_tuned_samples=True, injection_parameters=injection_parameters, 
-    outdir=outdir, label=label)
+    tune=1000, discard_tuned_samples=True,
+    injection_parameters=injection_parameters, outdir=outdir, label=label)
 result.plot_corner()

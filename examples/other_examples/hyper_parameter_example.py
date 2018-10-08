@@ -15,7 +15,7 @@ outdir = 'outdir'
 
 # Define a model to fit to each data set
 def model(x, c0, c1):
-    return c0 + c1*x
+    return c0 + c1 * x
 
 
 N = 10
@@ -64,8 +64,8 @@ fig2.savefig('outdir/hyper_parameter_combined_posteriors.png')
 
 
 def hyper_prior(data, mu, sigma):
-    return np.exp(- (data['c0'] - mu)**2 / (2 * sigma**2))\
-           / (2 * np.pi * sigma**2)**0.5
+    return np.exp(- (data['c0'] - mu)**2 / (2 * sigma**2)) /\
+        (2 * np.pi * sigma**2)**0.5
 
 
 def run_prior(data):

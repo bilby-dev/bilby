@@ -9,7 +9,6 @@ from __future__ import division
 import bilby
 import numpy as np
 import matplotlib.pyplot as plt
-import inspect
 
 from bilby.core.likelihood import GaussianLikelihood
 
@@ -18,9 +17,11 @@ label = 'linear_regression_pymc3'
 outdir = 'outdir'
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
+
 # First, we define our "signal model", in this case a simple linear function
 def model(time, m, c):
     return time * m + c
+
 
 # Now we define the injection parameters which we make simulated data with
 injection_parameters = dict(m=0.5, c=0.2)
@@ -32,7 +33,7 @@ sigma = 1
 # contents of the injection_paramsters when calling the model function.
 sampling_frequency = 10
 time_duration = 10
-time = np.arange(0, time_duration, 1/sampling_frequency)
+time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
@@ -51,7 +52,7 @@ likelihood = GaussianLikelihood(time, data, model, sigma=sigma)
 
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
-priors = {}
+priors = dict()
 priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
 priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
 

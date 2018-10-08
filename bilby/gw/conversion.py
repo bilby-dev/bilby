@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy as np
+
 import pandas as pd
 from ..core.utils import logger, solar_mass
 try:
@@ -45,6 +46,53 @@ def comoving_distance_to_luminosity_distance(distance):
 def luminosity_distance_to_comoving_distance(distance):
     redshift = luminosity_distance_to_redshift(distance)
     return redshift_to_comoving_distance(redshift)
+
+
+@np.vectorize
+def transform_precessing_spins(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1,
+                               a_2, mass_1, mass_2, reference_frequency, phase):
+    """
+    Vectorized version of
+    lalsimulation.SimInspiralTransformPrecessingNewInitialConditions
+
+    All parameters are defined at the reference frequency
+
+    Parameters
+    ----------
+    theta_jn: float
+        Inclination angle
+    phi_jl: float
+        Spin phase angle
+    tilt_1: float
+        Primary object tilt
+    tilt_2: float
+        Secondary object tilt
+    phi_12: float
+        Relative spin azimuthal angle
+    a_1: float
+        Primary dimensionless spin magnitude
+    a_2: float
+        Secondary dimensionless spin magnitude
+    mass_1: float
+        Primary mass _in SI units_
+    mass_2: float
+        Secondary mass _in SI units_
+    reference_frequency: float
+    phase: float
+        Orbital phase
+
+    Returns
+    -------
+    iota: float
+        Transformed inclination
+    spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z: float
+        Cartesian spin components
+    """
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
+        lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
+            mass_2, reference_frequency, phase)
+    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters):
@@ -164,7 +212,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
 
 
     Mass: mass_1, mass_2
-    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
+    Spin: chi_1, chi_2, tilt_1, tilt_2, phi_12, phi_jl
     Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
 
     This involves popping a lot of things from parameters.
@@ -186,6 +234,14 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     original_keys = list(converted_parameters.keys())
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
+
+    # catch if tidal parameters aren't present
+    if not any([key in converted_parameters for key in
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
+        converted_parameters['lambda_1'] = 0
+        converted_parameters['lambda_2'] = 0
+        added_keys = added_keys + ['lambda_1', 'lambda_2']
+        return converted_parameters, added_keys
 
     if 'delta_lambda' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
@@ -406,6 +462,71 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
     return mass_ratio
 
 
+def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
+    """
+    Convert from individual tidal parameters to domainant tidal term.
+
+    See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
+
+    Parameters
+    ----------
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    mass_1: float
+        Mass of more massive neutron star.
+    mass_2: float
+        Mass of less massive neutron star.
+
+    Return
+    ------
+    lambda_tilde: float
+        Dominant tidal term.
+    """
+    eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
+    lambda_plus = lambda_1 + lambda_2
+    lambda_minus = lambda_1 - lambda_2
+    lambda_tilde = 8 / 13 * (
+        (1 + 7 * eta - 31 * eta**2) * lambda_plus +
+        (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus)
+
+    return lambda_tilde
+
+
+def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
+    """
+    Convert from individual tidal parameters to second domainant tidal term.
+
+    See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
+
+    Parameters
+    ----------
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    mass_1: float
+        Mass of more massive neutron star.
+    mass_2: float
+        Mass of less massive neutron star.
+
+    Return
+    ------
+    delta_lambda: float
+        Second dominant tidal term.
+    """
+    eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
+    lambda_plus = lambda_1 + lambda_2
+    lambda_minus = lambda_1 - lambda_2
+    delta_lambda = 1 / 2 * (
+        (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
+        lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
+                       3380 / 1319 * eta**3) * lambda_minus)
+
+    return delta_lambda
+
+
 def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
         lambda_tilde, delta_lambda, mass_1, mass_2):
     """
@@ -484,6 +605,29 @@ def lambda_tilde_to_lambda_1_lambda_2(
     return lambda_1, lambda_2
 
 
+def _generate_all_cbc_parameters(sample, defaults, base_conversion,
+                                 likelihood=None, priors=None):
+    """Generate all cbc parameters, helper function for BBH/BNS"""
+    output_sample = sample.copy()
+    waveform_defaults = defaults
+    for key in waveform_defaults:
+        try:
+            output_sample[key] = \
+                likelihood.waveform_generator.waveform_arguments[key]
+        except (KeyError, AttributeError):
+            default = waveform_defaults[key]
+            output_sample[key] = default
+            logger.warning('Assuming {} = {}'.format(key, default))
+
+    output_sample = fill_from_fixed_priors(output_sample, priors)
+    output_sample, _ = base_conversion(output_sample)
+    output_sample = generate_mass_parameters(output_sample)
+    output_sample = generate_spin_parameters(output_sample)
+    output_sample = generate_source_frame_parameters(output_sample)
+    compute_snrs(output_sample, likelihood)
+    return output_sample
+
+
 def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     """
     From either a single sample or a set of samples fill in all missing
@@ -500,21 +644,43 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
     """
-    output_sample = sample.copy()
-    if likelihood is not None:
-        output_sample['reference_frequency'] =\
-            likelihood.waveform_generator.waveform_arguments[
-                'reference_frequency']
-        output_sample['waveform_approximant'] =\
-            likelihood.waveform_generator.waveform_arguments[
-                'waveform_approximant']
+    waveform_defaults = {
+        'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2',
+        'minimum_frequency': 20.0}
+    output_sample = _generate_all_cbc_parameters(
+        sample, defaults=waveform_defaults,
+        base_conversion=convert_to_lal_binary_black_hole_parameters,
+        likelihood=likelihood, priors=priors)
+    return output_sample
 
-    output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample, _ =\
-        convert_to_lal_binary_black_hole_parameters(output_sample)
-    output_sample = generate_non_standard_parameters(output_sample)
-    output_sample = generate_component_spins(output_sample)
-    compute_snrs(output_sample, likelihood)
+
+def generate_all_bns_parameters(sample, likelihood=None, priors=None):
+    """
+    From either a single sample or a set of samples fill in all missing
+    BNS parameters, in place.
+
+    Since we assume BNS waveforms are aligned, component spins won't be
+    calculated.
+
+    Parameters
+    ----------
+    sample: dict or pandas.DataFrame
+        Samples to fill in with extra parameters, this may be either an
+        injection or posterior samples.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient, optional
+        GravitationalWaveTransient used for sampling, used for waveform and
+        likelihood.interferometers.
+    priors: dict, optional
+        Dictionary of prior objects, used to fill in non-sampled parameters.
+    """
+    waveform_defaults = {
+        'reference_frequency': 50.0, 'waveform_approximant': 'TaylorF2',
+        'minimum_frequency': 20.0}
+    output_sample = _generate_all_cbc_parameters(
+        sample, defaults=waveform_defaults,
+        base_conversion=convert_to_lal_binary_neutron_star_parameters,
+        likelihood=likelihood, priors=priors)
+    output_sample = generate_tidal_parameters(output_sample)
     return output_sample
 
 
@@ -540,13 +706,12 @@ def fill_from_fixed_priors(sample, priors):
     return output_sample
 
 
-def generate_non_standard_parameters(sample):
+def generate_mass_parameters(sample):
     """
-    Add the known non-standard parameters to the data frame/dictionary.
+    Add the known mass parameters to the data frame/dictionary.
 
     We add:
-        chirp mass, total mass, symmetric mass ratio, mass ratio, cos tilt 1,
-        cos tilt 2, cos iota
+        chirp mass, total mass, symmetric mass ratio, mass ratio
 
     Parameters
     ----------
@@ -569,12 +734,47 @@ def generate_non_standard_parameters(sample):
     output_sample['mass_ratio'] =\
         component_masses_to_mass_ratio(sample['mass_1'], sample['mass_2'])
 
-    output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
-    output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
-    output_sample['cos_iota'] = np.cos(output_sample['iota'])
+    return output_sample
 
-    output_sample['redshift'] =\
-        luminosity_distance_to_redshift(sample['luminosity_distance'])
+
+def generate_spin_parameters(sample):
+    """
+    Add all spin parameters to the data frame/dictionary.
+
+    We add:
+        cartestian spin components, chi_eff, chi_p cos tilt 1, cos tilt 2
+
+    Parameters
+    ----------
+    sample : dict, pandas.DataFrame
+        The input dictionary with some spin parameters
+
+    Returns
+    -------
+    dict: The updated dictionary
+
+    """
+    output_sample = sample.copy()
+
+    output_sample = generate_component_spins(output_sample)
+
+    output_sample['chi_eff'] = (output_sample['spin_1z'] +
+                                output_sample['spin_2z'] *
+                                output_sample['mass_ratio']) /\
+                               (1 + output_sample['mass_ratio'])
+
+    output_sample['chi_p'] = np.maximum(
+        (output_sample['spin_1x'] ** 2 + output_sample['spin_1y']**2)**0.5,
+        (4 * output_sample['mass_ratio'] + 3) /
+        (3 * output_sample['mass_ratio'] + 4) * output_sample['mass_ratio'] *
+        (output_sample['spin_2x'] ** 2 + output_sample['spin_2y']**2)**0.5)
+
+    try:
+        output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
+        output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
+    except KeyError:
+        pass
+
     return output_sample
 
 
@@ -599,13 +799,12 @@ def generate_component_spins(sample):
     spin_conversion_parameters =\
         ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
          'mass_2', 'reference_frequency', 'phase']
-    if all(key in output_sample.keys() for key in spin_conversion_parameters)\
-            and isinstance(output_sample, dict):
+    if all(key in output_sample.keys() for key in spin_conversion_parameters):
         output_sample['iota'], output_sample['spin_1x'],\
             output_sample['spin_1y'], output_sample['spin_1z'], \
             output_sample['spin_2x'], output_sample['spin_2y'],\
             output_sample['spin_2z'] =\
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+            transform_precessing_spins(
                 output_sample['iota'], output_sample['phi_jl'],
                 output_sample['tilt_1'], output_sample['tilt_2'],
                 output_sample['phi_12'], output_sample['a_1'],
@@ -618,40 +817,73 @@ def generate_component_spins(sample):
             np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
         output_sample['phi_2'] =\
             np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
-
-    elif all(key in output_sample.keys() for key in spin_conversion_parameters)\
-            and isinstance(output_sample, pd.DataFrame):
-        logger.debug('Extracting component spins.')
-        new_spin_parameters =\
-            ['spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z']
-        new_spins =\
-            {name: np.zeros(len(output_sample)) for name in new_spin_parameters}
-
-        for ii in range(len(output_sample)):
-            new_spins['iota'], new_spins['spin_1x'][ii],\
-                new_spins['spin_1y'][ii], new_spins['spin_1z'][ii], \
-                new_spins['spin_2x'][ii], new_spins['spin_2y'][ii],\
-                new_spins['spin_2z'][ii] =\
-                lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                    output_sample['iota'][ii], output_sample['phi_jl'][ii],
-                    output_sample['tilt_1'][ii], output_sample['tilt_2'][ii],
-                    output_sample['phi_12'][ii], output_sample['a_1'][ii],
-                    output_sample['a_2'][ii],
-                    output_sample['mass_1'][ii] * solar_mass,
-                    output_sample['mass_2'][ii] * solar_mass,
-                    output_sample['reference_frequency'][ii],
-                    output_sample['phase'][ii])
-
-        for name in new_spin_parameters:
-            output_sample[name] = new_spins[name]
-
-        output_sample['phi_1'] =\
-            np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
-        output_sample['phi_2'] =\
-            np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
-
+    elif 'chi_1' in output_sample and 'chi_2' in output_sample:
+        output_sample['spin_1x'] = 0
+        output_sample['spin_1y'] = 0
+        output_sample['spin_1z'] = output_sample['chi_1']
+        output_sample['spin_2x'] = 0
+        output_sample['spin_2y'] = 0
+        output_sample['spin_2z'] = output_sample['chi_2']
     else:
         logger.warning("Component spin extraction failed.")
+        logger.warning(output_sample.keys())
+
+    return output_sample
+
+
+def generate_tidal_parameters(sample):
+    """
+    Generate all tidal parameters
+
+    lambda_tilde, delta_lambda
+
+    Parameters
+    ----------
+    sample: dict, pandas.DataFrame
+        Should contain lambda_1, lambda_2
+
+    Returns
+    -------
+    output_sample: dict, pandas.DataFrame
+        Updated sample
+    """
+    output_sample = sample.copy()
+
+    output_sample['lambda_tilde'] =\
+        lambda_1_lambda_2_to_lambda_tilde(
+            output_sample['lambda_1'], output_sample['lambda_2'],
+            output_sample['mass_1'], output_sample['mass_2'])
+    output_sample['delta_lambda'] = \
+        lambda_1_lambda_2_to_delta_lambda(
+            output_sample['lambda_1'], output_sample['lambda_2'],
+            output_sample['mass_1'], output_sample['mass_2'])
+
+    return output_sample
+
+
+def generate_source_frame_parameters(sample):
+    """
+    Generate source frame masses along with redshifts and comoving distance.
+
+    Parameters
+    ----------
+    sample: dict, pandas.DataFrame
+
+    Returns
+    -------
+    output_sample: dict, pandas.DataFrame
+    """
+    output_sample = sample.copy()
+
+    output_sample['redshift'] =\
+        luminosity_distance_to_redshift(output_sample['luminosity_distance'])
+    output_sample['comoving_distance'] =\
+        redshift_to_comoving_distance(output_sample['redshift'])
+
+    for key in ['mass_1', 'mass_2', 'chirp_mass', 'total_mass']:
+        if key in output_sample:
+            output_sample['{}_source'.format(key)] =\
+                output_sample[key] / (1 + output_sample['redshift'])
 
     return output_sample
 
@@ -674,7 +906,6 @@ def compute_snrs(sample, likelihood):
         if isinstance(temp_sample, dict):
             temp = dict()
             for key in likelihood.waveform_generator.parameters.keys():
-                # likelihood.waveform_generator.parameters[key] = temp_sample[key]
                 temp[key] = temp_sample[key]
             signal_polarizations =\
                 likelihood.waveform_generator.frequency_domain_strain(temp)
@@ -696,8 +927,6 @@ def compute_snrs(sample, likelihood):
                 temp = dict()
                 for key in set(temp_sample.keys()).intersection(
                         likelihood.waveform_generator.parameters.keys()):
-                    # likelihood.waveform_generator.parameters[key] =\
-                    #     temp_sample[key][ii]
                     temp[key] = temp_sample[key][ii]
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(temp)

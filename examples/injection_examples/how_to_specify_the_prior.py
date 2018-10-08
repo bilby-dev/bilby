@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-Tutorial to demonstrate how to specify the prior distributions used for parameter estimation.
+Tutorial to demonstrate how to specify the prior distributions used for
+parameter estimation.
 """
 from __future__ import division, print_function
-import bilby
-import numpy as np
 
-import bilby.gw.prior
+import numpy as np
+import bilby
 
 
 duration = 4.
@@ -15,18 +15,19 @@ outdir = 'outdir'
 
 np.random.seed(151012)
 
-injection_parameters = dict(mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0, phi_12=1.7, phi_jl=0.3,
-                            luminosity_distance=4000., iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
-                            ra=1.375, dec=-1.2108)
+injection_parameters = dict(
+    mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4, psi=2.659,
+    phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
-                          reference_frequency=50.)
+                          reference_frequency=50., minimum_frequency=20.)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    parameters=injection_parameters, waveform_arguments=waveform_arguments)
+    waveform_arguments=waveform_arguments)
 
 # Set up interferometers.
 ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
@@ -58,14 +59,16 @@ priors['a_2'] = bilby.core.prior.Interped(
     name='a_2', xx=a_2, yy=p_a_2, minimum=0, maximum=0.5)
 # Additionally, we have Gaussian, TruncatedGaussian, Sine and Cosine.
 # It's also possible to load an interpolate a prior from a file.
-# Finally, if you don't specify any necessary parameters it will be filled in from the default when the sampler starts.
+# Finally, if you don't specify any necessary parameters it will be filled in
+# from the default when the sampler starts.
 # Enjoy.
 
 # Initialise GravitationalWaveTransient
-likelihood = bilby.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
+likelihood = bilby.gw.GravitationalWaveTransient(
+    interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler
-result = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty',
-                           injection_parameters=injection_parameters, outdir=outdir, label='specify_prior')
+result = bilby.run_sampler(
+    likelihood=likelihood, priors=priors, sampler='dynesty', outdir=outdir,
+    injection_parameters=injection_parameters, label='specify_prior')
 result.plot_corner()
-
