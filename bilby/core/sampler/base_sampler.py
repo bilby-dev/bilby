@@ -411,15 +411,15 @@ class NestedSampler(Sampler):
 
         Parameters
         ----------
-        sorted_samples, unsorted_samples: array
+        sorted_samples, unsorted_samples: array_like
             Sorted and unsorted values of the samples. These should be of the same
             shape and contain the same sample values, but in different orders
-        unsorted_loglikelihoods: array
+        unsorted_loglikelihoods: array_like
             The loglikelihoods corresponding to the unsorted_samples
 
         Returns
         -------
-        sorted_loglikelihoods: array
+        sorted_loglikelihoods: array_like
             The loglikelihoods reordered to match that of the sorted_samples
 
 
