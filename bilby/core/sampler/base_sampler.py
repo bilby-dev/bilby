@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import datetime
 import numpy as np
 from pandas import DataFrame
@@ -439,7 +440,7 @@ class MCMCSampler(Sampler):
 
     def print_nburn_logging_info(self):
         """ Prints logging info as to how nburn was calculated """
-        if type(self.kwargs['nburn']) in [float, int]:
+        if type(self.nburn) in [float, int]:
             logger.info("Discarding {} steps for burn-in".format(self.nburn))
         elif self.result.max_autocorrelation_time is None:
             logger.info("Autocorrelation time not calculated, discarding {} "
