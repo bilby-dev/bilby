@@ -121,16 +121,18 @@ class TestCPNest(unittest.TestCase):
         del self.sampler
 
     def test_default_kwargs(self):
-        expected = dict(verbose=1, Nthreads=1, Nlive=500, maxmcmc=1000,
-                        Poolsize=100, seed=None, balance_samplers=True)
+        expected = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
+                        seed=None, poolsize=100, nhamiltonian=0, resume=False,
+                        output='outdir/cpnest_label/')
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
-        expected = dict(verbose=1, Nthreads=1, Nlive=250, maxmcmc=1000,
-                        Poolsize=100, seed=None, balance_samplers=True)
+        expected = dict(verbose=1, nthreads=1, nlive=250, maxmcmc=1000,
+                        seed=None, poolsize=100, nhamiltonian=0, resume=False,
+                        output='outdir/cpnest_label/')
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
-            del new_kwargs['Nlive']
+            del new_kwargs['nlive']
             new_kwargs[equiv] = 250
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)

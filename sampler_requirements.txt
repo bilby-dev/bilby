@@ -1,4 +1,4 @@
-cpnest
+cpnest>=0.9.4
 dynesty
 emcee
 nestle
