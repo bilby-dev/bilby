@@ -11,6 +11,8 @@ from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfinv
 
+# Keep import bilby statement, it is necessary for some eval() statements
+import bilby
 from . import utils
 from .utils import logger
 
