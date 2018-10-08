@@ -19,7 +19,6 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-
 def redshift_to_luminosity_distance(redshift):
     return Planck15.luminosity_distance(redshift).value
 
