@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 from scipy.special import erf, erfinv
 
 # Keep import bilby statement, it is necessary for some eval() statements
-import bilby
+import bilby  # noqa
 from . import utils
 from .utils import logger
 
@@ -89,7 +89,7 @@ class PriorSet(OrderedDict):
                 except (NameError, SyntaxError, TypeError):
                     logger.debug(
                         "Failed to load dictionary value {} correctlty"
-                        .format(key))
+                            .format(key))
                     pass
             self[key] = val
 
@@ -105,7 +105,7 @@ class PriorSet(OrderedDict):
             else:
                 logger.debug(
                     "{} cannot be converted to delta function prior."
-                    .format(key))
+                        .format(key))
 
     def fill_priors(self, likelihood, default_priors_file=None):
         """
@@ -145,7 +145,7 @@ class PriorSet(OrderedDict):
                     logger.warning(
                         "Parameter {} has no default prior and is set to {}, this"
                         " will not be sampled and may cause an error."
-                        .format(missing_key, set_val))
+                            .format(missing_key, set_val))
                 else:
                     self[missing_key] = default_prior
 
@@ -952,7 +952,7 @@ class TruncatedGaussian(Prior):
         float: Prior probability of val
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-            2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
+                2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
 
 
 class TruncatedNormal(TruncatedGaussian):
