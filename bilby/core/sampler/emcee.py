@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import numpy as np
 from pandas import DataFrame
 from ..utils import logger, get_progress_bar
