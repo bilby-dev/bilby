@@ -5,7 +5,6 @@ from bilby.core.result import Result
 import unittest
 from mock import MagicMock
 import numpy as np
-import inspect
 import os
 import copy
 
@@ -391,6 +390,64 @@ class TestPymultinest(unittest.TestCase):
             new_kwargs[equiv] = 123
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestRunningSamplers(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(42)
+        bilby.core.utils.command_line_args.test = False
+        self.x = np.linspace(0, 1, 11)
+        self.model = lambda x, m, c: m * x + c
+        self.injection_parameters = dict(m=0.5, c=0.2)
+        self.sigma = 0.1
+        self.y = self.model(self.x, **self.injection_parameters) +\
+            np.random.normal(0, self.sigma, len(self.x))
+        self.likelihood = bilby.likelihood.GaussianLikelihood(
+            self.x, self.y, self.model, self.sigma)
+
+        self.priors = dict(
+            m=bilby.core.prior.Uniform(0, 5), c=bilby.core.prior.Uniform(-2, 2))
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        bilby.core.utils.command_line_args.test = False
+
+    def test_run_cpnest(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='cpnest',
+            nlive=100, save=False)
+
+    def test_run_dynesty(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='dynesty',
+            nlive=100, save=False)
+
+    def test_run_emcee(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='emcee',
+            nsteps=1000, nwalkers=10, save=False)
+
+    def test_run_nestle(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='nestle',
+            nlive=100, save=False)
+
+    def test_run_ptemcee(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='ptemcee',
+            nsteps=1000, nwalkers=10, ntemps=10, save=False)
+
+    def test_run_pymc3(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='pymc3',
+            draws=50, tune=50, n_init=1000, save=False)
+
+    def test_run_pymultinest(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors,
+            sampler='pymultinest', nlive=100, save=False)
 
 
 if __name__ == '__main__':
