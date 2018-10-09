@@ -18,6 +18,8 @@ python-2:
   stage: test
   image: bilbydev/test-suite-py2
   before_script:
+    # Source the .bashrc for MultiNest
+    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
@@ -30,6 +32,8 @@ python-3:
   stage: test
   image: bilbydev/test-suite-py3
   before_script:
+    # Source the .bashrc for MultiNest
+    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
