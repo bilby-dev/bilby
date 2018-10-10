@@ -161,7 +161,7 @@ In this section, we'll give an overview of how the code is structured. This is i
 
 ### Bilby Code Layout
 
-![bilby overview](docs/images/bilby_layout.pdf)
+![bilby overview](docs/images/bilby_layout.png)
 
 Note this layout is not comprehensive, for example only a few example "Priors" are shown.
 
