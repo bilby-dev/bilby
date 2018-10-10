@@ -545,5 +545,79 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
         process.communicate()
 
 
+def save_to_fits(posterior, outdir, label):
+    """ Generate a fits file from a posterior array """
+    from astropy.io import fits
+    from astropy.units import pixel
+    from astropy.table import Table
+    import healpy as hp
+    nside = hp.get_nside(posterior)
+    npix = hp.nside2npix(nside)
+    logger.debug('Generating table')
+    m = Table([posterior], names=['PROB'])
+    m['PROB'].unit = pixel ** -1
+
+    ordering = 'RING'
+    extra_header = [('PIXTYPE', 'HEALPIX',
+                     'HEALPIX pixelisation'),
+                    ('ORDERING', ordering,
+                     'Pixel ordering scheme: RING, NESTED, or NUNIQ'),
+                    ('COORDSYS', 'C',
+                     'Ecliptic, Galactic or Celestial (equatorial)'),
+                    ('NSIDE', hp.npix2nside(npix),
+                     'Resolution parameter of HEALPIX'),
+                    ('INDXSCHM', 'IMPLICIT',
+                     'Indexing: IMPLICIT or EXPLICIT')]
+
+    fname = '{}/{}_{}.fits'.format(outdir, label, nside)
+    hdu = fits.table_to_hdu(m)
+    hdu.header.extend(extra_header)
+    hdulist = fits.HDUList([fits.PrimaryHDU(), hdu])
+    logger.debug('Writing to a fits file')
+    hdulist.writeto(fname, overwrite=True)
 
 
+def plot_skymap(result, center='120d -40d', nside=512):
+    """ Generate a sky map from a result """
+    import scipy
+    from astropy.units import deg
+    import healpy as hp
+    import ligo.skymap.plot  # noqa
+    import matplotlib.pyplot as plt
+    logger.debug('Generating skymap')
+
+    logger.debug('Reading in ra and dec, creating kde and converting')
+    ra_dec_radians = result.posterior[['ra', 'dec']].values
+    kde = scipy.stats.gaussian_kde(ra_dec_radians.T)
+    npix = hp.nside2npix(nside)
+    ipix = range(npix)
+    theta, phi = hp.pix2ang(nside, ipix)
+    ra = phi
+    dec = 0.5 * np.pi - theta
+
+    logger.debug('Generating posterior')
+    post = kde(np.row_stack([ra, dec]))
+    post /= np.sum(post * hp.nside2pixarea(nside))
+
+    fig = plt.figure(figsize=(5, 5))
+    ax = plt.axes([0.05, 0.05, 0.9, 0.9],
+                  projection='astro globe',
+                  center=center)
+    ax.coords.grid(True, linestyle='--')
+    lon = ax.coords[0]
+    lat = ax.coords[1]
+    lon.set_ticks(exclude_overlapping=True, spacing=45 * deg)
+    lat.set_ticks(spacing=30 * deg)
+
+    lon.set_major_formatter('dd')
+    lat.set_major_formatter('hh')
+    lon.set_ticklabel(color='k')
+    lat.set_ticklabel(color='k')
+
+    logger.debug('Plotting sky map')
+    ax.imshow_hpx(post)
+
+    lon.set_ticks_visible(False)
+    lat.set_ticks_visible(False)
+
+    fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))

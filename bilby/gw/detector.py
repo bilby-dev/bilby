@@ -2164,6 +2164,3 @@ def load_data_from_cache_file(
         logger.warning('Data not loaded for {}'.format(ifo.name))
     elif not psd_set:
         logger.warning('PSD not created for {}'.format(ifo.name))
-
-
-
