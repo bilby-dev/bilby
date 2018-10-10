@@ -58,13 +58,7 @@ def readfile(filename):
     return filecontents
 
 
-VERSION_REGEX = re.compile(r"__version__ = \'(.*?)\'")
-CONTENTS = readfile(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "bilby", "__init__.py"))
-VERSION = VERSION_REGEX.findall(CONTENTS)[0]
-
-
+VERSION = '0.3.1'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
