@@ -2,7 +2,6 @@
 
 from setuptools import setup
 import subprocess
-import re
 import os
 
 
