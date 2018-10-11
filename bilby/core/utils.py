@@ -359,8 +359,8 @@ def get_version_information():
     try:
         with open(version_file, 'r') as f:
             return f.readline().rstrip()
-    except: # noqa
-        return "No version information"
+    except IOError:
+        raise IOError("No version information file '.version' found")
 
 
 def get_progress_bar(module='tqdm'):
