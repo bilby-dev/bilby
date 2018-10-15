@@ -119,7 +119,7 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - Major effort to update all docstrings and add some documentation.
 - Marginalized likelihoods.
 - Examples of searches for gravitational waves from a Supernova and using a sine-Gaussian.
-- A `PriorDict` to handle sets of priors and allows reading in from a standardised prior file (see https://monash.docs.ligo.org/bilby/prior.html).
+- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://monash.docs.ligo.org/bilby/prior.html).
 - A standardised file for storing detector data.
 
 ### Removed
