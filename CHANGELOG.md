@@ -11,6 +11,10 @@ Changes currently on master, but not under a tag.
 - Source frame masses/spins included in posterior
 - Make filling in posterior with fixed parameters work
 - Bug fixes
+- Renamed `PriorSet` to `PriorDict`
+- Renamed `BBHPriorSet` to `BBHPriorDict`
+- Renamed `BNSPriorSet` to `BNSPriorDict`
+- Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
 
 ## [0.3] 2018-11-02
 
