@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 from pandas import DataFrame
 from ..utils import logger, command_line_args
-from ..prior import Prior, PriorDict
+from ..prior import Prior, PriorSet
 from ..result import Result, read_in_result
 
 
@@ -35,7 +35,7 @@ class Sampler(object):
     -------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
-    priors: bilby.core.prior.PriorDict
+    priors: bilby.core.prior.PriorSet
         Priors to be used in the search.
         This has attributes for each parameter to be sampled.
     external_sampler: Module
@@ -74,10 +74,10 @@ class Sampler(object):
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False, **kwargs):
         self.likelihood = likelihood
-        if isinstance(priors, PriorDict):
+        if isinstance(priors, PriorSet):
             self.priors = priors
         else:
-            self.priors = PriorDict(priors)
+            self.priors = PriorSet(priors)
         self.label = label
         self.outdir = outdir
         self.use_ratio = use_ratio

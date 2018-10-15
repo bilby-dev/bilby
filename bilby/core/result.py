@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from . import utils
 from .utils import logger, infer_parameters_from_function
-from .prior import PriorDict, DeltaFunction
+from .prior import PriorSet, DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -81,7 +81,7 @@ class Result(dict):
                 setattr(self, key, val)
 
         if getattr(self, 'priors', None) is not None:
-            self.priors = PriorDict(self.priors)
+            self.priors = PriorSet(self.priors)
 
     def __add__(self, other):
         matches = ['sampler', 'search_parameter_keys']

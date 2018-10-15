@@ -85,7 +85,7 @@ class TestGWTransient(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.prior = bilby.gw.prior.BBHPriorSet()
         self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
@@ -158,7 +158,7 @@ class TestTimeMarginalization(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.prior = bilby.gw.prior.BBHPriorSet()
         self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
@@ -224,7 +224,7 @@ class TestMarginalizedLikelihood(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.prior = bilby.gw.prior.BBHPriorSet()
         self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
@@ -287,7 +287,7 @@ class TestPhaseMarginalization(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.prior = bilby.gw.prior.BBHPriorSet()
         self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
@@ -350,7 +350,7 @@ class TestTimePhaseMarginalization(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.prior = bilby.gw.prior.BBHPriorSet()
         self.prior['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)

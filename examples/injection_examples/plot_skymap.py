@@ -30,7 +30,7 @@ ifos.set_strain_data_from_power_spectral_densities(
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
-priors = bilby.gw.prior.BBHPriorDict()
+priors = bilby.gw.prior.BBHPriorSet()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi',
             'mass_1', 'mass_2', 'phase', 'geocent_time', 'luminosity_distance',
             'iota']:

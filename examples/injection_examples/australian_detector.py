@@ -89,7 +89,7 @@ for interferometer in interferometers:
     interferometer.plot_data(signal=signal, outdir=outdir, label=label)
 
 # set up priors
-priors = bilby.gw.prior.BBHPriorDict()
+priors = bilby.gw.prior.BBHPriorSet()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi',
             'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]

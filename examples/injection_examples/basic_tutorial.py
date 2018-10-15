@@ -64,7 +64,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # The above list does *not* include mass_1, mass_2, iota and luminosity
 # distance, which means those are the parameters that will be included in the
 # sampler.  If we do nothing, then the default priors get used.
-priors = bilby.gw.prior.BBHPriorDict()
+priors = bilby.gw.prior.BBHPriorSet()
 priors['geocent_time'] = bilby.core.prior.Uniform(
     minimum=injection_parameters['geocent_time'] - 1,
     maximum=injection_parameters['geocent_time'] + 1,

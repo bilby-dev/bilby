@@ -15,7 +15,7 @@ import bilby  # noqa
 import inspect
 
 
-class PriorDict(OrderedDict):
+class PriorSet(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -238,14 +238,6 @@ class PriorDict(OrderedDict):
         return False
 
 
-class PriorSet(PriorDict):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE PriorDict INSTEAD"""
-        logger.warning("The name 'PriorSet' is deprecated use 'PriorDict' instead")
-        super(PriorSet, self).__init__(dictionary, filename)
-
-
 def create_default_prior(name, default_priors_file=None):
     """Make a default prior for a parameter with a known name.
 
@@ -269,7 +261,7 @@ def create_default_prior(name, default_priors_file=None):
             "No prior file given.")
         prior = None
     else:
-        default_priors = PriorDict(filename=default_priors_file)
+        default_priors = PriorSet(filename=default_priors_file)
         if name in default_priors.keys():
             prior = default_priors[name]
         else:

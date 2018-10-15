@@ -59,7 +59,7 @@ class TestResult(unittest.TestCase):
         self.result.plot_corner(parameters=dict(x=1, y=1))
 
     def test_plot_corner_with_priors(self):
-        priors = bilby.core.prior.PriorDict()
+        priors = bilby.core.prior.PriorSet()
         priors['x'] = bilby.core.prior.Uniform(-1, 1, 'x')
         priors['y'] = bilby.core.prior.Uniform(-1, 1, 'y')
         self.result.plot_corner(priors=priors)

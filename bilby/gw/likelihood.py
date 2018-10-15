@@ -12,7 +12,7 @@ from ..core import likelihood
 from ..core.utils import logger
 from ..core.prior import Prior, Uniform
 from .detector import InterferometerList
-from .prior import BBHPriorDict
+from .prior import BBHPriorSet
 from .source import lal_binary_black_hole
 from .utils import noise_weighted_inner_product
 from .waveform_generator import WaveformGenerator
@@ -122,7 +122,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                     self.interferometers.start_time,
                     self.interferometers.start_time + self.interferometers.duration)
             else:
-                self.prior[key] = BBHPriorDict()[key]
+                self.prior[key] = BBHPriorSet()[key]
 
     @property
     def prior(self):

@@ -58,7 +58,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
 # Now we set up the priors on each of the binary parameters.
-priors = bilby.core.prior.PriorDict()
+priors = bilby.core.prior.PriorSet()
 priors["mass_1"] = bilby.core.prior.Uniform(
     name='mass_1', minimum=5, maximum=60, unit='$M_{\\odot}$')
 priors["mass_2"] = bilby.core.prior.Uniform(
