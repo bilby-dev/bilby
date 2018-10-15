@@ -159,82 +159,9 @@ you should:
 
 In this section, we'll give an overview of how the code is structured. This is intended to help orient users and make it easier to contribute. The layout is intended to define the logic of the code and new merge requests should aim to fit within this logic (unless there is a good argument to change it). For example, code which adds a new sampler should not effect the gravitational-wave specific parts of the code. Note that this document is not programatically generated and so may get out of date with time. If you notice something wrong, please open an issue. 
 
-### Top level
+### Bilby Code Layout
 
-At the top level, the code is split into three modules containing the core, gravitational-wave specific, and hyper-parameter specific functionality. New changes should always respect this  
-
-```mermaid
-graph TD
-bilby[bilby] --> core[.core]
-bilby --> gw[.gw]
-bilby --> hyper[.hyper]
-```
-
-### Core
-The core module contains the core inference logic - methods to define a prior, likelihood, and run Bayesian inference.
-
-```mermaid
-graph TD
-core[bilby.core] --> prior[.prior]
-core --> likelihood[.likelihood] 
-core --> result[.result] 
-core --> sampler[.sampler] 
-core --> utils[.utils]
-
-prior --> Prior[".Prior()"]
-style Prior fill:#D7BDE2
-prior --> Normal[".Normal(Prior)"]
-style Normal fill:#D7BDE2
-prior --> Uniform[".Uniform(Prior)"]
-style Uniform fill:#D7BDE2
-
-likelihood --> Likelihood(".Likelihood()")
-style Likelihood fill:#D7BDE2
-likelihood --> GaussianLikelihood(".GaussianLikelihood()")
-style GaussianLikelihood fill:#D7BDE2
-
-result --> Result(".Result()")
-style Result fill:#D7BDE2
-
-sampler --> run_sampler("run_sampler()")
-style run_sampler fill:#5499C7
-```
+![bilby overview](docs/images/bilby_layout.png)
 
 Note this layout is not comprehensive, for example only a few example "Priors" are shown.
 
-### Gravitational-wave specific
-
-```mermaid
-graph TD
-gw[bilby.gw] --> gw_likelihood[.likelihood]
-gw --> gw_prior[.prior]
-gw --> gw_source[.source]
-gw --> gw_waveform_generator[.waveform_generator]
-gw --> gw_utils[.utils]
-gw --> gw_conversion[.conversion]
-
-gw_likelihood --> GravitationalWaveTransient(".GravitationalWaveTransient()")
-style GravitationalWaveTransient fill:#D7BDE2
-gw_source --> lal_bbh(".lal_binary_black_hole()")
-style lal_bbh fill:#5499C7
-gw_waveform_generator--> WaveformGenerator(".WaveformGenerator()")
-style WaveformGenerator fill:#D7BDE2
-```
-### Legend of flow diagrams
-To show a module we use a grey box. A nested module is indicated as such
-```mermaid
-graph LR
-module[module] --> A[.other_module </br>]
-```
-i.e., in python, `module.other_module`. Meanwhile, a class,  `MyClass` living in module `my_module`  is indicated by
-```mermaid
-graph LR 
- my_module[my_module] --> Class[".MyClass(parent)"]
- style Class fill:#D7BDE2
-```
-where the `(Parent)` indicates the parent class from which this class inherits. Finally, we define a function living in a module as
-```mermaid
-graph LR 
- my_module[my_module] --> function[".function()"]
- style function fill:#5499C7
-```
