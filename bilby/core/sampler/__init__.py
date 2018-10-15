@@ -92,6 +92,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if clean:
         command_line_args.clean = clean
+    if command_line_args.clean:
+        kwargs['resume'] = False
 
     from . import implemented_samplers
 
