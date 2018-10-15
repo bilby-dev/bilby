@@ -38,7 +38,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
 # Set up prior
-priors = bilby.gw.prior.BBHPriorSet()
+priors = bilby.gw.prior.BBHPriorDict()
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra',
             'dec']:

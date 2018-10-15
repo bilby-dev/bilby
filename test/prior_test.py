@@ -304,10 +304,10 @@ class TestPriorSet(unittest.TestCase):
         self.prior_dict = dict(mass=self.first_prior,
                                speed=self.second_prior,
                                length=self.third_prior)
-        self.prior_set_from_dict = bilby.core.prior.PriorSet(dictionary=self.prior_dict)
+        self.prior_set_from_dict = bilby.core.prior.PriorDict(dictionary=self.prior_dict)
         self.default_prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                'prior_files/binary_black_holes.prior')
-        self.prior_set_from_file = bilby.core.prior.PriorSet(filename=self.default_prior_file)
+        self.prior_set_from_file = bilby.core.prior.PriorDict(filename=self.default_prior_file)
 
     def tearDown(self):
         del self.first_prior
@@ -387,7 +387,7 @@ class TestPriorSet(unittest.TestCase):
         self.assertDictEqual(expected, self.prior_set_from_dict)
 
     def test_prior_set_from_dict_but_using_a_string(self):
-        prior_set = bilby.core.prior.PriorSet(dictionary=self.default_prior_file)
+        prior_set = bilby.core.prior.PriorDict(dictionary=self.default_prior_file)
         expected = dict(
             mass_1=bilby.core.prior.Uniform(
                 name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
@@ -416,7 +416,7 @@ class TestPriorSet(unittest.TestCase):
 
     def test_dict_argument_is_not_string_or_dict(self):
         with self.assertRaises(ValueError):
-            bilby.core.prior.PriorSet(dictionary=list())
+            bilby.core.prior.PriorDict(dictionary=list())
 
     def test_sample_subset_correct_size(self):
         size = 7
@@ -476,7 +476,7 @@ class TestFillPrior(unittest.TestCase):
         self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
         self.priors = dict(a=1, b=1.1, c='string', d=bilby.core.prior.Uniform(0, 1))
-        self.priors = bilby.core.prior.PriorSet(dictionary=self.priors)
+        self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                'prior_files/binary_black_holes.prior')
         self.priors.fill_priors(self.likelihood, self.default_prior_file)
@@ -515,7 +515,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
 
     def test_bbh_params(self):
         prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
-        prior_set = bilby.core.prior.PriorSet(filename=prior_file)
+        prior_set = bilby.core.prior.PriorDict(filename=prior_file)
         for prior in prior_set:
             self.assertEqual(prior_set[prior], bilby.core.prior.create_default_prior(name=prior,
                                                                                      default_priors_file=prior_file))

@@ -4,7 +4,7 @@ import datetime
 from collections import OrderedDict
 
 from ..utils import command_line_args, logger
-from ..prior import PriorSet
+from ..prior import PriorDict
 
 from .base_sampler import Sampler
 from .cpnest import Cpnest
@@ -99,8 +99,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         priors = dict()
 
     if type(priors) in [dict, OrderedDict]:
-        priors = PriorSet(priors)
-    elif isinstance(priors, PriorSet):
+        priors = PriorDict(priors)
+    elif isinstance(priors, PriorDict):
         pass
     else:
         raise ValueError("Input priors not understood")
