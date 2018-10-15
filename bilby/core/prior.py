@@ -36,7 +36,7 @@ class PriorDict(OrderedDict):
         elif type(filename) is str:
             self.from_file(filename)
         elif dictionary is not None:
-            raise ValueError("PriorSet input dictionary not understood")
+            raise ValueError("PriorDict input dictionary not understood")
 
     def to_file(self, outdir, label):
         """ Write the prior distribution to file.
