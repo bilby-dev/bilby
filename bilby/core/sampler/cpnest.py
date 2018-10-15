@@ -9,8 +9,8 @@ from ..utils import logger
 try:
     from cpnest import model as cpmodel, CPNest
 except ImportError:
-    logger.warning('CPNest is not installed on this system, you will '
-                   'not be able to use the CPNest sampler')
+    logger.debug('CPNest is not installed on this system, you will '
+                 'not be able to use the CPNest sampler')
 
 
 class Cpnest(NestedSampler):

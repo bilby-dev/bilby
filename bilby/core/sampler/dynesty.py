@@ -13,8 +13,8 @@ from .base_sampler import Sampler, NestedSampler
 try:
     import dynesty
 except ImportError:
-    logger.warning('Dynesty is not installed on this system, you will '
-                   'not be able to use the Dynesty sampler')
+    logger.debug('Dynesty is not installed on this system, you will '
+                 'not be able to use the Dynesty sampler')
 
 
 class Dynesty(NestedSampler):

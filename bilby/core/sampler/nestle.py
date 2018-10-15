@@ -9,8 +9,8 @@ from .base_sampler import NestedSampler
 try:
     import nestle
 except ImportError:
-    logger.warning('Nestle is not installed on this system, you will '
-                   'not be able to use the Nestle sampler')
+    logger.debug('Nestle is not installed on this system, you will '
+                 'not be able to use the Nestle sampler')
 
 
 class Nestle(NestedSampler):

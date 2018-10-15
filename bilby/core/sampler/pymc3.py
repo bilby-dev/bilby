@@ -18,14 +18,14 @@ try:
     from pymc3.sampling import STEP_METHODS
     from pymc3.theanof import floatX
 except ImportError:
-    logger.warning('PyMC3 is not installed on this system, you will '
-                   'not be able to use the PyMC3 sampler')
+    logger.debug('PyMC3 is not installed on this system, you will '
+                 'not be able to use the PyMC3 sampler')
 try:
     import theano  # noqa
     import theano.tensor as tt
     from theano.compile.ops import as_op  # noqa
 except ImportError:
-    logger.warning("You must have Theano installed to use PyMC3")
+    logger.debug("You must have Theano installed to use PyMC3")
 
 
 class Pymc3(MCMCSampler):

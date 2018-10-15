@@ -9,8 +9,8 @@ from .base_sampler import MCMCSampler
 try:
     import emcee
 except ImportError:
-    logger.warning('Emcee is not installed on this system, you will '
-                   'not be able to use the Emcee sampler')
+    logger.debug('Emcee is not installed on this system, you will '
+                 'not be able to use the Emcee sampler')
 
 
 class Emcee(MCMCSampler):

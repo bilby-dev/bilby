@@ -8,8 +8,8 @@ from . import Emcee
 try:
     import ptemcee
 except ImportError:
-    logger.warning('PTEmcee is not installed on this system, you will '
-                   'not be able to use the PTEmcee sampler')
+    logger.debug('PTEmcee is not installed on this system, you will '
+                 'not be able to use the PTEmcee sampler')
 
 
 class Ptemcee(Emcee):
