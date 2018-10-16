@@ -468,7 +468,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
 
     Parameters
     ----------
-    observatory: str, {H1, L1}
+    observatory: str, {H1, L1, V1}
         Observatory description
     gps_start_time: float
         The start time in gps to look for data
@@ -487,7 +487,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     """
     logger.info('Building gw_data_find command line')
 
-    observatory_lookup = dict(H1='H', L1='L')
+    observatory_lookup = dict(H1='H', L1='L', V1='V')
     observatory_code = observatory_lookup[observatory]
 
     dtype = '{}_HOFT_C0{}'.format(observatory, calibration)
