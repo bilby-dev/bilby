@@ -459,9 +459,14 @@ def set_up_command_line_arguments():
     with `--help`.
 
     """
-    parser = argparse.ArgumentParser(
-        description="Command line interface for bilby scripts",
-        add_help=False, allow_abbrev=False)
+    try:
+        parser = argparse.ArgumentParser(
+            description="Command line interface for bilby scripts",
+            add_help=False, allow_abbrev=False)
+    except TypeError:
+        parser = argparse.ArgumentParser(
+            description="Command line interface for bilby scripts",
+            add_help=False)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +
                               " Overridden by script level settings"))
