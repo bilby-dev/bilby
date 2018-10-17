@@ -23,3 +23,5 @@ from . import core, gw, hyper
 from .core import utils, likelihood, prior, result, sampler
 from .core.sampler import run_sampler
 from .core.likelihood import Likelihood
+
+__version__ = utils.get_version_information()
