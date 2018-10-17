@@ -187,20 +187,22 @@ class PriorSet(OrderedDict):
                 logger.debug('{} not a known prior.'.format(key))
         return samples
 
-    def prob(self, sample):
+    def prob(self, sample, **kwargs):
         """
 
         Parameters
         ----------
         sample: dict
             Dictionary of the samples of which we want to have the probability of
+        kwargs:
+            The keyword arguments are passed directly to `np.product`
 
         Returns
         -------
         float: Joint probability of all individual sample probabilities
 
         """
-        return np.product([self[key].prob(sample[key]) for key in sample])
+        return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
 
     def ln_prob(self, sample):
         """
