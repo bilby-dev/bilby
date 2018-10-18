@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from . import utils
 from .utils import logger, infer_parameters_from_function
-from .prior import PriorSet, DeltaFunction
+from .prior import PriorDict, DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -81,7 +81,7 @@ class Result(dict):
                 setattr(self, key, val)
 
         if getattr(self, 'priors', None) is not None:
-            self.priors = PriorSet(self.priors)
+            self.priors = PriorDict(self.priors)
 
     def __add__(self, other):
         matches = ['sampler', 'search_parameter_keys']
@@ -311,9 +311,9 @@ class Result(dict):
         parameters: (list, dict), optional
             If given, either a list of the parameter names to include, or a
             dictionary of parameter names and their "true" values to plot.
-        priors: {bool (False), bilby.core.prior.PriorSet}
+        priors: {bool (False), bilby.core.prior.PriorDict}
             If true, add the stored prior probability density functions to the
-            one-dimensional marginal distributions. If instead a PriorSet
+            one-dimensional marginal distributions. If instead a PriorDict
             is provided, this will be plotted.
         titles: bool
             If true, add 1D titles of the median and (by default 1-sigma)
@@ -577,7 +577,7 @@ class Result(dict):
 
         Parameters
         ----------
-        priors: dict, PriorSet
+        priors: dict, PriorDict
             Prior distributions
         """
         self.prior_values = pd.DataFrame()

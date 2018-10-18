@@ -64,7 +64,7 @@ interferometers.inject_signal(parameters=injection_parameters,
 # Load the default prior for binary neutron stars.
 # We're going to sample in chirp_mass, symmetric_mass_ratio, lambda_tilde, and
 # delta_lambda rather than mass_1, mass_2, lambda_1, and lambda_2.
-priors = bilby.gw.prior.BNSPriorSet()
+priors = bilby.gw.prior.BNSPriorDict()
 for key in ['psi', 'geocent_time', 'ra', 'dec', 'chi_1', 'chi_2',
             'iota', 'luminosity_distance', 'phase']:
     priors[key] = injection_parameters[key]

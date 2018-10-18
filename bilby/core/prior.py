@@ -14,7 +14,7 @@ from . import utils
 import bilby  # noqa
 
 
-class PriorSet(OrderedDict):
+class PriorDict(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -35,7 +35,7 @@ class PriorSet(OrderedDict):
         elif type(filename) is str:
             self.from_file(filename)
         elif dictionary is not None:
-            raise ValueError("PriorSet input dictionary not understood")
+            raise ValueError("PriorDict input dictionary not understood")
 
     def to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -239,6 +239,14 @@ class PriorSet(OrderedDict):
         return False
 
 
+class PriorSet(PriorDict):
+
+    def __init__(self, dictionary=None, filename=None):
+        """ DEPRECATED: USE PriorDict INSTEAD"""
+        logger.warning("The name 'PriorSet' is deprecated use 'PriorDict' instead")
+        super(PriorSet, self).__init__(dictionary, filename)
+
+
 def create_default_prior(name, default_priors_file=None):
     """Make a default prior for a parameter with a known name.
 
@@ -262,7 +270,7 @@ def create_default_prior(name, default_priors_file=None):
             "No prior file given.")
         prior = None
     else:
-        default_priors = PriorSet(filename=default_priors_file)
+        default_priors = PriorDict(filename=default_priors_file)
         if name in default_priors.keys():
             prior = default_priors[name]
         else:
