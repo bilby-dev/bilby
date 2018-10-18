@@ -4,6 +4,8 @@
 
 Changes currently on master, but not under a tag.
 
+- Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
+
 ## [0.3.1] 2018-11-06
 
 ### Changes
