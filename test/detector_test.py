@@ -179,18 +179,50 @@ class TestDetector(unittest.TestCase):
         _ = self.ifo.detector_tensor
         with mock.patch('numpy.einsum') as m:
             m.return_value = 1
-            self.assertIsInstance(self.ifo.detector_tensor, np.ndarray)
+            expected = np.array([[-9.24529394e-06, 1.02425803e-04, 3.24550668e-04],
+                                 [1.02425803e-04, 1.37390844e-03, -8.61137566e-03],
+                                 [3.24550668e-04, -8.61137566e-03, -1.36466315e-03]])
+            self.assertTrue(np.allclose(expected, self.ifo.detector_tensor))
 
-    def test_detector_tensor_with_x_update(self):
+    def test_detector_tensor_with_x_azimuth_update(self):
+        _ = self.ifo.detector_tensor
         with mock.patch('numpy.einsum') as m:
             m.return_value = 1
-            self.ifo.xarm_azimuth = 12
-            self.assertEqual(self.ifo.detector_tensor, 0)
+            self.ifo.xarm_azimuth = 1
+            self.assertEqual(0, self.ifo.detector_tensor)
 
-    def test_detector_tensor_with_y_update(self):
+    def test_detector_tensor_with_y_azimuth_update(self):
+        _ = self.ifo.detector_tensor
         with mock.patch('numpy.einsum') as m:
             m.return_value = 1
-            self.ifo.yarm_azimuth = 12
+            self.ifo.yarm_azimuth = 1
+            self.assertEqual(0, self.ifo.detector_tensor)
+
+    def test_detector_tensor_with_x_tilt_update(self):
+        _ = self.ifo.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.ifo.xarm_tilt = 1
+            self.assertEqual(0, self.ifo.detector_tensor)
+
+    def test_detector_tensor_with_y_tilt_update(self):
+        _ = self.ifo.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.ifo.yarm_tilt = 1
+            self.assertEqual(0, self.ifo.detector_tensor)
+
+    def test_detector_tensor_with_longitude_update(self):
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.ifo.longitude = 1
+            self.assertEqual(0, self.ifo.detector_tensor)
+
+    def test_detector_tensor_with_latitude_update(self):
+        with mock.patch('numpy.einsum') as m:
+            _ = self.ifo.detector_tensor
+            m.return_value = 1
+            self.ifo.latitude = 1
             self.assertEqual(self.ifo.detector_tensor, 0)
 
     def test_antenna_response_default(self):
@@ -312,7 +344,6 @@ class TestDetector(unittest.TestCase):
                     float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
-        print(repr(self.ifo))
         self.assertEqual(expected, repr(self.ifo))
 
 
@@ -825,12 +856,12 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
 
     def test_power_spectral_density_interpolated_from_asd_array(self):
         expected = np.array([25.])
-        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array = self.asd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_power_spectral_density_interpolated_from_psd_array(self):
         expected = np.array([25.])
-        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array = self.psd_array)
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_array(self):
