@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division
 
-import bilby
 import unittest
 import numpy as np
-import matplotlib.pyplot as plt
+
+import bilby
+from bilby.core import utils
 
 
 class TestFFT(unittest.TestCase):
@@ -28,6 +29,35 @@ class TestFFT(unittest.TestCase):
         fds, _ = bilby.core.utils.nfft(tds, sampling_frequency)
         tds2 = bilby.core.utils.infft(fds, sampling_frequency)
         self.assertTrue(np.all(np.abs((tds - tds2) / tds) < 1e-12))
+
+
+class TestInferParameters(unittest.TestCase):
+
+    def setUp(self):
+        def source_function(freqs, a, b, *args, **kwargs):
+            return None
+
+        class TestClass:
+            def test_method(self, a, b, *args, **kwargs):
+                pass
+
+        self.source1 = source_function
+        test_obj = TestClass()
+        self.source2 = test_obj.test_method
+
+    def tearDown(self):
+        del self.source1
+        del self.source2
+
+    def test_args_kwargs_handling(self):
+        expected = ['a', 'b']
+        actual = utils.infer_parameters_from_function(self.source1)
+        self.assertListEqual(expected, actual)
+
+    def test_self_handling(self):
+        expected = ['a', 'b']
+        actual = utils.infer_args_from_method(self.source2)
+        self.assertListEqual(expected, actual)
 
 
 if __name__ == '__main__':

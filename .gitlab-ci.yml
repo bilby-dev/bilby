@@ -1,6 +1,6 @@
 # This script is an edited version of the example found at
 # https://git.ligo.org/lscsoft/example-ci-project/blob/python/.gitlab-ci.yml
-# Each 0th-indendation level is a job that will be run within GitLab CI
+# Each 0th-indentation level is a job that will be run within GitLab CI
 # The only exception are a short list of reserved keywords
 #
 # https://docs.gitlab.com/ee/ci/yaml/#gitlab-ci-yml
@@ -25,7 +25,7 @@ python-2:
   script:
     - python setup.py install
     # Run tests without finding coverage
-    - pytest
+    - pytest --ignore=test/utils_py3_test.py
 
 # test example on python 3
 python-3:

@@ -9,10 +9,9 @@ import os
 from collections import OrderedDict
 from future.utils import iteritems
 
-from .utils import logger
+from .utils import logger, infer_args_from_method
 from . import utils
 import bilby  # noqa
-import inspect
 
 
 class PriorSet(OrderedDict):
@@ -426,8 +425,7 @@ class Prior(object):
         str: A string representation of this instance
 
         """
-        subclass_args = inspect.getargspec(self.__init__).args
-        subclass_args.pop(0)
+        subclass_args = infer_args_from_method(self.__init__)
         prior_name = self.__class__.__name__
 
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
