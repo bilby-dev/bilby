@@ -1,4 +1,4 @@
-import inspect
+from bilby.core.utils import infer_parameters_from_function
 
 
 class Model(object):
@@ -18,8 +18,9 @@ class Model(object):
         self.models = model_functions
 
         self.parameters = dict()
-        for function in self.models:
-            for key in inspect.getargspec(function).args[1:]:
+        for func in self.models:
+            param_keys = infer_parameters_from_function(func)
+            for key in param_keys:
                 self.parameters[key] = None
 
     def prob(self, data):
@@ -30,6 +31,7 @@ class Model(object):
                 probability *= function(data, **self._get_function_parameters(function))
         return probability
 
-    def _get_function_parameters(self, function):
-        parameters = {key: self.parameters[key] for key in inspect.getargspec(function).args[1:]}
+    def _get_function_parameters(self, func):
+        param_keys = infer_parameters_from_function(func)
+        parameters = {key: self.parameters[key] for key in param_keys}
         return parameters
