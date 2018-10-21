@@ -67,7 +67,7 @@ This demonstrates the two required features of a :code:`bilby`
 #. It has a :code:`log_likelihood` method which, when called returns the log
    likelihood for all the data.
 
-You can find an example that uses this likelihood `here <https://git.ligo.org/Monash/bilby/blob/master/examples/other_examples/gaussian_example.py>`_.
+You can find an example that uses this likelihood `here <https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/gaussian_example.py>`_.
 
 .. tip::
 
@@ -158,7 +158,7 @@ be the dependent variable.
     as the case when there is no signal (i.e., :math:`y(x; \theta)=0`).
 
 You can see an example of this likelihood in the `linear regression example
-<https://git.ligo.org/Monash/bilby/blob/master/examples/other_examples/linear_regression.py>`_.
+<https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/linear_regression.py>`_.
 
 General likelihood for fitting a function :math:`y(x)` to some data with unknown noise
 --------------------------------------------------------------------------------------
@@ -217,7 +217,7 @@ We provide this general-purpose class as part of bilby:
 .. autoclass:: bilby.core.likelihood.GaussianLikelihood
    :members:
 
-An example using this likelihood can be found `on this page <https://git.ligo.org/Monash/bilby/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_.
+An example using this likelihood can be found `on this page <https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_.
 
 Common likelihood functions
 ---------------------------

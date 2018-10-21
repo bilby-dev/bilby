@@ -9,7 +9,7 @@ Getting started
 
 All the code lives in a git repository (for a short introduction to git, see
 [this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://git.ligo.org/Monash/bilby.  If you haven't
+which is hosted here: https://git.ligo.org/lscsoft/bilby.  If you haven't
 already, you should
 [fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the repository
 and clone your fork, i.e., on your local machine run
@@ -62,7 +62,7 @@ you've found a bug or would like a feature it doesn't have, we want to
 hear from you!
 
 Our main forum for discussion is the project's [GitLab issue
-tracker](https://git.ligo.org/Monash/bilby/issues). This is the right
+tracker](https://git.ligo.org/lscsoft/bilby/issues). This is the right
 place to start a discussion of any of the above or most any other
 topic concerning the project.
 
