@@ -54,7 +54,7 @@ ifos.set_strain_data_from_power_spectral_densities(
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
-# Set up a PriorSet, which inherits from dict.
+# Set up a PriorDict, which inherits from dict.
 # By default we will sample all terms in the signal models.  However, this will
 # take a long time for the calculation, so for this example we will set almost
 # all of the priors to be equall to their injected values.  This implies the
@@ -64,7 +64,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # The above list does *not* include mass_1, mass_2, iota and luminosity
 # distance, which means those are the parameters that will be included in the
 # sampler.  If we do nothing, then the default priors get used.
-priors = bilby.gw.prior.BBHPriorSet()
+priors = bilby.gw.prior.BBHPriorDict()
 priors['geocent_time'] = bilby.core.prior.Uniform(
     minimum=injection_parameters['geocent_time'] - 1,
     maximum=injection_parameters['geocent_time'] + 1,

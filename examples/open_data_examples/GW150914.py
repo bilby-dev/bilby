@@ -30,7 +30,7 @@ interferometers = bilby.gw.detector.get_event_data(label)
 # The prior is printed to the terminal at run-time.
 # You can overwrite this using the syntax below in the file,
 # or choose a fixed value by just providing a float value as the prior.
-prior = bilby.gw.prior.BBHPriorSet(filename='GW150914.prior')
+prior = bilby.gw.prior.BBHPriorDict(filename='GW150914.prior')
 
 # In this step we define a `waveform_generator`. This is out object which
 # creates the frequency-domain strain. In this instance, we are using the

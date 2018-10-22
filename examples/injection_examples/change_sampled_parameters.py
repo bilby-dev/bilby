@@ -48,7 +48,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # Set up prior
 # Note it is possible to sample in different parameters to those that were
 # injected.
-priors = bilby.gw.prior.BBHPriorSet()
+priors = bilby.gw.prior.BBHPriorDict()
 priors.pop('mass_1')
 priors.pop('mass_2')
 priors.pop('luminosity_distance')

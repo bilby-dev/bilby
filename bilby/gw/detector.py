@@ -1134,6 +1134,8 @@ class Interferometer(object):
         array_like: A 3x3 array representation of the detector tensor
 
         """
+        if not self.__x_updated or not self.__y_updated:
+            _, _ = self.x, self.y  # noqa
         if not self.__detector_tensor_updated:
             self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
             self.__detector_tensor_updated = True
