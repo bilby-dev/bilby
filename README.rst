@@ -6,10 +6,10 @@ Bilby
 Fulfilling all your Bayesian inference dreams.
 
 -  `Installation
-   instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
--  `Contributing <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__
--  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
--  `Issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
+   instructions <https://monash.docs.ligo.org/bilby/installation.html>`__
+-  `Contributing <https://git.ligo.org/Monash/bilby/blob/master/CONTRIBUTING.md>`__
+-  `Documentation <https://monash.docs.ligo.org/bilby/index.html>`__
+-  `Issue tracker <https://git.ligo.org/Monash/bilby/issues>`__
 
 We encourage you to contribute to the development via a merge request.  For
 help in creating a merge request, see `this page
