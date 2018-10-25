@@ -28,7 +28,7 @@ $ python setup.py develop
 which will install `bilby` and, because we used `develop` instead of `install`
 when you change the code your installed version will automatically be updated.
 
---- 
+---
 
 #### Removing previously installed versions
 
@@ -157,11 +157,10 @@ you should:
 
 ## Code overview
 
-In this section, we'll give an overview of how the code is structured. This is intended to help orient users and make it easier to contribute. The layout is intended to define the logic of the code and new merge requests should aim to fit within this logic (unless there is a good argument to change it). For example, code which adds a new sampler should not effect the gravitational-wave specific parts of the code. Note that this document is not programatically generated and so may get out of date with time. If you notice something wrong, please open an issue. 
+In this section, we'll give an overview of how the code is structured. This is intended to help orient users and make it easier to contribute. The layout is intended to define the logic of the code and new merge requests should aim to fit within this logic (unless there is a good argument to change it). For example, code which adds a new sampler should not effect the gravitational-wave specific parts of the code. Note that this document is not programatically generated and so may get out of date with time. If you notice something wrong, please open an issue.
 
 ### Bilby Code Layout
 
 ![bilby overview](docs/images/bilby_layout.png)
 
 Note this layout is not comprehensive, for example only a few example "Priors" are shown.
-
