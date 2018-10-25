@@ -956,6 +956,30 @@ def compute_snrs(sample, likelihood):
 
 
 def generate_distance_samples_from_marginalized_likelihood(sample, likelihood):
+    """
+    Reconstruct the distance posterior from a run which used a likelihood which
+    explicitly marginalised over distance.
+
+    See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
+
+    Parameters
+    ----------
+    sample: DataFrame
+        Posterior from run with distance marginalisation turned on.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
+        Likelihood used during sampling.
+
+    Return
+    ------
+    sample: DataFrame
+        Returns the posterior with distance samples.
+    """
+    if not likelihood.distance_marginalization:
+        return sample
+    if likelihood.phase_marginalization or likelihood.time_marginalization:
+        logger.warning('Cannot currently reconstruct distance posterior '
+                       'when other marginalizations are turned on.')
+        return sample
     if isinstance(sample, dict):
         pass
     elif isinstance(sample, DataFrame):
