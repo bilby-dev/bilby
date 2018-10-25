@@ -18,10 +18,39 @@ radius_of_earth = 6371 * 1e3  # metres
 
 
 def infer_parameters_from_function(func):
-    """ Infers the arguments of function (except the first arg which is
-        assumed to be the dep. variable)
+    """ Infers the arguments of a function
+        (except the first arg which is assumed to be the dep. variable).
+
+        Throws out *args and **kwargs type arguments
+
+        Can deal with type hinting!
+
+        Returns
+        ---------
+        list: A list of strings with the parameters
     """
-    parameters = inspect.getargspec(func).args
+    return _infer_args_from_function_except_for_first_arg(func=func)
+
+
+def infer_args_from_method(method):
+    """ Infers all arguments of a method except for 'self'
+
+    Throws out *args and **kwargs type arguments.
+
+    Can deal with type hinting!
+
+    Returns
+    ---------
+    list: A list of strings with the parameters
+    """
+    return _infer_args_from_function_except_for_first_arg(func=method)
+
+
+def _infer_args_from_function_except_for_first_arg(func):
+    try:
+        parameters = inspect.getfullargspec(func).args
+    except AttributeError:
+        parameters = inspect.getargspec(func).args
     parameters.pop(0)
     return parameters
 
@@ -459,9 +488,14 @@ def set_up_command_line_arguments():
     with `--help`.
 
     """
-    parser = argparse.ArgumentParser(
-        description="Command line interface for bilby scripts",
-        add_help=False)
+    try:
+        parser = argparse.ArgumentParser(
+            description="Command line interface for bilby scripts",
+            add_help=False, allow_abbrev=False)
+    except TypeError:
+        parser = argparse.ArgumentParser(
+            description="Command line interface for bilby scripts",
+            add_help=False)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help=("Increase output verbosity [logging.DEBUG]." +
                               " Overridden by script level settings"))

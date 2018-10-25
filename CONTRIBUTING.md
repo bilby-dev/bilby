@@ -9,7 +9,7 @@ Getting started
 
 All the code lives in a git repository (for a short introduction to git, see
 [this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://git.ligo.org/Monash/bilby.  If you haven't
+which is hosted here: https://git.ligo.org/lscsoft/bilby.  If you haven't
 already, you should
 [fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the repository
 and clone your fork, i.e., on your local machine run
@@ -28,7 +28,7 @@ $ python setup.py develop
 which will install `bilby` and, because we used `develop` instead of `install`
 when you change the code your installed version will automatically be updated.
 
---- 
+---
 
 #### Removing previously installed versions
 
@@ -62,7 +62,7 @@ you've found a bug or would like a feature it doesn't have, we want to
 hear from you!
 
 Our main forum for discussion is the project's [GitLab issue
-tracker](https://git.ligo.org/Monash/bilby/issues). This is the right
+tracker](https://git.ligo.org/lscsoft/bilby/issues). This is the right
 place to start a discussion of any of the above or most any other
 topic concerning the project.
 
@@ -157,11 +157,10 @@ you should:
 
 ## Code overview
 
-In this section, we'll give an overview of how the code is structured. This is intended to help orient users and make it easier to contribute. The layout is intended to define the logic of the code and new merge requests should aim to fit within this logic (unless there is a good argument to change it). For example, code which adds a new sampler should not effect the gravitational-wave specific parts of the code. Note that this document is not programatically generated and so may get out of date with time. If you notice something wrong, please open an issue. 
+In this section, we'll give an overview of how the code is structured. This is intended to help orient users and make it easier to contribute. The layout is intended to define the logic of the code and new merge requests should aim to fit within this logic (unless there is a good argument to change it). For example, code which adds a new sampler should not effect the gravitational-wave specific parts of the code. Note that this document is not programatically generated and so may get out of date with time. If you notice something wrong, please open an issue.
 
 ### Bilby Code Layout
 
 ![bilby overview](docs/images/bilby_layout.png)
 
 Note this layout is not comprehensive, for example only a few example "Priors" are shown.
-
