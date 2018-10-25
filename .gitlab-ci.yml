@@ -1,6 +1,6 @@
 # This script is an edited version of the example found at
 # https://git.ligo.org/lscsoft/example-ci-project/blob/python/.gitlab-ci.yml
-# Each 0th-indendation level is a job that will be run within GitLab CI
+# Each 0th-indentation level is a job that will be run within GitLab CI
 # The only exception are a short list of reserved keywords
 #
 # https://docs.gitlab.com/ee/ci/yaml/#gitlab-ci-yml
@@ -18,18 +18,22 @@ python-2:
   stage: test
   image: bilbydev/test-suite-py2
   before_script:
+    # Source the .bashrc for MultiNest
+    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
     - python setup.py install
     # Run tests without finding coverage
-    - pytest
+    - pytest --ignore=test/utils_py3_test.py
 
 # test example on python 3
 python-3:
   stage: test
   image: bilbydev/test-suite-py3
   before_script:
+    # Source the .bashrc for MultiNest
+    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
@@ -63,7 +67,7 @@ pages:
   script:
     - mkdir public/
     - mv htmlcov/ public/
-    - mv /builds/Monash/bilby/coverage_badge.svg public/
+    - mv coverage_badge.svg public/
     - mv docs/_build/html/* public/
   artifacts:
     paths:

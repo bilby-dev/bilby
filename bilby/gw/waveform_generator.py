@@ -48,8 +48,6 @@ class WaveformGenerator(object):
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self.__parameters_from_source_model()
-        self.duration = duration
-        self.sampling_frequency = sampling_frequency
         if parameter_conversion is None:
             self.parameter_conversion = lambda params: (params, [])
         else:

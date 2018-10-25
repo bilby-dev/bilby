@@ -13,11 +13,11 @@ from scipy.special import erf, erfinv
 
 # Keep import bilby statement, it is necessary for some eval() statements
 import bilby  # noqa
-from . import utils
+from . import utils import logger, infer_args_from_method
 from .utils import logger
 
 
-class PriorSet(OrderedDict):
+class PriorDict(OrderedDict):
     def __init__(self, dictionary=None, filename=None):
         """ A set of priors
 
@@ -38,7 +38,7 @@ class PriorSet(OrderedDict):
         elif type(filename) is str:
             self.from_file(filename)
         elif dictionary is not None:
-            raise ValueError("PriorSet input dictionary not understood")
+            raise ValueError("PriorDict input dictionary not understood")
 
     def to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -189,20 +189,22 @@ class PriorSet(OrderedDict):
                 logger.debug('{} not a known prior.'.format(key))
         return samples
 
-    def prob(self, sample):
+    def prob(self, sample, **kwargs):
         """
 
         Parameters
         ----------
         sample: dict
             Dictionary of the samples of which we want to have the probability of
+        kwargs:
+            The keyword arguments are passed directly to `np.product`
 
         Returns
         -------
         float: Joint probability of all individual sample probabilities
 
         """
-        return np.product([self[key].prob(sample[key]) for key in sample])
+        return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
 
     def ln_prob(self, sample):
         """
@@ -240,6 +242,14 @@ class PriorSet(OrderedDict):
         return False
 
 
+class PriorSet(PriorDict):
+
+    def __init__(self, dictionary=None, filename=None):
+        """ DEPRECATED: USE PriorDict INSTEAD"""
+        logger.warning("The name 'PriorSet' is deprecated use 'PriorDict' instead")
+        super(PriorSet, self).__init__(dictionary, filename)
+
+
 def create_default_prior(name, default_priors_file=None):
     """Make a default prior for a parameter with a known name.
 
@@ -263,7 +273,7 @@ def create_default_prior(name, default_priors_file=None):
             "No prior file given.")
         prior = None
     else:
-        default_priors = PriorSet(filename=default_priors_file)
+        default_priors = PriorDict(filename=default_priors_file)
         if name in default_priors.keys():
             prior = default_priors[name]
         else:
@@ -426,8 +436,7 @@ class Prior(object):
         str: A string representation of this instance
 
         """
-        subclass_args = inspect.getargspec(self.__init__).args
-        subclass_args.pop(0)
+        subclass_args = infer_args_from_method(self.__init__)
         prior_name = self.__class__.__name__
 
         property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]

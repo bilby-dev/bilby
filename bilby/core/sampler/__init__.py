@@ -4,7 +4,7 @@ import datetime
 from collections import OrderedDict
 
 from ..utils import command_line_args, logger
-from ..prior import PriorSet
+from ..prior import PriorDict
 
 from .base_sampler import Sampler
 from .cpnest import Cpnest
@@ -47,8 +47,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     ----------
     likelihood: `bilby.Likelihood`
         A `Likelihood` instance
-    priors: `bilby.PriorSet`
-        A PriorSet/dictionary of the priors for each parameter - missing
+    priors: `bilby.PriorDict`
+        A PriorDict/dictionary of the priors for each parameter - missing
         parameters will use default priors, if None, all priors will be default
     label: str
         Name for the run, used in output files
@@ -92,6 +92,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     if clean:
         command_line_args.clean = clean
+    if command_line_args.clean:
+        kwargs['resume'] = False
 
     from . import implemented_samplers
 
@@ -99,8 +101,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         priors = dict()
 
     if type(priors) in [dict, OrderedDict]:
-        priors = PriorSet(priors)
-    elif isinstance(priors, PriorSet):
+        priors = PriorDict(priors)
+    elif isinstance(priors, PriorDict):
         pass
     else:
         raise ValueError("Input priors not understood")

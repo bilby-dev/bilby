@@ -1,11 +1,11 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 import inspect
 
 import numpy as np
 
-from ..utils import derivatives, logger
+from ..utils import derivatives, logger, infer_args_from_method
 from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
 from ..result import Result
 from .base_sampler import Sampler, MCMCSampler
@@ -421,7 +421,7 @@ class Pymc3(MCMCSampler):
         # then use that log_likelihood function, with the assumption that it
         # takes in a Pymc3 Sampler, with a pymc3_model attribute, and defines
         # the likelihood within that context manager
-        likeargs = inspect.getargspec(self.likelihood.log_likelihood).args
+        likeargs = infer_args_from_method(self.likelihood.log_likelihood)
         if 'sampler' in likeargs:
             self.likelihood.log_likelihood(sampler=self)
         else:
@@ -462,7 +462,7 @@ class Pymc3(MCMCSampler):
             for key in self.priors:
                 # if the prior contains ln_prob method that takes a 'sampler' argument
                 # then try using that
-                lnprobargs = inspect.getargspec(self.priors[key].ln_prob).args
+                lnprobargs = infer_args_from_method(self.priors[key].ln_prob)
                 if 'sampler' in lnprobargs:
                     try:
                         self.pymc3_priors[key] = self.priors[key].ln_prob(sampler=self)
@@ -482,7 +482,7 @@ class Pymc3(MCMCSampler):
                             if pymc3distname not in pymc3.__dict__:
                                 raise ValueError("Prior '{}' is not a known PyMC3 distribution.".format(pymc3distname))
 
-                            reqargs = inspect.getargspec(pymc3.__dict__[pymc3distname].__init__).args[1:]
+                            reqargs = infer_args_from_method(pymc3.__dict__[pymc3distname].__init__)
 
                             # set keyword arguments
                             priorkwargs = {}

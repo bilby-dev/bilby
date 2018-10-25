@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
@@ -75,16 +75,18 @@ class Ptemcee(Emcee):
                 total=self.nsteps):
             pass
 
-        self.result.nburn = self.nburn
+        self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
         self.result.sampler_output = np.nan
+        self.print_nburn_logging_info()
+        self.result.nburn = self.nburn
+        if self.result.nburn > self.nsteps:
+            logger.warning('Chain not burned in, no samples generated.')
         self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
+        self.result.betas = sampler.betas
+        self.result.log_evidence, self.result.log_evidence_err =\
+            sampler.log_evidence_estimate(
+                sampler.loglikelihood, self.nburn / self.nsteps)
         self.result.walkers = sampler.chain[0, :, :, :]
-        self.result.log_evidence = np.nan
-        self.result.log_evidence_err = np.nan
 
-        logger.info("Max autocorr time = {}"
-                    .format(np.max(sampler.get_autocorr_time())))
-        logger.info("Tswap frac = {}"
-                    .format(sampler.tswap_acceptance_fraction))
         return self.result

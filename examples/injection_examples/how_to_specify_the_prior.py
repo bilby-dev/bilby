@@ -39,7 +39,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 # Set up prior
 # This loads in a predefined set of priors for BBHs.
-priors = bilby.gw.prior.BBHPriorSet()
+priors = bilby.gw.prior.BBHPriorDict()
 # These parameters will not be sampled
 for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra',
             'dec', 'geocent_time', 'psi']:
