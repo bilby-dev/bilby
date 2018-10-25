@@ -67,7 +67,7 @@ pages:
   script:
     - mkdir public/
     - mv htmlcov/ public/
-    - mv /builds/Monash/bilby/coverage_badge.svg public/
+    - mv /builds/lscsoft/bilby/coverage_badge.svg public/
     - mv docs/_build/html/* public/
   artifacts:
     paths:
