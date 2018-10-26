@@ -13,8 +13,7 @@ from scipy.special import erf, erfinv
 
 # Keep import bilby statement, it is necessary for some eval() statements
 import bilby  # noqa
-from . import utils import logger, infer_args_from_method
-from .utils import logger
+from .utils import logger, infer_args_from_method
 
 
 class PriorDict(OrderedDict):
