@@ -105,16 +105,14 @@ class Pymc3(MCMCSampler):
         """
         Initialise results within Pymc3 subclass.
         """
-        result = Result()
-        result.sampler = self.__class__.__name__.lower()
-        result.search_parameter_keys = self.__search_parameter_keys
-        result.fixed_parameter_keys = self.__fixed_parameter_keys
-        result.parameter_labels = [
-            self.priors[k].latex_label for k in
-            self.__search_parameter_keys]
-        result.label = self.label
-        result.outdir = self.outdir
-        result.kwargs = self.kwargs
+
+        result = Result(label=self.label, outdir=self.outdir,
+                        sampler=self.__class__.__name__.lower(),
+                        search_parameter_keys=self.__search_parameter_keys,
+                        fixed_parameter_keys=self.__fixed_parameter_keys,
+                        priors=self.priors, meta_data=self.meta_data,
+                        injection_parameters=self.injection_parameters,
+                        sampler_kwargs=self.kwargs)
         return result
 
     @property

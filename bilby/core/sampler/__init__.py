@@ -116,6 +116,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             sampler_class = implemented_samplers[sampler.lower()]
             sampler = sampler_class(
                 likelihood, priors=priors, outdir=outdir, label=label,
+                injection_parameters=injection_parameters, meta_data=meta_data,
                 use_ratio=use_ratio, plot=plot, **kwargs)
         else:
             print(implemented_samplers)
@@ -125,6 +126,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         sampler = sampler.__init__(
             likelihood, priors=priors,
             outdir=outdir, label=label, use_ratio=use_ratio, plot=plot,
+            injection_parameters=injection_parameters, meta_data=meta_data,
             **kwargs)
     else:
         raise ValueError(
@@ -142,11 +144,6 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         result = sampler.run_sampler()
 
-    if type(meta_data) == dict:
-        result.update(meta_data)
-
-    result.priors = priors
-
     end_time = datetime.datetime.now()
     result.sampling_time = (end_time - start_time).total_seconds()
     logger.info('Sampling time: {}'.format(end_time - start_time))
@@ -160,15 +157,14 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.log_noise_evidence = likelihood.noise_log_likelihood()
         result.log_bayes_factor = \
             result.log_evidence - result.log_noise_evidence
-    if injection_parameters is not None:
-        result.injection_parameters = injection_parameters
+
+    if result.injection_parameters is not None:
         if conversion_function is not None:
             result.injection_parameters = conversion_function(
                 result.injection_parameters)
-    result.fixed_parameter_keys = sampler.fixed_parameter_keys
+
     result.samples_to_posterior(likelihood=likelihood, priors=priors,
                                 conversion_function=conversion_function)
-    result.kwargs = sampler.kwargs
     if save:
         result.save_to_file()
         logger.info("Results saved to {}/".format(outdir))
