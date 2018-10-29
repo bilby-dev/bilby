@@ -13,7 +13,7 @@ from scipy.special import erf, erfinv
 
 # Keep import bilby statement, it is necessary for some eval() statements
 import bilby  # noqa
-from .utils import logger, infer_args_from_method
+from .utils import logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir
 
 
 class PriorDict(OrderedDict):
@@ -50,7 +50,7 @@ class PriorDict(OrderedDict):
             Output file naming scheme
         """
 
-        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
