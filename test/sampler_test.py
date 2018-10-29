@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import bilby
 from bilby.core import prior
-from bilby.core.result import Result
 import unittest
 from mock import MagicMock
 import numpy as np
@@ -53,16 +52,6 @@ class TestSampler(unittest.TestCase):
 
     def test_label(self):
         self.assertEqual(self.sampler.label, 'label')
-
-    def test_result(self):
-        expected_result = Result()
-        expected_result.search_parameter_keys = ['c']
-        expected_result.fixed_parameter_keys = ['a']
-        expected_result.parameter_labels = [None]
-        expected_result.label = 'label'
-        expected_result.outdir = 'test_directory'
-        expected_result.kwargs = {}
-        self.assertDictEqual(self.sampler.result.__dict__, expected_result.__dict__)
 
     def test_prior_transform_transforms_search_parameter_keys(self):
         self.sampler.prior_transform([0])
