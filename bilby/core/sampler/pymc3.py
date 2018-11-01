@@ -428,7 +428,8 @@ class Pymc3(MCMCSampler):
                     curmethod = self.step_method[key].lower()
                     self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
         else:
-            self.kwargs['step'] = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
+            with self.pymc3_model:
+                self.kwargs['step'] = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
