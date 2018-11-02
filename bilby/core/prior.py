@@ -1,6 +1,5 @@
 from __future__ import division
 
-import inspect
 import os
 from collections import OrderedDict
 from future.utils import iteritems
