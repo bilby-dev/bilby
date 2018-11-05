@@ -2125,3 +2125,44 @@ def get_event_data(
             logger.warning('No data found for {}.'.format(name))
 
     return InterferometerList(interferometers)
+
+
+def load_data_from_cache_file(
+        cache_file, trigger_time, segment_duration, psd_duration,
+        channel_name=None):
+    data_set = False
+    psd_set = False
+    segment_start = trigger_time - segment_duration + 1
+    psd_start = segment_start - psd_duration - 4
+    with open(cache_file, 'r') as ff:
+        lines = ff.readlines()
+        ifo_name = lines[0][0] + '1'
+        ifo = get_empty_interferometer(ifo_name)
+        for line in lines:
+            line = line.strip()
+            _, _, frame_start, frame_duration, frame_name = line.split(' ')
+            frame_start = float(frame_start)
+            frame_duration = float(frame_duration)
+            if frame_name[:4] == 'file':
+                frame_name = frame_name[16:]
+            if not data_set & (frame_start < segment_start) &\
+                    (segment_start < frame_start + frame_duration):
+                ifo.set_strain_data_from_frame_file(
+                    frame_name, 4096, segment_duration,
+                    start_time=segment_start,
+                    channel=channel_name, buffer_time=0)
+                data_set = True
+            if not psd_set & (frame_start < psd_start) &\
+                    (psd_start + psd_duration < frame_start + frame_duration):
+                ifo.power_spectral_density =\
+                    PowerSpectralDensity.from_frame_file(
+                        frame_name, psd_start_time=psd_start,
+                        psd_duration=psd_duration,
+                        channel=channel_name, sampling_frequency=4096)
+                psd_set = True
+    if data_set and psd_set:
+        return ifo
+    elif not data_set:
+        logger.warning('Data not loaded for {}'.format(ifo.name))
+    elif not psd_set:
+        logger.warning('PSD not created for {}'.format(ifo.name))
