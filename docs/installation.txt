@@ -25,7 +25,7 @@ Clone the repository, install the requirements, and then install the software:
 
 .. code-block:: console
 
-   $ git clone git@git.ligo.org:Monash/bilby.git
+   $ git clone git@git.ligo.org:lscsoft/bilby.git
    $ cd bilby/
    $ pip install -r requirements.txt
    $ pip install -r optional_requirements.txt
@@ -47,7 +47,7 @@ plan to use `bilby` for gravitational wave inference.
 
    .. code-block:: console
 
-      $ git clone https://git.ligo.org/Monash/bilby.git
+      $ git clone https://git.ligo.org/lscsoft/bilby.git
 
 .. _installing-python:
 
@@ -190,4 +190,3 @@ can purge your installation of bilby by running
    $ rm -r /home/user1/anaconda/lib/python3.6/site-packages/bilby*
 
 Replacing the path with the output of the previous command.
-

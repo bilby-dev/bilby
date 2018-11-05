@@ -38,6 +38,8 @@ class PriorDict(OrderedDict):
         elif dictionary is not None:
             raise ValueError("PriorDict input dictionary not understood")
 
+        self.convert_floats_to_delta_functions()
+
     def to_file(self, outdir, label):
         """ Write the prior distribution to file.
 
@@ -82,7 +84,7 @@ class PriorDict(OrderedDict):
             if isinstance(val, str):
                 try:
                     prior = eval(val)
-                    if isinstance(prior, Prior):
+                    if isinstance(prior, (Prior, float, int, str)):
                         val = prior
                 except (NameError, SyntaxError, TypeError):
                     logger.debug(

@@ -43,10 +43,15 @@ class Dynesty(NestedSampler):
         Stopping criteria
     verbose: Bool
         If true, print information information about the convergence during
+    check_point: bool,
+        If true, use check pointing.
     check_point_delta_t: float (600)
         The approximate checkpoint period (in seconds). Should the run be
         interrupted, it can be resumed from the last checkpoint. Set to
         `None` to turn-off check pointing
+    n_check_point: int, optional (None)
+        The number of steps to take before check pointing (override
+        check_point_delta_t).
     resume: bool
         If true, resume run from checkpoint (if available)
     """
@@ -66,21 +71,20 @@ class Dynesty(NestedSampler):
                           save_bounds=True)
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
-                 skip_import_verification=False, n_check_point=None, check_point_delta_t=600,
+                 skip_import_verification=False, check_point=True, n_check_point=None, check_point_delta_t=600,
                  resume=True, **kwargs):
         NestedSampler.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
                                use_ratio=use_ratio, plot=plot,
                                skip_import_verification=skip_import_verification,
                                **kwargs)
         self.n_check_point = n_check_point
+        self.check_point = check_point
         self.resume = resume
-        if not self.n_check_point:
-            # Set the checking pointing
-            # If the log_likelihood_eval_time was not able to be calculated
-            # then n_check_point is set to None (no checkpointing)
+        if self.n_check_point is None:
+            # If the log_likelihood_eval_time is not calculable then
+            # check_point is set to False.
             if np.isnan(self._log_likelihood_eval_time):
-                self.n_check_point = None
-            # If n_check_point is not already set, set it checkpoint every 10 mins
+                self.check_point = False
             n_check_point_raw = (check_point_delta_t / self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
@@ -154,7 +158,8 @@ class Dynesty(NestedSampler):
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim, **self.sampler_init_kwargs)
-        if self.n_check_point:
+
+        if self.check_point:
             out = self._run_external_sampler_with_checkpointing()
         else:
             out = self._run_external_sampler_without_checkpointing()
@@ -165,11 +170,13 @@ class Dynesty(NestedSampler):
 
         # self.result.sampler_output = out
         weights = np.exp(out['logwt'] - out['logz'][-1])
-        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
-        self.result.nested_samples = DataFrame(
+        nested_samples = DataFrame(
             out.samples, columns=self.search_parameter_keys)
-        self.result.nested_samples['weights'] = weights
-        self.result.nested_samples['log_likelihood'] = out.logl
+        nested_samples['weights'] = weights
+        nested_samples['log_likelihood'] = out.logl
+
+        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+        self.result.nested_samples = nested_samples
         self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
             unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
             sorted_samples=self.result.samples)
