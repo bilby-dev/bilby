@@ -12,7 +12,6 @@ from .dynesty import Dynesty
 from .emcee import Emcee
 from .nestle import Nestle
 from .ptemcee import Ptemcee
-from .polychord import BBPolychord
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 
