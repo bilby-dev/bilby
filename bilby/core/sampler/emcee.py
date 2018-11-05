@@ -20,8 +20,10 @@ class Emcee(MCMCSampler):
     nsteps: int, (100)
         The number of steps
     nburn: int (None)
-        If given, the fixed number of steps to discard as burn-in. Else,
-        nburn is estimated from the autocorrelation time
+        If given, the fixed number of steps to discard as burn-in. These will
+        be discarded from the total number of steps set by `nsteps` and
+        therefore the value must be greater than `nsteps`. Else, nburn is
+        estimated from the autocorrelation time
     burn_in_fraction: float, (0.25)
         The fraction of steps to discard as burn-in in the event that the
         autocorrelation time cannot be calculated
@@ -81,6 +83,11 @@ class Emcee(MCMCSampler):
 
     @nburn.setter
     def nburn(self, nburn):
+        if isinstance(nburn, (float, int)):
+            if nburn > self.kwargs['iterations'] - 1:
+                raise ValueError('Number of burn-in samples must be smaller '
+                                 'than the total number of iterations')
+
         self.__nburn = nburn
 
     @property
