@@ -3,11 +3,12 @@
 ## Unreleased
 
 Changes currently on master, but not under a tag.
+
+- Removed unnecessary arguments (`ra`, `dec`, `geocent_time`, `psi`) from source functions and replaced them with `**kwargs` where appropriate.
 - Renamed `PriorSet` to `PriorDict`
 - Renamed `BBHPriorSet` to `BBHPriorDict`
 - Renamed `BNSPriorSet` to `BNSPriorDict`
 - Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
-
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
 
 ### Changes
