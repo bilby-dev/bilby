@@ -955,7 +955,7 @@ def compute_snrs(sample, likelihood):
         logger.debug('Not computing SNRs.')
 
 
-def generate_distance_samples_from_marginalized_likelihood(sample, likelihood):
+def generate_distance_samples_from_marginalized_likelihood(samples, likelihood):
     """
     Reconstruct the distance posterior from a run which used a likelihood which
     explicitly marginalised over distance.
@@ -964,7 +964,7 @@ def generate_distance_samples_from_marginalized_likelihood(sample, likelihood):
 
     Parameters
     ----------
-    sample: DataFrame
+    samples: DataFrame
         Posterior from run with distance marginalisation turned on.
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
         Likelihood used during sampling.
@@ -975,22 +975,41 @@ def generate_distance_samples_from_marginalized_likelihood(sample, likelihood):
         Returns the posterior with distance samples.
     """
     if not likelihood.distance_marginalization:
-        return sample
+        return samples
     if likelihood.phase_marginalization or likelihood.time_marginalization:
         logger.warning('Cannot currently reconstruct distance posterior '
                        'when other marginalizations are turned on.')
-        return sample
-    if isinstance(sample, dict):
+        return samples
+    if isinstance(samples, dict):
         pass
-    elif isinstance(sample, DataFrame):
-        for ii in range(len(sample)):
+    elif isinstance(samples, DataFrame):
+        for ii in range(len(samples)):
             temp = _generate_distance_sample_from_marginalized_likelihood(
-                dict(sample.iloc[ii]), likelihood)
-            sample['luminosity_distance'][ii] = temp['luminosity_distance']
-    return sample
+                dict(samples.iloc[ii]), likelihood)
+            samples['luminosity_distance'][ii] = temp['luminosity_distance']
+    return samples
 
 
 def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
+    """
+    Generate a single sample from the posterior distribution for luminosity
+    distance when using a likelihood which explicitly marginalises over
+    distance.
+
+    See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
+
+    Parameters
+    ----------
+    sample: dict
+        The set of parameters used with the marginalised likelihood.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
+        The likelihood used.
+
+    Returns
+    -------
+    sample: dict
+        Modifed dictionary with the distance sampled from the posterior.
+    """
     signal_polarizations = \
         likelihood.waveform_generator.frequency_domain_strain(sample)
     rho_mf_sq = 0
@@ -1000,13 +1019,11 @@ def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
         rho_mf_sq += ifo.matched_filter_snr_squared(signal=signal)
         rho_opt_sq += ifo.optimal_snr_squared(signal=signal)
 
-    rho_mf_sq_dist = \
-        rho_mf_sq * sample['luminosity_distance'] / \
-        likelihood._distance_array
+    rho_mf_sq_dist = (rho_mf_sq * sample['luminosity_distance'] /
+                      likelihood._distance_array)
 
-    rho_opt_sq_dist = \
-        rho_opt_sq * sample['luminosity_distance']**2 / \
-        likelihood._distance_array**2
+    rho_opt_sq_dist = (rho_opt_sq * sample['luminosity_distance']**2 /
+                       likelihood._distance_array**2)
 
     distance_log_like = (rho_mf_sq_dist.real - rho_opt_sq_dist.real / 2)
 
