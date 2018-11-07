@@ -899,18 +899,12 @@ def compute_snrs(sample, likelihood):
         Likelihood function to be applied on the posterior
 
     """
-    temp_sample = sample
     if likelihood is not None:
-        if isinstance(temp_sample, dict):
-            temp = dict()
-            for key in likelihood.waveform_generator.parameters.keys():
-                temp[key] = temp_sample[key]
+        if isinstance(sample, dict):
             signal_polarizations =\
-                likelihood.waveform_generator.frequency_domain_strain(temp)
+                likelihood.waveform_generator.frequency_domain_strain(sample)
             for ifo in likelihood.interferometers:
-                signal = ifo.get_detector_response(
-                    signal_polarizations,
-                    likelihood.waveform_generator.parameters)
+                signal = ifo.get_detector_response(signal_polarizations, sample)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
                     ifo.matched_filter_snr_squared(signal=signal) ** 0.5
                 sample['{}_optimal_snr'.format(ifo.name)] = \
@@ -921,17 +915,13 @@ def compute_snrs(sample, likelihood):
             all_interferometers = likelihood.interferometers
             matched_filter_snrs = {ifo.name: [] for ifo in all_interferometers}
             optimal_snrs = {ifo.name: [] for ifo in all_interferometers}
-            for ii in range(len(temp_sample)):
-                temp = dict()
-                for key in set(temp_sample.keys()).intersection(
-                        likelihood.waveform_generator.parameters.keys()):
-                    temp[key] = temp_sample[key][ii]
+            for ii in range(len(sample)):
                 signal_polarizations =\
-                    likelihood.waveform_generator.frequency_domain_strain(temp)
+                    likelihood.waveform_generator.frequency_domain_strain(
+                        dict(sample.iloc[ii]))
                 for ifo in all_interferometers:
                     signal = ifo.get_detector_response(
-                        signal_polarizations,
-                        likelihood.waveform_generator.parameters)
+                        signal_polarizations, sample.iloc[ii])
                     matched_filter_snrs[ifo.name].append(
                         ifo.matched_filter_snr_squared(signal=signal) ** 0.5)
                     optimal_snrs[ifo.name].append(
