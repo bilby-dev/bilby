@@ -3,12 +3,25 @@
 ## Unreleased
 
 Changes currently on master, but not under a tag.
+
+- Removed unnecessary arguments (`ra`, `dec`, `geocent_time`, `psi`) from source functions and replaced them with `**kwargs` where appropriate.
 - Renamed `PriorSet` to `PriorDict`
 - Renamed `BBHPriorSet` to `BBHPriorDict`
 - Renamed `BNSPriorSet` to `BNSPriorDict`
 - Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
-
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
+
+### Changes
+- Switch the ordering the key-word arguments in `result.read_in_result` to put
+  `filename` first. This allows users to quickly read in results by filename
+- Result object no longer a child of `dict`. Additionally, the list of
+  attributes and saved attributes is standardised
+- The above changes effect the saving of posteriors. Users can expect that
+  opening files made in python 2(3) which where written in 3(2) may no longer
+  work. It was felt that the overheads of maintaining cross-version
+  compatibility were too much. Note, working in only python 2 or 3, we do not
+  expect users to encounter issues.
+- Intermediate data products of samples, nested_samples are stored in the h5
 
 ## [0.3.1] 2018-11-06
 

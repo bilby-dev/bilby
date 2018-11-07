@@ -237,7 +237,7 @@ class CalibrationPriorDict(PriorDict):
         PriorDict.__init__(self, dictionary=dictionary, filename=filename)
         self.source = None
 
-    def write_to_file(self, outdir, label):
+    def to_file(self, outdir, label):
         """
         Write the prior to file. This includes information about the source if
         possible.
@@ -249,7 +249,7 @@ class CalibrationPriorDict(PriorDict):
         label: str
             Label for prior.
         """
-        PriorDict.write_to_file(self, outdir=outdir, label=label)
+        PriorDict.to_file(self, outdir=outdir, label=label)
         if self.source is not None:
             prior_file = os.path.join(outdir, "{}.prior".format(label))
             with open(prior_file, "a") as outfile:

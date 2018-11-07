@@ -1,10 +1,12 @@
 from __future__ import division
 import os
+import json
 
 import numpy as np
 
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
-                          speed_of_light, logger)
+                          speed_of_light, logger, run_commandline,
+                          check_directory_exists_and_if_not_mkdir)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -405,6 +407,109 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     else:
         logger.warning('No data loaded.')
         return None
+
+
+def get_gracedb(gracedb, outdir, duration, calibration, detectors):
+    candidate = gracedb_to_json(gracedb, outdir)
+    trigger_time = candidate['gpstime']
+    gps_start_time = trigger_time - duration
+    cache_files = []
+    for det in detectors:
+        output_cache_file = gw_data_find(
+            det, gps_start_time, duration, calibration,
+            outdir=outdir)
+        cache_files.append(output_cache_file)
+    return candidate, cache_files
+
+
+def gracedb_to_json(gracedb, outdir=None):
+    """ Script to download a GraceDB candidate
+
+    Parameters
+    ----------
+    gracedb: str
+        The UID of the GraceDB candidate
+    outdir: str, optional
+        If given, a string identfying the location in which to store the json
+    """
+    logger.info(
+        'Starting routine to download GraceDb candidate {}'.format(gracedb))
+    from ligo.gracedb.rest import GraceDb
+    import urllib3
+
+    logger.info('Initialise client and attempt to download')
+    try:
+        client = GraceDb()
+    except FileNotFoundError:
+        raise ValueError(
+            'Failed to authenticate with gracedb: check your X509 '
+            'certificate is accessible and valid')
+    try:
+        candidate = client.event(gracedb)
+        logger.info('Successfully downloaded candidate')
+    except urllib3.HTTPError:
+        raise ValueError("No candidate found")
+
+    json_output = candidate.json()
+
+    if outdir is not None:
+        check_directory_exists_and_if_not_mkdir(outdir)
+        outfilepath = os.path.join(outdir, '{}.json'.format(gracedb))
+        logger.info('Writing candidate to {}'.format(outfilepath))
+        with open(outfilepath, 'w') as outfile:
+                json.dump(json_output, outfile, indent=2)
+
+    return json_output
+
+
+def gw_data_find(observatory, gps_start_time, duration, calibration,
+                 outdir='.'):
+    """ Builds a gw_data_find call and process output
+
+    Parameters
+    ----------
+    observatory: str, {H1, L1, V1}
+        Observatory description
+    gps_start_time: float
+        The start time in gps to look for data
+    duration: int
+        The duration (integer) in s
+    calibrartion: int {1, 2}
+        Use C01 or C02 calibration
+    outdir: string
+        A path to the directory where output is stored
+
+    Returns
+    -------
+    output_cache_file: str
+        Path to the output cache file
+
+    """
+    logger.info('Building gw_data_find command line')
+
+    observatory_lookup = dict(H1='H', L1='L', V1='V')
+    observatory_code = observatory_lookup[observatory]
+
+    dtype = '{}_HOFT_C0{}'.format(observatory, calibration)
+    logger.info('Using LDRDataFind query type {}'.format(dtype))
+
+    cache_file = '{}-{}_CACHE-{}-{}.lcf'.format(
+        observatory, dtype, gps_start_time, duration)
+    output_cache_file = os.path.join(outdir, cache_file)
+
+    gps_end_time = gps_start_time + duration
+
+    cl_list = ['gw_data_find']
+    cl_list.append('--observatory {}'.format(observatory_code))
+    cl_list.append('--gps-start-time {}'.format(gps_start_time))
+    cl_list.append('--gps-end-time {}'.format(gps_end_time))
+    cl_list.append('--type {}'.format(dtype))
+    cl_list.append('--output {}'.format(output_cache_file))
+    cl_list.append('--url-type file')
+    cl_list.append('--lal-cache')
+    cl = ' '.join(cl_list)
+    run_commandline(cl)
+    return output_cache_file
 
 
 def save_to_fits(posterior, outdir, label):
