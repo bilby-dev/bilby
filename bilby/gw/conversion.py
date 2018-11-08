@@ -1,8 +1,9 @@
 from __future__ import division
 import numpy as np
+from pandas import DataFrame
 
 from ..core.utils import logger, solar_mass
-from ..core.prior import DeltaFunction
+from ..core.prior import DeltaFunction, Interped
 
 try:
     from astropy.cosmology import z_at_value, Planck15
@@ -621,6 +622,11 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample, _ = base_conversion(output_sample)
     output_sample = generate_mass_parameters(output_sample)
     output_sample = generate_spin_parameters(output_sample)
+    if likelihood is not None:
+        if likelihood.distance_marginalization:
+            output_sample = \
+                generate_distance_samples_from_marginalized_likelihood(
+                    output_sample, likelihood)
     output_sample = generate_source_frame_parameters(output_sample)
     compute_snrs(output_sample, likelihood)
     return output_sample
@@ -937,3 +943,83 @@ def compute_snrs(sample, likelihood):
 
     else:
         logger.debug('Not computing SNRs.')
+
+
+def generate_distance_samples_from_marginalized_likelihood(samples, likelihood):
+    """
+    Reconstruct the distance posterior from a run which used a likelihood which
+    explicitly marginalised over distance.
+
+    See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
+
+    Parameters
+    ----------
+    samples: DataFrame
+        Posterior from run with distance marginalisation turned on.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
+        Likelihood used during sampling.
+
+    Return
+    ------
+    sample: DataFrame
+        Returns the posterior with distance samples.
+    """
+    if not likelihood.distance_marginalization:
+        return samples
+    if likelihood.phase_marginalization or likelihood.time_marginalization:
+        logger.warning('Cannot currently reconstruct distance posterior '
+                       'when other marginalizations are turned on.')
+        return samples
+    if isinstance(samples, dict):
+        pass
+    elif isinstance(samples, DataFrame):
+        for ii in range(len(samples)):
+            temp = _generate_distance_sample_from_marginalized_likelihood(
+                dict(samples.iloc[ii]), likelihood)
+            samples['luminosity_distance'][ii] = temp['luminosity_distance']
+    return samples
+
+
+def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
+    """
+    Generate a single sample from the posterior distribution for luminosity
+    distance when using a likelihood which explicitly marginalises over
+    distance.
+
+    See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
+
+    Parameters
+    ----------
+    sample: dict
+        The set of parameters used with the marginalised likelihood.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
+        The likelihood used.
+
+    Returns
+    -------
+    sample: dict
+        Modifed dictionary with the distance sampled from the posterior.
+    """
+    signal_polarizations = \
+        likelihood.waveform_generator.frequency_domain_strain(sample)
+    rho_mf_sq = 0
+    rho_opt_sq = 0
+    for ifo in likelihood.interferometers:
+        signal = ifo.get_detector_response(signal_polarizations, sample)
+        rho_mf_sq += ifo.matched_filter_snr_squared(signal=signal)
+        rho_opt_sq += ifo.optimal_snr_squared(signal=signal)
+
+    rho_mf_sq_dist = (rho_mf_sq * sample['luminosity_distance'] /
+                      likelihood._distance_array)
+
+    rho_opt_sq_dist = (rho_opt_sq * sample['luminosity_distance']**2 /
+                       likelihood._distance_array**2)
+
+    distance_log_like = (rho_mf_sq_dist.real - rho_opt_sq_dist.real / 2)
+
+    distance_post = np.exp(distance_log_like - max(distance_log_like)) *\
+        likelihood.distance_prior_array
+
+    sample['luminosity_distance'] = Interped(
+        likelihood._distance_array, distance_post).sample()
+    return sample
