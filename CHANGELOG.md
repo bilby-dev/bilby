@@ -24,6 +24,7 @@ Changes currently on master, but not under a tag.
   compatibility were too much. Note, working in only python 2 or 3, we do not
   expect users to encounter issues.
 - Intermediate data products of samples, nested_samples are stored in the h5
+- Time marginalised GravitationalWaveTransient works with arbitrary time priors.
 
 ## [0.3.1] 2018-11-06
 
