@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.3.3] 2018-11-08
+
 Changes currently on master, but not under a tag.
 
 - Removed unnecessary arguments (`ra`, `dec`, `geocent_time`, `psi`) from source functions and replaced them with `**kwargs` where appropriate.
