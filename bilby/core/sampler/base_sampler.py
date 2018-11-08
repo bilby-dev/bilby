@@ -412,15 +412,16 @@ class NestedSampler(Sampler):
 
         Parameters
         ----------
-        sorted_samples, unsorted_samples: array
-            Sorted and unsorted values of the samples. These should be of the same
-            shape and contain the same sample values, but in different orders
-        unsorted_loglikelihoods: array
+        sorted_samples, unsorted_samples: array-like
+            Sorted and unsorted values of the samples. These should be of the
+            same shape and contain the same sample values, but in different
+            orders
+        unsorted_loglikelihoods: array-like
             The loglikelihoods corresponding to the unsorted_samples
 
         Returns
         -------
-        sorted_loglikelihoods: array
+        sorted_loglikelihoods: array-like
             The loglikelihoods reordered to match that of the sorted_samples
 
 
@@ -428,12 +429,13 @@ class NestedSampler(Sampler):
 
         idxs = []
         for ii in range(len(unsorted_loglikelihoods)):
-            idx = np.where(np.all(sorted_samples[ii] == unsorted_samples, axis=1))
+            idx = np.where(np.all(sorted_samples[ii] == unsorted_samples,
+                                  axis=1))[0]
             if len(idx) > 1:
-                raise ValueError(
-                    "Multiple matches found between sorted and unsorted samples")
-            else:
-                idxs.append(idx[0])
+                logger.warning(
+                    "Multiple likelihood matches found between sorted and "
+                    "unsorted samples. Taking the first match.")
+            idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
 
 
