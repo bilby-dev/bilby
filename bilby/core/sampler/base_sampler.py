@@ -433,7 +433,7 @@ class NestedSampler(Sampler):
                                   axis=1))[0]
             if len(idx) > 1:
                 logger.warning(
-                    "Multiple likwlihood matches found between sorted and "
+                    "Multiple likelihood matches found between sorted and "
                     "unsorted samples. Taking the first match.")
             idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
