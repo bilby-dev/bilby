@@ -711,5 +711,5 @@ else:
             matplotlib.use(backend, warn=False)
             plt.switch_backend(backend)
             break
-        except Exception as e:
+        except Exception:
             print(traceback.format_exc())
