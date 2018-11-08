@@ -121,7 +121,7 @@ class Emcee(MCMCSampler):
         return self.result
 
     def _set_pos0(self):
-        if self.pos0:
+        if self.pos0 is not None:
             logger.debug("Using given initial positions for walkers")
             if isinstance(self.pos0, DataFrame):
                 self.pos0 = self.pos0[self.search_parameter_keys].values
