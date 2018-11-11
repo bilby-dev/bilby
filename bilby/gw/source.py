@@ -15,7 +15,7 @@ except ImportError:
 
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
-        iota, phase, ra, dec, geocent_time, psi, **kwargs):
+        iota, phase, **kwargs):
     """ A Binary Black Hole waveform model using lalsimulation
 
     Parameters
@@ -44,14 +44,6 @@ def lal_binary_black_hole(
         Orbital inclination
     phase: float
         The phase at coalescence
-    ra: float
-        The right ascension of the binary
-    dec: float
-        The declination of the object
-    geocent_time: float
-        The time at coalescence
-    psi: float
-        Orbital polarisation
     kwargs: dict
         Optional keyword arguments
 
@@ -114,8 +106,7 @@ def lal_binary_black_hole(
 
 
 def lal_eccentric_binary_black_hole_no_spins(
-        frequency_array, mass_1, mass_2, eccentricity, luminosity_distance, iota, phase, ra, dec,
-        geocent_time, psi, **kwargs):
+        frequency_array, mass_1, mass_2, eccentricity, luminosity_distance, iota, phase, **kwargs):
     """ Eccentric binary black hole waveform model using lalsimulation (EccentricFD)
 
     Parameters
@@ -134,14 +125,6 @@ def lal_eccentric_binary_black_hole_no_spins(
         Orbital inclination
     phase: float
         The phase at coalescence
-    ra: float
-        The right ascension of the binary
-    dec: float
-        The declination of the object
-    geocent_time: float
-        The time at coalescence
-    psi: float
-        Orbital polarisation
     kwargs: dict
         Optional keyword arguments
 
@@ -194,7 +177,7 @@ def lal_eccentric_binary_black_hole_no_spins(
     return {'plus': h_plus, 'cross': h_cross}
 
 
-def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi):
+def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     tau = Q / (np.sqrt(2.0) * np.pi * frequency)
     temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
     fm = frequency_array - frequency
@@ -214,8 +197,7 @@ def sinegaussian(frequency_array, hrss, Q, frequency, ra, dec, geocent_time, psi
 
 
 def supernova(
-        frequency_array, realPCs, imagPCs, file_path, luminosity_distance, ra,
-        dec, geocent_time, psi):
+        frequency_array, realPCs, imagPCs, file_path, luminosity_distance, **kwargs):
     """ A supernova NR simulation for injections """
 
     realhplus, imaghplus, realhcross, imaghcross = np.loadtxt(
@@ -231,7 +213,7 @@ def supernova(
 
 def supernova_pca_model(
         frequency_array, pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5,
-        luminosity_distance, ra, dec, geocent_time, psi, **kwargs):
+        luminosity_distance, **kwargs):
     """ Supernova signal model """
 
     realPCs = kwargs['realPCs']
@@ -256,7 +238,7 @@ def supernova_pca_model(
 
 def lal_binary_neutron_star(
         frequency_array, mass_1, mass_2, luminosity_distance, chi_1, chi_2,
-        iota, phase, lambda_1, lambda_2, ra, dec, geocent_time, psi, **kwargs):
+        iota, phase, lambda_1, lambda_2, **kwargs):
     """ A Binary Neutron Star waveform model using lalsimulation
 
     Parameters

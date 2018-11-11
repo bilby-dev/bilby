@@ -49,7 +49,7 @@ ifos.inject_signal(waveform_generator=waveform,
 prior = injection_parameters.copy()
 prior['amplitude'] = bilby.core.prior.LogUniform(1e-23, 1e-21, r'$h_0$')
 prior['damping_time'] = bilby.core.prior.Uniform(
-    0, 1, r'damping time', unit='$s$')
+    0.01, 1, r'damping time', unit='$s$')
 prior['frequency'] = bilby.core.prior.Uniform(0, 200, r'frequency', unit='Hz')
 prior['phase'] = bilby.core.prior.Uniform(-np.pi / 2, np.pi / 2, r'$\phi$')
 

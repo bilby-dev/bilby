@@ -2,12 +2,15 @@
 
 ## Unreleased
 
+## [0.3.3] 2018-11-08
+
 Changes currently on master, but not under a tag.
+
+- Removed unnecessary arguments (`ra`, `dec`, `geocent_time`, `psi`) from source functions and replaced them with `**kwargs` where appropriate.
 - Renamed `PriorSet` to `PriorDict`
 - Renamed `BBHPriorSet` to `BBHPriorDict`
 - Renamed `BNSPriorSet` to `BNSPriorDict`
 - Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
-
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
 
 ### Changes
@@ -21,6 +24,7 @@ Changes currently on master, but not under a tag.
   compatibility were too much. Note, working in only python 2 or 3, we do not
   expect users to encounter issues.
 - Intermediate data products of samples, nested_samples are stored in the h5
+- Time marginalised GravitationalWaveTransient works with arbitrary time priors.
 
 ## [0.3.1] 2018-11-06
 
