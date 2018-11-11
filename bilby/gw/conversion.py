@@ -6,7 +6,7 @@ from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction, Interped
 
 try:
-    from astropy.cosmology import z_at_value, Planck15
+    from astropy import cosmology
     import astropy.units as u
 except ImportError:
     logger.warning("You do not have astropy installed currently. You will"
@@ -19,32 +19,86 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-def redshift_to_luminosity_distance(redshift):
-    return Planck15.luminosity_distance(redshift).value
+DEFAULT_COSMOLOGY = cosmology.Planck15
+CURRENT_COSMOLOGY = (DEFAULT_COSMOLOGY, str(None))
 
 
-def redshift_to_comoving_distance(redshift):
-    return Planck15.comoving_distance(redshift).value
+def get_cosmology(cosmology=None):
+    """
+    Get an instance of a astropy.cosmology.FLRW subclass.
+
+    To avoid repeatedly instantiating the same class, test if it is the same
+    as the last used cosmology.
+
+    Parameters
+    ----------
+    cosmology: astropy.cosmology.FLRW, str, dict
+        Description of cosmology, one of:
+            None - Use DEFAULT_COSMOLOGY
+            Instance of astropy.cosmology.FLRW subclass
+            String with name of known Astropy cosmology, e.g., "Planck13"
+            Dictionary with arguments required to instantiate the cosmology
+            class.
+
+    Returns
+    -------
+    cosmo: astropy.cosmology.FLRW
+        Cosmology instance
+    """
+    if str(cosmology) == str(CURRENT_COSMOLOGY[1]):
+        cosmo = CURRENT_COSMOLOGY[0]
+    else:
+        if cosmology is None:
+            cosmo = DEFAULT_COSMOLOGY
+        elif isinstance(cosmology, cosmology.FLRW):
+            cosmo = cosmology
+        elif isinstance(cosmology, str):
+            cosmo = eval('cosmology.' + cosmology)
+        elif isinstance(cosmology, dict):
+            if 'Ode0' in cosmology.keys():
+                if 'w0' in cosmology.keys():
+                    cosmo = cosmology.wCDM(**cosmology)
+                else:
+                    cosmo = cosmology.LambdaCDM(**cosmology)
+            else:
+                cosmo = cosmology.FlatLambdaCDM(**cosmology)
+        global CURRENT_COSMOLOGY
+        CURRENT_COSMOLOGY = (cosmo, str(cosmology))
+    return cosmo
+
+
+def redshift_to_luminosity_distance(redshift, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    return cosmo.luminosity_distance(redshift).value
+
+
+def redshift_to_comoving_distance(redshift, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    return cosmo.comoving_distance(redshift).value
 
 
 @np.vectorize
-def luminosity_distance_to_redshift(distance):
-    return z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
+def luminosity_distance_to_redshift(distance, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    return cosmology.z_at_value(cosmo.luminosity_distance, distance * u.Mpc)
 
 
 @np.vectorize
-def comoving_distance_to_redshift(distance):
-    return z_at_value(Planck15.comoving_distance, distance * u.Mpc)
+def comoving_distance_to_redshift(distance, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    return cosmology.z_at_value(cosmo.comoving_distance, distance * u.Mpc)
 
 
-def comoving_distance_to_luminosity_distance(distance):
-    redshift = comoving_distance_to_redshift(distance)
-    return redshift_to_luminosity_distance(redshift)
+def comoving_distance_to_luminosity_distance(distance, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    redshift = comoving_distance_to_redshift(distance, cosmo)
+    return redshift_to_luminosity_distance(redshift, cosmo)
 
 
-def luminosity_distance_to_comoving_distance(distance):
-    redshift = luminosity_distance_to_redshift(distance)
-    return redshift_to_comoving_distance(redshift)
+def luminosity_distance_to_comoving_distance(distance, cosmology=None):
+    cosmo = get_cosmology(cosmology)
+    redshift = luminosity_distance_to_redshift(distance, cosmo)
+    return redshift_to_comoving_distance(redshift, cosmo)
 
 
 @np.vectorize
