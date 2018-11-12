@@ -6,7 +6,7 @@ from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction, Interped
 
 try:
-    from astropy import cosmology
+    from astropy import cosmology as apcosmo
     import astropy.units as u
 except ImportError:
     logger.warning("You do not have astropy installed currently. You will"
@@ -19,8 +19,8 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-DEFAULT_COSMOLOGY = cosmology.Planck15
-CURRENT_COSMOLOGY = (DEFAULT_COSMOLOGY, str(None))
+DEFAULT_COSMOLOGY = apcosmo.Planck15
+CURRENT_COSMOLOGY = [DEFAULT_COSMOLOGY, str(None)]
 
 
 def get_cosmology(cosmology=None):
@@ -50,20 +50,22 @@ def get_cosmology(cosmology=None):
     else:
         if cosmology is None:
             cosmo = DEFAULT_COSMOLOGY
-        elif isinstance(cosmology, cosmology.FLRW):
+        elif isinstance(cosmology, apcosmo.FLRW):
             cosmo = cosmology
         elif isinstance(cosmology, str):
-            cosmo = eval('cosmology.' + cosmology)
+            cosmo = eval('apcosmo.' + cosmology)
         elif isinstance(cosmology, dict):
             if 'Ode0' in cosmology.keys():
                 if 'w0' in cosmology.keys():
-                    cosmo = cosmology.wCDM(**cosmology)
+                    cosmo = apcosmo.wCDM(**cosmology)
                 else:
-                    cosmo = cosmology.LambdaCDM(**cosmology)
+                    cosmo = apcosmo.LambdaCDM(**cosmology)
             else:
-                cosmo = cosmology.FlatLambdaCDM(**cosmology)
-        global CURRENT_COSMOLOGY
-        CURRENT_COSMOLOGY = (cosmo, str(cosmology))
+                cosmo = apcosmo.FlatLambdaCDM(**cosmology)
+        CURRENT_COSMOLOGY[0] = cosmo
+        CURRENT_COSMOLOGY[1] = str(cosmology)
+    # print(CURRENT_COSMOLOGY)
+    # print(cosmo)
     return cosmo
 
 
@@ -80,13 +82,14 @@ def redshift_to_comoving_distance(redshift, cosmology=None):
 @np.vectorize
 def luminosity_distance_to_redshift(distance, cosmology=None):
     cosmo = get_cosmology(cosmology)
-    return cosmology.z_at_value(cosmo.luminosity_distance, distance * u.Mpc)
+    # print(cosmo, apcosmo, 'a')
+    return apcosmo.z_at_value(cosmo.luminosity_distance, distance * u.Mpc)
 
 
 @np.vectorize
 def comoving_distance_to_redshift(distance, cosmology=None):
     cosmo = get_cosmology(cosmology)
-    return cosmology.z_at_value(cosmo.comoving_distance, distance * u.Mpc)
+    return apcosmo.z_at_value(cosmo.comoving_distance, distance * u.Mpc)
 
 
 def comoving_distance_to_luminosity_distance(distance, cosmology=None):
