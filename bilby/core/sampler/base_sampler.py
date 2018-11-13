@@ -34,9 +34,10 @@ class Sampler(object):
     meta_data:
         A dictionary of extra meta data to store in the result
     **kwargs: dict
+        Additional keyword arguments
 
     Attributes
-    -------
+    ----------
     likelihood: likelihood.Likelihood
         A  object with a log_l method
     priors: bilby.core.prior.PriorDict
@@ -62,7 +63,7 @@ class Sampler(object):
         Dictionary of keyword arguments that can be used in the external sampler
 
     Raises
-    -------
+    ------
     TypeError:
         If external_sampler is neither a string nor an instance of this class
         If not all likelihood.parameters have been defined
@@ -71,6 +72,7 @@ class Sampler(object):
         installed on this system
     AttributeError:
         If some of the priors can't be sampled
+
     """
     default_kwargs = dict()
 
@@ -123,10 +125,7 @@ class Sampler(object):
 
     @property
     def kwargs(self):
-        """
-        dict: Container for the **kwargs. Has more sophisticated
-        logic in subclasses
-        """
+        """dict: Container for the kwargs. Has more sophisticated logic in subclasses """
         return self.__kwargs
 
     @kwargs.setter
@@ -319,6 +318,7 @@ class Sampler(object):
         """ Get a random draw from the prior distribution
 
         Returns
+        -------
         draw: array_like
             An ndim-length array of values drawn from the prior. Parameters
             with delta-function (or fixed) priors are not returned

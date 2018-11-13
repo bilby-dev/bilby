@@ -4,8 +4,185 @@
 Sampling
 ========
 
-Given a :ref:`likelihood` and :ref:`priors`, we can run parameter estimation using the
-`run_sampler` function. This can be accessed via :code:`bilby.run_sampler` or
-:code:`bilby.sampler.run_sampler`. Here is the detailed API:
+Given a :ref:`likelihood` and :ref:`priors`, we run parameter estimation
+using the :code:`run_sampler` function. This is the core interface which you should
+use to setup a sampler and switch between different samplers easily.
+
+This can be accessed via :code:`bilby.run_sampler` or
+:code:`bilby.sampler.run_sampler`. Here is the detailed API information:
 
 .. autofunction:: bilby.run_sampler
+
+--------------------------
+Switching between samplers
+--------------------------
+
+:code:`bilby` can use a large number (and growing) of off-the-shelf samplers.
+Given your likelihood and prior, it is trivial to switch between samplers by
+changing the argument :code:`sampler` given to :code:`run_sampler`.
+
+.. note::
+   By default, only the :code:`dynesty` sampler is a requirement when
+   installing :code:`bilby`; therefore, other samplers may not be installed
+   on your system. You can try to use them, if they aren't installed a help
+   message will print out. See `installing samplers`_ for help with
+   installation.
+
+Different samplers take different arguments to control their behaviour. To
+handle this, we allow the user to pass arbitrary `keyword arguments
+<https://docs.python.org/2/tutorial/controlflow.html#keyword-arguments>`_ into
+:code:`run_sampler`. To document what keyword arguments are available, below we
+give the API for each sampler. In each of these, there is an "Other Parameters"
+section which contains information on all the available keyword arguments that
+sampler takes. For example, to use the dynesty_ sampler with 250 live points,
+you would use
+
+.. code-block:: python
+
+   >>> bilby.core.run_sampler(likelihood, priors, sampler='dynesty', nlive=250)
+
+.. note::
+
+   For some parameters, we map a variety of similar arguments together. E.g.,
+   :code:`nlive=250` is equivalent to :code:`npoints`. The full list of these
+   is given in the API information below.
+
+Below, we give the detailed API for the samplers. Remember, this API is not
+recomended for direct use by the user, rather it should be accessed via the
+:code:`run_sampler`.
+
+---------------
+Nested Samplers
+---------------
+
+Dynesty
+=======
+
+.. autoclass:: bilby.core.sampler.dynesty.Dynesty
+
+Nestle
+======
+
+.. autoclass:: bilby.core.sampler.nestle.Nestle
+
+
+CPNest
+======
+
+.. autoclass:: bilby.core.sampler.cpnest.Cpnest
+
+PyMultinest
+===========
+
+.. autoclass:: bilby.core.sampler.pymultinest.Pymultinest
+
+-------------
+MCMC samplers
+-------------
+
+Emcee
+=====
+
+.. autoclass:: bilby.core.sampler.emcee.Emcee
+
+PTEmcee
+=======
+
+.. autoclass:: bilby.core.sampler.ptemcee.Ptemcee
+
+pymc3
+=====
+
+.. autoclass:: bilby.core.sampler.pymc3.Pymc3
+
+
+-------------------
+Installing samplers
+-------------------
+
+pip-installable samplers
+========================
+
+Most samplers can be installed using `pip <https://pypi.org/project/pip/>`_
+(see exceptions below). E.g., to install the :code:`emcee`
+
+.. code:: console
+
+   $ pip install emcee
+
+If you installed :code:`bilby` from source, then all the samplers can be
+installed using
+
+.. code:: console
+
+   $ pip install -r sampler_requirements.txt
+
+where the file `sampler_requirements.txt
+<https://git.ligo.org/lscsoft/bilby/blob/master/sampler_requirements.txt>`_ can
+be found in the at the top-level of `the repository
+<https://git.ligo.org/lscsoft/bilby>`_ (Note: if you installed from pip, you
+can simply download that file and use the command above).
+
+Installing pymultinest
+======================
+
+If you want to use the `pymultinest` sampler, you first need the
+MultiNest library to be installed to work properly. The full instructions can
+be found here: https://johannesbuchner.github.io/PyMultiNest/install.html. Here
+is a shortened version:
+
+First, install the dependencies (for Ubuntu/Linux):
+
+.. code-block:: console
+
+   $ sudo apt-get install python-{scipy,numpy,matplotlib,progressbar} ipython libblas{3,-dev} liblapack{3,-dev} libatlas{3-base,-dev} cmake build-essential git gfortran
+
+For Mac, the advice in the instructions are "If you google for “MultiNest Mac OSX” or “PyMultiNest Mac OSX” you will find installation instructions".
+
+The following will place a directory `MultiNest` in your :code:`$HOME` directory, if you want
+to place it somewhere, adjust the instructions as such.
+
+.. code-block:: console
+
+   $ git clone https://github.com/JohannesBuchner/MultiNest $HOME
+   $ cd $HOME/MultiNest/build
+   $ cmake ..
+   $ make
+
+Finally, add the libraries to you path. Add this to the `.bashrc` file (
+replacing the path where appropriate)
+
+.. code-block:: console
+
+   $ export LD_LIBRARY_PATH=$HOME/MultiNest/lib:
+
+(you'll need to re-source your `.bashrc` after this, i.e. run `bash`).
+
+
+----------------------------
+Adding new samplers to bilby
+----------------------------
+
+We actively encourage the addition of new samplers to :code:`bilby`. To help
+enable this, we have base classes which can be subclassed. Below we provide the
+API for reference, note that the :code:`NestedSampler` and :code:`MCMCSampler`
+inherit from the :code:`Sampler` class.
+
+A base Sampler class
+====================
+
+.. autoclass:: bilby.core.sampler.base_sampler.Sampler
+   :members:
+
+A Nested Sampler class
+===========================
+
+.. autoclass:: bilby.core.sampler.base_sampler.NestedSampler
+   :members:
+
+A MCMC Sampler class
+===========================
+
+
+.. autoclass:: bilby.core.sampler.base_sampler.MCMCSampler
+   :members:
