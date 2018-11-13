@@ -476,7 +476,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                    .format(filter_freq))
+                .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
@@ -1323,7 +1323,7 @@ class Interferometer(object):
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
-                    .format(self.strain_data.start_time, parameters['geocent_time']))
+                .format(self.strain_data.start_time, parameters['geocent_time']))
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
@@ -2251,14 +2251,14 @@ def load_data_from_cache_file(
             if frame_name[:4] == 'file':
                 frame_name = frame_name[16:]
             if not data_set & (frame_start < segment_start) & \
-                   (segment_start < frame_start + frame_duration):
+                (segment_start < frame_start + frame_duration):
                 ifo.set_strain_data_from_frame_file(
                     frame_name, 4096, segment_duration,
                     start_time=segment_start,
                     channel=channel_name, buffer_time=0)
                 data_set = True
             if not psd_set & (frame_start < psd_start) & \
-                   (psd_start + psd_duration < frame_start + frame_duration):
+                (psd_start + psd_duration < frame_start + frame_duration):
                 ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         frame_name, psd_start_time=psd_start,

@@ -52,6 +52,7 @@ class Recalibrate(object):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+
 class CubicSpline(Recalibrate):
 
     name = 'cubic_spline'
