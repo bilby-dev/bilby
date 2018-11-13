@@ -240,6 +240,22 @@ class InterferometerStrainData(object):
         self._time_domain_strain = None
         self._time_array = None
 
+    def __eq__(self, other):
+        if self.minimum_frequency == other.minimum_frequency \
+                and self.maximum_frequency == other.maximum_frequency \
+                and self.roll_off == other.roll_off \
+                and self.window_factor == other.window_factor \
+                and self.sampling_frequency == other.sampling_frequency \
+                and self.duration == other.duration \
+                and self.start_time == other.start_time \
+                and np.array_equal(self.time_array, other.time_array) \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.frequency_domain_strain, other.frequency_domain_strain) \
+                and np.array_equal(self.time_domain_strain, other.time_domain_strain):
+            return True
+        return False
+
+
     @property
     def frequency_array(self):
         """ Frequencies of the data in Hz """

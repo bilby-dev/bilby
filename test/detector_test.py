@@ -7,7 +7,6 @@ from mock import MagicMock
 from mock import patch
 import numpy as np
 import scipy.signal.windows
-import gwpy
 import os
 import logging
 
@@ -611,6 +610,95 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd.sampling_frequency = 200
         with self.assertRaises(ValueError):
             self.ifosd.frequency_domain_strain = np.array([1])
+
+
+class TestInterferometerStrainDataEquals(unittest.TestCase):
+
+    def setUp(self):
+        self.minimum_frequency = 10
+        self.maximum_frequency = 20
+        self.roll_off = 0.2
+        self.sampling_frequency = 100
+        self.duration = 2
+        self.frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+                                                                   duration=self.duration)
+        self.strain = self.frequency_array
+        self.ifosd_1 = bilby.gw.detector.InterferometerStrainData(minimum_frequency=self.minimum_frequency,
+                                                                  maximum_frequency=self.maximum_frequency,
+                                                                  roll_off=self.roll_off)
+        self.ifosd_2 = bilby.gw.detector.InterferometerStrainData(minimum_frequency=self.minimum_frequency,
+                                                                  maximum_frequency=self.maximum_frequency,
+                                                                  roll_off=self.roll_off)
+        self.ifosd_1.set_from_frequency_domain_strain(frequency_domain_strain=self.strain,
+                                                      frequency_array=self.frequency_array)
+        self.ifosd_2.set_from_frequency_domain_strain(frequency_domain_strain=self.strain,
+                                                      frequency_array=self.frequency_array)
+
+    def tearDown(self):
+        del self.minimum_frequency
+        del self.maximum_frequency
+        del self.roll_off
+        del self.sampling_frequency
+        del self.duration
+        del self.frequency_array
+        del self.strain
+        del self.ifosd_1
+        del self.ifosd_2
+
+    def test_eq_true(self):
+        self.assertEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_minimum_frequency(self):
+        self.ifosd_1.minimum_frequency -= 1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_maximum_frequency(self):
+        self.ifosd_1.maximum_frequency -= 1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_roll_off(self):
+        self.ifosd_1.roll_off -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_window_factor(self):
+        self.ifosd_1.roll_off -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_sampling_frequency(self):
+        self.ifosd_1.sampling_frequency -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_sampling_duration(self):
+        self.ifosd_1.duration -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_start_time(self):
+        self.ifosd_1.start_time -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_frequency_array(self):
+        new_frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
+                                                                  duration=self.duration*2)
+        self.ifosd_1._frequency_array = new_frequency_array
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_frequency_domain_strain(self):
+        new_strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
+                                                         duration=self.duration*2)
+        self.ifosd_1._frequency_domain_strain = new_strain
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_time_array(self):
+        new_time_array = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
+                                                        duration=self.duration*2)
+        self.ifosd_1._time_array = new_time_array
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_time_domain_strain(self):
+        new_strain = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
+                                                    duration=self.duration*2)
+        self.ifosd_1._time_domain_strain= new_strain
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
 
 class TestInterferometerList(unittest.TestCase):
