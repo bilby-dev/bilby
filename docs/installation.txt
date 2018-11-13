@@ -9,13 +9,16 @@ The lastest stable release of Bilby can be `pip-installed
 
    $ pip install bilby
 
-If you would like to install the development version, see the instructions
-below.
+This will install our default sampler `dynesty
+<https://dynesty.readthedocs.io/en/latest/>`_, other samplers will need to be
+installed via pip or the appropriate means.  If you plan to contribute to the
+development, or simply would like the latest code, see the instructions below
+for installing from source.
 
 Install bilby from source
 -------------------------
 
-:code:`bilby` is developed to work with both Python 2.7+ and Python 3+. In the
+:code:`bilby` is developed and tested with both Python 2.7+ and Python 3+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our
@@ -28,26 +31,39 @@ Clone the repository, install the requirements, and then install the software:
    $ git clone git@git.ligo.org:lscsoft/bilby.git
    $ cd bilby/
    $ pip install -r requirements.txt
-   $ pip install -r optional_requirements.txt
    $ python setup.py install
 
-Once you have run these steps, you have :code:`bilby` installed. You can now try to
-run the examples. You should install the `optional_requirements.txt` if you
-plan to use `bilby` for gravitational wave inference.
+Once you have run these steps, you have :code:`bilby` installed. You can now
+try to run the examples.
 
 .. note::
-   If you do not have a git.ligo account, and recieve and error message:
+   If you do not have a git.ligo account, and recieve an error message:
 
    .. code-block:: console
 
       git@git.ligo.org: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
       fatal: Could not read from remote repository.
 
-   Then you need to use the HTTPS URL, e.g. replace the first line above with
+   Then you need to use the HTTPS URL, e.g., replace the first line above with
 
    .. code-block:: console
 
       $ git clone https://git.ligo.org/lscsoft/bilby.git
+
+Installing optional requirements
+================================
+
+The `requirements.txt
+<https://git.ligo.org/lscsoft/bilby/blob/master/requirements.txt>`_ is a
+minimal set of requirements for using :code:`bilby`. Additionally, we provide:
+
+1.  `optional_requirements.txt
+<https://git.ligo.org/lscsoft/bilby/blob/master/optional_requirements.txt>`_
+which you should install if you plan to use :code:`bilby` for
+gravitational-wave data analysis.
+
+2. By default, we only require the default sampler dynesty_ be installed. For
+instructions on installing other samplers, see :ref:`Installing samplers`.
 
 .. _installing-python:
 
@@ -134,40 +150,6 @@ account and SSH keys set up. Then,
 
 Warning: in the configure line here, we have disabled everything except
 lalsimulation. If you need other modules, see `./configure --help`.
-
-Installing pymultinest
-----------------------
-
-If you want to use the `pymultinest` sampler, you first need the
-MultiNest library to be installed to work properly. The full instructions can
-be found here: https://johannesbuchner.github.io/PyMultiNest/install.html. Here
-is a shortened version:
-
-First, install the dependencies (for Ubuntu/Linux):
-
-.. code-block:: console
-
-   $ sudo apt-get install python-{scipy,numpy,matplotlib,progressbar} ipython libblas{3,-dev} liblapack{3,-dev} libatlas{3-base,-dev} cmake build-essential git gfortran
-
-For Mac, the advice in the instructions are "If you google for “MultiNest Mac OSX” or “PyMultiNest Mac OSX” you will find installation instructions".
-
-The following will place a directory `MultiNest` in your :code:`$HOME` directory, if you want
-to place it somewhere, adjust the instructions as such.
-
-.. code-block:: console
-
-   $ git clone https://github.com/JohannesBuchner/MultiNest $HOME
-   $ cd $HOME/MultiNest/build
-   $ cmake ..
-   $ make
-
-Finally, add the libraries to you path. Add this to the `.bashrc` file
-
-.. code-block:: console
-
-   $ export LD_LIBRARY_PATH=$HOME/Downloads/MultiNest/lib:
-
-(you'll need to resource your `.bashrc` after this, i.e. run `bash`).
 
 Common problems: multiple bilby versions
 ----------------------------------------

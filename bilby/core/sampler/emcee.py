@@ -10,11 +10,11 @@ class Emcee(MCMCSampler):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `emcee.EnsembleSampler`, see
-    documentation for that class for further help. Under Keyword Arguments, we
+    documentation for that class for further help. Under Other Parameters, we
     list commonly used kwargs and the bilby defaults.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     nwalkers: int, (100)
         The number of walkers
     nsteps: int, (100)
