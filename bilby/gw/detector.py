@@ -107,7 +107,7 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -254,7 +254,6 @@ class InterferometerStrainData(object):
                 and np.array_equal(self.time_domain_strain, other.time_domain_strain):
             return True
         return False
-
 
     @property
     def frequency_array(self):
@@ -444,7 +443,7 @@ class InterferometerStrainData(object):
             logger.info(
                 "Low pass filter frequency of {}Hz requested, this is equal"
                 " or greater than the Nyquist frequency so no filter applied"
-                .format(filter_freq))
+                    .format(filter_freq))
             return
 
         logger.debug("Applying low pass filter with filter frequency {}".format(filter_freq))
@@ -824,6 +823,22 @@ class Interferometer(object):
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
+
+    def __eq__(self, other):
+        if self.name == other.name and \
+                self.length == other.length and \
+                self.latitude == other.latitude and \
+                self.longitude == other.longitude and \
+                self.elevation == other.elevation and \
+                self.xarm_azimuth == other.xarm_azimuth and \
+                self.xarm_tilt == other.xarm_tilt and \
+                self.yarm_azimuth == other.yarm_azimuth and \
+                self.yarm_tilt == other.yarm_tilt and \
+                self.power_spectral_density.__eq__(other.power_spectral_density) and \
+                self.calibration_model == other.calibration_model and \
+                self.strain_data == other.strain_data:
+            return True
+        return False
 
     def __repr__(self):
         return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
@@ -1259,7 +1274,7 @@ class Interferometer(object):
 
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -1275,7 +1290,7 @@ class Interferometer(object):
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
-                .format(self.strain_data.start_time, parameters['geocent_time']))
+                    .format(self.strain_data.start_time, parameters['geocent_time']))
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
@@ -1654,6 +1669,15 @@ class PowerSpectralDensity(object):
         self.psd_file = psd_file
         self.asd_file = asd_file
 
+    def __eq__(self, other):
+        if self.psd_file == other.psd_file \
+                and self.asd_file == other.asd_file \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.psd_array, other.psd_array) \
+                and np.array_equal(self.asd_array, other.asd_array):
+            return True
+        return False
+
     def __repr__(self):
         if self.asd_file is not None or self.psd_file is not None:
             return self.__class__.__name__ + '(psd_file=\'{}\', asd_file=\'{}\')' \
@@ -1775,12 +1799,12 @@ class PowerSpectralDensity(object):
 
     @property
     def asd_file(self):
-        return self.__asd_file
+        return self._asd_file
 
     @asd_file.setter
     def asd_file(self, asd_file):
         asd_file = self.__validate_file_name(file=asd_file)
-        self.__asd_file = asd_file
+        self._asd_file = asd_file
         if asd_file is not None:
             self.__import_amplitude_spectral_density()
             self.__check_file_was_asd_file()
@@ -1794,12 +1818,12 @@ class PowerSpectralDensity(object):
 
     @property
     def psd_file(self):
-        return self.__psd_file
+        return self._psd_file
 
     @psd_file.setter
     def psd_file(self, psd_file):
         psd_file = self.__validate_file_name(file=psd_file)
-        self.__psd_file = psd_file
+        self._psd_file = psd_file
         if psd_file is not None:
             self.__import_power_spectral_density()
             self.__check_file_was_psd_file()
@@ -2161,16 +2185,16 @@ def load_data_from_cache_file(
             frame_duration = float(frame_duration)
             if frame_name[:4] == 'file':
                 frame_name = frame_name[16:]
-            if not data_set & (frame_start < segment_start) &\
-                    (segment_start < frame_start + frame_duration):
+            if not data_set & (frame_start < segment_start) & \
+                   (segment_start < frame_start + frame_duration):
                 ifo.set_strain_data_from_frame_file(
                     frame_name, 4096, segment_duration,
                     start_time=segment_start,
                     channel=channel_name, buffer_time=0)
                 data_set = True
-            if not psd_set & (frame_start < psd_start) &\
-                    (psd_start + psd_duration < frame_start + frame_duration):
-                ifo.power_spectral_density =\
+            if not psd_set & (frame_start < psd_start) & \
+                   (psd_start + psd_duration < frame_start + frame_duration):
+                ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         frame_name, psd_start_time=psd_start,
                         psd_duration=psd_duration,

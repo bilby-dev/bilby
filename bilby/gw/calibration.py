@@ -49,6 +49,8 @@ class Recalibrate(object):
         self.params.update({key[len(self.prefix):]: params[key] for key in params
                             if self.prefix in key})
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 class CubicSpline(Recalibrate):
 
