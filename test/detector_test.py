@@ -8,14 +8,15 @@ from mock import patch
 import numpy as np
 import scipy.signal.windows
 import os
+from shutil import rmtree
 import logging
 
 
-class TestDetector(unittest.TestCase):
+class TestInterferometer(unittest.TestCase):
 
     def setUp(self):
         self.name = 'name'
-        self.power_spectral_density = MagicMock()
+        self.power_spectral_density = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.minimum_frequency = 10
         self.maximum_frequency = 20
         self.length = 30
@@ -322,7 +323,10 @@ class TestDetector(unittest.TestCase):
             signal = 1
             expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
             actual = self.ifo.optimal_snr_squared(signal=signal)
-            self.assertListEqual(expected, actual)
+            self.assertEqual(expected[0], actual[0])
+            self.assertEqual(expected[1], actual[1])
+            self.assertTrue(np.array_equal(expected[2], actual[2]))
+            self.assertEqual(expected[3], actual[3])
 
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
@@ -333,7 +337,9 @@ class TestDetector(unittest.TestCase):
                                                            self.ifo.strain_data.duration]]
             actual = self.ifo.matched_filter_snr_squared(signal=signal)
             self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
-            self.assertListEqual(expected[1], actual[1])
+            self.assertEqual(expected[1][0], actual[1][0])
+            self.assertTrue(np.array_equal(expected[1][1], actual[1][1]))
+            self.assertEqual(expected[1][2], actual[1][2])
 
     def test_repr(self):
         expected = 'Interferometer(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
@@ -344,6 +350,12 @@ class TestDetector(unittest.TestCase):
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
         self.assertEqual(expected, repr(self.ifo))
+
+    def test_to_and_from_hdf5(self):
+        self.ifo.to_hdf5(outdir='outdir', label='test')
+        recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(outdir='outdir', label='test')
+        self.assertEqual(self.ifo, recovered_ifo)
+        rmtree('outdir')
 
 
 class TestInterferometerEquals(unittest.TestCase):

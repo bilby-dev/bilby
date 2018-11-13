@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
+import deepdish as dd
 
 from . import utils as gwutils
 from ..core import utils
@@ -1600,6 +1601,16 @@ class Interferometer(object):
         else:
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
+
+    def to_hdf5(self, outdir='outdir', label=None):
+        if label is None:
+            label = self.name
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        dd.io.save('./' + outdir + '/' + label + '.h5', self)
+
+    @staticmethod
+    def from_hdf5(outdir, label):
+        return dd.io.load('./' + outdir + '/' + label + '.h5')
 
 
 class TriangularInterferometer(InterferometerList):
