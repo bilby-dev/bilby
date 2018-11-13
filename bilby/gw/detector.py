@@ -208,12 +208,31 @@ class InterferometerList(list):
         self._check_interferometers()
 
     def to_hdf5(self, outdir='outdir', label='ifo_list'):
+        """ Saves the object to a hdf5 file
+
+        Attributes
+        ----------
+        outdir: str, optional
+            Output directory name of the file. Will be created if it does not exist yet.
+        label: str, optional
+            Output file name, is 'ifo_list' if not given otherwise
+        """
         utils.check_directory_exists_and_if_not_mkdir('outdir')
         dd.io.save('./' + outdir + '/' + label + '.h5', self)
 
     @classmethod
-    def from_hdf5(cls, outdir, label):
-        res = dd.io.load('./' + outdir + '/' + label + '.h5')
+    def from_hdf5(cls, path, label):
+        """ Loads in an InterferometerList object from an hdf5 file
+
+        Attributes
+        ----------
+        path: str
+            Path to the hdf5 file.
+        label: str
+            Name of the hdf5 file without the .'h5'
+
+        """
+        res = dd.io.load('./' + path + '/' + label + '.h5')
         if res.__class__ == list:
             res = cls(res)
         if res.__class__ != cls:
@@ -1616,14 +1635,33 @@ class Interferometer(object):
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
 
     def to_hdf5(self, outdir='outdir', label=None):
+        """ Saves the object to a hdf5 file
+
+        Attributes
+        ----------
+        outdir: str, optional
+            Output directory name of the file. Will be created if it does not exist yet.
+        label: str, optional
+            Output file name, is self.name if not given otherwise
+        """
         if label is None:
             label = self.name
         utils.check_directory_exists_and_if_not_mkdir('outdir')
         dd.io.save('./' + outdir + '/' + label + '.h5', self)
 
     @classmethod
-    def from_hdf5(cls, outdir, label):
-        res = dd.io.load('./' + outdir + '/' + label + '.h5')
+    def from_hdf5(cls, path, label):
+        """ Loads in an Interferometer object from an hdf5 file
+
+        Attributes
+        ----------
+        path: str
+            Path to the hdf5 file.
+        label: str
+            Name of the hdf5 file without the .'h5'
+
+        """
+        res = dd.io.load('./' + path + '/' + label + '.h5')
         if res.__class__ != cls:
             raise TypeError('The loaded object is not a InterferometerList')
         return res
