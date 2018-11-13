@@ -207,6 +207,19 @@ class InterferometerList(list):
         super(InterferometerList, self).insert(index, interferometer)
         self._check_interferometers()
 
+    def to_hdf5(self, outdir='outdir', label='ifo_list'):
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        dd.io.save('./' + outdir + '/' + label + '.h5', self)
+
+    @classmethod
+    def from_hdf5(cls, outdir, label):
+        res = dd.io.load('./' + outdir + '/' + label + '.h5')
+        if res.__class__ == list:
+            res = cls(res)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not a InterferometerList')
+        return res
+
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
@@ -1608,9 +1621,12 @@ class Interferometer(object):
         utils.check_directory_exists_and_if_not_mkdir('outdir')
         dd.io.save('./' + outdir + '/' + label + '.h5', self)
 
-    @staticmethod
-    def from_hdf5(outdir, label):
-        return dd.io.load('./' + outdir + '/' + label + '.h5')
+    @classmethod
+    def from_hdf5(cls, outdir, label):
+        res = dd.io.load('./' + outdir + '/' + label + '.h5')
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not a InterferometerList')
+        return res
 
 
 class TriangularInterferometer(InterferometerList):
