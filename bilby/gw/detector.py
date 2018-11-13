@@ -38,12 +38,12 @@ class InterferometerList(list):
 
         list.__init__(self)
         if type(interferometers) == str:
-            raise ValueError("Input must not be a string")
+            raise TypeError("Input must not be a string")
         for ifo in interferometers:
             if type(ifo) == str:
                 ifo = get_empty_interferometer(ifo)
             if type(ifo) not in [Interferometer, TriangularInterferometer]:
-                raise ValueError("Input list of interferometers are not all Interferometer objects")
+                raise TypeError("Input list of interferometers are not all Interferometer objects")
             else:
                 self.append(ifo)
         self._check_interferometers()
