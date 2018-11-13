@@ -44,7 +44,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     phase_marginalization: bool, optional
         If true, marginalize over phase in the likelihood.
         This is done analytically using a Bessel function.
-    prior: dict, optional
+    priors: dict, optional
         If given, used in the distance and phase marginalization.
 
     Returns
@@ -56,7 +56,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     """
 
     def __init__(self, interferometers, waveform_generator, time_marginalization=False, distance_marginalization=False,
-                 phase_marginalization=False, prior=None):
+                 phase_marginalization=False, priors=None):
 
         self.waveform_generator = waveform_generator
         likelihood.Likelihood.__init__(self, dict())
@@ -64,32 +64,32 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
-        self.prior = prior
+        self.priors = priors
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
 
         if self.time_marginalization:
             self._check_prior_is_set(key='geocent_time')
             self._setup_time_marginalization()
-            prior['geocent_time'] = float(self.interferometers.start_time)
+            priors['geocent_time'] = float(self.interferometers.start_time)
 
         if self.phase_marginalization:
             self._check_prior_is_set(key='phase')
             self._bessel_function_interped = None
             self._setup_phase_marginalization()
-            prior['phase'] = float(0)
+            priors['phase'] = float(0)
 
         if self.distance_marginalization:
             self._check_prior_is_set(key='luminosity_distance')
-            self._distance_array = np.linspace(self.prior['luminosity_distance'].minimum,
-                                               self.prior['luminosity_distance'].maximum, int(1e4))
+            self._distance_array = np.linspace(self.priors['luminosity_distance'].minimum,
+                                               self.priors['luminosity_distance'].maximum, int(1e4))
             self._setup_distance_marginalization()
-            prior['luminosity_distance'] = float(self._ref_dist)
+            priors['luminosity_distance'] = float(self._ref_dist)
 
     def __repr__(self):
         return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\ttime_marginalization={}, ' \
-                                         'distance_marginalization={}, phase_marginalization={}, prior={})'\
+                                         'distance_marginalization={}, phase_marginalization={}, priors={})'\
             .format(self.interferometers, self.waveform_generator, self.time_marginalization,
-                    self.distance_marginalization, self.phase_marginalization, self.prior)
+                    self.distance_marginalization, self.phase_marginalization, self.priors)
 
     def _check_set_duration_and_sampling_frequency_of_waveform_generator(self):
         """ Check the waveform_generator has the same duration and
@@ -113,28 +113,28 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             setattr(self.waveform_generator, attr, ifo_attr)
 
     def _check_prior_is_set(self, key):
-        if key not in self.prior or not isinstance(
-                self.prior[key], Prior):
+        if key not in self.priors or not isinstance(
+                self.priors[key], Prior):
             logger.warning(
                 'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
-                self.prior[key] = Uniform(
+                self.priors[key] = Uniform(
                     self.interferometers.start_time,
                     self.interferometers.start_time + self.interferometers.duration)
             else:
-                self.prior[key] = BBHPriorDict()[key]
+                self.priors[key] = BBHPriorDict()[key]
 
     @property
-    def prior(self):
+    def priors(self):
         return self.__prior
 
-    @prior.setter
-    def prior(self, prior):
-        if prior is not None:
-            self.__prior = prior.copy()
+    @priors.setter
+    def priors(self, priors):
+        if priors is not None:
+            self.__prior = priors.copy()
         elif any([self.time_marginalization, self.phase_marginalization,
                   self.distance_marginalization]):
-            raise ValueError("You can't use a marginalized likelihood without specifying a prior")
+            raise ValueError("You can't use a marginalized likelihood without specifying a priors")
         else:
             self.__prior = None
 
@@ -229,7 +229,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     @property
     def _ref_dist(self):
-        """ Smallest distance contained in prior """
+        """ Smallest distance contained in priors """
         return self._distance_array[0]
 
     @property
@@ -253,7 +253,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def _create_lookup_table(self):
         """ Make the lookup table """
-        self.distance_prior_array = np.array([self.prior['luminosity_distance'].prob(distance)
+        self.distance_prior_array = np.array([self.priors['luminosity_distance'].prob(distance)
                                               for distance in self._distance_array])
         logger.info('Building lookup table for distance marginalisation.')
 
@@ -286,7 +286,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 int(self.interferometers.duration / 2 *
                     self.waveform_generator.sampling_frequency) + 1)[1:]
         self.time_prior_array =\
-            self.prior['geocent_time'].prob(times) * delta_tc
+            self.priors['geocent_time'].prob(times) * delta_tc
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
