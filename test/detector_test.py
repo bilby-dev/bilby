@@ -361,7 +361,8 @@ class TestInterferometer(unittest.TestCase):
                 self.ifo.to_hdf5(outdir='outdir', label='test')
         else:
             self.ifo.to_hdf5(outdir='outdir', label='test')
-            recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='test')
+            filename = self.ifo._hdf5_filename_from_outdir_label(outdir='outdir', label='test')
+            recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(filename)
             self.assertEqual(self.ifo, recovered_ifo)
 
     def test_to_and_from_hdf5_wrong_class(self):
@@ -370,8 +371,9 @@ class TestInterferometer(unittest.TestCase):
         else:
             bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
             dd.io.save('./outdir/psd.h5', self.power_spectral_density)
+            filename = self.ifo._hdf5_filename_from_outdir_label(outdir='outdir', label='psd')
             with self.assertRaises(TypeError):
-                bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='psd')
+                bilby.gw.detector.Interferometer.from_hdf5(filename)
 
 
 class TestInterferometerEquals(unittest.TestCase):
@@ -1072,7 +1074,8 @@ class TestInterferometerList(unittest.TestCase):
                 self.ifo_list.to_hdf5(outdir='outdir', label='test')
         else:
             self.ifo_list.to_hdf5(outdir='outdir', label='test')
-            recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='test')
+            filename = 'outdir/test_name1name2.h5'
+            recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
             self.assertListEqual(self.ifo_list, recovered_ifo)
 
     def test_to_and_from_hdf5_wrong_class(self):
@@ -1080,8 +1083,10 @@ class TestInterferometerList(unittest.TestCase):
             pass
         else:
             dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
+            filename = self.ifo_list._hdf5_filename_from_outdir_label(
+                outdir='outdir', label='psd')
             with self.assertRaises(TypeError):
-                bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='psd')
+                bilby.gw.detector.InterferometerList.from_hdf5(filename)
 
 
 class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):

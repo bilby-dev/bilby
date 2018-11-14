@@ -209,38 +209,42 @@ class InterferometerList(list):
         super(InterferometerList, self).insert(index, interferometer)
         self._check_interferometers()
 
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
     def to_hdf5(self, outdir='outdir', label='ifo_list'):
         """ Saves the object to a hdf5 file
 
-        Attributes
+        Parameters
         ----------
         outdir: str, optional
-            Output directory name of the file. Will be created if it does not exist yet.
+            Output directory name of the file
         label: str, optional
-            Output file name, is 'ifo_list' if not given otherwise
+            Output file name, is 'ifo_list' if not given otherwise. A list of
+            the included interferometers will be appended.
         """
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
                                       'Use Python 3 instead.')
-        utils.check_directory_exists_and_if_not_mkdir('outdir')
-        dd.io.save('./' + outdir + '/' + label + '.h5', self)
+        label = label + '_' + ''.join(ifo.name for ifo in self)
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        dd.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
 
     @classmethod
-    def from_hdf5(cls, path, label):
+    def from_hdf5(cls, filename=None):
         """ Loads in an InterferometerList object from an hdf5 file
 
-        Attributes
+        Parameters
         ----------
-        path: str
-            Path to the hdf5 file.
-        label: str
-            Name of the hdf5 file without the .'h5'
+        filename: str
+            If given, try to load from this filename
 
         """
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
                                       'Use Python 3 instead.')
-        res = dd.io.load('./' + path + '/' + label + '.h5')
+        res = dd.io.load(filename)
         if res.__class__ == list:
             res = cls(res)
         if res.__class__ != cls:
@@ -1640,15 +1644,19 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
 
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
     def to_hdf5(self, outdir='outdir', label=None):
-        """ Saves the object to a hdf5 file
+        """ Save the object to a hdf5 file
 
         Attributes
         ----------
         outdir: str, optional
-            Output directory name of the file. Will be created if it does not exist yet.
+            Output directory name of the file, defaults to 'outdir'.
         label: str, optional
-            Output file name, is self.name if not given otherwise
+            Output file name, is self.name if not given otherwise.
         """
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
@@ -1656,26 +1664,26 @@ class Interferometer(object):
         if label is None:
             label = self.name
         utils.check_directory_exists_and_if_not_mkdir('outdir')
-        dd.io.save('./' + outdir + '/' + label + '.h5', self)
+        filename = self._hdf5_filename_from_outdir_label(outdir, label)
+        dd.io.save(filename, self)
 
     @classmethod
-    def from_hdf5(cls, path, label):
+    def from_hdf5(cls, filename=None):
         """ Loads in an Interferometer object from an hdf5 file
 
-        Attributes
+        Parameters
         ----------
-        path: str
-            Path to the hdf5 file.
-        label: str
-            Name of the hdf5 file without the .'h5'
+        filename: str
+            If given, try to load from this filename
 
         """
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
                                       'Use Python 3 instead.')
-        res = dd.io.load('./' + path + '/' + label + '.h5')
+
+        res = dd.io.load(filename)
         if res.__class__ != cls:
-            raise TypeError('The loaded object is not a Interferometer')
+            raise TypeError('The loaded object is not an Interferometer')
         return res
 
 
