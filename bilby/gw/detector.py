@@ -2251,14 +2251,14 @@ def load_data_from_cache_file(
             if frame_name[:4] == 'file':
                 frame_name = frame_name[16:]
             if not data_set & (frame_start < segment_start) & \
-                (segment_start < frame_start + frame_duration):
+                    (segment_start < frame_start + frame_duration):
                 ifo.set_strain_data_from_frame_file(
                     frame_name, 4096, segment_duration,
                     start_time=segment_start,
                     channel=channel_name, buffer_time=0)
                 data_set = True
             if not psd_set & (frame_start < psd_start) & \
-                (psd_start + psd_duration < frame_start + frame_duration):
+                    (psd_start + psd_duration < frame_start + frame_duration):
                 ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         frame_name, psd_start_time=psd_start,
