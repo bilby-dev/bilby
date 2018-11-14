@@ -40,8 +40,6 @@ class CoupledTimeAndFrequencySeries(object):
                 self._frequency_array = utils.create_frequency_series(
                     sampling_frequency=self.sampling_frequency,
                     duration=self.duration)
-                self._sampling_frequency, self._duration = \
-                    utils.get_sampling_frequency_and_duration_from_frequency_array(self._frequency_array)
             else:
                 raise ValueError('Can not calculate a frequency series without a '
                                  'legitimate sampling_frequency ({}) or duration ({})'
@@ -71,8 +69,6 @@ class CoupledTimeAndFrequencySeries(object):
                     sampling_frequency=self.sampling_frequency,
                     duration=self.duration,
                     starting_time=self.start_time)
-                self._sampling_frequency, self._duration = \
-                    utils.get_sampling_frequency_and_duration_from_time_array(self._time_array)
             else:
                 raise ValueError('Can not calculate a time series without a '
                                  'legitimate sampling_frequency ({}) or duration ({})'
