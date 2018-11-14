@@ -8,6 +8,7 @@ from mock import patch
 import numpy as np
 import scipy.signal.windows
 import os
+import sys
 from shutil import rmtree
 import logging
 import deepdish as dd
@@ -355,15 +356,23 @@ class TestInterferometer(unittest.TestCase):
         self.assertEqual(expected, repr(self.ifo))
 
     def test_to_and_from_hdf5_loading(self):
-        self.ifo.to_hdf5(outdir='outdir', label='test')
-        recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='test')
-        self.assertEqual(self.ifo, recovered_ifo)
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                self.ifo.to_hdf5(outdir='outdir', label='test')
+        else:
+            self.ifo.to_hdf5(outdir='outdir', label='test')
+            recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='test')
+            self.assertEqual(self.ifo, recovered_ifo)
 
     def test_to_and_from_hdf5_wrong_class(self):
-        bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
-        dd.io.save('./outdir/psd.h5', self.power_spectral_density)
-        with self.assertRaises(TypeError):
-            bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='psd')
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                dd.io.save('./outdir/psd.h5', self.power_spectral_density)
+        else:
+            bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
+            dd.io.save('./outdir/psd.h5', self.power_spectral_density)
+            with self.assertRaises(TypeError):
+                bilby.gw.detector.Interferometer.from_hdf5(path='outdir', label='psd')
 
 
 class TestInterferometerEquals(unittest.TestCase):
@@ -1059,14 +1068,22 @@ class TestInterferometerList(unittest.TestCase):
         self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
 
     def test_to_and_from_hdf5_loading(self):
-        self.ifo_list.to_hdf5(outdir='outdir', label='test')
-        recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='test')
-        self.assertListEqual(self.ifo_list, recovered_ifo)
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                self.ifo_list.to_hdf5(outdir='outdir', label='test')
+        else:
+            self.ifo_list.to_hdf5(outdir='outdir', label='test')
+            recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='test')
+            self.assertListEqual(self.ifo_list, recovered_ifo)
 
     def test_to_and_from_hdf5_wrong_class(self):
-        dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
-        with self.assertRaises(TypeError):
-            bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='psd')
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
+        else:
+            dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
+            with self.assertRaises(TypeError):
+                bilby.gw.detector.InterferometerList.from_hdf5(path='outdir', label='psd')
 
 
 class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
