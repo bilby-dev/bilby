@@ -366,8 +366,7 @@ class TestInterferometer(unittest.TestCase):
 
     def test_to_and_from_hdf5_wrong_class(self):
         if sys.version_info[0] < 3:
-            with self.assertRaises(NotImplementedError):
-                dd.io.save('./outdir/psd.h5', self.power_spectral_density)
+            pass
         else:
             bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
             dd.io.save('./outdir/psd.h5', self.power_spectral_density)
@@ -1078,8 +1077,7 @@ class TestInterferometerList(unittest.TestCase):
 
     def test_to_and_from_hdf5_wrong_class(self):
         if sys.version_info[0] < 3:
-            with self.assertRaises(NotImplementedError):
-                dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
+            pass
         else:
             dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
             with self.assertRaises(TypeError):
