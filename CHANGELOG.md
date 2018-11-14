@@ -11,6 +11,8 @@ Changes currently on master, but not under a tag.
 - Renamed `BBHPriorSet` to `BBHPriorDict`
 - Renamed `BNSPriorSet` to `BNSPriorDict`
 - Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
+- Added method to result to get injection recovery credible levels
+- Added function to generate a pp-plot from many results to core/result.py
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
 
 ### Changes

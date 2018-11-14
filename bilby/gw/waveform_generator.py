@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..core import utils
+from ..gw.series import CoupledTimeAndFrequencySeries
 
 
 class WaveformGenerator(object):
@@ -42,6 +43,9 @@ class WaveformGenerator(object):
         the WaveformGenerator object and initialised to `None`.
 
         """
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
         self.duration = duration
         self.sampling_frequency = sampling_frequency
         self.start_time = start_time
@@ -58,8 +62,6 @@ class WaveformGenerator(object):
             self.waveform_arguments = dict()
         if isinstance(parameters, dict):
             self.parameters = parameters
-        self.__frequency_array_updated = False
-        self.__time_array_updated = False
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -173,48 +175,6 @@ class WaveformGenerator(object):
         return model_strain
 
     @property
-    def frequency_array(self):
-        """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
-
-        Returns
-        -------
-        array_like: The frequency array
-        """
-        if self.__frequency_array_updated is False:
-            self.frequency_array = utils.create_frequency_series(
-                self.sampling_frequency,
-                self.duration)
-        return self.__frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self.__frequency_array = frequency_array
-        self.__frequency_array_updated = True
-
-    @property
-    def time_array(self):
-        """ Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
-
-        Returns
-        -------
-        array_like: The time array
-        """
-
-        if self.__time_array_updated is False:
-            self.__time_array = utils.create_time_series(
-                self.sampling_frequency,
-                self.duration,
-                self.start_time)
-
-            self.__time_array_updated = True
-        return self.__time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self.__time_array = time_array
-        self.__time_array_updated = True
-
-    @property
     def parameters(self):
         """ The dictionary of parameters for source model.
 
@@ -267,6 +227,34 @@ class WaveformGenerator(object):
         return set(utils.infer_parameters_from_function(model))
 
     @property
+    def frequency_array(self):
+        """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
+
+        Returns
+        -------
+        array_like: The frequency array
+        """
+        return self._times_and_frequencies.frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self._times_and_frequencies.frequency_array = frequency_array
+
+    @property
+    def time_array(self):
+        """ Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
+
+        Returns
+        -------
+        array_like: The time array
+        """
+        return self._times_and_frequencies.time_array
+
+    @time_array.setter
+    def time_array(self, time_array):
+        self._times_and_frequencies.time_array = time_array
+
+    @property
     def duration(self):
         """ Allows one to set the time duration and automatically updates the frequency and time array.
 
@@ -275,13 +263,11 @@ class WaveformGenerator(object):
         float: The time duration.
 
         """
-        return self.__duration
+        return self._times_and_frequencies.duration
 
     @duration.setter
     def duration(self, duration):
-        self.__duration = duration
-        self.__frequency_array_updated = False
-        self.__time_array_updated = False
+        self._times_and_frequencies.duration = duration
 
     @property
     def sampling_frequency(self):
@@ -292,19 +278,16 @@ class WaveformGenerator(object):
         float: The sampling frequency.
 
         """
-        return self.__sampling_frequency
+        return self._times_and_frequencies.sampling_frequency
 
     @sampling_frequency.setter
     def sampling_frequency(self, sampling_frequency):
-        self.__sampling_frequency = sampling_frequency
-        self.__frequency_array_updated = False
-        self.__time_array_updated = False
+        self._times_and_frequencies.sampling_frequency = sampling_frequency
 
     @property
     def start_time(self):
-        return self.__start_time
+        return self._times_and_frequencies.start_time
 
     @start_time.setter
-    def start_time(self, starting_time):
-        self.__start_time = starting_time
-        self.__time_array_updated = False
+    def start_time(self, start_time):
+        self._times_and_frequencies.start_time = start_time

@@ -32,11 +32,11 @@ class Pymc3(MCMCSampler):
 
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
     propapated to `pymc3.sample` where appropriate, see documentation for that
-    class for further help. Under Keyword Arguments, we list commonly used
+    class for further help. Under Other Parameters, we list commonly used
     kwargs and the bilby, or where appropriate, PyMC3 defaults.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     draws: int, (1000)
         The number of sample draws from the posterior per chain.
     chains: int, (2)

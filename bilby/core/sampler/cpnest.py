@@ -18,11 +18,11 @@ class Cpnest(NestedSampler):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `cpnest.CPNest`, see documentation
-    for that class for further help. Under Keyword Arguments, we list commonly
+    for that class for further help. Under Other Parameters, we list commonly
     used kwargs and the bilby defaults.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     nlive: int
         The number of live points, note this can also equivalently be given as
         one of [npoints, nlives, n_live_points]

@@ -5,18 +5,14 @@ from pandas import DataFrame
 
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction, Interped
+from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
+
 
 try:
     from astropy.cosmology import z_at_value, Planck15
     import astropy.units as u
 except ImportError:
     logger.warning("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
-
-try:
-    import lalsimulation as lalsim
-except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
@@ -88,10 +84,12 @@ def transform_precessing_spins(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1,
     spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z: float
         Cartesian spin components
     """
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-        lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-            mass_2, reference_frequency, phase)
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+        lalsim_SimInspiralTransformPrecessingNewInitialConditions(
+            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+            reference_frequency, phase))
+
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
