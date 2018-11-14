@@ -1,6 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1646,7 +1647,21 @@ class Interferometer(object):
         if label is None:
             label = self.name
         utils.check_directory_exists_and_if_not_mkdir('outdir')
-        dd.io.save('./' + outdir + '/' + label + '.h5', self)
+
+        if sys.version_info[0] < 3:
+            serialisable = self.create_python2_serializable()
+        else:
+            serialisable = self
+
+        dd.io.save('./' + outdir + '/' + label + '.h5', serialisable)
+
+    def create_python2_serializable(self):
+        serialisable = self.__dict__
+        serialisable['power_spectral_density'] = self.power_spectral_density.__dict__
+        serialisable['calibration_model'] = self.strain_data.__dict__
+        serialisable['strain_data'] = self.strain_data.__dict__
+        serialisable['strain_data']['_times_and_frequencies'] = self.strain_data._times_and_frequencies
+        return serialisable
 
     @classmethod
     def from_hdf5(cls, path, label):
@@ -1661,6 +1676,24 @@ class Interferometer(object):
 
         """
         res = dd.io.load('./' + path + '/' + label + '.h5')
+        if sys.version_info[0] < 3:
+            psd = PowerSpectralDensity(frequency_array=res['power_spectral_density']['frequency_array'],
+                                       psd_array=res['power_spectral_density']['psd_array'],
+                                       asd_array=res['power_spectral_density']['asd_array'],
+                                       psd_file=res['power_spectral_density']['psd_file'],
+                                       asd_file=res['power_spectral_density']['asd_file'])
+            strain = InterferometerStrainData(minimum_frequency=res['_strain_data']['minimum_frequency'],
+                                              maximum_frequency=res['_strain_data']['maximum_frequency'],
+                                              roll_off=res['_strain_data']['roll_off'])
+            strain.window_factor = res['_strain_data']['window_factor']
+            strain._times_and_frequencies._frequency_array = res['_strain_data']['_frequency_array']
+            strain._times_and_frequencies._time_array = res['_strain_data']['time_array']
+            strain._times_and_frequencies._sampling_frequency = res['_strain_data']['_time_domain_strain']
+
+            strain._frequency_domain_strain = res['_strain_data']['_frequency_domain_strain']
+            strain._time_domain_strain = res['_strain_data']['_time_domain_strain']
+
+
         if res.__class__ != cls:
             raise TypeError('The loaded object is not a InterferometerList')
         return res
