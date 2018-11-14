@@ -6,6 +6,7 @@ import numpy as np
 import deepdish
 import pandas as pd
 import corner
+import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from collections import OrderedDict, namedtuple
@@ -910,6 +911,44 @@ class Result(object):
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
+
+    @property
+    def kde(self):
+        """ Kernel density estimate built from the stored posterior
+
+        Uses `scipy.stats.gaussian_kde` to generate the kernel density
+        """
+        try:
+            return self._kde
+        except AttributeError:
+            self._kde = scipy.stats.gaussian_kde(
+                self.posterior[self.search_parameter_keys].values.T)
+            return self._kde
+
+    def posterior_probability(self, sample):
+        """ Calculate the posterior probabily for a new sample
+
+        This queries a Kernel Density Estimate of the posterior to calculate
+        the posterior probability density for the new sample.
+
+        Parameters
+        ----------
+        sample: dict, or list of dictionaries
+            A dictionary containing all the keys from
+            self.search_parameter_keys and corresponding values at which to
+            calculate the posterior probability
+
+        Returns
+        -------
+        p: array-like,
+            The posterior probability of the sample
+
+        """
+        if isinstance(sample, dict):
+            sample = [sample]
+        ordered_sample = [[s[key] for key in self.search_parameter_keys]
+                          for s in sample]
+        return self.kde(ordered_sample)
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
