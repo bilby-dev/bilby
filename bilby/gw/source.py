@@ -4,12 +4,16 @@ import numpy as np
 
 from ..core import utils
 from ..core.utils import logger
+from .utils import (lalsim_SimInspiralTransformPrecessingNewInitialConditions,
+                    lalsim_GetApproximantFromString,
+                    lalsim_SimInspiralChooseFDWaveform,
+                    lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
+                    lalsim_SimInspiralWaveformParamsInsertTidalLambda2)
 
 try:
-    import lalsimulation as lalsim
     import lal
 except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will "
+    logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
@@ -74,9 +78,10 @@ def lal_binary_black_hole(
         spin_2y = 0
         spin_2z = a_2
     else:
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2, reference_frequency, phase)
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+            lalsim_SimInspiralTransformPrecessingNewInitialConditions(
+                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
+                mass_2, reference_frequency, phase))
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
@@ -84,12 +89,12 @@ def lal_binary_black_hole(
 
     waveform_dictionary = None
 
-    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+    approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
     maximum_frequency = frequency_array[-1]
     delta_frequency = frequency_array[1] - frequency_array[0]
 
-    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
@@ -159,12 +164,12 @@ def lal_eccentric_binary_black_hole_no_spins(
 
     waveform_dictionary = None
 
-    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+    approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
     maximum_frequency = frequency_array[-1]
     delta_frequency = frequency_array[1] - frequency_array[0]
 
-    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
@@ -306,15 +311,15 @@ def lal_binary_neutron_star(
     mean_per_ano = 0.0
 
     waveform_dictionary = lal.CreateDict()
-    lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
-    lalsim.SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
 
-    approximant = lalsim.GetApproximantFromString(waveform_approximant)
+    approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
     maximum_frequency = frequency_array[-1]
     delta_frequency = frequency_array[1] - frequency_array[0]
 
-    hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,

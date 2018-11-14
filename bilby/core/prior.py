@@ -62,7 +62,7 @@ class PriorDict(OrderedDict):
         """ Reads in a prior from a file specification
 
         Parameters
-        -------
+        ----------
         filename: str
             Name of the file to be read in
         """
