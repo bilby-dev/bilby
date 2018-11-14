@@ -6,15 +6,18 @@ import os
 from ..utils import check_directory_exists_and_if_not_mkdir
 from .base_sampler import NestedSampler
 from ..utils import logger
-
 try:
-    # Suppresses import error printouts from pymultinest
-    sys.stdout = open(os.devnull, 'w')
-    import pymultinest
-    sys.stdout = sys.__stdout__
+    try:
+        # Suppresses import error printouts from pymultinest
+        sys.stdout = open(os.devnull, 'w')
+        import pymultinest
+        sys.stdout = sys.__stdout__
+    except ImportError:
+        logger.debug('PyMultinest is not installed on this system, you will '
+                     'not be able to use the PyMultinest sampler')
 except SystemExit:
-    logger.debug('PyMultinest is not installed on this system, you will '
-                 'not be able to use the PyMultinest sampler')
+    logger.debug('Multinest is not installed on this system, you will '
+                 'not be able to use the Multinest sampler')
 
 
 class Pymultinest(NestedSampler):
