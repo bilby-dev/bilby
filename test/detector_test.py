@@ -818,7 +818,7 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
     def test_eq_different_frequency_array(self):
         new_frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
                                                                   duration=self.duration*2)
-        self.ifosd_1._frequency_array = new_frequency_array
+        self.ifosd_1.frequency_array = new_frequency_array
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_frequency_domain_strain(self):
@@ -830,7 +830,7 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
     def test_eq_different_time_array(self):
         new_time_array = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
                                                         duration=self.duration*2)
-        self.ifosd_1._time_array = new_time_array
+        self.ifosd_1.time_array = new_time_array
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_time_domain_strain(self):
