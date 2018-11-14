@@ -76,3 +76,27 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.assertAlmostEqual(new_sampling_frequency, self.series.sampling_frequency, places=1)
         self.assertAlmostEqual(new_duration, self.series.duration, places=1)
         self.assertAlmostEqual(new_start_time, self.series.start_time, places=1)
+
+    def test_time_array_without_sampling_frequency(self):
+        self.series.sampling_frequency = None
+        self.series.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.series.time_array
+
+    def test_time_array_without_duration(self):
+        self.series.sampling_frequency = 4096
+        self.series.duration = None
+        with self.assertRaises(ValueError):
+            test = self.series.time_array
+
+    def test_frequency_array_without_sampling_frequency(self):
+        self.series.sampling_frequency = None
+        self.series.duration = 4
+        with self.assertRaises(ValueError):
+            test = self.series.frequency_array
+
+    def test_frequency_array_without_duration(self):
+        self.series.sampling_frequency = 4096
+        self.series.duration = None
+        with self.assertRaises(ValueError):
+            test = self.series.frequency_array
