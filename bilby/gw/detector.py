@@ -11,6 +11,7 @@ from . import utils as gwutils
 from ..core import utils
 from ..core.utils import logger
 from .calibration import Recalibrate
+from .series import CoupledTimeAndFrequencySeries
 
 try:
     import gwpy
@@ -233,56 +234,13 @@ class InterferometerStrainData(object):
         self.roll_off = roll_off
         self.window_factor = 1
 
-        self._set_time_and_frequency_array_parameters(None, None, None)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries()
+        # self._set_time_and_frequency_array_parameters(None, None, None)
 
         self._frequency_domain_strain = None
         self._frequency_array = None
         self._time_domain_strain = None
         self._time_array = None
-
-    @property
-    def frequency_array(self):
-        """ Frequencies of the data in Hz """
-        if self._frequency_array is not None:
-            return self._frequency_array
-        else:
-            self._calculate_frequency_array()
-            return self._frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self._frequency_array = frequency_array
-
-    @property
-    def time_array(self):
-        """ Time of the data in seconds """
-        if self._time_array is not None:
-            return self._time_array
-        else:
-            self._calculate_time_array()
-            return self._time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self._time_array = time_array
-
-    def _calculate_time_array(self):
-        """ Calculate the time array """
-        if (self.sampling_frequency is None) or (self.duration is None):
-            raise ValueError(
-                "You have not specified the sampling_frequency and duration")
-
-        self.time_array = utils.create_time_series(
-            sampling_frequency=self.sampling_frequency, duration=self.duration,
-            starting_time=self.start_time)
-
-    def _calculate_frequency_array(self):
-        """ Calculate the frequency array """
-        if (self.sampling_frequency is None) or (self.duration is None):
-            raise ValueError(
-                "You have not specified the sampling_frequency and duration")
-        self.frequency_array = utils.create_frequency_series(
-            sampling_frequency=self.sampling_frequency, duration=self.duration)
 
     def time_within_data(self, time):
         """ Check if time is within the data span
@@ -503,10 +461,9 @@ class InterferometerStrainData(object):
         elif array is not None:
             if domain == 'time':
                 self.time_array = array
-                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_time_array(array)
             elif domain == 'frequency':
                 self.frequency_array = array
-                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_frequency_array(array)
+            return
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
@@ -744,9 +701,51 @@ class InterferometerStrainData(object):
         self.set_from_gwpy_timeseries(strain)
 
     def _set_time_and_frequency_array_parameters(self, duration, sampling_frequency, start_time):
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
-        self.start_time = start_time
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
+
+    @property
+    def sampling_frequency(self):
+        return self._times_and_frequencies.sampling_frequency
+
+    @sampling_frequency.setter
+    def sampling_frequency(self, sampling_frequency):
+        self._times_and_frequencies.sampling_frequency = sampling_frequency
+
+    @property
+    def duration(self):
+        return self._times_and_frequencies.duration
+
+    @duration.setter
+    def duration(self, duration):
+        self._times_and_frequencies.duration = duration
+
+    @property
+    def start_time(self):
+        return self._times_and_frequencies.start_time
+
+    @start_time.setter
+    def start_time(self, start_time):
+        self._times_and_frequencies.start_time = start_time
+
+    @property
+    def frequency_array(self):
+        """ Frequencies of the data in Hz """
+        return self._times_and_frequencies.frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self._times_and_frequencies.frequency_array = frequency_array
+
+    @property
+    def time_array(self):
+        """ Time of the data in seconds """
+        return self._times_and_frequencies.time_array
+
+    @time_array.setter
+    def time_array(self, time_array):
+        self._times_and_frequencies.time_array = time_array
 
 
 class Interferometer(object):

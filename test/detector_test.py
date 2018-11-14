@@ -459,20 +459,20 @@ class TestInterferometerStrainData(unittest.TestCase):
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
 
     def test_time_array_when_set(self):
-        test_array = np.array([1])
+        test_array = np.array([1, 2, 3])
         self.ifosd.time_array = test_array
-        self.assertTrue(test_array, self.ifosd.time_array)
+        self.assertTrue(np.array_equal(test_array, self.ifosd.time_array))
 
-    @patch.object(bilby.core.utils, 'create_time_series')
-    def test_time_array_when_not_set(self, m):
-        self.ifosd.start_time = 3
-        self.ifosd.sampling_frequency = 1000
-        self.ifosd.duration = 5
-        m.return_value = 4
-        self.assertEqual(m.return_value, self.ifosd.time_array)
-        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
-                             duration=self.ifosd.duration,
-                             starting_time=self.ifosd.start_time)
+    def test_time_array_when_not_set(self):
+        with mock.patch('bilby.core.utils.create_time_series') as m:
+            self.ifosd.start_time = 3
+            self.ifosd.sampling_frequency = 1000
+            self.ifosd.duration = 5
+            m.return_value = 4
+            self.assertEqual(m.return_value, self.ifosd.time_array)
+            m.assert_called_with(sampling_frequency=1000,
+                                 duration=5,
+                                 starting_time=3)
 
     def test_time_array_without_sampling_frequency(self):
         self.ifosd.sampling_frequency = None
@@ -487,18 +487,18 @@ class TestInterferometerStrainData(unittest.TestCase):
             test = self.ifosd.time_array
 
     def test_frequency_array_when_set(self):
-        test_array = np.array([1])
+        test_array = np.array([1, 2, 3])
         self.ifosd.frequency_array = test_array
-        self.assertTrue(test_array, self.ifosd.frequency_array)
+        self.assertTrue(np.array_equal(test_array, self.ifosd.frequency_array))
 
-    @patch.object(bilby.core.utils, 'create_frequency_series')
-    def test_time_array_when_not_set(self, m):
-        self.ifosd.sampling_frequency = 1000
-        self.ifosd.duration = 5
-        m.return_value = 4
-        self.assertEqual(m.return_value, self.ifosd.frequency_array)
-        m.assert_called_with(sampling_frequency=self.ifosd.sampling_frequency,
-                             duration=self.ifosd.duration)
+    def test_frequency_array_when_not_set(self):
+        with mock.patch('bilby.core.utils.create_frequency_series') as m:
+            m.return_value = [1, 2, 3]
+            self.ifosd.sampling_frequency = 1000
+            self.ifosd.duration = 5
+            self.assertListEqual(m.return_value, self.ifosd.frequency_array)
+            m.assert_called_with(sampling_frequency=1000,
+                                 duration=5)
 
     def test_frequency_array_without_sampling_frequency(self):
         self.ifosd.sampling_frequency = None
@@ -565,8 +565,8 @@ class TestInterferometerStrainData(unittest.TestCase):
         m.return_value = 5
         self.ifosd.sampling_frequency = 200
         self.ifosd.duration = 4
-        self.ifosd._frequency_domain_strain = self.ifosd.frequency_array
         self.ifosd.sampling_frequency = 123
+        self.ifosd.frequency_domain_strain = self.ifosd.frequency_array
         self.assertEqual(m.return_value, self.ifosd.time_domain_strain)
 
     def test_time_domain_strain_not_set(self):
@@ -719,14 +719,32 @@ class TestInterferometerList(unittest.TestCase):
         self.assertEqual(self.ifo2, ifo_list[1])
 
     def test_init_inconsistent_duration(self):
+        self.frequency_arrays = np.linspace(0, 2048, 2049)
+        self.ifo2 = bilby.gw.detector.Interferometer(name=self.name2,
+                                                     power_spectral_density=self.power_spectral_density2,
+                                                     minimum_frequency=self.minimum_frequency2,
+                                                     maximum_frequency=self.maximum_frequency2, length=self.length2,
+                                                     latitude=self.latitude2, longitude=self.longitude2,
+                                                     elevation=self.elevation2,
+                                                     xarm_azimuth=self.xarm_azimuth2, yarm_azimuth=self.yarm_azimuth2,
+                                                     xarm_tilt=self.xarm_tilt2, yarm_tilt=self.yarm_tilt2)
         self.ifo2.strain_data.set_from_frequency_domain_strain(
-            np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=3)
+            self.frequency_arrays, sampling_frequency=4096, duration=1)
         with self.assertRaises(ValueError):
             bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
     def test_init_inconsistent_sampling_frequency(self):
+        self.frequency_arrays = np.linspace(0, 2048, 2049)
+        self.ifo2 = bilby.gw.detector.Interferometer(name=self.name2,
+                                                     power_spectral_density=self.power_spectral_density2,
+                                                     minimum_frequency=self.minimum_frequency2,
+                                                     maximum_frequency=self.maximum_frequency2, length=self.length2,
+                                                     latitude=self.latitude2, longitude=self.longitude2,
+                                                     elevation=self.elevation2,
+                                                     xarm_azimuth=self.xarm_azimuth2, yarm_azimuth=self.yarm_azimuth2,
+                                                     xarm_tilt=self.xarm_tilt2, yarm_tilt=self.yarm_tilt2)
         self.ifo2.strain_data.set_from_frequency_domain_strain(
-            np.linspace(0, 4096, 4097), sampling_frequency=234, duration=2)
+            self.frequency_arrays, sampling_frequency=2048, duration=2)
         with self.assertRaises(ValueError):
             bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
