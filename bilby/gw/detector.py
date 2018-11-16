@@ -207,6 +207,12 @@ class InterferometerList(list):
         super(InterferometerList, self).insert(index, interferometer)
         self._check_interferometers()
 
+    @property
+    def meta_data(self):
+        """ Dictionary of the per-interferometer meta_data """
+        return {interferometer.name: interferometer.meta_data
+                for interferometer in self}
+
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
@@ -807,6 +813,7 @@ class Interferometer(object):
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
+        self.meta_data = dict()
 
     def __repr__(self):
         return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
@@ -1271,12 +1278,14 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(self.optimal_snr_squared(signal=signal_ifo).real)
-        mf_snr = np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo).real)
+        self.meta_data['optimal_SNR'] = (
+            np.sqrt(self.optimal_snr_squared(signal=signal_ifo).real))
+        self.meta_data['matched_filter_SNR'] = (
+            np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo).real))
 
         logger.info("Injected signal in {}:".format(self.name))
-        logger.info("  optimal SNR = {:.2f}".format(opt_snr))
-        logger.info("  matched filter SNR = {:.2f}".format(mf_snr))
+        logger.info("  optimal SNR = {:.2f}".format(self.meta_data['optimal_SNR']))
+        logger.info("  matched filter SNR = {:.2f}".format(self.meta_data['matched_filter_SNR']))
         for key in parameters:
             logger.info('  {} = {}'.format(key, parameters[key]))
 
