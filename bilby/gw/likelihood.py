@@ -284,7 +284,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self.interferometers.start_time + np.linspace(
                 0, self.interferometers.duration,
                 int(self.interferometers.duration / 2 *
-                    self.waveform_generator.sampling_frequency))[1:]
+                    self.waveform_generator.sampling_frequency + 1))[1:]
         self.time_prior_array =\
             self.prior['geocent_time'].prob(times) * delta_tc
 
