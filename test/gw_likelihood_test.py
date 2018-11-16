@@ -92,7 +92,7 @@ class TestGWTransient(unittest.TestCase):
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.prior.copy()
         )
         self.likelihood.parameters = self.parameters.copy()
 
@@ -133,7 +133,7 @@ class TestGWTransient(unittest.TestCase):
     def test_repr(self):
         expected = 'GravitationalWaveTransient(interferometers={},\n\twaveform_generator={},\n\t' \
                    'time_marginalization={}, distance_marginalization={}, phase_marginalization={}, ' \
-                   'prior={})'.format(self.interferometers, self.waveform_generator, False, False, False, self.prior)
+                   'priors={})'.format(self.interferometers, self.waveform_generator, False, False, False, self.prior)
         self.assertEqual(expected, repr(self.likelihood))
 
 
@@ -163,7 +163,7 @@ class TestTimeMarginalization(unittest.TestCase):
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.prior.copy()
         )
 
         self.likelihood.parameters = self.parameters.copy()
@@ -190,7 +190,7 @@ class TestTimeMarginalization(unittest.TestCase):
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, prior=self.prior.copy()
+            time_marginalization=True, priors=self.prior.copy()
         )
         times = self.waveform_generator.start_time + np.linspace(
             0, self.duration, 4097)[:-1]
@@ -219,7 +219,7 @@ class TestTimeMarginalization(unittest.TestCase):
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, prior=self.prior.copy()
+            time_marginalization=True, priors=self.prior.copy()
         )
         times = self.waveform_generator.start_time + np.linspace(
             0, self.duration, 4097)[:-1]
@@ -276,11 +276,11 @@ class TestMarginalizedLikelihood(unittest.TestCase):
         new_prior = self.prior.copy()
         like = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=new_prior,
+            waveform_generator=self.waveform_generator, priors=new_prior,
             time_marginalization=True
         )
-        same = all([temp.minimum == like.prior['geocent_time'].minimum,
-                    temp.maximum == like.prior['geocent_time'].maximum,
+        same = all([temp.minimum == like.priors['geocent_time'].minimum,
+                    temp.maximum == like.priors['geocent_time'].maximum,
                     new_prior['geocent_time'] == temp.minimum])
         self.assertTrue(same)
         self.prior['geocent_time'] = temp
@@ -290,11 +290,11 @@ class TestMarginalizedLikelihood(unittest.TestCase):
         new_prior = self.prior.copy()
         like = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=new_prior,
+            waveform_generator=self.waveform_generator, priors=new_prior,
             phase_marginalization=True
         )
-        same = all([temp.minimum == like.prior['phase'].minimum,
-                    temp.maximum == like.prior['phase'].maximum,
+        same = all([temp.minimum == like.priors['phase'].minimum,
+                    temp.maximum == like.priors['phase'].maximum,
                     new_prior['phase'] == float(0)])
         self.assertTrue(same)
         self.prior['phase'] = temp
@@ -328,13 +328,13 @@ class TestPhaseMarginalization(unittest.TestCase):
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.prior.copy()
         )
 
         self.phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            phase_marginalization=True, prior=self.prior.copy()
+            phase_marginalization=True, priors=self.prior.copy()
         )
         for like in [self.likelihood, self.phase]:
             like.parameters = self.parameters.copy()
@@ -392,26 +392,26 @@ class TestTimePhaseMarginalization(unittest.TestCase):
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, prior=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.prior.copy()
         )
 
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, prior=self.prior.copy()
+            time_marginalization=True, priors=self.prior.copy()
         )
 
         self.phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            phase_marginalization=True, prior=self.prior.copy()
+            phase_marginalization=True, priors=self.prior.copy()
         )
 
         self.time_phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             time_marginalization=True, phase_marginalization=True,
-            prior=self.prior.copy()
+            priors=self.prior.copy()
         )
         for like in [self.likelihood, self.time, self.phase, self.time_phase]:
             like.parameters = self.parameters.copy()

@@ -49,7 +49,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'iota', 'ra',
 # being marginalised. A lookup table is used fro distance marginalisation which
 # takes a few minutes to build.
 likelihood = bilby.gw.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
+    interferometers=ifos, waveform_generator=waveform_generator, priors=priors,
     distance_marginalization=True, phase_marginalization=True,
     time_marginalization=True)
 

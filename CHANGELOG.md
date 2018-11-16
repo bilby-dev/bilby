@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changes
+- Renamed "prior" to "prior" in bilby.gw.likelihood.GravtitationalWaveTransient
+  for consistency with bilby.core. **WARNING**: This will break scripts which
+  use marginalization.
+
 ## [0.3.3] 2018-11-08
 
 Changes currently on master, but not under a tag.
