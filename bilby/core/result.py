@@ -74,7 +74,7 @@ class Result(object):
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
                  sampling_time=None, nburn=None, walkers=None,
                  max_autocorrelation_time=None, parameter_labels=None,
-                 parameter_labels_with_unit=None):
+                 parameter_labels_with_unit=None, version=None):
         """ A class to store the results of the sampling run
 
         Parameters
@@ -110,6 +110,9 @@ class Result(object):
             The estimated maximum autocorrelation time for MCMC samplers
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
+        version: str,
+            Version information for software used to generate the result. Note,
+            this information is generated when the result object is initialized
 
         Note:
             All sampling output parameters, e.g. the samples themselves are
@@ -139,6 +142,7 @@ class Result(object):
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
         self.sampling_time = sampling_time
+        self.version = version
         self.max_autocorrelation_time = max_autocorrelation_time
 
     def __str__(self):
@@ -245,7 +249,19 @@ class Result(object):
     def posterior(self, posterior):
         self._posterior = posterior
 
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, version):
+        if version is None:
+            self._version = 'bilby={}'.format(utils.get_version_information())
+        else:
+            self._version = version
+
     def _get_save_data_dictionary(self):
+        # This list defines all the parameters saved in the result object
         save_attrs = [
             'label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err',
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
@@ -253,7 +269,7 @@ class Result(object):
             'fixed_parameter_keys', 'sampling_time', 'sampler_kwargs',
             'log_likelihood_evaluations', 'samples', 'nested_samples',
             'walkers', 'nburn', 'parameter_labels',
-            'parameter_labels_with_unit']
+            'parameter_labels_with_unit', 'version']
         dictionary = OrderedDict()
         for attr in save_attrs:
             try:
