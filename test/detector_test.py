@@ -518,42 +518,6 @@ class TestInterferometerStrainData(unittest.TestCase):
                 frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
             self.assertTrue(np.array_equal(self.ifosd.frequency_mask, [False, True, False]))
 
-    def test_frequency_array_setting_direct(self):
-        with mock.patch('bilby.core.utils.create_frequency_series') as m:
-            m.return_value = np.array([5, 15, 25])
-            self.ifosd.set_from_frequency_domain_strain(
-                frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([5, 15, 25]))
-            self.assertTrue(np.array_equal(self.ifosd.frequency_array, np.array(np.array([5, 15, 25]))))
-
-    def test_duration_setting(self):
-        with mock.patch('bilby.core.utils.create_frequency_series') as m:
-            m.return_value = np.array([0, 1, 2])
-            self.ifosd.set_from_frequency_domain_strain(
-                frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
-            self.assertAlmostEqual(self.ifosd.duration, 1)
-
-    def test_sampling_frequency_setting(self):
-        with mock.patch('bilby.core.utils.create_frequency_series') as n:
-            with mock.patch('bilby.core.utils.get_sampling_frequency_and_duration_from_frequency_array') as m:
-                m.return_value = 8, 456
-                n.return_value = np.array([1, 2, 3])
-                self.ifosd.set_from_frequency_domain_strain(
-                    frequency_domain_strain=np.array([0, 1, 2]), frequency_array=np.array([0, 1, 2]))
-                self.assertEqual(8, self.ifosd.sampling_frequency)
-
-    def test_frequency_array_setting(self):
-        duration = 3
-        sampling_frequency = 1
-        with mock.patch('bilby.core.utils.create_frequency_series') as m:
-            m.return_value = [1, 2, 3]
-            self.ifosd.set_from_frequency_domain_strain(
-                frequency_domain_strain=np.array([0, 1, 2]), duration=duration,
-                sampling_frequency=sampling_frequency)
-            self.assertTrue(np.array_equal(
-                self.ifosd.frequency_array,
-                bilby.core.utils.create_frequency_series(duration=duration,
-                                                         sampling_frequency=sampling_frequency)))
-
     def test_set_data_fails(self):
         with mock.patch('bilby.core.utils.create_frequency_series') as m:
             m.return_value = [1, 2, 3]
@@ -605,60 +569,6 @@ class TestInterferometerStrainData(unittest.TestCase):
 
         self.assertTrue(np.all(
             self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask))
-
-    def test_time_array_when_set(self):
-        test_array = np.array([1, 2, 3])
-        self.ifosd.time_array = test_array
-        self.assertTrue(np.array_equal(test_array, self.ifosd.time_array))
-
-    def test_time_array_when_not_set(self):
-        with mock.patch('bilby.core.utils.create_time_series') as m:
-            self.ifosd.start_time = 3
-            self.ifosd.sampling_frequency = 1000
-            self.ifosd.duration = 5
-            m.return_value = 4
-            self.assertEqual(m.return_value, self.ifosd.time_array)
-            m.assert_called_with(sampling_frequency=1000,
-                                 duration=5,
-                                 starting_time=3)
-
-    def test_time_array_without_sampling_frequency(self):
-        self.ifosd.sampling_frequency = None
-        self.ifosd.duration = 4
-        with self.assertRaises(ValueError):
-            test = self.ifosd.time_array
-
-    def test_time_array_without_duration(self):
-        self.ifosd.sampling_frequency = 4096
-        self.ifosd.duration = None
-        with self.assertRaises(ValueError):
-            test = self.ifosd.time_array
-
-    def test_frequency_array_when_set(self):
-        test_array = np.array([1, 2, 3])
-        self.ifosd.frequency_array = test_array
-        self.assertTrue(np.array_equal(test_array, self.ifosd.frequency_array))
-
-    def test_frequency_array_when_not_set(self):
-        with mock.patch('bilby.core.utils.create_frequency_series') as m:
-            m.return_value = [1, 2, 3]
-            self.ifosd.sampling_frequency = 1000
-            self.ifosd.duration = 5
-            self.assertListEqual(m.return_value, self.ifosd.frequency_array)
-            m.assert_called_with(sampling_frequency=1000,
-                                 duration=5)
-
-    def test_frequency_array_without_sampling_frequency(self):
-        self.ifosd.sampling_frequency = None
-        self.ifosd.duration = 4
-        with self.assertRaises(ValueError):
-            test = self.ifosd.frequency_array
-
-    def test_frequency_array_without_duration(self):
-        self.ifosd.sampling_frequency = 4096
-        self.ifosd.duration = None
-        with self.assertRaises(ValueError):
-            test = self.ifosd.frequency_array
 
     def test_time_within_data_before(self):
         self.ifosd.start_time = 3

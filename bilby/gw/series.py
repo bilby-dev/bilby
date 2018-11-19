@@ -20,6 +20,12 @@ class CoupledTimeAndFrequencySeries(object):
         self.start_time = start_time
         self._frequency_array_updated = False
         self._time_array_updated = False
+        self._frequency_array = None
+        self._time_array = None
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={})'\
+            .format(self.duration, self.sampling_frequency, self.start_time)
 
     @property
     def frequency_array(self):
@@ -31,7 +37,7 @@ class CoupledTimeAndFrequencySeries(object):
         """
         if self._frequency_array_updated is False:
             if self.sampling_frequency and self.duration:
-                self.frequency_array = utils.create_frequency_series(
+                self._frequency_array = utils.create_frequency_series(
                     sampling_frequency=self.sampling_frequency,
                     duration=self.duration)
             else:

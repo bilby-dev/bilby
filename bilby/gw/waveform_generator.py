@@ -168,7 +168,7 @@ class WaveformGenerator(object):
         model_strain = dict()
         for key in transformed_model_strain:
             if transformation_function == utils.nfft:
-                model_strain[key], self.frequency_array = \
+                model_strain[key], _ = \
                     transformation_function(transformed_model_strain[key], self.sampling_frequency)
             else:
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
