@@ -1,6 +1,8 @@
 import os
+
 import numpy as np
 from scipy.interpolate import UnivariateSpline
+
 from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
                           Gaussian, Interped)
 from ..core.utils import logger

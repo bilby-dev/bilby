@@ -240,6 +240,30 @@ class TestResult(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.result.get_all_injection_credible_levels()
 
+    def test_kde(self):
+        kde = self.result.kde
+        import scipy.stats
+        self.assertEqual(type(kde), scipy.stats.kde.gaussian_kde)
+        self.assertEqual(kde.d, 2)
+
+    def test_posterior_probability(self):
+        sample = dict(x=0, y=0.1)
+        self.assertTrue(
+            isinstance(self.result.posterior_probability(sample), np.ndarray))
+        self.assertTrue(
+            len(self.result.posterior_probability(sample)), 1)
+        self.assertEqual(
+            self.result.posterior_probability(sample)[0],
+            self.result.kde([0, 0.1]))
+
+    def test_multiple_posterior_probability(self):
+        sample = [dict(x=0, y=0.1), dict(x=0.8, y=0)]
+        self.assertTrue(
+            isinstance(self.result.posterior_probability(sample), np.ndarray))
+        self.assertTrue(
+            all(self.result.posterior_probability(sample)
+                == self.result.kde([[0, 0.1], [0.8, 0]])))
+
 
 if __name__ == '__main__':
     unittest.main()

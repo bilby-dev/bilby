@@ -1,17 +1,18 @@
 from __future__ import division
 
-import numpy as np
-from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
-from scipy.special import erf, erfinv
-import scipy.stats
 import os
 from collections import OrderedDict
 from future.utils import iteritems
 
-from .utils import logger, infer_args_from_method
-from . import utils
+import numpy as np
+import scipy.stats
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
+from scipy.special import erf, erfinv
+
+# Keep import bilby statement, it is necessary for some eval() statements
 import bilby  # noqa
+from .utils import logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir
 
 
 class PriorDict(OrderedDict):
@@ -50,7 +51,7 @@ class PriorDict(OrderedDict):
             Output file naming scheme
         """
 
-        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:

@@ -1,11 +1,13 @@
 from __future__ import division, print_function, absolute_import
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
+import deepdish as dd
 
 from . import utils as gwutils
 from ..core import utils
@@ -38,12 +40,12 @@ class InterferometerList(list):
 
         list.__init__(self)
         if type(interferometers) == str:
-            raise ValueError("Input must not be a string")
+            raise TypeError("Input must not be a string")
         for ifo in interferometers:
             if type(ifo) == str:
                 ifo = get_empty_interferometer(ifo)
             if type(ifo) not in [Interferometer, TriangularInterferometer]:
-                raise ValueError("Input list of interferometers are not all Interferometer objects")
+                raise TypeError("Input list of interferometers are not all Interferometer objects")
             else:
                 self.append(ifo)
         self._check_interferometers()
@@ -108,7 +110,7 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -213,6 +215,48 @@ class InterferometerList(list):
         return {interferometer.name: interferometer.meta_data
                 for interferometer in self}
 
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
+    def to_hdf5(self, outdir='outdir', label='ifo_list'):
+        """ Saves the object to a hdf5 file
+
+        Parameters
+        ----------
+        outdir: str, optional
+            Output directory name of the file
+        label: str, optional
+            Output file name, is 'ifo_list' if not given otherwise. A list of
+            the included interferometers will be appended.
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        label = label + '_' + ''.join(ifo.name for ifo in self)
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        dd.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
+
+    @classmethod
+    def from_hdf5(cls, filename=None):
+        """ Loads in an InterferometerList object from an hdf5 file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        res = dd.io.load(filename)
+        if res.__class__ == list:
+            res = cls(res)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not a InterferometerList')
+        return res
+
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
@@ -247,6 +291,21 @@ class InterferometerStrainData(object):
         self._frequency_array = None
         self._time_domain_strain = None
         self._time_array = None
+
+    def __eq__(self, other):
+        if self.minimum_frequency == other.minimum_frequency \
+                and self.maximum_frequency == other.maximum_frequency \
+                and self.roll_off == other.roll_off \
+                and self.window_factor == other.window_factor \
+                and self.sampling_frequency == other.sampling_frequency \
+                and self.duration == other.duration \
+                and self.start_time == other.start_time \
+                and np.array_equal(self.time_array, other.time_array) \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.frequency_domain_strain, other.frequency_domain_strain) \
+                and np.array_equal(self.time_domain_strain, other.time_domain_strain):
+            return True
+        return False
 
     def time_within_data(self, time):
         """ Check if time is within the data span
@@ -815,6 +874,22 @@ class Interferometer(object):
             maximum_frequency=maximum_frequency)
         self.meta_data = dict()
 
+    def __eq__(self, other):
+        if self.name == other.name and \
+                self.length == other.length and \
+                self.latitude == other.latitude and \
+                self.longitude == other.longitude and \
+                self.elevation == other.elevation and \
+                self.xarm_azimuth == other.xarm_azimuth and \
+                self.xarm_tilt == other.xarm_tilt and \
+                self.yarm_azimuth == other.yarm_azimuth and \
+                self.yarm_tilt == other.yarm_tilt and \
+                self.power_spectral_density.__eq__(other.power_spectral_density) and \
+                self.calibration_model == other.calibration_model and \
+                self.strain_data == other.strain_data:
+            return True
+        return False
+
     def __repr__(self):
         return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
                                          'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
@@ -1249,7 +1324,7 @@ class Interferometer(object):
 
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -1580,6 +1655,48 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
 
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
+    def to_hdf5(self, outdir='outdir', label=None):
+        """ Save the object to a hdf5 file
+
+        Attributes
+        ----------
+        outdir: str, optional
+            Output directory name of the file, defaults to 'outdir'.
+        label: str, optional
+            Output file name, is self.name if not given otherwise.
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        if label is None:
+            label = self.name
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        filename = self._hdf5_filename_from_outdir_label(outdir, label)
+        dd.io.save(filename, self)
+
+    @classmethod
+    def from_hdf5(cls, filename=None):
+        """ Loads in an Interferometer object from an hdf5 file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+
+        res = dd.io.load(filename)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not an Interferometer')
+        return res
+
 
 class TriangularInterferometer(InterferometerList):
 
@@ -1647,6 +1764,15 @@ class PowerSpectralDensity(object):
             self.asd_array = asd_array
         self.psd_file = psd_file
         self.asd_file = asd_file
+
+    def __eq__(self, other):
+        if self.psd_file == other.psd_file \
+                and self.asd_file == other.asd_file \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.psd_array, other.psd_array) \
+                and np.array_equal(self.asd_array, other.asd_array):
+            return True
+        return False
 
     def __repr__(self):
         if self.asd_file is not None or self.psd_file is not None:
@@ -1769,12 +1895,12 @@ class PowerSpectralDensity(object):
 
     @property
     def asd_file(self):
-        return self.__asd_file
+        return self._asd_file
 
     @asd_file.setter
     def asd_file(self, asd_file):
         asd_file = self.__validate_file_name(file=asd_file)
-        self.__asd_file = asd_file
+        self._asd_file = asd_file
         if asd_file is not None:
             self.__import_amplitude_spectral_density()
             self.__check_file_was_asd_file()
@@ -1788,12 +1914,12 @@ class PowerSpectralDensity(object):
 
     @property
     def psd_file(self):
-        return self.__psd_file
+        return self._psd_file
 
     @psd_file.setter
     def psd_file(self, psd_file):
         psd_file = self.__validate_file_name(file=psd_file)
-        self.__psd_file = psd_file
+        self._psd_file = psd_file
         if psd_file is not None:
             self.__import_power_spectral_density()
             self.__check_file_was_psd_file()
@@ -2155,16 +2281,16 @@ def load_data_from_cache_file(
             frame_duration = float(frame_duration)
             if frame_name[:4] == 'file':
                 frame_name = frame_name[16:]
-            if not data_set & (frame_start < segment_start) &\
+            if not data_set & (frame_start < segment_start) & \
                     (segment_start < frame_start + frame_duration):
                 ifo.set_strain_data_from_frame_file(
                     frame_name, 4096, segment_duration,
                     start_time=segment_start,
                     channel=channel_name, buffer_time=0)
                 data_set = True
-            if not psd_set & (frame_start < psd_start) &\
+            if not psd_set & (frame_start < psd_start) & \
                     (psd_start + psd_duration < frame_start + frame_duration):
-                ifo.power_spectral_density =\
+                ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         frame_name, psd_start_time=psd_start,
                         psd_duration=psd_duration,

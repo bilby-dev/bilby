@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import numpy as np
 from pandas import DataFrame
+
 from .base_sampler import NestedSampler
 
 

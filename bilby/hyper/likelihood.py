@@ -1,7 +1,9 @@
 from __future__ import division, print_function
 
 import logging
+
 import numpy as np
+
 from ..core.likelihood import Likelihood
 from .model import Model
 

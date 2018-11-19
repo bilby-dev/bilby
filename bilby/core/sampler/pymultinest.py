@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from ..utils import check_directory_exists_and_if_not_mkdir
-from .base_sampler import NestedSampler
 from ..utils import logger
+from .base_sampler import NestedSampler
 
 
 class Pymultinest(NestedSampler):
@@ -56,7 +56,7 @@ class Pymultinest(NestedSampler):
         https://github.com/JohannesBuchner/PyMultiNest/issues/115
         """
         if not self.kwargs['outputfiles_basename']:
-            self.kwargs['outputfiles_basename'] =\
+            self.kwargs['outputfiles_basename'] = \
                 '{}/pm_{}/'.format(self.outdir, self.label)
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(

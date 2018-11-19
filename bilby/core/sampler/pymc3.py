@@ -1,12 +1,16 @@
 from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
+
 import numpy as np
 
 from ..utils import derivatives, logger, infer_args_from_method
-from ..prior import Prior
+from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
 from ..result import Result
 from .base_sampler import Sampler, MCMCSampler
+from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+    StudentTLikelihood
+from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
 
 class Pymc3(MCMCSampler):
@@ -63,6 +67,20 @@ class Pymc3(MCMCSampler):
                          skip_import_verification=skip_import_verification, **kwargs)
         self.draws = draws
         self.chains = self.__kwargs['chains']
+
+    @staticmethod
+    def _import_external_sampler():
+        import pymc3
+        from pymc3.sampling import STEP_METHODS
+        from pymc3.theanof import floatX
+        return pymc3, STEP_METHODS, floatX
+
+    @staticmethod
+    def _import_theano():
+        import theano  # noqa
+        import theano.tensor as tt
+        from theano.compile.ops import as_op  # noqa
+        return theano, tt, as_op
 
     def _verify_parameters(self):
         """
@@ -217,8 +235,6 @@ class Pymc3(MCMCSampler):
         Map the bilby delta function prior to a single value for PyMC3.
         """
 
-        from ..prior import DeltaFunction
-
         # check prior is a DeltaFunction
         if isinstance(self.priors[key], DeltaFunction):
             return self.priors[key].peak
@@ -230,17 +246,10 @@ class Pymc3(MCMCSampler):
         Map the bilby Sine prior to a PyMC3 style function
         """
 
-        from ..prior import Sine
-
         # check prior is a Sine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Sine):
-            import pymc3
-
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Sine(pymc3.Continuous):
                 def __init__(self, lower=0., upper=np.pi):
@@ -277,18 +286,10 @@ class Pymc3(MCMCSampler):
         Map the bilby Cosine prior to a PyMC3 style function
         """
 
-        from ..prior import Cosine
-
         # check prior is a Cosine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Cosine):
-            import pymc3
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Cosine(pymc3.Continuous):
                 def __init__(self, lower=-np.pi / 2., upper=np.pi / 2.):
@@ -324,22 +325,14 @@ class Pymc3(MCMCSampler):
         Map the bilby PowerLaw prior to a PyMC3 style function
         """
 
-        from ..prior import PowerLaw
-
         # check prior is a PowerLaw
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], PowerLaw):
-            import pymc3
 
             # check power law is set
             if not hasattr(self.priors[key], 'alpha'):
                 raise AttributeError("No 'alpha' attribute set for PowerLaw prior")
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             if self.priors[key].alpha < -1.:
                 # use Pareto distribution
@@ -385,11 +378,8 @@ class Pymc3(MCMCSampler):
             raise ValueError("Prior for '{}' is not a Power Law".format(key))
 
     def run_sampler(self):
-        import pymc3
         # set the step method
-
-        from pymc3.sampling import STEP_METHODS
-
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
             self.step_method = self.__kwargs.pop('step')
@@ -470,8 +460,7 @@ class Pymc3(MCMCSampler):
         self.setup_prior_mapping()
 
         self.pymc3_priors = OrderedDict()
-
-        import pymc3
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
 
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
@@ -534,18 +523,10 @@ class Pymc3(MCMCSampler):
         Convert any bilby likelihoods to PyMC3 distributions.
         """
 
-        try:
-            import theano  # noqa
-            import theano.tensor as tt
-            from theano.compile.ops import as_op  # noqa
-        except ImportError:
-            raise ImportError("Could not import theano")
-
-        from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
-            StudentTLikelihood
-        from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
-
         # create theano Op for the log likelihood if not using a predefined model
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
+
         class LogLike(tt.Op):
 
             itypes = [tt.dvector]
@@ -604,8 +585,6 @@ class Pymc3(MCMCSampler):
                 grads = derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
 
                 outputs[0][0] = grads
-
-        import pymc3
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function

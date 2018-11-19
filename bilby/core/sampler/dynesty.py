@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import os
 import sys
+
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
+
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
 
