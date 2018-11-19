@@ -7,16 +7,18 @@ from mock import MagicMock
 from mock import patch
 import numpy as np
 import scipy.signal.windows
-import gwpy
 import os
+import sys
+from shutil import rmtree
 import logging
+import deepdish as dd
 
 
-class TestDetector(unittest.TestCase):
+class TestInterferometer(unittest.TestCase):
 
     def setUp(self):
         self.name = 'name'
-        self.power_spectral_density = MagicMock()
+        self.power_spectral_density = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.minimum_frequency = 10
         self.maximum_frequency = 20
         self.length = 30
@@ -37,6 +39,7 @@ class TestDetector(unittest.TestCase):
                                                     xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
         self.ifo.strain_data.set_from_frequency_domain_strain(
             np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=2)
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
 
     def tearDown(self):
         del self.name
@@ -52,6 +55,7 @@ class TestDetector(unittest.TestCase):
         del self.xarm_tilt
         del self.yarm_tilt
         del self.ifo
+        rmtree('outdir')
 
     def test_name_setting(self):
         self.assertEqual(self.ifo.name, self.name)
@@ -323,7 +327,10 @@ class TestDetector(unittest.TestCase):
             signal = 1
             expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
             actual = self.ifo.optimal_snr_squared(signal=signal)
-            self.assertListEqual(expected, actual)
+            self.assertEqual(expected[0], actual[0])
+            self.assertEqual(expected[1], actual[1])
+            self.assertTrue(np.array_equal(expected[2], actual[2]))
+            self.assertEqual(expected[3], actual[3])
 
     def test_matched_filter_snr_squared(self):
         """ Merely checks parameters are given in the right order """
@@ -334,7 +341,9 @@ class TestDetector(unittest.TestCase):
                                                            self.ifo.strain_data.duration]]
             actual = self.ifo.matched_filter_snr_squared(signal=signal)
             self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
-            self.assertListEqual(expected[1], actual[1])
+            self.assertEqual(expected[1][0], actual[1][0])
+            self.assertTrue(np.array_equal(expected[1][1], actual[1][1]))
+            self.assertEqual(expected[1][2], actual[1][2])
 
     def test_repr(self):
         expected = 'Interferometer(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
@@ -345,6 +354,145 @@ class TestDetector(unittest.TestCase):
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
         self.assertEqual(expected, repr(self.ifo))
+
+    def test_to_and_from_hdf5_loading(self):
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                self.ifo.to_hdf5(outdir='outdir', label='test')
+        else:
+            self.ifo.to_hdf5(outdir='outdir', label='test')
+            filename = self.ifo._hdf5_filename_from_outdir_label(outdir='outdir', label='test')
+            recovered_ifo = bilby.gw.detector.Interferometer.from_hdf5(filename)
+            self.assertEqual(self.ifo, recovered_ifo)
+
+    def test_to_and_from_hdf5_wrong_class(self):
+        if sys.version_info[0] < 3:
+            pass
+        else:
+            bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
+            dd.io.save('./outdir/psd.h5', self.power_spectral_density)
+            filename = self.ifo._hdf5_filename_from_outdir_label(outdir='outdir', label='psd')
+            with self.assertRaises(TypeError):
+                bilby.gw.detector.Interferometer.from_hdf5(filename)
+
+
+class TestInterferometerEquals(unittest.TestCase):
+
+    def setUp(self):
+        self.name = 'name'
+        self.power_spectral_density_1 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.power_spectral_density_2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.minimum_frequency = 10
+        self.maximum_frequency = 20
+        self.length = 30
+        self.latitude = 1
+        self.longitude = 2
+        self.elevation = 3
+        self.xarm_azimuth = 4
+        self.yarm_azimuth = 5
+        self.xarm_tilt = 0.
+        self.yarm_tilt = 0.
+        # noinspection PyTypeChecker
+        self.duration = 1
+        self.sampling_frequency = 200
+        self.frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+                                                                   duration=self.duration)
+        self.strain = self.frequency_array
+        self.ifo_1 = bilby.gw.detector.Interferometer(name=self.name,
+                                                      power_spectral_density=self.power_spectral_density_1,
+                                                      minimum_frequency=self.minimum_frequency,
+                                                      maximum_frequency=self.maximum_frequency, length=self.length,
+                                                      latitude=self.latitude, longitude=self.longitude,
+                                                      elevation=self.elevation,
+                                                      xarm_azimuth=self.xarm_azimuth, yarm_azimuth=self.yarm_azimuth,
+                                                      xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
+        self.ifo_2 = bilby.gw.detector.Interferometer(name=self.name,
+                                                      power_spectral_density=self.power_spectral_density_2,
+                                                      minimum_frequency=self.minimum_frequency,
+                                                      maximum_frequency=self.maximum_frequency, length=self.length,
+                                                      latitude=self.latitude, longitude=self.longitude,
+                                                      elevation=self.elevation,
+                                                      xarm_azimuth=self.xarm_azimuth, yarm_azimuth=self.yarm_azimuth,
+                                                      xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
+        self.ifo_1.set_strain_data_from_frequency_domain_strain(frequency_array=self.frequency_array,
+                                                                frequency_domain_strain=self.strain)
+        self.ifo_2.set_strain_data_from_frequency_domain_strain(frequency_array=self.frequency_array,
+                                                                frequency_domain_strain=self.strain)
+
+    def tearDown(self):
+        del self.name
+        del self.power_spectral_density_1
+        del self.power_spectral_density_2
+        del self.minimum_frequency
+        del self.maximum_frequency
+        del self.length
+        del self.latitude
+        del self.longitude
+        del self.elevation
+        del self.xarm_azimuth
+        del self.yarm_azimuth
+        del self.xarm_tilt
+        del self.yarm_tilt
+        del self.ifo_1
+        del self.ifo_2
+        del self.sampling_frequency
+        del self.duration
+        del self.frequency_array
+        del self.strain
+
+    def test_eq_true(self):
+        self.assertEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_psd(self):
+        self.ifo_1.power_spectral_density.psd_array[0] = 1234
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_minimum_frequency(self):
+        self.ifo_1.minimum_frequency -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_maximum_frequency(self):
+        self.ifo_1.minimum_frequency -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_length(self):
+        self.ifo_1.length -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_latitude(self):
+        self.ifo_1.latitude -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_longitude(self):
+        self.ifo_1.longitude -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_elevation(self):
+        self.ifo_1.elevation -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_xarm_azimuth(self):
+        self.ifo_1.xarm_azimuth -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_xarmtilt(self):
+        self.ifo_1.xarm_tilt -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_yarm_azimuth(self):
+        self.ifo_1.yarm_azimuth -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_yarm_tilt(self):
+        self.ifo_1.yarm_tilt -= 1
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+    def test_eq_false_different_ifo_strain_data(self):
+        self.strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
+                                                          duration=self.duration*2)
+        self.ifo_1.set_strain_data_from_frequency_domain_strain(frequency_array=self.frequency_array,
+                                                                frequency_domain_strain=self.strain)
+        self.assertNotEqual(self.ifo_1, self.ifo_2)
 
 
 class TestInterferometerStrainData(unittest.TestCase):
@@ -613,18 +761,103 @@ class TestInterferometerStrainData(unittest.TestCase):
             self.ifosd.frequency_domain_strain = np.array([1])
 
 
+class TestInterferometerStrainDataEquals(unittest.TestCase):
+
+    def setUp(self):
+        self.minimum_frequency = 10
+        self.maximum_frequency = 20
+        self.roll_off = 0.2
+        self.sampling_frequency = 100
+        self.duration = 2
+        self.frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency,
+                                                                   duration=self.duration)
+        self.strain = self.frequency_array
+        self.ifosd_1 = bilby.gw.detector.InterferometerStrainData(minimum_frequency=self.minimum_frequency,
+                                                                  maximum_frequency=self.maximum_frequency,
+                                                                  roll_off=self.roll_off)
+        self.ifosd_2 = bilby.gw.detector.InterferometerStrainData(minimum_frequency=self.minimum_frequency,
+                                                                  maximum_frequency=self.maximum_frequency,
+                                                                  roll_off=self.roll_off)
+        self.ifosd_1.set_from_frequency_domain_strain(frequency_domain_strain=self.strain,
+                                                      frequency_array=self.frequency_array)
+        self.ifosd_2.set_from_frequency_domain_strain(frequency_domain_strain=self.strain,
+                                                      frequency_array=self.frequency_array)
+
+    def tearDown(self):
+        del self.minimum_frequency
+        del self.maximum_frequency
+        del self.roll_off
+        del self.sampling_frequency
+        del self.duration
+        del self.frequency_array
+        del self.strain
+        del self.ifosd_1
+        del self.ifosd_2
+
+    def test_eq_true(self):
+        self.assertEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_minimum_frequency(self):
+        self.ifosd_1.minimum_frequency -= 1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_maximum_frequency(self):
+        self.ifosd_1.maximum_frequency -= 1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_roll_off(self):
+        self.ifosd_1.roll_off -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_window_factor(self):
+        self.ifosd_1.roll_off -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_sampling_frequency(self):
+        self.ifosd_1.sampling_frequency -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_sampling_duration(self):
+        self.ifosd_1.duration -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_start_time(self):
+        self.ifosd_1.start_time -= 0.1
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_frequency_array(self):
+        new_frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
+                                                                  duration=self.duration*2)
+        self.ifosd_1.frequency_array = new_frequency_array
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_frequency_domain_strain(self):
+        new_strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
+                                                         duration=self.duration*2)
+        self.ifosd_1._frequency_domain_strain = new_strain
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_time_array(self):
+        new_time_array = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
+                                                        duration=self.duration*2)
+        self.ifosd_1.time_array = new_time_array
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+    def test_eq_different_time_domain_strain(self):
+        new_strain = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
+                                                    duration=self.duration*2)
+        self.ifosd_1._time_domain_strain= new_strain
+        self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+
 class TestInterferometerList(unittest.TestCase):
 
     def setUp(self):
         self.frequency_arrays = np.linspace(0, 4096, 4097)
         self.name1 = 'name1'
         self.name2 = 'name2'
-        self.power_spectral_density1 = MagicMock()
-        self.power_spectral_density1.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
-                                                                                     self.frequency_arrays))
-        self.power_spectral_density2 = MagicMock()
-        self.power_spectral_density2.get_noise_realisation = MagicMock(return_value=(self.frequency_arrays,
-                                                                                     self.frequency_arrays))
+        self.power_spectral_density1 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.power_spectral_density2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.minimum_frequency1 = 10
         self.minimum_frequency2 = 10
         self.maximum_frequency1 = 20
@@ -667,6 +900,7 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo2.strain_data.set_from_frequency_domain_strain(
             self.frequency_arrays, sampling_frequency=4096, duration=2)
         self.ifo_list = bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
 
     def tearDown(self):
         del self.frequency_arrays
@@ -697,20 +931,21 @@ class TestInterferometerList(unittest.TestCase):
         del self.ifo1
         del self.ifo2
         del self.ifo_list
+        rmtree('outdir')
 
     def test_init_with_string(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             bilby.gw.detector.InterferometerList("string")
 
     def test_init_with_string_list(self):
         """ Merely checks if this ends up in the right bracket """
         with mock.patch('bilby.gw.detector.get_empty_interferometer') as m:
-            m.side_effect = ValueError
-            with self.assertRaises(ValueError):
+            m.side_effect = TypeError
+            with self.assertRaises(TypeError):
                 bilby.gw.detector.InterferometerList(['string'])
 
     def test_init_with_other_object(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             bilby.gw.detector.InterferometerList([object()])
 
     def test_init_with_actual_ifos(self):
@@ -832,6 +1067,26 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo_list.insert(1, new_ifo)
         names = [ifo.name for ifo in self.ifo_list]
         self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
+
+    def test_to_and_from_hdf5_loading(self):
+        if sys.version_info[0] < 3:
+            with self.assertRaises(NotImplementedError):
+                self.ifo_list.to_hdf5(outdir='outdir', label='test')
+        else:
+            self.ifo_list.to_hdf5(outdir='outdir', label='test')
+            filename = 'outdir/test_name1name2.h5'
+            recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
+            self.assertListEqual(self.ifo_list, recovered_ifo)
+
+    def test_to_and_from_hdf5_wrong_class(self):
+        if sys.version_info[0] < 3:
+            pass
+        else:
+            dd.io.save('./outdir/psd.h5', self.ifo_list[0].power_spectral_density)
+            filename = self.ifo_list._hdf5_filename_from_outdir_label(
+                outdir='outdir', label='psd')
+            with self.assertRaises(TypeError):
+                bilby.gw.detector.InterferometerList.from_hdf5(filename)
 
 
 class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
@@ -1028,6 +1283,62 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         psd = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
         expected = 'PowerSpectralDensity(psd_file=\'{}\', asd_file=\'{}\')'.format(self.psd_file, None)
         self.assertEqual(expected, repr(psd))
+
+
+class TestPowerSpectralDensityEquals(unittest.TestCase):
+
+    def setUp(self):
+        self.psd_from_file_1 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.psd_from_file_2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.frequency_array = np.linspace(1, 100)
+        self.psd_array = np.linspace(1, 100)
+        self.psd_from_array_1 = bilby.gw.detector.PowerSpectralDensity. \
+            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array= self.psd_array)
+        self.psd_from_array_2 = bilby.gw.detector.PowerSpectralDensity. \
+            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array= self.psd_array)
+
+    def tearDown(self):
+        del self.psd_from_file_1
+        del self.psd_from_file_2
+        del self.frequency_array
+        del self.psd_array
+        del self.psd_from_array_1
+        del self.psd_from_array_2
+
+    def test_eq_true_from_array(self):
+        self.assertEqual(self.psd_from_array_1, self.psd_from_array_2)
+
+    def test_eq_true_from_file(self):
+        self.assertEqual(self.psd_from_file_1, self.psd_from_file_2)
+
+    def test_eq_false_different_psd_file_name(self):
+        self.psd_from_file_1._psd_file = 'some_other_name'
+        self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
+
+    def test_eq_false_different_asd_file_name(self):
+        self.psd_from_file_1._psd_file = None
+        self.psd_from_file_2._psd_file = None
+        self.psd_from_file_1._asd_file = 'some_name'
+        self.psd_from_file_2._asd_file = 'some_other_name'
+        self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
+
+    def test_eq_false_different_frequency_array(self):
+        self.psd_from_file_1.frequency_array[0] = 0.5
+        self.psd_from_array_1.frequency_array[0] = 0.5
+        self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
+        self.assertNotEqual(self.psd_from_array_1, self.psd_from_array_2)
+
+    def test_eq_false_different_psd(self):
+        self.psd_from_file_1.psd_array[0] = 0.53544321
+        self.psd_from_array_1.psd_array[0] = 0.53544321
+        self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
+        self.assertNotEqual(self.psd_from_array_1, self.psd_from_array_2)
+
+    def test_eq_false_different_asd(self):
+        self.psd_from_file_1.asd_array[0] = 0.53544321
+        self.psd_from_array_1.asd_array[0] = 0.53544321
+        self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
+        self.assertNotEqual(self.psd_from_array_1, self.psd_from_array_2)
 
 
 if __name__ == '__main__':
