@@ -145,9 +145,9 @@ class Sampler(object):
         external_sampler_name = self.__class__.__name__.lower()
         try:
             self.external_sampler = __import__(external_sampler_name)
-        except (ImportError, SystemExit):
-            raise ImportError(
-                "Sampler {} not installed on this system".format(external_sampler_name))
+        except (ImportError, SystemExit, ModuleNotFoundError):
+            raise SamplerNotInstalledError(
+                "Sampler {} is not installed on this system".format(external_sampler_name))
 
     def _verify_kwargs_against_default_kwargs(self):
         """
@@ -475,3 +475,15 @@ class MCMCSampler(Sampler):
         except emcee.autocorr.AutocorrError as e:
             self.result.max_autocorrelation_time = None
             logger.info("Unable to calculate autocorr time: {}".format(e))
+
+
+class Error(Exception):
+    """ Base class for all exceptions raised by this module """
+
+
+class SamplerError(Error):
+    """ Base class for Error related to samplers in this module """
+
+
+class SamplerNotInstalledError(SamplerError):
+    """ Base class for Error raised by not installed samplers """
