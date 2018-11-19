@@ -66,6 +66,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.phase_marginalization = phase_marginalization
         self.priors = priors
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
+        self.meta_data = self.interferometers.meta_data
 
         if self.time_marginalization:
             self._check_prior_is_set(key='geocent_time')

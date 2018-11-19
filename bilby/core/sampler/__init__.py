@@ -109,6 +109,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
 
+    # Generate the meta-data if not given and append the likelihood meta_data
+    if meta_data is None:
+        meta_data = dict()
+    meta_data['likelihood'] = likelihood.meta_data
+
     if isinstance(sampler, Sampler):
         pass
     elif isinstance(sampler, str):
