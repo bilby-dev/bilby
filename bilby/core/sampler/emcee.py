@@ -54,16 +54,6 @@ class Emcee(MCMCSampler):
         self.burn_in_fraction = burn_in_fraction
         self.burn_in_act = burn_in_act
 
-    @staticmethod
-    def _import_external_sampler():
-        try:
-            import emcee
-        except ImportError:
-            logger.debug('Emcee is not installed on this system, you will '
-                         'not be able to use the Emcee sampler')
-            emcee = None
-        return emcee
-
     def _translate_kwargs(self, kwargs):
         if 'nwalkers' not in kwargs:
             for equiv in self.nwalkers_equiv_kwargs:
@@ -115,7 +105,7 @@ class Emcee(MCMCSampler):
         self.kwargs['iterations'] = nsteps
 
     def run_sampler(self):
-        emcee = self._import_external_sampler()
+        import emcee
         tqdm = get_progress_bar()
         sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
         self._set_pos0()

@@ -70,27 +70,16 @@ class Pymc3(MCMCSampler):
 
     @staticmethod
     def _import_external_sampler():
-        try:
-            import pymc3
-            from pymc3.sampling import STEP_METHODS
-            from pymc3.theanof import floatX
-        except ImportError:
-            logger.debug('PyMC3 is not installed on this system, you will '
-                         'not be able to use the PyMC3 sampler')
-            pymc3 = None
-            STEP_METHODS = None
-            floatX = None
+        import pymc3
+        from pymc3.sampling import STEP_METHODS
+        from pymc3.theanof import floatX
         return pymc3, STEP_METHODS, floatX
 
     @staticmethod
     def _import_theano():
-        try:
-            import theano  # noqa
-            import theano.tensor as tt
-            from theano.compile.ops import as_op  # noqa
-        except ImportError:
-            logger.debug("You must have Theano installed to use PyMC3")
-            theano, tt, as_op = None, None, None
+        import theano  # noqa
+        import theano.tensor as tt
+        from theano.compile.ops import as_op  # noqa
         return theano, tt, as_op
 
     def _verify_parameters(self):

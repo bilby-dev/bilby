@@ -39,16 +39,6 @@ class Cpnest(NestedSampler):
                           seed=None, poolsize=100, nhamiltonian=0, resume=False,
                           output=None)
 
-    @staticmethod
-    def _import_external_sampler():
-        try:
-            from cpnest import model as cpmodel, CPNest
-        except ImportError:
-            logger.debug('CPNest is not installed on this system, you will '
-                         'not be able to use the CPNest sampler')
-            cpmodel, CPNest = None, None
-        return cpmodel, CPNest
-
     def _translate_kwargs(self, kwargs):
         if 'nlive' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -58,7 +48,7 @@ class Cpnest(NestedSampler):
             logger.warning('No seed provided, cpnest will use 1234.')
 
     def run_sampler(self):
-        cpmodel, CPNest = self._import_external_sampler()
+        from cpnest import model as cpmodel, CPNest
 
         class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """

@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
-import sys
-import os
-
 from ..utils import check_directory_exists_and_if_not_mkdir
-from .base_sampler import NestedSampler
 from ..utils import logger
+from .base_sampler import NestedSampler
 
 
 class Pymultinest(NestedSampler):
@@ -45,23 +42,6 @@ class Pymultinest(NestedSampler):
                           context=0, write_output=True, log_zero=-1e100,
                           max_iter=0, init_MPI=False, dump_callback=None)
 
-    @staticmethod
-    def _import_external_sampler():
-        try:
-            # Suppresses import error printouts from pymultinest
-            sys.stdout = open(os.devnull, 'w')
-            import pymultinest
-            sys.stdout = sys.__stdout__
-        except ImportError:
-            logger.debug('PyMultinest is not installed on this system, you will '
-                         'not be able to use the PyMultinest sampler')
-            pymultinest = None
-        except SystemExit:
-            logger.debug('Multinest is not installed on this system, you will '
-                         'not be able to use the Multinest sampler')
-            pymultinest = None
-        return pymultinest
-
     def _translate_kwargs(self, kwargs):
         if 'n_live_points' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -92,7 +72,7 @@ class Pymultinest(NestedSampler):
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
     def run_sampler(self):
-        pymultinest = self._import_external_sampler()
+        import pymultinest
         self._verify_kwargs_against_default_kwargs()
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
