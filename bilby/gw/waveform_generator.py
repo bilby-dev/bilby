@@ -1,4 +1,5 @@
 import numpy as np
+
 from ..core import utils
 from ..gw.series import CoupledTimeAndFrequencySeries
 

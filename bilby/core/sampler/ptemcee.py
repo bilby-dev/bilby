@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+
 from ..utils import get_progress_bar, logger
 from . import Emcee
 
@@ -57,7 +58,6 @@ class Ptemcee(Emcee):
     def run_sampler(self):
         import ptemcee
         tqdm = get_progress_bar()
-
         sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,
                                   logp=self.log_prior, **self.sampler_init_kwargs)
         self.pos0 = [[self.get_random_draw_from_prior()

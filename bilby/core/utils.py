@@ -1,12 +1,14 @@
 from __future__ import division
+
 import logging
 import os
-import numpy as np
 from math import fmod
 import argparse
 import traceback
 import inspect
 import subprocess
+
+import numpy as np
 
 logger = logging.getLogger('bilby')
 
