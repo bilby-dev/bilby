@@ -526,6 +526,7 @@ class Pymc3(MCMCSampler):
         # create theano Op for the log likelihood if not using a predefined model
         pymc3, STEP_METHODS, floatX = self._import_external_sampler()
         theano, tt, as_op = self._import_theano()
+
         class LogLike(tt.Op):
 
             itypes = [tt.dvector]
