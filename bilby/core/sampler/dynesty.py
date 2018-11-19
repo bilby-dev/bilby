@@ -10,12 +10,6 @@ from deepdish.io import load, save
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
 
-try:
-    import dynesty
-except ImportError:
-    logger.debug('Dynesty is not installed on this system, you will '
-                 'not be able to use the Dynesty sampler')
-
 
 class Dynesty(NestedSampler):
     """
@@ -109,6 +103,16 @@ class Dynesty(NestedSampler):
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
 
+    @staticmethod
+    def _import_external_sampler():
+        try:
+            import dynesty
+        except ImportError:
+            logger.debug('Dynesty is not installed on this system, you will '
+                         'not be able to use the Dynesty sampler')
+            dynesty = None
+        return dynesty
+
     @property
     def sampler_function_kwargs(self):
         keys = ['dlogz', 'print_progress', 'print_func', 'maxiter',
@@ -174,6 +178,7 @@ class Dynesty(NestedSampler):
         sys.stderr.flush()
 
     def run_sampler(self):
+        dynesty = self._import_external_sampler()
         self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,

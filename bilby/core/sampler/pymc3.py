@@ -12,20 +12,6 @@ from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikel
     StudentTLikelihood
 from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
-try:
-    import pymc3
-    from pymc3.sampling import STEP_METHODS
-    from pymc3.theanof import floatX
-except ImportError:
-    logger.debug('PyMC3 is not installed on this system, you will '
-                 'not be able to use the PyMC3 sampler')
-try:
-    import theano  # noqa
-    import theano.tensor as tt
-    from theano.compile.ops import as_op  # noqa
-except ImportError:
-    logger.debug("You must have Theano installed to use PyMC3")
-
 
 class Pymc3(MCMCSampler):
     """ bilby wrapper of the PyMC3 sampler (https://docs.pymc.io/)
@@ -81,6 +67,31 @@ class Pymc3(MCMCSampler):
                          skip_import_verification=skip_import_verification, **kwargs)
         self.draws = draws
         self.chains = self.__kwargs['chains']
+
+    @staticmethod
+    def _import_external_sampler():
+        try:
+            import pymc3
+            from pymc3.sampling import STEP_METHODS
+            from pymc3.theanof import floatX
+        except ImportError:
+            logger.debug('PyMC3 is not installed on this system, you will '
+                         'not be able to use the PyMC3 sampler')
+            pymc3 = None
+            STEP_METHODS = None
+            floatX = None
+        return pymc3, STEP_METHODS, floatX
+
+    @staticmethod
+    def _import_theano():
+        try:
+            import theano  # noqa
+            import theano.tensor as tt
+            from theano.compile.ops import as_op  # noqa
+        except ImportError:
+            logger.debug("You must have Theano installed to use PyMC3")
+            theano, tt, as_op = None, None, None
+        return theano, tt, as_op
 
     def _verify_parameters(self):
         """
@@ -247,6 +258,8 @@ class Pymc3(MCMCSampler):
         """
 
         # check prior is a Sine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Sine):
 
             class Pymc3Sine(pymc3.Continuous):
@@ -285,6 +298,8 @@ class Pymc3(MCMCSampler):
         """
 
         # check prior is a Cosine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Cosine):
 
             class Pymc3Cosine(pymc3.Continuous):
@@ -322,6 +337,8 @@ class Pymc3(MCMCSampler):
         """
 
         # check prior is a PowerLaw
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], PowerLaw):
 
             # check power law is set
@@ -373,7 +390,7 @@ class Pymc3(MCMCSampler):
 
     def run_sampler(self):
         # set the step method
-
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
             self.step_method = self.__kwargs.pop('step')
@@ -454,6 +471,7 @@ class Pymc3(MCMCSampler):
         self.setup_prior_mapping()
 
         self.pymc3_priors = OrderedDict()
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
 
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
@@ -517,6 +535,8 @@ class Pymc3(MCMCSampler):
         """
 
         # create theano Op for the log likelihood if not using a predefined model
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         class LogLike(tt.Op):
 
             itypes = [tt.dvector]

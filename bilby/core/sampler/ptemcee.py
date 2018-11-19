@@ -50,6 +50,17 @@ class Ptemcee(Emcee):
                        use_ratio=use_ratio, plot=plot, skip_import_verification=skip_import_verification,
                        nburn=nburn, burn_in_fraction=burn_in_fraction, burn_in_act=burn_in_act, **kwargs)
 
+
+    @staticmethod
+    def _import_external_sampler():
+        try:
+            import ptemcee
+        except ImportError:
+            logger.debug('Nestle is not installed on this system, you will '
+                         'not be able to use the Nestle sampler')
+            ptemcee = None
+        return ptemcee
+
     @property
     def sampler_function_kwargs(self):
         keys = ['iterations', 'thin', 'storechain', 'adapt', 'swap_ratios']
@@ -62,8 +73,9 @@ class Ptemcee(Emcee):
                 if key not in self.sampler_function_kwargs}
 
     def run_sampler(self):
-        tqdm = get_progress_bar()
+        ptemcee = self._import_external_sampler()
 
+        tqdm = get_progress_bar()
         sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,
                                   logp=self.log_prior, **self.sampler_init_kwargs)
         self.pos0 = [[self.get_random_draw_from_prior()

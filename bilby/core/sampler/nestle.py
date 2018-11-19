@@ -6,12 +6,6 @@ from pandas import DataFrame
 from ..utils import logger
 from .base_sampler import NestedSampler
 
-try:
-    import nestle
-except ImportError:
-    logger.debug('Nestle is not installed on this system, you will '
-                 'not be able to use the Nestle sampler')
-
 
 class Nestle(NestedSampler):
     """bilby wrapper `nestle.Sampler` (http://kylebarbary.com/nestle/)
@@ -38,6 +32,16 @@ class Nestle(NestedSampler):
                           maxcall=None, dlogz=None, decline_factor=None,
                           rstate=None, callback=None)
 
+    @staticmethod
+    def _import_external_sampler():
+        try:
+            import nestle
+        except ImportError:
+            logger.debug('Nestle is not installed on this system, you will '
+                         'not be able to use the Nestle sampler')
+            nestle = None
+        return nestle
+
     def _translate_kwargs(self, kwargs):
         if 'npoints' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -59,6 +63,7 @@ class Nestle(NestedSampler):
         bilby.core.result.Result: Packaged information about the result
 
         """
+        nestle = self._import_external_sampler()
         out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
