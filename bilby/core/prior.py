@@ -122,8 +122,7 @@ class PriorDict(OrderedDict):
         likelihood: bilby.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
         default_priors_file: str, optional
-            If given, a file containing the default priors; otherwise defaults
-            to the bilby defaults for a binary black hole.
+            If given, a file containing the default priors.
 
 
         Returns
@@ -258,8 +257,7 @@ def create_default_prior(name, default_priors_file=None):
     name: str
         Parameter name
     default_priors_file: str, optional
-        If given, a file containing the default priors; otherwise defaults to
-        the bilby defaults for a binary black hole.
+        If given, a file containing the default priors.
 
     Return
     ------
