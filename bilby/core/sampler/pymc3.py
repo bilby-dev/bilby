@@ -433,11 +433,9 @@ class Pymc3(MCMCSampler):
                 for key in self.step_method:
                     # check for a compound step list
                     if isinstance(self.step_method[key], list):
-                        compound = []
                         for sms in self.step_method[key]:
                             curmethod = sms.lower()
-                            compound.append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
-                        self.kwargs['step'].append(compound)
+                            self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
                     else:
                         curmethod = self.step_method[key].lower()
                         self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
