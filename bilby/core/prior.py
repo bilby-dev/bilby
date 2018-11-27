@@ -1225,7 +1225,7 @@ class Beta(Prior):
 
         https://en.wikipedia.org/wiki/Beta_distribution
 
-        This really just wraps around
+        This wraps around
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.beta.html
 
         Parameters
