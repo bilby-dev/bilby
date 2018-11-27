@@ -1219,10 +1219,14 @@ class StudentT(Prior):
 
 
 class Beta(Prior):
-    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None):
+    def __init__(self, alpha, beta, minimum=0, maximum=1, name=None,
+                 latex_label=None, unit=None):
         """Beta distribution
 
         https://en.wikipedia.org/wiki/Beta_distribution
+
+        This really just wraps around
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.beta.html
 
         Parameters
         ----------
@@ -1230,6 +1234,10 @@ class Beta(Prior):
             first shape parameter
         beta: float
             second shape parameter
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
         name: str
             See superclass
         latex_label: str
@@ -1238,7 +1246,7 @@ class Beta(Prior):
             See superclass
 
         """
-        Prior.__init__(self, minimum=0., maximum=1., name=name,
+        Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
                        latex_label=latex_label, unit=unit)
 
         if alpha <= 0. or beta <= 0.:
@@ -1246,6 +1254,8 @@ class Beta(Prior):
 
         self.alpha = alpha
         self.beta = beta
+        self._loc = minimum
+        self._scale = maximum - minimum
 
     def rescale(self, val):
         """
@@ -1256,7 +1266,8 @@ class Beta(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return scipy.stats.beta.ppf(val, self.alpha, self.beta)
+        return scipy.stats.beta.ppf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1270,7 +1281,8 @@ class Beta(Prior):
         float: Prior probability of val
         """
 
-        spdf = scipy.stats.beta.pdf(val, self.alpha, self.beta)
+        spdf = scipy.stats.beta.pdf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
         if np.all(np.isfinite(spdf)):
             return spdf
 
@@ -1283,7 +1295,8 @@ class Beta(Prior):
             return 0.
 
     def ln_prob(self, val):
-        spdf = scipy.stats.beta.logpdf(val, self.alpha, self.beta)
+        spdf = scipy.stats.beta.logpdf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
         if np.all(np.isfinite(spdf)):
             return spdf
 
