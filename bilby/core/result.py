@@ -532,36 +532,45 @@ class Result(object):
         """
         if isinstance(parameters, dict):
             plot_parameter_keys = list(parameters.keys())
-            truths = list(parameters.values())
+            truths = parameters
         elif parameters is None:
-            plot_parameter_keys = self.injection_parameters.keys()
-            truths = [self.injection_parameters.get(key, None) for key
-                      in plot_parameter_keys]
+            plot_parameter_keys = self.posterior.keys()
+            if self.injection_parameters is None:
+                truths = dict()
+            else:
+                truths = self.injection_parameters
         else:
             plot_parameter_keys = list(parameters)
-            truths = [self.injection_parameters.get(key, None) for key
-                      in plot_parameter_keys]
+            if self.injection_parameters is None:
+                truths = dict()
+            else:
+                truths = self.injection_parameters
 
         if file_base_name is None:
             file_base_name = '{}/{}_1d/'.format(self.outdir, self.label)
             check_directory_exists_and_if_not_mkdir(file_base_name)
 
         if priors is True:
-            priors = getattr(self, 'priors', False)
-        elif isinstance(priors, dict) or priors in [False, None]:
+            priors = getattr(self, 'priors', dict())
+        elif isinstance(priors, dict):
             pass
+        elif priors in [False, None]:
+            priors = dict()
         else:
             raise ValueError('Input priors={} not understood'.format(priors))
 
         for i, key in enumerate(plot_parameter_keys):
             if not isinstance(self.posterior[key].values[0], float):
                 continue
+            prior = priors.get(key, None)
+            truth = truths.get(key, None)
             for cumulative in [False, True]:
-                self.plot_single_density(
-                    key, prior=priors[i], cumulative=cumulative, title=titles,
-                    truth=truths[i], save=True, file_base_name=file_base_name,
+                fig = self.plot_single_density(
+                    key, prior=prior, cumulative=cumulative, title=titles,
+                    truth=truth, save=True, file_base_name=file_base_name,
                     bins=bins, label_fontsize=label_fontsize, dpi=dpi,
                     title_fontsize=title_fontsize, quantiles=quantiles)
+                plt.close(fig)
 
     def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
                     filename=None, dpi=300, **kwargs):
