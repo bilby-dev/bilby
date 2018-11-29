@@ -67,7 +67,7 @@ class Pymc3(MCMCSampler):
         Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
                          use_ratio=use_ratio, plot=plot,
                          skip_import_verification=skip_import_verification, **kwargs)
-        self.draws  = self.__kwargs['draws']
+        self.draws = self.__kwargs['draws']
         self.chains = self.__kwargs['chains']
 
     @staticmethod
@@ -444,12 +444,12 @@ class Pymc3(MCMCSampler):
                                     args = nuts_kwargs
                                 elif step_kwargs is not None:
                                     args = step_kwargs.get('nuts', {})
-                                else : 
+                                else:
                                     args = {}
                             else:
                                 if step_kwargs is not None:
                                     args = step_kwargs.get('curmethod', {})
-                                else :
+                                else:
                                     args = {}
                             self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
                     else:
@@ -460,12 +460,12 @@ class Pymc3(MCMCSampler):
                                 args = nuts_kwargs
                             elif step_kwargs is not None:
                                 args = step_kwargs.get('nuts', {})
-                            else : 
+                            else:
                                 args = {}
                         else:
-                            if step_kwargs is not None :   
+                            if step_kwargs is not None:   
                                 args = step_kwargs.get(curmethod, {})
-                            else : 
+                            else:
                                 args = {}
                         self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
         else:
@@ -481,7 +481,7 @@ class Pymc3(MCMCSampler):
                                 args = nuts_kwargs
                             elif step_kwargs is not None:
                                 args = step_kwargs.get('nuts', {})
-                            else : 
+                            else:
                                 args = {}
                         else:
                             args = step_kwargs.get(curmethod, {})
@@ -496,8 +496,8 @@ class Pymc3(MCMCSampler):
                                 args = nuts_kwargs
                             elif step_kwargs is not None:
                                 args = step_kwargs.get('nuts', {})
-                            else : 
-                                args = {} 
+                            else:
+                                args = {}
                         else:
                             args = step_kwargs.get(curmethod, {})
                         self.kwargs['step'] = pymc3.__dict__[step_methods[curmethod]](**args)
