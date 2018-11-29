@@ -401,7 +401,6 @@ class Pymc3(MCMCSampler):
                             sms = self.step_method[key]
                         else:
                             sms = [self.step_method[key]]
-                            print(sms)
                         for sm in sms:
                             if sm.lower() not in step_methods:
                                 raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
@@ -443,10 +442,15 @@ class Pymc3(MCMCSampler):
                             if curmethod == 'nuts':
                                 if nuts_kwargs is not None:
                                     args = nuts_kwargs
-                                else:
+                                elif step_kwargs is not None:
                                     args = step_kwargs.get('nuts', {})
+                                else : 
+                                    args = {}
                             else:
-                                args = step_kwargs.get(curmethod, {})
+                                if step_kwargs is not None:
+                                    args = step_kwargs.get('curmethod', {})
+                                else :
+                                    args = {}
                             self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
                     else:
                         curmethod = self.step_method[key].lower()
@@ -461,7 +465,6 @@ class Pymc3(MCMCSampler):
                         else:
                             if step_kwargs is not None :   
                                 args = step_kwargs.get(curmethod, {})
-                                print(args)
                             else : 
                                 args = {}
                         self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
@@ -476,8 +479,10 @@ class Pymc3(MCMCSampler):
                         if curmethod == 'nuts':
                             if nuts_kwargs is not None:
                                 args = nuts_kwargs
-                            else:
+                            elif step_kwargs is not None:
                                 args = step_kwargs.get('nuts', {})
+                            else : 
+                                args = {}
                         else:
                             args = step_kwargs.get(curmethod, {})
                         compound.append(pymc3.__dict__[step_methods[curmethod]](**args))
@@ -489,8 +494,10 @@ class Pymc3(MCMCSampler):
                         if curmethod == 'nuts':
                             if nuts_kwargs is not None:
                                 args = nuts_kwargs
-                            else:
+                            elif step_kwargs is not None:
                                 args = step_kwargs.get('nuts', {})
+                            else : 
+                                args = {} 
                         else:
                             args = step_kwargs.get(curmethod, {})
                         self.kwargs['step'] = pymc3.__dict__[step_methods[curmethod]](**args)
