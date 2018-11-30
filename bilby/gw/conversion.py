@@ -182,6 +182,16 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 converted_parameters['mass_2'] /\
                 converted_parameters['mass_ratio']
 
+    for idx in ['1', '2']:
+        key = 'chi_{}'.format(idx)
+        if key in original_keys:
+            converted_parameters['a_{}'.format(idx)] = abs(
+                converted_parameters[key])
+            converted_parameters['cos_tilt_{}'.format(idx)] = \
+                np.sign(converted_parameters[key])
+            converted_parameters['phi_jl'] = 0.0
+            converted_parameters['phi_12'] = 0.0
+
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
@@ -262,6 +272,18 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
+
+    for idx in ['1', '2']:
+        mag = 'a_{}'.format(idx)
+        if mag in original_keys:
+            tilt = 'tilt_{}'.format(idx)
+            if tilt in original_keys:
+                converted_parameters['chi_{}'.format(idx)] = (
+                    converted_parameters[mag] *
+                    np.cos(converted_parameters[tilt]))
+            else:
+                converted_parameters['chi_{}'.format(idx)] = (
+                    converted_parameters[mag])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
