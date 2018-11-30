@@ -448,7 +448,7 @@ class Pymc3(MCMCSampler):
                                     args = {}
                             else:
                                 if step_kwargs is not None:
-                                    args = step_kwargs.get('curmethod', {})
+                                    args = step_kwargs.get(curmethod, {})
                                 else:
                                     args = {}
                             self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
