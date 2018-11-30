@@ -463,7 +463,7 @@ class Pymc3(MCMCSampler):
                             else:
                                 args = {}
                         else:
-                            if step_kwargs is not None: 
+                            if step_kwargs is not None:
                                 args = step_kwargs.get(curmethod, {})
                             else:
                                 args = {}
