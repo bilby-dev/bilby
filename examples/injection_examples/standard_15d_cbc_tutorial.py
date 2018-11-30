@@ -2,7 +2,7 @@
 """
 Tutorial to demonstrate running parameter estimation on a full 15 parameter
 space for an injected cbc signal. This is the standard injection analysis script
-one can modify for the study of injeted CBC events.
+one can modify for the study of injected CBC events.
 """
 from __future__ import division, print_function
 import numpy as np
@@ -27,7 +27,7 @@ np.random.seed(88170235)
 # spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(
     mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=200., iota=0.4, psi=2.659,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=2000., iota=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 # Fixed arguments passed into the source model
