@@ -2,10 +2,9 @@
 """
 Tutorial to demonstrate running parameter estimation on a full 15 parameter
 space for an injected cbc signal. This is the standard injection analysis script
-one can modify for the study of injeted CBC events. 
+one can modify for the study of injeted CBC events.
 """
 from __future__ import division, print_function
-
 import numpy as np
 import bilby
 
@@ -50,6 +49,7 @@ ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration,
     start_time=injection_parameters['geocent_time'] - 3)
+
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
@@ -81,7 +81,7 @@ priors['geocent_time'] = bilby.core.prior.Uniform(
 # improve convergence, and the parameters are recovered by the conversion
 # function.
 likelihood = bilby.gw.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator,prior=priors,
+    interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
     distance_marginalization=True, phase_marginalization=True, time_marginalization=True)
 
 # Run sampler.  In this case we're going to use the `cpnest` sampler
