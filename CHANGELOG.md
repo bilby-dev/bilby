@@ -3,9 +3,10 @@
 ## Unreleased
 
 ### Changes
-- Renamed "prior" to "prior" in bilby.gw.likelihood.GravtitationalWaveTransient
+- Renamed "prior" to "priors" in bilby.gw.likelihood.GravtitationalWaveTransient
   for consistency with bilby.core. **WARNING**: This will break scripts which
   use marginalization.
+- Fixed definition of matched_filter_snr, the interferometer method has become `ifo.inner_product`.
 
 ## [0.3.3] 2018-11-08
 
