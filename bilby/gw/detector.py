@@ -1517,7 +1517,7 @@ class Interferometer(object):
         float: The optimal signal to noise ratio possible squared
         """
         return gwutils.noise_weighted_inner_product(
-            aa=signal, bb=self.frequency_array,
+            aa=signal, bb=self.frequency_domain_strain,
             power_spectral_density=self.power_spectral_density_array,
             duration=self.strain_data.duration)
 
