@@ -66,12 +66,17 @@ class PriorDict(OrderedDict):
         ----------
         filename: str
             Name of the file to be read in
+
+        Notes
+        -----
+        Lines beginning with '#' or empty lines will be ignored.
         """
 
-        prior = {}
+        comments = ['#', '\n']
+        prior = dict()
         with open(filename, 'r') as f:
             for line in f:
-                if line[0] == '#':
+                if line[0] in comments:
                     continue
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
