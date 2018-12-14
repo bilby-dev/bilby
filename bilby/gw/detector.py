@@ -1280,9 +1280,7 @@ class Interferometer(object):
         signal_ifo *= self.strain_data.frequency_mask
 
         time_shift = self.time_delay_from_geocenter(
-            parameters['ra'],
-            parameters['dec'],
-            self.strain_data.start_time)
+            parameters['ra'], parameters['dec'], parameters['geocent_time'])
         dt = parameters['geocent_time'] + time_shift - self.strain_data.start_time
 
         signal_ifo = signal_ifo * np.exp(
