@@ -1,6 +1,6 @@
 from __future__ import division
 import numpy as np
-from scipy.interpolate import interp2d, interp1d
+from scipy.interpolate import interp1d
 
 try:
     from scipy.special import logsumexp
@@ -9,7 +9,7 @@ except ImportError:
 from scipy.special import i0e
 
 from ..core import likelihood
-from ..core.utils import logger
+from ..core.utils import logger, UnsortedInterp2d
 from ..core.prior import Prior, Uniform
 from .detector import InterferometerList
 from .prior import BBHPriorDict
@@ -182,13 +182,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 if self.phase_marginalization:
                     dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
                         abs(rho_mf_ref_tc_array), rho_opt_ref)
-                    log_l = logsumexp(dist_marged_log_l_tc_array,
-                                      b=self.time_prior_array)
                 else:
                     dist_marged_log_l_tc_array = self._interp_dist_margd_loglikelihood(
                         rho_mf_ref_tc_array.real, rho_opt_ref)
-                    log_l = logsumexp(dist_marged_log_l_tc_array,
-                                      b=self.time_prior_array)
+                log_l = logsumexp(dist_marged_log_l_tc_array,
+                                  b=self.time_prior_array)
             elif self.phase_marginalization:
                 log_l = logsumexp(self._bessel_function_interped(abs(
                     matched_filter_snr_squared_tc_array)),
@@ -249,8 +247,9 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def _setup_distance_marginalization(self):
         self._create_lookup_table()
-        self._interp_dist_margd_loglikelihood = interp2d(self._rho_mf_ref_array, self._rho_opt_ref_array,
-                                                         self._dist_margd_loglikelihood_array)
+        self._interp_dist_margd_loglikelihood = UnsortedInterp2d(
+            self._rho_mf_ref_array, self._rho_opt_ref_array,
+            self._dist_margd_loglikelihood_array)
 
     def _create_lookup_table(self):
         """ Make the lookup table """
