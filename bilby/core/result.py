@@ -468,8 +468,14 @@ class Result(object):
         logger.info('Plotting {} marginal distribution'.format(key))
         label = self.get_latex_labels_from_parameter_keys([key])[0]
         fig, ax = plt.subplots()
-        ax.hist(self.posterior[key].values, bins=bins, density=True,
-                histtype='step', cumulative=cumulative)
+        try:
+            ax.hist(self.posterior[key].values, bins=bins, density=True,
+                    histtype='step', cumulative=cumulative)
+        except ValueError as e:
+            logger.info(
+                'Failed to generate 1d plot for {}, error message: {}'
+                .format(key, e))
+            return
         ax.set_xlabel(label, fontsize=label_fontsize)
         if truth is not None:
             ax.axvline(truth, ls='-', color='orange')
