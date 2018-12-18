@@ -677,6 +677,10 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        # Unless already set, set the range to include all samples
+        # This prevents ValueErrors being raised for parameters with no range
+        kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
+
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
         fig = corner.corner(xs, **kwargs)
