@@ -69,7 +69,7 @@ topic concerning the project.
 #### Code of Conduct
 
 Everyone participating in the bilby community, and in particular in our
-issue tracker, pull requests, and IRC channel, is expected to treat
+issue tracker, merge requests, and IRC channel, is expected to treat
 other people with respect and more generally to follow the guidelines
 articulated in the [Python Community Code of
 Conduct](https://www.python.org/psf/codeofconduct/).
@@ -78,7 +78,7 @@ Conduct](https://www.python.org/psf/codeofconduct/).
 Submitting Changes
 ------------------------
 
-All changes to the code base go through the [pull-request
+All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
 review your code and you may expect a few comments and questions.  Once all
 discussions are resolved, core developers will approve the merge request and
@@ -102,6 +102,64 @@ All merge requests should also be recorded in the CHANGELOG.md.
 This just requires a short sentence describing describing the change, e.g.,
 "- Enable initial values for emcee to be specified."
 
+#### Updating your fork
+
+If you already have a fork of bilby, and are starting work on a new project you can link your clone to the main (`lscsoft`) repository and pull in changes that have been merged since the time you created your fork, or last updated:
+
+1. Link your fork to the main repository:
+
+From the directory `/bilby` containing a local copy of the code:
+
+```bash
+$ git remote add lscsoft https://git.ligo.org/lscsoft/bilby
+```
+
+2. Fetch new changes from the `lscsoft` repo
+
+```bash
+$ git fetch lscsoft
+```
+
+### Creating a new feature branch
+
+All changes should be developed on a feature branch, in order to keep them separate from other work, simplifying review and merge once the work is done.
+
+To create a new feature branch:
+
+```bash
+$ git fetch lscsoft
+$ git checkout -b my-new-feature lscsoft/master
+```
+
+### Hack away
+
+1. Develop the changes you would like to introduce, using `git commit` to finalise a specific change.
+   Ideally commit small units of change often, rather than creating one large commit at the end, this will simplify review and make modifying any changes easier.
+
+    Commit messages should be clear, identifying which code was changed, and why.
+   Common practice is to use a short summary line (<50 characters), followed by a blank line, then more information in longer lines.
+
+2. Push your changes to the remote copy of your fork on git.ligo.org
+
+```bash
+git push origin my-new-feature
+```
+**Note:** For the first `push` of any new feature branch, you will likely have to use the `-u/--set-upstream` option to `push` to create a link between your new branch and the `origin` remote:
+
+```bash
+git push --set-upstream origin my-new-feature
+```
+
+### Open a Merge Request
+
+When you feel that your work is finished, or if you want feedback on it, you should create a Merge Request to propose that your changes be merged into the main (`lscsoft`) repository.
+
+After you have pushed your new feature branch to `origin`, you should find a new button on the [bilby repository home page](https://git.ligo.org/lscsoft/bilby) inviting you to create a Merge Request out of your newly pushed branch.
+You should click the button, and proceed to fill in the title and description boxes on the MR page. If you are still working on the merge request and don’t want it to be merged accidentally, add the string "wip", "work in progress" or "do not merge" (not case-sensitive), to the title.
+
+Once the request has been opened, one of the maintainers will assign someone to review the change.
+
+
 ADD DISCUSSION ON CODE QUALITY
 
 Reviewing Changes
@@ -121,10 +179,10 @@ interested party) please key these three things in mind
 Core developer guidelines
 -------------------------
 
-Core developers should follow these rules when processing pull requests:
+Core developers should follow these rules when processing merge requests:
 
-* Always wait for tests to pass before merging PRs.
-* Delete branches for merged PRs (by core devs pushing to the main repo).
+* Always wait for tests to pass before merging MRs.
+* Delete branches for merged MRs (by core devs pushing to the main repo).
 * Make sure related issues are linked and (if appropriate) closed.
 * Squash commits
 
