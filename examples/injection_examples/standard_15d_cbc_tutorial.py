@@ -71,8 +71,8 @@ priors['mass_ratio'] = bilby.prior.Uniform(
     name='mass_ratio', latex_label='$q$', minimum=0.5, maximum=1.0)
 
 priors['geocent_time'] = bilby.core.prior.Uniform(
-    minimum=injection_parameters['geocent_time'] - 1,
-    maximum=injection_parameters['geocent_time'] + 1,
+    minimum=injection_parameters['geocent_time'] - 0.1,
+    maximum=injection_parameters['geocent_time'] + 0.1,
     name='geocent_time', latex_label='$t_c$', unit='$s$')
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
@@ -84,7 +84,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
     distance_marginalization=True, phase_marginalization=True, time_marginalization=True)
 
-# Run sampler.  In this case we're going to use the `cpnest` sampler
+# Run sampler. In this case we're going to use the `cpnest` sampler
 # Note that the maxmcmc parameter is increased so that between each iteration of
 # the nested sampler approach, the walkers will move further using an mcmc
 # approach, searching the full parameter space.
