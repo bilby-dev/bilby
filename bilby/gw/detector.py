@@ -1355,7 +1355,7 @@ class Interferometer(object):
         self.meta_data['optimal_SNR'] = (
             np.sqrt(self.optimal_snr_squared(signal=signal_ifo)).real)
         self.meta_data['matched_filter_SNR'] = (
-            np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo)))
+            self.matched_filter_snr(signal=signal_ifo))
         self.meta_data['parameters'] = parameters
 
         logger.info("Injected signal in {}:".format(self.name))
@@ -1497,11 +1497,29 @@ class Interferometer(object):
         -------
         float: The optimal signal to noise ratio possible squared
         """
-        return gwutils.optimal_snr_squared(signal=signal,
-                                           power_spectral_density=self.power_spectral_density_array,
-                                           duration=self.strain_data.duration)
+        return gwutils.optimal_snr_squared(
+            signal=signal,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
 
-    def matched_filter_snr_squared(self, signal):
+    def inner_product(self, signal):
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+
+        Returns
+        -------
+        float: The optimal signal to noise ratio possible squared
+        """
+        return gwutils.noise_weighted_inner_product(
+            aa=signal, bb=self.frequency_domain_strain,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
+
+    def matched_filter_snr(self, signal):
         """
 
         Parameters
@@ -1514,10 +1532,10 @@ class Interferometer(object):
         float: The matched filter signal to noise ratio squared
 
         """
-        return gwutils.matched_filter_snr_squared(signal=signal,
-                                                  frequency_domain_strain=self.frequency_domain_strain,
-                                                  power_spectral_density=self.power_spectral_density_array,
-                                                  duration=self.strain_data.duration)
+        return gwutils.matched_filter_snr(
+            signal=signal, frequency_domain_strain=self.frequency_domain_strain,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
 
     @property
     def whitened_frequency_domain_strain(self):

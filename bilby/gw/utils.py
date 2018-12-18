@@ -224,8 +224,10 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     return 4 / duration * np.sum(integrand)
 
 
-def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_density, duration):
+def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
     """
+    Calculate the _complex_ matched filter snr of a signal.
+    This is <signal|frequency_domain_strain> / optimal_snr
 
     Parameters
     ----------
@@ -243,7 +245,13 @@ def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_d
     float: The matched filter signal to noise ratio squared
 
     """
-    return noise_weighted_inner_product(signal, frequency_domain_strain, power_spectral_density, duration)
+    rho_mf = noise_weighted_inner_product(
+        aa=signal, bb=frequency_domain_strain,
+        power_spectral_density=power_spectral_density, duration=duration)
+    rho_mf /= optimal_snr_squared(
+        signal=signal, power_spectral_density=power_spectral_density,
+        duration=duration)**0.5
+    return rho_mf
 
 
 def optimal_snr_squared(signal, power_spectral_density, duration):

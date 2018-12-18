@@ -933,7 +933,7 @@ def compute_snrs(sample, likelihood):
             for ifo in likelihood.interferometers:
                 signal = ifo.get_detector_response(signal_polarizations, sample)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
-                    ifo.matched_filter_snr_squared(signal=signal) ** 0.5
+                    ifo.matched_filter_snr(signal=signal)
                 sample['{}_optimal_snr'.format(ifo.name)] = \
                     ifo.optimal_snr_squared(signal=signal) ** 0.5
         else:
@@ -950,7 +950,7 @@ def compute_snrs(sample, likelihood):
                     signal = ifo.get_detector_response(
                         signal_polarizations, sample.iloc[ii])
                     matched_filter_snrs[ifo.name].append(
-                        ifo.matched_filter_snr_squared(signal=signal) ** 0.5)
+                        ifo.matched_filter_snr(signal=signal))
                     optimal_snrs[ifo.name].append(
                         ifo.optimal_snr_squared(signal=signal) ** 0.5)
 
@@ -1023,20 +1023,20 @@ def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
     """
     signal_polarizations = \
         likelihood.waveform_generator.frequency_domain_strain(sample)
-    rho_mf_sq = 0
+    d_inner_h = 0
     rho_opt_sq = 0
     for ifo in likelihood.interferometers:
         signal = ifo.get_detector_response(signal_polarizations, sample)
-        rho_mf_sq += ifo.matched_filter_snr_squared(signal=signal)
+        d_inner_h += ifo.inner_product(signal=signal)
         rho_opt_sq += ifo.optimal_snr_squared(signal=signal)
 
-    rho_mf_sq_dist = (rho_mf_sq * sample['luminosity_distance'] /
+    d_inner_h_dist = (d_inner_h * sample['luminosity_distance'] /
                       likelihood._distance_array)
 
     rho_opt_sq_dist = (rho_opt_sq * sample['luminosity_distance']**2 /
                        likelihood._distance_array**2)
 
-    distance_log_like = (rho_mf_sq_dist.real - rho_opt_sq_dist.real / 2)
+    distance_log_like = (d_inner_h_dist.real - rho_opt_sq_dist.real / 2)
 
     distance_post = np.exp(distance_log_like - max(distance_log_like)) *\
         likelihood.distance_prior_array
