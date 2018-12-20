@@ -224,8 +224,10 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     return 4 / duration * np.sum(integrand)
 
 
-def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_density, duration):
+def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
     """
+    Calculate the _complex_ matched filter snr of a signal.
+    This is <signal|frequency_domain_strain> / optimal_snr
 
     Parameters
     ----------
@@ -243,7 +245,13 @@ def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_d
     float: The matched filter signal to noise ratio squared
 
     """
-    return noise_weighted_inner_product(signal, frequency_domain_strain, power_spectral_density, duration)
+    rho_mf = noise_weighted_inner_product(
+        aa=signal, bb=frequency_domain_strain,
+        power_spectral_density=power_spectral_density, duration=duration)
+    rho_mf /= optimal_snr_squared(
+        signal=signal, power_spectral_density=power_spectral_density,
+        duration=duration)**0.5
+    return rho_mf
 
 
 def optimal_snr_squared(signal, power_spectral_density, duration):
@@ -270,32 +278,42 @@ def get_event_time(event):
     """
     Get the merger time for known GW events.
 
-    We currently know about:
+    See https://www.gw-openscience.org/catalog/GWTC-1-confident/html/
+    Last update https://arxiv.org/abs/1811.12907:
         GW150914
-        LVT151012
+        GW151012
         GW151226
         GW170104
         GW170608
+        GW170729
+        GW170809
         GW170814
         GW170817
+        GW170818
+        GW170823
 
     Parameters
     ----------
     event: str
-        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+        Event descriptor, this can deal with some prefixes, e.g.,
+        '151012', 'GW151012', 'LVT151012'
 
     Returns
     ------
     event_time: float
         Merger time
     """
-    event_times = {'150914': 1126259462.422,
-                   '151012': 1128678900.4443,
-                   '151226': 1135136350.65,
-                   '170104': 1167559936.5991,
-                   '170608': 1180922494.4902,
-                   '170814': 1186741861.5268,
-                   '170817': 1187008882.4457}
+    event_times = {'150914': 1126259462.4,
+                   '151012': 1128678900.4,
+                   '151226': 1135136350.6,
+                   '170104': 1167559936.6,
+                   '170608': 1180922494.5,
+                   '170729': 1185389807.3,
+                   '170809': 1186302519.8,
+                   '170814': 1186741861.5,
+                   '170817': 1187008882.4,
+                   '170818': 1187058327.1,
+                   '170823': 1187529256.5}
     if 'GW' or 'LVT' in event:
         event = event[-6:]
 
@@ -596,20 +614,24 @@ def plot_skymap(result, center='120d -40d', nside=512):
     fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))
 
 
+def convert_args_list_to_float(*args_list):
+    """ Converts inputs to floats, returns a list in the same order as the input"""
+    try:
+        args_list = [float(arg) for arg in args_list]
+    except ValueError:
+        raise ValueError("Unable to convert inputs to floats")
+    return args_list
+
+
 def lalsim_SimInspiralTransformPrecessingNewInitialConditions(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
         reference_frequency, phase):
 
-    for arg in (theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-                mass_2, reference_frequency, phase):
-        try:
-            arg = float(arg)
-        except ValueError:
-            raise ValueError("Unable to convert inputs to floats")
-
-    return lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+    args_list = convert_args_list_to_float(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
         reference_frequency, phase)
+
+    return lalsim.SimInspiralTransformPrecessingNewInitialConditions(*args_list)
 
 
 def lalsim_GetApproximantFromString(waveform_approximant):
@@ -626,15 +648,15 @@ def lalsim_SimInspiralChooseFDWaveform(
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant):
 
-    for arg in (mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-                spin_2z, luminosity_distance, iota, phase,
-                longitude_ascending_nodes, eccentricity, mean_per_ano,
-                delta_frequency, minimum_frequency, maximum_frequency,
-                reference_frequency):
-            try:
-                arg = float(arg)
-            except ValueError:
-                raise ValueError("Unable to convert inputs to floats")
+    # Convert values to floats
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, longitude_ascending_nodes,
+     eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+     maximum_frequency, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, longitude_ascending_nodes,
+        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+        maximum_frequency, reference_frequency)
 
     # Note, this is the approximant number returns by GetApproximantFromString
     if isinstance(approximant, int) is False:
@@ -662,9 +684,9 @@ def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2):
     try:
-        lambda_1 = float(lambda_2)
+        lambda_2 = float(lambda_2)
     except ValueError:
         raise ValueError("Unable to convert lambda_2 to float")
 
-    return lalsim.SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
+    return lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
