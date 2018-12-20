@@ -498,8 +498,9 @@ class Result(object):
             else:
                 file_name = file_base_name + key + '_pdf'
             fig.savefig(file_name, dpi=dpi)
-
-        return fig
+            plt.close(fig)
+        else:
+            return fig
 
     def plot_marginals(self, parameters=None, priors=None, titles=True,
                        file_base_name=None, bins=50, label_fontsize=16,
@@ -571,12 +572,11 @@ class Result(object):
             prior = priors.get(key, None)
             truth = truths.get(key, None)
             for cumulative in [False, True]:
-                fig = self.plot_single_density(
+                self.plot_single_density(
                     key, prior=prior, cumulative=cumulative, title=titles,
                     truth=truth, save=True, file_base_name=file_base_name,
                     bins=bins, label_fontsize=label_fontsize, dpi=dpi,
                     title_fontsize=title_fontsize, quantiles=quantiles)
-                plt.close(fig)
 
     def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
                     filename=None, dpi=300, **kwargs):
@@ -720,6 +720,7 @@ class Result(object):
                 filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
+            plt.close(fig)
 
         return fig
 
@@ -751,6 +752,7 @@ class Result(object):
         logger.debug('Saving walkers plot to {}'.format('filename'))
         utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
+        plt.close(fig)
 
     def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
                        xlabel=None, ylabel=None, data_label='data',
@@ -822,6 +824,7 @@ class Result(object):
             utils.check_directory_exists_and_if_not_mkdir(self.outdir)
             filename = '{}/{}_plot_with_data'.format(self.outdir, self.label)
         fig.savefig(filename, dpi=dpi)
+        plt.close(fig)
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
