@@ -81,7 +81,7 @@ priors['geocent_time'] = bilby.core.prior.Uniform(
 # improve convergence, and the parameters are recovered by the conversion
 # function.
 likelihood = bilby.gw.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator, prior=priors,
+    interferometers=ifos, waveform_generator=waveform_generator, priors=priors,
     distance_marginalization=True, phase_marginalization=True, time_marginalization=True)
 
 # Run sampler. In this case we're going to use the `cpnest` sampler
