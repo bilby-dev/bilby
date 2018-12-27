@@ -166,6 +166,7 @@ class BNSPriorDict(PriorDict):
         PriorDict.__init__(self, dictionary=dictionary, filename=filename)
 
     def test_redundancy(self, key):
+        logger.info("Performing redundancy check using BBHPriorDict().test_redundancy")
         bbh_redundancy = BBHPriorDict().test_redundancy(key)
         if bbh_redundancy:
             return True
