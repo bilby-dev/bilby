@@ -6,10 +6,8 @@ A singularity container for running bilby scripts
 
 %post
 export PATH=/opt/conda/bin:${PATH}
-echo "Installing latest bilby version"
 pip install bilby==0.3.3
 
 %environment
-echo "Add Multinest library environment variable"
 LD_LIBRARY_PATH=/MultiNest/lib
 export LD_LIBRARY_PATH
