@@ -31,7 +31,7 @@ class PTMCMCSampler(MCMCSampler):
     verbose - Update current run-status to the screen (default=False)
     """
 
-    default_kwargs = {'p0' : np.random.uniform() , 'ndim' :1, 'Niter' : 10**4, 'ladder' : None
+    default_kwargs = {'p0' : None , 'Niter' : 10**4, 'ladder' : None
                     ,'Tmin' :1 , 'Tmax' : None, 'Tskip' : 100 , 'isave' : 1000
                     ,'NUTSweight' : 20 , 'HMCweight' : 20 , 'MALAweight':0
                     ,'burn':10000 , 'HMCstepsize' :0.1 , 'HMCsteps':300
@@ -49,10 +49,9 @@ class PTMCMCSampler(MCMCSampler):
                              skip_import_verification=skip_import_verification,
                              **kwargs)
 
+        self.p0 = self.get_random_draw_from_prior()
         self.likelihood = likelihood
         self.priors = priors
-        self.kwargs['logl'] = self.likelihood.func
-        self.kwargs['logp'] =  self.priors.ln_prob  
 
     @property
     def kwargs(self):
@@ -71,7 +70,6 @@ class PTMCMCSampler(MCMCSampler):
         self.__kwargs.update(kwargs)
         self._verify_kwargs_against_default_kwargs()
 
-
     # def _translate_kwargs(self, kwargs):
     #     if 'nwalkers' not in kwargs:
     #         for equiv in self.nwalkers_equiv_kwargs:
@@ -81,15 +79,14 @@ class PTMCMCSampler(MCMCSampler):
     #         if 'nsteps' in kwargs:
     #             kwargs['iterations'] = kwargs.pop('nsteps')
 
+
+
     @property
     def sampler_init_kwargs(self):
         keys = [
-                'ndim',
                 'loglargs',
                 'logp_grad',
                 'logpkwargs',
-                'logl',
-                'logp',
                 'cov',
                 'loglkwargs',
                 'logl_grad',
@@ -103,7 +100,6 @@ class PTMCMCSampler(MCMCSampler):
     def sampler_function_kwargs(self):
         keys = [
                 'Niter',
-                 'p0',
                  'neff',
                  'Tmin',
                  'HMCweight',
@@ -124,6 +120,14 @@ class PTMCMCSampler(MCMCSampler):
         sampler_kwargs = {key: self.kwargs[key] for key in keys}
         return sampler_kwargs
 
+    @property
+    def nsteps(self):
+        return self.kwargs['Niter']
+
+    @nsteps.setter
+    def nsteps(self, nsteps):
+        self.kwargs['Niter'] = nsteps
+
     @staticmethod
     def _import_external_sampler():
         from PTMCMCSampler import PTMCMCSampler
@@ -139,13 +143,12 @@ class PTMCMCSampler(MCMCSampler):
         #sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
         init_kwargs = self.sampler_init_kwargs
         sampler_kwargs = self.sampler_function_kwargs
-        sampler = PTMCMCSampler.PTSampler(**init_kwargs)
-        #self._set_pos0()
-        #for _ in tqdm(sampler.sample(p0=self.pos0, **self.sampler_function_kwargs),
-        #              total=self.nsteps):
-        #    pass
-
-        sampler.sample(**sampler_kwargs)
+        sampler = PTMCMCSampler.PTSampler(ndim=self.ndim, logp = self.log_prior,
+                                          logl = self.log_likelihood,  **init_kwargs)
+        tqdm = get_progress_bar()
+        print(self.nsteps)
+        sampler.sample(p0 = self.p0 , **sampler_kwargs)
+    
 
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))

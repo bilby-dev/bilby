@@ -109,6 +109,7 @@ class Emcee(MCMCSampler):
         tqdm = get_progress_bar()
         sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
         self._set_pos0()
+        print(self.nsteps)
         for _ in tqdm(sampler.sample(p0=self.pos0, **self.sampler_function_kwargs),
                       total=self.nsteps):
             pass

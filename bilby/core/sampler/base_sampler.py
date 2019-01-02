@@ -142,7 +142,7 @@ class Sampler(object):
         pass
 
     def _verify_external_sampler(self):
-        external_sampler_name = self.__class__.__name__.lower()
+        external_sampler_name = self.__class__.__name__
         print(external_sampler_name)
         try:
             self.external_sampler = __import__(external_sampler_name)
