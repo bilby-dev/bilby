@@ -31,15 +31,16 @@ class PTMCMCSampler(MCMCSampler):
     verbose - Update current run-status to the screen (default=False)
     """
 
-    default_kwargs = {'p0' : None , 'Niter' : 10**4, 'ladder' : None
-                    ,'Tmin' :1 , 'Tmax' : None, 'Tskip' : 100 , 'isave' : 1000
-                    ,'NUTSweight' : 20 , 'HMCweight' : 20 , 'MALAweight':0
-                    ,'burn':10000 , 'HMCstepsize' :0.1 , 'HMCsteps':300
-                    ,'neff' : 10**4 , 'burn' :10**4 , 'thin':1
-                    ,'covUpdate' : 500, 'SCAMweight':20, 'AMweight':20, 'DEweight':50
-                    , 'cov': np.eye(1)
-                    , 'loglargs' : {} , 'loglkwargs' : {} , 'logpargs' : {}, 'logpkwargs': {}
-                    , 'logl_grad' : None , 'logp_grad'  : None, 'outDir' : './ptmcmc_test' , 'verbose': False}
+    default_kwargs = {'p0' : None , 'Niter' : 5 *10**4 ,'neff' : 10**4
+                    ,'burn' :10**4 , 'verbose': False
+                    ,'ladder' : None,'Tmin' :1 , 'Tmax' : None, 'Tskip' : 100
+                    ,'isave' : 1000 ,'thin':1,'covUpdate' : 500
+                    ,'SCAMweight':20, 'AMweight':20 , 'DEweight':20
+                    ,'HMCweight' : 0 ,'MALAweight':0, 'NUTSweight' : 0
+                    ,'HMCstepsize' :0.1 , 'HMCsteps':300
+                    ,'groups':None , 'custom_proposals': None
+                    ,'loglargs': {} , 'loglkwargs': {} , 'logpargs': {}, 'logpkwargs': {}
+                    ,'logl_grad': None , 'logp_grad': None, 'outDir': './ptmcmc_test' }
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
                  skip_import_verification=False, pos0=None, nburn=None, burn_in_fraction=0.25, **kwargs):
@@ -79,15 +80,17 @@ class PTMCMCSampler(MCMCSampler):
     #         if 'nsteps' in kwargs:
     #             kwargs['iterations'] = kwargs.pop('nsteps')
 
-
+    @property
+    def custom_proposals(self):
+        return self.kwargs['custom_proposals']
 
     @property
     def sampler_init_kwargs(self):
         keys = [
+                'groups',
                 'loglargs',
                 'logp_grad',
                 'logpkwargs',
-                'cov',
                 'loglkwargs',
                 'logl_grad',
                 'logpargs',
@@ -116,7 +119,8 @@ class PTMCMCSampler(MCMCSampler):
                  'Tskip',
                  'HMCsteps',
                  'Tmax',
-                 'DEweight']
+                 'DEweight'
+                 ]
         sampler_kwargs = {key: self.kwargs[key] for key in keys}
         return sampler_kwargs
 
@@ -124,38 +128,70 @@ class PTMCMCSampler(MCMCSampler):
     def nsteps(self):
         return self.kwargs['Niter']
 
+    @property
+    def nburn(self):
+        return self.kwargs['burn']
+
     @nsteps.setter
     def nsteps(self, nsteps):
         self.kwargs['Niter'] = nsteps
 
+    @nburn.setter
+    def nburn(self, nsteps):
+        self.kwargs['burn'] = nburn
+
     @staticmethod
     def _import_external_sampler():
         from PTMCMCSampler import PTMCMCSampler
+        import glob
+        import os
+        # OPTIMIZE:
         #import acor
         #from mpi4py import MPI
         #return MPI, PTMCMCSampler
-        return PTMCMCSampler
+        return PTMCMCSampler, glob , os
 
     def run_sampler(self):
         #MPI , PTMCMCSampler = self._import_external_sampler()
-        PTMCMCSampler = self._import_external_sampler()
-        #tqdm = get_progress_bar()
-        #sampler = emcee.EnsembleSampler(dim=self.ndim, lnpostfn=self.lnpostfn, **self.sampler_init_kwargs)
+        PTMCMCSampler, glob , os  = self._import_external_sampler()
         init_kwargs = self.sampler_init_kwargs
         sampler_kwargs = self.sampler_function_kwargs
         sampler = PTMCMCSampler.PTSampler(ndim=self.ndim, logp = self.log_prior,
-                                          logl = self.log_likelihood,  **init_kwargs)
+                                          logl = self.log_likelihood, cov= np.eye(self.ndim),
+                                          **init_kwargs)
         tqdm = get_progress_bar()
-        print(self.nsteps)
-        sampler.sample(p0 = self.p0 , **sampler_kwargs)
-    
+        if self.custom_proposals is not None :
+            for proposal in self.custom_proposals:
+                print('adding ' + str(proposal)  + ' to proposals with weight:'
+                      + str(self.custom_proposals[proposal][1]))
+                sampler.addProposalToCycle(self.custom_proposals[proposal][0]
+                                          ,self.custom_proposals[proposal][1])
+        else :
+            pass
 
+        sampler.sample(p0 = self.p0 , **sampler_kwargs)
+        #### The next bit is very hacky, the ptmcmc writes the samples and
+        #### other info to file so here i read this info, write it to the result
+        #### object then delete it
+        data =np.loadtxt('ptmcmc_test/chain_1.txt')
+        #jumpfiles = glob.glob('ptmcmc_test/*jump.txt')
+        #jumps = map(np.loadtxt, jumpfiles)
+        samples = data[:,:-4]
+        log_post = data[:, -4]
+        loglike = data[:,-3]
+        acceptance_rate = data[:,-2]
+        pt_swap_accept = data[:,-1]
+        for f in glob.glob('./ptmcmc_test/*'):
+            os.remove(f)
+        os.rmdir('ptmcmc_test')
         self.result.sampler_output = np.nan
-        self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
-        self.print_nburn_logging_info()
+        #self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
+        #self.print_nburn_logging_info()
         self.result.nburn = self.nburn
-        self.result.samples = sampler.chain[:, self.nburn:, :].reshape((-1, self.ndim))
-        self.result.walkers = sampler.chain
+        self.result.samples = samples[self.nburn:]
+        #### Walkers isn't really applicable here but appears to be needed to
+        #### turn samples into data frame
+        self.result.walkers = samples[self.nburn:]
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
