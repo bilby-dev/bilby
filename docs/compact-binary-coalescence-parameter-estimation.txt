@@ -1,14 +1,17 @@
-======================================================
+===============================================
 Compact binary coalescence parameter estimation
-======================================================
+===============================================
 
-In this example, which can be found `here
+In `this example
 <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/standard_15d_cbc_tutorial.py>`_,
 we demonstrate how to generate simulated data for a binary black hole
 coalescence observed by the two LIGO interferometers at Hanford and Livingston
 for all parameters in the `IMRPhenomPv2` waveform model.
 
 The code will take around 15 hours to run.
+
+For testing, you may prefer to run the `4-parameter CBC tutorial
+<https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/fast_tutorial.py>`__.
 
 .. literalinclude:: /../examples/injection_examples/standard_15d_cbc_tutorial.py
    :language: python
@@ -24,6 +27,6 @@ here is an example for the Hanford detector:
 
 Finally, after running the parameter estimation. It generates a corner plot:
 
-.. image:: images/full_15d_parameters_corner.png
+.. image:: images/full_15_parameters_corner.png
 
 The solid lines indicate the injection parameters.
