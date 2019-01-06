@@ -90,6 +90,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         An object containing the results
     """
 
+    logger.info(
+        "Running for label '{}', output will be saved to '{}'".format(
+            label, outdir))
+
     if clean:
         command_line_args.clean = clean
     if command_line_args.clean:
