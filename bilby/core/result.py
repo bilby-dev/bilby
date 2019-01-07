@@ -804,7 +804,7 @@ class Result(object):
                 s = model_posterior.iloc[self.posterior.log_likelihood.idxmax()]
                 ax.plot(xsmooth, model(xsmooth, **s), lw=1, color='k',
                         label=maxl_label)
-        except AttributeError:
+        except (AttributeError, TypeError):
             logger.debug(
                 "No log likelihood values stored, unable to plot max")
 
