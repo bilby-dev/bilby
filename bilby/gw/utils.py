@@ -407,6 +407,7 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     """
     loaded = False
     strain = None
+
     if channel is not None:
         try:
             strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
@@ -414,17 +415,24 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
             logger.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
-    for channel_type in ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02']:
-        for ifo_name in ['H1', 'L1']:
-            channel = '{}:{}'.format(ifo_name, channel_type)
-            if loaded:
-                continue
-            try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
-                loaded = True
-                logger.info('Successfully loaded {}.'.format(channel))
-            except RuntimeError:
-                pass
+
+    while not loaded:
+        ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
+                              'DCH-CLEAN_STRAIN_C02']
+        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+        channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
+        for detector in channel_types.keys():
+            for channel_type in channel_types[detector]:
+                if loaded:
+                    break
+                channel = '{}:{}'.format(detector, channel_type)
+                try:
+                    strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
+                                             **kwargs)
+                    loaded = True
+                    logger.info('Successfully read strain data for channel {}.'.format(channel))
+                except RuntimeError:
+                    pass
 
     if loaded:
         return strain
@@ -433,15 +441,17 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
         return None
 
 
-def get_gracedb(gracedb, outdir, duration, calibration, detectors):
+def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None):
     candidate = gracedb_to_json(gracedb, outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
     cache_files = []
-    for det in detectors:
+    if query_types is None:
+        query_types = [None] * len(detectors)
+    for i, det in enumerate(detectors):
         output_cache_file = gw_data_find(
             det, gps_start_time, duration, calibration,
-            outdir=outdir)
+            outdir=outdir, query_type=query_types[i])
         cache_files.append(output_cache_file)
     return candidate, cache_files
 
@@ -487,7 +497,7 @@ def gracedb_to_json(gracedb, outdir=None):
 
 
 def gw_data_find(observatory, gps_start_time, duration, calibration,
-                 outdir='.'):
+                 outdir='.', query_type=None):
     """ Builds a gw_data_find call and process output
 
     Parameters
@@ -502,6 +512,8 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
         Use C01 or C02 calibration
     outdir: string
         A path to the directory where output is stored
+    query_type: string
+        The LDRDataFind query type
 
     Returns
     -------
@@ -514,11 +526,17 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     observatory_lookup = dict(H1='H', L1='L', V1='V')
     observatory_code = observatory_lookup[observatory]
 
-    dtype = '{}_HOFT_C0{}'.format(observatory, calibration)
-    logger.info('Using LDRDataFind query type {}'.format(dtype))
+    if query_type is None:
+        logger.warning('No query type provided. This may prevent data from being read.')
+        if observatory_code is 'V':
+            query_type = 'V1Online'
+        else:
+            query_type = '{}_HOFT_C0{}'.format(observatory, calibration)
+
+    logger.info('Using LDRDataFind query type {}'.format(query_type))
 
     cache_file = '{}-{}_CACHE-{}-{}.lcf'.format(
-        observatory, dtype, gps_start_time, duration)
+        observatory, query_type, gps_start_time, duration)
     output_cache_file = os.path.join(outdir, cache_file)
 
     gps_end_time = gps_start_time + duration
@@ -527,7 +545,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     cl_list.append('--observatory {}'.format(observatory_code))
     cl_list.append('--gps-start-time {}'.format(gps_start_time))
     cl_list.append('--gps-end-time {}'.format(gps_end_time))
-    cl_list.append('--type {}'.format(dtype))
+    cl_list.append('--type {}'.format(query_type))
     cl_list.append('--output {}'.format(output_cache_file))
     cl_list.append('--url-type file')
     cl_list.append('--lal-cache')
