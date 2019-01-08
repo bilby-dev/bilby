@@ -39,7 +39,8 @@ if command_line_args.sampler_help:
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, meta_data=None, save=True, **kwargs):
+                clean=None, meta_data=None, save=True, result_class=None,
+                **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -81,6 +82,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         overwritten.
     save: bool
         If true, save the priors and results to disk.
+    result_class: bilby.core.result.Result, or child of
+        The result class to use. By default, `bilby.core.result.Result` is used,
+        but objects which inherit from this class can be given providing
+        additional methods.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -126,7 +131,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             sampler = sampler_class(
                 likelihood, priors=priors, outdir=outdir, label=label,
                 injection_parameters=injection_parameters, meta_data=meta_data,
-                use_ratio=use_ratio, plot=plot, **kwargs)
+                use_ratio=use_ratio, plot=plot, result_class=result_class,
+                **kwargs)
         else:
             print(implemented_samplers)
             raise ValueError(
