@@ -4,7 +4,7 @@ import numpy as np
 # from pandas import DataFrame
 
 # from ..utils import logger, get_progress_bar
-from .base_sampler import MCMCSampler
+from .base_sampler import MCMCSampler, SamplerNotInstalledError
 
 
 class PTMCMCSampler(MCMCSampler):
@@ -38,16 +38,16 @@ class PTMCMCSampler(MCMCSampler):
     verbose - Update current run-status to the screen (default=False)
     """
 
-    default_kwargs = {'p0': None, 'Niter': 10**4 + 1, 'neff': 10**4,
+    default_kwargs = {'p0': None, 'Niter': 2 * 10**4 + 1, 'neff': 10**4,
                       'burn': 5 * 10**3, 'verbose': True,
                       'ladder': None, 'Tmin': 1, 'Tmax': None, 'Tskip': 100,
-                      'isave': 1000, 'thin': 1, 'covUpdate': 500,
-                      'SCAMweight': 0, 'AMweight': 1, 'DEweight': 1,
+                      'isave': 1000, 'thin': 1, 'covUpdate': 1000,
+                      'SCAMweight': 1, 'AMweight': 1, 'DEweight': 1,
                       'HMCweight': 0, 'MALAweight': 0, 'NUTSweight': 0,
                       'HMCstepsize': 0.1, 'HMCsteps': 300,
                       'groups': None, 'custom_proposals': None,
                       'loglargs': {}, 'loglkwargs': {}, 'logpargs': {}, 'logpkwargs': {},
-                      'logl_grad': None, 'logp_grad': None, 'outDir': './outdir'}
+                      'logl_grad': None, 'logp_grad': None, 'outDir': './temp'}
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
                  skip_import_verification=False, pos0=None, nburn=None, burn_in_fraction=0.25, **kwargs):
@@ -60,6 +60,15 @@ class PTMCMCSampler(MCMCSampler):
         self.p0 = self.get_random_draw_from_prior()
         self.likelihood = likelihood
         self.priors = priors
+
+    # PTMCMC is imported with Caps so need to overwrite this.
+    def _verify_external_sampler(self):
+        external_sampler_name = self.__class__.__name__
+        try:
+            self.external_sampler = __import__(external_sampler_name)
+        except (ImportError, SystemExit):
+            raise SamplerNotInstalledError(
+                "Sampler {} is not installed on this system".format(external_sampler_name))
 
     @property
     def kwargs(self):
@@ -136,14 +145,6 @@ class PTMCMCSampler(MCMCSampler):
     def nburn(self):
         return self.kwargs['burn']
 
-    @nsteps.setter
-    def nsteps(self, nsteps):
-        self.kwargs['Niter'] = nsteps
-
-    @nburn.setter
-    def nburn(self, nsteps):
-        self.kwargs['burn'] = nburn
-
     @staticmethod
     def _import_external_sampler():
         from PTMCMCSampler import PTMCMCSampler
@@ -163,8 +164,6 @@ class PTMCMCSampler(MCMCSampler):
         sampler = PTMCMCSampler.PTSampler(ndim=self.ndim, logp=self.log_prior,
                                           logl=self.log_likelihood, cov=np.eye(self.ndim),
                                           **init_kwargs)
-        # tqdm = get_progress_bar()
-
         if self.custom_proposals is not None:
             for proposal in self.custom_proposals:
                 print('adding ' + str(proposal) + ' to proposals with weight:'
@@ -173,32 +172,43 @@ class PTMCMCSampler(MCMCSampler):
                                            self.custom_proposals[proposal][1])
         else:
             pass
+        print(self.p0)
         sampler.sample(p0=self.p0, **sampler_kwargs)
 
         # The next bit is very hacky, the ptmcmc writes the samples and
         # other info to file so here i read this info, write it to the result
         # object then delete it
-        data = np.loadtxt('outdir/chain_1.txt')
-        # jumpfiles = glob.glob('ptmcmc_test/*jump.txt')
-        # jumps = map(np.loadtxt, jumpfiles)
+        data = np.loadtxt('temp/chain_1.txt')
+        jumpfiles = glob.glob('temp/*jump.txt')
+        jumps = map(np.loadtxt, jumpfiles)
         samples = data[:, :-4]
-        # log_post = data[:, -4]
         loglike = data[:, -3]
-        # acceptance_rate = data[:,-2]
-        # pt_swap_accept = data[:,-1]
-        # for f in glob.glob('./ptmcmc_test/chain*'):
-        # os.remove('./outdir/chain_1.txt')
-        # os.remove('./outdir/cov.npy')
-        # os.rmdir('ptmcmc_test')
-        self.result.sampler_output = np.nan
+        meta = {}
+        jump_accept = {}
+        for ct, j in enumerate(jumps):
+            label = jumpfiles[ct].split('/')[-1].split('_jump.txt')[0]
+            jump_accept[label] = j
+        PT_swap = {'swap_accept': data[-1]}
+        tot_accept = {'tot_accept': data[-2]}
+        log_post = {'log_post': data[:, -4]}
+        meta['tot_accept'] = tot_accept
+        meta['PT_swap'] = PT_swap
+        meta['proposals'] = jump_accept
+        meta['log_post'] = log_post
+
+        samples = data[:, :-4]
+        for f in glob.glob('./temp/*'):
+            os.remove(f)
+        os.rmdir('temp')
+
+        self.result.nburn = self.nburn
+        self.result.samples = samples[self.nburn:]
+        self.meta_data['sampler_meta'] = meta
         self.result.log_likelihood_evaluations = loglike[self.nburn:]
         # self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
         # self.print_nburn_logging_info()
-        self.result.nburn = self.nburn
-        self.result.samples = samples[self.nburn:]
-        # Walkers isn't really applicable here but appears to be needed to
-        # turn samples into data frame
-        self.result.walkers = samples[self.nburn:]
+        self.result.sampler_output = np.nan
+        self.result.walkers = np.nan
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
