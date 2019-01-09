@@ -423,3 +423,31 @@ class CorrelatedSecondaryMassPrior(Uniform):
         res = super().sample(size)
         self.maximum = maximum
         return res
+
+    def prob(self, val, mass_1=None):
+        if mass_1 is None:
+            return super().prob(val)
+        maximum = self.maximum
+        self.maximum = mass_1
+        res = super().prob(val)
+        self.maximum = maximum
+        return res
+
+    def ln_prob(self, val, mass_1=None):
+        if mass_1 is None:
+            return super().ln_prob(val)
+        maximum = self.maximum
+        self.maximum = mass_1
+        res = super().ln_prob(val)
+        self.maximum = maximum
+        return res
+
+    def rescale(self, val, mass_1=None):
+        Prior.test_valid_for_rescaling(val)
+        if mass_1 is None:
+            return super().rescale(val)
+        maximum = self.maximum
+        self.maximum = mass_1
+        res = super().rescale(val)
+        self.maximum = maximum
+        return res
