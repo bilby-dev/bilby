@@ -3,6 +3,7 @@ import os
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
+from bilby.core.prior import Uniform
 from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
                           Gaussian, Interped)
 from ..core.utils import logger
@@ -393,3 +394,32 @@ class CalibrationPriorSet(CalibrationPriorDict):
         """ DEPRECATED: USE BNSPriorDict INSTEAD"""
         super(CalibrationPriorSet, self).__init__(dictionary, filename)
         logger.warning("The name 'CalibrationPriorSet' is deprecated use 'CalibrationPriorDict' instead")
+
+
+class CorrelatedSecondaryMassPrior(Uniform):
+
+    def __init__(self, name=None, latex_label=None, unit=None, minimum=-np.inf,
+                 maximum=np.inf):
+        """
+
+        Parameters
+        ----------
+        name
+        latex_label
+        unit
+        minimum
+        maximum
+        """
+        super(CorrelatedSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
+                                                           name=name, latex_label=latex_label,
+                                                           unit=unit)
+        self.CORRELATED_VARIABLES = ['mass_1']
+
+    def sample(self, size=None, mass_1=None):
+        if mass_1 is None:
+            return super().sample(size)
+        maximum = self.maximum
+        self.maximum = mass_1
+        res = super().sample(size)
+        self.maximum = maximum
+        return res

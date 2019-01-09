@@ -261,6 +261,115 @@ class PriorSet(PriorDict):
         super(PriorSet, self).__init__(dictionary, filename)
 
 
+class CorrelatedPriorDict(PriorDict):
+
+    def __init__(self, dictionary=None, filename=None):
+        super(CorrelatedPriorDict, self).__init__(dictionary=dictionary, filename=filename)
+        self.correlated_keys = []
+        self.uncorrelated_keys = []
+        self._resolve_correlations()
+
+    def _resolve_correlations(self):
+        self.convert_floats_to_delta_functions()
+        for key in self.keys():
+            if self[key].has_correlated_variables():
+                self.correlated_keys.append(key)
+            else:
+                self.uncorrelated_keys.append(key)
+
+    def sample_subset(self, keys=iter([]), size=None):
+        self.convert_floats_to_delta_functions()
+        correlated_keys = []
+        uncorrelated_keys = []
+        sampled_keys = []
+        for key in keys:
+            if key in self.uncorrelated_keys:
+                uncorrelated_keys.append(key)
+            elif key in self.correlated_keys:
+                correlated_keys.append(key)
+            else:
+                raise KeyError('Invalid key in keys argument')
+
+        samples = dict()
+        for key in uncorrelated_keys:
+            samples[key] = self[key].sample(size=size)
+            sampled_keys.append(key)
+
+        for i in range(0, 1000):
+            for key in correlated_keys:
+                if self._check_correlations_resolved(key, sampled_keys):
+                    cvars = self._get_correlated_variables(key)
+                    samples[key] = self[key].sample(size=size, **cvars)
+                    correlated_keys.remove(key)
+            if not correlated_keys:
+                break
+            if i == 999:
+                raise Exception('This set contains unresolvable correlations')
+
+        return samples
+
+    def _get_correlated_variables(self, key):
+        correlated_variables = dict()
+        for cv in self[key].CORRELATED_VARIABLES:
+            correlated_variables[cv] = self[cv].least_recently_sampled
+        return correlated_variables
+
+    def _check_correlations_resolved(self, key, sampled_keys):
+        correlations_resolved = True
+        for k in self[key].CORRELATED_VARIABLES:
+            if k not in sampled_keys:
+                correlations_resolved = False
+        return correlations_resolved
+
+    def prob(self, sample, **kwargs):
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the probability of
+        kwargs:
+            The keyword arguments are passed directly to `np.product`
+
+        Returns
+        -------
+        float: Joint probability of all individual sample probabilities
+
+        """
+        return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
+
+    def ln_prob(self, sample):
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the log probability of
+
+        Returns
+        -------
+        float: Joint log probability of all the individual sample probabilities
+
+        """
+        return np.sum([self[key].ln_prob(sample[key]) for key in sample])
+
+    def rescale(self, keys, theta):
+        """Rescale samples from unit cube to prior
+
+        Parameters
+        ----------
+        keys: list
+            List of prior keys to be rescaled
+        theta: list
+            List of randomly drawn values on a unit cube associated with the prior keys
+
+        Returns
+        -------
+        list: List of floats containing the rescaled sample
+        """
+        return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+
+
 def create_default_prior(name, default_priors_file=None):
     """Make a default prior for a parameter with a known name.
 
@@ -319,6 +428,8 @@ class Prior(object):
         self.unit = unit
         self.minimum = minimum
         self.maximum = maximum
+        self.least_recently_sampled = None
+        self.CORRELATED_VARIABLES = []
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -356,7 +467,8 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        return self.rescale(np.random.uniform(0, 1, size))
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size))
+        return self.least_recently_sampled
 
     def rescale(self, val):
         """
@@ -529,6 +641,11 @@ class Prior(object):
         else:
             label = self.name
         return label
+
+    def has_correlated_variables(self):
+        if len(self.CORRELATED_VARIABLES) > 0:
+            return True
+        return False
 
 
 class DeltaFunction(Prior):
