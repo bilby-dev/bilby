@@ -336,7 +336,13 @@ class CorrelatedPriorDict(PriorDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
+        ls = []
+        for key in sample:
+            method_kwargs = infer_args_from_method(self[key].prob)
+            method_kwargs.remove('val')
+            correlated_variables = {key: sample[key] for key in method_kwargs}
+            ls.append(self[key].prob(sample[key], **correlated_variables))
+        return np.product(ls, **kwargs)
 
     def ln_prob(self, sample):
         """
@@ -351,7 +357,13 @@ class CorrelatedPriorDict(PriorDict):
         float: Joint log probability of all the individual sample probabilities
 
         """
-        return np.sum([self[key].ln_prob(sample[key]) for key in sample])
+        ls = []
+        for key in sample:
+            method_kwargs = infer_args_from_method(self[key].prob)
+            method_kwargs.remove('val')
+            correlated_variables = {key: sample[key] for key in method_kwargs}
+            ls.append(self[key].ln_prob(sample[key], **correlated_variables))
+        return np.sum(ls)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -367,7 +379,13 @@ class CorrelatedPriorDict(PriorDict):
         -------
         list: List of floats containing the rescaled sample
         """
-        return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+        ls = []
+        for key in theta:
+            method_kwargs = infer_args_from_method(self[key].prob)
+            method_kwargs.remove('val')
+            correlated_variables = {key: theta for key in method_kwargs}
+            ls.append(self[key].rescale(sample, correlated_variables) for key, sample in zip(keys, theta))
+        return ls
 
 
 def create_default_prior(name, default_priors_file=None):
