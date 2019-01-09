@@ -14,12 +14,10 @@ stages:
   - deploy
 
 # test example on python 2
-python-2:
+python-2.7:
   stage: test
-  image: bilbydev/test-suite-py2
+  image: bilbydev/bilby-test-suite-python27
   before_script:
-    # Source the .bashrc for MultiNest
-    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
@@ -28,12 +26,10 @@ python-2:
     - pytest --ignore=test/utils_py3_test.py
 
 # test example on python 3
-python-3:
+python-3.7:
   stage: test
-  image: bilbydev/test-suite-py3
+  image: bilbydev/bilby-test-suite-python37
   before_script:
-    # Source the .bashrc for MultiNest
-    - source /root/.bashrc
     # Install the dependencies specified in the Pipfile
     - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
@@ -49,7 +45,6 @@ python-3:
 
     # Make the documentation
     - cd docs
-    - conda install -y make
     - make clean
     - make html
 
@@ -62,8 +57,8 @@ python-3:
 pages:
   stage: deploy
   dependencies:
-    - python-3
-    - python-2
+    - python-3.7
+    - python-2.7
   script:
     - mkdir public/
     - mv htmlcov/ public/
