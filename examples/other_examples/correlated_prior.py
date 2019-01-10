@@ -28,7 +28,7 @@ def correlation_func_a(mu, a=0):
 
 
 def correlation_func_b(mu, a=0, b=0):
-    return mu + 0.01*a**2 + 0.01*b**2 + 0.01*a*b + 0.1*b + 3
+    return mu + 0.01 * a**2 + 0.01 * b**2 + 0.01 * a * b + 0.1 * b + 3
 
 
 a = bilby.core.prior.Gaussian(mu=0., sigma=1)
@@ -38,11 +38,7 @@ c = bilby.core.prior.CorrelatedGaussian(mu=0, sigma=1, correlation_func=correlat
 correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
 
 samples = correlated_uniform.sample(1000000)
-print(samples)
 
-# plt.plot(samples['a'], samples['b'], 'C0o')
-
-# plt.show()
 samples = np.array([samples['a'], samples['b'], samples['c']]).T
 corner.corner(np.array(samples))
 plt.show()
@@ -55,11 +51,7 @@ c = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=co
 correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
 
 samples = correlated_uniform.sample(1000000)
-print(samples)
 
-# plt.plot(samples['a'], samples['b'], 'C0o')
-
-# plt.show()
 samples = np.array([samples['a'], samples['b'], samples['c']]).T
 corner.corner(np.array(samples))
 plt.show()
