@@ -142,13 +142,13 @@ class Sampler(object):
         pass
 
     def _verify_external_sampler(self):
-        external_sampler_name = self.__class__.__name__
-        print(external_sampler_name)
+        external_sampler_name = self.__class__.__name__.lower()
         try:
             self.external_sampler = __import__(external_sampler_name)
-        except (ImportError, SystemExit, ModuleNotFoundError):
+        except (ImportError, SystemExit):
             raise SamplerNotInstalledError(
                 "Sampler {} is not installed on this system".format(external_sampler_name))
+
 
     def _verify_kwargs_against_default_kwargs(self):
         """

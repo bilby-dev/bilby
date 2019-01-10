@@ -280,7 +280,6 @@ def create_default_prior(name, default_priors_file=None):
             prior = None
     return prior
 
-
 class Prior(object):
     _default_latex_labels = dict()
 
