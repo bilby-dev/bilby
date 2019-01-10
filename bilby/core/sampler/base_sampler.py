@@ -149,7 +149,6 @@ class Sampler(object):
             raise SamplerNotInstalledError(
                 "Sampler {} is not installed on this system".format(external_sampler_name))
 
-
     def _verify_kwargs_against_default_kwargs(self):
         """
         Check if the kwargs are contained in the list of available arguments
