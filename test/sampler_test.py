@@ -441,7 +441,7 @@ class TestRunningSamplers(unittest.TestCase):
     def test_run_PTMCMCSampler(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors,
-            sampler= 'PTMCMCsampler'', Niter=100, save=False)
+            sampler= 'PTMCMCsampler', Niter=100, save=False)
 
 
 if __name__ == '__main__':
