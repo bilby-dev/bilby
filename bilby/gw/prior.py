@@ -413,7 +413,7 @@ class CorrelatedSecondaryMassPrior(Uniform):
         super(CorrelatedSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                            name=name, latex_label=latex_label,
                                                            unit=unit)
-        self.CORRELATED_VARIABLES = ['mass_1']
+        self.correlated_variables = dict(mass_1=None)
 
     def sample(self, size=None, mass_1=None):
         if mass_1 is None:

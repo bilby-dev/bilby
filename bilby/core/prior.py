@@ -310,13 +310,13 @@ class CorrelatedPriorDict(PriorDict):
 
     def _get_correlated_variables(self, key):
         correlated_variables = dict()
-        for cv in self[key].CORRELATED_VARIABLES:
-            correlated_variables[cv] = self[cv].least_recently_sampled
+        for k in self[key].correlated_variables:
+            correlated_variables[k] = self[k].least_recently_sampled
         return correlated_variables
 
     def _check_correlations_resolved(self, key, sampled_keys):
         correlations_resolved = True
-        for k in self[key].CORRELATED_VARIABLES:
+        for k in self[key].correlated_variables:
             if k not in sampled_keys:
                 correlations_resolved = False
         return correlations_resolved
@@ -447,7 +447,7 @@ class Prior(object):
         self.minimum = minimum
         self.maximum = maximum
         self.least_recently_sampled = None
-        self.CORRELATED_VARIABLES = []
+        self.correlated_variables = dict()
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -661,7 +661,7 @@ class Prior(object):
         return label
 
     def has_correlated_variables(self):
-        if len(self.CORRELATED_VARIABLES) > 0:
+        if len(self.correlated_variables) > 0:
             return True
         return False
 
@@ -1844,3 +1844,52 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.id))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
+
+
+class LinearCorrelatedGaussian(Prior):
+
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+        """Gaussian prior with mean mu and width sigma
+
+        Parameters
+        ----------
+        mu: float
+            Mean of the Gaussian prior
+        sigma:
+            Width/Standard deviation of the Gaussian prior
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        self.mu = mu
+        self.sigma = sigma
+        self.correlated_variables = {}
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+        """
+        Prior.test_valid_for_rescaling(val)
+        return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
+
+    def ln_prob(self, val):
+        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
