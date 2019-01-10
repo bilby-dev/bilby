@@ -167,7 +167,7 @@ class PTMCMCSampler(MCMCSampler):
         if self.custom_proposals is not None:
             for proposal in self.custom_proposals:
                 print('adding ' + str(proposal) + ' to proposals with weight:' +
-                       str(self.custom_proposals[proposal][1]))
+                      str(self.custom_proposals[proposal][1]))
                 sampler.addProposalToCycle(self.custom_proposals[proposal][0],
                                            self.custom_proposals[proposal][1])
         else:
