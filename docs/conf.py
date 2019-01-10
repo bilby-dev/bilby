@@ -31,7 +31,8 @@ sys.path.insert(0, os.path.abspath('../bilby/'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'numpydoc',
-              'nbsphinx', 'sphinx.ext.autosummary', 'sphinx.ext.autosectionlabel']
+              'nbsphinx', 'sphinx.ext.autosummary',
+              'sphinx.ext.autosectionlabel', 'sphinx_tabs.tabs']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
