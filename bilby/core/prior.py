@@ -301,6 +301,7 @@ class CorrelatedPriorDict(PriorDict):
                     cvars = self._get_correlated_variables(key)
                     samples[key] = self[key].sample(size=size, **cvars)
                     correlated_keys.remove(key)
+                    sampled_keys.append(key)
             if not correlated_keys:
                 break
             if i == 999:
@@ -447,7 +448,7 @@ class Prior(object):
         self.minimum = minimum
         self.maximum = maximum
         self.least_recently_sampled = None
-        self.correlated_variables = dict()
+        self._correlated_variables = []
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -664,6 +665,14 @@ class Prior(object):
         if len(self.correlated_variables) > 0:
             return True
         return False
+
+    @property
+    def correlated_variables(self):
+        return self._correlated_variables
+
+    @correlated_variables.setter
+    def correlated_variables(self, correlated_variables):
+        self._correlated_variables = correlated_variables
 
 
 class DeltaFunction(Prior):
@@ -1846,9 +1855,9 @@ class FromFile(Interped):
             logger.warning(r"x\tp(x)")
 
 
-class LinearCorrelatedGaussian(Prior):
+class CorrelatedGaussian(Prior):
 
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, correlation_func=None):
         """Gaussian prior with mean mu and width sigma
 
         Parameters
@@ -1867,18 +1876,46 @@ class LinearCorrelatedGaussian(Prior):
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
         self.mu = mu
         self.sigma = sigma
-        self.correlated_variables = {}
+        if not correlation_func:
+            self.correlation_func = lambda x, **y: x
+        else:
+            self.correlation_func = correlation_func
 
-    def rescale(self, val):
+    @property
+    def correlated_variables(self):
+        from .utils import infer_parameters_from_function
+        return infer_parameters_from_function(self.correlation_func)
+
+    def sample(self, size=None, **cvars):
+        """Draw a sample from the prior
+
+        Parameters
+        ----------
+        size: int or tuple of ints, optional
+            See numpy.random.uniform docs
+
+        Returns
+        -------
+        float: A random number between 0 and 1, rescaled to match the distribution of this Prior
+
+        """
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **cvars)
+        return self.least_recently_sampled
+
+    def mean(self, **correlated_variables):
+        return self.correlation_func(self.mu, **correlated_variables)
+
+    def rescale(self, val, **correlated_variables):
         """
         'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
+        return self.mean(**correlated_variables) + \
+            erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
-    def prob(self, val):
+    def prob(self, val, **correlated_variables):
         """Return the prior probability of val.
 
         Parameters
@@ -1889,7 +1926,103 @@ class LinearCorrelatedGaussian(Prior):
         -------
         float: Prior probability of val
         """
-        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
+        return np.exp(-(self.mean(**correlated_variables) - val) ** 2 /
+                      (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
-    def ln_prob(self, val):
-        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+    def ln_prob(self, val, **correlated_variables):
+        return -0.5 * ((self.mean(**correlated_variables) - val) ** 2 /
+                       self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+
+
+class CorrelatedUniform(Prior):
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None,
+                 unit=None, correlation_func=None):
+        """Uniform prior with bounds
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label,
+                       minimum=minimum, maximum=maximum, unit=unit)
+        if not correlation_func:
+            self.correlation_func = lambda x, **y: x
+        else:
+            self.correlation_func = correlation_func
+
+    def mean(self, **correlated_variables):
+        mean = (self.maximum + self.minimum)/2
+        return self.correlation_func(mean, **correlated_variables)
+
+    @property
+    def width(self):
+        return self.maximum - self.minimum
+
+    @property
+    def correlated_variables(self):
+        from .utils import infer_parameters_from_function
+        return infer_parameters_from_function(self.correlation_func)
+
+    def sample(self, size=None, **correlated_variables):
+        """Draw a sample from the prior
+
+        Parameters
+        ----------
+        size: int or tuple of ints, optional
+            See numpy.random.uniform docs
+
+        Returns
+        -------
+        float: A random number between 0 and 1, rescaled to match the distribution of this Prior
+
+        """
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **correlated_variables)
+        return self.least_recently_sampled
+
+    def rescale(self, val, **correlated_variables):
+        Prior.test_valid_for_rescaling(val)
+        minimum = self.mean(**correlated_variables) - self.width/2
+        maximum = self.mean(**correlated_variables) + self.width/2
+        return minimum + val * (maximum - minimum)
+
+    def prob(self, val, **correlated_variables):
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        minimum = self.mean(**correlated_variables) - self.width/2
+        maximum = self.mean(**correlated_variables) + self.width/2
+        return scipy.stats.uniform.pdf(val, loc=minimum,
+                                       scale=maximum - minimum)
+
+    def ln_prob(self, val, **correlated_variables):
+        """Return the log prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: log probability of val
+        """
+        minimum = self.mean(**correlated_variables) - self.width/2
+        maximum = self.mean(**correlated_variables) + self.width/2
+        return scipy.stats.uniform.logpdf(val, loc=minimum,
+                                          scale=maximum - minimum)
