@@ -172,7 +172,6 @@ class PTMCMCSampler(MCMCSampler):
                                            self.custom_proposals[proposal][1])
         else:
             pass
-        print(self.p0)
         sampler.sample(p0=self.p0, **sampler_kwargs)
 
         # The next bit is very hacky, the ptmcmc writes the samples and
