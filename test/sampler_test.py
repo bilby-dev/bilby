@@ -438,6 +438,11 @@ class TestRunningSamplers(unittest.TestCase):
             likelihood=self.likelihood, priors=self.priors,
             sampler='pymultinest', nlive=100, save=False)
 
+    def test_run_PTMCMCSampler(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors,
+            sampler= 'PTMCMCsampler'', Niter=100, save=False)
+
 
 if __name__ == '__main__':
     unittest.main()
