@@ -468,8 +468,14 @@ class Result(object):
         logger.info('Plotting {} marginal distribution'.format(key))
         label = self.get_latex_labels_from_parameter_keys([key])[0]
         fig, ax = plt.subplots()
-        ax.hist(self.posterior[key].values, bins=bins, density=True,
-                histtype='step', cumulative=cumulative)
+        try:
+            ax.hist(self.posterior[key].values, bins=bins, density=True,
+                    histtype='step', cumulative=cumulative)
+        except ValueError as e:
+            logger.info(
+                'Failed to generate 1d plot for {}, error message: {}'
+                .format(key, e))
+            return
         ax.set_xlabel(label, fontsize=label_fontsize)
         if truth is not None:
             ax.axvline(truth, ls='-', color='orange')
@@ -492,8 +498,9 @@ class Result(object):
             else:
                 file_name = file_base_name + key + '_pdf'
             fig.savefig(file_name, dpi=dpi)
-
-        return fig
+            plt.close(fig)
+        else:
+            return fig
 
     def plot_marginals(self, parameters=None, priors=None, titles=True,
                        file_base_name=None, bins=50, label_fontsize=16,
@@ -565,12 +572,11 @@ class Result(object):
             prior = priors.get(key, None)
             truth = truths.get(key, None)
             for cumulative in [False, True]:
-                fig = self.plot_single_density(
+                self.plot_single_density(
                     key, prior=prior, cumulative=cumulative, title=titles,
                     truth=truth, save=True, file_base_name=file_base_name,
                     bins=bins, label_fontsize=label_fontsize, dpi=dpi,
                     title_fontsize=title_fontsize, quantiles=quantiles)
-                plt.close(fig)
 
     def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
                     filename=None, dpi=300, **kwargs):
@@ -677,6 +683,10 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        # Unless already set, set the range to include all samples
+        # This prevents ValueErrors being raised for parameters with no range
+        kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
+
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
         fig = corner.corner(xs, **kwargs)
@@ -710,6 +720,7 @@ class Result(object):
                 filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
+            plt.close(fig)
 
         return fig
 
@@ -741,6 +752,7 @@ class Result(object):
         logger.debug('Saving walkers plot to {}'.format('filename'))
         utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
+        plt.close(fig)
 
     def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
                        xlabel=None, ylabel=None, data_label='data',
@@ -792,7 +804,7 @@ class Result(object):
                 s = model_posterior.iloc[self.posterior.log_likelihood.idxmax()]
                 ax.plot(xsmooth, model(xsmooth, **s), lw=1, color='k',
                         label=maxl_label)
-        except AttributeError:
+        except (AttributeError, TypeError):
             logger.debug(
                 "No log likelihood values stored, unable to plot max")
 
@@ -812,6 +824,7 @@ class Result(object):
             utils.check_directory_exists_and_if_not_mkdir(self.outdir)
             filename = '{}/{}_plot_with_data'.format(self.outdir, self.label)
         fig.savefig(filename, dpi=dpi)
+        plt.close(fig)
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):

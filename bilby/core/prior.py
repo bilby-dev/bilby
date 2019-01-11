@@ -66,12 +66,17 @@ class PriorDict(OrderedDict):
         ----------
         filename: str
             Name of the file to be read in
+
+        Notes
+        -----
+        Lines beginning with '#' or empty lines will be ignored.
         """
 
-        prior = {}
+        comments = ['#', '\n']
+        prior = dict()
         with open(filename, 'r') as f:
             for line in f:
-                if line[0] == '#':
+                if line[0] in comments:
                     continue
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
@@ -239,6 +244,13 @@ class PriorDict(OrderedDict):
     def test_redundancy(self, key):
         """Empty redundancy test, should be overwritten in subclasses"""
         return False
+
+    def copy(self):
+        """
+        We have to overwrite the copy method as it fails due to the presence of
+        defaults.
+        """
+        return self.__class__(dictionary=OrderedDict(self))
 
 
 class PriorSet(PriorDict):
@@ -653,7 +665,7 @@ class PowerLaw(Prior):
             normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
                                               self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
+        return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
 
 
 class Uniform(Prior):

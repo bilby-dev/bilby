@@ -332,19 +332,6 @@ class TestInterferometer(unittest.TestCase):
             self.assertTrue(np.array_equal(expected[2], actual[2]))
             self.assertEqual(expected[3], actual[3])
 
-    def test_matched_filter_snr_squared(self):
-        """ Merely checks parameters are given in the right order """
-        with mock.patch('bilby.gw.utils.noise_weighted_inner_product') as m:
-            m.side_effect = lambda a, b, c, d: [b, [a, c, d]]
-            signal = 1
-            expected = [self.ifo.frequency_domain_strain, [signal, self.ifo.power_spectral_density_array,
-                                                           self.ifo.strain_data.duration]]
-            actual = self.ifo.matched_filter_snr_squared(signal=signal)
-            self.assertTrue(np.array_equal(expected[0], actual[0]))  # array-like element has to be evaluated separately
-            self.assertEqual(expected[1][0], actual[1][0])
-            self.assertTrue(np.array_equal(expected[1][1], actual[1][1]))
-            self.assertEqual(expected[1][2], actual[1][2])
-
     def test_repr(self):
         expected = 'Interferometer(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
                    'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \

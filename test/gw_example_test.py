@@ -43,7 +43,7 @@ class Test(unittest.TestCase):
 
     def test_examples(self):
         """ Loop over examples to check they run """
-        examples = ['examples/injection_examples/basic_tutorial.py',
+        examples = ['examples/injection_examples/fast_tutorial.py',
                     'examples/injection_examples/marginalized_likelihood.py',
                     'examples/open_data_examples/GW150914.py',
                     ]
@@ -54,5 +54,3 @@ class Test(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-

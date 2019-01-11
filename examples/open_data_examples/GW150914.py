@@ -23,6 +23,8 @@ bilby.core.utils.setup_logger(outdir=outdir, label=label)
 # makes sense, for each detector a plot is created in the `outdir` called
 # H1_frequency_domain_data.png and LI_frequency_domain_data.png. The two
 # objects are then placed into a list.
+# For GW170817, 170608 and 170814 add the following line to select clean data.
+# kwargs = {"tag": 'CLN'}
 interferometers = bilby.gw.detector.get_event_data(label)
 
 # We now define the prior.

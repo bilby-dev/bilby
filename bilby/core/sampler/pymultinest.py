@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import os
+
+import numpy as np
+
 from ..utils import check_directory_exists_and_if_not_mkdir
 from ..utils import logger
 from .base_sampler import NestedSampler
@@ -66,7 +70,7 @@ class Pymultinest(NestedSampler):
                 'The length of {} exceeds 78 characters. '
                 ' Post-processing will fail because the file names will be cut'
                 ' off. Please choose a shorter "outdir" or "label".'
-                .format(self.__kwargs['outputfiles_basename']))
+                .format(self.kwargs['outputfiles_basename']))
         check_directory_exists_and_if_not_mkdir(
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
@@ -78,8 +82,12 @@ class Pymultinest(NestedSampler):
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
 
+        post_equal_weights = os.path.join(
+            self.kwargs['outputfiles_basename'], 'post_equal_weights.dat')
+        post_equal_weights_data = np.loadtxt(post_equal_weights)
+        self.result.log_likelihood_evaluations = post_equal_weights_data[:, -1]
         self.result.sampler_output = out
-        self.result.samples = out['samples']
+        self.result.samples = post_equal_weights_data[:, :-1]
         self.result.log_evidence = out['logZ']
         self.result.log_evidence_err = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
