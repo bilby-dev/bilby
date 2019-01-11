@@ -60,3 +60,7 @@ ENV LD_LIBRARY_PATH $HOME/MultiNest/lib:
 # Install Polychord
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
 && (cd PolyChordLite && make pypolychord  MPI= && python setup.py install)
+
+# Install PTMCMCSampler
+RUN git clone https://github.com/jellis18/PTMCMCSampler.git
+&& (cd PTMCMCSampler && python setup.py install)
