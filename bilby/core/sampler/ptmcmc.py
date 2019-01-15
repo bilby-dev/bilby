@@ -17,25 +17,26 @@ class PTMCMCSampler(MCMCSampler):
 
     Other Parameters
     ----------------
-    ndim - number of dimensions in problem
-    custom_proposals - this is to add any proposal to the array of proposal,
-                       this must be in the form of a dictionary with the
-                       name of the proposal, then a list containing the jump
-                       function and the weight e.g {'name' : [function , weight]}
-                       see (https://github.com/rgreen1995/PTMCMCSampler/blob/master/examples/simple.ipynb)
-                       and (http://jellis18.github.io/PTMCMCSampler/PTMCMCSampler.html#ptmcmcsampler-ptmcmcsampler-module)
-                       for examples and more info.
-    logl - log-likelihood function
-    logp - log prior function (must be normalized for evidence evaluation)
-    cov - Initial covariance matrix of model parameters for jump proposals
-    loglargs - any additional arguments (apart from the parameter vector) for log likelihood
-    loglkwargs - any additional keyword arguments (apart from the parameter vector) for log likelihood
-    logpargs - any additional arguments (apart from the parameter vector) for log like prior
-    logpkwargs - any additional keyword arguments (apart from the parameter vector) for log prior
-    logl_grad - Gradient of likelihood  if known (default = None)
-    logp_grad - Gradient of prior if known (default = None)
-    outDir - Full path to output directory for chain files (default = ./chains)
-    verbose - Update current run-status to the screen (default=False)
+    Niter: int (2*10**4 +1)
+        The number of mcmc steps
+    burn: int (5 * 10**3)
+        If given, the fixed number of steps to discard as burn-in
+    thin: int (1)
+        The number of steps before saving the sample to the chain
+    custom_proposals: dict (None)
+        this is to add any proposal to the array of proposal,
+        this must be in the form of a dictionary with the
+        name of the proposal, then a list containing the jump
+        function and the weight e.g {'name' : [function , weight]}
+        see (https://github.com/rgreen1995/PTMCMCSampler/blob/master/examples/simple.ipynb)
+        and (http://jellis18.github.io/PTMCMCSampler/PTMCMCSampler.html#ptmcmcsampler-ptmcmcsampler-module)
+        for examples and more info.
+    logl_grad: func (None)
+        Gradient of likelihood  if known (default = None)
+    logp_grad: func (None)
+        Gradient of prior if known (default = None)
+    verbose: bool (True)
+        Update current run-status to the screen
     """
 
     default_kwargs = {'p0': None, 'Niter': 2 * 10**4 + 1, 'neff': 10**4,
