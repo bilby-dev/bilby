@@ -1,13 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import glob
-import os
 import shutil
 
 import numpy as np
 
 from .base_sampler import MCMCSampler, SamplerNotInstalledError
-from ..utils import logger, check_directory_exists_and_if_not_mkdir
+from ..utils import logger
 
 
 class PTMCMCSampler(MCMCSampler):
@@ -184,4 +183,3 @@ class PTMCMCSampler(MCMCSampler):
         shutil.rmtree(temp_outDir)
 
         return samples, meta, loglike
-
