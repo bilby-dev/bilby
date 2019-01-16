@@ -12,12 +12,14 @@ from .dynesty import Dynesty
 from .emcee import Emcee
 from .nestle import Nestle
 from .ptemcee import Ptemcee
+from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 
 implemented_samplers = {
     'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
-    'ptemcee': Ptemcee, 'pymc3': Pymc3, 'pymultinest': Pymultinest}
+    'ptemcee': Ptemcee,'ptmcmcsampler' : PTMCMCSampler,
+    'pymc3': Pymc3, 'pymultinest': Pymultinest }
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
@@ -181,4 +183,3 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.plot_corner()
     logger.info("Summary of results:\n{}".format(result))
     return result
-
