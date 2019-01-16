@@ -14,7 +14,7 @@
 
 ### Added
 - log-likelihood evaluations for pymultinest
-
+- added PTMCMCSampler
 ## [0.3.3] 2018-11-08
 
 Changes currently on master, but not under a tag.
