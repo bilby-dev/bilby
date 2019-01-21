@@ -48,10 +48,10 @@ RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
 libatlas3-base libatlas-base-dev cmake build-essential gfortran
 
 # Install pymultinest
-RUN git clone https://github.com/JohannesBuchner/MultiNest \
-&& (cd MultiNest/build && cmake .. && make)
+RUN git clone https://github.com/farhanferoz/MultiNest.git \
+&& (cd MultiNest/MultiNest_v3.11_CMake/multinest && mkdir build && cd build && cmake .. && make)
 
-ENV LD_LIBRARY_PATH $HOME/MultiNest/lib:
+ENV LD_LIBRARY_PATH $HOME/MultiNest/MultiNest_v3.11_CMake/multinest/lib:
 
 # Install Polychord
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
