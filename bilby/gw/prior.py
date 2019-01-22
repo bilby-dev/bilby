@@ -6,11 +6,18 @@ from scipy.interpolate import UnivariateSpline
 from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
                           Gaussian, Interped)
 from ..core.utils import logger
+from . import COSMOLOGY
+
+try:
+    from astropy import cosmology as cosmo, units
+except ImportError:
+    logger.warning("You do not have astropy installed currently. You will"
+                   " not be able to use some of the prebuilt functions.")
 
 
 class UniformComovingVolume(FromFile):
 
-    def __init__(self, minimum=None, maximum=None,
+    def __init__(self, minimum=None, maximum=None, cosmology=None,
                  name='luminosity distance', latex_label='$d_L$', unit='Mpc'):
         """
 
@@ -20,14 +27,37 @@ class UniformComovingVolume(FromFile):
             See superclass
         maximum: float, optional
             See superclass
+        cosmology: (astropy.cosmology.FlatLambdaCDM, str), optional
+            Cosmology to use. If a string that string will be searched for in
+            astropy.cosmology. Default is project cosmology
         name: str, optional
             See superclass
         latex_label: str, optional
             See superclass
+        unit: (astropy.units.Mpc, str), optional
+            Units, if a string that string will be searched for in
+            astropy,units. Default=Mpc
         """
-        file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
-        FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label, unit=unit)
+        if cosmology is None:
+            cosmology = COSMOLOGY[0]
+        elif isinstance(cosmology, str):
+            cosmology = eval('cosmo.' + cosmology)
+        if isinstance(unit, str):
+            unit = eval('units.' + unit)
+        if minimum == 0:
+            z_min = 0
+        else:
+            z_min = cosmo.z_at_value(cosmology.luminosity_distance, minimum * unit)
+        z_max = cosmo.z_at_value(cosmology.luminosity_distance, maximum * unit)
+        zs = np.linspace(z_min * 0.99, z_max * 1.01, 1000)
+        dvc_dz = cosmology.differential_comoving_volume(zs).value
+        dl_of_z = np.array([cosmology.luminosity_distance(z).value for z in zs])
+        ddl_dz = np.gradient(dl_of_z, zs)
+        dvc_ddl = dvc_dz / ddl_dz
+        self.cosmology = str(cosmology)
+        Interped.__init__(
+            self, xx=dl_of_z, yy=dvc_ddl, minimum=minimum, maximum=maximum,
+            name=name, latex_label=latex_label, unit=str(unit))
 
 
 class AlignedSpin(Interped):
