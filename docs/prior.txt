@@ -83,6 +83,10 @@ note that this list is incomplete.
    :members:
    :special-members:
 
+.. automodule:: bilby.core.prior
+    :members:
+    :exclude-members: PriorDict, PriorSet
+
 Defining your own prior
 =======================
 
