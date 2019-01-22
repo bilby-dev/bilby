@@ -41,9 +41,9 @@ class UniformComovingVolume(FromFile):
         if cosmology is None:
             cosmology = COSMOLOGY[0]
         elif isinstance(cosmology, str):
-            cosmology = eval('cosmo.' + cosmology)
+            cosmology = cosmo.__dict__[cosmology]
         if isinstance(unit, str):
-            unit = eval('units.' + unit)
+            unit = units.__dict__[unit]
         if minimum == 0:
             z_min = 0
         else:

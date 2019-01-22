@@ -47,7 +47,7 @@ def set_cosmology(cosmology=None):
         elif isinstance(cosmology, cosmo.FLRW):
             cosmology = cosmology
         elif isinstance(cosmology, str):
-            cosmology = eval('cosmo.' + cosmology)
+            cosmology = cosmo.__dict__[cosmology]
         elif isinstance(cosmology, dict):
             if 'Ode0' in cosmology.keys():
                 if 'w0' in cosmology.keys():
