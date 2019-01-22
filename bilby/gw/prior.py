@@ -20,6 +20,10 @@ class UniformComovingVolume(FromFile):
     def __init__(self, minimum=None, maximum=None, cosmology=None,
                  name='luminosity distance', latex_label='$d_L$', unit='Mpc'):
         """
+        Prior distribution on _luminosity distance_ which is uniform in comoving
+        volume based on the specified cosmology.
+
+        The default cosmology is Planck15 as implemented in astropy.
 
         Parameters
         ----------
