@@ -1,12 +1,15 @@
 from __future__ import division
+
 import logging
 import os
-import numpy as np
 from math import fmod
 import argparse
 import traceback
 import inspect
 import subprocess
+
+import numpy as np
+from scipy.interpolate import interp2d
 
 logger = logging.getLogger('bilby')
 
@@ -688,6 +691,19 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
     else:
         process = subprocess.Popen(cl, shell=True)
         process.communicate()
+
+
+class UnsortedInterp2d(interp2d):
+    """
+    Wrapper to scipy.interpolate.interp2d which preserves the input ordering.
+
+    See https://stackoverflow.com/questions/44941271/scipy-interp2d-returned-function-sorts-input-argument-automatically-and-undesira
+    for the implementation details.
+    """
+
+    def __call__(self, x, y, dx=0, dy=0):
+        unsorted_idxs = np.argsort(np.argsort(x))
+        return interp2d.__call__(self, x, y, dx=dx, dy=dy)[unsorted_idxs]
 
 
 #  Instantiate the default argument parser at runtime

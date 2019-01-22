@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.prior import Uniform
 from bilby.core.sampler import run_sampler
+from bilby.core.result import make_pp_plot
 from bilby.hyper.likelihood import HyperparameterLikelihood
 
 outdir = 'outdir'
@@ -31,8 +32,7 @@ fig1, ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 
 # Make the sample sets
-samples = list()
-evidences = list()
+results = list()
 for i in range(Nevents):
     c0 = np.random.normal(true_mu_c0, true_sigma_c0)
     c1 = np.random.uniform(-1, 1)
@@ -47,11 +47,10 @@ for i in range(Nevents):
     result = run_sampler(
         likelihood=likelihood, priors=priors, sampler='nestle', nlive=1000,
         outdir=outdir, verbose=False, label='individual_{}'.format(i),
-        save=False)
+        save=False, injection_parameters=injection_parameters)
     ax2.hist(result.posterior.c0, color=line[0].get_color(), normed=True,
              alpha=0.5, label=labels[i])
-    samples.append(result.posterior)
-    evidences.append(result.log_evidence)
+    results.append(result)
 
 ax1.set_xlabel('x')
 ax1.set_ylabel('y(x)')
@@ -72,6 +71,8 @@ def run_prior(data):
     return 1 / 20
 
 
+samples = [result.posterior for result in results]
+evidences = [result.log_evidence for result in results]
 hp_likelihood = HyperparameterLikelihood(
     posteriors=samples, hyper_prior=hyper_prior,
     sampling_prior=run_prior, log_evidences=evidences, max_samples=500)
@@ -85,3 +86,4 @@ result = run_sampler(
     use_ratio=False, outdir=outdir, label='hyper_parameter',
     verbose=True, clean=True)
 result.plot_corner(truth=dict(mu=true_mu_c0, sigma=true_sigma_c0))
+make_pp_plot(results, filename=outdir + '/hyper_parameter_pp.png')

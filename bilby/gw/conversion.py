@@ -1,21 +1,18 @@
 from __future__ import division
+
 import numpy as np
 from pandas import DataFrame
 
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction, Interped
+from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
+
 
 try:
     from astropy import cosmology as apcosmo
     import astropy.units as u
 except ImportError:
     logger.warning("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
-
-try:
-    import lalsimulation as lalsim
-except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
@@ -144,10 +141,12 @@ def transform_precessing_spins(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1,
     spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z: float
         Cartesian spin components
     """
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-        lalsim.SimInspiralTransformPrecessingNewInitialConditions(
-            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-            mass_2, reference_frequency, phase)
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+        lalsim_SimInspiralTransformPrecessingNewInitialConditions(
+            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+            reference_frequency, phase))
+
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
@@ -240,6 +239,16 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 converted_parameters['mass_2'] /\
                 converted_parameters['mass_ratio']
 
+    for idx in ['1', '2']:
+        key = 'chi_{}'.format(idx)
+        if key in original_keys:
+            converted_parameters['a_{}'.format(idx)] = abs(
+                converted_parameters[key])
+            converted_parameters['cos_tilt_{}'.format(idx)] = \
+                np.sign(converted_parameters[key])
+            converted_parameters['phi_jl'] = 0.0
+            converted_parameters['phi_12'] = 0.0
+
     for angle in ['tilt_1', 'tilt_2', 'iota']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
@@ -320,6 +329,18 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
+
+    for idx in ['1', '2']:
+        mag = 'a_{}'.format(idx)
+        if mag in original_keys:
+            tilt = 'tilt_{}'.format(idx)
+            if tilt in original_keys:
+                converted_parameters['chi_{}'.format(idx)] = (
+                    converted_parameters[mag] *
+                    np.cos(converted_parameters[tilt]))
+            else:
+                converted_parameters['chi_{}'.format(idx)] = (
+                    converted_parameters[mag])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
@@ -969,7 +990,7 @@ def compute_snrs(sample, likelihood):
             for ifo in likelihood.interferometers:
                 signal = ifo.get_detector_response(signal_polarizations, sample)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
-                    ifo.matched_filter_snr_squared(signal=signal) ** 0.5
+                    ifo.matched_filter_snr(signal=signal)
                 sample['{}_optimal_snr'.format(ifo.name)] = \
                     ifo.optimal_snr_squared(signal=signal) ** 0.5
         else:
@@ -986,7 +1007,7 @@ def compute_snrs(sample, likelihood):
                     signal = ifo.get_detector_response(
                         signal_polarizations, sample.iloc[ii])
                     matched_filter_snrs[ifo.name].append(
-                        ifo.matched_filter_snr_squared(signal=signal) ** 0.5)
+                        ifo.matched_filter_snr(signal=signal))
                     optimal_snrs[ifo.name].append(
                         ifo.optimal_snr_squared(signal=signal) ** 0.5)
 
@@ -1059,20 +1080,20 @@ def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
     """
     signal_polarizations = \
         likelihood.waveform_generator.frequency_domain_strain(sample)
-    rho_mf_sq = 0
+    d_inner_h = 0
     rho_opt_sq = 0
     for ifo in likelihood.interferometers:
         signal = ifo.get_detector_response(signal_polarizations, sample)
-        rho_mf_sq += ifo.matched_filter_snr_squared(signal=signal)
+        d_inner_h += ifo.inner_product(signal=signal)
         rho_opt_sq += ifo.optimal_snr_squared(signal=signal)
 
-    rho_mf_sq_dist = (rho_mf_sq * sample['luminosity_distance'] /
+    d_inner_h_dist = (d_inner_h * sample['luminosity_distance'] /
                       likelihood._distance_array)
 
     rho_opt_sq_dist = (rho_opt_sq * sample['luminosity_distance']**2 /
                        likelihood._distance_array**2)
 
-    distance_log_like = (rho_mf_sq_dist.real - rho_opt_sq_dist.real / 2)
+    distance_log_like = (d_inner_h_dist.real - rho_opt_sq_dist.real / 2)
 
     distance_post = np.exp(distance_log_like - max(distance_log_like)) *\
         likelihood.distance_prior_array

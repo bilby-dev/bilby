@@ -11,8 +11,9 @@ import os
 class TestResult(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(7)
         bilby.utils.command_line_args.test = False
-        priors = bilby.prior.PriorSet(dict(
+        priors = bilby.prior.PriorDict(dict(
             x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
             c=1,
@@ -229,6 +230,40 @@ class TestResult(unittest.TestCase):
         self.result.plot_corner(priors=True)
         with self.assertRaises(ValueError):
             self.result.plot_corner(priors='test')
+
+    def test_get_credible_levels(self):
+        levels = self.result.get_all_injection_credible_levels()
+        self.assertDictEqual(levels, dict(x=0.68, y=0.72))
+
+    def test_get_credible_levels_raises_error_if_no_injection_parameters(self):
+        self.result.injection_parameters = None
+        with self.assertRaises(TypeError):
+            self.result.get_all_injection_credible_levels()
+
+    def test_kde(self):
+        kde = self.result.kde
+        import scipy.stats
+        self.assertEqual(type(kde), scipy.stats.kde.gaussian_kde)
+        self.assertEqual(kde.d, 2)
+
+    def test_posterior_probability(self):
+        sample = dict(x=0, y=0.1)
+        self.assertTrue(
+            isinstance(self.result.posterior_probability(sample), np.ndarray))
+        self.assertTrue(
+            len(self.result.posterior_probability(sample)), 1)
+        self.assertEqual(
+            self.result.posterior_probability(sample)[0],
+            self.result.kde([0, 0.1]))
+
+    def test_multiple_posterior_probability(self):
+        sample = [dict(x=0, y=0.1), dict(x=0.8, y=0)]
+        self.assertTrue(
+            isinstance(self.result.posterior_probability(sample), np.ndarray))
+        self.assertTrue(
+            all(self.result.posterior_probability(sample)
+                == self.result.kde([[0, 0.1], [0.8, 0]])))
+
 
 if __name__ == '__main__':
     unittest.main()

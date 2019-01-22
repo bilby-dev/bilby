@@ -1,16 +1,21 @@
+from __future__ import division
+
 import os
 from distutils.version import LooseVersion
+from collections import OrderedDict, namedtuple
+
 import numpy as np
 import deepdish
 import pandas as pd
 import corner
+import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import OrderedDict, namedtuple
 
 from . import utils
-from .utils import logger, infer_parameters_from_function
-from .prior import PriorDict, DeltaFunction
+from .utils import (logger, infer_parameters_from_function,
+                    check_directory_exists_and_if_not_mkdir)
+from .prior import Prior, PriorDict, DeltaFunction
 
 
 def result_file_name(outdir, label):
@@ -71,7 +76,7 @@ class Result(object):
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
                  sampling_time=None, nburn=None, walkers=None,
                  max_autocorrelation_time=None, parameter_labels=None,
-                 parameter_labels_with_unit=None):
+                 parameter_labels_with_unit=None, version=None):
         """ A class to store the results of the sampling run
 
         Parameters
@@ -107,6 +112,9 @@ class Result(object):
             The estimated maximum autocorrelation time for MCMC samplers
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
+        version: str,
+            Version information for software used to generate the result. Note,
+            this information is generated when the result object is initialized
 
         Note:
             All sampling output parameters, e.g. the samples themselves are
@@ -136,6 +144,8 @@ class Result(object):
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
         self.sampling_time = sampling_time
+        self.version = version
+        self.max_autocorrelation_time = max_autocorrelation_time
 
     def __str__(self):
         """Print a summary """
@@ -241,7 +251,19 @@ class Result(object):
     def posterior(self, posterior):
         self._posterior = posterior
 
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, version):
+        if version is None:
+            self._version = 'bilby={}'.format(utils.get_version_information())
+        else:
+            self._version = version
+
     def _get_save_data_dictionary(self):
+        # This list defines all the parameters saved in the result object
         save_attrs = [
             'label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err',
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
@@ -249,7 +271,7 @@ class Result(object):
             'fixed_parameter_keys', 'sampling_time', 'sampler_kwargs',
             'log_likelihood_evaluations', 'samples', 'nested_samples',
             'walkers', 'nburn', 'parameter_labels',
-            'parameter_labels_with_unit']
+            'parameter_labels_with_unit', 'version']
         dictionary = OrderedDict()
         for attr in save_attrs:
             try:
@@ -327,7 +349,7 @@ class Result(object):
             elif k in self.parameter_labels:
                 latex_labels.append(k)
             else:
-                logger.info(
+                logger.debug(
                     'key {} not a parameter label or latex label'.format(k))
                 latex_labels.append(' '.join(k.split('_')))
         return latex_labels
@@ -399,6 +421,87 @@ class Result(object):
             fmt(summary.median), fmt(summary.minus), fmt(summary.plus))
         return summary
 
+    def plot_single_density(self, key, prior=None, cumulative=False,
+                            title=None, truth=None, save=True,
+                            file_base_name=None, bins=50, label_fontsize=16,
+                            title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
+        """ Plot a 1D marginal density, either probablility or cumulative.
+
+        Parameters
+        ----------
+        key: str
+            Name of the parameter to plot
+        prior: {bool (True), bilby.core.prior.Prior}
+            If true, add the stored prior probability density function to the
+            one-dimensional marginal distributions. If instead a Prior
+            is provided, this will be plotted.
+        cumulative: bool
+            If true plot the CDF
+        title: bool
+            If true, add 1D title of the median and (by default 1-sigma)
+            error bars. To change the error bars, pass in the quantiles kwarg.
+            See method `get_one_dimensional_median_and_error_bar` for further
+            details). If `quantiles=None` is passed in, no title is added.
+        truth: {bool, float}
+            If true, plot self.injection_parameters[parameter].
+            If float, plot this value.
+        save: bool:
+            If true, save plot to disk.
+        file_base_name: str, optional
+            If given, the base file name to use (by default `outdir/label_` is
+            used)
+        bins: int
+            The number of histogram bins
+        label_fontsize, title_fontsize: int
+            The fontsizes for the labels and titles
+        quantiles: list
+            A length-2 list of the lower and upper-quantiles to calculate
+            the errors bars for.
+        dpi: int
+            Dots per inch resolution of the plot
+
+        Returns
+        -------
+        figure: matplotlib.pyplot.figure
+            A matplotlib figure object
+        """
+        logger.info('Plotting {} marginal distribution'.format(key))
+        label = self.get_latex_labels_from_parameter_keys([key])[0]
+        fig, ax = plt.subplots()
+        try:
+            ax.hist(self.posterior[key].values, bins=bins, density=True,
+                    histtype='step', cumulative=cumulative)
+        except ValueError as e:
+            logger.info(
+                'Failed to generate 1d plot for {}, error message: {}'
+                .format(key, e))
+            return
+        ax.set_xlabel(label, fontsize=label_fontsize)
+        if truth is not None:
+            ax.axvline(truth, ls='-', color='orange')
+
+        summary = self.get_one_dimensional_median_and_error_bar(
+            key, quantiles=quantiles)
+        ax.axvline(summary.median - summary.minus, ls='--', color='C0')
+        ax.axvline(summary.median + summary.plus, ls='--', color='C0')
+        if title:
+            ax.set_title(summary.string, fontsize=title_fontsize)
+
+        if isinstance(prior, Prior):
+            theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
+            ax.plot(theta, Prior.prob(theta), color='C2')
+
+        if save:
+            fig.tight_layout()
+            if cumulative:
+                file_name = file_base_name + key + '_cdf'
+            else:
+                file_name = file_base_name + key + '_pdf'
+            fig.savefig(file_name, dpi=dpi)
+            plt.close(fig)
+        else:
+            return fig
+
     def plot_marginals(self, parameters=None, priors=None, titles=True,
                        file_base_name=None, bins=50, label_fontsize=16,
                        title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
@@ -433,57 +536,47 @@ class Result(object):
 
         Returns
         -------
-        figures: dictionary
-            A dictionary of the matplotlib figures
-
         """
-
         if isinstance(parameters, dict):
             plot_parameter_keys = list(parameters.keys())
-            truths = list(parameters.values())
+            truths = parameters
         elif parameters is None:
-            plot_parameter_keys = self.search_parameter_keys
-            truths = None
+            plot_parameter_keys = self.posterior.keys()
+            if self.injection_parameters is None:
+                truths = dict()
+            else:
+                truths = self.injection_parameters
         else:
             plot_parameter_keys = list(parameters)
-            truths = None
+            if self.injection_parameters is None:
+                truths = dict()
+            else:
+                truths = self.injection_parameters
 
-        labels = self.get_latex_labels_from_parameter_keys(plot_parameter_keys)
         if file_base_name is None:
-            file_base_name = '{}/{}_'.format(self.outdir, self.label)
+            file_base_name = '{}/{}_1d/'.format(self.outdir, self.label)
+            check_directory_exists_and_if_not_mkdir(file_base_name)
 
         if priors is True:
-            priors = getattr(self, 'priors', False)
-        elif isinstance(priors, (dict)) or priors in [False, None]:
+            priors = getattr(self, 'priors', dict())
+        elif isinstance(priors, dict):
             pass
+        elif priors in [False, None]:
+            priors = dict()
         else:
             raise ValueError('Input priors={} not understood'.format(priors))
 
-        figures = dict()
         for i, key in enumerate(plot_parameter_keys):
-            fig, ax = plt.subplots()
-            ax.hist(self.posterior[key].values, bins=bins, density=True,
-                    histtype='step')
-            ax.set_xlabel(labels[i], fontsize=label_fontsize)
-            if truths is not None:
-                ax.axvline(truths[i], ls='--', color='orange')
-
-            summary = self.get_one_dimensional_median_and_error_bar(
-                key, quantiles=quantiles)
-            ax.axvline(summary.median - summary.minus, ls='--', color='C0')
-            ax.axvline(summary.median + summary.plus, ls='--', color='C0')
-            if titles:
-                ax.set_title(summary.string, fontsize=title_fontsize)
-
-            if isinstance(priors, dict):
-                theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
-                ax.plot(theta, priors[key].prob(theta), color='C2')
-
-            fig.tight_layout()
-            fig.savefig(file_base_name + key)
-            figures[key] = fig
-
-        return figures
+            if not isinstance(self.posterior[key].values[0], float):
+                continue
+            prior = priors.get(key, None)
+            truth = truths.get(key, None)
+            for cumulative in [False, True]:
+                self.plot_single_density(
+                    key, prior=prior, cumulative=cumulative, title=titles,
+                    truth=truth, save=True, file_base_name=file_base_name,
+                    bins=bins, label_fontsize=label_fontsize, dpi=dpi,
+                    title_fontsize=title_fontsize, quantiles=quantiles)
 
     def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
                     filename=None, dpi=300, **kwargs):
@@ -590,6 +683,10 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        # Unless already set, set the range to include all samples
+        # This prevents ValueErrors being raised for parameters with no range
+        kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
+
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
         fig = corner.corner(xs, **kwargs)
@@ -623,6 +720,7 @@ class Result(object):
                 filename = '{}/{}_corner.png'.format(self.outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
+            plt.close(fig)
 
         return fig
 
@@ -654,6 +752,7 @@ class Result(object):
         logger.debug('Saving walkers plot to {}'.format('filename'))
         utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
+        plt.close(fig)
 
     def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
                        xlabel=None, ylabel=None, data_label='data',
@@ -702,10 +801,10 @@ class Result(object):
         try:
             if all(~np.isnan(self.posterior.log_likelihood)):
                 logger.info('Plotting maximum likelihood')
-                s = model_posterior.ix[self.posterior.log_likelihood.idxmax()]
+                s = model_posterior.iloc[self.posterior.log_likelihood.idxmax()]
                 ax.plot(xsmooth, model(xsmooth, **s), lw=1, color='k',
                         label=maxl_label)
-        except AttributeError:
+        except (AttributeError, TypeError):
             logger.debug(
                 "No log likelihood values stored, unable to plot max")
 
@@ -725,6 +824,7 @@ class Result(object):
             utils.check_directory_exists_and_if_not_mkdir(self.outdir)
             filename = '{}/{}_plot_with_data'.format(self.outdir, self.label)
         fig.savefig(filename, dpi=dpi)
+        plt.close(fig)
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
@@ -777,6 +877,49 @@ class Result(object):
                     self.prior_values[key]\
                         = priors[key].prob(self.posterior[key].values)
 
+    def get_all_injection_credible_levels(self):
+        """
+        Get credible levels for all parameters in self.injection_parameters
+
+        Returns
+        -------
+        credible_levels: dict
+            The credible levels at which the injected parameters are found.
+        """
+        if self.injection_parameters is None:
+            raise(TypeError, "Result object has no 'injection_parameters'. "
+                             "Cannot copmute credible levels.")
+        credible_levels = {key: self.get_injection_credible_level(key)
+                           for key in self.search_parameter_keys
+                           if isinstance(self.injection_parameters[key], float)}
+        return credible_levels
+
+    def get_injection_credible_level(self, parameter):
+        """
+        Get the credible level of the injected parameter
+
+        Calculated as CDF(injection value)
+
+        Parameters
+        ----------
+        parameter: str
+            Parameter to get credible level for
+        Returns
+        -------
+        float: credible level
+        """
+        if self.injection_parameters is None:
+            raise(TypeError, "Result object has no 'injection_parameters'. "
+                             "Cannot copmute credible levels.")
+        if parameter in self.posterior and\
+                parameter in self.injection_parameters:
+            credible_level =\
+                sum(self.posterior[parameter].values <
+                    self.injection_parameters[parameter]) / len(self.posterior)
+            return credible_level
+        else:
+            return np.nan
+
     def _check_attribute_match_to_other_object(self, name, other_object):
         """ Check attribute name exists in other_object and is the same
 
@@ -807,6 +950,44 @@ class Result(object):
                 elif typeA in [np.ndarray]:
                     return np.all(A == B)
         return False
+
+    @property
+    def kde(self):
+        """ Kernel density estimate built from the stored posterior
+
+        Uses `scipy.stats.gaussian_kde` to generate the kernel density
+        """
+        try:
+            return self._kde
+        except AttributeError:
+            self._kde = scipy.stats.gaussian_kde(
+                self.posterior[self.search_parameter_keys].values.T)
+            return self._kde
+
+    def posterior_probability(self, sample):
+        """ Calculate the posterior probabily for a new sample
+
+        This queries a Kernel Density Estimate of the posterior to calculate
+        the posterior probability density for the new sample.
+
+        Parameters
+        ----------
+        sample: dict, or list of dictionaries
+            A dictionary containing all the keys from
+            self.search_parameter_keys and corresponding values at which to
+            calculate the posterior probability
+
+        Returns
+        -------
+        p: array-like,
+            The posterior probability of the sample
+
+        """
+        if isinstance(sample, dict):
+            sample = [sample]
+        ordered_sample = [[s[key] for key in self.search_parameter_keys]
+                          for s in sample]
+        return self.kde(ordered_sample)
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
@@ -889,4 +1070,46 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if save:
         fig.savefig(filename)
+    return fig
+
+
+def make_pp_plot(results, filename=None, save=True, **kwargs):
+    """
+    Make a P-P plot for a set of runs with injected signals.
+
+    Parameters
+    ----------
+    results: list
+        A list of Result objects, each of these should have injected_parameters
+    filename: str, optional
+        The name of the file to save, the default is "outdir/pp.png"
+    save: bool, optional
+        Whether to save the file, default=True
+    kwargs:
+        Additional kwargs to pass to matplotlib.pyplot.plot
+
+    Returns
+    -------
+    fig:
+        Matplotlib figure
+    """
+    fig = plt.figure()
+    credible_levels = pd.DataFrame()
+    for result in results:
+        credible_levels = credible_levels.append(
+            result.get_all_injection_credible_levels(), ignore_index=True)
+    n_parameters = len(credible_levels.keys())
+    x_values = np.linspace(0, 1, 101)
+    for key in credible_levels:
+        plt.plot(x_values, [sum(credible_levels[key].values < xx) /
+                            len(credible_levels) for xx in x_values],
+                 color='k', alpha=min([1, 4 / n_parameters]), **kwargs)
+    plt.plot([0, 1], [0, 1], linestyle='--', color='r')
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    if save:
+        if filename is None:
+            filename = 'outdir/pp.png'
+        plt.savefig(filename)
     return fig

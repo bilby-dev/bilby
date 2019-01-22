@@ -1,16 +1,19 @@
 from __future__ import division, print_function, absolute_import
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
+import deepdish as dd
 
 from . import utils as gwutils
 from ..core import utils
 from ..core.utils import logger
 from .calibration import Recalibrate
+from .series import CoupledTimeAndFrequencySeries
 
 try:
     import gwpy
@@ -37,12 +40,12 @@ class InterferometerList(list):
 
         list.__init__(self)
         if type(interferometers) == str:
-            raise ValueError("Input must not be a string")
+            raise TypeError("Input must not be a string")
         for ifo in interferometers:
             if type(ifo) == str:
                 ifo = get_empty_interferometer(ifo)
             if type(ifo) not in [Interferometer, TriangularInterferometer]:
-                raise ValueError("Input list of interferometers are not all Interferometer objects")
+                raise TypeError("Input list of interferometers are not all Interferometer objects")
             else:
                 self.append(ifo)
         self._check_interferometers()
@@ -107,7 +110,7 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -206,6 +209,54 @@ class InterferometerList(list):
         super(InterferometerList, self).insert(index, interferometer)
         self._check_interferometers()
 
+    @property
+    def meta_data(self):
+        """ Dictionary of the per-interferometer meta_data """
+        return {interferometer.name: interferometer.meta_data
+                for interferometer in self}
+
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
+    def to_hdf5(self, outdir='outdir', label='ifo_list'):
+        """ Saves the object to a hdf5 file
+
+        Parameters
+        ----------
+        outdir: str, optional
+            Output directory name of the file
+        label: str, optional
+            Output file name, is 'ifo_list' if not given otherwise. A list of
+            the included interferometers will be appended.
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        label = label + '_' + ''.join(ifo.name for ifo in self)
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        dd.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
+
+    @classmethod
+    def from_hdf5(cls, filename=None):
+        """ Loads in an InterferometerList object from an hdf5 file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        res = dd.io.load(filename)
+        if res.__class__ == list:
+            res = cls(res)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not a InterferometerList')
+        return res
+
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
@@ -233,56 +284,28 @@ class InterferometerStrainData(object):
         self.roll_off = roll_off
         self.window_factor = 1
 
-        self._set_time_and_frequency_array_parameters(None, None, None)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries()
+        # self._set_time_and_frequency_array_parameters(None, None, None)
 
         self._frequency_domain_strain = None
         self._frequency_array = None
         self._time_domain_strain = None
         self._time_array = None
 
-    @property
-    def frequency_array(self):
-        """ Frequencies of the data in Hz """
-        if self._frequency_array is not None:
-            return self._frequency_array
-        else:
-            self._calculate_frequency_array()
-            return self._frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self._frequency_array = frequency_array
-
-    @property
-    def time_array(self):
-        """ Time of the data in seconds """
-        if self._time_array is not None:
-            return self._time_array
-        else:
-            self._calculate_time_array()
-            return self._time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self._time_array = time_array
-
-    def _calculate_time_array(self):
-        """ Calculate the time array """
-        if (self.sampling_frequency is None) or (self.duration is None):
-            raise ValueError(
-                "You have not specified the sampling_frequency and duration")
-
-        self.time_array = utils.create_time_series(
-            sampling_frequency=self.sampling_frequency, duration=self.duration,
-            starting_time=self.start_time)
-
-    def _calculate_frequency_array(self):
-        """ Calculate the frequency array """
-        if (self.sampling_frequency is None) or (self.duration is None):
-            raise ValueError(
-                "You have not specified the sampling_frequency and duration")
-        self.frequency_array = utils.create_frequency_series(
-            sampling_frequency=self.sampling_frequency, duration=self.duration)
+    def __eq__(self, other):
+        if self.minimum_frequency == other.minimum_frequency \
+                and self.maximum_frequency == other.maximum_frequency \
+                and self.roll_off == other.roll_off \
+                and self.window_factor == other.window_factor \
+                and self.sampling_frequency == other.sampling_frequency \
+                and self.duration == other.duration \
+                and self.start_time == other.start_time \
+                and np.array_equal(self.time_array, other.time_array) \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.frequency_domain_strain, other.frequency_domain_strain) \
+                and np.array_equal(self.time_domain_strain, other.time_domain_strain):
+            return True
+        return False
 
     def time_within_data(self, time):
         """ Check if time is within the data span
@@ -503,10 +526,9 @@ class InterferometerStrainData(object):
         elif array is not None:
             if domain == 'time':
                 self.time_array = array
-                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_time_array(array)
             elif domain == 'frequency':
                 self.frequency_array = array
-                sampling_frequency, duration = utils.get_sampling_frequency_and_duration_from_frequency_array(array)
+            return
         elif sampling_frequency is None or duration is None:
             raise ValueError(
                 "You must provide both sampling_frequency and duration")
@@ -744,9 +766,51 @@ class InterferometerStrainData(object):
         self.set_from_gwpy_timeseries(strain)
 
     def _set_time_and_frequency_array_parameters(self, duration, sampling_frequency, start_time):
-        self.sampling_frequency = sampling_frequency
-        self.duration = duration
-        self.start_time = start_time
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
+
+    @property
+    def sampling_frequency(self):
+        return self._times_and_frequencies.sampling_frequency
+
+    @sampling_frequency.setter
+    def sampling_frequency(self, sampling_frequency):
+        self._times_and_frequencies.sampling_frequency = sampling_frequency
+
+    @property
+    def duration(self):
+        return self._times_and_frequencies.duration
+
+    @duration.setter
+    def duration(self, duration):
+        self._times_and_frequencies.duration = duration
+
+    @property
+    def start_time(self):
+        return self._times_and_frequencies.start_time
+
+    @start_time.setter
+    def start_time(self, start_time):
+        self._times_and_frequencies.start_time = start_time
+
+    @property
+    def frequency_array(self):
+        """ Frequencies of the data in Hz """
+        return self._times_and_frequencies.frequency_array
+
+    @frequency_array.setter
+    def frequency_array(self, frequency_array):
+        self._times_and_frequencies.frequency_array = frequency_array
+
+    @property
+    def time_array(self):
+        """ Time of the data in seconds """
+        return self._times_and_frequencies.time_array
+
+    @time_array.setter
+    def time_array(self, time_array):
+        self._times_and_frequencies.time_array = time_array
 
 
 class Interferometer(object):
@@ -808,6 +872,23 @@ class Interferometer(object):
         self._strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
+        self.meta_data = dict()
+
+    def __eq__(self, other):
+        if self.name == other.name and \
+                self.length == other.length and \
+                self.latitude == other.latitude and \
+                self.longitude == other.longitude and \
+                self.elevation == other.elevation and \
+                self.xarm_azimuth == other.xarm_azimuth and \
+                self.xarm_tilt == other.xarm_tilt and \
+                self.yarm_azimuth == other.yarm_azimuth and \
+                self.yarm_tilt == other.yarm_tilt and \
+                self.power_spectral_density.__eq__(other.power_spectral_density) and \
+                self.calibration_model == other.calibration_model and \
+                self.strain_data == other.strain_data:
+            return True
+        return False
 
     def __repr__(self):
         return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
@@ -1199,9 +1280,7 @@ class Interferometer(object):
         signal_ifo *= self.strain_data.frequency_mask
 
         time_shift = self.time_delay_from_geocenter(
-            parameters['ra'],
-            parameters['dec'],
-            self.strain_data.start_time)
+            parameters['ra'], parameters['dec'], parameters['geocent_time'])
         dt = parameters['geocent_time'] + time_shift - self.strain_data.start_time
 
         signal_ifo = signal_ifo * np.exp(
@@ -1243,7 +1322,7 @@ class Interferometer(object):
 
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations =\
+                injection_polarizations = \
                     waveform_generator.frequency_domain_strain(parameters)
             else:
                 raise ValueError(
@@ -1272,12 +1351,16 @@ class Interferometer(object):
                 sampling_frequency=self.strain_data.sampling_frequency,
                 duration=self.strain_data.duration,
                 start_time=self.strain_data.start_time)
-        opt_snr = np.sqrt(self.optimal_snr_squared(signal=signal_ifo).real)
-        mf_snr = np.sqrt(self.matched_filter_snr_squared(signal=signal_ifo).real)
+
+        self.meta_data['optimal_SNR'] = (
+            np.sqrt(self.optimal_snr_squared(signal=signal_ifo)).real)
+        self.meta_data['matched_filter_SNR'] = (
+            self.matched_filter_snr(signal=signal_ifo))
+        self.meta_data['parameters'] = parameters
 
         logger.info("Injected signal in {}:".format(self.name))
-        logger.info("  optimal SNR = {:.2f}".format(opt_snr))
-        logger.info("  matched filter SNR = {:.2f}".format(mf_snr))
+        logger.info("  optimal SNR = {:.2f}".format(self.meta_data['optimal_SNR']))
+        logger.info("  matched filter SNR = {:.2f}".format(self.meta_data['matched_filter_SNR']))
         for key in parameters:
             logger.info('  {} = {}'.format(key, parameters[key]))
 
@@ -1414,11 +1497,29 @@ class Interferometer(object):
         -------
         float: The optimal signal to noise ratio possible squared
         """
-        return gwutils.optimal_snr_squared(signal=signal,
-                                           power_spectral_density=self.power_spectral_density_array,
-                                           duration=self.strain_data.duration)
+        return gwutils.optimal_snr_squared(
+            signal=signal,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
 
-    def matched_filter_snr_squared(self, signal):
+    def inner_product(self, signal):
+        """
+
+        Parameters
+        ----------
+        signal: array_like
+            Array containing the signal
+
+        Returns
+        -------
+        float: The optimal signal to noise ratio possible squared
+        """
+        return gwutils.noise_weighted_inner_product(
+            aa=signal, bb=self.frequency_domain_strain,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
+
+    def matched_filter_snr(self, signal):
         """
 
         Parameters
@@ -1431,10 +1532,10 @@ class Interferometer(object):
         float: The matched filter signal to noise ratio squared
 
         """
-        return gwutils.matched_filter_snr_squared(signal=signal,
-                                                  frequency_domain_strain=self.frequency_domain_strain,
-                                                  power_spectral_density=self.power_spectral_density_array,
-                                                  duration=self.strain_data.duration)
+        return gwutils.matched_filter_snr(
+            signal=signal, frequency_domain_strain=self.frequency_domain_strain,
+            power_spectral_density=self.power_spectral_density_array,
+            duration=self.strain_data.duration)
 
     @property
     def whitened_frequency_domain_strain(self):
@@ -1570,6 +1671,48 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
 
+    @staticmethod
+    def _hdf5_filename_from_outdir_label(outdir, label):
+        return os.path.join(outdir, label + '.h5')
+
+    def to_hdf5(self, outdir='outdir', label=None):
+        """ Save the object to a hdf5 file
+
+        Attributes
+        ----------
+        outdir: str, optional
+            Output directory name of the file, defaults to 'outdir'.
+        label: str, optional
+            Output file name, is self.name if not given otherwise.
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+        if label is None:
+            label = self.name
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        filename = self._hdf5_filename_from_outdir_label(outdir, label)
+        dd.io.save(filename, self)
+
+    @classmethod
+    def from_hdf5(cls, filename=None):
+        """ Loads in an Interferometer object from an hdf5 file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+
+        """
+        if sys.version_info[0] < 3:
+            raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
+                                      'Use Python 3 instead.')
+
+        res = dd.io.load(filename)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not an Interferometer')
+        return res
+
 
 class TriangularInterferometer(InterferometerList):
 
@@ -1637,6 +1780,15 @@ class PowerSpectralDensity(object):
             self.asd_array = asd_array
         self.psd_file = psd_file
         self.asd_file = asd_file
+
+    def __eq__(self, other):
+        if self.psd_file == other.psd_file \
+                and self.asd_file == other.asd_file \
+                and np.array_equal(self.frequency_array, other.frequency_array) \
+                and np.array_equal(self.psd_array, other.psd_array) \
+                and np.array_equal(self.asd_array, other.asd_array):
+            return True
+        return False
 
     def __repr__(self):
         if self.asd_file is not None or self.psd_file is not None:
@@ -1759,12 +1911,12 @@ class PowerSpectralDensity(object):
 
     @property
     def asd_file(self):
-        return self.__asd_file
+        return self._asd_file
 
     @asd_file.setter
     def asd_file(self, asd_file):
         asd_file = self.__validate_file_name(file=asd_file)
-        self.__asd_file = asd_file
+        self._asd_file = asd_file
         if asd_file is not None:
             self.__import_amplitude_spectral_density()
             self.__check_file_was_asd_file()
@@ -1778,12 +1930,12 @@ class PowerSpectralDensity(object):
 
     @property
     def psd_file(self):
-        return self.__psd_file
+        return self._psd_file
 
     @psd_file.setter
     def psd_file(self, psd_file):
         psd_file = self.__validate_file_name(file=psd_file)
-        self.__psd_file = psd_file
+        self._psd_file = psd_file
         if psd_file is not None:
             self.__import_power_spectral_density()
             self.__check_file_was_psd_file()
@@ -2145,16 +2297,16 @@ def load_data_from_cache_file(
             frame_duration = float(frame_duration)
             if frame_name[:4] == 'file':
                 frame_name = frame_name[16:]
-            if not data_set & (frame_start < segment_start) &\
+            if not data_set & (frame_start < segment_start) & \
                     (segment_start < frame_start + frame_duration):
                 ifo.set_strain_data_from_frame_file(
                     frame_name, 4096, segment_duration,
                     start_time=segment_start,
                     channel=channel_name, buffer_time=0)
                 data_set = True
-            if not psd_set & (frame_start < psd_start) &\
+            if not psd_set & (frame_start < psd_start) & \
                     (psd_start + psd_duration < frame_start + frame_duration):
-                ifo.power_spectral_density =\
+                ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         frame_name, psd_start_time=psd_start,
                         psd_duration=psd_duration,

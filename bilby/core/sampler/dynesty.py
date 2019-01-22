@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import os
 import sys
+
 import numpy as np
 from pandas import DataFrame
 from deepdish.io import load, save
+
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
 
@@ -16,11 +18,31 @@ class Dynesty(NestedSampler):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `dynesty.NestedSampler`, see
-    documentation for that class for further help. Under Keyword Arguments, we
-    list commonly used kwargs and the bilby defaults.
+    documentation for that class for further help. Under Other Parameter below,
+    we list commonly all kwargs and the bilby defaults.
 
-    Keyword Arguments
-    -----------------
+    Parameters
+    ----------
+    likelihood: likelihood.Likelihood
+        A  object with a log_l method
+    priors: bilby.core.prior.PriorDict, dict
+        Priors to be used in the search.
+        This has attributes for each parameter to be sampled.
+    outdir: str, optional
+        Name of the output directory
+    label: str, optional
+        Naming scheme of the output files
+    use_ratio: bool, optional
+        Switch to set whether or not you want to use the log-likelihood ratio
+        or just the log-likelihood
+    plot: bool, optional
+        Switch to set whether or not you want to create traceplots
+    skip_import_verification: bool
+        Skips the check if the sampler is installed if true. This is
+        only advisable for testing environments
+
+    Other Parameters
+    ----------------
     npoints: int, (250)
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]
@@ -371,6 +393,7 @@ class Dynesty(NestedSampler):
         self.sampler.saved_scale = [self.sampler.saved_scale[-1]]
 
     def generate_trace_plots(self, dynesty_results):
+        check_directory_exists_and_if_not_mkdir(self.outdir)
         filename = '{}/{}_trace.png'.format(self.outdir, self.label)
         logger.debug("Writing trace plot to {}".format(filename))
         from dynesty import plotting as dyplot

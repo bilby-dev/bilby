@@ -1,8 +1,9 @@
 from __future__ import division, print_function
-
 import copy
+
 import numpy as np
 from scipy.special import gammaln
+
 from .utils import infer_parameters_from_function
 
 
@@ -46,6 +47,20 @@ class Likelihood(object):
         float
         """
         return self.log_likelihood() - self.noise_log_likelihood()
+
+    @property
+    def meta_data(self):
+        try:
+            return self._meta_data
+        except AttributeError:
+            return None
+
+    @meta_data.setter
+    def meta_data(self, meta_data):
+        if isinstance(meta_data, dict):
+            self._meta_data = meta_data
+        else:
+            raise ValueError("The meta_data must be an instance of dict")
 
 
 class Analytical1DLikelihood(Likelihood):

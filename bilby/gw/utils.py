@@ -14,6 +14,12 @@ except ImportError:
     logger.warning("You do not have gwpy installed currently. You will "
                    " not be able to use some of the prebuilt functions.")
 
+try:
+    import lalsimulation as lalsim
+except ImportError:
+    logger.warning("You do not have lalsuite installed currently. You will"
+                   " not be able to use some of the prebuilt functions.")
+
 
 def asd_from_freq_series(freq_data, df):
     """
@@ -218,8 +224,10 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     return 4 / duration * np.sum(integrand)
 
 
-def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_density, duration):
+def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
     """
+    Calculate the _complex_ matched filter snr of a signal.
+    This is <signal|frequency_domain_strain> / optimal_snr
 
     Parameters
     ----------
@@ -237,7 +245,13 @@ def matched_filter_snr_squared(signal, frequency_domain_strain, power_spectral_d
     float: The matched filter signal to noise ratio squared
 
     """
-    return noise_weighted_inner_product(signal, frequency_domain_strain, power_spectral_density, duration)
+    rho_mf = noise_weighted_inner_product(
+        aa=signal, bb=frequency_domain_strain,
+        power_spectral_density=power_spectral_density, duration=duration)
+    rho_mf /= optimal_snr_squared(
+        signal=signal, power_spectral_density=power_spectral_density,
+        duration=duration)**0.5
+    return rho_mf
 
 
 def optimal_snr_squared(signal, power_spectral_density, duration):
@@ -264,32 +278,42 @@ def get_event_time(event):
     """
     Get the merger time for known GW events.
 
-    We currently know about:
+    See https://www.gw-openscience.org/catalog/GWTC-1-confident/html/
+    Last update https://arxiv.org/abs/1811.12907:
         GW150914
-        LVT151012
+        GW151012
         GW151226
         GW170104
         GW170608
+        GW170729
+        GW170809
         GW170814
         GW170817
+        GW170818
+        GW170823
 
     Parameters
     ----------
     event: str
-        Event descriptor, this can deal with some prefixes, e.g., '150914', 'GW150914', 'LVT151012'
+        Event descriptor, this can deal with some prefixes, e.g.,
+        '151012', 'GW151012', 'LVT151012'
 
     Returns
     ------
     event_time: float
         Merger time
     """
-    event_times = {'150914': 1126259462.422,
-                   '151012': 1128678900.4443,
-                   '151226': 1135136350.65,
-                   '170104': 1167559936.5991,
-                   '170608': 1180922494.4902,
-                   '170814': 1186741861.5268,
-                   '170817': 1187008882.4457}
+    event_times = {'150914': 1126259462.4,
+                   '151012': 1128678900.4,
+                   '151226': 1135136350.6,
+                   '170104': 1167559936.6,
+                   '170608': 1180922494.5,
+                   '170729': 1185389807.3,
+                   '170809': 1186302519.8,
+                   '170814': 1186741861.5,
+                   '170817': 1187008882.4,
+                   '170818': 1187058327.1,
+                   '170823': 1187529256.5}
     if 'GW' or 'LVT' in event:
         event = event[-6:]
 
@@ -383,6 +407,7 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
     """
     loaded = False
     strain = None
+
     if channel is not None:
         try:
             strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
@@ -390,17 +415,24 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
             logger.info('Successfully loaded {}.'.format(channel))
         except RuntimeError:
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
-    for channel_type in ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02']:
-        for ifo_name in ['H1', 'L1']:
-            channel = '{}:{}'.format(ifo_name, channel_type)
-            if loaded:
-                continue
-            try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
-                loaded = True
-                logger.info('Successfully loaded {}.'.format(channel))
-            except RuntimeError:
-                pass
+
+    while not loaded:
+        ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
+                              'DCH-CLEAN_STRAIN_C02']
+        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+        channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
+        for detector in channel_types.keys():
+            for channel_type in channel_types[detector]:
+                if loaded:
+                    break
+                channel = '{}:{}'.format(detector, channel_type)
+                try:
+                    strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
+                                             **kwargs)
+                    loaded = True
+                    logger.info('Successfully read strain data for channel {}.'.format(channel))
+                except RuntimeError:
+                    pass
 
     if loaded:
         return strain
@@ -409,15 +441,17 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
         return None
 
 
-def get_gracedb(gracedb, outdir, duration, calibration, detectors):
+def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None):
     candidate = gracedb_to_json(gracedb, outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
     cache_files = []
-    for det in detectors:
+    if query_types is None:
+        query_types = [None] * len(detectors)
+    for i, det in enumerate(detectors):
         output_cache_file = gw_data_find(
             det, gps_start_time, duration, calibration,
-            outdir=outdir)
+            outdir=outdir, query_type=query_types[i])
         cache_files.append(output_cache_file)
     return candidate, cache_files
 
@@ -463,7 +497,7 @@ def gracedb_to_json(gracedb, outdir=None):
 
 
 def gw_data_find(observatory, gps_start_time, duration, calibration,
-                 outdir='.'):
+                 outdir='.', query_type=None):
     """ Builds a gw_data_find call and process output
 
     Parameters
@@ -478,6 +512,8 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
         Use C01 or C02 calibration
     outdir: string
         A path to the directory where output is stored
+    query_type: string
+        The LDRDataFind query type
 
     Returns
     -------
@@ -490,11 +526,17 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     observatory_lookup = dict(H1='H', L1='L', V1='V')
     observatory_code = observatory_lookup[observatory]
 
-    dtype = '{}_HOFT_C0{}'.format(observatory, calibration)
-    logger.info('Using LDRDataFind query type {}'.format(dtype))
+    if query_type is None:
+        logger.warning('No query type provided. This may prevent data from being read.')
+        if observatory_code is 'V':
+            query_type = 'V1Online'
+        else:
+            query_type = '{}_HOFT_C0{}'.format(observatory, calibration)
+
+    logger.info('Using LDRDataFind query type {}'.format(query_type))
 
     cache_file = '{}-{}_CACHE-{}-{}.lcf'.format(
-        observatory, dtype, gps_start_time, duration)
+        observatory, query_type, gps_start_time, duration)
     output_cache_file = os.path.join(outdir, cache_file)
 
     gps_end_time = gps_start_time + duration
@@ -503,7 +545,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     cl_list.append('--observatory {}'.format(observatory_code))
     cl_list.append('--gps-start-time {}'.format(gps_start_time))
     cl_list.append('--gps-end-time {}'.format(gps_end_time))
-    cl_list.append('--type {}'.format(dtype))
+    cl_list.append('--type {}'.format(query_type))
     cl_list.append('--output {}'.format(output_cache_file))
     cl_list.append('--url-type file')
     cl_list.append('--lal-cache')
@@ -588,3 +630,81 @@ def plot_skymap(result, center='120d -40d', nside=512):
     lat.set_ticks_visible(False)
 
     fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))
+
+
+def convert_args_list_to_float(*args_list):
+    """ Converts inputs to floats, returns a list in the same order as the input"""
+    try:
+        args_list = [float(arg) for arg in args_list]
+    except ValueError:
+        raise ValueError("Unable to convert inputs to floats")
+    return args_list
+
+
+def lalsim_SimInspiralTransformPrecessingNewInitialConditions(
+        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+        reference_frequency, phase):
+
+    args_list = convert_args_list_to_float(
+        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+        reference_frequency, phase)
+
+    return lalsim.SimInspiralTransformPrecessingNewInitialConditions(*args_list)
+
+
+def lalsim_GetApproximantFromString(waveform_approximant):
+    if isinstance(waveform_approximant, str):
+        return lalsim.GetApproximantFromString(waveform_approximant)
+    else:
+        raise ValueError("waveform_approximant must be of type str")
+
+
+def lalsim_SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant):
+
+    # Convert values to floats
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, longitude_ascending_nodes,
+     eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+     maximum_frequency, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, longitude_ascending_nodes,
+        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+        maximum_frequency, reference_frequency)
+
+    # Note, this is the approximant number returns by GetApproximantFromString
+    if isinstance(approximant, int) is False:
+        raise ValueError("approximant not an int")
+
+    return lalsim.SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant)
+
+
+def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1):
+    try:
+        lambda_1 = float(lambda_1)
+    except ValueError:
+        raise ValueError("Unable to convert lambda_1 to float")
+
+    return lalsim.SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+
+
+def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2):
+    try:
+        lambda_2 = float(lambda_2)
+    except ValueError:
+        raise ValueError("Unable to convert lambda_2 to float")
+
+    return lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)

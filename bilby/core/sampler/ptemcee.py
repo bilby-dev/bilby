@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+
 from ..utils import get_progress_bar, logger
 from . import Emcee
 
@@ -10,11 +11,11 @@ class Ptemcee(Emcee):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `ptemcee.Sampler`, see
-    documentation for that class for further help. Under Keyword Arguments, we
+    documentation for that class for further help. Under Other Parameters, we
     list commonly used kwargs and the bilby defaults.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     nwalkers: int, (100)
         The number of walkers
     nsteps: int, (100)
@@ -57,7 +58,6 @@ class Ptemcee(Emcee):
     def run_sampler(self):
         import ptemcee
         tqdm = get_progress_bar()
-
         sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,
                                   logp=self.log_prior, **self.sampler_init_kwargs)
         self.pos0 = [[self.get_random_draw_from_prior()

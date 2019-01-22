@@ -1,12 +1,16 @@
 from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
+
 import numpy as np
 
 from ..utils import derivatives, logger, infer_args_from_method
-from ..prior import Prior
+from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
 from ..result import Result
 from .base_sampler import Sampler, MCMCSampler
+from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
+    StudentTLikelihood
+from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
 
 
 class Pymc3(MCMCSampler):
@@ -14,11 +18,11 @@ class Pymc3(MCMCSampler):
 
     All keyword arguments (i.e., the kwargs) passed to `run_sampler` will be
     propapated to `pymc3.sample` where appropriate, see documentation for that
-    class for further help. Under Keyword Arguments, we list commonly used
+    class for further help. Under Other Parameters, we list commonly used
     kwargs and the bilby, or where appropriate, PyMC3 defaults.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     draws: int, (1000)
         The number of sample draws from the posterior per chain.
     chains: int, (2)
@@ -32,11 +36,13 @@ class Pymc3(MCMCSampler):
         chains.
     step: str, dict
         Provide a step method name, or dictionary of step method names keyed to
-        particular variable names (these are case insensitive). If no method is
-        provided for any particular variable then PyMC3 will automatically
-        decide upon a default, with the first option being the NUTS sampler.
-        The currently allowed methods are 'NUTS', 'HamiltonianMC',
-        'Metropolis', 'BinaryMetropolis', 'BinaryGibbsMetropolis', 'Slice', and
+        particular variable names (these are case insensitive). If passing a
+        dictionary of methods, the values keyed on particular variables can be
+        lists of methods to form compound steps. If no method is provided for
+        any particular variable then PyMC3 will automatically decide upon a
+        default, with the first option being the NUTS sampler. The currently
+        allowed methods are 'NUTS', 'HamiltonianMC', 'Metropolis',
+        'BinaryMetropolis', 'BinaryGibbsMetropolis', 'Slice', and
         'CategoricalGibbsMetropolis'. Note: you cannot provide a PyMC3 step
         method function itself here as it is outside of the model context
         manager.
@@ -56,13 +62,27 @@ class Pymc3(MCMCSampler):
         live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
-                 use_ratio=False, plot=False, draws=1000,
+                 use_ratio=False, plot=False,
                  skip_import_verification=False, **kwargs):
         Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
                          use_ratio=use_ratio, plot=plot,
                          skip_import_verification=skip_import_verification, **kwargs)
-        self.draws = draws
+        self.draws = self.__kwargs['draws']
         self.chains = self.__kwargs['chains']
+
+    @staticmethod
+    def _import_external_sampler():
+        import pymc3
+        from pymc3.sampling import STEP_METHODS
+        from pymc3.theanof import floatX
+        return pymc3, STEP_METHODS, floatX
+
+    @staticmethod
+    def _import_theano():
+        import theano  # noqa
+        import theano.tensor as tt
+        from theano.compile.ops import as_op  # noqa
+        return theano, tt, as_op
 
     def _verify_parameters(self):
         """
@@ -217,8 +237,6 @@ class Pymc3(MCMCSampler):
         Map the bilby delta function prior to a single value for PyMC3.
         """
 
-        from ..prior import DeltaFunction
-
         # check prior is a DeltaFunction
         if isinstance(self.priors[key], DeltaFunction):
             return self.priors[key].peak
@@ -230,17 +248,10 @@ class Pymc3(MCMCSampler):
         Map the bilby Sine prior to a PyMC3 style function
         """
 
-        from ..prior import Sine
-
         # check prior is a Sine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Sine):
-            import pymc3
-
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Sine(pymc3.Continuous):
                 def __init__(self, lower=0., upper=np.pi):
@@ -277,18 +288,10 @@ class Pymc3(MCMCSampler):
         Map the bilby Cosine prior to a PyMC3 style function
         """
 
-        from ..prior import Cosine
-
         # check prior is a Cosine
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], Cosine):
-            import pymc3
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             class Pymc3Cosine(pymc3.Continuous):
                 def __init__(self, lower=-np.pi / 2., upper=np.pi / 2.):
@@ -324,22 +327,14 @@ class Pymc3(MCMCSampler):
         Map the bilby PowerLaw prior to a PyMC3 style function
         """
 
-        from ..prior import PowerLaw
-
         # check prior is a PowerLaw
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
         if isinstance(self.priors[key], PowerLaw):
-            import pymc3
 
             # check power law is set
             if not hasattr(self.priors[key], 'alpha'):
                 raise AttributeError("No 'alpha' attribute set for PowerLaw prior")
-
-            # import theano
-            try:
-                import theano.tensor as tt
-                from pymc3.theanof import floatX
-            except ImportError:
-                raise ImportError("You must have Theano installed to use PyMC3")
 
             if self.priors[key].alpha < -1.:
                 # use Pareto distribution
@@ -385,11 +380,8 @@ class Pymc3(MCMCSampler):
             raise ValueError("Prior for '{}' is not a Power Law".format(key))
 
     def run_sampler(self):
-        import pymc3
         # set the step method
-
-        from pymc3.sampling import STEP_METHODS
-
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
         if 'step' in self.__kwargs:
             self.step_method = self.__kwargs.pop('step')
@@ -403,13 +395,26 @@ class Pymc3(MCMCSampler):
                     if key not in self.__search_parameter_keys:
                         raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
                     else:
-                        if self.step_method[key].lower() not in step_methods:
-                            raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
+                        # check if using a compound step (a list of step
+                        # methods for a particular parameter)
+                        if isinstance(self.step_method[key], list):
+                            sms = self.step_method[key]
+                        else:
+                            sms = [self.step_method[key]]
+                        for sm in sms:
+                            if sm.lower() not in step_methods:
+                                raise ValueError("Using invalid step method '{}'".format(self.step_method[key]))
             else:
-                self.step_method = self.step_method.lower()
+                # check if using a compound step (a list of step
+                # methods for a particular parameter)
+                if isinstance(self.step_method, list):
+                    sms = self.step_method
+                else:
+                    sms = [self.step_method]
 
-                if self.step_method not in step_methods:
-                    raise ValueError("Using invalid step method '{}'".format(self.step_method))
+                for i in range(len(sms)):
+                    if sms[i].lower() not in step_methods:
+                        raise ValueError("Using invalid step method '{}'".format(sms[i]))
         else:
             self.step_method = None
 
@@ -418,18 +423,6 @@ class Pymc3(MCMCSampler):
 
         # set the prior
         self.set_prior()
-
-        # set the step method
-        if isinstance(self.step_method, (dict, OrderedDict)):
-            # create list of step methods (any not given will default to NUTS)
-            self.kwargs['step'] = []
-            with self.pymc3_model:
-                for key in self.step_method:
-                    curmethod = self.step_method[key].lower()
-                    self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]]([self.pymc3_priors[key]]))
-        else:
-            with self.pymc3_model:
-                self.kwargs['step'] = None if self.step_method is None else pymc3.__dict__[step_methods[self.step_method]]()
 
         # if a custom log_likelihood function requires a `sampler` argument
         # then use that log_likelihood function, with the assumption that it
@@ -441,6 +434,107 @@ class Pymc3(MCMCSampler):
         else:
             # set the likelihood function from predefined functions
             self.set_likelihood()
+
+        # get the step method keyword arguments
+        step_kwargs = self.kwargs.pop('step_kwargs')
+        nuts_kwargs = self.kwargs.pop('nuts_kwargs')
+        methodslist = []
+
+        # set the step method
+        if isinstance(self.step_method, (dict, OrderedDict)):
+            # create list of step methods (any not given will default to NUTS)
+            self.kwargs['step'] = []
+            with self.pymc3_model:
+                for key in self.step_method:
+                    # check for a compound step list
+                    if isinstance(self.step_method[key], list):
+                        for sms in self.step_method[key]:
+                            curmethod = sms.lower()
+                            methodslist.append(curmethod)
+                            args = {}
+                            if curmethod == 'nuts':
+                                if nuts_kwargs is not None:
+                                    args = nuts_kwargs
+                                elif step_kwargs is not None:
+                                    args = step_kwargs.pop('nuts', {})
+                                    # add values into nuts_kwargs
+                                    nuts_kwargs = args
+                                else:
+                                    args = {}
+                            else:
+                                if step_kwargs is not None:
+                                    args = step_kwargs.get(curmethod, {})
+                                else:
+                                    args = {}
+                            self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+                    else:
+                        curmethod = self.step_method[key].lower()
+                        methodslist.append(curmethod)
+                        args = {}
+                        if curmethod == 'nuts':
+                            if nuts_kwargs is not None:
+                                args = nuts_kwargs
+                            elif step_kwargs is not None:
+                                args = step_kwargs.pop('nuts', {})
+                                # add values into nuts_kwargs
+                                nuts_kwargs = args
+                            else:
+                                args = {}
+                        else:
+                            if step_kwargs is not None:
+                                args = step_kwargs.get(curmethod, {})
+                            else:
+                                args = {}
+                        self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+        else:
+            with self.pymc3_model:
+                # check for a compound step list
+                if isinstance(self.step_method, list):
+                    compound = []
+                    for sms in self.step_method:
+                        curmethod = sms.lower()
+                        methodslist.append(curmethod)
+                        args = {}
+                        if curmethod == 'nuts':
+                            if nuts_kwargs is not None:
+                                args = nuts_kwargs
+                            elif step_kwargs is not None:
+                                args = step_kwargs.pop('nuts', {})
+                                # add values into nuts_kwargs
+                                nuts_kwargs = args
+                            else:
+                                args = {}
+                        else:
+                            args = step_kwargs.get(curmethod, {})
+                        compound.append(pymc3.__dict__[step_methods[curmethod]](**args))
+                        self.kwargs['step'] = compound
+                else:
+                    self.kwargs['step'] = None
+                    if self.step_method is not None:
+                        curmethod = self.step_method.lower()
+                        methodslist.append(curmethod)
+                        args = {}
+                        if curmethod == 'nuts':
+                            if nuts_kwargs is not None:
+                                args = nuts_kwargs
+                            elif step_kwargs is not None:
+                                args = step_kwargs.pop('nuts', {})
+                                # add values into nuts_kwargs
+                                nuts_kwargs = args
+                            else:
+                                args = {}
+                        else:
+                            args = step_kwargs.get(curmethod, {})
+                        self.kwargs['step'] = pymc3.__dict__[step_methods[curmethod]](**args)
+                    else:
+                        # re-add step_kwargs if no step methods are set
+                        self.kwargs['step_kwargs'] = step_kwargs
+
+        # check whether only NUTS step method has been assigned
+        if np.all([sm.lower() == 'nuts' for sm in methodslist]):
+            # in this case we can let PyMC3 autoinitialise NUTS, so remove the step methods and re-add nuts_kwargs
+            self.kwargs['step'] = None
+            self.kwargs['nuts_kwargs'] = nuts_kwargs
 
         with self.pymc3_model:
             # perform the sampling
@@ -470,8 +564,7 @@ class Pymc3(MCMCSampler):
         self.setup_prior_mapping()
 
         self.pymc3_priors = OrderedDict()
-
-        import pymc3
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
 
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:
@@ -534,18 +627,10 @@ class Pymc3(MCMCSampler):
         Convert any bilby likelihoods to PyMC3 distributions.
         """
 
-        try:
-            import theano  # noqa
-            import theano.tensor as tt
-            from theano.compile.ops import as_op  # noqa
-        except ImportError:
-            raise ImportError("Could not import theano")
-
-        from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
-            StudentTLikelihood
-        from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
-
         # create theano Op for the log likelihood if not using a predefined model
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
+
         class LogLike(tt.Op):
 
             itypes = [tt.dvector]
@@ -604,8 +689,6 @@ class Pymc3(MCMCSampler):
                 grads = derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
 
                 outputs[0][0] = grads
-
-        import pymc3
 
         with self.pymc3_model:
             #  check if it is a predefined likelhood function

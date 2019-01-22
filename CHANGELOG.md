@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+- Added PTMCMCSampler
+
+## [0.3.4] 2019-01-10
+
+### Changes
+- Renamed the "basic_tutorial.py" example to "fast_tutorial.py" and created a
+ "standard_15d_cbc_tutorial.py"
+- Renamed "prior" to "priors" in bilby.gw.likelihood.GravtitationalWaveTransient
+  for consistency with bilby.core. **WARNING**: This will break scripts which
+  use marginalization.
+- Fixed definition of matched_filter_snr, the interferometer method has become `ifo.inner_product`.
+
+### Added
+- log-likelihood evaluations for pymultinest
 ## [0.3.3] 2018-11-08
 
 Changes currently on master, but not under a tag.
@@ -11,7 +26,10 @@ Changes currently on master, but not under a tag.
 - Renamed `BBHPriorSet` to `BBHPriorDict`
 - Renamed `BNSPriorSet` to `BNSPriorDict`
 - Renamed `CalibrationPriorSet` to `CalibrationPriorDict`
+- Added method to result to get injection recovery credible levels
+- Added function to generate a pp-plot from many results to core/result.py
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
+- Extracted time and frequency series behaviour from `WaveformGenerator` and `InterferometerStrainData` and moved it to `series.gw.CoupledTimeAndFrequencySeries`
 
 ### Changes
 - Switch the ordering the key-word arguments in `result.read_in_result` to put

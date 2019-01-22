@@ -12,12 +12,14 @@ from .dynesty import Dynesty
 from .emcee import Emcee
 from .nestle import Nestle
 from .ptemcee import Ptemcee
+from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 
 implemented_samplers = {
     'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
-    'ptemcee': Ptemcee, 'pymc3': Pymc3, 'pymultinest': Pymultinest}
+    'ptemcee': Ptemcee,'ptmcmcsampler' : PTMCMCSampler,
+    'pymc3': Pymc3, 'pymultinest': Pymultinest }
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
@@ -90,6 +92,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         An object containing the results
     """
 
+    logger.info(
+        "Running for label '{}', output will be saved to '{}'".format(
+            label, outdir))
+
     if clean:
         command_line_args.clean = clean
     if command_line_args.clean:
@@ -108,6 +114,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         raise ValueError("Input priors not understood")
 
     priors.fill_priors(likelihood, default_priors_file=default_priors_file)
+
+    # Generate the meta-data if not given and append the likelihood meta_data
+    if meta_data is None:
+        meta_data = dict()
+    meta_data['likelihood'] = likelihood.meta_data
 
     if isinstance(sampler, Sampler):
         pass
@@ -172,4 +183,3 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.plot_corner()
     logger.info("Summary of results:\n{}".format(result))
     return result
-

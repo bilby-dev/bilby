@@ -1,10 +1,8 @@
-.. _likelihood:
-
 ==========
 Likelihood
 ==========
 
-`bilby` likelihood objects are used in calculating the likelihood of the data
+:code:`bilby` likelihood objects are used in calculating the likelihood of the data
 for some specific set of parameters. In mathematical notation, the likelihood
 can be generically written as :math:`\mathcal{L}(d| \theta)`. How this is
 coded up will depend on the problem, but :code:`bilby` expects all likelihood
@@ -242,7 +240,7 @@ routine gravitational wave data analysis of transient events, we have in built
 likelihoods.  The default likelihood we use in the examples is
 `GravitationalWaveTransient`:
 
-.. autoclass:: bilby.GravitationalWaveTransient
+.. autoclass:: bilby.gw.likelihood.GravitationalWaveTransient
 
 We also provide a simpler likelihood
 

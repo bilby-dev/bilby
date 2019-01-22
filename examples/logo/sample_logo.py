@@ -14,8 +14,8 @@ class Likelihood(bilby.Likelihood):
         return -1 / (self.interp(self.parameters['x'], self.parameters['y'])[0])
 
 
-for letter in ['t', 'u', 'p', 'a', 'k']:
-    img = 1 - io.imread('{}.jpg'.format(letter), as_grey=True)[::-1, :]
+for letter in ['B', 'I', 'L', 'Y']:
+    img = 1 - io.imread('{}.png'.format(letter), as_grey=True)[::-1, :]
     x = np.arange(img.shape[0])
     y = np.arange(img.shape[1])
     interp = si.interpolate.interp2d(x, y, img.T)
@@ -29,4 +29,4 @@ for letter in ['t', 'u', 'p', 'a', 'k']:
     result = bilby.run_sampler(
         likelihood=likelihood, priors=priors, sampler='nestle', npoints=5000,
         label=letter)
-    fig = result.plot_corner(quantiles=None, smooth1d=4)
+    fig = result.plot_corner(quantiles=None)

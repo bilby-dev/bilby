@@ -1,6 +1,8 @@
 import os
+
 import numpy as np
 from scipy.interpolate import UnivariateSpline
+
 from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
                           Gaussian, Interped)
 from ..core.utils import logger
@@ -164,6 +166,7 @@ class BNSPriorDict(PriorDict):
         PriorDict.__init__(self, dictionary=dictionary, filename=filename)
 
     def test_redundancy(self, key):
+        logger.info("Performing redundancy check using BBHPriorDict().test_redundancy")
         bbh_redundancy = BBHPriorDict().test_redundancy(key)
         if bbh_redundancy:
             return True

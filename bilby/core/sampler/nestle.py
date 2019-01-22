@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import numpy as np
 from pandas import DataFrame
+
 from .base_sampler import NestedSampler
 
 
@@ -10,11 +11,11 @@ class Nestle(NestedSampler):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `nestle.sample`, see documentation for
-    that function for further help. Under Keyword Arguments, we list commonly
+    that function for further help. Under Other Parameters, we list commonly
     used kwargs and the bilby defaults
 
-    Keyword Arguments
-   ------------------
+    Other Parameters
+    ----------------
     npoints: int
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]

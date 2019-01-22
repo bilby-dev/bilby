@@ -1,9 +1,8 @@
-.. _priors:
-
 ======
 Priors
 ======
 
+---------------
 Defining priors
 ---------------
 
@@ -31,6 +30,7 @@ simple example that sets a uniform prior for :code:`a`, and a fixed value for
 Notice, that the :code:`latex_label` is optional, but if given will be used
 when generating plots.
 
+--------------
 Default priors
 --------------
 
@@ -44,8 +44,33 @@ hole and defined in a file like this
 You can define your own default prior and pass a string pointing to that file
 to :ref:`run_sampler <run_sampler>`.
 
+
+--------------------------
+The bilby prior dictionary
+--------------------------
+
+The :code:`priors` passed into :code:`run_sampler` can just be a regular python
+dictionary. However, we also provide a class :code:`bilby.core.prior.PriorDict`
+which provides extra functionality. For example, to sample from the prior:
+
+.. code:: python
+
+   >>> priors = bilby.core.priors.PriorDict()
+   >>> priors['a'] = bilby.prior.Uniform(minimum=0, maximum=10, name='a')
+   >>> priors['b'] = bilby.prior.Uniform(minimum=0, maximum=10, name='b')
+   >>> priors.sample()
+   {'a': 0.1234, 'b': 4.5232}
+
+Here is the detailed API information:
+
+.. autoclass:: bilby.core.prior.PriorDict
+   :members:
+
+   .. automethod:: __init__
+
+-----------------------
 Available prior classes
-----------------------------------------
+-----------------------
 
 We have provided a number of standard priors. Here we document a few of them,
 note that this list is incomplete.
@@ -58,8 +83,10 @@ note that this list is incomplete.
    :members:
    :special-members:
 
-You can also define your own by
-subclassing the :code:`bilby.prior.Prior` class.
+Defining your own prior
+=======================
+
+You can define your own by subclassing the :code:`bilby.prior.Prior` class.
 
 .. autoclass:: bilby.core.prior.Prior
    :members:

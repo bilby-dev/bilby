@@ -1,17 +1,18 @@
 from __future__ import division
 
-import numpy as np
-from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
-from scipy.special import erf, erfinv
-import scipy.stats
 import os
 from collections import OrderedDict
 from future.utils import iteritems
 
-from .utils import logger, infer_args_from_method
-from . import utils
+import numpy as np
+import scipy.stats
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
+from scipy.special import erf, erfinv
+
+# Keep import bilby statement, it is necessary for some eval() statements
 import bilby  # noqa
+from .utils import logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir
 
 
 class PriorDict(OrderedDict):
@@ -50,7 +51,7 @@ class PriorDict(OrderedDict):
             Output file naming scheme
         """
 
-        utils.check_directory_exists_and_if_not_mkdir(outdir)
+        check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
@@ -62,15 +63,20 @@ class PriorDict(OrderedDict):
         """ Reads in a prior from a file specification
 
         Parameters
-        -------
+        ----------
         filename: str
             Name of the file to be read in
+
+        Notes
+        -----
+        Lines beginning with '#' or empty lines will be ignored.
         """
 
-        prior = {}
+        comments = ['#', '\n']
+        prior = dict()
         with open(filename, 'r') as f:
             for line in f:
-                if line[0] == '#':
+                if line[0] in comments:
                     continue
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
@@ -121,8 +127,7 @@ class PriorDict(OrderedDict):
         likelihood: bilby.likelihood.GravitationalWaveTransient instance
             Used to infer the set of parameters to fill the prior with
         default_priors_file: str, optional
-            If given, a file containing the default priors; otherwise defaults
-            to the bilby defaults for a binary black hole.
+            If given, a file containing the default priors.
 
 
         Returns
@@ -240,6 +245,13 @@ class PriorDict(OrderedDict):
         """Empty redundancy test, should be overwritten in subclasses"""
         return False
 
+    def copy(self):
+        """
+        We have to overwrite the copy method as it fails due to the presence of
+        defaults.
+        """
+        return self.__class__(dictionary=OrderedDict(self))
+
 
 class PriorSet(PriorDict):
 
@@ -257,8 +269,7 @@ def create_default_prior(name, default_priors_file=None):
     name: str
         Parameter name
     default_priors_file: str, optional
-        If given, a file containing the default priors; otherwise defaults to
-        the bilby defaults for a binary black hole.
+        If given, a file containing the default priors.
 
     Return
     ------
@@ -654,7 +665,7 @@ class PowerLaw(Prior):
             normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
                                               self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.log(val) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
+        return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
 
 
 class Uniform(Prior):
@@ -1219,10 +1230,14 @@ class StudentT(Prior):
 
 
 class Beta(Prior):
-    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None):
+    def __init__(self, alpha, beta, minimum=0, maximum=1, name=None,
+                 latex_label=None, unit=None):
         """Beta distribution
 
         https://en.wikipedia.org/wiki/Beta_distribution
+
+        This wraps around
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.beta.html
 
         Parameters
         ----------
@@ -1230,6 +1245,10 @@ class Beta(Prior):
             first shape parameter
         beta: float
             second shape parameter
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
         name: str
             See superclass
         latex_label: str
@@ -1238,7 +1257,7 @@ class Beta(Prior):
             See superclass
 
         """
-        Prior.__init__(self, minimum=0., maximum=1., name=name,
+        Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
                        latex_label=latex_label, unit=unit)
 
         if alpha <= 0. or beta <= 0.:
@@ -1246,6 +1265,8 @@ class Beta(Prior):
 
         self.alpha = alpha
         self.beta = beta
+        self._loc = minimum
+        self._scale = maximum - minimum
 
     def rescale(self, val):
         """
@@ -1256,7 +1277,8 @@ class Beta(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return scipy.stats.beta.ppf(val, self.alpha, self.beta)
+        return scipy.stats.beta.ppf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1270,7 +1292,8 @@ class Beta(Prior):
         float: Prior probability of val
         """
 
-        spdf = scipy.stats.beta.pdf(val, self.alpha, self.beta)
+        spdf = scipy.stats.beta.pdf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
         if np.all(np.isfinite(spdf)):
             return spdf
 
@@ -1283,7 +1306,8 @@ class Beta(Prior):
             return 0.
 
     def ln_prob(self, val):
-        spdf = scipy.stats.beta.logpdf(val, self.alpha, self.beta)
+        spdf = scipy.stats.beta.logpdf(
+            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
         if np.all(np.isfinite(spdf)):
             return spdf
 

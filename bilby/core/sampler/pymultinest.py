@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 
+import os
+
+import numpy as np
+
 from ..utils import check_directory_exists_and_if_not_mkdir
-from .base_sampler import NestedSampler
 from ..utils import logger
+from .base_sampler import NestedSampler
 
 
 class Pymultinest(NestedSampler):
@@ -12,11 +16,11 @@ class Pymultinest(NestedSampler):
 
     All positional and keyword arguments (i.e., the args and kwargs) passed to
     `run_sampler` will be propagated to `pymultinest.run`, see documentation
-    for that class for further help. Under Keyword Arguments, we list commonly
+    for that class for further help. Under Other Parameters, we list commonly
     used kwargs and the bilby defaults.
 
-    Keyword Arguments
-    ------------------
+    Other Parameters
+    ----------------
     npoints: int
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]
@@ -56,7 +60,7 @@ class Pymultinest(NestedSampler):
         https://github.com/JohannesBuchner/PyMultiNest/issues/115
         """
         if not self.kwargs['outputfiles_basename']:
-            self.kwargs['outputfiles_basename'] =\
+            self.kwargs['outputfiles_basename'] = \
                 '{}/pm_{}/'.format(self.outdir, self.label)
         if self.kwargs['outputfiles_basename'].endswith('/') is False:
             self.kwargs['outputfiles_basename'] = '{}/'.format(
@@ -66,7 +70,7 @@ class Pymultinest(NestedSampler):
                 'The length of {} exceeds 78 characters. '
                 ' Post-processing will fail because the file names will be cut'
                 ' off. Please choose a shorter "outdir" or "label".'
-                .format(self.__kwargs['outputfiles_basename']))
+                .format(self.kwargs['outputfiles_basename']))
         check_directory_exists_and_if_not_mkdir(
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
@@ -78,8 +82,12 @@ class Pymultinest(NestedSampler):
             LogLikelihood=self.log_likelihood, Prior=self.prior_transform,
             n_dims=self.ndim, **self.kwargs)
 
+        post_equal_weights = os.path.join(
+            self.kwargs['outputfiles_basename'], 'post_equal_weights.dat')
+        post_equal_weights_data = np.loadtxt(post_equal_weights)
+        self.result.log_likelihood_evaluations = post_equal_weights_data[:, -1]
         self.result.sampler_output = out
-        self.result.samples = out['samples']
+        self.result.samples = post_equal_weights_data[:, :-1]
         self.result.log_evidence = out['logZ']
         self.result.log_evidence_err = out['logZerr']
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
