@@ -1,8 +1,12 @@
 from __future__ import division, absolute_import
 import unittest
-import bilby
 import os
 import sys
+
+import numpy as np
+from astropy import cosmology
+
+import bilby
 
 
 class TestBBHPriorDict(unittest.TestCase):
@@ -68,6 +72,41 @@ class TestCalibrationPrior(unittest.TestCase):
 
         self.assertEqual(len(test), n_nodes * 3)
 
+
+class TestUniformComovingVolumePrior(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_minimum(self):
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000)
+        self.assertEqual(prior.minimum, 10)
+
+    def test_maximum(self):
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000)
+        self.assertEqual(prior.maximum, 10000)
+
+    def test_zero_minimum_works(self):
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=0, maximum=10000)
+        self.assertEqual(prior.minimum, 0)
+
+    def test_specify_cosmology(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, cosmology='Planck13')
+        self.assertEqual(prior.cosmology, str(cosmology.Planck13))
+
+
+class TestAlignedSpin(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_default_prior_matches_analytic(self):
+        prior = bilby.gw.prior.AlignedSpin()
+        chis = np.linspace(-1, 1, 20)
+        analytic = - np.log(np.abs(chis)) / 2
+        max_difference = max(abs(analytic - prior.prob(chis)))
+        self.assertAlmostEqual(max_difference, 0, 2)
 
 if __name__ == '__main__':
     unittest.main()
