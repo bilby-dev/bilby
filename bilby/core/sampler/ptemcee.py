@@ -2,8 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from ..utils import get_progress_bar, logger
+from ..utils import get_progress_bar
 from . import Emcee
+from .base_sampler import SamplerError
 
 
 class Ptemcee(Emcee):
@@ -74,7 +75,9 @@ class Ptemcee(Emcee):
         self.print_nburn_logging_info()
         self.result.nburn = self.nburn
         if self.result.nburn > self.nsteps:
-            logger.warning('Chain not burned in, no samples generated.')
+            raise SamplerError(
+                "The run has finished, but the chain is not burned in: "
+                "`nburn < nsteps`. Try increasing the number of steps.")
         self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
         self.result.betas = sampler.betas

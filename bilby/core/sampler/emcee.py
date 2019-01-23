@@ -4,7 +4,7 @@ import numpy as np
 from pandas import DataFrame
 
 from ..utils import logger, get_progress_bar
-from .base_sampler import MCMCSampler
+from .base_sampler import MCMCSampler, SamplerError
 
 
 class Emcee(MCMCSampler):
@@ -116,6 +116,10 @@ class Emcee(MCMCSampler):
         self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
         self.print_nburn_logging_info()
         self.result.nburn = self.nburn
+        if self.result.nburn > self.nsteps:
+            raise SamplerError(
+                "The run has finished, but the chain is not burned in: "
+                "`nburn < nsteps`. Try increasing the number of steps.")
         self.result.samples = sampler.chain[:, self.nburn:, :].reshape((-1, self.ndim))
         self.result.walkers = sampler.chain
         self.result.log_evidence = np.nan
