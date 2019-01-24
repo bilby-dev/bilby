@@ -41,7 +41,7 @@ Gaussian distributed as such:
 .. math::
 
    P(y_i, t_i| m, c, H) = \frac{1}{\sqrt{2\pi\sigma^2}}
-                         \mathrm{exp}\left(\frac{-(y_i - (t_i x + c))^2}{2\sigma^2}\right) \,.
+                         \mathrm{exp}\left(\frac{-(y_i - (t_i m + c))^2}{2\sigma^2}\right) \,.
 
 Next, we assume that all data points are independent. As such,
 

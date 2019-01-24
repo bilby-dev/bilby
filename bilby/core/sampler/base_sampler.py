@@ -35,6 +35,10 @@ class Sampler(object):
         A dictionary of the injection parameters
     meta_data:
         A dictionary of extra meta data to store in the result
+    result_class: bilby.core.result.Result, or child of
+        The result class to use. By default, `bilby.core.result.Result` is used,
+        but objects which inherit from this class can be given providing
+        additional methods.
     **kwargs: dict
         Additional keyword arguments
 
@@ -81,7 +85,8 @@ class Sampler(object):
     def __init__(
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
-            injection_parameters=None, meta_data=None, **kwargs):
+            injection_parameters=None, meta_data=None, result_class=None,
+            **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
             self.priors = priors
@@ -108,7 +113,7 @@ class Sampler(object):
 
         self._log_summary_for_sampler()
 
-        self.result = self._initialise_result()
+        self.result = self._initialise_result(result_class)
 
     @property
     def search_parameter_keys(self):
@@ -187,20 +192,30 @@ class Sampler(object):
         for key in self.__fixed_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key].peak))
 
-    def _initialise_result(self):
+    def _initialise_result(self, result_class):
         """
         Returns
         -------
         bilby.core.result.Result: An initial template for the result
 
         """
-        result = Result(label=self.label, outdir=self.outdir,
-                        sampler=self.__class__.__name__.lower(),
-                        search_parameter_keys=self.__search_parameter_keys,
-                        fixed_parameter_keys=self.__fixed_parameter_keys,
-                        priors=self.priors, meta_data=self.meta_data,
-                        injection_parameters=self.injection_parameters,
-                        sampler_kwargs=self.kwargs)
+        result_kwargs = dict(
+            label=self.label, outdir=self.outdir,
+            sampler=self.__class__.__name__.lower(),
+            search_parameter_keys=self.__search_parameter_keys,
+            fixed_parameter_keys=self.__fixed_parameter_keys,
+            priors=self.priors, meta_data=self.meta_data,
+            injection_parameters=self.injection_parameters,
+            sampler_kwargs=self.kwargs)
+
+        if result_class is None:
+            result = Result(**result_kwargs)
+        elif issubclass(result_class, Result):
+            result = result_class(**result_kwargs)
+        else:
+            raise ValueError(
+                "Input result_class={} not understood".format(result_class))
+
         return result
 
     def _check_if_priors_can_be_sampled(self):

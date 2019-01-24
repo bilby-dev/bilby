@@ -121,18 +121,28 @@ class Pymc3(MCMCSampler):
         for key in self.__fixed_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key].peak))
 
-    def _initialise_result(self):
+    def _initialise_result(self, result_class):
         """
         Initialise results within Pymc3 subclass.
         """
 
-        result = Result(label=self.label, outdir=self.outdir,
-                        sampler=self.__class__.__name__.lower(),
-                        search_parameter_keys=self.__search_parameter_keys,
-                        fixed_parameter_keys=self.__fixed_parameter_keys,
-                        priors=self.priors, meta_data=self.meta_data,
-                        injection_parameters=self.injection_parameters,
-                        sampler_kwargs=self.kwargs)
+        result_kwargs = dict(
+            label=self.label, outdir=self.outdir,
+            sampler=self.__class__.__name__.lower(),
+            search_parameter_keys=self.__search_parameter_keys,
+            fixed_parameter_keys=self.__fixed_parameter_keys,
+            priors=self.priors, meta_data=self.meta_data,
+            injection_parameters=self.injection_parameters,
+            sampler_kwargs=self.kwargs)
+
+        if result_class is None:
+            result = Result(**result_kwargs)
+        elif issubclass(result_class, Result):
+            result = result_class(**result_kwargs)
+        else:
+            raise ValueError(
+                "Input result_class={} not understood".format(result_class))
+
         return result
 
     @property
