@@ -11,10 +11,9 @@ from .cosmology import get_cosmology
 try:
     from astropy import units
     from astropy.cosmology import z_at_value
-    import astropy.cosmology
 except ImportError:
     logger.debug("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+                 " not be able to use some of the prebuilt functions.")
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -145,7 +144,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                     luminosity_distance_to_redshift(
                         parameters['luminosity_distance'])
             converted_parameters[key[:-7]] = converted_parameters[key] * (
-                    1 + converted_parameters['redshift'])
+                1 + converted_parameters['redshift'])
 
     if 'chirp_mass' in converted_parameters.keys():
         if 'total_mass' in converted_parameters.keys():

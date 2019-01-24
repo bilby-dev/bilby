@@ -1,12 +1,12 @@
 from ..core.utils import logger
 
 try:
-    from astropy import cosmology as cosmo, units
+    from astropy import cosmology as cosmo
     DEFAULT_COSMOLOGY = cosmo.Planck15
     COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
 except ImportError:
     logger.debug("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+                 " not be able to use some of the prebuilt functions.")
     DEFAULT_COSMOLOGY = None
     COSMOLOGY = [None, str(None)]
 

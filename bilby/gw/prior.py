@@ -12,7 +12,7 @@ try:
     from astropy import cosmology as cosmo, units
 except ImportError:
     logger.debug("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+                 " not be able to use some of the prebuilt functions.")
 
 
 class UniformComovingVolume(Interped):
