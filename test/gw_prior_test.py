@@ -93,7 +93,12 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
     def test_specify_cosmology(self):
         prior = bilby.gw.prior.UniformComovingVolume(
             minimum=10, maximum=10000, cosmology='Planck13')
-        self.assertEqual(prior.cosmology, str(cosmology.Planck13))
+        self.assertEqual(prior.cosmology, cosmology.Planck13.name)
+
+    def test_redshift_prior_creation(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name='redshift')
+        self.assertEqual(prior.latex_label, '$z$')
 
 
 class TestAlignedSpin(unittest.TestCase):
