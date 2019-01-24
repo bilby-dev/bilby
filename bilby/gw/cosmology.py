@@ -41,22 +41,22 @@ def set_cosmology(cosmology=None):
     cosmo: astropy.cosmology.FLRW
         Cosmology instance
     """
-    if str(cosmology) == str(COSMOLOGY[1]):
-        pass
-    else:
-        if cosmology is None:
-            cosmology = DEFAULT_COSMOLOGY
-        elif isinstance(cosmology, cosmo.FLRW):
-            cosmology = cosmology
-        elif isinstance(cosmology, str):
-            cosmology = cosmo.__dict__[cosmology]
-        elif isinstance(cosmology, dict):
-            if 'Ode0' in cosmology.keys():
-                if 'w0' in cosmology.keys():
-                    cosmology = cosmo.wCDM(**cosmology)
-                else:
-                    cosmology = cosmo.LambdaCDM(**cosmology)
+    if cosmology is None:
+        cosmology = DEFAULT_COSMOLOGY
+    elif isinstance(cosmology, cosmo.FLRW):
+        cosmology = cosmology
+    elif isinstance(cosmology, str):
+        cosmology = cosmo.__dict__[cosmology]
+    elif isinstance(cosmology, dict):
+        if 'Ode0' in cosmology.keys():
+            if 'w0' in cosmology.keys():
+                cosmology = cosmo.wCDM(**cosmology)
             else:
-                cosmology = cosmo.FlatLambdaCDM(**cosmology)
-        COSMOLOGY[0] = cosmology
+                cosmology = cosmo.LambdaCDM(**cosmology)
+        else:
+            cosmology = cosmo.FlatLambdaCDM(**cosmology)
+    COSMOLOGY[0] = cosmology
+    if cosmology.name is not None:
         COSMOLOGY[1] = cosmology.name
+    else:
+        COSMOLOGY[1] = repr(cosmology)
