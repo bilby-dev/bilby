@@ -3,8 +3,8 @@ import os
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
-from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
-                          Gaussian, Interped, PowerLaw)
+from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
+                          Interped)
 from ..core.utils import logger
 from . import COSMOLOGY
 
