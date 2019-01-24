@@ -6,12 +6,12 @@ from scipy.interpolate import UnivariateSpline
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
                           Interped)
 from ..core.utils import logger
-from . import COSMOLOGY
+from .cosmology import get_cosmology
 
 try:
     from astropy import cosmology as cosmo, units
 except ImportError:
-    logger.warning("You do not have astropy installed currently. You will"
+    logger.debug("You do not have astropy installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
@@ -42,10 +42,7 @@ class UniformComovingVolume(Interped):
             Units, if a string that string will be searched for in
             astropy.units. Default=Mpc
         """
-        if cosmology is None:
-            cosmology = COSMOLOGY[0]
-        elif isinstance(cosmology, str):
-            cosmology = cosmo.__dict__[cosmology]
+        cosmology = get_cosmology(cosmology)
         if isinstance(unit, str):
             unit = units.__dict__[unit]
         self.cosmology = cosmology.name

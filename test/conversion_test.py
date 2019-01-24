@@ -1,8 +1,11 @@
 from __future__ import division, absolute_import
 import unittest
 import mock
-from bilby.gw import conversion
+
 import numpy as np
+
+import bilby
+from bilby.gw import conversion
 
 
 class TestBasicConversions(unittest.TestCase):
@@ -140,6 +143,27 @@ class TestConvertToLALParams(unittest.TestCase):
                     self.parameters)
             self.assertDictEqual(self.parameters, dict(
                 tilt_1=42, cos_tilt_1=1, lambda_1=0, lambda_2=0))
+
+
+class TestDistanceTransformations(unittest.TestCase):
+
+    def setUp(self):
+        self.distances = np.linspace(1, 1000, 100)
+
+    def test_luminosity_redshift_with_cosmology(self):
+        z = conversion.luminosity_distance_to_redshift(self.distances, cosmology='WMAP9')
+        dl = conversion.redshift_to_luminosity_distance(z, cosmology='WMAP9')
+        self.assertAlmostEqual(max(abs(dl - self.distances)), 0, 4)
+
+    def test_comoving_redshift_with_cosmology(self):
+        z = conversion.comoving_distance_to_redshift(self.distances, cosmology='WMAP9')
+        dc = conversion.redshift_to_comoving_distance(z, cosmology='WMAP9')
+        self.assertAlmostEqual(max(abs(dc - self.distances)), 0, 4)
+
+    def test_comoving_luminosity_with_cosmology(self):
+        dc = conversion.comoving_distance_to_luminosity_distance(self.distances, cosmology='WMAP9')
+        dl = conversion.luminosity_distance_to_comoving_distance(dc, cosmology='WMAP9')
+        self.assertAlmostEqual(max(abs(dl - self.distances)), 0, 4)
 
 
 if __name__ == '__main__':

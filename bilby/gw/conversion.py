@@ -6,52 +6,47 @@ from pandas import DataFrame
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction, Interped
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
-from . import COSMOLOGY
+from .cosmology import get_cosmology
 
 try:
     from astropy import units
     from astropy.cosmology import z_at_value
+    import astropy.cosmology
 except ImportError:
-    logger.warning("You do not have astropy installed currently. You will"
+    logger.debug("You do not have astropy installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     return cosmology.luminosity_distance(redshift).value
 
 
 def redshift_to_comoving_distance(redshift, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     return cosmology.comoving_distance(redshift).value
 
 
 @np.vectorize
 def luminosity_distance_to_redshift(distance, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.luminosity_distance, distance * units.Mpc)
 
 
 @np.vectorize
 def comoving_distance_to_redshift(distance, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.comoving_distance, distance * units.Mpc)
 
 
 def comoving_distance_to_luminosity_distance(distance, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     redshift = comoving_distance_to_redshift(distance, cosmology)
     return redshift_to_luminosity_distance(redshift, cosmology)
 
 
 def luminosity_distance_to_comoving_distance(distance, cosmology=None):
-    if cosmology is None:
-        cosmology = COSMOLOGY[0]
+    cosmology = get_cosmology(cosmology)
     redshift = luminosity_distance_to_redshift(distance, cosmology)
     return redshift_to_comoving_distance(redshift, cosmology)
 
@@ -135,6 +130,23 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
 
+    if 'redshift' in converted_parameters.keys():
+        converted_parameters['luminosity_distance'] = \
+            redshift_to_luminosity_distance(parameters['redshift'])
+    elif 'comoving_distance' in converted_parameters.keys():
+        converted_parameters['luminosity_distance'] = \
+            comoving_distance_to_luminosity_distance(
+                parameters['comoving_distance'])
+
+    for key in original_keys:
+        if key[-7:] == '_source':
+            if 'redshift' not in converted_parameters.keys():
+                converted_parameters['redshift'] =\
+                    luminosity_distance_to_redshift(
+                        parameters['luminosity_distance'])
+            converted_parameters[key[:-7]] = converted_parameters[key] * (
+                    1 + converted_parameters['redshift'])
+
     if 'chirp_mass' in converted_parameters.keys():
         if 'total_mass' in converted_parameters.keys():
             converted_parameters['symmetric_mass_ratio'] =\
@@ -209,14 +221,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
         if cos_angle in converted_parameters.keys():
             converted_parameters[angle] =\
                 np.arccos(converted_parameters[cos_angle])
-
-    if 'redshift' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] =\
-            redshift_to_luminosity_distance(parameters['redshift'])
-    elif 'comoving_distance' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] = \
-            comoving_distance_to_luminosity_distance(
-                parameters['comoving_distance'])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
