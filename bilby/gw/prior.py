@@ -71,8 +71,29 @@ class UniformComovingVolume(Interped):
             dvc_ddl = dvc_dz / ddl_dz
             Interped.__init__(
                 self, xx=dl_of_z, yy=dvc_ddl, minimum=minimum,
-                maximum=maximum, name=name, latex_label='$d_L$',
-                unit=str(unit))
+                maximum=maximum, name=name, latex_label='$d_L$', unit=unit)
+
+    def get_redshift_prior(self):
+        if self.name == 'redshift':
+            return self
+        else:
+            cosmology = cosmo.__dict__[self.cosmology]
+            return UniformComovingVolume(
+                minimum=cosmo.z_at_value(
+                    cosmology.luminosity_distance, self.minimum * self.unit),
+                maximum=cosmo.z_at_value(
+                    cosmology.luminosity_distance, self.minimum * self.unit),
+                name='redshift', cosmology=cosmology)
+
+    def get_luminosity_distance_prior(self):
+        if self.name == 'luminosity_distance':
+            return self
+        else:
+            cosmology = cosmo.__dict__[self.cosmology]
+            return UniformComovingVolume(
+                minimum=cosmology.luminosity_distance(self.minimum).value,
+                maximum=cosmology.luminosity_distance(self.maximum).value,
+                name='luminosity_distance', cosmology=cosmology)
 
 
 class AlignedSpin(Interped):

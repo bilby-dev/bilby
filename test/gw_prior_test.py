@@ -100,6 +100,17 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
             minimum=0.1, maximum=1, name='redshift')
         self.assertEqual(prior.latex_label, '$z$')
 
+    def test_redshift_to_luminosity_distance(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name='redshift')
+        new_prior = prior.get_luminosity_distance_prior()
+        self.assertEqual(new_prior.name, 'luminosity_distance')
+
+    def test_luminosity_distance_to_redshift(self):
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000)
+        new_prior = prior.get_redshift_prior()
+        self.assertEqual(new_prior.name, 'redshift')
+
 
 class TestAlignedSpin(unittest.TestCase):
 
