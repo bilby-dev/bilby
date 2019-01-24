@@ -258,6 +258,18 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
+    for idx in ['1', '2']:
+        mag = 'a_{}'.format(idx)
+        if mag in original_keys:
+            tilt = 'tilt_{}'.format(idx)
+            if tilt in original_keys:
+                converted_parameters['chi_{}'.format(idx)] = (
+                        converted_parameters[mag] *
+                        np.cos(converted_parameters[tilt]))
+            else:
+                converted_parameters['chi_{}'.format(idx)] = (
+                    converted_parameters[mag])
+
     # catch if tidal parameters aren't present
     if not any([key in converted_parameters for key in
                 ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
@@ -287,18 +299,6 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
-
-    for idx in ['1', '2']:
-        mag = 'a_{}'.format(idx)
-        if mag in original_keys:
-            tilt = 'tilt_{}'.format(idx)
-            if tilt in original_keys:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag] *
-                    np.cos(converted_parameters[tilt]))
-            else:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
