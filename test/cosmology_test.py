@@ -24,6 +24,21 @@ class TestSetCosmology(unittest.TestCase):
         cosmology.set_cosmology()
         self.assertEqual(cosmology.COSMOLOGY[1], cosmology.DEFAULT_COSMOLOGY.name)
 
+    def test_setting_cosmology_with_flat_lambda_cdm_dict(self):
+        cosmo_dict = dict(H0=67.7, Om0=0.3)
+        cosmology.set_cosmology(cosmo_dict)
+        self.assertEqual(cosmology.COSMOLOGY[1][:13], 'FlatLambdaCDM')
+
+    def test_setting_cosmology_with_lambda_cdm_dict(self):
+        cosmo_dict = dict(H0=67.7, Om0=0.3, Ode0=0.7)
+        cosmology.set_cosmology(cosmo_dict)
+        self.assertEqual(cosmology.COSMOLOGY[1][:9], 'LambdaCDM')
+
+    def test_setting_cosmology_with_w_cdm_dict(self):
+        cosmo_dict = dict(H0=67.7, Om0=0.3, Ode0=0.7, w0=-1.0)
+        cosmology.set_cosmology(cosmo_dict)
+        self.assertEqual(cosmology.COSMOLOGY[1][:4], 'wCDM')
+
 
 class TestGetCosmology(unittest.TestCase):
 
