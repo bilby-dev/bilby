@@ -264,8 +264,8 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             tilt = 'tilt_{}'.format(idx)
             if tilt in original_keys:
                 converted_parameters['chi_{}'.format(idx)] = (
-                        converted_parameters[mag] *
-                        np.cos(converted_parameters[tilt]))
+                    converted_parameters[mag] *
+                    np.cos(converted_parameters[tilt]))
             else:
                 converted_parameters['chi_{}'.format(idx)] = (
                     converted_parameters[mag])

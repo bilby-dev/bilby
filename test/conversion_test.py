@@ -129,13 +129,13 @@ class TestConvertToLALParams(unittest.TestCase):
         self.mass_parameters['total_mass'] = \
             conversion.component_masses_to_total_mass(**self.component_mass_pars)
         self.component_tidal_parameters = dict(lambda_1=300, lambda_2=300)
+        self.all_component_pars = self.component_tidal_parameters.copy()
+        self.all_component_pars.update(self.component_mass_pars)
         self.tidal_parameters = self.component_tidal_parameters.copy()
         self.tidal_parameters['lambda_tilde'] = \
-            conversion.lambda_1_lambda_2_to_lambda_tilde(
-                **self.component_tidal_parameters, **self.component_mass_pars)
+            conversion.lambda_1_lambda_2_to_lambda_tilde(**self.all_component_pars)
         self.tidal_parameters['delta_lambda'] = \
-            conversion.lambda_1_lambda_2_to_delta_lambda(
-                **self.component_tidal_parameters, **self.component_mass_pars)
+            conversion.lambda_1_lambda_2_to_delta_lambda(**self.all_component_pars)
 
     def tearDown(self):
         del self.search_keys
