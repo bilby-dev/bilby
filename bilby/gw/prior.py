@@ -45,7 +45,10 @@ class UniformComovingVolume(Interped):
         cosmology = get_cosmology(cosmology)
         if isinstance(unit, str):
             unit = units.__dict__[unit]
-        self.cosmology = cosmology.name
+        if cosmology.name is not None:
+            self.cosmology = cosmology.name
+        else:
+            self.cosmology = cosmology
         if name == 'redshift':
             zs = np.linspace(minimum, maximum, 1000)
             dvc_dz = cosmology.differential_comoving_volume(zs).value
@@ -74,7 +77,7 @@ class UniformComovingVolume(Interped):
         if self.name == 'redshift':
             return self
         else:
-            cosmology = cosmo.__dict__[self.cosmology]
+            cosmology = get_cosmology(self.cosmology)
             return UniformComovingVolume(
                 minimum=cosmo.z_at_value(
                     cosmology.luminosity_distance, self.minimum * self.unit),
@@ -86,7 +89,7 @@ class UniformComovingVolume(Interped):
         if self.name == 'luminosity_distance':
             return self
         else:
-            cosmology = cosmo.__dict__[self.cosmology]
+            cosmology = get_cosmology(self.cosmology)
             return UniformComovingVolume(
                 minimum=cosmology.luminosity_distance(self.minimum).value,
                 maximum=cosmology.luminosity_distance(self.maximum).value,
