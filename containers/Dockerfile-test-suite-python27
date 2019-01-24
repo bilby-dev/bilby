@@ -20,7 +20,7 @@ echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
 echo "conda activate base" >> ~/.bashrc
 
 # Install conda-installable programs
-RUN conda install -y numpy>=1.9 scipy>=0.16 matplotlib>=2.0 pandas
+RUN conda install -y numpy scipy matplotlib pandas
 
 RUN conda install -c conda-forge deepdish
 
@@ -60,3 +60,12 @@ RUN git clone https://github.com/PolyChord/PolyChordLite.git \
 # Install PTMCMCSampler
 RUN git clone https://github.com/jellis18/PTMCMCSampler.git \
 && (cd PTMCMCSampler && python setup.py install)
+
+# Add the ROQ data to the image
+RUN mkdir roq_basis \
+    && cd roq_basis \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_linear.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
