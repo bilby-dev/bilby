@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
-                          Gaussian, Interped)
+                          Gaussian, Interped, PowerLaw)
 from ..core.utils import logger
 from . import COSMOLOGY
 
@@ -18,7 +18,7 @@ except ImportError:
 class UniformComovingVolume(FromFile):
 
     def __init__(self, minimum=None, maximum=None, cosmology=None,
-                 name='luminosity distance', latex_label='$d_L$', unit='Mpc'):
+                 name='luminosity distance', unit='Mpc'):
         """
         Prior distribution on _luminosity distance_ which is uniform in comoving
         volume based on the specified cosmology.
@@ -35,33 +35,49 @@ class UniformComovingVolume(FromFile):
             Cosmology to use. If a string that string will be searched for in
             astropy.cosmology. Default is project cosmology
         name: str, optional
-            See superclass
-        latex_label: str, optional
-            See superclass
+            Name specifying which distance parameter to use, the options are:
+                - luminosity_distance
+                - comoving_distance
+                - redshift
         unit: (astropy.units.Mpc, str), optional
             Units, if a string that string will be searched for in
-            astropy,units. Default=Mpc
+            astropy.units. Default=Mpc
         """
-        if cosmology is None:
-            cosmology = COSMOLOGY[0]
-        elif isinstance(cosmology, str):
-            cosmology = cosmo.__dict__[cosmology]
-        if isinstance(unit, str):
-            unit = units.__dict__[unit]
-        if minimum == 0:
-            z_min = 0
+        if name == 'comoving_volume':
+            PowerLaw(alpha=2, minimum=minimum, maximum=maximum, name=name,
+                     latex_label='$d_C$', unit=str(unit))
         else:
-            z_min = cosmo.z_at_value(cosmology.luminosity_distance, minimum * unit)
-        z_max = cosmo.z_at_value(cosmology.luminosity_distance, maximum * unit)
-        zs = np.linspace(z_min * 0.99, z_max * 1.01, 1000)
-        dvc_dz = cosmology.differential_comoving_volume(zs).value
-        dl_of_z = np.array([cosmology.luminosity_distance(z).value for z in zs])
-        ddl_dz = np.gradient(dl_of_z, zs)
-        dvc_ddl = dvc_dz / ddl_dz
-        self.cosmology = str(cosmology)
-        Interped.__init__(
-            self, xx=dl_of_z, yy=dvc_ddl, minimum=minimum, maximum=maximum,
-            name=name, latex_label=latex_label, unit=str(unit))
+            if cosmology is None:
+                cosmology = COSMOLOGY[0]
+            elif isinstance(cosmology, str):
+                cosmology = cosmo.__dict__[cosmology]
+            if isinstance(unit, str):
+                unit = units.__dict__[unit]
+            self.cosmology = cosmology.name
+            if name == 'redshift':
+                zs = np.linspace(minimum, maximum, 1000)
+                dvc_dz = cosmology.differential_comoving_volume(zs).value
+                Interped.__init__(
+                    self, xx=zs, yy=dvc_dz, minimum=minimum, maximum=maximum,
+                    name=name, latex_label='$z$')
+            else:
+                if minimum == 0:
+                    z_min = 0
+                else:
+                    z_min = cosmo.z_at_value(
+                        cosmology.luminosity_distance, minimum * unit)
+                z_max = cosmo.z_at_value(
+                    cosmology.luminosity_distance, maximum * unit)
+                zs = np.linspace(z_min * 0.99, z_max * 1.01, 1000)
+                dvc_dz = cosmology.differential_comoving_volume(zs).value
+                dl_of_z = np.array([cosmology.luminosity_distance(z).value
+                                    for z in zs])
+                ddl_dz = np.gradient(dl_of_z, zs)
+                dvc_ddl = dvc_dz / ddl_dz
+                Interped.__init__(
+                    self, xx=dl_of_z, yy=dvc_ddl, minimum=minimum,
+                    maximum=maximum, name=name, latex_label='$d_L$',
+                    unit=str(unit))
 
 
 class AlignedSpin(Interped):
