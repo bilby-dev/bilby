@@ -84,6 +84,8 @@ class Cpnest(NestedSampler):
             out.plot()
 
         self.result.posterior = DataFrame(out.posterior_samples)
+        self.result.posterior.rename(columns=dict(
+            logL='log_likelihood', logPrior='log_prior'), inplace=True)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.nan
         return self.result
