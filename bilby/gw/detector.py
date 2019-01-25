@@ -358,8 +358,8 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        return ((self.frequency_array > self.minimum_frequency) &
-                (self.frequency_array < self.maximum_frequency))
+        return ((self.frequency_array >= self.minimum_frequency) &
+                (self.frequency_array <= self.maximum_frequency))
 
     @property
     def alpha(self):

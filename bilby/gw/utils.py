@@ -632,6 +632,88 @@ def plot_skymap(result, center='120d -40d', nside=512):
     fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))
 
 
+def build_roq_weights(data, basis, deltaF):
+
+    """
+    for a data array and reduced basis compute roq weights
+    basis: (reduced basis element)*invV (the inverse Vandermonde matrix)
+    data: data set
+    PSD: detector noise power spectral density (must be same shape as data)
+    deltaF: integration element df
+
+    """
+    weights = np.dot(data, np.conjugate(basis)) * deltaF * 4.
+    return weights
+
+
+def blockwise_dot_product(matrix_a, matrix_b, max_elements=int(2 ** 27),
+                          out=None):
+    """
+    Memory efficient
+    Computes the dot product of two matrices in a block-wise fashion.
+    Only blocks of `matrix_a` with a maximum size of `max_elements` will be
+    processed simultaneously.
+
+    Parameters
+    ----------
+    matrix_a, matrix_b: array-like
+        Matrices to be dot producted, matrix_b is complex conjugated.
+    max_elements: int
+        Maximum number of elements to consider simultaneously, should be memory
+        limited.
+    out: array-like
+        Output array
+
+    Return
+    ------
+    out: array-like
+        Dot producted array
+    """
+    def block_slices(dim_size, block_size):
+        """Generator that yields slice objects for indexing into
+        sequential blocks of an array along a particular axis
+        Useful for blockwise dot
+        """
+        count = 0
+        while True:
+            yield slice(count, count + block_size, 1)
+            count += block_size
+            if count > dim_size:
+                return
+
+    matrix_b = np.conjugate(matrix_b)
+    m, n = matrix_a.shape
+    n1, o = matrix_b.shape
+    if n1 != n:
+        raise ValueError(
+            'Matrices are not aligned, matrix a has shape ' +
+            '{}, matrix b has shape {}.'.format(matrix_a.shape, matrix_b.shape))
+
+    if matrix_a.flags.f_contiguous:
+        # prioritize processing as many columns of matrix_a as possible
+        max_cols = max(1, max_elements // m)
+        max_rows = max_elements // max_cols
+
+    else:
+        # prioritize processing as many rows of matrix_a as possible
+        max_rows = max(1, max_elements // n)
+        max_cols = max_elements // max_rows
+
+    if out is None:
+        out = np.empty((m, o), dtype=np.result_type(matrix_a, matrix_b))
+    elif out.shape != (m, o):
+        raise ValueError('Output array has incorrect dimensions.')
+
+    for mm in block_slices(m, max_rows):
+        out[mm, :] = 0
+        for nn in block_slices(n, max_cols):
+            a_block = matrix_a[mm, nn].copy()  # copy to force a read
+            out[mm, :] += np.dot(a_block, matrix_b[nn, :])
+            del a_block
+
+    return out
+
+
 def convert_args_list_to_float(*args_list):
     """ Converts inputs to floats, returns a list in the same order as the input"""
     try:
