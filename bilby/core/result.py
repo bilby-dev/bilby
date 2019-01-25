@@ -11,6 +11,7 @@ import corner
 import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import lines as mpllines
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
@@ -119,9 +120,10 @@ class Result(object):
             Version information for software used to generate the result. Note,
             this information is generated when the result object is initialized
 
-        Note:
-            All sampling output parameters, e.g. the samples themselves are
-            typically not given at initialisation, but set at a later stage.
+        Note
+        ---------
+        All sampling output parameters, e.g. the samples themselves are
+        typically not given at initialisation, but set at a later stage.
 
         """
 
@@ -150,6 +152,9 @@ class Result(object):
         self.sampling_time = sampling_time
         self.version = version
         self.max_autocorrelation_time = max_autocorrelation_time
+
+        self.prior_values = None
+        self._kde = None
 
     def __str__(self):
         """Print a summary """
@@ -285,7 +290,7 @@ class Result(object):
                 pass
         return dictionary
 
-    def save_to_file(self, overwrite=False):
+    def save_to_file(self, overwrite=False, outdir=None):
         """
         Writes the Result to a deepdish h5 file
 
@@ -294,9 +299,12 @@ class Result(object):
         overwrite: bool, optional
             Whether or not to overwrite an existing result file.
             default=False
+        outdir: str, optional
+            Path to the outdir. Default is the one stored in the result object.
         """
-        file_name = result_file_name(self.outdir, self.label)
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
+        outdir = self._safe_outdir_creation(outdir, self.save_to_file)
+        file_name = result_file_name(outdir, self.label)
+
         if os.path.isfile(file_name):
             if overwrite:
                 logger.debug('Removing existing file {}'.format(file_name))
@@ -326,10 +334,10 @@ class Result(object):
             logger.error("\n\n Saving the data has failed with the "
                          "following message:\n {} \n\n".format(e))
 
-    def save_posterior_samples(self):
+    def save_posterior_samples(self, outdir=None):
         """Saves posterior samples to a file"""
-        filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
+        outdir = self._safe_outdir_creation(outdir, self.save_posterior_samples)
+        filename = '{}/{}_posterior_samples.txt'.format(outdir, self.label)
         self.posterior.to_csv(filename, index=False, header=True)
 
     def get_latex_labels_from_parameter_keys(self, keys):
@@ -389,7 +397,7 @@ class Result(object):
         return self.posterior_volume / self.prior_volume(priors)
 
     def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
-                                                 quantiles=[0.16, 0.84]):
+                                                 quantiles=(0.16, 0.84)):
         """ Calculate the median and error bar for a given key
 
         Parameters
@@ -398,8 +406,8 @@ class Result(object):
             The parameter key for which to calculate the median and error bar
         fmt: str, ('.2f')
             A format string
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+        quantiles: list, tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
 
         Returns
@@ -428,8 +436,8 @@ class Result(object):
     def plot_single_density(self, key, prior=None, cumulative=False,
                             title=None, truth=None, save=True,
                             file_base_name=None, bins=50, label_fontsize=16,
-                            title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
-        """ Plot a 1D marginal density, either probablility or cumulative.
+                            title_fontsize=16, quantiles=(0.16, 0.84), dpi=300):
+        """ Plot a 1D marginal density, either probability or cumulative.
 
         Parameters
         ----------
@@ -458,8 +466,8 @@ class Result(object):
             The number of histogram bins
         label_fontsize, title_fontsize: int
             The fontsizes for the labels and titles
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+        quantiles: tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
         dpi: int
             Dots per inch resolution of the plot
@@ -493,7 +501,7 @@ class Result(object):
 
         if isinstance(prior, Prior):
             theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
-            ax.plot(theta, Prior.prob(theta), color='C2')
+            ax.plot(theta, prior.prob(theta), color='C2')
 
         if save:
             fig.tight_layout()
@@ -508,7 +516,8 @@ class Result(object):
 
     def plot_marginals(self, parameters=None, priors=None, titles=True,
                        file_base_name=None, bins=50, label_fontsize=16,
-                       title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
+                       title_fontsize=16, quantiles=(0.16, 0.84), dpi=300,
+                       outdir=None):
         """ Plot 1D marginal distributions
 
         Parameters
@@ -531,12 +540,14 @@ class Result(object):
         bins: int
             The number of histogram bins
         label_fontsize, title_fontsize: int
-            The fontsizes for the labels and titles
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+            The font sizes for the labels and titles
+        quantiles: tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
         dpi: int
             Dots per inch resolution of the plot
+        outdir: str, optional
+            Path to the outdir. Default is the one store in the result object.
 
         Returns
         -------
@@ -558,7 +569,8 @@ class Result(object):
                 truths = self.injection_parameters
 
         if file_base_name is None:
-            file_base_name = '{}/{}_1d/'.format(self.outdir, self.label)
+            outdir = self._safe_outdir_creation(outdir, self.plot_marginals)
+            file_base_name = '{}/{}_1d/'.format(outdir, self.label)
             check_directory_exists_and_if_not_mkdir(file_base_name)
 
         if priors is True:
@@ -609,7 +621,8 @@ class Result(object):
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
-            overridden.
+            overridden. Also optional an 'outdir' argument which can be used
+            to override the outdir set by the absolute path of the result object.
 
         Notes
         -----
@@ -720,8 +733,8 @@ class Result(object):
 
         if save:
             if filename is None:
-                utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-                filename = '{}/{}_corner.png'.format(self.outdir, self.label)
+                outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_corner)
+                filename = '{}/{}_corner.png'.format(outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
             plt.close(fig)
@@ -752,16 +765,16 @@ class Result(object):
             ax.set_ylabel(self.parameter_labels[i])
 
         fig.tight_layout()
-        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_walkers)
+        filename = '{}/{}_walkers.png'.format(outdir, self.label)
         logger.debug('Saving walkers plot to {}'.format('filename'))
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
         plt.close(fig)
 
     def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
                        xlabel=None, ylabel=None, data_label='data',
                        data_fmt='o', draws_label=None, filename=None,
-                       maxl_label='max likelihood', dpi=300):
+                       maxl_label='max likelihood', dpi=300, outdir=None):
         """ Generate a figure showing the data and fits to the data
 
         Parameters
@@ -787,6 +800,8 @@ class Result(object):
         filename: str
             If given, the filename to use. Otherwise, the filename is generated
             from the outdir and label attributes.
+        outdir: str, optional
+            Path to the outdir. Default is the one store in the result object.
 
         """
 
@@ -825,8 +840,8 @@ class Result(object):
         ax.legend(numpoints=3)
         fig.tight_layout()
         if filename is None:
-            utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-            filename = '{}/{}_plot_with_data'.format(self.outdir, self.label)
+            outdir = self._safe_outdir_creation(outdir, self.plot_with_data)
+            filename = '{}/{}_plot_with_data'.format(outdir, self.label)
         fig.savefig(filename, dpi=dpi)
         plt.close(fig)
 
@@ -944,20 +959,20 @@ class Result(object):
         bool: True if attribute name matches with an attribute of other_object, False otherwise
 
         """
-        A = getattr(self, name, False)
-        B = getattr(other_object, name, False)
-        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
-        if (A is not False) and (B is not False):
-            typeA = type(A)
-            typeB = type(B)
-            if typeA == typeB:
-                if typeA in [str, float, int, dict, list]:
+        a = getattr(self, name, False)
+        b = getattr(other_object, name, False)
+        logger.debug('Checking {} value: {}=={}'.format(name, a, b))
+        if (a is not False) and (b is not False):
+            type_a = type(a)
+            type_b = type(b)
+            if type_a == type_b:
+                if type_a in [str, float, int, dict, list]:
                     try:
-                        return A == B
+                        return a == b
                     except ValueError:
                         return False
-                elif typeA in [np.ndarray]:
-                    return np.all(A == B)
+                elif type_a in [np.ndarray]:
+                    return np.all(a == b)
         return False
 
     @property
@@ -966,9 +981,9 @@ class Result(object):
 
         Uses `scipy.stats.gaussian_kde` to generate the kernel density
         """
-        try:
+        if self._kde:
             return self._kde
-        except AttributeError:
+        else:
             self._kde = scipy.stats.gaussian_kde(
                 self.posterior[self.search_parameter_keys].values.T)
             return self._kde
@@ -997,6 +1012,18 @@ class Result(object):
         ordered_sample = [[s[key] for key in self.search_parameter_keys]
                           for s in sample]
         return self.kde(ordered_sample)
+
+    def _safe_outdir_creation(self, outdir=None, caller_func=None):
+        if outdir is None:
+            outdir = self.outdir
+        try:
+            utils.check_directory_exists_and_if_not_mkdir(outdir)
+        except PermissionError:
+            raise FileMovedError("Can not write in the out directory.\n"
+                                 "Did you move the here file from another system?\n"
+                                 "Try calling " + caller_func.__name__ + " with the 'outdir' "
+                                 "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
+        return outdir
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
@@ -1050,7 +1077,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         hist_kwargs['color'] = c
         fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
-        lines.append(matplotlib.lines.Line2D([0], [0], color=c))
+        lines.append(mpllines.Line2D([0], [0], color=c))
         default_labels.append(result.label)
 
     # Rescale the axes
@@ -1100,7 +1127,7 @@ def make_pp_plot(results, filename=None, save=True, **kwargs):
     Returns
     -------
     fig:
-        Matplotlib figure
+        matplotlib figure
     """
     fig = plt.figure()
     credible_levels = pd.DataFrame()
@@ -1122,3 +1149,11 @@ def make_pp_plot(results, filename=None, save=True, **kwargs):
             filename = 'outdir/pp.png'
         plt.savefig(filename)
     return fig
+
+
+class ResultError(Exception):
+    """ Base exception for all Result related errors """
+
+
+class FileMovedError(ResultError):
+    """ Exceptions that occur when files have been moved """
