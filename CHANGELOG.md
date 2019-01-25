@@ -3,7 +3,24 @@
 ## Unreleased
 
 ### Added
-- Added PTMCMCSampler
+- 
+
+### Changed
+- 
+
+### Removed
+-
+
+## [0.3.5] 2019-01-25
+
+### Added
+- Reduced Order Quadrature likelihood
+- PTMCMCSampler
+- CBC result class
+- Additional tutorials on using GraceDB and experts guide on running on events in open data
+
+### Changed
+- Updated repository information in Dockerfile for PyMultinest
 
 ## [0.3.4] 2019-01-10
 
