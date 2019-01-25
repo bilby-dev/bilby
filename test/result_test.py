@@ -25,9 +25,9 @@ class TestResult(unittest.TestCase):
             injection_parameters=dict(x=0.5, y=0.5),
             meta_data=dict(test='test'))
 
-        N = 100
-        posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, N),
-                                      y=np.random.normal(0, 1, N)))
+        n = 100
+        posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, n),
+                                      y=np.random.normal(0, 1, n)))
         result.posterior = posterior
         result.log_evidence = 10
         result.log_evidence_err = 11
@@ -66,7 +66,7 @@ class TestResult(unittest.TestCase):
             injection_parameters=dict(x=0.5, y=0.5),
             meta_data=dict(test='test'))
         with self.assertRaises(ValueError):
-            result.priors
+            _ = result.priors
         self.assertEqual(result.parameter_labels, result.search_parameter_keys)
         self.assertEqual(result.parameter_labels_with_unit, result.search_parameter_keys)
 
@@ -102,14 +102,14 @@ class TestResult(unittest.TestCase):
     def test_unset_posterior(self):
         self.result.posterior = None
         with self.assertRaises(ValueError):
-            self.result.posterior
+            _ = self.result.posterior
 
     def test_save_and_load(self):
         self.result.save_to_file()
         loaded_result = bilby.core.result.read_in_result(
             outdir=self.result.outdir, label=self.result.label)
-        self.assertTrue(
-            all(self.result.posterior == loaded_result.posterior))
+        self.assertTrue(pd.DataFrame.equals
+                        (self.result.posterior, loaded_result.posterior))
         self.assertTrue(self.result.fixed_parameter_keys == loaded_result.fixed_parameter_keys)
         self.assertTrue(self.result.search_parameter_keys == loaded_result.search_parameter_keys)
         self.assertEqual(self.result.meta_data, loaded_result.meta_data)
@@ -146,31 +146,28 @@ class TestResult(unittest.TestCase):
         filename = '{}/{}_posterior_samples.txt'.format(self.result.outdir, self.result.label)
         self.assertTrue(os.path.isfile(filename))
         df = pd.read_csv(filename)
-        self.assertTrue(all(self.result.posterior == df))
+        self.assertTrue(np.allclose(self.result.posterior.values, df.values))
 
     def test_samples_to_posterior(self):
         self.result.posterior = None
         x = [1, 2, 3]
         y = [4, 6, 8]
-        log_likelihood = [6, 7, 8]
+        log_likelihood = np.array([6, 7, 8])
         self.result.samples = np.array([x, y]).T
         self.result.log_likelihood_evaluations = log_likelihood
         self.result.samples_to_posterior(priors=self.result.priors)
         self.assertTrue(all(self.result.posterior['x'] == x))
         self.assertTrue(all(self.result.posterior['y'] == y))
-        self.assertTrue(
-            all(self.result.posterior['log_likelihood'] == log_likelihood))
-        self.assertTrue(
-            all(self.result.posterior['c'] == self.result.priors['c'].peak))
-        self.assertTrue(
-            all(self.result.posterior['d'] == self.result.priors['d'].peak))
+        self.assertTrue(np.array_equal(self.result.posterior.log_likelihood.values, log_likelihood))
+        self.assertTrue(all(self.result.posterior.c.values == self.result.priors['c'].peak))
+        self.assertTrue(all(self.result.posterior.d.values == self.result.priors['d'].peak))
 
     def test_calculate_prior_values(self):
         self.result.calculate_prior_values(priors=self.result.priors)
         self.assertEqual(len(self.result.posterior), len(self.result.prior_values))
 
     def test_plot_multiple(self):
-        filename='multiple.png'.format(self.result.outdir)
+        filename = 'multiple.png'.format(self.result.outdir)
         bilby.core.result.plot_multiple([self.result, self.result],
                                         filename=filename)
         self.assertTrue(os.path.isfile(filename))
@@ -188,8 +185,8 @@ class TestResult(unittest.TestCase):
         x = np.linspace(0, 1, 10)
         y = np.linspace(0, 1, 10)
 
-        def model(x):
-            return x
+        def model(xx):
+            return xx
         self.result.plot_with_data(model, x, y, ndraws=10)
         self.assertTrue(
             os.path.isfile('{}/{}_plot_with_data.png'.format(
@@ -260,9 +257,8 @@ class TestResult(unittest.TestCase):
         sample = [dict(x=0, y=0.1), dict(x=0.8, y=0)]
         self.assertTrue(
             isinstance(self.result.posterior_probability(sample), np.ndarray))
-        self.assertTrue(
-            all(self.result.posterior_probability(sample)
-                == self.result.kde([[0, 0.1], [0.8, 0]])))
+        self.assertTrue(np.array_equal(self.result.posterior_probability(sample),
+                                       self.result.kde([[0, 0.1], [0.8, 0]])))
 
 
 if __name__ == '__main__':
