@@ -74,9 +74,10 @@ class Result(object):
                  nested_samples=None, log_evidence=np.nan,
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
-                 sampling_time=None, nburn=None, walkers=None,
-                 max_autocorrelation_time=None, parameter_labels=None,
-                 parameter_labels_with_unit=None, version=None):
+                 log_prior_evaluations=None, sampling_time=None, nburn=None,
+                 walkers=None, max_autocorrelation_time=None,
+                 parameter_labels=None, parameter_labels_with_unit=None,
+                 version=None):
         """ A class to store the results of the sampling run
 
         Parameters
@@ -102,6 +103,8 @@ class Result(object):
             Natural log evidences
         log_likelihood_evaluations: array_like
             The evaluations of the likelihood for each sample point
+        log_prior_evaluations: array_like
+            The evaluations of the prior for each sample point
         sampling_time: float
             The time taken to complete the sampling
         nburn: int
@@ -143,6 +146,7 @@ class Result(object):
         self.log_noise_evidence = log_noise_evidence
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
+        self.log_prior_evaluations = log_prior_evaluations
         self.sampling_time = sampling_time
         self.version = version
         self.max_autocorrelation_time = max_autocorrelation_time
@@ -269,8 +273,8 @@ class Result(object):
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
             'fixed_parameter_keys', 'sampling_time', 'sampler_kwargs',
-            'log_likelihood_evaluations', 'samples', 'nested_samples',
-            'walkers', 'nburn', 'parameter_labels',
+            'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
+            'nested_samples', 'walkers', 'nburn', 'parameter_labels',
             'parameter_labels_with_unit', 'version']
         dictionary = OrderedDict()
         for attr in save_attrs:
@@ -855,6 +859,11 @@ class Result(object):
                     data_frame[key] = priors[key]
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
+            if self.log_prior_evaluations is None:
+                data_frame['log_prior'] = self.priors.ln_prob(
+                    data_frame[self.search_parameter_keys], axis=0)
+            else:
+                data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame

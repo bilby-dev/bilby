@@ -65,9 +65,13 @@ class Ptemcee(Emcee):
                       for _ in range(self.nwalkers)]
                      for _ in range(self.kwargs['ntemps'])]
 
-        for _ in tqdm(
+        log_likelihood_evaluations = []
+        log_prior_evaluations = []
+        for pos, logpost, loglike in tqdm(
                 sampler.sample(self.pos0, **self.sampler_function_kwargs),
                 total=self.nsteps):
+            log_likelihood_evaluations.append(loglike)
+            log_prior_evaluations.append(logpost - loglike)
             pass
 
         self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
@@ -80,6 +84,10 @@ class Ptemcee(Emcee):
                 "`nburn < nsteps`. Try increasing the number of steps.")
         self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
+        self.result.log_likelihood_evaluations = np.array(
+            log_likelihood_evaluations)[self.nburn:, 0, :].reshape((-1))
+        self.result.log_prior_evaluations = np.array(
+            log_prior_evaluations)[self.nburn:, 0, :].reshape((-1))
         self.result.betas = sampler.betas
         self.result.log_evidence, self.result.log_evidence_err =\
             sampler.log_evidence_estimate(

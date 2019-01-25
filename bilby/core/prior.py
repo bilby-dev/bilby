@@ -210,20 +210,24 @@ class PriorDict(OrderedDict):
         """
         return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
 
-    def ln_prob(self, sample):
+    def ln_prob(self, sample, axis=None):
         """
 
         Parameters
         ----------
         sample: dict
-            Dictionary of the samples of which we want to have the log probability of
+            Dictionary of the samples of which to calculate the log probability
+        axis: None or int
+            Axis along which the summation is performed
 
         Returns
         -------
-        float: Joint log probability of all the individual sample probabilities
+        float or ndarray:
+            Joint log probability of all the individual sample probabilities
 
         """
-        return np.sum([self[key].ln_prob(sample[key]) for key in sample])
+        return np.sum([self[key].ln_prob(sample[key]) for key in sample],
+                      axis=axis)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
