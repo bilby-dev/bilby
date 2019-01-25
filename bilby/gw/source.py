@@ -12,6 +12,7 @@ from .utils import (lalsim_SimInspiralTransformPrecessingNewInitialConditions,
 
 try:
     import lal
+    import lalsimulation as lalsim
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
@@ -333,3 +334,112 @@ def lal_binary_neutron_star(
     h_cross = h_cross[:len(frequency_array)]
 
     return {'plus': h_plus, 'cross': h_cross}
+
+
+def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, iota, phase, **waveform_arguments):
+    """
+    See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
+
+    Parameters
+    ----------
+    frequency_array: np.array
+        This input is ignored for the roq source model
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+
+    iota: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+
+    Waveform arguments
+    ------------------
+    Non-sampled extra data used in the source model calculation
+    frequency_nodes_linear: np.array
+    frequency_nodes_quadratic: np.array
+    reference_frequency: float
+    version: str
+
+    Note: for the frequency_nodes_linear and frequency_nodes_quadratic arguments,
+    if using data from https://git.ligo.org/lscsoft/ROQ_data, this should be
+    loaded as `np.load(filename).T`.
+
+    Returns
+    -------
+    waveform_polarizations: dict
+        Dict containing plus and cross modes evaluated at the linear and
+        quadratic frequency nodes.
+
+    """
+    if mass_2 > mass_1:
+        return None
+
+    frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
+    frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
+    reference_frequency = getattr(waveform_arguments,
+                                  'reference_frequency', 20.0)
+    versions = dict(IMRPhenomPv2=lalsim.IMRPhenomPv2_V)
+    version = versions[getattr(waveform_arguments, 'version', 'IMRPhenomPv2')]
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    if tilt_1 == 0 and tilt_2 == 0:
+        spin_1x = 0
+        spin_1y = 0
+        spin_1z = a_1
+        spin_2x = 0
+        spin_2y = 0
+        spin_2z = a_2
+    else:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
+            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+                reference_frequency, phase)
+
+    chi_1_l, chi_2_l, chi_p, theta_jn, alpha, phase_aligned, zeta =\
+        lalsim.SimIMRPhenomPCalculateModelParametersFromSourceFrame(
+            mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
+            spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version)
+
+    waveform_polarizations = dict()
+
+    h_linear_plus, h_linear_cross = lalsim.SimIMRPhenomPFrequencySequence(
+        frequency_nodes_linear, chi_1_l, chi_2_l, chi_p, theta_jn,
+        mass_1, mass_2, luminosity_distance,
+        alpha, phase_aligned, reference_frequency, version, None)
+    h_quadratic_plus, h_quadratic_cross = lalsim.SimIMRPhenomPFrequencySequence(
+        frequency_nodes_quadratic, chi_1_l, chi_2_l, chi_p, theta_jn,
+        mass_1, mass_2, luminosity_distance,
+        alpha, phase_aligned, reference_frequency, version, None)
+
+    waveform_polarizations['linear'] = dict(
+        plus=(np.cos(2 * zeta) * h_linear_plus.data.data +
+              np.sin(2 * zeta) * h_linear_cross.data.data),
+        cross=(np.cos(2 * zeta) * h_linear_cross.data.data -
+               np.sin(2 * zeta) * h_linear_plus.data.data))
+
+    waveform_polarizations['quadratic'] = dict(
+        plus=(np.cos(2 * zeta) * h_quadratic_plus.data.data +
+              np.sin(2 * zeta) * h_quadratic_cross.data.data),
+        cross=(np.cos(2 * zeta) * h_quadratic_cross.data.data -
+               np.sin(2 * zeta) * h_quadratic_plus.data.data))
+
+    return waveform_polarizations

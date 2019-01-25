@@ -36,14 +36,13 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
         self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(self.likelihood.noise_log_likelihood(),
-                               -4036.1064342687155, 3)
+        self.assertAlmostEqual(-4037.0994372143414, self.likelihood.noise_log_likelihood(), 3)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4054.2229111227016, 3)
+                               -4055.2526551677647, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -106,14 +105,13 @@ class TestGWTransient(unittest.TestCase):
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
         self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(self.likelihood.noise_log_likelihood(),
-                               -4036.1064342687155, 3)
+        self.assertAlmostEqual(-4037.0994372143414, self.likelihood.noise_log_likelihood(), 3)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4054.2229111227016, 3)
+                               -4055.2526551677647, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -455,6 +453,79 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
+
+
+class TestROQLikelihood(unittest.TestCase):
+
+    def setUp(self):
+        self.duration = 4
+        self.sampling_frequency = 2048
+
+        roq_dir = '/roq_basis'
+
+        linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
+        quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
+
+        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear = np.load(fnodes_linear_file).T
+        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic = np.load(fnodes_quadratic_file).T
+
+        self.test_parameters = dict(
+            mass_1=36.0, mass_2=36.0, a_1=0.0, a_2=0.0, tilt_1=0.0,
+            tilt_2=0.0, phi_12=1.7, phi_jl=0.3, luminosity_distance=5000.,
+            iota=0.4, psi=0.659, phase=1.3, geocent_time=1.2, ra=1.3, dec=-1.2)
+
+        ifos = bilby.gw.detector.InterferometerList(['H1'])
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency, duration=self.duration)
+
+        self.priors = bilby.gw.prior.BBHPriorDict()
+        self.priors['geocent_time'] = bilby.core.prior.Uniform(1.1, 1.3)
+
+        non_roq_wfg = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=20.0, minimum_frequency=20.0,
+                approximant='IMRPhenomPv2'))
+
+        ifos.inject_signal(
+            parameters=self.test_parameters, waveform_generator=non_roq_wfg)
+
+        roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.roq,
+            waveform_arguments=dict(
+                frequency_nodes_linear=fnodes_linear,
+                frequency_nodes_quadratic=fnodes_quadratic,
+                reference_frequency=20., minimum_frequency=20.,
+                approximant='IMRPhenomPv2'))
+
+        self.non_roq_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos, waveform_generator=non_roq_wfg)
+
+        self.roq_likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=ifos, waveform_generator=roq_wfg,
+            linear_matrix=linear_matrix_file,
+            quadratic_matrix=quadratic_matrix_file, priors=self.priors)
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_matches_non_roq(self):
+        self.non_roq_likelihood.parameters.update(self.test_parameters)
+        self.roq_likelihood.parameters.update(self.test_parameters)
+        self.assertAlmostEqual(
+            self.non_roq_likelihood.log_likelihood_ratio(),
+            self.roq_likelihood.log_likelihood_ratio(), 0)
+
+    def test_time_prior_out_of_bounds_returns_zero(self):
+        self.roq_likelihood.parameters.update(self.test_parameters)
+        self.roq_likelihood.parameters['geocent_time'] = -5
+        self.assertEqual(
+            self.roq_likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):

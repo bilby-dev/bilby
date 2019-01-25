@@ -121,6 +121,10 @@ class Emcee(MCMCSampler):
                 "The run has finished, but the chain is not burned in: "
                 "`nburn < nsteps`. Try increasing the number of steps.")
         self.result.samples = sampler.chain[:, self.nburn:, :].reshape((-1, self.ndim))
+        blobs_flat = np.array(sampler.blobs)[self.nburn:, :, :].reshape((-1, 2))
+        log_likelihoods, log_priors = blobs_flat.T
+        self.result.log_likelihood_evaluations = log_likelihoods
+        self.result.log_prior_evaluations = log_priors
         self.result.walkers = sampler.chain
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
@@ -146,8 +150,9 @@ class Emcee(MCMCSampler):
                          for _ in range(self.nwalkers)]
 
     def lnpostfn(self, theta):
-        p = self.log_prior(theta)
-        if np.isinf(p):
-            return -np.inf
+        log_prior = self.log_prior(theta)
+        if np.isinf(log_prior):
+            return -np.inf, [np.nan, np.nan]
         else:
-            return self.log_likelihood(theta) + p
+            log_likelihood = self.log_likelihood(theta)
+            return log_likelihood + log_prior, [log_likelihood, log_prior]

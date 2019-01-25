@@ -3,7 +3,24 @@
 ## Unreleased
 
 ### Added
-- Added PTMCMCSampler
+- 
+
+### Changed
+- 
+
+### Removed
+-
+
+## [0.3.5] 2019-01-25
+
+### Added
+- Reduced Order Quadrature likelihood
+- PTMCMCSampler
+- CBC result class
+- Additional tutorials on using GraceDB and experts guide on running on events in open data
+
+### Changed
+- Updated repository information in Dockerfile for PyMultinest
 
 ## [0.3.4] 2019-01-10
 
@@ -13,6 +30,8 @@
 - Renamed "prior" to "priors" in bilby.gw.likelihood.GravtitationalWaveTransient
   for consistency with bilby.core. **WARNING**: This will break scripts which
   use marginalization.
+- Added `outdir` kwarg for plotting methods in `bilby.core.result.Result`. This makes plotting
+into custom destinations easier.
 - Fixed definition of matched_filter_snr, the interferometer method has become `ifo.inner_product`.
 
 ### Added
@@ -29,6 +48,7 @@ Changes currently on master, but not under a tag.
 - Added method to result to get injection recovery credible levels
 - Added function to generate a pp-plot from many results to core/result.py
 - Fixed a bug which caused `Interferometer.detector_tensor` not to update when `latitude`, `longitude`, `xarm_azimuth`, `yarm_azimuth`, `xarm_tilt`, `yarm_tilt` were updated.
+- Added implementation of the ROQ likelihood. The basis needs to be specified by the user.
 - Extracted time and frequency series behaviour from `WaveformGenerator` and `InterferometerStrainData` and moved it to `series.gw.CoupledTimeAndFrequencySeries`
 
 ### Changes
