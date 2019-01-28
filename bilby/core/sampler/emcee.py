@@ -104,6 +104,13 @@ class Emcee(MCMCSampler):
     def nsteps(self, nsteps):
         self.kwargs['iterations'] = nsteps
 
+    def __getstate__(self):
+        # In order to be picklable with dill, we need to discard the pool
+        # object before trying.
+        d = self.__dict__
+        d["_Sampler__kwargs"]["pool"] = None
+        return d
+
     def run_sampler(self):
         import emcee
         tqdm = get_progress_bar()
