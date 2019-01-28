@@ -133,7 +133,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
             bilby.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
             bilby.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
-            bilby.gw.prior.UniformComovingVolume(name='test', minimum=2e2, maximum=5e3),
+            bilby.gw.prior.UniformComovingVolume(name='redshift', minimum=0.1, maximum=1.0),
             bilby.core.prior.Sine(name='test', unit='unit'),
             bilby.core.prior.Cosine(name='test', unit='unit'),
             bilby.core.prior.Interped(name='test', unit='unit', xx=np.linspace(0, 10, 1000),
@@ -153,7 +153,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
-            bilby.gw.prior.AlignedSpin(name='test', unit='unit')
+            bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
         ]
 
     def test_minimum_rescaling(self):
@@ -253,8 +253,8 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_unit_setting(self):
         for prior in self.priors:
-            if isinstance(prior, bilby.gw.prior.UniformComovingVolume):
-                self.assertEqual('Mpc', prior.unit)
+            if isinstance(prior, bilby.gw.prior.Cosmological):
+                self.assertEqual(None, prior.unit)
             else:
                 self.assertEqual('unit', prior.unit)
 

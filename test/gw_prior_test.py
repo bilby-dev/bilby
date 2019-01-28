@@ -93,23 +93,34 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
     def test_specify_cosmology(self):
         prior = bilby.gw.prior.UniformComovingVolume(
             minimum=10, maximum=10000, cosmology='Planck13')
-        self.assertEqual(prior.cosmology, cosmology.Planck13.name)
+        self.assertEqual(repr(prior.cosmology), repr(cosmology.Planck13))
+
+    def test_comoving_prior_creation(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name='comoving_distance',
+            latex_label='$d_C$')
+        self.assertEqual(prior.latex_label, '$d_C$')
 
     def test_redshift_prior_creation(self):
         prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=0.1, maximum=1, name='redshift')
+            minimum=0.1, maximum=1, name='redshift', latex_label='$z$')
         self.assertEqual(prior.latex_label, '$z$')
 
     def test_redshift_to_luminosity_distance(self):
         prior = bilby.gw.prior.UniformComovingVolume(
             minimum=0.1, maximum=1, name='redshift')
-        new_prior = prior.get_luminosity_distance_prior()
+        new_prior = prior.get_corresponding_prior('luminosity_distance')
         self.assertEqual(new_prior.name, 'luminosity_distance')
 
     def test_luminosity_distance_to_redshift(self):
         prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000)
-        new_prior = prior.get_redshift_prior()
+        new_prior = prior.get_corresponding_prior('redshift')
         self.assertEqual(new_prior.name, 'redshift')
+
+    def test_luminosity_distance_to_comoving_distance(self):
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000)
+        new_prior = prior.get_corresponding_prior('comoving_distance')
+        self.assertEqual(new_prior.name, 'comoving_distance')
 
 
 class TestAlignedSpin(unittest.TestCase):
@@ -123,6 +134,7 @@ class TestAlignedSpin(unittest.TestCase):
         analytic = - np.log(np.abs(chis)) / 2
         max_difference = max(abs(analytic - prior.prob(chis)))
         self.assertAlmostEqual(max_difference, 0, 2)
+
 
 if __name__ == '__main__':
     unittest.main()
