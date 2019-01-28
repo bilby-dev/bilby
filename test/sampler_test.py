@@ -191,7 +191,7 @@ class TestEmcee(unittest.TestCase):
 
     def test_default_kwargs(self):
         expected = dict(nwalkers=500, a=2, args=[], kwargs={},
-                        postargs=None, threads=1, pool=None, live_dangerously=False,
+                        postargs=None, pool=None, live_dangerously=False,
                         runtime_sortingfn=None, lnprob0=None, rstate0=None,
                         blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None
                         )
@@ -199,7 +199,7 @@ class TestEmcee(unittest.TestCase):
 
     def test_translate_kwargs(self):
         expected = dict(nwalkers=100, a=2, args=[], kwargs={},
-                        postargs=None, threads=1, pool=None, live_dangerously=False,
+                        postargs=None, pool=None, live_dangerously=False,
                         runtime_sortingfn=None, lnprob0=None, rstate0=None,
                         blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None)
         for equiv in bilby.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
