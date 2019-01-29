@@ -38,7 +38,7 @@ class Emcee(MCMCSampler):
     """
 
     default_kwargs = dict(nwalkers=500, a=2, args=[], kwargs={},
-                          postargs=None, threads=1, pool=None, live_dangerously=False,
+                          postargs=None, pool=None, live_dangerously=False,
                           runtime_sortingfn=None, lnprob0=None, rstate0=None,
                           blobs0=None, iterations=100, thin=1, storechain=True, mh_proposal=None)
 
@@ -62,6 +62,14 @@ class Emcee(MCMCSampler):
         if 'iterations' not in kwargs:
             if 'nsteps' in kwargs:
                 kwargs['iterations'] = kwargs.pop('nsteps')
+        if 'threads' in kwargs:
+            if kwargs['threads'] != 1:
+                logger.warning("The 'threads' argument cannot be used for "
+                               "parallelisation. This run will proceed "
+                               "without parallelisation, but consider the use "
+                               "of an appropriate Pool object passed to the "
+                               "'pool' keyword.")
+                kwargs['threads'] = 1
 
     @property
     def sampler_function_kwargs(self):
@@ -103,6 +111,13 @@ class Emcee(MCMCSampler):
     @nsteps.setter
     def nsteps(self, nsteps):
         self.kwargs['iterations'] = nsteps
+
+    def __getstate__(self):
+        # In order to be picklable with dill, we need to discard the pool
+        # object before trying.
+        d = self.__dict__
+        d["_Sampler__kwargs"]["pool"] = None
+        return d
 
     def run_sampler(self):
         import emcee
