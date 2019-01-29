@@ -133,7 +133,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
             bilby.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
             bilby.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
-            bilby.gw.prior.UniformComovingVolume(name='redshift', unit=None, minimum=0.1, maximum=1.0),
+            bilby.gw.prior.UniformComovingVolume(name='redshift', minimum=0.1, maximum=1.0),
             bilby.core.prior.Sine(name='test', unit='unit'),
             bilby.core.prior.Cosine(name='test', unit='unit'),
             bilby.core.prior.Interped(name='test', unit='unit', xx=np.linspace(0, 10, 1000),

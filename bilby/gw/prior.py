@@ -20,13 +20,17 @@ class Cosmological(Interped):
     _default_args_dict = dict(
         redshift=dict(name='redshift', latex_label='$z$', unit=None),
         luminosity_distance=dict(
-            name='luminosity_distance', latex_label='$d_L$', unit='Mpc'),
+            name='luminosity_distance', latex_label='$d_L$', unit=units.Mpc),
         comoving_distance=dict(
-            name='comoving_distance', latex_label='$d_L$', unit='Mpc'))
+            name='comoving_distance', latex_label='$d_C$', unit=units.Mpc))
 
     def __init__(self, minimum, maximum, cosmology=None, name=None,
                  latex_label=None, unit=None):
         self.cosmology = get_cosmology(cosmology)
+        if name not in self._default_args_dict:
+            raise ValueError(
+                "Name {} not recognised. Must be one of luminosity_distance, "
+                "comoving_distance, redshift".format(name))
         self.name = name
         label_args = self._default_args_dict[self.name]
         if latex_label is not None:
@@ -35,7 +39,7 @@ class Cosmological(Interped):
             if isinstance(unit, str):
                 unit = units.__dict__[unit]
             label_args['unit'] = unit
-        self.unit = unit
+        self.unit = label_args['unit']
         self._minimum = dict()
         self._maximum = dict()
         self.minimum = minimum
@@ -137,12 +141,6 @@ class Cosmological(Interped):
 
 
 class UniformComovingVolume(Cosmological):
-
-    def __init__(self, minimum, maximum, cosmology=None,
-                 name='luminosity_distance', latex_label='$d_L$', unit='Mpc'):
-        Cosmological.__init__(
-            self, minimum=minimum, maximum=maximum, cosmology=cosmology,
-            name=name, latex_label=latex_label, unit=unit)
 
     def _get_redshift_arrays(self):
         zs = np.linspace(self._minimum['redshift'] * 0.99,
