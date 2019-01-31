@@ -6,7 +6,7 @@
 - 
 
 ### Changed
-- 
+- Updates the bilby.core.utils constants to match those of Astropy v3.0.4
 
 ### Removed
 -
