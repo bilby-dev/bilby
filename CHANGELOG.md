@@ -6,6 +6,8 @@
 - 
 
 ### Changed
+- Cosmology generalised, users can now specify the cosmology used, default is astropy Planck15
+- UniformComovingVolume prior *requires* the name to be one of "luminosity_distance", "comoving_distance", "redshift"
 - 
 
 ### Removed
