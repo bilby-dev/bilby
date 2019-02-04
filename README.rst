@@ -6,17 +6,20 @@ Bilby
 A user-friendly Bayesian inference library.
 Fulfilling all your Bayesian dreams.
 
--  `Installation
-   instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
--  `Contributing <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__
--  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
--  `Issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
--  `Slack workspace <https://bilby-code.slack.com/>`__
+For online material to help you get started:
 
-We encourage you to contribute to the development via a merge request.  For
+-  `Installation instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
+-  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
+
+If you need help, find an issue, or just have a question/suggestion:
+
+-  `Join our Slack workspace <https://bilby-code.slack.com/>`__
+-  `For www.git.ligo.org users, submit issues directly through the issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
+
+We encourage you to contribute to the development of bilby. This is done via a merge request.  For
 help in creating a merge request, see `this page
 <https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html>`__ or contact
-us directly.
+us directly. For advice on contributing, see `this help page <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
 
 .. |pipeline status| image:: https://git.ligo.org/lscsoft/bilby/badges/master/pipeline.svg
    :target: https://git.ligo.org/lscsoft/bilby/commits/master
