@@ -9,6 +9,7 @@ Welcome to bilby's documentation!
    :caption: Contents:
 
    installation
+   code-overview
    examples
    basics-of-parameter-estimation
    prior
