@@ -12,8 +12,8 @@ import deepdish as dd
 from . import utils as gwutils
 from ..core import utils
 from ..core.utils import logger
+from ..core.series import CoupledTimeAndFrequencySeries
 from .calibration import Recalibrate
-from .series import CoupledTimeAndFrequencySeries
 
 try:
     import gwpy

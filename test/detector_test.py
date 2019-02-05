@@ -545,7 +545,8 @@ class TestInterferometerStrainData(unittest.TestCase):
         sampling_frequency = 10
         time_array = bilby.core.utils.create_time_series(
             sampling_frequency=sampling_frequency, duration=duration)
-        time_domain_strain = np.random.normal(0, 1, len(time_array))
+        time_domain_strain = np.random.normal(
+            0, duration - 1 / sampling_frequency, len(time_array))
         self.ifosd.roll_off = 0
         self.ifosd.set_from_time_domain_strain(
             time_domain_strain=time_domain_strain, duration=duration,
@@ -711,11 +712,11 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_sampling_frequency(self):
-        self.ifosd_1.sampling_frequency -= 0.1
+        self.ifosd_1.sampling_frequency *= 2
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_sampling_duration(self):
-        self.ifosd_1.duration -= 0.1
+        self.ifosd_1.duration *= 2
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_start_time(self):
