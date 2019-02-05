@@ -13,12 +13,12 @@ from scipy.interpolate import interp2d
 
 logger = logging.getLogger('bilby')
 
-# Constants
 
-speed_of_light = 299792458.0  # speed of light in m/s
-parsec = 3.085677581 * 1e16
-solar_mass = 1.98855 * 1e30
-radius_of_earth = 6371 * 1e3  # metres
+# Constants: values taken from astropy v3.0.4
+speed_of_light = 299792458.0  # m/s
+parsec = 3.0856775814671916e+16  # m
+solar_mass = 1.9884754153381438e+30  # Kg
+radius_of_earth = 6378100.0  # m
 
 
 def infer_parameters_from_function(func):

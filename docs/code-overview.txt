@@ -1,0 +1,7 @@
+====================
+Code Overview
+====================
+
+Below is a flowchart showing the dependency of different packages and modules within Bilby.
+
+.. image:: images/bilby_layout.png

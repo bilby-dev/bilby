@@ -8,7 +8,7 @@
 ### Changed
 - Cosmology generalised, users can now specify the cosmology used, default is astropy Planck15
 - UniformComovingVolume prior *requires* the name to be one of "luminosity_distance", "comoving_distance", "redshift"
-- 
+- Updates the bilby.core.utils constants to match those of Astropy v3.0.4
 
 ### Removed
 -
