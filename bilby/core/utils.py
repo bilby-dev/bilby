@@ -20,6 +20,8 @@ parsec = 3.0856775814671916e+16  # m
 solar_mass = 1.9884754153381438e+30  # Kg
 radius_of_earth = 6378100.0  # m
 
+_TOL = 14
+
 
 def infer_parameters_from_function(func):
     """ Infers the arguments of a function
@@ -59,13 +61,18 @@ def _infer_args_from_function_except_for_first_arg(func):
     return parameters
 
 
-def get_sampling_frequency(time_series):
+def get_sampling_frequency(time_array):
     """
     Calculate sampling frequency from a time series
 
+    Attributes:
+    -------
+    time_array: array_like
+        Time array to get sampling_frequency from
+
     Returns
     -------
-    float: Sampling frequency of the time series
+    Sampling frequency of the time series: float
 
     Raises
     -------
@@ -73,19 +80,24 @@ def get_sampling_frequency(time_series):
 
     """
     tol = 1e-10
-    if np.ptp(np.diff(time_series)) > tol:
+    if np.ptp(np.diff(time_array)) > tol:
         raise ValueError("Your time series was not evenly sampled")
     else:
-        return 1. / (time_series[1] - time_series[0])
+        return np.round(1. / (time_array[1] - time_array[0]), decimals=_TOL)
 
 
 def get_sampling_frequency_and_duration_from_time_array(time_array):
     """
     Calculate sampling frequency and duration from a time array
 
+    Attributes:
+    -------
+    time_array: array_like
+        Time array to get sampling_frequency/duration from: array_like
+
     Returns
     -------
-    sampling_frequency, duration:
+    sampling_frequency, duration: float, float
 
     Raises
     -------
@@ -94,7 +106,7 @@ def get_sampling_frequency_and_duration_from_time_array(time_array):
     """
 
     sampling_frequency = get_sampling_frequency(time_array)
-    duration = time_array[-1] - time_array[0]
+    duration = len(time_array) / sampling_frequency
     return sampling_frequency, duration
 
 
@@ -102,9 +114,14 @@ def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
     """
     Calculate sampling frequency and duration from a frequency array
 
+    Attributes:
+    -------
+    frequency_array: array_like
+        Frequency array to get sampling_frequency/duration from: array_like
+
     Returns
     -------
-    sampling_frequency, duration:
+    sampling_frequency, duration: float, float
 
     Raises
     -------
@@ -118,8 +135,9 @@ def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
 
     number_of_frequencies = len(frequency_array)
     delta_freq = frequency_array[1] - frequency_array[0]
-    duration = 1 / delta_freq
-    sampling_frequency = 2 * number_of_frequencies / duration
+    duration = np.round(1 / delta_freq, decimals=_TOL)
+
+    sampling_frequency = np.round(2 * (number_of_frequencies - 1) / duration, decimals=14)
     return sampling_frequency, duration
 
 
@@ -137,7 +155,57 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
-    return np.arange(starting_time, starting_time + duration, 1. / sampling_frequency)
+    _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
+    number_of_samples = int(duration * sampling_frequency)
+    return np.linspace(start=starting_time,
+                       stop=duration + starting_time - 1 / sampling_frequency,
+                       num=number_of_samples)
+
+
+def create_frequency_series(sampling_frequency, duration):
+    """ Create a frequency series with the correct length and spacing.
+
+    Parameters
+    -------
+    sampling_frequency: float
+    duration: float
+
+    Returns
+    -------
+    array_like: frequency series
+
+    """
+    _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
+    number_of_samples = int(np.round(duration * sampling_frequency))
+    number_of_frequencies = int(np.round(number_of_samples / 2) + 1)
+
+    return np.linspace(start=0,
+                       stop=sampling_frequency / 2,
+                       num=number_of_frequencies)
+
+
+def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
+    """ By convention, sampling_frequency and duration have to multiply to an integer
+
+    This will check if the product of both parameters multiplies reasonably close
+    to an integer.
+
+    Parameters
+    -------
+    sampling_frequency: float
+    duration: float
+
+    """
+    num = sampling_frequency * duration
+    if np.abs(num - np.round(num)) > _TOL:
+        raise IllegalDurationAndSamplingFrequencyException(
+            '\nYour sampling frequency and duration must multiply to a number'
+            'up to (tol = {}) decimals close to an integer number. '
+            '\nBut sampling_frequency={} and  duration={} multiply to {}'.format(
+                _TOL, sampling_frequency, duration,
+                sampling_frequency * duration
+            )
+        )
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
@@ -188,38 +256,6 @@ def gps_time_to_gmst(gps_time):
     sidereal_time = omega_earth * (gps_time - gps_2000) + gmst_2000 + correction_2018
     gmst = fmod(sidereal_time, 2 * np.pi)
     return gmst
-
-
-def create_frequency_series(sampling_frequency, duration):
-    """ Create a frequency series with the correct length and spacing.
-
-    Parameters
-    -------
-    sampling_frequency: float
-    duration: float
-        duration of data
-
-    Returns
-    -------
-    array_like: frequency series
-
-    """
-    number_of_samples = duration * sampling_frequency
-    number_of_samples = int(np.round(number_of_samples))
-
-    # prepare for FFT
-    number_of_frequencies = (number_of_samples - 1) // 2
-    delta_freq = 1. / duration
-
-    frequencies = delta_freq * np.linspace(1, number_of_frequencies, number_of_frequencies)
-
-    if len(frequencies) % 2 == 1:
-        frequencies = np.concatenate(([0], frequencies, [sampling_frequency / 2.]))
-    else:
-        # no Nyquist frequency when N=odd
-        frequencies = np.concatenate(([0], frequencies))
-
-    return frequencies
 
 
 def create_white_noise(sampling_frequency, duration):
@@ -279,30 +315,18 @@ def nfft(time_domain_strain, sampling_frequency):
 
     Returns
     -------
-    frequency_domain_strain, frequency_array: (array, array)
+    frequency_domain_strain, frequency_array: (array_like, array_like)
         Single-sided FFT of time domain strain normalised to units of
         strain / Hz, and the associated frequency_array.
 
     """
-
-    if np.ndim(sampling_frequency) != 0:
-        raise ValueError("Sampling frequency must be interger or float")
-
-    # add one zero padding if time series doesn't have even number of samples
-    if np.mod(len(time_domain_strain), 2) == 1:
-        time_domain_strain = np.append(time_domain_strain, 0)
-    LL = len(time_domain_strain)
-    # frequency range
-    frequency_array = sampling_frequency / 2 * np.linspace(0, 1, int(LL / 2 + 1))
-
-    # calculate FFT
-    # rfft computes the fft for real inputs
     frequency_domain_strain = np.fft.rfft(time_domain_strain)
+    frequency_domain_strain /= sampling_frequency
 
-    # normalise to units of strain / Hz
-    norm_frequency_domain_strain = frequency_domain_strain / sampling_frequency
+    frequency_array = np.linspace(
+        0, sampling_frequency / 2, len(frequency_domain_strain))
 
-    return norm_frequency_domain_strain, frequency_array
+    return frequency_domain_strain, frequency_array
 
 
 def infft(frequency_domain_strain, sampling_frequency):
@@ -313,18 +337,14 @@ def infft(frequency_domain_strain, sampling_frequency):
     frequency_domain_strain: array_like
         Single-sided, normalised FFT of the time-domain strain data (in units
         of strain / Hz).
-    sampling_frequency: float
+    sampling_frequency: int, float
         Sampling frequency of the data.
 
     Returns
     -------
-    time_domain_strain: array
+    time_domain_strain: array_like
         An array of the time domain strain
     """
-
-    if np.ndim(sampling_frequency) != 0:
-        raise ValueError("Sampling frequency must be integer or float")
-
     time_domain_strain_norm = np.fft.irfft(frequency_domain_strain)
     time_domain_strain = time_domain_strain_norm * sampling_frequency
     return time_domain_strain
@@ -729,3 +749,7 @@ else:
             break
         except Exception:
             print(traceback.format_exc())
+
+
+class IllegalDurationAndSamplingFrequencyException(Exception):
+    pass

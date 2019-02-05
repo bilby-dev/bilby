@@ -1,4 +1,4 @@
-from . import (calibration, conversion, detector, likelihood, prior, series, source,
+from . import (calibration, conversion, detector, likelihood, prior, source,
                utils, waveform_generator, result)
 
 from .waveform_generator import WaveformGenerator

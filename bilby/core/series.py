@@ -1,4 +1,4 @@
-from ..core import utils
+from . import utils
 
 
 class CoupledTimeAndFrequencySeries(object):
@@ -15,8 +15,8 @@ class CoupledTimeAndFrequencySeries(object):
     start_time: float, optional
         Starting time of the time array
         """
-        self.duration = duration
-        self.sampling_frequency = sampling_frequency
+        self._duration = duration
+        self._sampling_frequency = sampling_frequency
         self.start_time = start_time
         self._frequency_array_updated = False
         self._time_array_updated = False

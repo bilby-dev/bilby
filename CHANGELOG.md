@@ -6,6 +6,8 @@
 - 
 
 ### Changed
+- Time/frequency array generation/conversion improved. We now impose `duration` is an integer multiple of
+  `sampling_frequency`. Converting back and forth between time/frequency arrays now works for all valid arrays.
 - Updates the bilby.core.utils constants to match those of Astropy v3.0.4
 
 ### Removed
