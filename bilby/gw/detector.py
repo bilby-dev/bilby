@@ -8,7 +8,6 @@ import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 import deepdish as dd
-import lal
 
 from . import utils as gwutils
 from ..core import utils
@@ -21,6 +20,12 @@ try:
     import gwpy.signal
 except ImportError:
     logger.warning("You do not have gwpy installed currently. You will "
+                   " not be able to use some of the prebuilt functions.")
+
+try:
+    import lal
+except ImportError:
+    logger.warning("You do not have lalsuite installed currently. You will"
                    " not be able to use some of the prebuilt functions.")
 
 
