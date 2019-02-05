@@ -8,6 +8,7 @@ import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
 import deepdish as dd
+import lal
 
 from . import utils as gwutils
 from ..core import utils
@@ -2024,7 +2025,7 @@ def get_empty_interferometer(name):
         interferometer = load_interferometer(filename)
         return interferometer
     except OSError:
-        logger.warning('Interferometer {} not implemented'.format(name))
+        raise ValueError('Interferometer {} not implemented'.format(name))
 
 
 def load_interferometer(filename):
@@ -2280,41 +2281,65 @@ def get_event_data(
 
 
 def load_data_from_cache_file(
-        cache_file, trigger_time, segment_duration, psd_duration,
-        channel_name=None):
+        cache_file, start_time, segment_duration, psd_duration,
+        channel_name=None, sampling_frequency=4096):
+    """ Helper routine to generate an interferometer from a cache file
+
+    Parameters
+    ----------
+    cache_file: str
+        Path to the location of the cache file
+    start_time: float
+        GPS start time of the segment
+    segment_duration, psd_duration: float
+        Segment duration and duration of data to use to generate the PSD (in
+        seconds).
+    channel_name: str
+        Channel name
+    sampling_frequency: int
+        Sampling frequency
+
+    Returns
+    -------
+    ifo: bilby.gw.detector.Interferometer
+        An initialised interferometer object with strain data set to the
+        appropriate data in the cache file and a PSD.
+    """
+
     data_set = False
     psd_set = False
-    segment_start = trigger_time - segment_duration + 1
-    psd_start = segment_start - psd_duration - 4
+    psd_start_time = start_time - psd_duration
+
     with open(cache_file, 'r') as ff:
-        lines = ff.readlines()
-        ifo_name = lines[0][0] + '1'
-        ifo = get_empty_interferometer(ifo_name)
-        for line in lines:
-            line = line.strip()
-            _, _, frame_start, frame_duration, frame_name = line.split(' ')
-            frame_start = float(frame_start)
-            frame_duration = float(frame_duration)
-            if frame_name[:4] == 'file':
-                frame_name = frame_name[16:]
-            if not data_set & (frame_start < segment_start) & \
-                    (segment_start < frame_start + frame_duration):
+        for line in ff:
+            cache = lal.utils.cache.CacheEntry(line)
+            data_in_cache = (
+                (cache.segment[0].gpsSeconds < start_time) &
+                (cache.segment[1].gpsSeconds > start_time + segment_duration))
+            psd_in_cache = (
+                (cache.segment[0].gpsSeconds < psd_start_time) &
+                (cache.segment[1].gpsSeconds > psd_start_time + psd_duration))
+            ifo = get_empty_interferometer(
+                "{}1".format(cache.observatory))
+            if not data_set & data_in_cache:
                 ifo.set_strain_data_from_frame_file(
-                    frame_name, 4096, segment_duration,
-                    start_time=segment_start,
+                    frame_file=cache.path,
+                    sampling_frequency=sampling_frequency,
+                    duration=segment_duration,
+                    start_time=start_time,
                     channel=channel_name, buffer_time=0)
                 data_set = True
-            if not psd_set & (frame_start < psd_start) & \
-                    (psd_start + psd_duration < frame_start + frame_duration):
+            if not psd_set & psd_in_cache:
                 ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
-                        frame_name, psd_start_time=psd_start,
+                        cache.path, psd_start_time=psd_start_time,
                         psd_duration=psd_duration,
-                        channel=channel_name, sampling_frequency=4096)
+                        channel=channel_name,
+                        sampling_frequency=sampling_frequency)
                 psd_set = True
     if data_set and psd_set:
         return ifo
     elif not data_set:
-        logger.warning('Data not loaded for {}'.format(ifo.name))
+        raise ValueError('Data not loaded for {}'.format(ifo.name))
     elif not psd_set:
-        logger.warning('PSD not created for {}'.format(ifo.name))
+        raise ValueError('PSD not created for {}'.format(ifo.name))
