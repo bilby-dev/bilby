@@ -6,15 +6,16 @@ Bilby
 A user-friendly Bayesian inference library.
 Fulfilling all your Bayesian dreams.
 
-For online material to help you get started:
+Online material to help you get started:
 
 -  `Installation instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
 -  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
 
-If you need help, find an issue, or just have a question/suggestion:
+If you need help, find an issue, or just have a question/suggestion you can
 
 - Email our support desk: contact+lscsoft-bilby-1846-issue-@support.ligo.org
 - Join our `Slack workspace <https://bilby-code.slack.com/>`__
+- Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
 - For www.git.ligo.org users, submit issues directly through `the issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
 
 We encourage you to contribute to the development of bilby. This is done via a merge request.  For
