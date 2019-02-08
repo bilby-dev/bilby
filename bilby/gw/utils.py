@@ -491,7 +491,7 @@ def gracedb_to_json(gracedb, outdir=None):
         outfilepath = os.path.join(outdir, '{}.json'.format(gracedb))
         logger.info('Writing candidate to {}'.format(outfilepath))
         with open(outfilepath, 'w') as outfile:
-                json.dump(json_output, outfile, indent=2)
+            json.dump(json_output, outfile, indent=2)
 
     return json_output
 
@@ -528,7 +528,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
 
     if query_type is None:
         logger.warning('No query type provided. This may prevent data from being read.')
-        if observatory_code is 'V':
+        if observatory_code == 'V':
             query_type = 'V1Online'
         else:
             query_type = '{}_HOFT_C0{}'.format(observatory, calibration)
