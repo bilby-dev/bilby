@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- `emcee` now writes all progress to disk and can resume from a previous run.
 - 
 
 ### Changed
