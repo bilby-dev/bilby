@@ -20,7 +20,7 @@ echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
 echo "conda activate base" >> ~/.bashrc
 
 # Install conda-installable programs
-RUN conda install -y numpy scipy matplotlib pandas
+RUN conda install -y numpy scipy matplotlib pandas==0.23
 
 RUN conda install -c conda-forge deepdish
 
