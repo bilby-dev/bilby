@@ -37,34 +37,8 @@ def result_file_name(outdir, label):
 
 
 def read_in_result(filename=None, outdir=None, label=None):
-    """ Read in a saved .h5 data file
-
-    Parameters
-    ----------
-    filename: str
-        If given, try to load from this filename
-    outdir, label: str
-        If given, use the default naming convention for saved results file
-
-    Returns
-    -------
-    result: bilby.core.result.Result
-
-    Raises
-    -------
-    ValueError: If no filename is given and either outdir or label is None
-                If no bilby.core.result.Result is found in the path
-
-    """
-    if filename is None:
-        if (outdir is None) and (label is None):
-            raise ValueError("No information given to load file")
-        else:
-            filename = result_file_name(outdir, label)
-    if os.path.isfile(filename):
-        return Result(**deepdish.io.load(filename))
-    else:
-        raise IOError("No result '{}' found".format(filename))
+    """ Wrapper to bilby.core.result.Result.from_hdf5 """
+    return Result.from_hdf5(filename=filename, outdir=outdir, label=label)
 
 
 class Result(object):
@@ -155,6 +129,37 @@ class Result(object):
 
         self.prior_values = None
         self._kde = None
+
+    @classmethod
+    def from_hdf5(cls, filename=None, outdir=None, label=None):
+        """ Read in a saved .h5 data file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+        outdir, label: str
+            If given, use the default naming convention for saved results file
+
+        Returns
+        -------
+        result: bilby.core.result.Result
+
+        Raises
+        -------
+        ValueError: If no filename is given and either outdir or label is None
+                    If no bilby.core.result.Result is found in the path
+
+        """
+        if filename is None:
+            if (outdir is None) and (label is None):
+                raise ValueError("No information given to load file")
+            else:
+                filename = result_file_name(outdir, label)
+        if os.path.isfile(filename):
+            return cls(**deepdish.io.load(filename))
+        else:
+            raise IOError("No result '{}' found".format(filename))
 
     def __str__(self):
         """Print a summary """
