@@ -4,9 +4,10 @@
 
 ### Added
 - `emcee` now writes all progress to disk and can resume from a previous run.
-- 
 
 ### Changed
+- Cosmology generalised, users can now specify the cosmology used, default is astropy Planck15
+- UniformComovingVolume prior *requires* the name to be one of "luminosity_distance", "comoving_distance", "redshift"
 - Time/frequency array generation/conversion improved. We now impose `duration` is an integer multiple of
   `sampling_frequency`. Converting back and forth between time/frequency arrays now works for all valid arrays.
 - Updates the bilby.core.utils constants to match those of Astropy v3.0.4

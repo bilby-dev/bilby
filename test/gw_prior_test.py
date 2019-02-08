@@ -1,8 +1,12 @@
 from __future__ import division, absolute_import
 import unittest
-import bilby
 import os
 import sys
+
+import numpy as np
+from astropy import cosmology
+
+import bilby
 
 
 class TestBBHPriorDict(unittest.TestCase):
@@ -67,6 +71,74 @@ class TestCalibrationPrior(unittest.TestCase):
             self.maximum_frequency, n_nodes, label)
 
         self.assertEqual(len(test), n_nodes * 3)
+
+
+class TestUniformComovingVolumePrior(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_minimum(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name='luminosity_distance')
+        self.assertEqual(prior.minimum, 10)
+
+    def test_maximum(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name='luminosity_distance')
+        self.assertEqual(prior.maximum, 10000)
+
+    def test_zero_minimum_works(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0, maximum=10000, name='luminosity_distance')
+        self.assertEqual(prior.minimum, 0)
+
+    def test_specify_cosmology(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name='luminosity_distance',
+            cosmology='Planck13')
+        self.assertEqual(repr(prior.cosmology), repr(cosmology.Planck13))
+
+    def test_comoving_prior_creation(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=1000, name='comoving_distance')
+        self.assertEqual(prior.latex_label, '$d_C$')
+
+    def test_redshift_prior_creation(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name='redshift')
+        self.assertEqual(prior.latex_label, '$z$')
+
+    def test_redshift_to_luminosity_distance(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name='redshift')
+        new_prior = prior.get_corresponding_prior('luminosity_distance')
+        self.assertEqual(new_prior.name, 'luminosity_distance')
+
+    def test_luminosity_distance_to_redshift(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name='luminosity_distance')
+        new_prior = prior.get_corresponding_prior('redshift')
+        self.assertEqual(new_prior.name, 'redshift')
+
+    def test_luminosity_distance_to_comoving_distance(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name='luminosity_distance')
+        new_prior = prior.get_corresponding_prior('comoving_distance')
+        self.assertEqual(new_prior.name, 'comoving_distance')
+
+
+class TestAlignedSpin(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_default_prior_matches_analytic(self):
+        prior = bilby.gw.prior.AlignedSpin()
+        chis = np.linspace(-1, 1, 20)
+        analytic = - np.log(np.abs(chis)) / 2
+        max_difference = max(abs(analytic - prior.prob(chis)))
+        self.assertAlmostEqual(max_difference, 0, 2)
 
 
 if __name__ == '__main__':

@@ -512,19 +512,19 @@ class Prior(object):
 
     @property
     def minimum(self):
-        return self.__minimum
+        return self._minimum
 
     @minimum.setter
     def minimum(self, minimum):
-        self.__minimum = minimum
+        self._minimum = minimum
 
     @property
     def maximum(self):
-        return self.__maximum
+        return self._maximum
 
     @maximum.setter
     def maximum(self, maximum):
-        self.__maximum = maximum
+        self._maximum = maximum
 
     @property
     def __default_latex_label(self):
@@ -1587,7 +1587,7 @@ class Interped(Prior):
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
                        minimum=np.nanmax(np.array((min(xx), minimum))),
                        maximum=np.nanmin(np.array((max(xx), maximum))))
-        self.__initialize_attributes()
+        self.__update_instance()
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -1632,12 +1632,12 @@ class Interped(Prior):
         float: Minimum of the prior distribution
 
         """
-        return self.__minimum
+        return self._minimum
 
     @minimum.setter
     def minimum(self, minimum):
-        self.__minimum = minimum
-        if '_Interped__maximum' in self.__dict__ and self.__maximum < np.inf:
+        self._minimum = minimum
+        if '_maximum' in self.__dict__ and self._maximum < np.inf:
             self.__update_instance()
 
     @property
@@ -1651,12 +1651,12 @@ class Interped(Prior):
         float: Maximum of the prior distribution
 
         """
-        return self.__maximum
+        return self._maximum
 
     @maximum.setter
     def maximum(self, maximum):
-        self.__maximum = maximum
-        if '_Interped__minimum' in self.__dict__ and self.__minimum < np.inf:
+        self._maximum = maximum
+        if '_minimum' in self.__dict__ and self._minimum < np.inf:
             self.__update_instance()
 
     def __update_instance(self):

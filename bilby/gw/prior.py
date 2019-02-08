@@ -3,31 +3,150 @@ import os
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
-from ..core.prior import (PriorDict, Uniform, FromFile, Prior, DeltaFunction,
-                          Gaussian, Interped)
-from ..core.utils import logger
+from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
+                          Interped)
+from ..core.utils import infer_args_from_method, logger
+from .cosmology import get_cosmology
+
+try:
+    from astropy import cosmology as cosmo, units
+except ImportError:
+    logger.debug("You do not have astropy installed currently. You will"
+                 " not be able to use some of the prebuilt functions.")
 
 
-class UniformComovingVolume(FromFile):
+class Cosmological(Interped):
 
-    def __init__(self, minimum=None, maximum=None,
-                 name='luminosity distance', latex_label='$d_L$', unit='Mpc'):
-        """
+    _default_args_dict = dict(
+        redshift=dict(name='redshift', latex_label='$z$', unit=None),
+        luminosity_distance=dict(
+            name='luminosity_distance', latex_label='$d_L$', unit=units.Mpc),
+        comoving_distance=dict(
+            name='comoving_distance', latex_label='$d_C$', unit=units.Mpc))
 
-        Parameters
-        ----------
-        minimum: float, optional
-            See superclass
-        maximum: float, optional
-            See superclass
-        name: str, optional
-            See superclass
-        latex_label: str, optional
-            See superclass
-        """
-        file_name = os.path.join(os.path.dirname(__file__), 'prior_files', 'comoving.txt')
-        FromFile.__init__(self, file_name=file_name, minimum=minimum, maximum=maximum, name=name,
-                          latex_label=latex_label, unit=unit)
+    def __init__(self, minimum, maximum, cosmology=None, name=None,
+                 latex_label=None, unit=None):
+        self.cosmology = get_cosmology(cosmology)
+        if name not in self._default_args_dict:
+            raise ValueError(
+                "Name {} not recognised. Must be one of luminosity_distance, "
+                "comoving_distance, redshift".format(name))
+        self.name = name
+        label_args = self._default_args_dict[self.name]
+        if latex_label is not None:
+            label_args['latex_label'] = latex_label
+        if unit is not None:
+            if isinstance(unit, str):
+                unit = units.__dict__[unit]
+            label_args['unit'] = unit
+        self.unit = label_args['unit']
+        self._minimum = dict()
+        self._maximum = dict()
+        self.minimum = minimum
+        self.maximum = maximum
+        if name == 'redshift':
+            xx, yy = self._get_redshift_arrays()
+        elif name == 'comoving_distance':
+            xx, yy = self._get_comoving_distance_arrays()
+        elif name == 'luminosity_distance':
+            xx, yy = self._get_luminosity_distance_arrays()
+        else:
+            raise ValueError('Name {} not recognized.'.format(name))
+        Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum,
+                          **label_args)
+
+    @property
+    def minimum(self):
+        return self._minimum[self.name]
+
+    @minimum.setter
+    def minimum(self, minimum):
+        cosmology = get_cosmology(self.cosmology)
+        self._minimum[self.name] = minimum
+        if self.name == 'redshift':
+            self._minimum['luminosity_distance'] =\
+                cosmology.luminosity_distance(minimum).value
+            self._minimum['comoving_distance'] =\
+                cosmology.comoving_distance(minimum).value
+        elif self.name == 'luminosity_distance':
+            if minimum == 0:
+                self._minimum['redshift'] = 0
+            else:
+                self._minimum['redshift'] = cosmo.z_at_value(
+                    cosmology.luminosity_distance, minimum * self.unit)
+            self._minimum['comoving_distance'] = self._minimum['redshift']
+        elif self.name == 'comoving_distance':
+            if minimum == 0:
+                self._minimum['redshift'] = 0
+            else:
+                self._minimum['redshift'] = cosmo.z_at_value(
+                    cosmology.comoving_distance, minimum * self.unit)
+            self._minimum['luminosity_distance'] = self._minimum['redshift']
+        if getattr(self._maximum, self.name, np.inf) < np.inf:
+            self.__update_instance()
+
+    @property
+    def maximum(self):
+        return self._maximum[self.name]
+
+    @maximum.setter
+    def maximum(self, maximum):
+        cosmology = get_cosmology(self.cosmology)
+        self._maximum[self.name] = maximum
+        if self.name == 'redshift':
+            self._maximum['luminosity_distance'] = \
+                cosmology.luminosity_distance(maximum).value
+            self._maximum['comoving_distance'] = \
+                cosmology.comoving_distance(maximum).value
+        elif self.name == 'luminosity_distance':
+            self._maximum['redshift'] = cosmo.z_at_value(
+                cosmology.luminosity_distance, maximum * self.unit)
+            self._maximum['comoving_distance'] = self._maximum['redshift']
+        elif self.name == 'comoving_distance':
+            self._maximum['redshift'] = cosmo.z_at_value(
+                cosmology.comoving_distance, maximum * self.unit)
+            self._maximum['luminosity_distance'] = self._maximum['redshift']
+        if getattr(self._minimum, self.name, np.inf) < np.inf:
+            self.__update_instance()
+
+    def get_corresponding_prior(self, name=None, unit=None):
+        subclass_args = infer_args_from_method(self.__init__)
+        args_dict = {key: getattr(self, key) for key in subclass_args}
+        self._convert_to(new=name, args_dict=args_dict)
+        if unit is not None:
+            args_dict['unit'] = unit
+        return self.__class__(**args_dict)
+
+    def _convert_to(self, new, args_dict):
+        args_dict.update(self._default_args_dict[new])
+        args_dict['minimum'] = self._minimum[args_dict['name']]
+        args_dict['maximum'] = self._maximum[args_dict['name']]
+
+    def _get_comoving_distance_arrays(self):
+        zs, p_dz = self._get_redshift_arrays()
+        dc_of_z = self.cosmology.comoving_distance(zs).value
+        ddc_dz = np.gradient(dc_of_z, zs)
+        p_dc = p_dz / ddc_dz
+        return dc_of_z, p_dc
+
+    def _get_luminosity_distance_arrays(self):
+        zs, p_dz = self._get_redshift_arrays()
+        dl_of_z = self.cosmology.luminosity_distance(zs).value
+        ddl_dz = np.gradient(dl_of_z, zs)
+        p_dl = p_dz / ddl_dz
+        return dl_of_z, p_dl
+
+    def _get_redshift_arrays(self):
+        raise NotImplementedError
+
+
+class UniformComovingVolume(Cosmological):
+
+    def _get_redshift_arrays(self):
+        zs = np.linspace(self._minimum['redshift'] * 0.99,
+                         self._maximum['redshift'] * 1.01, 1000)
+        p_dz = self.cosmology.differential_comoving_volume(zs).value
+        return zs, p_dz
 
 
 class AlignedSpin(Interped):
