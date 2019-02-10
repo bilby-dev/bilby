@@ -157,7 +157,15 @@ class Result(object):
             else:
                 filename = result_file_name(outdir, label)
         if os.path.isfile(filename):
-            return cls(**deepdish.io.load(filename))
+            dictionary = deepdish.io.load(filename)
+            # Some versions of deepdish/pytables return the dictionanary as
+            # a dictionary with a kay 'data'
+            if len(dictionary) == 1 and 'data' in dictionary:
+                dictionary = dictionary['data']
+            try:
+                return cls(**dictionary)
+            except TypeError as e:
+                raise IOError("Unable to load dictionary, error={}".format(e))
         else:
             raise IOError("No result '{}' found".format(filename))
 

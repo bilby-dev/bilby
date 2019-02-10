@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Added the PolyChord sampler, which can be accessed by using `sampler='pypolychord'` in `run_sampler`
 - `emcee` now writes all progress to disk and can resume from a previous run.
 
 ### Changed

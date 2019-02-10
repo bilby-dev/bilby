@@ -48,7 +48,7 @@ you would use
    is given in the API information below.
 
 Below, we give the detailed API for the samplers. Remember, this API is not
-recomended for direct use by the user, rather it should be accessed via the
+recommended for direct use by the user, rather it should be accessed via the
 :code:`run_sampler`.
 
 ---------------
@@ -59,6 +59,7 @@ Dynesty
 =======
 
 .. autoclass:: bilby.core.sampler.dynesty.Dynesty
+
 
 Nestle
 ======
@@ -71,10 +72,18 @@ CPNest
 
 .. autoclass:: bilby.core.sampler.cpnest.Cpnest
 
+
 PyMultinest
 ===========
 
 .. autoclass:: bilby.core.sampler.pymultinest.Pymultinest
+
+
+PyPolyChord
+===========
+
+.. autoclass:: bilby.core.sampler.pypolychord.PyPolyChord
+
 
 -------------
 MCMC samplers
@@ -122,6 +131,27 @@ where the file `sampler_requirements.txt
 be found in the at the top-level of `the repository
 <https://git.ligo.org/lscsoft/bilby>`_ (Note: if you installed from pip, you
 can simply download that file and use the command above).
+
+
+Installing PyPolyChord
+======================
+
+If you want to use the `PyPolyChord` sampler, you first need the
+PolyChord library to be installed to work properly. An image of PolyChord can be found on github.
+Clone the following repository onto your system. Navigate to the folder you want to install PolyChord in and run:
+
+.. code-block:: console
+
+   $ git clone https://github.com/PolyChord/PolyChordLite.git
+
+Then navigate into the PolyChord directory and install PolyChord/PyPolyChord with
+
+.. code-block:: console
+
+   $ make pypolychord MPI=
+   $ python setup.py install --user
+
+Add a number after `MPI=` to compile with `MPI`. Leave it like it is if you don't wish to compile with MPI.
 
 Installing pymultinest
 ======================
