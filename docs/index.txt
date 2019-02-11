@@ -21,5 +21,6 @@ Welcome to bilby's documentation!
    conversion
    writing-documentation
    hyperparameters
+   containers
 
 
