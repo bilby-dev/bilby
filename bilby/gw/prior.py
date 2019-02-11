@@ -20,9 +20,9 @@ class Cosmological(Interped):
     _default_args_dict = dict(
         redshift=dict(name='redshift', latex_label='$z$', unit=None),
         luminosity_distance=dict(
-            name='luminosity_distance', latex_label='$d_L$', unit=units.Mpc),
+            name='luminosity_distance', latex_label='$d_L$', unit='Mpc'),
         comoving_distance=dict(
-            name='comoving_distance', latex_label='$d_C$', unit=units.Mpc))
+            name='comoving_distance', latex_label='$d_C$', unit='Mpc'))
 
     def __init__(self, minimum, maximum, cosmology=None, name=None,
                  latex_label=None, unit=None):
