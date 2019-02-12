@@ -39,8 +39,7 @@ Additionally, :code:`bilby` builds on a number of open-source packages. If you
 make use of this functionality in your publications, we recommend you cite them
 as requested in their associated documentation.
 
-Samplers
---------
+**Samplers**
 
 * `dynesty <https://github.com/joshspeagle/dynesty>`__
 * `nestle <https://github.com/kbarbary/nestle>`__
@@ -53,15 +52,13 @@ Samplers
 * `PyMC3 <https://github.com/pymc-devs/pymc3>`_
 
 
-Gravitational-wave tools
-------------------------
+**Gravitational-wave tools**
 
 * `gwpy <https://github.com/gwpy/gwpy>`__
 * `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
 * `astropy <https://github.com/astropy/astropy>`__
 
-Plotting
---------
+**Plotting**
 
 * `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
 * `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines
