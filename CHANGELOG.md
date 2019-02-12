@@ -6,7 +6,8 @@
 -
 
 ### Changed
--
+- Fixed an accidental addition of astropy as a first-class dependency and added a check for missing dependencies to the C.I.
+- Fixed a bug in the "create-your-own-time-domain-model" example
 
 ## [0.3.6] 2019-02-10
 
