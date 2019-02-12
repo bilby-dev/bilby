@@ -17,12 +17,14 @@ except ImportError:
 
 class Cosmological(Interped):
 
-    _default_args_dict = dict(
-        redshift=dict(name='redshift', latex_label='$z$', unit=None),
-        luminosity_distance=dict(
-            name='luminosity_distance', latex_label='$d_L$', unit=units.Mpc),
-        comoving_distance=dict(
-            name='comoving_distance', latex_label='$d_C$', unit=units.Mpc))
+    @property
+    def _default_args_dict(self):
+        return dict(
+            redshift=dict(name='redshift', latex_label='$z$', unit=None),
+            luminosity_distance=dict(
+                name='luminosity_distance', latex_label='$d_L$', unit=units.Mpc),
+            comoving_distance=dict(
+                name='comoving_distance', latex_label='$d_C$', unit=units.Mpc))
 
     def __init__(self, minimum, maximum, cosmology=None, name=None,
                  latex_label=None, unit=None):
