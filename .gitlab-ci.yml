@@ -13,6 +13,31 @@ stages:
   - test
   - deploy
 
+.test-python: &test-python
+  stage: test
+  image: python
+  before_script:
+    # this is required because pytables doesn't use a wheel on py37
+    - apt-get -yqq update
+    - apt-get -yqq install libhdf5-dev
+  script:
+    - python -m pip install .
+    - python -c "import bilby"
+    - python -c "import bilby.core"
+    - python -c "import bilby.gw"
+    - python -c "import bilby.hyper"
+    - python -c "import cli_bilby"
+
+# test basic setup on python2
+basic-2.7:
+  <<: *test-python
+  image: python:2.7
+
+# test basic setup on python3
+basic-3.7:
+  <<: *test-python
+  image: python:3.7
+
 # test example on python 2
 python-2.7:
   stage: test
