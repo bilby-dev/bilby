@@ -1,5 +1,6 @@
 |pipeline status| |coverage report| |pypi| |conda| |version|
 
+=====
 Bilby
 =====
 
@@ -24,6 +25,7 @@ help in creating a merge request, see `this page
 us directly. For advice on contributing, see `this help page <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
 
 
+--------------
 Citation guide
 --------------
 
@@ -34,9 +36,11 @@ If you use :code:`bilby` in a scientific publication, please cite
   <https://ui.adsabs.harvard.edu/#abs/2018arXiv181102042A/abstract>`__
 
 Additionally, :code:`bilby` builds on a number of open-source packages. If you
-make use of this functionality in your publications, we recommend you cite them.
+make use of this functionality in your publications, we recommend you cite them
+as requested in their associated documentation.
 
-Bilby provides access to the following samplers:
+Samplers
+--------
 
 * `dynesty <https://github.com/joshspeagle/dynesty>`__
 * `nestle <https://github.com/kbarbary/nestle>`__
@@ -46,15 +50,18 @@ Bilby provides access to the following samplers:
 * `ptemcee <https://github.com/willvousden/ptemcee>`__
 * `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
 * `pypolychord <https://github.com/vhaasteren/pypolychord>`__
+* `PyMC3 <https://github.com/pymc-devs/pymc3>`_
 
 
-Bilby makes use of the following packages for gravitational-wave related tools:
+Gravitational-wave tools
+------------------------
 
 * `gwpy <https://github.com/gwpy/gwpy>`__
 * `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
 * `astropy <https://github.com/astropy/astropy>`__
 
-Bilby makes use of the following packages for plotting:
+Plotting
+--------
 
 * `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
 * `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines
