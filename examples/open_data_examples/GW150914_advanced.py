@@ -3,7 +3,12 @@
 This tutorial includes advanced specifications for analysing known events.
 Here GW150914 is used as an example.
 
-LIST OF AVAILABLE EVENTS: Run -> help(bilby.gw.utils.get_event_time(event))
+LIST OF AVAILABLE EVENTS:
+>> from gwosc import datasets
+>> for event in datasets.find_datasets(type="event"):
+...     print(event, datasets.event_gps(event))
+
+List of events in BILBY dict: run -> help(bilby.gw.utils.get_event_time(event))
 """
 from __future__ import division, print_function
 import bilby
@@ -15,12 +20,13 @@ time_of_event = bilby.gw.utils.get_event_time(label)
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # GET DATA FROM INTERFEROMETER
-interferometer_names = ['H1', 'L1']  # can also include 'V1'
+interferometer_names = ['H1', 'L1']  # include 'V1' for appropriate O2 events
 duration = 4    # length of data segment containing the signal
 roll_off = 0.2  # smoothness of transition from no signal
 # to max signal in a Tukey Window.
 psd_offset = -1024  # PSD is estimated using data from
-# 'center_time + psd_offset' to 'center_time + psd_offset + psd_duration'
+# 'center_time + psd_offset' to 'center_time + psd_offset + psd_duration'.
+# This determines the time window used to fetch open data.
 psd_duration = 100
 filter_freq = None  # low pass filter frequency to cut signal content above
 # Nyquist frequency. The condition is 2 * filter_freq >= sampling_frequency
@@ -29,7 +35,8 @@ filter_freq = None  # low pass filter frequency to cut signal content above
 # sample_rate: most data are stored by LOSC at 4096 Hz,
 # there may be event-related data releases with a 16384 Hz rate.
 kwargs = {"sample_rate": 4096}
-# For some events a "tag" is required to download the data. (CLN = clean data)
+# For O2 events a "tag" is required to download the data.
+# CLN = clean data; C00 or C01 = raw data
 # kwargs = {"tag": 'CLN'}
 # For some events can specify channels: source data stream for LOSC data.
 # kwargs = {"channel": {'H1': 'H1:DCS-CALIB_STRAIN_C02',
@@ -44,7 +51,7 @@ interferometers = bilby.gw.detector.get_event_data(
 
 # CHOOSE PRIOR FILE
 # DEFAULT PRIOR FILES: GW150914.prior, binary_black_holes.prior,
-# binary_neutron_stars.prior
+# binary_neutron_stars.prior (if bns, use BNSPriorDict)
 # Needs to specify path for any other prior file.
 prior = bilby.gw.prior.BBHPriorDict(filename='GW150914.prior')
 
@@ -74,8 +81,7 @@ waveform_generator = bilby.gw.WaveformGenerator(
 # If prior given, used in the distance and phase marginalization.
 likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     interferometers, waveform_generator, time_marginalization=False,
-    distance_marginalization=False, phase_marginalization=False,
-    prior=None)
+    distance_marginalization=False, phase_marginalization=False)
 
 # RUN SAMPLER
 # Can use log_likelihood_ratio, rather than just the log_likelihood.
