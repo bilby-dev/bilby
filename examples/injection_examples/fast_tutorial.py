@@ -19,7 +19,7 @@ sampling_frequency = 2048.
 
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
-label = 'basic_tutorial'
+label = 'fast_tutorial'
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
@@ -74,7 +74,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra',
     priors[key] = injection_parameters[key]
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
-# the waveoform generator
+# the waveform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator)
 
