@@ -73,7 +73,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             phase_marginalization=self.phase_marginalization,
             distance_marginalization=self.distance_marginalization,
             waveform_arguments=waveform_generator.waveform_arguments,
-            frequency_domain_source_model=waveform_generator.frequency_domain_source_model)
+            frequency_domain_source_model=str(waveform_generator.frequency_domain_source_model))
 
         if self.time_marginalization:
             self._check_prior_is_set(key='geocent_time')
