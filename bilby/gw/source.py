@@ -6,7 +6,7 @@ from ..core import utils
 from ..core.utils import logger
 from .utils import (lalsim_SimInspiralTransformPrecessingNewInitialConditions,
                     lalsim_GetApproximantFromString,
-                    lalsim_SimInspiralChooseFDWaveform,
+                    lalsim_SimInspiralFD,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda2)
 
@@ -57,12 +57,18 @@ def lal_binary_black_hole(
     dict: A dictionary with the plus and cross polarisation strain modes
     """
 
-    waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
-                           minimum_frequency=20.0)
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
+        minimum_frequency=20.0, maximum_frequency=frequency_array[-1])
     waveform_kwargs.update(kwargs)
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
     minimum_frequency = waveform_kwargs['minimum_frequency']
+    maximum_frequency = waveform_kwargs['maximum_frequency']
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    frequency_bounds = ((frequency_array >= minimum_frequency) *
+                        (frequency_array <= maximum_frequency))
 
     if mass_2 > mass_1:
         return None
@@ -92,10 +98,7 @@ def lal_binary_black_hole(
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
-    maximum_frequency = frequency_array[-1]
-    delta_frequency = frequency_array[1] - frequency_array[0]
-
-    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
@@ -105,8 +108,8 @@ def lal_binary_black_hole(
     h_plus = hplus.data.data
     h_cross = hcross.data.data
 
-    h_plus = h_plus[:len(frequency_array)]
-    h_cross = h_cross[:len(frequency_array)]
+    h_plus = h_plus[:len(frequency_array)] * frequency_bounds
+    h_cross = h_cross[:len(frequency_array)] * frequency_bounds
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -145,6 +148,11 @@ def lal_eccentric_binary_black_hole_no_spins(
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
     minimum_frequency = waveform_kwargs['minimum_frequency']
+    maximum_frequency = waveform_kwargs['maximum_frequency']
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    frequency_bounds = ((frequency_array >= minimum_frequency) *
+                        (frequency_array <= maximum_frequency))
 
     if mass_2 > mass_1:
         return None
@@ -167,18 +175,15 @@ def lal_eccentric_binary_black_hole_no_spins(
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
-    maximum_frequency = frequency_array[-1]
-    delta_frequency = frequency_array[1] - frequency_array[0]
-
-    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
-    h_plus = hplus.data.data
-    h_cross = hcross.data.data
+    h_plus = hplus.data.data * frequency_bounds
+    h_cross = hcross.data.data * frequency_bounds
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -292,6 +297,11 @@ def lal_binary_neutron_star(
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
     minimum_frequency = waveform_kwargs['minimum_frequency']
+    maximum_frequency = waveform_kwargs['maximum_frequency']
+    delta_frequency = frequency_array[1] - frequency_array[0]
+
+    frequency_bounds = ((frequency_array >= minimum_frequency) *
+                        (frequency_array <= maximum_frequency))
 
     if mass_2 > mass_1:
         return None
@@ -317,18 +327,15 @@ def lal_binary_neutron_star(
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
-    maximum_frequency = frequency_array[-1]
-    delta_frequency = frequency_array[1] - frequency_array[0]
-
-    hplus, hcross = lalsim_SimInspiralChooseFDWaveform(
+    hplus, hcross = lalsim_SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
-    h_plus = hplus.data.data
-    h_cross = hcross.data.data
+    h_plus = hplus.data.data * frequency_bounds
+    h_cross = hcross.data.data * frequency_bounds
 
     h_plus = h_plus[:len(frequency_array)]
     h_cross = h_cross[:len(frequency_array)]

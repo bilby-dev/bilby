@@ -741,7 +741,7 @@ def lalsim_GetApproximantFromString(waveform_approximant):
         raise ValueError("waveform_approximant must be of type str")
 
 
-def lalsim_SimInspiralChooseFDWaveform(
+def lalsim_SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
@@ -762,7 +762,7 @@ def lalsim_SimInspiralChooseFDWaveform(
     if isinstance(approximant, int) is False:
         raise ValueError("approximant not an int")
 
-    return lalsim.SimInspiralChooseFDWaveform(
+    return lalsim.SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
