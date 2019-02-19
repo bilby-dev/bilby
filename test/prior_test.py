@@ -4,7 +4,7 @@ import unittest
 from mock import Mock
 import numpy as np
 import os
-import shutil
+import copy
 from collections import OrderedDict
 
 
@@ -130,6 +130,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gaussian(name='test', unit='unit', mu=0, sigma=1),
             bilby.core.prior.Normal(name='test', unit='unit', mu=0, sigma=1),
             bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=0, minimum=0, maximum=1),
+            bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=-1, minimum=0.5, maximum=1),
             bilby.core.prior.PowerLaw(name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
             bilby.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
             bilby.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
@@ -204,6 +205,28 @@ class TestPriorClasses(unittest.TestCase):
             if prior.minimum != -np.inf:
                 outside_domain = np.linspace(prior.minimum - 1e4, prior.minimum - 1, 1000)
                 self.assertTrue(all(prior.prob(outside_domain) == 0))
+
+    def test_prob_and_ln_prob(self):
+        for prior in self.priors:
+            sample = prior.sample()
+            self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
+
+    def test_log_normal_fail(self):
+        with self.assertRaises(ValueError):
+            bilby.core.prior.LogNormal(name='test', unit='unit', mu=0, sigma=-1)
+
+    def test_studentt_fail(self):
+        with self.assertRaises(ValueError):
+            bilby.core.prior.StudentT(name='test', unit='unit', df=3, mu=0, scale=-1)
+        with self.assertRaises(ValueError):
+            bilby.core.prior.StudentT(name='test', unit='unit', df=0, mu=0, scale=1)
+
+    def test_beta_fail(self):
+        with self.assertRaises(ValueError):
+            bilby.core.prior.Beta(name='test', unit='unit', alpha=-2.0, beta=2.0),
+
+        with self.assertRaises(ValueError):
+            bilby.core.prior.Beta(name='test', unit='unit', alpha=2.0, beta=-2.0),
 
     def test_probability_in_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
@@ -318,6 +341,15 @@ class TestPriorDict(unittest.TestCase):
         del self.prior_set_from_dict
         del self.default_prior_file
         del self.prior_set_from_file
+
+    def test_copy(self):
+        priors = bilby.core.prior.PriorDict(self.priors)
+        self.assertEqual(priors, priors.copy())
+
+    def test_prior_set(self):
+        priors_dict = bilby.core.prior.PriorDict(self.priors)
+        priors_set = bilby.core.prior.PriorSet(self.priors)
+        self.assertEqual(priors_dict, priors_set)
 
     def test_prior_set_is_ordered_dict(self):
         self.assertIsInstance(self.prior_set_from_dict, OrderedDict)

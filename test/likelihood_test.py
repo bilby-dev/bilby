@@ -31,6 +31,18 @@ class TestLikelihoodBase(unittest.TestCase):
     def test_base_log_likelihood_ratio(self):
         self.assertTrue(np.isnan(self.likelihood.log_likelihood_ratio()))
 
+    def test_meta_data_unset(self):
+        self.assertEqual(self.likelihood.meta_data, None)
+
+    def test_meta_data_set_fail(self):
+        with self.assertRaises(ValueError):
+            self.likelihood.meta_data = 10
+
+    def test_meta_data(self):
+        meta_data = dict(x=1, y=2)
+        self.likelihood.meta_data = meta_data
+        self.assertEqual(self.likelihood.meta_data, meta_data)
+
 
 class TestAnalytical1DLikelihood(unittest.TestCase):
 
