@@ -142,8 +142,9 @@ def lal_eccentric_binary_black_hole_no_spins(
     dict: A dictionary with the plus and cross polarisation strain modes
     """
 
-    waveform_kwargs = dict(waveform_approximant='EccentricFD', reference_frequency=10.0,
-                           minimum_frequency=10.0)
+    waveform_kwargs = dict(
+        waveform_approximant='EccentricFD', reference_frequency=10.0,
+        minimum_frequency=10.0, maximum_frequency=frequency_array[-1])
     waveform_kwargs.update(kwargs)
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
@@ -291,8 +292,9 @@ def lal_binary_neutron_star(
     dict: A dictionary with the plus and cross polarisation strain modes
     """
 
-    waveform_kwargs = dict(waveform_approximant='TaylorF2', reference_frequency=50.0,
-                           minimum_frequency=20.0)
+    waveform_kwargs = dict(
+        waveform_approximant='TaylorF2', reference_frequency=50.0,
+        minimum_frequency=20.0, maximum_frequency=frequency_array[-1])
     waveform_kwargs.update(kwargs)
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
