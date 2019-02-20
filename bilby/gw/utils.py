@@ -770,6 +770,33 @@ def lalsim_SimInspiralChooseFDWaveform(
         waveform_dictionary, approximant)
 
 
+def lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(
+        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
+        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version):
+    [mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
+     spin_1y, spin_1z, spin_2x, spin_2y, spin_2z] = convert_args_list_to_float(
+        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
+        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z)
+    return lalsim.SimIMRPhenomPCalculateModelParametersFromSourceFrame(
+        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
+        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version)
+
+
+def lalsim_SimIMRPhenomPFrequencySequence(
+        frequency_nodes, chi_1_l, chi_2_l, chi_p, theta_jn,
+        mass_1, mass_2, luminosity_distance,
+        alpha, phase_aligned, reference_frequency, version):
+    [chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2, luminosity_distance,
+     alpha, phase_aligned, reference_frequency] = convert_args_list_to_float(
+        chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2, luminosity_distance,
+        alpha, phase_aligned, reference_frequency)
+
+    return lalsim.SimIMRPhenomPFrequencySequence(
+        frequency_nodes, chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2,
+        luminosity_distance, alpha, phase_aligned, reference_frequency, version,
+        None)
+
+
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
         waveform_dictionary, lambda_1):
     try:
