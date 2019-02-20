@@ -473,8 +473,8 @@ class InterferometerStrainData(object):
             logger.info("Removing analysis segment data from the PSD data")
             analysis_segment_end_time = analysis_segment_start_time + fft_length
             idxs = (
-                (self.time_array > analysis_segment_start_time) &
-                (self.time_array < analysis_segment_end_time))
+                (self.time_array < analysis_segment_start_time) +
+                (self.time_array > analysis_segment_end_time))
             data = self.time_domain_strain[idxs]
         else:
             data = self.time_domain_strain
