@@ -146,7 +146,6 @@ class TestROQBBH(unittest.TestCase):
 
     def setUp(self):
         roq_dir = '/roq_basis'
-        roq_dir = './examples/injection_examples/12D_IMRPhenomP'
 
         fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
         fnodes_linear = np.load(fnodes_linear_file).T
