@@ -118,16 +118,14 @@ def lal_binary_neutron_star(
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1])
     a_1 = abs(chi_1)
     a_2 = abs(chi_2)
-    tilt_1 = np.arccos(np.sign(chi_1))
-    tilt_2 = np.arccos(np.sign(chi_2))
-    phi_12 = 0.0
-    phi_jl = 0.0
+    tilt_1 = np.arccos(chi_1)
+    tilt_2 = np.arccos(chi_2)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, iota=iota, phase=phase,
-        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
-        phi_jl=phi_jl, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, lambda_1=lambda_1,
+        lambda_2=lambda_2, **waveform_kwargs)
 
 
 def lal_eccentric_binary_black_hole_no_spins(
@@ -231,9 +229,13 @@ def _base_lal_cbc_fd_waveform(
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    if tilt_1 == 0 and tilt_2 == 0:
-        spin_1x, spin_1y, spin_1z = spherical_to_cartesian(a_1, 0.0, 0.0)
-        spin_2x, spin_2y, spin_2z = spherical_to_cartesian(a_2, 0.0, 0.0)
+    if tilt_1 in [0.0, np.pi] and tilt_2 in [0, np.pi]:
+        spin_1x = 0.0
+        spin_1y = 0.0
+        spin_1z = a_1 * np.cos(tilt_1)
+        spin_2x = 0.0
+        spin_2y = 0.0
+        spin_2z = a_2 * np.cos(tilt_2)
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
             transform_precessing_spins(
