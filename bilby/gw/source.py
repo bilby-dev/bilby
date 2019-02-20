@@ -4,12 +4,14 @@ import numpy as np
 
 from ..core import utils
 from ..core.utils import logger, spherical_to_cartesian
+from .conversion import transform_precessing_spins
 from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
                     lalsim_SimInspiralChooseFDWaveform,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
-                    lalsim_SimInspiralWaveformParamsInsertTidalLambda2)
-from .conversion import transform_precessing_spins
+                    lalsim_SimInspiralWaveformParamsInsertTidalLambda2,
+                    lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame,
+                    lalsim_SimIMRPhenomPFrequencySequence)
 
 try:
     import lal
@@ -402,20 +404,20 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
                 reference_frequency, phase)
 
     chi_1_l, chi_2_l, chi_p, theta_jn, alpha, phase_aligned, zeta =\
-        lalsim.SimIMRPhenomPCalculateModelParametersFromSourceFrame(
+        lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(
             mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
             spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version)
 
     waveform_polarizations = dict()
 
-    h_linear_plus, h_linear_cross = lalsim.SimIMRPhenomPFrequencySequence(
+    h_linear_plus, h_linear_cross = lalsim_SimIMRPhenomPFrequencySequence(
         frequency_nodes_linear, chi_1_l, chi_2_l, chi_p, theta_jn,
         mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency, version, None)
-    h_quadratic_plus, h_quadratic_cross = lalsim.SimIMRPhenomPFrequencySequence(
+        alpha, phase_aligned, reference_frequency, version)
+    h_quadratic_plus, h_quadratic_cross = lalsim_SimIMRPhenomPFrequencySequence(
         frequency_nodes_quadratic, chi_1_l, chi_2_l, chi_p, theta_jn,
         mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency, version, None)
+        alpha, phase_aligned, reference_frequency, version)
 
     waveform_polarizations['linear'] = dict(
         plus=(np.cos(2 * zeta) * h_linear_plus.data.data +
