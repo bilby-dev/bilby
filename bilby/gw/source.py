@@ -3,12 +3,13 @@ from __future__ import division, print_function
 import numpy as np
 
 from ..core import utils
-from ..core.utils import logger
-from .utils import (lalsim_SimInspiralTransformPrecessingNewInitialConditions,
-                    lalsim_GetApproximantFromString,
+from ..core.utils import logger, spherical_to_cartesian
+from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
+                    lalsim_SimInspiralChooseFDWaveform,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda2)
+from .conversion import transform_precessing_spins
 
 try:
     import lal
@@ -60,7 +61,7 @@ def lal_binary_black_hole(
         waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1])
     waveform_kwargs.update(kwargs)
-    return _base_lal_cbc_waveform(
+    return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, iota=iota, phase=phase,
         a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
@@ -120,7 +121,7 @@ def lal_binary_neutron_star(
     phi_12 = 0.0
     phi_jl = 0.0
     waveform_kwargs.update(kwargs)
-    return _base_lal_cbc_waveform(
+    return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, iota=iota, phase=phase,
         a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
@@ -160,13 +161,13 @@ def lal_eccentric_binary_black_hole_no_spins(
         waveform_approximant='EccentricFD', reference_frequency=10.0,
         minimum_frequency=10.0, maximum_frequency=frequency_array[-1])
     waveform_kwargs.update(kwargs)
-    return _base_lal_cbc_waveform(
+    return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, iota=iota, phase=phase,
         eccentricity=eccentricity, **waveform_kwargs)
 
 
-def _base_lal_cbc_waveform(
+def _base_lal_cbc_fd_waveform(
         frequency_array, mass_1, mass_2, luminosity_distance, iota, phase,
         a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0, phi_12=0.0, phi_jl=0.0,
         lambda_1=0.0, lambda_2=0.0, eccentricity=0.0, **waveform_kwargs):
@@ -229,15 +230,11 @@ def _base_lal_cbc_waveform(
     mass_2 = mass_2 * utils.solar_mass
 
     if tilt_1 == 0 and tilt_2 == 0:
-        spin_1x = 0
-        spin_1y = 0
-        spin_1z = a_1
-        spin_2x = 0
-        spin_2y = 0
-        spin_2z = a_2
+        spin_1x, spin_1y, spin_1z = spherical_to_cartesian(a_1, 0.0, 0.0)
+        spin_2x, spin_2y, spin_2z = spherical_to_cartesian(a_2, 0.0, 0.0)
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-            lalsim_SimInspiralTransformPrecessingNewInitialConditions(
+            transform_precessing_spins(
                 iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
                 mass_2, reference_frequency, phase))
 
@@ -250,18 +247,19 @@ def _base_lal_cbc_waveform(
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
-    hplus, hcross = lalsim_SimInspiralFD(
+    if lalsim.SimInspiralImplementedFDApproximants(approximant):
+        wf_func = lalsim_SimInspiralChooseFDWaveform
+    else:
+        wf_func = lalsim_SimInspiralFD
+    hplus, hcross = wf_func(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
-    h_plus = hplus.data.data
-    h_cross = hcross.data.data
-
-    h_plus = h_plus[:len(frequency_array)] * frequency_bounds
-    h_cross = h_cross[:len(frequency_array)] * frequency_bounds
+    h_plus = hplus.data.data[:len(frequency_array)] * frequency_bounds
+    h_cross = hcross.data.data[:len(frequency_array)] * frequency_bounds
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -399,7 +397,7 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         spin_2z = a_2
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-            lalsim.SimInspiralTransformPrecessingNewInitialConditions(
+            transform_precessing_spins(
                 iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
                 reference_frequency, phase)
 

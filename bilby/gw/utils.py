@@ -770,6 +770,35 @@ def lalsim_SimInspiralFD(
         waveform_dictionary, approximant)
 
 
+def lalsim_SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant):
+
+    # Convert values to floats
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, longitude_ascending_nodes,
+     eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+     maximum_frequency, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, longitude_ascending_nodes,
+        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+        maximum_frequency, reference_frequency)
+
+    # Note, this is the approximant number returns by GetApproximantFromString
+    if isinstance(approximant, int) is False:
+        raise ValueError("approximant not an int")
+
+    return lalsim.SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant)
+
+
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
         waveform_dictionary, lambda_1):
     try:
