@@ -180,6 +180,7 @@ class TestROQBBH(unittest.TestCase):
             bilby.gw.source.roq(self.frequency_array, **self.parameters), dict)
 
     def test_roq_fails_without_frequency_nodes(self):
+        self.parameters.update(self.waveform_kwargs)
         del self.parameters['frequency_nodes_linear']
         del self.parameters['frequency_nodes_quadratic']
         with self.assertRaises(KeyError):
