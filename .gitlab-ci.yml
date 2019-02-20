@@ -79,6 +79,28 @@ python-3.7:
       - coverage_badge.svg
       - docs/_build/html/
 
+# Tests run at a fixed schedule rather than on push
+scheduled-python-3.7:
+  stage: test
+  image: bilbydev/bilby-test-suite-python37
+  only:
+    - schedules
+  before_script:
+    # Install the dependencies specified in the Pipfile
+    - pipenv install --three --python=/opt/conda/bin/python --system --deploy
+  script:
+    - python setup.py install
+
+    # Run pyflakes
+    - flake8 .
+
+    # Run tests
+    - pytest
+
+    # Run tests which are only done on schedule
+    - pytest test/example_test.py
+    - pytest test/gw_example_test.py
+
 pages:
   stage: deploy
   dependencies:
