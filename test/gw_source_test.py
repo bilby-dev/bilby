@@ -1,5 +1,8 @@
 from __future__ import division, absolute_import
 import unittest
+
+import numpy as np
+
 import bilby
 
 
@@ -34,6 +37,13 @@ class TestLalBBH(unittest.TestCase):
                 self.frequency_array, **self.parameters), dict)
 
     def test_lal_bbh_works_without_waveform_parameters(self):
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_black_hole(
+                self.frequency_array, **self.parameters), dict)
+
+    def test_lal_bbh_works_with_time_domain_approximant(self):
+        self.waveform_kwargs['waveform_approximant'] = 'SEOBNRv3'
+        self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters), dict)
@@ -130,6 +140,51 @@ class TestEccentricLalBBH(unittest.TestCase):
         with self.assertRaises(TypeError):
             bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
                 self.frequency_array, **self.parameters)
+
+
+class TestROQBBH(unittest.TestCase):
+
+    def setUp(self):
+        roq_dir = '/roq_basis'
+        roq_dir = './examples/injection_examples/12D_IMRPhenomP'
+
+        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear = np.load(fnodes_linear_file).T
+        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic = np.load(fnodes_quadratic_file).T
+
+        self.parameters = dict(
+            mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.0,
+            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, iota=0.0,
+            phase=0.0)
+        self.waveform_kwargs = dict(
+            frequency_nodes_linear=fnodes_linear,
+            frequency_nodes_quadratic=fnodes_quadratic,
+            reference_frequency=50., minimum_frequency=20.,
+            approximant='IMRPhenomPv2')
+        self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs
+        del self.frequency_array
+
+    def test_roq_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs)
+        self.assertIsInstance(
+            bilby.gw.source.roq(self.frequency_array, **self.parameters), dict)
+
+    def test_mass_ratio_greater_one_returns_none(self):
+        self.parameters['mass_2'] = 1000.0
+        self.parameters.update(self.waveform_kwargs)
+        self.assertIsNone(
+            bilby.gw.source.roq(self.frequency_array, **self.parameters), dict)
+
+    def test_roq_fails_without_frequency_nodes(self):
+        del self.parameters['frequency_nodes_linear']
+        del self.parameters['frequency_nodes_quadratic']
+        with self.assertRaises(KeyError):
+            bilby.gw.source.roq(self.frequency_array, **self.parameters)
 
 
 if __name__ == '__main__':
