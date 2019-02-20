@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from ..core import utils
-from ..core.utils import logger, spherical_to_cartesian
+from ..core.utils import logger
 from .conversion import transform_precessing_spins
 from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
