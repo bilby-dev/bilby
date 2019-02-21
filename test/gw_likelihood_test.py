@@ -509,7 +509,12 @@ class TestROQLikelihood(unittest.TestCase):
             interferometers=ifos, waveform_generator=roq_wfg,
             linear_matrix=linear_matrix_file,
             quadratic_matrix=quadratic_matrix_file, priors=self.priors)
-        pass
+
+        self.roq_phase_like = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=ifos, waveform_generator=roq_wfg,
+            linear_matrix=linear_matrix_file,
+            quadratic_matrix=quadratic_matrix_file,
+            phase_marginalization=True, priors=self.priors.copy())
 
     def tearDown(self):
         pass
@@ -526,6 +531,20 @@ class TestROQLikelihood(unittest.TestCase):
         self.roq_likelihood.parameters['geocent_time'] = -5
         self.assertEqual(
             self.roq_likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+
+    def test_phase_marginalisation_roq(self):
+        """Test phase marginalised likelihood matches brute force version"""
+        like = []
+        self.roq_likelihood.parameters.update(self.test_parameters)
+        phases = np.linspace(0, 2 * np.pi, 1000)
+        for phase in phases:
+            self.roq_likelihood.parameters['phase'] = phase
+            like.append(np.exp(self.roq_likelihood.log_likelihood_ratio()))
+
+        marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
+        self.roq_phase_like.parameters = self.test_parameters.copy()
+        self.assertAlmostEqual(
+            marg_like, self.roq_phase_like.log_likelihood_ratio(), delta=0.5)
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):
