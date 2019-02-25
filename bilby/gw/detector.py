@@ -469,16 +469,20 @@ class InterferometerStrainData(object):
 
         """
 
-        if analysis_segment_start_time is not None:
-            logger.info("Removing analysis segment data from the PSD data")
-            analysis_segment_end_time = analysis_segment_start_time + fft_length
-            idxs = (
-                (self.time_array < analysis_segment_start_time) +
-                (self.time_array > analysis_segment_end_time))
-            data = self.time_domain_strain[idxs]
-        else:
-            data = self.time_domain_strain
+        data = self.time_domain_strain
 
+        if analysis_segment_start_time is not None:
+            analysis_segment_end_time = analysis_segment_start_time + fft_length
+            inside = (analysis_segment_start_time > self.time_array[0] +
+                      analysis_segment_end_time < self.time_array[-1])
+            if inside:
+                logger.info("Removing analysis segment data from the PSD data")
+                idxs = (
+                    (self.time_array < analysis_segment_start_time) +
+                    (self.time_array > analysis_segment_end_time))
+                data = data[idxs]
+
+        # WARNING this line can cause issues if the data is non-contiguous
         strain = gwpy.timeseries.TimeSeries(data=data, sample_rate=self.sampling_frequency)
         psd_alpha = 2 * self.roll_off / fft_length
         logger.info(
