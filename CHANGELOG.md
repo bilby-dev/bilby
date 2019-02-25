@@ -14,6 +14,7 @@
 ## [0.4.0] 2019-02-15
 
 ### Changed
+- Changed the logic around redundancy tests in the `PriorDict` classes
 - Fixed an accidental addition of astropy as a first-class dependency and added a check for missing dependencies to the C.I.
 - Fixed a bug in the "create-your-own-time-domain-model" example
 - Added citation guide to the readme
@@ -33,7 +34,7 @@
 - Improve the load_data_from_cache_file method
 
 ### Removed
--
+- Removed deprecated `PriorSet` classes. Use `PriorDict` instead.
 
 ## [0.3.5] 2019-01-25
 
