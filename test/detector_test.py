@@ -898,6 +898,13 @@ class TestInterferometerList(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
 
+    def test_meta_data(self):
+        ifos_list = [self.ifo1, self.ifo2]
+        ifos = bilby.gw.detector.InterferometerList(ifos_list)
+        self.assertTrue(isinstance(ifos.meta_data, dict))
+        meta_data = {ifo.name: ifo.meta_data for ifo in ifos_list}
+        self.assertEqual(ifos.meta_data, meta_data)
+
     @patch.object(bilby.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
     def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
         waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
