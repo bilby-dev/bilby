@@ -1,0 +1,23 @@
+# These are the default priors we use for BNS systems.
+# Note that you may wish to use more specific mass and distance parameters.
+# These commands are all known to bilby.gw.prior.
+# Lines beginning "#" are ignored.
+mass_1 = Uniform(name='mass_1', minimum=1, maximum=2, unit='$M_{\\odot}$')
+mass_2 = Uniform(name='mass_2', minimum=1, maximum=2, unit='$M_{\\odot}$')
+# chirp_mass = Uniform(name='chirp_mass', minimum=0.87, maximum=1.74, unit='$M_{\\odot}$')
+# total_mass =  Uniform(name='total_mass', minimum=2, maximum=4, unit='$M_{\\odot}$')
+# mass_ratio =  Uniform(name='mass_ratio', minimum=0.5, maximum=1)
+# symmetric_mass_ratio =  Uniform(name='symmetric_mass_ratio', minimum=0.22, maximum=0.25)
+chi_1 =  bilby.gw.prior.AlignedSpin(a_prior=Uniform(0, 0.05), z_prior=Uniform(-1, 1), name='chi_1', latex_label='$\\chi_1$')
+chi_2 =  bilby.gw.prior.AlignedSpin(a_prior=Uniform(0, 0.05), z_prior=Uniform(-1, 1), name='chi_2', latex_label='$\\chi_2$')
+luminosity_distance =  bilby.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=10, maximum=500, unit='Mpc')
+dec =  Cosine(name='dec')
+ra =  Uniform(name='ra', minimum=0, maximum=2 * np.pi)
+iota =  Sine(name='iota')
+# cos_iota =  Uniform(name='cos_iota', minimum=-1, maximum=1)
+psi =  Uniform(name='psi', minimum=0, maximum=np.pi)
+phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi)
+lambda_1 = Uniform(name='lambda_1', minimum=0, maximum=3000 )
+lambda_2 = Uniform(name='lambda_2', minimum=0, maximum=3000 )
+# lambda_tilde = Uniform(name='lambda_tilde', minimum=0, maximum=5000)
+# delta_lambda = Uniform(name='delta_lambda', minimum=-5000, maximum=5000)

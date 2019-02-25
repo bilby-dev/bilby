@@ -245,9 +245,27 @@ class PriorDict(OrderedDict):
         """
         return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
 
-    def test_redundancy(self, key):
+    def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
         return False
+
+    def test_has_redundant_keys(self):
+        """
+        Test whether there are redundant keys in self.
+
+        Return
+        ------
+        bool: Whether there are redundancies or not
+        """
+        redundant = False
+        for key in self:
+            temp = self.copy()
+            del temp[key]
+            if temp.test_redundancy(key, disable_logging=True):
+                logger.warning('{} is a redundant key in this {}.'
+                               .format(key, self.__class__.__name__))
+                redundant = True
+        return redundant
 
     def copy(self):
         """

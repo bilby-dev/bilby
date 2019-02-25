@@ -241,6 +241,10 @@ class Sampler(object):
             Likelihood can't be evaluated.
 
         """
+
+        if self.priors.test_has_redundant_keys():
+            raise IllegalSamplingSetError("Your sampling set contains redundant parameters.")
+
         self._check_if_priors_can_be_sampled()
         try:
             t1 = datetime.datetime.now()
@@ -502,3 +506,7 @@ class SamplerError(Error):
 
 class SamplerNotInstalledError(SamplerError):
     """ Base class for Error raised by not installed samplers """
+
+
+class IllegalSamplingSetError(Error):
+    """ Class for illegal sets of sampling parameters """
