@@ -130,6 +130,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     elif mode.lower() == 'breathing':
         return np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
 
+    # Calculating omega here to avoid calculation when model in [plus, cross, breathing]
     omega = np.cross(m, n)
     if mode.lower() == 'longitudinal':
         return np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
@@ -138,8 +139,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     elif mode.lower() == 'y':
         return np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
     else:
-        logger.warning("{} not a polarization mode!".format(mode))
-        return None
+        raise ValueError("{} not a polarization mode!".format(mode))
 
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
@@ -380,7 +380,7 @@ def get_open_strain_data(
     return strain
 
 
-def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1, **kwargs):
+def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -416,23 +416,22 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
         except RuntimeError:
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
 
-    while not loaded:
-        ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
-                              'DCH-CLEAN_STRAIN_C02']
-        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
-        channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
-        for detector in channel_types.keys():
-            for channel_type in channel_types[detector]:
-                if loaded:
-                    break
-                channel = '{}:{}'.format(detector, channel_type)
-                try:
-                    strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
-                                             **kwargs)
-                    loaded = True
-                    logger.info('Successfully read strain data for channel {}.'.format(channel))
-                except RuntimeError:
-                    pass
+    ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
+                          'DCH-CLEAN_STRAIN_C02']
+    virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+    channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
+    for detector in channel_types.keys():
+        for channel_type in channel_types[detector]:
+            if loaded:
+                break
+            channel = '{}:{}'.format(detector, channel_type)
+            try:
+                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
+                                         **kwargs)
+                loaded = True
+                logger.info('Successfully read strain data for channel {}.'.format(channel))
+            except RuntimeError:
+                pass
 
     if loaded:
         return strain
