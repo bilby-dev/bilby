@@ -85,6 +85,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         overwritten.
     save: bool
         If true, save the priors and results to disk.
+        If hdf5, save as an hdf5 file instead of json.
     result_class: bilby.core.result.Result, or child of
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
@@ -183,7 +184,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     result.samples_to_posterior(likelihood=likelihood, priors=priors,
                                 conversion_function=conversion_function)
-    if save:
+    if save == 'hdf5':
+        result.save_to_file(extension='hdf5')
+        logger.info("Results saved to {}/".format(outdir))
+    elif save:
         result.save_to_file()
         logger.info("Results saved to {}/".format(outdir))
     if plot:
