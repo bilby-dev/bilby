@@ -195,9 +195,8 @@ def _base_lal_cbc_fd_waveform(
         Secondary tilt angle
     phi_jl: float
         Azimuthal angle between the total and orbital angular momenta
-    iota: float
+    theta_jn: float
         Orbital inclination
-        FIXME: this should be theta_jn
     phase: float
         The phase at coalescence
     eccentricity: float
@@ -236,6 +235,7 @@ def _base_lal_cbc_fd_waveform(
         spin_2x = 0.0
         spin_2y = 0.0
         spin_2z = a_2 * np.cos(tilt_2)
+        iota = theta_jn
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
             transform_precessing_spins(

@@ -11,7 +11,7 @@ class TestLalBBH(unittest.TestCase):
     def setUp(self):
         self.parameters = dict(
             mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.0,
-            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, iota=0.0,
+            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, theta_jn=0.0,
             phase=0.0)
         self.waveform_kwargs = dict(
             waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
@@ -54,7 +54,7 @@ class TestLalBNS(unittest.TestCase):
     def setUp(self):
         self.parameters = dict(
             mass_1=1.4, mass_2=1.4, luminosity_distance=400.0, chi_1=0.0,
-            chi_2=0.0, iota=0.0, phase=0.0, lambda_1=0.0, lambda_2=0.0)
+            chi_2=0.0, theta_jn=0.0, phase=0.0, lambda_1=0.0, lambda_2=0.0)
         self.waveform_kwargs = dict(
             waveform_approximant='TaylorF2', reference_frequency=50.0,
             minimum_frequency=20.0)
@@ -104,7 +104,7 @@ class TestEccentricLalBBH(unittest.TestCase):
 
     def setUp(self):
         self.parameters = dict(
-            mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, iota=0.0,
+            mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, theta_jn=0.0,
             phase=0.0, eccentricity=0.1)
         self.waveform_kwargs = dict(
             waveform_approximant='EccentricFD', reference_frequency=10.0,
@@ -154,7 +154,7 @@ class TestROQBBH(unittest.TestCase):
 
         self.parameters = dict(
             mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.0,
-            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, iota=0.0,
+            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, theta_jn=0.0,
             phase=0.0)
         self.waveform_kwargs = dict(
             frequency_nodes_linear=fnodes_linear,
