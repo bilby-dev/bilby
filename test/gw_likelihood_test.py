@@ -473,7 +473,7 @@ class TestROQLikelihood(unittest.TestCase):
 
         self.test_parameters = dict(
             mass_1=36.0, mass_2=36.0, a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=5000., theta_jn=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=1000., theta_jn=0.4,
             psi=0.659, phase=1.3, geocent_time=1.2, ra=1.3, dec=-1.2)
 
         ifos = bilby.gw.detector.InterferometerList(['H1'])
@@ -481,7 +481,7 @@ class TestROQLikelihood(unittest.TestCase):
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
         self.priors = bilby.gw.prior.BBHPriorDict()
-        self.priors['geocent_time'] = bilby.core.prior.Uniform(1.1, 1.3)
+        self.priors['geocent_time'] = bilby.core.prior.Uniform(1.19, 1.21)
 
         non_roq_wfg = bilby.gw.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
@@ -502,15 +502,19 @@ class TestROQLikelihood(unittest.TestCase):
                 reference_frequency=20., minimum_frequency=20.,
                 approximant='IMRPhenomPv2'))
 
-        self.non_roq_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+        self.non_roq = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=ifos, waveform_generator=non_roq_wfg)
 
-        self.roq_likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+        self.non_roq_phase = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos, waveform_generator=non_roq_wfg,
+            phase_marginalization=True, priors=self.priors.copy())
+
+        self.roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=ifos, waveform_generator=roq_wfg,
             linear_matrix=linear_matrix_file,
             quadratic_matrix=quadratic_matrix_file, priors=self.priors)
 
-        self.roq_phase_like = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+        self.roq_phase = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=ifos, waveform_generator=roq_wfg,
             linear_matrix=linear_matrix_file,
             quadratic_matrix=quadratic_matrix_file,
@@ -520,31 +524,27 @@ class TestROQLikelihood(unittest.TestCase):
         pass
 
     def test_matches_non_roq(self):
-        self.non_roq_likelihood.parameters.update(self.test_parameters)
-        self.roq_likelihood.parameters.update(self.test_parameters)
-        self.assertAlmostEqual(
-            self.non_roq_likelihood.log_likelihood_ratio(),
-            self.roq_likelihood.log_likelihood_ratio(), 0)
+        self.non_roq.parameters.update(self.test_parameters)
+        self.roq.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_roq.log_likelihood_ratio() -
+                self.roq.log_likelihood_ratio()) /
+            self.non_roq.log_likelihood_ratio(), 1e-3)
 
     def test_time_prior_out_of_bounds_returns_zero(self):
-        self.roq_likelihood.parameters.update(self.test_parameters)
-        self.roq_likelihood.parameters['geocent_time'] = -5
+        self.roq.parameters.update(self.test_parameters)
+        self.roq.parameters['geocent_time'] = -5
         self.assertEqual(
-            self.roq_likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+            self.roq.log_likelihood_ratio(), np.nan_to_num(-np.inf))
 
     def test_phase_marginalisation_roq(self):
         """Test phase marginalised likelihood matches brute force version"""
-        like = []
-        self.roq_likelihood.parameters.update(self.test_parameters)
-        phases = np.linspace(0, 2 * np.pi, 1000)
-        for phase in phases:
-            self.roq_likelihood.parameters['phase'] = phase
-            like.append(np.exp(self.roq_likelihood.log_likelihood_ratio()))
-
-        marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
-        self.roq_phase_like.parameters = self.test_parameters.copy()
-        self.assertAlmostEqual(
-            marg_like, self.roq_phase_like.log_likelihood_ratio(), delta=0.5)
+        self.non_roq_phase.parameters = self.test_parameters.copy()
+        self.roq_phase.parameters = self.test_parameters.copy()
+        self.assertLess(
+            abs(self.non_roq_phase.log_likelihood_ratio() -
+                self.roq_phase.log_likelihood_ratio()) /
+            self.non_roq_phase.log_likelihood_ratio(), 1e-3)
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):

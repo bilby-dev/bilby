@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+import scipy.integrate as integrate
 from scipy.interpolate import interp1d
 
 try:
@@ -16,7 +17,6 @@ from .prior import BBHPriorDict
 from .source import lal_binary_black_hole
 from .utils import noise_weighted_inner_product, build_roq_weights, blockwise_dot_product
 from .waveform_generator import WaveformGenerator
-from math import ceil
 
 
 class GravitationalWaveTransient(likelihood.Likelihood):
@@ -439,11 +439,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         optimal_snr_squared = 0.
         d_inner_h = 0.
 
-        indices, in_bounds = self._closest_time_indices(
-            self.parameters['geocent_time'] - self.interferometers.start_time)
-        if not in_bounds:
-            return np.nan_to_num(-np.inf)
-
         waveform = self.waveform_generator.frequency_domain_strain(
             self.parameters)
         if waveform is None:
@@ -469,7 +464,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             h_plus_quadratic = f_plus * waveform['quadratic']['plus']
             h_cross_quadratic = f_cross * waveform['quadratic']['cross']
 
-            indices, in_bounds = self._closest_time_indices(ifo_time)
+            indices, in_bounds = self._closest_time_indices(
+                ifo_time, self.time_samples[ifo.name])
             if not in_bounds:
                 return np.nan_to_num(-np.inf)
 
@@ -478,8 +474,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 self.weights[ifo.name + '_linear'][indices])
 
             d_inner_h += interp1d(
-                self.time_samples[indices],
-                d_inner_h_tc_array, kind='quadratic')(ifo_time)
+                self.time_samples[ifo.name][indices],
+                d_inner_h_tc_array, kind='cubic')(ifo_time)
 
             optimal_snr_squared += \
                 np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,
@@ -497,25 +493,28 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         return log_l.real
 
-    def _closest_time_indices(self, time):
+    @staticmethod
+    def _closest_time_indices(time, samples):
         """
-        Get the closest an two neighbouring times
+        Get the closest five times
 
         Parameters
         ----------
         time: float
             Time to check
+        samples: array-like
+            Available times
 
         Returns
         -------
         indices: list
-            Indices nearest to time.
+            Indices nearest to time
         in_bounds: bool
-            Whether the indices are for valid times.
+            Whether the indices are for valid times
         """
-        closest = np.argmin(np.absolute(self.time_samples - time))
-        indices = [closest + ii for ii in [-1, 0, 1]]
-        in_bounds = (indices[0] >= 0) & (indices[2] < self.time_samples.size)
+        closest = np.argmin(abs(samples - time))
+        indices = [closest + ii for ii in [-2, -1, 0, 1, 2]]
+        in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
         return indices, in_bounds
 
     def _set_weights(self):
@@ -526,6 +525,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         The times are chosen to allow all the merger times allows in the time
         prior.
         """
+        self.time_samples = dict()
         for ifo in self.interferometers:
             # only get frequency components up to maximum_frequency
             self.linear_matrix = \
@@ -535,30 +535,28 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
             # array of relative time shifts to be applied to the data
             # 0.045s comes from time for GW to traverse the Earth
-            self.time_samples = np.linspace(
+            self.time_samples[ifo.name] = np.arange(
                 self.priors['geocent_time'].minimum - 0.045,
                 self.priors['geocent_time'].maximum + 0.045,
-                int(ceil((self.priors['geocent_time'].maximum -
-                          self.priors['geocent_time'].minimum + 0.09) *
-                         ifo.strain_data.sampling_frequency)))
-            self.time_samples -= ifo.strain_data.start_time
-            time_space = self.time_samples[1] - self.time_samples[0]
+                self._get_time_resolution(ifo))
+            self.time_samples[ifo.name] -= ifo.strain_data.start_time
+            time_space = (self.time_samples[ifo.name][1] -
+                          self.time_samples[ifo.name][0])
 
             # array to be filled with data, shifted by discrete time_samples
             tc_shifted_data = np.zeros([
-                len(self.time_samples),
+                len(self.time_samples[ifo.name]),
                 len(ifo.frequency_array[ifo.frequency_mask])], dtype=complex)
 
-            # shift data to beginning of the prior
-            # increment by the time step
+            # shift data to beginning of the prior increment by the time step
             shifted_data =\
                 ifo.frequency_domain_strain[ifo.frequency_mask] * \
                 np.exp(2j * np.pi * ifo.frequency_array[ifo.frequency_mask] *
-                       self.time_samples[0])
+                       self.time_samples[ifo.name][0])
             single_time_shift = np.exp(
                 2j * np.pi * ifo.frequency_array[ifo.frequency_mask] *
                 time_space)
-            for j in range(len(self.time_samples)):
+            for j in range(len(self.time_samples[ifo.name])):
                 tc_shifted_data[j] = shifted_data
                 shifted_data *= single_time_shift
 
@@ -577,6 +575,64 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             self.weights[ifo.name + '_quadratic'] = build_roq_weights(
                 1 / ifo.power_spectral_density_array[ifo.frequency_mask],
                 self.quadratic_matrix.real, 1 / ifo.strain_data.duration)
+
+    @staticmethod
+    def _get_time_resolution(ifo):
+        """
+        This method estimates the time resolution given the optimal SNR of the
+        signal in the detector. This is then used when constructing the weights
+        for the ROQ.
+
+        Parameters
+        ----------
+        ifo: bilby.gw.detector.Interferometer
+
+        Returns
+        -------
+        delta_t: float
+            Time resolution
+        """
+
+        def calc_fhigh(freq, psd, scaling=20.):
+            """
+
+            Parameters
+            ----------
+            freq: array-like
+                Frequency array
+            psd: array-like
+                Power spectral density
+            scaling: float
+                SNR dependent scaling factor
+
+            Returns
+            -------
+            f_high: float
+                The maximum frequency which must be considered
+            """
+            integrand1 = np.power(freq, -7. / 3) / psd
+            integral1 = integrate.simps(integrand1, freq)
+            integrand3 = np.power(freq, 2. / 3.) / (psd * integral1)
+            f_3_bar = integrate.simps(integrand3, freq)
+
+            f_high = scaling * f_3_bar**(1 / 3)
+
+            return f_high
+
+        def c_f_scaling(snr):
+            return (np.pi**2 * snr**2 / 6)**(1 / 3)
+
+        psd = ifo.power_spectral_density_array[ifo.frequency_mask]
+
+        freq = ifo.frequency_array[ifo.frequency_mask]
+
+        inj_snr = getattr(ifo.meta_data, 'optimal_SNR', 30)
+
+        fhigh = calc_fhigh(freq, psd, scaling=c_f_scaling(inj_snr))
+
+        delta_t = fhigh**-1
+
+        return delta_t
 
 
 def get_binary_black_hole_likelihood(interferometers):
