@@ -380,7 +380,7 @@ class TestPriorDict(unittest.TestCase):
             dec=bilby.core.prior.Cosine(name='dec'),
             ra=bilby.core.prior.Uniform(
                 name='ra', minimum=0, maximum=2 * np.pi),
-            iota=bilby.core.prior.Sine(name='iota'),
+            theta_jn=bilby.core.prior.Sine(name='theta_jn'),
             psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
             phase=bilby.core.prior.Uniform(
                 name='phase', minimum=0, maximum=2 * np.pi)
@@ -436,7 +436,7 @@ class TestPriorDict(unittest.TestCase):
             dec=bilby.core.prior.Cosine(name='dec'),
             ra=bilby.core.prior.Uniform(
                 name='ra', minimum=0, maximum=2 * np.pi),
-            iota=bilby.core.prior.Sine(name='iota'),
+            theta_jn=bilby.core.prior.Sine(name='theta_jn'),
             psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
             phase=bilby.core.prior.Uniform(
                 name='phase', minimum=0, maximum=2 * np.pi)

@@ -33,7 +33,7 @@ sampling_frequency = 2048
 
 injection_parameters = dict(
     chirp_mass=36., mass_ratio=0.9, a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=1000., iota=0.4, psi=0.659,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=1000., theta_jn=0.4, psi=0.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
@@ -63,7 +63,7 @@ search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
 
 priors = bilby.gw.prior.BBHPriorDict()
-for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'iota', 'phase', 'psi', 'ra',
+for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn', 'phase', 'psi', 'ra',
             'dec', 'phi_12', 'phi_jl', 'luminosity_distance']:
     priors[key] = injection_parameters[key]
 priors.pop('mass_1')

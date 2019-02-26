@@ -29,7 +29,7 @@ label = 'using_gwin'
 # Search priors
 priors = dict()
 priors['distance'] = bilby.core.prior.Uniform(500, 2000, 'distance')
-priors['polarization'] = bilby.core.prior.Uniform(0, np.pi, 'iota')
+priors['polarization'] = bilby.core.prior.Uniform(0, np.pi, 'theta_jn')
 
 # Data variables
 seglen = 4
