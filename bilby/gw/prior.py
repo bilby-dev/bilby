@@ -207,63 +207,48 @@ class BBHPriorDict(PriorDict):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
         PriorDict.__init__(self, dictionary=dictionary, filename=filename)
 
-    def test_redundancy(self, key):
+    def test_redundancy(self, key, disable_logging=False):
         """
         Test whether adding the key would add be redundant.
+        Already existing keys return True.
 
         Parameters
         ----------
         key: str
             The key to test.
+        disable_logging: bool, optional
+            Disable logging in this function call. Default is False.
 
         Return
         ------
         redundant: bool
             Whether the key is redundant or not
         """
-        redundant = False
         if key in self:
             logger.debug('{} already in prior'.format(key))
-            return redundant
+            return True
+
         mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
-        spin_magnitude_parameters = {'a_1', 'a_2'}
         spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
         spin_tilt_2_parameters = {'tilt_2', 'cos_tilt_2'}
         spin_azimuth_parameters = {'phi_1', 'phi_2', 'phi_12', 'phi_jl'}
-        inclination_parameters = {'iota', 'cos_iota'}
+        inclination_parameters = {'theta_jn', 'cos_theta_jn'}
         distance_parameters = {'luminosity_distance', 'comoving_distance', 'redshift'}
 
-        for parameter_set in [mass_parameters, spin_magnitude_parameters, spin_azimuth_parameters]:
+        for independent_parameters, parameter_set in \
+                zip([2, 2, 1, 1, 1, 1],
+                    [mass_parameters, spin_azimuth_parameters,
+                     spin_tilt_1_parameters, spin_tilt_2_parameters,
+                     inclination_parameters, distance_parameters]):
             if key in parameter_set:
-                if len(parameter_set.intersection(self)) > 2:
-                    redundant = True
-                    logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                        parameter_set.intersection(self)))
-                    break
-            elif len(parameter_set.intersection(self)) == 2:
-                redundant = True
-                break
-        for parameter_set in [inclination_parameters, distance_parameters, spin_tilt_1_parameters,
-                              spin_tilt_2_parameters]:
-            if key in parameter_set:
-                if len(parameter_set.intersection(self)) > 1:
-                    redundant = True
-                    logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                        parameter_set.intersection(self)))
-                    break
-                elif len(parameter_set.intersection(self)) == 1:
-                    redundant = True
-                    break
-
-        return redundant
-
-
-class BBHPriorSet(BBHPriorDict):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE BBHPriorDict INSTEAD"""
-        logger.warning("The name 'BBHPriorSet' is deprecated use 'BBHPriorDict' instead")
-        super(BBHPriorSet, self).__init__(dictionary, filename)
+                if len(parameter_set.intersection(self)) >= independent_parameters:
+                    logger.disabled = disable_logging
+                    logger.warning('{} already in prior. '
+                                   'This may lead to unexpected behaviour.'
+                                   .format(parameter_set.intersection(self)))
+                    logger.disabled = False
+                    return True
+        return False
 
 
 class BNSPriorDict(PriorDict):
@@ -286,32 +271,30 @@ class BNSPriorDict(PriorDict):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
         PriorDict.__init__(self, dictionary=dictionary, filename=filename)
 
-    def test_redundancy(self, key):
-        logger.info("Performing redundancy check using BBHPriorDict().test_redundancy")
-        bbh_redundancy = BBHPriorDict().test_redundancy(key)
+    def test_redundancy(self, key, disable_logging=False):
+        logger.disabled = disable_logging
+        logger.info("Performing redundancy check using BBHPriorDict(self).test_redundancy")
+        logger.disabled = False
+        bbh_redundancy = BBHPriorDict(self).test_redundancy(key)
+
         if bbh_redundancy:
             return True
         redundant = False
 
-        tidal_parameters =\
+        tidal_parameters = \
             {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda'}
 
         if key in tidal_parameters:
             if len(tidal_parameters.intersection(self)) > 2:
                 redundant = True
-                logger.warning('{} in prior. This may lead to unexpected behaviour.'.format(
-                    tidal_parameters.intersection(self)))
+                logger.disabled = disable_logging
+                logger.warning('{} already in prior. '
+                               'This may lead to unexpected behaviour.'
+                               .format(tidal_parameters.intersection(self)))
+                logger.disabled = False
             elif len(tidal_parameters.intersection(self)) == 2:
                 redundant = True
         return redundant
-
-
-class BNSPriorSet(BNSPriorDict):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE BNSPriorDict INSTEAD"""
-        super(BNSPriorSet, self).__init__(dictionary, filename)
-        logger.warning("The name 'BNSPriorSet' is deprecated use 'BNSPriorDict' instead")
 
 
 Prior._default_latex_labels = {
@@ -334,6 +317,8 @@ Prior._default_latex_labels = {
     'ra': '$\mathrm{RA}$',
     'iota': '$\iota$',
     'cos_iota': '$\cos\iota$',
+    'theta_jn': '$\\theta_{JN}$',
+    'cos_theta_jn': '$\cos\\theta_{JN}$',
     'psi': '$\psi$',
     'phase': '$\phi$',
     'geocent_time': '$t_c$',
@@ -418,13 +403,13 @@ class CalibrationPriorDict(PriorDict):
         nodes = np.logspace(np.log10(minimum_frequency),
                             np.log10(maximum_frequency), n_nodes)
 
-        amplitude_mean_nodes =\
+        amplitude_mean_nodes = \
             UnivariateSpline(frequency_array, amplitude_median)(nodes)
-        amplitude_sigma_nodes =\
+        amplitude_sigma_nodes = \
             UnivariateSpline(frequency_array, amplitude_sigma)(nodes)
-        phase_mean_nodes =\
+        phase_mean_nodes = \
             UnivariateSpline(frequency_array, phase_median)(nodes)
-        phase_sigma_nodes =\
+        phase_sigma_nodes = \
             UnivariateSpline(frequency_array, phase_sigma)(nodes)
 
         prior = CalibrationPriorDict()
@@ -506,11 +491,3 @@ class CalibrationPriorDict(PriorDict):
                                         latex_label=latex_label)
 
         return prior
-
-
-class CalibrationPriorSet(CalibrationPriorDict):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE BNSPriorDict INSTEAD"""
-        super(CalibrationPriorSet, self).__init__(dictionary, filename)
-        logger.warning("The name 'CalibrationPriorSet' is deprecated use 'CalibrationPriorDict' instead")

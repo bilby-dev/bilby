@@ -27,7 +27,7 @@ np.random.seed(150914)
 
 injection_parameters = dict(
     mass_1=35., mass_2=30., eccentricity=0.1, luminosity_distance=440.,
-    iota=0.4, psi=0.1, phase=1.2, geocent_time=1180002601.0, ra=45, dec=5.73)
+    theta_jn=0.4, psi=0.1, phase=1.2, geocent_time=1180002601.0, ra=45, dec=5.73)
 
 waveform_arguments = dict(waveform_approximant='EccentricFD',
                           reference_frequency=10., minimum_frequency=10.)
@@ -70,7 +70,7 @@ priors["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
 priors["dec"] = bilby.core.prior.Cosine(name='dec')
 priors["ra"] = bilby.core.prior.Uniform(
     name='ra', minimum=0, maximum=2 * np.pi)
-priors["iota"] = bilby.core.prior.Sine(name='iota')
+priors["theta_jn"] = bilby.core.prior.Sine(name='theta_jn')
 priors["psi"] = bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi)
 priors["phase"] = bilby.core.prior.Uniform(
     name='phase', minimum=0, maximum=2 * np.pi)

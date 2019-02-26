@@ -28,7 +28,7 @@ np.random.seed(88170235)
 # aligned spins of both black holes (chi_1, chi_2), etc.
 injection_parameters = dict(
     mass_1=1.5, mass_2=1.3, chi_1=0.02, chi_2=0.02, luminosity_distance=50.,
-    iota=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
+    theta_jn=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
     ra=1.375, dec=-1.2108, lambda_1=400, lambda_2=450)
 
 # Set the duration and sampling frequency of the data segment that we're going
@@ -66,7 +66,7 @@ interferometers.inject_signal(parameters=injection_parameters,
 # delta_lambda rather than mass_1, mass_2, lambda_1, and lambda_2.
 priors = bilby.gw.prior.BNSPriorDict()
 for key in ['psi', 'geocent_time', 'ra', 'dec', 'chi_1', 'chi_2',
-            'iota', 'luminosity_distance', 'phase']:
+            'theta_jn', 'luminosity_distance', 'phase']:
     priors[key] = injection_parameters[key]
 priors.pop('mass_1')
 priors.pop('mass_2')

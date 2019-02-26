@@ -16,42 +16,174 @@ class TestBBHPriorDict(unittest.TestCase):
         self.base_directory =\
             '/'.join(os.path.dirname(
                 os.path.abspath(sys.argv[0])).split('/')[:-1])
-        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
-        self.default_prior = bilby.gw.prior.BBHPriorDict(
-            filename=self.filename)
+        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                     'prior_files/binary_black_holes.prior')
+        self.bbh_prior_dict = bilby.gw.prior.BBHPriorDict(filename=self.filename)
+        for key, value in self.bbh_prior_dict.items():
+            self.prior_dict[key] = value
 
     def tearDown(self):
         del self.prior_dict
         del self.filename
+        del self.bbh_prior_dict
+        del self.base_directory
 
     def test_create_default_prior(self):
         default = bilby.gw.prior.BBHPriorDict()
-        minima = all([self.default_prior[key].minimum == default[key].minimum
+        minima = all([self.bbh_prior_dict[key].minimum == default[key].minimum
                       for key in default.keys()])
-        maxima = all([self.default_prior[key].maximum == default[key].maximum
+        maxima = all([self.bbh_prior_dict[key].maximum == default[key].maximum
                       for key in default.keys()])
-        names = all([self.default_prior[key].name == default[key].name
+        names = all([self.bbh_prior_dict[key].name == default[key].name
                      for key in default.keys()])
 
         self.assertTrue(all([minima, maxima, names]))
 
     def test_create_from_dict(self):
-        bilby.gw.prior.BBHPriorDict(dictionary=self.prior_dict)
+        new_dict = bilby.gw.prior.BBHPriorDict(dictionary=self.prior_dict)
+        for key in self.bbh_prior_dict:
+            self.assertEqual(self.bbh_prior_dict[key], new_dict[key])
 
-    def test_create_from_filename(self):
-        bilby.gw.prior.BBHPriorDict(filename=self.filename)
+    def test_redundant_priors_not_in_dict_before(self):
+        for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
+                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_theta_jn',
+                      'comoving_distance', 'redshift']:
+            self.assertTrue(self.bbh_prior_dict.test_redundancy(prior))
 
-    def test_key_in_prior_not_redundant(self):
-        test = self.default_prior.test_redundancy('mass_1')
-        self.assertFalse(test)
+    def test_redundant_priors_already_in_dict(self):
+        for prior in ['mass_1', 'mass_2', 'tilt_1', 'tilt_2',
+                      'phi_1', 'phi_2', 'theta_jn', 'luminosity_distance']:
+            self.assertTrue(self.bbh_prior_dict.test_redundancy(prior))
 
-    def test_chirp_mass_redundant(self):
-        test = self.default_prior.test_redundancy('chirp_mass')
-        self.assertTrue(test)
+    def test_correct_not_redundant_priors_masses(self):
+        del self.bbh_prior_dict['mass_2']
+        for prior in ['mass_2', 'chirp_mass', 'total_mass', 'mass_ratio',  'symmetric_mass_ratio']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
 
-    def test_comoving_distance_redundant(self):
-        test = self.default_prior.test_redundancy('comoving_distance')
-        self.assertTrue(test)
+    def test_correct_not_redundant_priors_spin_magnitudes(self):
+        del self.bbh_prior_dict['a_2']
+        self.assertFalse(self.bbh_prior_dict.test_redundancy('a_2'))
+
+    def test_correct_not_redundant_priors_spin_tilt_1(self):
+        del self.bbh_prior_dict['tilt_1']
+        for prior in ['tilt_1', 'cos_tilt_1']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_spin_tilt_2(self):
+        del self.bbh_prior_dict['tilt_2']
+        for prior in ['tilt_2', 'cos_tilt_2']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_spin_azimuth(self):
+        del self.bbh_prior_dict['phi_12']
+        for prior in ['phi_1', 'phi_2', 'phi_12']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_inclination(self):
+        del self.bbh_prior_dict['theta_jn']
+        for prior in ['theta_jn', 'cos_theta_jn']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_distance(self):
+        del self.bbh_prior_dict['luminosity_distance']
+        for prior in ['luminosity_distance', 'comoving_distance',
+                      'redshift']:
+            self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
+
+    def test_add_unrelated_prior(self):
+        self.assertFalse(self.bbh_prior_dict.test_redundancy('abc'))
+
+    def test_test_has_redundant_priors(self):
+        self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
+        for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
+                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_theta_jn',
+                      'comoving_distance', 'redshift']:
+            self.bbh_prior_dict[prior] = 0
+            self.assertTrue(self.bbh_prior_dict.test_has_redundant_keys())
+            del self.bbh_prior_dict[prior]
+
+
+class TestBNSPriorDict(unittest.TestCase):
+
+    def setUp(self):
+        self.prior_dict = dict()
+        self.base_directory =\
+            '/'.join(os.path.dirname(
+                os.path.abspath(sys.argv[0])).split('/')[:-1])
+        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                     'prior_files/binary_neutron_stars.prior')
+        self.bns_prior_dict = bilby.gw.prior.BNSPriorDict(filename=self.filename)
+        for key, value in self.bns_prior_dict.items():
+            self.prior_dict[key] = value
+
+    def tearDown(self):
+        del self.prior_dict
+        del self.filename
+        del self.bns_prior_dict
+        del self.base_directory
+
+    def test_create_default_prior(self):
+        default = bilby.gw.prior.BNSPriorDict()
+        minima = all([self.bns_prior_dict[key].minimum == default[key].minimum
+                      for key in default.keys()])
+        maxima = all([self.bns_prior_dict[key].maximum == default[key].maximum
+                      for key in default.keys()])
+        names = all([self.bns_prior_dict[key].name == default[key].name
+                     for key in default.keys()])
+
+        self.assertTrue(all([minima, maxima, names]))
+
+    def test_create_from_dict(self):
+        new_dict = bilby.gw.prior.BNSPriorDict(dictionary=self.prior_dict)
+        self.assertDictEqual(self.bns_prior_dict, new_dict)
+
+    def test_redundant_priors_not_in_dict_before(self):
+        for prior in ['chirp_mass', 'total_mass', 'mass_ratio',
+                      'symmetric_mass_ratio', 'cos_theta_jn', 'comoving_distance',
+                      'redshift', 'lambda_tilde', 'delta_lambda']:
+            self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_redundant_priors_already_in_dict(self):
+        for prior in ['mass_1', 'mass_2', 'chi_1', 'chi_2',
+                      'theta_jn', 'luminosity_distance',
+                      'lambda_1', 'lambda_2']:
+            self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_masses(self):
+        del self.bns_prior_dict['mass_2']
+        for prior in ['mass_2', 'chirp_mass', 'total_mass', 'mass_ratio',  'symmetric_mass_ratio']:
+            self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_spin_magnitudes(self):
+        del self.bns_prior_dict['chi_2']
+        self.assertFalse(self.bns_prior_dict.test_redundancy('chi_2'))
+
+    def test_correct_not_redundant_priors_inclination(self):
+        del self.bns_prior_dict['theta_jn']
+        for prior in ['theta_jn', 'cos_theta_jn']:
+            self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_distance(self):
+        del self.bns_prior_dict['luminosity_distance']
+        for prior in ['luminosity_distance', 'comoving_distance',
+                      'redshift']:
+            self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_correct_not_redundant_priors_tidal(self):
+        del self.bns_prior_dict['lambda_1']
+        for prior in['lambda_1', 'lambda_tilde', 'delta_lambda']:
+            self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
+
+    def test_add_unrelated_prior(self):
+        self.assertFalse(self.bns_prior_dict.test_redundancy('abc'))
+
+    def test_test_has_redundant_priors(self):
+        self.assertFalse(self.bns_prior_dict.test_has_redundant_keys())
+        for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
+                      'cos_theta_jn', 'comoving_distance', 'redshift']:
+            self.bns_prior_dict[prior] = 0
+            self.assertTrue(self.bns_prior_dict.test_has_redundant_keys())
+            del self.bns_prior_dict[prior]
 
 
 class TestCalibrationPrior(unittest.TestCase):

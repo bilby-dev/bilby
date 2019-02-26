@@ -8,6 +8,7 @@ import numpy as np
 import deepdish
 import pandas as pd
 import corner
+import json
 import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ from .utils import (logger, infer_parameters_from_function,
 from .prior import Prior, PriorDict, DeltaFunction
 
 
-def result_file_name(outdir, label):
+def result_file_name(outdir, label, extension='json'):
     """ Returns the standard filename used for a result file
 
     Parameters
@@ -28,17 +29,27 @@ def result_file_name(outdir, label):
         Name of the output directory
     label: str
         Naming scheme of the output file
+    extension: str, optional
+        Whether to save as `hdf5` or `json`
 
     Returns
     -------
     str: File name of the output file
     """
-    return '{}/{}_result.h5'.format(outdir, label)
+    if extension == 'hdf5':
+        return '{}/{}_result.h5'.format(outdir, label)
+    else:
+        return '{}/{}_result.json'.format(outdir, label)
 
 
 def read_in_result(filename=None, outdir=None, label=None):
-    """ Wrapper to bilby.core.result.Result.from_hdf5 """
-    return Result.from_hdf5(filename=filename, outdir=outdir, label=label)
+    """ Wrapper to bilby.core.result.Result.from_hdf5
+        or bilby.core.result.Result.from_json """
+    try:
+        result = Result.from_json(filename=filename, outdir=outdir, label=label)
+    except (IOError, ValueError):
+        result = Result.from_hdf5(filename=filename, outdir=outdir, label=label)
+    return result
 
 
 class Result(object):
@@ -155,13 +166,57 @@ class Result(object):
             if (outdir is None) and (label is None):
                 raise ValueError("No information given to load file")
             else:
-                filename = result_file_name(outdir, label)
+                filename = result_file_name(outdir, label, extension='hdf5')
         if os.path.isfile(filename):
             dictionary = deepdish.io.load(filename)
             # Some versions of deepdish/pytables return the dictionanary as
             # a dictionary with a kay 'data'
             if len(dictionary) == 1 and 'data' in dictionary:
                 dictionary = dictionary['data']
+            try:
+                return cls(**dictionary)
+            except TypeError as e:
+                raise IOError("Unable to load dictionary, error={}".format(e))
+        else:
+            raise IOError("No result '{}' found".format(filename))
+
+    @classmethod
+    def from_json(cls, filename=None, outdir=None, label=None):
+        """ Read in a saved .json data file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+        outdir, label: str
+            If given, use the default naming convention for saved results file
+
+        Returns
+        -------
+        result: bilby.core.result.Result
+
+        Raises
+        -------
+        ValueError: If no filename is given and either outdir or label is None
+                    If no bilby.core.result.Result is found in the path
+
+        """
+        if filename is None:
+            if (outdir is None) and (label is None):
+                raise ValueError("No information given to load file")
+            else:
+                filename = result_file_name(outdir, label)
+        if os.path.isfile(filename):
+            dictionary = json.load(open(filename, 'r'))
+            for key in dictionary.keys():
+                # Convert some dictionaries back to DataFrames
+                if key in ['posterior', 'nested_samples']:
+                    dictionary[key] = pd.DataFrame.from_dict(dictionary[key])
+                # Convert the loaded priors to bilby prior type
+                if key == 'priors':
+                    for param in dictionary[key].keys():
+                        dictionary[key][param] = str(dictionary[key][param])
+                    dictionary[key] = PriorDict(dictionary[key])
             try:
                 return cls(**dictionary)
             except TypeError as e:
@@ -303,9 +358,9 @@ class Result(object):
                 pass
         return dictionary
 
-    def save_to_file(self, overwrite=False, outdir=None):
+    def save_to_file(self, overwrite=False, outdir=None, extension='json'):
         """
-        Writes the Result to a deepdish h5 file
+        Writes the Result to a json or deepdish h5 file
 
         Parameters
         ----------
@@ -314,9 +369,11 @@ class Result(object):
             default=False
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
+        extension: str, optional
+            Whether to save as hdf5 instead of json
         """
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
-        file_name = result_file_name(outdir, self.label)
+        file_name = result_file_name(outdir, self.label, extension)
 
         if os.path.isfile(file_name):
             if overwrite:
@@ -341,8 +398,19 @@ class Result(object):
                 if hasattr(dictionary['sampler_kwargs'][key], '__call__'):
                     dictionary['sampler_kwargs'][key] = str(dictionary['sampler_kwargs'])
 
+        # Convert to json saveable format
+        if extension != 'hdf5':
+            for key in dictionary.keys():
+                if isinstance(dictionary[key], pd.core.frame.DataFrame):
+                    dictionary[key] = dictionary[key].to_dict()
+                elif isinstance(dictionary[key], np.ndarray):
+                    dictionary[key] = dictionary[key].tolist()
+
         try:
-            deepdish.io.save(file_name, dictionary)
+            if extension == 'hdf5':
+                deepdish.io.save(file_name, dictionary)
+            else:
+                json.dump(dictionary, open(file_name, 'w'), indent=2)
         except Exception as e:
             logger.error("\n\n Saving the data has failed with the "
                          "following message:\n {} \n\n".format(e))

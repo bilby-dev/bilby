@@ -412,10 +412,13 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     """
     def __init__(self, interferometers, waveform_generator,
-                 linear_matrix, quadratic_matrix, priors):
+                 linear_matrix, quadratic_matrix, priors,
+                 distance_marginalization=False, phase_marginalization=False):
         GravitationalWaveTransient.__init__(
             self, interferometers=interferometers,
-            waveform_generator=waveform_generator, priors=priors)
+            waveform_generator=waveform_generator, priors=priors,
+            distance_marginalization=distance_marginalization,
+            phase_marginalization=phase_marginalization)
 
         if isinstance(linear_matrix, str):
             logger.info("Loading linear matrix from {}".format(linear_matrix))
@@ -434,7 +437,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     def log_likelihood_ratio(self):
         optimal_snr_squared = 0.
-        matched_filter_snr_squared = 0.
+        d_inner_h = 0.
 
         indices, in_bounds = self._closest_time_indices(
             self.parameters['geocent_time'] - self.interferometers.start_time)
@@ -470,19 +473,27 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             if not in_bounds:
                 return np.nan_to_num(-np.inf)
 
-            matched_filter_snr_squared_array = np.einsum(
+            d_inner_h_tc_array = np.einsum(
                 'i,ji->j', np.conjugate(h_plus_linear + h_cross_linear),
                 self.weights[ifo.name + '_linear'][indices])
 
-            matched_filter_snr_squared += interp1d(
+            d_inner_h += interp1d(
                 self.time_samples[indices],
-                matched_filter_snr_squared_array, kind='quadratic')(ifo_time)
+                d_inner_h_tc_array, kind='quadratic')(ifo_time)
 
             optimal_snr_squared += \
                 np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,
                         self.weights[ifo.name + '_quadratic'])
 
-        log_l = matched_filter_snr_squared - optimal_snr_squared / 2
+        if self.distance_marginalization:
+            rho_mf_ref, rho_opt_ref = self._setup_rho(d_inner_h, optimal_snr_squared)
+            if self.phase_marginalization:
+                rho_mf_ref = abs(rho_mf_ref)
+            log_l = self._interp_dist_margd_loglikelihood(rho_mf_ref.real, rho_opt_ref)[0]
+        else:
+            if self.phase_marginalization:
+                d_inner_h = self._bessel_function_interped(abs(d_inner_h))
+            log_l = d_inner_h - optimal_snr_squared / 2
 
         return log_l.real
 
