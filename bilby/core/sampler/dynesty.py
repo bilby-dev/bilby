@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import os
 import sys
+import pickle
+import signal
 
 import numpy as np
 from pandas import DataFrame
-from deepdish.io import load, save
 
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler, NestedSampler
@@ -102,6 +103,9 @@ class Dynesty(NestedSampler):
             n_check_point_raw = (check_point_delta_t / self._log_likelihood_eval_time)
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
+
+        signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
+        signal.signal(signal.SIGINT, self.write_current_state_and_exit)
 
     @property
     def sampler_function_kwargs(self):
@@ -258,10 +262,13 @@ class Dynesty(NestedSampler):
             Whether the run is continuing or terminating, if True, the loaded
             state is mostly written back to disk.
         """
-        resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
+        resume_file = '{}/{}_resume.pickle'.format(self.outdir, self.label)
+        logger.debug("Reading resume file {}".format(resume_file))
 
         if os.path.isfile(resume_file):
-            saved = load(resume_file)
+            with open(resume_file, 'rb') as file:
+                saved = pickle.load(file)
+            logger.debug("Succesfuly read resume file {}".format(resume_file))
 
             self.sampler.saved_u = list(saved['unit_cube_samples'])
             self.sampler.saved_v = list(saved['physical_samples'])
@@ -294,6 +301,11 @@ class Dynesty(NestedSampler):
         else:
             return False
 
+    def write_current_state_and_exit(self, signum=None, frame=None):
+        self.write_current_state()
+        logger.warning("Run terminated")
+        sys.exit()
+
     def write_current_state(self):
         """
         Write the current state of the sampler to disk.
@@ -311,10 +323,11 @@ class Dynesty(NestedSampler):
             NestedSampler to write to disk.
         """
         check_directory_exists_and_if_not_mkdir(self.outdir)
-        resume_file = '{}/{}_resume.h5'.format(self.outdir, self.label)
+        resume_file = '{}/{}_resume.pickle'.format(self.outdir, self.label)
 
         if os.path.isfile(resume_file):
-            saved = load(resume_file)
+            with open(resume_file, 'rb') as file:
+                saved = pickle.load(file)
 
             current_state = dict(
                 unit_cube_samples=np.vstack([
@@ -370,12 +383,17 @@ class Dynesty(NestedSampler):
             added_live=self.sampler.added_live
         )
 
-        weights = np.exp(current_state['sample_log_weights'] -
-                         current_state['cumulative_log_evidence'][-1])
-        current_state['posterior'] = self.external_sampler.utils.resample_equal(
-            np.array(current_state['physical_samples']), weights)
+        try:
+            weights = np.exp(current_state['sample_log_weights'] -
+                             current_state['cumulative_log_evidence'][-1])
 
-        save(resume_file, current_state)
+            current_state['posterior'] = self.external_sampler.utils.resample_equal(
+                np.array(current_state['physical_samples']), weights)
+        except ValueError:
+            logger.debug("Unable to create posterior")
+
+        with open(resume_file, 'wb') as file:
+            pickle.dump(current_state, file)
 
         self.sampler.saved_id = [self.sampler.saved_id[-1]]
         self.sampler.saved_u = [self.sampler.saved_u[-1]]
