@@ -1,11 +1,48 @@
 from __future__ import absolute_import, division
 
-import bilby
 import unittest
 import numpy as np
 import pandas as pd
 import shutil
 import os
+import json
+
+import bilby
+
+
+class TestJson(unittest.TestCase):
+    def test_list_encoding(self):
+        data = dict(x=[1, 2, 3.4])
+        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
+        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        self.assertEqual(data.keys(), decoded.keys())
+        self.assertEqual(type(data['x']), type(decoded['x']))
+        self.assertTrue(np.all(data['x']==decoded['x']))
+
+    def test_array_encoding(self):
+        data = dict(x=np.array([1, 2, 3.4]))
+        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
+        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        self.assertEqual(data.keys(), decoded.keys())
+        self.assertEqual(type(data['x']), type(decoded['x']))
+        self.assertTrue(np.all(data['x']==decoded['x']))
+
+    def test_complex_encoding(self):
+        data = dict(x=1 + 3j)
+        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
+        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        self.assertEqual(data.keys(), decoded.keys())
+        self.assertEqual(type(data['x']), type(decoded['x']))
+        self.assertTrue(np.all(data['x']==decoded['x']))
+
+    def test_dataframe_encoding(self):
+        data = dict(data=pd.DataFrame(dict(x=[3, 4, 5], y=[5, 6, 7])))
+        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
+        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        self.assertEqual(data.keys(), decoded.keys())
+        self.assertEqual(type(data['data']), type(decoded['data']))
+        self.assertTrue(np.all(data['data']['x']==decoded['data']['x']))
+        self.assertTrue(np.all(data['data']['y']==decoded['data']['y']))
 
 
 class TestResult(unittest.TestCase):
@@ -55,14 +92,17 @@ class TestResult(unittest.TestCase):
         outdir = 'outdir'
         label = 'label'
         self.assertEqual(bilby.core.result.result_file_name(outdir, label, extension='hdf5'),
-                         '{}/{}_result.h5'.format(outdir, label))
+                         '{}/{}_result.hdf5'.format(outdir, label))
 
     def test_fail_save_and_load(self):
         with self.assertRaises(ValueError):
             bilby.core.result.read_in_result()
 
+        with self.assertRaises(ValueError):
+            bilby.core.result.read_in_result(filename='no_file_extension')
+
         with self.assertRaises(IOError):
-            bilby.core.result.read_in_result(filename='not/a/file')
+            bilby.core.result.read_in_result(filename='not/a/file.json')
 
     def test_unset_priors(self):
         result = bilby.core.result.Result(
@@ -113,7 +153,7 @@ class TestResult(unittest.TestCase):
     def test_save_and_load_hdf5(self):
         self.result.save_to_file(extension='hdf5')
         loaded_result = bilby.core.result.read_in_result(
-            outdir=self.result.outdir, label=self.result.label)
+            outdir=self.result.outdir, label=self.result.label, extension='hdf5')
         self.assertTrue(pd.DataFrame.equals
                         (self.result.posterior, loaded_result.posterior))
         self.assertTrue(self.result.fixed_parameter_keys == loaded_result.fixed_parameter_keys)
@@ -160,16 +200,25 @@ class TestResult(unittest.TestCase):
 
     def test_save_and_dont_overwrite_hdf5(self):
         shutil.rmtree(
-            '{}/{}_result.h5.old'.format(self.result.outdir, self.result.label),
+            '{}/{}_result.hdf5.old'.format(self.result.outdir, self.result.label),
             ignore_errors=True)
         self.result.save_to_file(overwrite=False, extension='hdf5')
         self.result.save_to_file(overwrite=False, extension='hdf5')
         self.assertTrue(os.path.isfile(
-            '{}/{}_result.h5.old'.format(self.result.outdir, self.result.label)))
+            '{}/{}_result.hdf5.old'.format(self.result.outdir, self.result.label)))
 
     def test_save_and_overwrite_hdf5(self):
         shutil.rmtree(
-            '{}/{}_result.h5.old'.format(self.result.outdir, self.result.label),
+            '{}/{}_result.hdf5.old'.format(self.result.outdir, self.result.label),
+            ignore_errors=True)
+        self.result.save_to_file(overwrite=True, extension='hdf5')
+        self.result.save_to_file(overwrite=True, extension='hdf5')
+        self.assertFalse(os.path.isfile(
+            '{}/{}_result.hdf5.old'.format(self.result.outdir, self.result.label)))
+
+    def test_save_and_overwrite_default(self):
+        shutil.rmtree(
+            '{}/{}_result.json.old'.format(self.result.outdir, self.result.label),
             ignore_errors=True)
         self.result.save_to_file(overwrite=True, extension='hdf5')
         self.result.save_to_file(overwrite=True, extension='hdf5')
