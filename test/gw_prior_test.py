@@ -46,13 +46,13 @@ class TestBBHPriorDict(unittest.TestCase):
 
     def test_redundant_priors_not_in_dict_before(self):
         for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
-                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_iota',
+                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_theta_jn',
                       'comoving_distance', 'redshift']:
             self.assertTrue(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_redundant_priors_already_in_dict(self):
         for prior in ['mass_1', 'mass_2', 'tilt_1', 'tilt_2',
-                      'phi_1', 'phi_2', 'iota', 'luminosity_distance']:
+                      'phi_1', 'phi_2', 'theta_jn', 'luminosity_distance']:
             self.assertTrue(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_masses(self):
@@ -80,8 +80,8 @@ class TestBBHPriorDict(unittest.TestCase):
             self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_inclination(self):
-        del self.bbh_prior_dict['iota']
-        for prior in ['iota', 'cos_iota']:
+        del self.bbh_prior_dict['theta_jn']
+        for prior in ['theta_jn', 'cos_theta_jn']:
             self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_distance(self):
@@ -96,7 +96,7 @@ class TestBBHPriorDict(unittest.TestCase):
     def test_test_has_redundant_priors(self):
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
         for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
-                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_iota',
+                      'cos_tilt_1', 'cos_tilt_2', 'phi_1', 'phi_2', 'cos_theta_jn',
                       'comoving_distance', 'redshift']:
             self.bbh_prior_dict[prior] = 0
             self.assertTrue(self.bbh_prior_dict.test_has_redundant_keys())
@@ -139,13 +139,13 @@ class TestBNSPriorDict(unittest.TestCase):
 
     def test_redundant_priors_not_in_dict_before(self):
         for prior in ['chirp_mass', 'total_mass', 'mass_ratio',
-                      'symmetric_mass_ratio', 'cos_iota', 'comoving_distance',
+                      'symmetric_mass_ratio', 'cos_theta_jn', 'comoving_distance',
                       'redshift', 'lambda_tilde', 'delta_lambda']:
             self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
 
     def test_redundant_priors_already_in_dict(self):
         for prior in ['mass_1', 'mass_2', 'chi_1', 'chi_2',
-                      'iota', 'luminosity_distance',
+                      'theta_jn', 'luminosity_distance',
                       'lambda_1', 'lambda_2']:
             self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
 
@@ -159,8 +159,8 @@ class TestBNSPriorDict(unittest.TestCase):
         self.assertFalse(self.bns_prior_dict.test_redundancy('chi_2'))
 
     def test_correct_not_redundant_priors_inclination(self):
-        del self.bns_prior_dict['iota']
-        for prior in ['iota', 'cos_iota']:
+        del self.bns_prior_dict['theta_jn']
+        for prior in ['theta_jn', 'cos_theta_jn']:
             self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_distance(self):
@@ -180,7 +180,7 @@ class TestBNSPriorDict(unittest.TestCase):
     def test_test_has_redundant_priors(self):
         self.assertFalse(self.bns_prior_dict.test_has_redundant_keys())
         for prior in ['chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio',
-                      'cos_iota', 'comoving_distance', 'redshift']:
+                      'cos_theta_jn', 'comoving_distance', 'redshift']:
             self.bns_prior_dict[prior] = 0
             self.assertTrue(self.bns_prior_dict.test_has_redundant_keys())
             del self.bns_prior_dict[prior]

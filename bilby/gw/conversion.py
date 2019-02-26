@@ -215,7 +215,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
             converted_parameters['phi_jl'] = 0.0
             converted_parameters['phi_12'] = 0.0
 
-    for angle in ['tilt_1', 'tilt_2', 'iota']:
+    for angle in ['tilt_1', 'tilt_2', 'theta_jn']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
             converted_parameters[angle] =\
@@ -827,7 +827,7 @@ def generate_component_spins(sample):
     Parameters
     ----------
     sample: A dictionary with the necessary spin conversion parameters:
-    'iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
+    'theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
     'mass_2', 'reference_frequency', 'phase'
 
     Returns
@@ -837,7 +837,7 @@ def generate_component_spins(sample):
     """
     output_sample = sample.copy()
     spin_conversion_parameters =\
-        ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
+        ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
          'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters):
         output_sample['iota'], output_sample['spin_1x'],\
@@ -845,7 +845,7 @@ def generate_component_spins(sample):
             output_sample['spin_2x'], output_sample['spin_2y'],\
             output_sample['spin_2z'] =\
             transform_precessing_spins(
-                output_sample['iota'], output_sample['phi_jl'],
+                output_sample['theta_jn'], output_sample['phi_jl'],
                 output_sample['tilt_1'], output_sample['tilt_2'],
                 output_sample['phi_12'], output_sample['a_1'],
                 output_sample['a_2'],

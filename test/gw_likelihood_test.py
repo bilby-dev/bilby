@@ -10,7 +10,7 @@ class TestBasicGWTransient(unittest.TestCase):
         np.random.seed(500)
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
         self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
@@ -73,7 +73,7 @@ class TestGWTransient(unittest.TestCase):
         self.sampling_frequency = 2048
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
         self.interferometers = bilby.gw.detector.InterferometerList(['H1'])
@@ -143,7 +143,7 @@ class TestTimeMarginalization(unittest.TestCase):
         self.sampling_frequency = 2048
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259640, ra=1.375,
             dec=-1.2108)
 
@@ -242,7 +242,7 @@ class TestMarginalizedLikelihood(unittest.TestCase):
         self.sampling_frequency = 2048
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
@@ -306,7 +306,7 @@ class TestPhaseMarginalization(unittest.TestCase):
         self.sampling_frequency = 2048
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
@@ -369,7 +369,7 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         self.sampling_frequency = 2048
         self.parameters = dict(
             mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
-            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4,
             psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
             dec=-1.2108)
 
@@ -472,9 +472,9 @@ class TestROQLikelihood(unittest.TestCase):
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
 
         self.test_parameters = dict(
-            mass_1=36.0, mass_2=36.0, a_1=0.0, a_2=0.0, tilt_1=0.0,
-            tilt_2=0.0, phi_12=1.7, phi_jl=0.3, luminosity_distance=5000.,
-            iota=0.4, psi=0.659, phase=1.3, geocent_time=1.2, ra=1.3, dec=-1.2)
+            mass_1=36.0, mass_2=36.0, a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=5000., theta_jn=0.4,
+            psi=0.659, phase=1.3, geocent_time=1.2, ra=1.3, dec=-1.2)
 
         ifos = bilby.gw.detector.InterferometerList(['H1'])
         ifos.set_strain_data_from_power_spectral_densities(

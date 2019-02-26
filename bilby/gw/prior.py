@@ -232,7 +232,7 @@ class BBHPriorDict(PriorDict):
         spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
         spin_tilt_2_parameters = {'tilt_2', 'cos_tilt_2'}
         spin_azimuth_parameters = {'phi_1', 'phi_2', 'phi_12', 'phi_jl'}
-        inclination_parameters = {'iota', 'cos_iota'}
+        inclination_parameters = {'theta_jn', 'cos_theta_jn'}
         distance_parameters = {'luminosity_distance', 'comoving_distance', 'redshift'}
 
         for independent_parameters, parameter_set in \
@@ -317,6 +317,8 @@ Prior._default_latex_labels = {
     'ra': '$\mathrm{RA}$',
     'iota': '$\iota$',
     'cos_iota': '$\cos\iota$',
+    'theta_jn': '$\\theta_{JN}$',
+    'cos_theta_jn': '$\cos\\theta_{JN}$',
     'psi': '$\psi$',
     'phase': '$\phi$',
     'geocent_time': '$t_c$',

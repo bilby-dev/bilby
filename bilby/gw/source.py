@@ -21,8 +21,8 @@ except ImportError:
 
 
 def lal_binary_black_hole(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl,
-        iota, phase, **kwargs):
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
     """ A Binary Black Hole waveform model using lalsimulation
 
     Parameters
@@ -40,15 +40,16 @@ def lal_binary_black_hole(
     tilt_1: float
         Primary tilt angle
     phi_12: float
-
+        Azimuthal angle between the two component spins
     a_2: float
         Dimensionless secondary spin magnitude
     tilt_2: float
         Secondary tilt angle
     phi_jl: float
-
-    iota: float
-        Orbital inclination
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
     phase: float
         The phase at coalescence
     kwargs: dict
@@ -59,7 +60,8 @@ def lal_binary_black_hole(
     dict: A dictionary with the plus and cross polarisation strain modes
     """
 
-    waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
+    waveform_kwargs = dict(waveform_approximant='IMRPhenomPv2',
+                           reference_frequency=50.0,
                            minimum_frequency=20.0)
     waveform_kwargs.update(kwargs)
     waveform_approximant = waveform_kwargs['waveform_approximant']
@@ -80,10 +82,11 @@ def lal_binary_black_hole(
         spin_2x = 0
         spin_2y = 0
         spin_2z = a_2
+        iota = theta_jn
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
             lalsim_SimInspiralTransformPrecessingNewInitialConditions(
-                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
+                theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
                 mass_2, reference_frequency, phase))
 
     longitude_ascending_nodes = 0.0
@@ -114,7 +117,8 @@ def lal_binary_black_hole(
 
 
 def lal_eccentric_binary_black_hole_no_spins(
-        frequency_array, mass_1, mass_2, eccentricity, luminosity_distance, iota, phase, **kwargs):
+        frequency_array, mass_1, mass_2, eccentricity, luminosity_distance,
+        theta_jn, phase, **kwargs):
     """ Eccentric binary black hole waveform model using lalsimulation (EccentricFD)
 
     Parameters
@@ -129,7 +133,7 @@ def lal_eccentric_binary_black_hole_no_spins(
         The orbital eccentricity of the system
     luminosity_distance: float
         The luminosity distance in megaparsec
-    iota: float
+    theta_jn: float
         Orbital inclination
     phase: float
         The phase at coalescence
@@ -161,6 +165,7 @@ def lal_eccentric_binary_black_hole_no_spins(
     spin_2x = 0.0
     spin_2y = 0.0
     spin_2z = 0.0
+    iota = theta_jn
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
@@ -246,7 +251,7 @@ def supernova_pca_model(
 
 def lal_binary_neutron_star(
         frequency_array, mass_1, mass_2, luminosity_distance, chi_1, chi_2,
-        iota, phase, lambda_1, lambda_2, **kwargs):
+        theta_jn, phase, lambda_1, lambda_2, **kwargs):
     """ A Binary Neutron Star waveform model using lalsimulation
 
     Parameters
@@ -263,7 +268,7 @@ def lal_binary_neutron_star(
         Dimensionless aligned spin
     chi_2: float
         Dimensionless aligned spin
-    iota: float
+    theta_jn: float
         Orbital inclination
     phase: float
         The phase at coalescence
@@ -308,6 +313,7 @@ def lal_binary_neutron_star(
     spin_2x = 0
     spin_2y = 0
     spin_2z = chi_2
+    iota = theta_jn
 
     longitude_ascending_nodes = 0.0
     eccentricity = 0.0
@@ -339,7 +345,7 @@ def lal_binary_neutron_star(
 
 
 def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, iota, phase, **waveform_arguments):
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
     """
     See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
 
@@ -365,7 +371,7 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         Secondary tilt angle
     phi_jl: float
 
-    iota: float
+    theta_jn: float
         Orbital inclination
     phase: float
         The phase at coalescence
@@ -410,11 +416,12 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         spin_2x = 0
         spin_2y = 0
         spin_2z = a_2
+        iota = theta_jn
     else:
         iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
             lalsim_SimInspiralTransformPrecessingNewInitialConditions(
-                iota, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
-                reference_frequency, phase)
+                theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
+                mass_2, reference_frequency, phase)
 
     chi_1_l, chi_2_l, chi_p, theta_jn, alpha, phase_aligned, zeta =\
         lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(

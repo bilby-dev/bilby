@@ -22,7 +22,7 @@ np.random.seed(151226)
 
 injection_parameters = dict(
     total_mass=66., mass_ratio=0.9, a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=2000, iota=0.4, psi=2.659,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=2000, theta_jn=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
@@ -63,8 +63,8 @@ priors['redshift'] = bilby.prior.Uniform(
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi',
             'ra', 'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
-priors.pop('iota')
-priors['cos_iota'] = np.cos(injection_parameters['iota'])
+priors.pop('theta_jn')
+priors['cos_theta_jn'] = np.cos(injection_parameters['theta_jn'])
 print(priors)
 
 # Initialise GravitationalWaveTransient
