@@ -2128,10 +2128,15 @@ class MultivariateGaussian(object):
         for i, name in enumerate(self.names):
             self.current_sample[name] = samp[i]
 
-    def log_prob(self, samp):
+    def ln_prob(self, samp):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised.
+
+        Parameters
+        ----------
+        samp: array_like
+            A 1d vector of the sample.
         """
 
         # check sample is within bounds

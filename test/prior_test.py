@@ -124,6 +124,12 @@ class TestPriorClasses(unittest.TestCase):
 
     def setUp(self):
 
+        # set multivariate Gaussian
+        mvg = bilby.core.prior.MultivariateGaussian(names=['testa', 'testb'],
+                                                    mus=[1, 1],
+                                                    covs=np.array([[2., 0.5], [0.5, 2.]]),
+                                                    weights=[1., 2.])
+
         self.priors = [
             bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
             bilby.core.prior.Gaussian(name='test', unit='unit', mu=0, sigma=1),
@@ -154,6 +160,8 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
+            bilby.core.prior.MultivariateGaussianPrior(mvg=mvg, name='testa', unit='unit'),
+            bilby.core.prior.MultivariateGaussianPrior(mvg=mvg, name='testb', unit='unit'),
         ]
 
     def test_minimum_rescaling(self):
@@ -252,6 +260,8 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
             if isinstance(prior, bilby.core.prior.Cauchy):
+                continue
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 continue
             elif isinstance(prior, bilby.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
