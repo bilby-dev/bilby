@@ -28,7 +28,7 @@ class Cpnest(NestedSampler):
         The maximum number of MCMC steps to take
     verbose: Bool (True)
         If true, print information information about the convergence during
-    resume: Bool (True)
+    resume: Bool (False)
         Whether or not to resume from a previous run
     output: str
         Where to write the CPNest, by default this is
@@ -36,7 +36,7 @@ class Cpnest(NestedSampler):
 
     """
     default_kwargs = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
-                          seed=None, poolsize=100, nhamiltonian=0, resume=True,
+                          seed=None, poolsize=100, nhamiltonian=0, resume=False,
                           output=None)
 
     def _translate_kwargs(self, kwargs):
