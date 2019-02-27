@@ -112,7 +112,7 @@ class TestCPNest(unittest.TestCase):
 
     def test_default_kwargs(self):
         expected = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
-                        seed=None, poolsize=100, nhamiltonian=0, resume=False,
+                        seed=None, poolsize=100, nhamiltonian=0, resume=True,
                         output='outdir/cpnest_label/')
         self.assertDictEqual(expected, self.sampler.kwargs)
 
