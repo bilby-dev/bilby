@@ -3,6 +3,7 @@ from __future__ import division
 import os
 from collections import OrderedDict
 from future.utils import iteritems
+from itertools import chain
 
 import numpy as np
 import scipy.stats
@@ -243,7 +244,7 @@ class PriorDict(OrderedDict):
         -------
         list: List of floats containing the rescaled sample
         """
-        return [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+        return list(chain(*[self[key].rescale(sample) for key, sample in zip(keys, theta)]))
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -1772,3 +1773,500 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.id))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
+
+
+class MultivariateGaussian(object):
+
+    def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
+                 covs=None, weights=None, bounds=None):
+        """
+        A class defining a multi-variate Gaussian, allowing multiple modes for
+        a Gaussian mixture model.
+
+        Note: if using a multivariate Gaussian prior, with bounds, this can
+        lead to biases in the marginal likelihood estimate and posterior
+        estimate for nested samplers routines that rely on sampling from a unit
+        hypercube and having a prior transform, e.g., nestle, dynesty and
+        MultiNest.
+
+        Parameters
+        ----------
+        names: list
+            A list of the parameter names in the multivariate Gaussian. The
+            listed parameters must have the same order that they appear in
+            the lists of means, standard deviations, and the correlation
+            coefficient, or covariance, matrices.
+        nmodes: int
+            The number of modes for the mixture model. This defaults to 1,
+            which will be checked against the shape of the other inputs.
+        mus: array_like
+            A list of lists of means of each mode in a multivariate Gaussian
+            mixture model. A single list can be given for a single mode. If
+            this is None then means at zero will be assumed.
+        sigmas: array_like
+            A list of lists of the standard deviations of each mode of the
+            multivariate Gaussian. If supplying a correlation coefficient
+            matrix rather than a covariance matrix these values must be given.
+            If this is None unit variances will be assumed.
+        corrcoefs: array
+            A list of square matrices containing the correlation coefficients
+            of the parameters for each mode. If this is None it will be assumed
+            that the parameters are uncorrelated.
+        covs: array
+            A list of square matrices containing the covariance matrix of the
+            multivariate Gaussian.
+        weights: list
+            A list of weights (relative probabilities) for each mode of the
+            multivariate Gaussian. This will default to equal weights for each
+            mode.
+        bounds: list
+            A list of bounds on each parameter. The defaults are for bounds at
+            +/- infinity.
+        """
+
+        if not isinstance(names, list):
+            self.names = [names]
+        else:
+            self.names = names
+
+        self.num_vars = len(self.names)  # the number of parameters
+
+        # set the bounds for each parameter
+        if isinstance(bounds, list):
+            if len(bounds) != len(self):
+                raise ValueError("Wrong number of parameter bounds")
+
+            # check bounds
+            for bound in bounds:
+                try:
+                    if len(bound) != 2:
+                        raise ValueError("Bounds must contain an upper and "
+                                         "lower value.")
+                    else:
+                        if bound[1] <= bound[0]:
+                            raise ValueError("Bounds are not properly set")
+                except Exception as e:
+                    raise ValueError("Bounds are not properly set")
+
+                logger.warning("If using bounded ranges on the multivariate "
+                               "Gaussian this will lead to biased posteriors "
+                               "for nested sampling routines that require "
+                               "a prior transform.")
+        else:
+            bounds = [(-np.inf, np.inf) for _ in self.names]
+
+        # set bounds as dictionary
+        self.bounds = {name: val for name, val in zip(self.names, bounds)}
+
+        self.mus = []
+        self.covs = []
+        self.corrcoefs = []
+        self.sigmas = []
+        self.weights = []
+        self.eigvalues = []
+        self.eigvectors = []
+        self.sqeigvalues = []  # square root of the eigenvalues
+        self.mvn = []  # list of multivariate normal distributions
+
+        self._current_sample = {}  # initialise empty sample
+        self._uncorrelated = None
+        self._current_lnprob = None
+
+        # test the shape of the mean values and sigmas
+        for val in [mus, sigmas]:
+            if val is not None:
+                try:
+                    varray = np.asarray(val)
+                except Exception as e:
+                    raise RuntimeError("Could not convert to an array: "
+                                       "{}".format(e))
+
+                if len(varray.shape) == 1:
+                    mus = [mus]  # make a list of lists
+
+        # put values in lists if required
+        if nmodes == 1:
+            if mus is not None:
+                if len(np.shape(mus)) == 1:
+                    mus = [mus]
+                elif len(np.shape(mus)) == 0:
+                    raise ValueError("Must supply a list of means")
+            if sigmas is not None:
+                if len(np.shape(sigmas)) == 1:
+                    sigmas = [sigmas]
+                elif len(np.shape(sigmas)) == 0:
+                    raise ValueError("Must supply a list of standard "
+                                     "deviations")
+            if covs is not None:
+                if isinstance(covs, np.ndarray):
+                    covs = [covs]
+                elif not isinstance(covs, list):
+                    raise TypeError("Must pass a list of covariances")
+            if corrcoefs is not None:
+                if isinstance(corrcoefs, np.ndarray):
+                    corrcoefs = [corrcoefs]
+                elif not isinstance(corrcoefs, list):
+                    raise TypeError("Must pass a list of correlation "
+                                    "coefficients")
+            if weights is not None:
+                if isinstance(weights, (int, float)):
+                    weights = [weights]
+                elif isinstance(weights, list):
+                    if len(weights) != 1:
+                        raise ValueError("Wrong number of weights given")
+
+        for val in [mus, sigmas, covs, corrcoefs, weights]:
+            if val is not None and not isinstance(val, list):
+                raise TypeError("Value must be a list")
+            else:
+                if val is not None and len(val) != nmodes:
+                    raise ValueError("Wrong number of modes given")
+
+        # add the modes
+        self.nmodes = 0
+        for i in range(nmodes):
+            mu = mus[i] if mus is not None else None
+            sigma = sigmas[i] if sigmas is not None else None
+            corrcoef = corrcoefs[i] if corrcoefs is not None else None
+            cov = covs[i] if covs is not None else None
+            weight = weights[i] if weights is not None else 1.
+
+            self.add_mode(mu, sigma, corrcoef, cov, weight)
+
+        # a dictionary of the parameters as requested by the prior
+        self.requested_parameters = OrderedDict()
+        self.reset_request()
+
+        # a dictionary of the rescaled parameters
+        self.rescale_parameters = OrderedDict()
+        self.reset_rescale()
+
+        # a list of sampled parameters
+        self.reset_sampled()
+
+    def has_sampled(self):
+        if (len(self.sampled_parameters) == len(self) or
+                len(self.current_sample) == 0):
+            return False
+        else:
+            return True
+
+    def reset_sampled(self):
+        self.sampled_parameters = []
+        self.current_sample = {}
+
+    def filled_request(self):
+        """
+        Check if all requested parameters have been filled.
+        """
+
+        return np.any([val is None for val in
+                       self.requested_parameters.values()])
+
+    def reset_request(self):
+        """
+        Reset the requested parameters to None.
+        """
+
+        for name in self.names:
+            self.requested_parameters[name] = None
+
+    def filled_rescale(self):
+        """
+        Check is all the rescaled parameters have been filled.
+        """
+
+        return np.any([val is None for val in
+                       self.rescale_parameters.values()])
+
+    def reset_rescale(self):
+        """
+        Reset the rescaled parameters to None.
+        """
+
+        for name in self.names:
+            self.rescale_parameters[name] = None
+
+    def add_mode(self, mus=None, sigmas=None, corrcoef=None, cov=None,
+                 weight=1.):
+        """
+        Add a new mode.
+        """
+
+        # add means
+        if mus is not None:
+            try:
+                self.mus.append(list(mus))  # means
+            except TypeError:
+                raise TypeError("'mus' must be a list")
+        else:
+            self.mus.append(np.zeros(self.num_vars))
+
+        # add the covariances if supplied
+        if cov is not None:
+            try:
+                self.covs.append(np.asarray(cov))
+            except Exception as e:
+                raise TypeError("Covariance matrix is wrong type")
+
+            if len(self.covs[-1].shape) != 2:
+                raise ValueError("Covariance matrix must be a 2d array")
+
+            if (self.covs[-1].shape[0] != self.covs[-1].shape[1] or
+                    self.covs[-1].shape[0] != self.num_vars):
+                raise ValueError("Covariance shape is inconsistent")
+
+            self.sigmas.append(np.sqrt(np.diag(self.covs[-1])))  # standard deviations
+
+            # convert covariance into a correlation coefficient matrix
+            D = self.sigmas[-1] * np.identity(self.covs[-1].shape[0])
+            Dinv = np.linalg.inv(D)
+            self.corrcoefs.append(np.dot(np.dot(Dinv, self.covs[-1]), Dinv))
+        elif corrcoef is not None and sigmas is not None:
+            try:
+                self.corrcoefs.append(np.asarray(corrcoef))
+            except Exception as e:
+                raise TypeError("Correlation coefficient matrix is wrong type")
+
+            if len(self.corrcoefs[-1].shape) != 2:
+                raise ValueError("Correlation coefficient matrix must be a 2d "
+                                 "array.")
+
+            if (self.corrcoefs[-1].shape[0] != self.corrcoefs[-1].shape[1] or
+                    self.corrcoefs[-1].shape[0] != self.num_mv_keys):
+                raise ValueError("Covariance shape is inconsistent")
+
+            try:
+                self.sigmas.append(list(sigmas))  # means
+            except TypeError:
+                raise TypeError("'sigmas' must be a list")
+
+            if len(self.sigmas[-1]) != self.num_mv_keys:
+                raise ValueError("Number of standard deviations must be the "
+                                 "same as the number of parameters.")
+
+            # convert correlation coefficients to covariance matrix
+            D = self.sigmas[-1] * np.identity(self.corrcoefs[-1].shape[0])
+            self.covs.append(np.dot(D, np.dot(self.corrcoefs[-1], D)))
+        else:
+            # set unit variance uncorrelated covariance
+            self.corrcoefs.append(np.eye(self.num_vars))
+            self.covs.append(np.eye(self.num_vars))
+            self.sigmas.append(np.ones(self.num_vars))
+
+        # get eigen values and vectors
+        try:
+            evals, evecs = np.linalg.eig(self.corrcoefs[-1])
+            self.eigvalues.append(evals)
+            self.eigvectors.append(evecs)
+        except Exception as e:
+            raise RuntimeError("Problem getting eigenvalues and vectors: {}".format(e))
+        self.sqeigvalues.append(np.sqrt(self.eigvalues[-1]))
+
+        # set the weights
+        if weight is None:
+            self.weights.append(1.)
+        else:
+            self.weights.append(weight)
+
+        # set the relative weights
+        self.relweights = np.cumsum(self.weights) / np.sum(self.weights)
+
+        # add the mode
+        self.nmodes += 1
+
+        # add multivariate Gaussian
+        self.mvn.append(scipy.stats.multivariate_normal(mean=self.mus[-1],
+                                                        cov=self.covs[-1]))
+
+    def rescale(self, value):
+        """
+        Rescale from a unit hypercube to multivariate Gaussian. Note that no
+        bounds are applied in the rescale function.
+
+        Parameters
+        ----------
+        value: array
+            A vector sample (one for each parameter) drawn from a uniform
+            distribution between 0 and 1.
+
+        Returns
+        -------
+        array:
+            An vector sample drawn from the multivariate Gaussian
+            distribution.
+        """
+
+        # pick a mode
+        wmode = np.random.rand()
+        for imode, wbin in enumerate(self.relweights):
+            if wmode < self.relweights[imode]:
+                break
+
+        # draw points from unit variance, uncorrelated Gaussian
+        samp = erfinv(2. * value - 1) * 2. ** 0.5
+
+        # rotate and scale to the multivariate normal shape
+        samp = self.mus[imode] + self.sigmas[imode] * (np.einsum('j,kj->k',
+                                                       np.einsum('j,j->j', samp,
+                                                                 self.sqeigvalues[imode]),
+                                                       self.eigvectors[imode]))
+
+        return samp
+
+    def sample(self):
+        """
+        Draw a sample from the multivariate Gaussian.
+        """
+
+        # samples drawn from unit variance uncorrelated multivariate Gaussian
+        inbound = False
+        while not inbound:
+            # sample the multivariate Gaussian keys
+            vals = np.random.uniform(0, 1, len(self))
+
+            samp = self.rescale(vals)
+
+            # check sample is in bounds (otherwise perform another draw)
+            outbound = False
+            for name, val in zip(self.names, samp):
+                if self.bounds[name][0] < val or samp > self.bounds[name][1]:
+                    outbound = True
+                    break
+
+            if not outbound:
+                inbound = True
+
+        for i, name in enumerate(self.names):
+            self.current_sample[name] = samp[i]
+
+    def log_prob(self, samp):
+        """
+        Get the log-probability of a sample. For bounded priors the
+        probability will not be properly normalised.
+        """
+
+        # check sample is within bounds
+        for s, bound in zip(samp, self.bounds.values()):
+            if s < bound[0] or s > bound[1]:
+                return -np.inf
+
+        lnprob = -np.inf
+        # loop over the modes and sum the probabilities
+        for i in range(self.nmodes):
+            lnprob = np.logaddexp(lnprob, self.mvn[i].logpdf(samp))
+
+        return lnprob
+
+    def prob(self, samp):
+        """
+        Get the probability of a sample. For bounded priors the
+        probability will not be properly normalised.
+        """
+
+        return np.exp(self.log_prob(samp))
+
+    def __len__(self):
+        return len(self.names)
+
+
+class MultivariateGaussianPrior(Prior):
+
+    def __init__(self, mvg, name, latex_label=None, unit=None):
+        """
+        A prior class for a multivariate Gaussian (mixture model) prior.
+
+        Parameters
+        ----------
+        mvg: MultivariateGaussian
+            A :class:`bilby.core.prior.MultivariateGaussian` object defining
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+
+        """
+
+        if not isinstance(mvg, MultivariateGaussian):
+            raise TypeError("Must supply a multivariate Gaussian object")
+
+        # check name is in the MultivariateGaussian class
+        if name not in mvg.names:
+            raise ValueError("'{}' is not a parameter in the multivariate "
+                             "Gaussian")
+
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
+                       minimun=mvg.bounds[name][0],
+                       maximum=mvg.bounds[name][1])
+        self.mvg = mvg
+
+    def rescale(self, val):
+        """
+        Scale a unit hypercube sample to the prior.
+        """
+
+        # add parameter value to multivariate Gaussian
+        self.mvg.rescale_parameters[self.name] = val
+
+        if self.mvg.filled_rescale():
+            samples = self.mvg.rescale(list(self.mvg.rescale_parameters.values()))
+            self.mvg.reset_rescale()
+            return samples
+        else:
+            return []  # return empty list
+
+    def sample(self, size=None):
+        """
+        Draw a sample from the prior.
+        """
+
+        if self.mvg.has_sampled():
+            sample = self.mvg.current_sample[self.name]
+            self.mvg.reset_sampled()
+        else:
+            # generate a sample
+            self.mvg.sample()
+            sample = self.mvg.current_sample[self.name]
+
+        self.mvg.sampled_parameters.append(self.name)
+
+        return sample
+
+    def prob(self, val):
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float:
+
+        """
+
+        return np.exp(self.ln_prob(val))
+
+    def ln_prob(self, val):
+        """
+        Return the natural logarithm of the prior probability. Note that this
+        will not be correctly normalised if there are bounds on the
+        distribution.
+        """
+
+        # add parameter value to multivariate Gaussian
+        self.mvg.requested_parameters[self.name] = val
+
+        if self.mvg.filled_request():
+            # all required parameters have been set
+            lnp = self.mvg.ln_prob(list(self.mvg.requested_parameters.values()))
+
+            # reset the requested parameters
+            self.mvg.reset_request()
+
+            return lnp
+        else:
+            # if not all parameters have been requested yet, just return 0
+            return 0.
