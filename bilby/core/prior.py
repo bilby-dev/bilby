@@ -1872,18 +1872,6 @@ class MultivariateGaussian(object):
         self._uncorrelated = None
         self._current_lnprob = None
 
-        # test the shape of the mean values and sigmas
-        for val in [mus, sigmas]:
-            if val is not None:
-                try:
-                    varray = np.asarray(val)
-                except Exception as e:
-                    raise RuntimeError("Could not convert to an array: "
-                                       "{}".format(e))
-
-                if len(varray.shape) == 1:
-                    mus = [mus]  # make a list of lists
-
         # put values in lists if required
         if nmodes == 1:
             if mus is not None:
@@ -2033,7 +2021,7 @@ class MultivariateGaussian(object):
                                  "array.")
 
             if (self.corrcoefs[-1].shape[0] != self.corrcoefs[-1].shape[1] or
-                    self.corrcoefs[-1].shape[0] != self.num_mv_keys):
+                    self.corrcoefs[-1].shape[0] != self.num_vars):
                 raise ValueError("Covariance shape is inconsistent")
 
             try:
@@ -2041,7 +2029,7 @@ class MultivariateGaussian(object):
             except TypeError:
                 raise TypeError("'sigmas' must be a list")
 
-            if len(self.sigmas[-1]) != self.num_mv_keys:
+            if len(self.sigmas[-1]) != self.num_vars:
                 raise ValueError("Number of standard deviations must be the "
                                  "same as the number of parameters.")
 
