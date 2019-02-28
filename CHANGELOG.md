@@ -14,6 +14,7 @@
 - Use pickling to store the dynesty resume file and add a write-to-resume on SIGINT/SIGKILL
 - Bug fix in ROQ likelihood
 - Distance and phase marginalisation work with ROQ likelihood
+- Cpnest now creates checkpoints (resume files) by default
 
 ### Removed
 -
