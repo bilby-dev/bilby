@@ -182,7 +182,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters = conversion_function(
                 result.injection_parameters)
 
-    result.samples_to_posterior(likelihood=likelihood, priors=priors,
+    result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
                                 conversion_function=conversion_function)
     if save == 'hdf5':
         result.save_to_file(extension='hdf5')

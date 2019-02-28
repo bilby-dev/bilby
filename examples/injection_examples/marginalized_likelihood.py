@@ -2,6 +2,9 @@
 """
 Tutorial to demonstrate how to improve the speed and efficiency of parameter
 estimation on an injected signal using time, phase and distance marginalisation.
+
+We also demonstrate how the posterior distribution for the marginalised
+parameter can be recovered in post-processing.
 """
 from __future__ import division, print_function
 import bilby
@@ -39,6 +42,10 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 # Set up prior
 priors = bilby.gw.prior.BBHPriorDict()
+priors['geocent_time'] = bilby.core.prior.Uniform(
+    minimum=injection_parameters['geocent_time'] - 1,
+    maximum=injection_parameters['geocent_time'] + 1,
+    name='geocent_time', latex_label='$t_c$', unit='$s$')
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'theta_jn', 'ra',
             'dec']:
@@ -46,7 +53,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'theta_jn', 'r
 
 # Initialise GravitationalWaveTransient
 # Note that we now need to pass the: priors and flags for each thing that's
-# being marginalised. A lookup table is used fro distance marginalisation which
+# being marginalised. A lookup table is used for distance marginalisation which
 # takes a few minutes to build.
 likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator, priors=priors,
@@ -54,7 +61,13 @@ likelihood = bilby.gw.GravitationalWaveTransient(
     time_marginalization=True)
 
 # Run sampler
+# Note that we've added an additional argument `conversion_function`, this is
+# a function that is applied to the posterior. Here it generates many additional
+# parameters, e.g., source frame masses and effective spin parameters. It also
+# reconstructs posterior distributions for the parameters which were
+# marginalised over in the likelihood.
 result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty',
-    injection_parameters=injection_parameters, outdir=outdir, label=label)
+    injection_parameters=injection_parameters, outdir=outdir, label=label,
+    conversion_function=bilby.gw.conversion.generate_all_bbh_parameters)
 result.plot_corner()
