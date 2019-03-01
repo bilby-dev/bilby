@@ -2068,8 +2068,9 @@ class MultivariateGaussian(object):
         Parameters
         ----------
         value: array
-            A vector sample (one for each parameter) drawn from a uniform
-            distribution between 0 and 1.
+            A 1d vector sample (one for each parameter) drawn from a uniform
+            distribution between 0 and 1, or a 2d NxM array of samples where
+            N is the number of samples and M is the number of parameters.
         mode: int
             Specify which mode to sample from. If not set then a mode is
             chosen randomly based on its weight.
@@ -2088,17 +2089,26 @@ class MultivariateGaussian(object):
             else:
                 mode = np.argwhere(self.cumweights - np.random.rand() > 0)[0][0]
 
+        samp = np.asarray(value)
+        if len(samp.shape) == 1:
+            samp = samp.reshape(1, self.num_vars)
+
+        if len(samp.shape) != 2:
+            raise ValueError("Array is the wrong shape")
+        elif samp.shape[1] != self.num_vars:
+            raise ValueError("Array is the wrong shape")
+
         # draw points from unit variance, uncorrelated Gaussian
-        samp = erfinv(2. * np.asarray(value) - 1) * 2. ** 0.5
+        samp = erfinv(2. * samp - 1) * 2. ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = self.mus[mode] + self.sigmas[mode] * np.einsum('j,kj->k',
+        samp = self.mus[mode] + self.sigmas[mode] * np.einsum('ij,kj->ik',
                                                     samp * self.sqeigvalues[mode],
                                                     self.eigvectors[mode])
 
-        return samp
+        return np.squeeze(samp)
 
-    def sample(self, mode=None):
+    def sample(self, size=1, mode=None):
         """
         Draw, and set, a sample from the multivariate Gaussian.
 
@@ -2111,47 +2121,71 @@ class MultivariateGaussian(object):
 
         # samples drawn from unit variance uncorrelated multivariate Gaussian
         inbound = False
-        while not inbound:
-            # sample the multivariate Gaussian keys
-            vals = np.random.uniform(0, 1, len(self))
 
-            samp = self.rescale(vals, mode=mode)
+        samps = np.zeros((size, len(self)))
+        for i in range(size):
+            while not inbound:
+                # sample the multivariate Gaussian keys
+                vals = np.random.uniform(0, 1, len(self))
 
-            # check sample is in bounds (otherwise perform another draw)
-            outbound = False
-            for name, val in zip(self.names, samp):
-                if val < self.bounds[name][0] or val > self.bounds[name][1]:
-                    outbound = True
-                    break
+                samp = self.rescale(vals, mode=mode)
+                samps[:, j] = samp
 
-            if not outbound:
-                inbound = True
+                # check sample is in bounds (otherwise perform another draw)
+                outbound = False
+                for name, val in zip(self.names, samp):
+                    if val < self.bounds[name][0] or val > self.bounds[name][1]:
+                        outbound = True
+                        break
+
+                if not outbound:
+                    inbound = True
 
         for i, name in enumerate(self.names):
-            self.current_sample[name] = samp[i]
+            self.current_sample[name] = samps[:, i].flatten()
 
-    def ln_prob(self, samp):
+    def ln_prob(self, value):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised.
 
         Parameters
         ----------
-        samp: array_like
-            A 1d vector of the sample.
+        value: array_like
+            A 1d vector of the sample, or 2d array of sample values with shape
+            NxM, where N is the number of samples and M is the number of
+            parameters.
         """
 
-        # check sample is within bounds
-        for s, bound in zip(samp, self.bounds.values()):
-            if s < bound[0] or s > bound[1]:
-                return -np.inf
+        samp = np.asarray(value)
+        if len(samp.shape) == 1:
+            samp = samp.reshape(1, self.num_vars)
 
-        lnprob = -np.inf
-        # loop over the modes and sum the probabilities
-        for i in range(self.nmodes):
-            lnprob = np.logaddexp(lnprob, self.mvn[i].logpdf(samp))
+        if len(samp.shape) != 2:
+            raise ValueError("Array is the wrong shape")
+        elif samp.shape[1] != self.num_vars:
+            raise ValueError("Array is the wrong shape")
 
-        return lnprob
+        # check sample(s) is within bounds
+        outbounds = np.ones(samp.shape[0], dtype=np.bool)
+        for s, bound in zip(samp.T, self.bounds.values()):
+            outbounds = (s < bound[0]) or (s > bound[1])
+            if np.any(outbounds):
+                break
+
+        lnprob = -np.inf*np.ones(samp.shape[0])
+        for j in range(samp.shape[0]):
+            # loop over the modes and sum the probabilities
+            for i in range(self.nmodes):
+                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(samp[j]))
+
+        # set out-of-bounds values to -inf
+        lnprob[outbounds] = -np.inf
+
+        if samp.shape[0] == 1:
+            return lnprob[0]
+        else:
+            return lnprob
 
     def prob(self, samp):
         """
@@ -2208,18 +2242,20 @@ class MultivariateGaussianPrior(Prior):
             chosen randomly based on its weight.
         """
 
+        Prior.test_valid_for_rescaling(val)
+
         # add parameter value to multivariate Gaussian
         self.mvg.rescale_parameters[self.name] = val
 
         if self.mvg.filled_rescale():
-            samples = self.mvg.rescale(list(self.mvg.rescale_parameters.values()),
-                                       mode=mode)
+            values = np.array(list(self.mvg.rescale_parameters.values())).T
+            samples = self.mvg.rescale(values, mode=mode)
             self.mvg.reset_rescale()
             return samples
         else:
             return []  # return empty list
 
-    def sample(self, size=None, mode=None):
+    def sample(self, size=1, mode=None):
         """
         Draw a sample from the prior.
 
@@ -2242,7 +2278,7 @@ class MultivariateGaussianPrior(Prior):
 
         if len(self.mvg.current_sample) == 0:
             # generate a sample
-            self.mvg.sample(mode=mode)
+            self.mvg.sample(size=size, mode=mode)
         
         sample = self.mvg.current_sample[self.name]
 

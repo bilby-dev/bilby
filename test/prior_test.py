@@ -128,7 +128,7 @@ class TestPriorClasses(unittest.TestCase):
         mvg = bilby.core.prior.MultivariateGaussian(names=['testa', 'testb'],
                                                     mus=[1, 1],
                                                     covs=np.array([[2., 0.5], [0.5, 2.]]),
-                                                    weights=[1., 2.])
+                                                    weights=1.)
 
         self.priors = [
             bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
@@ -167,19 +167,34 @@ class TestPriorClasses(unittest.TestCase):
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            minimum_sample = prior.rescale(0)
-            self.assertAlmostEqual(minimum_sample, prior.minimum)
+            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+                minimum_sample = prior.rescale(0)
+                if prior.mvg.filled_rescale():
+                    self.assertAlmostEqual(minimum_sample[0], prior.minimum)
+                    self.assertAlmostEqual(minimum_sample[1], prior.minimum)
+            else:
+                minimum_sample = prior.rescale(0)
+                self.assertAlmostEqual(minimum_sample, prior.minimum)
 
     def test_maximum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            maximum_sample = prior.rescale(1)
-            self.assertAlmostEqual(maximum_sample, prior.maximum)
+            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+                maximum_sample = prior.rescale(0)
+                if prior.mvg.filled_rescale():
+                    self.assertAlmostEqual(maximum_sample[0], prior.maximum)
+                    self.assertAlmostEqual(maximum_sample[1], prior.maximum)
+            else:
+                maximum_sample = prior.rescale(1)
+                self.assertAlmostEqual(maximum_sample, prior.maximum)
 
     def test_many_sample_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             many_samples = prior.rescale(np.random.uniform(0, 1, 1000))
+            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+                if not prior.mvg.filled_rescale():
+                    continue
             self.assertTrue(all((many_samples >= prior.minimum) & (many_samples <= prior.maximum)))
 
     def test_out_of_bounds_rescaling(self):
