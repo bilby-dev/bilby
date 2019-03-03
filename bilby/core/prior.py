@@ -2120,16 +2120,15 @@ class MultivariateGaussian(object):
         """
 
         # samples drawn from unit variance uncorrelated multivariate Gaussian
-        inbound = False
-
         samps = np.zeros((size, len(self)))
         for i in range(size):
+            inbound = False
             while not inbound:
                 # sample the multivariate Gaussian keys
                 vals = np.random.uniform(0, 1, len(self))
 
                 samp = self.rescale(vals, mode=mode)
-                samps[:, j] = samp
+                samps[i, :] = samp
 
                 # check sample is in bounds (otherwise perform another draw)
                 outbound = False
