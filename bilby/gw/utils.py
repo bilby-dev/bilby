@@ -416,22 +416,23 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
         except RuntimeError:
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
 
-    ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
-                          'DCH-CLEAN_STRAIN_C02']
-    virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
-    channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
-    for detector in channel_types.keys():
-        for channel_type in channel_types[detector]:
-            if loaded:
-                break
-            channel = '{}:{}'.format(detector, channel_type)
-            try:
-                strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
-                                         **kwargs)
-                loaded = True
-                logger.info('Successfully read strain data for channel {}.'.format(channel))
-            except RuntimeError:
-                pass
+    if loaded is False:
+        ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
+                              'DCH-CLEAN_STRAIN_C02']
+        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+        channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
+        for detector in channel_types.keys():
+            for channel_type in channel_types[detector]:
+                if loaded:
+                    break
+                channel = '{}:{}'.format(detector, channel_type)
+                try:
+                    strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
+                                             **kwargs)
+                    loaded = True
+                    logger.info('Successfully read strain data for channel {}.'.format(channel))
+                except RuntimeError:
+                    pass
 
     if loaded:
         return strain
@@ -542,8 +543,8 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
 
     cl_list = ['gw_data_find']
     cl_list.append('--observatory {}'.format(observatory_code))
-    cl_list.append('--gps-start-time {}'.format(gps_start_time))
-    cl_list.append('--gps-end-time {}'.format(gps_end_time))
+    cl_list.append('--gps-start-time {}'.format(int(np.floor(gps_start_time))))
+    cl_list.append('--gps-end-time {}'.format(int(np.ceil(gps_end_time))))
     cl_list.append('--type {}'.format(query_type))
     cl_list.append('--output {}'.format(output_cache_file))
     cl_list.append('--url-type file')

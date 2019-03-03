@@ -757,7 +757,7 @@ class InterferometerStrainData(object):
                                                       sampling_frequency=sampling_frequency,
                                                       start_time=start_time)
 
-        logger.info('Reading data from frame')
+        logger.info('Reading data from frame file {}'.format(frame_file))
         strain = gwutils.read_frame_file(
             frame_file, start_time=start_time, end_time=start_time + duration,
             buffer_time=buffer_time, channel=channel,
@@ -1591,7 +1591,7 @@ class Interferometer(object):
                                                    df=(self.frequency_array[1] - self.frequency_array[0])),
                       color='C2',
                       label='Signal')
-        ax.grid('on')
+        ax.grid(True)
         ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
         ax.set_xlabel(r'frequency [Hz]')
         ax.set_xlim(20, 2000)
