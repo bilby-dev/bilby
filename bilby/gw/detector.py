@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal.windows import tukey
 from scipy.interpolate import interp1d
-import deepdish as dd
 
 from . import utils as gwutils
 from ..core import utils
@@ -206,12 +205,13 @@ class InterferometerList(list):
             Output file name, is 'ifo_list' if not given otherwise. A list of
             the included interferometers will be appended.
         """
+        import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
                                       'Use Python 3 instead.')
         label = label + '_' + ''.join(ifo.name for ifo in self)
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        dd.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
+        deepdish.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
 
     @classmethod
     def from_hdf5(cls, filename=None):
@@ -223,10 +223,11 @@ class InterferometerList(list):
             If given, try to load from this filename
 
         """
+        import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
                                       'Use Python 3 instead.')
-        res = dd.io.load(filename)
+        res = deepdish.io.load(filename)
         if res.__class__ == list:
             res = cls(res)
         if res.__class__ != cls:
@@ -1685,6 +1686,7 @@ class Interferometer(object):
         label: str, optional
             Output file name, is self.name if not given otherwise.
         """
+        import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
                                       'Use Python 3 instead.')
@@ -1692,7 +1694,7 @@ class Interferometer(object):
             label = self.name
         utils.check_directory_exists_and_if_not_mkdir('outdir')
         filename = self._hdf5_filename_from_outdir_label(outdir, label)
-        dd.io.save(filename, self)
+        deepdish.io.save(filename, self)
 
     @classmethod
     def from_hdf5(cls, filename=None):
@@ -1704,11 +1706,12 @@ class Interferometer(object):
             If given, try to load from this filename
 
         """
+        import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
                                       'Use Python 3 instead.')
 
-        res = dd.io.load(filename)
+        res = deepsish.io.load(filename)
         if res.__class__ != cls:
             raise TypeError('The loaded object is not an Interferometer')
         return res
