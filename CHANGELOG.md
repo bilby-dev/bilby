@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+-
+
+### Changed
+-
+
+### Removed
+-
+
+## [0.4.1] 2019-03-04
+
+### Added
 - Support for JSON result files
 - Before sampling a test is performed for redundant priors
 
