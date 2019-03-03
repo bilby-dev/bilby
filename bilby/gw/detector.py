@@ -1711,7 +1711,7 @@ class Interferometer(object):
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
                                       'Use Python 3 instead.')
 
-        res = deepsish.io.load(filename)
+        res = deepdish.io.load(filename)
         if res.__class__ != cls:
             raise TypeError('The loaded object is not an Interferometer')
         return res
