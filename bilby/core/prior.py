@@ -1846,7 +1846,8 @@ class MultivariateGaussian(object):
                         if bound[1] <= bound[0]:
                             raise ValueError("Bounds are not properly set")
                 except Exception as e:
-                    raise ValueError("Bounds are not properly set")
+                    raise ValueError("Bounds are not properly set: "
+                                     "{}".format(e))
 
                 logger.warning("If using bounded ranges on the multivariate "
                                "Gaussian this will lead to biased posteriors "
@@ -1988,7 +1989,8 @@ class MultivariateGaussian(object):
             try:
                 self.covs.append(np.asarray(cov))
             except Exception as e:
-                raise TypeError("Covariance matrix is wrong type")
+                raise TypeError("Covariance matrix is wrong type: "
+                                "{}".format(e))
 
             if len(self.covs[-1].shape) != 2:
                 raise ValueError("Covariance matrix must be a 2d array")
@@ -2007,7 +2009,8 @@ class MultivariateGaussian(object):
             try:
                 self.corrcoefs.append(np.asarray(corrcoef))
             except Exception as e:
-                raise TypeError("Correlation coefficient matrix is wrong type")
+                raise TypeError("Correlation coefficient matrix is wrong "
+                                "type: {}".format(e))
 
             if len(self.corrcoefs[-1].shape) != 2:
                 raise ValueError("Correlation coefficient matrix must be a 2d "
@@ -2324,8 +2327,8 @@ class MultivariateGaussianPrior(Prior):
             values = list(self.mvg.requested_parameters.values())
 
             # check for the same number of values for each parameter
-            for i in range(len(self.mvg)-1):
-                if len(values[i]) != len(values[i+1]):
+            for i in range(len(self.mvg) - 1):
+                if len(values[i]) != len(values[i + 1]):
                     raise ValueError("Each parameter must have the same "
                                      "number of requested values.")
 
