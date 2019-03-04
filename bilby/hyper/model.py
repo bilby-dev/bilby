@@ -30,6 +30,11 @@ class Model(object):
         return probability
 
     def _get_function_parameters(self, func):
+        """If the function is a class method we need to remove more arguments"""
         param_keys = infer_parameters_from_function(func)
+        ignore = ['dataset', 'self', 'cls']
+        for key in ignore:
+            if key in param_keys:
+                del param_keys[param_keys.index(key)]
         parameters = {key: self.parameters[key] for key in param_keys}
         return parameters
