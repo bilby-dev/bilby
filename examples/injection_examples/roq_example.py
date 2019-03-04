@@ -23,7 +23,7 @@ basis_matrix_linear = np.load("B_linear.npy").T
 freq_nodes_linear = np.load("fnodes_linear.npy")
 
 # Load in the pieces for the quadratic part of the ROQ
-basic_matrix_quadratic = np.load("B_quadratic.npy").T
+basis_matrix_quadratic = np.load("B_quadratic.npy").T
 freq_nodes_quadratic = np.load("fnodes_quadratic.npy")
 
 np.random.seed(170808)
@@ -77,11 +77,22 @@ priors['geocent_time'] = bilby.core.prior.Uniform(
 
 likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
     interferometers=ifos, waveform_generator=search_waveform_generator,
-    linear_matrix=basis_matrix_linear, quadratic_matrix=basic_matrix_quadratic,
-    prior=priors)
+    linear_matrix=basis_matrix_linear, quadratic_matrix=basis_matrix_quadratic,
+    priors=priors)
+
+# write the weights to file so they can be loaded multiple times
+likelihood.save_weights('weights.json')
+
+# remove the basis matrices as these are big for longer bases
+del basis_matrix_linear, basis_matrix_quadratic
+
+# load the weights from the file
+likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+    interferometers=ifos, waveform_generator=search_waveform_generator,
+    weights='weights.json', priors=priors)
 
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
+    likelihood=likelihood, priors=priors, sampler='pymultinest', npoints=500,
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # Make a corner plot.

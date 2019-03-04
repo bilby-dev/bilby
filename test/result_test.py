@@ -11,38 +11,43 @@ import bilby
 
 
 class TestJson(unittest.TestCase):
+
+    def setUp(self):
+        self.encoder = bilby.core.utils.BilbyJsonEncoder
+        self.decoder = bilby.core.utils.decode_bilby_json
+
     def test_list_encoding(self):
         data = dict(x=[1, 2, 3.4])
-        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
-        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        encoded = json.dumps(data, cls=self.encoder)
+        decoded = json.loads(encoded, object_hook=self.decoder)
         self.assertEqual(data.keys(), decoded.keys())
         self.assertEqual(type(data['x']), type(decoded['x']))
-        self.assertTrue(np.all(data['x']==decoded['x']))
+        self.assertTrue(np.all(data['x'] == decoded['x']))
 
     def test_array_encoding(self):
         data = dict(x=np.array([1, 2, 3.4]))
-        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
-        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        encoded = json.dumps(data, cls=self.encoder)
+        decoded = json.loads(encoded, object_hook=self.decoder)
         self.assertEqual(data.keys(), decoded.keys())
         self.assertEqual(type(data['x']), type(decoded['x']))
-        self.assertTrue(np.all(data['x']==decoded['x']))
+        self.assertTrue(np.all(data['x'] == decoded['x']))
 
     def test_complex_encoding(self):
         data = dict(x=1 + 3j)
-        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
-        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        encoded = json.dumps(data, cls=self.encoder)
+        decoded = json.loads(encoded, object_hook=self.decoder)
         self.assertEqual(data.keys(), decoded.keys())
         self.assertEqual(type(data['x']), type(decoded['x']))
-        self.assertTrue(np.all(data['x']==decoded['x']))
+        self.assertTrue(np.all(data['x'] == decoded['x']))
 
     def test_dataframe_encoding(self):
         data = dict(data=pd.DataFrame(dict(x=[3, 4, 5], y=[5, 6, 7])))
-        encoded = json.dumps(data, cls=bilby.core.result.BilbyResultJsonEncoder)
-        decoded = json.loads(encoded, object_hook=bilby.core.result.decode_bilby_json_result)
+        encoded = json.dumps(data, cls=self.encoder)
+        decoded = json.loads(encoded, object_hook=self.decoder)
         self.assertEqual(data.keys(), decoded.keys())
         self.assertEqual(type(data['data']), type(decoded['data']))
-        self.assertTrue(np.all(data['data']['x']==decoded['data']['x']))
-        self.assertTrue(np.all(data['data']['y']==decoded['data']['y']))
+        self.assertTrue(np.all(data['data']['x'] == decoded['data']['x']))
+        self.assertTrue(np.all(data['data']['y'] == decoded['data']['y']))
 
 
 class TestResult(unittest.TestCase):

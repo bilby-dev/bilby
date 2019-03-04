@@ -16,7 +16,8 @@ from matplotlib import lines as mpllines
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
-                    check_directory_exists_and_if_not_mkdir)
+                    check_directory_exists_and_if_not_mkdir,
+                    BilbyJsonEncoder, decode_bilby_json)
 from .prior import Prior, PriorDict, DeltaFunction
 
 
@@ -230,7 +231,7 @@ class Result(object):
 
         if os.path.isfile(filename):
             with open(filename, 'r') as file:
-                dictionary = json.load(file, object_hook=decode_bilby_json_result)
+                dictionary = json.load(file, object_hook=decode_bilby_json)
             for key in dictionary.keys():
                 # Convert the loaded priors to bilby prior type
                 if key == 'priors':
@@ -421,7 +422,7 @@ class Result(object):
         try:
             if extension == 'json':
                 with open(file_name, 'w') as file:
-                    json.dump(dictionary, file, indent=2, cls=BilbyResultJsonEncoder)
+                    json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
                 deepdish.io.save(file_name, dictionary)
             else:
@@ -1120,27 +1121,6 @@ class Result(object):
                                  "Try calling " + caller_func.__name__ + " with the 'outdir' "
                                  "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
         return outdir
-
-
-class BilbyResultJsonEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return {'__array__': True, 'content': obj.tolist()}
-        if isinstance(obj, complex):
-            return {'__complex__': True, 'real': obj.real, 'imag': obj.imag}
-        if isinstance(obj, pd.core.frame.DataFrame):
-            return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
-        return json.JSONEncoder.default(self, obj)
-
-
-def decode_bilby_json_result(dct):
-    if dct.get("__array__", False):
-        return np.asarray(dct["content"])
-    if dct.get("__complex__", False):
-        return complex(dct["real"], dct["imag"])
-    if dct.get("__dataframe__", False):
-        return pd.DataFrame(dct['content'])
-    return dct
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
