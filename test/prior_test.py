@@ -276,7 +276,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             if isinstance(prior, bilby.core.prior.Cauchy):
                 continue
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
                 continue
             elif isinstance(prior, bilby.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
@@ -337,6 +337,8 @@ class TestPriorClasses(unittest.TestCase):
                 continue  # we cannot test this because of the numpy arrays
             if isinstance(prior, bilby.core.prior.Beta):
                 continue  # We cannot test this as it has a frozen scipy dist
+            if isinstance(prior, (bilby.core.prior.MultivariateGaussianPrior)):
+                continue  # we cannot test this because of the internal objects
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)
             else:

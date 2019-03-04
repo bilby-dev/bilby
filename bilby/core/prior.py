@@ -3,7 +3,7 @@ from __future__ import division
 import os
 from collections import OrderedDict
 from future.utils import iteritems
-from itertools import chain
+from matplotlib.cbook import flatten
 
 import numpy as np
 import scipy.stats
@@ -244,7 +244,7 @@ class PriorDict(OrderedDict):
         -------
         list: List of floats containing the rescaled sample
         """
-        return list(chain(*[self[key].rescale(sample) for key, sample in zip(keys, theta)]))
+        return list(flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)]))
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -2168,7 +2168,7 @@ class MultivariateGaussian(object):
         # check sample(s) is within bounds
         outbounds = np.ones(samp.shape[0], dtype=np.bool)
         for s, bound in zip(samp.T, self.bounds.values()):
-            outbounds = (s < bound[0]) or (s > bound[1])
+            outbounds = (s < bound[0]) | (s > bound[1])
             if np.any(outbounds):
                 break
 
@@ -2208,6 +2208,9 @@ class MultivariateGaussianPrior(Prior):
         ----------
         mvg: MultivariateGaussian
             A :class:`bilby.core.prior.MultivariateGaussian` object defining
+            the multivariate Gaussian distribution. This object is not copied,
+            as it needs to be shared across multiple priors, and as such its
+            contents will be altered by the prior.
         name: str
             See superclass
         latex_label: str
@@ -2224,11 +2227,11 @@ class MultivariateGaussianPrior(Prior):
         if name not in mvg.names:
             raise ValueError("'{}' is not a parameter in the multivariate "
                              "Gaussian")
+        self.mvg = mvg
 
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
                        minimum=mvg.bounds[name][0],
                        maximum=mvg.bounds[name][1])
-        self.mvg = mvg
 
     def rescale(self, val, mode=None):
         """
@@ -2313,16 +2316,57 @@ class MultivariateGaussianPrior(Prior):
         """
 
         # add parameter value to multivariate Gaussian
+        prevval = self.mvg.requested_parameters[self.name]  # previous value
         self.mvg.requested_parameters[self.name] = val
 
         if self.mvg.filled_request():
             # all required parameters have been set
-            lnp = self.mvg.ln_prob(list(self.mvg.requested_parameters.values()))
+            values = list(self.mvg.requested_parameters.values())
+
+            # check for the same number of values for each parameter
+            for i in range(len(self.mvg)-1):
+                if len(values[i]) != len(values[i+1]):
+                    raise ValueError("Each parameter must have the same "
+                                     "number of requested values.")
+
+            lnp = self.mvg.ln_prob(np.asarray(values).T)
 
             # reset the requested parameters
-            self.mvg.reset_request()
+            if prevval is not None:
+                if np.all(np.asarray(val) != np.asarray(prevval)):
+                    self.mvg.reset_request()
 
             return lnp
         else:
             # if not all parameters have been requested yet, just return 0
-            return 0.
+            if isinstance(val, (float, int)):
+                return 0.
+            elif isinstance(val, (list, np.ndarray)):
+                if len(val) == 1:
+                    return 0.
+                else:
+                    return np.zeros_like(val)
+            else:
+                raise TypeError('Invalid type for ln_prob')
+
+    @property
+    def minimum(self):
+        return self._minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self._minimum = minimum
+
+        # update the bounds in the MultivariateGaussian
+        self.mvg.bounds[self.name] = (minimum, self.mvg.bounds[self.name][1])
+
+    @property
+    def maximum(self):
+        return self._maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self._maximum = maximum
+
+        # update the bounds in the MultivariateGaussian
+        self.mvg.bounds[self.name] = (self.mvg.bounds[self.name][0], maximum)
