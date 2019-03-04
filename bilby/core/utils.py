@@ -7,9 +7,11 @@ import argparse
 import traceback
 import inspect
 import subprocess
+import json
 
 import numpy as np
 from scipy.interpolate import interp2d
+import pandas as pd
 
 logger = logging.getLogger('bilby')
 
@@ -749,6 +751,27 @@ else:
             break
         except Exception:
             print(traceback.format_exc())
+
+
+class BilbyJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return {'__array__': True, 'content': obj.tolist()}
+        if isinstance(obj, complex):
+            return {'__complex__': True, 'real': obj.real, 'imag': obj.imag}
+        if isinstance(obj, pd.core.frame.DataFrame):
+            return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
+        return json.JSONEncoder.default(self, obj)
+
+
+def decode_bilby_json(dct):
+    if dct.get("__array__", False):
+        return np.asarray(dct["content"])
+    if dct.get("__complex__", False):
+        return complex(dct["real"], dct["imag"])
+    if dct.get("__dataframe__", False):
+        return pd.DataFrame(dct['content'])
+    return dct
 
 
 class IllegalDurationAndSamplingFrequencyException(Exception):
