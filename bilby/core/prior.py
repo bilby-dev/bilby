@@ -2103,8 +2103,8 @@ class MultivariateGaussian(object):
 
         # rotate and scale to the multivariate normal shape
         samp = self.mus[mode] + self.sigmas[mode] * np.einsum('ij,kj->ik',
-                                                    samp * self.sqeigvalues[mode],
-                                                    self.eigvectors[mode])
+                                                              samp * self.sqeigvalues[mode],
+                                                              self.eigvectors[mode])
 
         return np.squeeze(samp)
 
@@ -2172,7 +2172,7 @@ class MultivariateGaussian(object):
             if np.any(outbounds):
                 break
 
-        lnprob = -np.inf*np.ones(samp.shape[0])
+        lnprob = -np.inf * np.ones(samp.shape[0])
         for j in range(samp.shape[0]):
             # loop over the modes and sum the probabilities
             for i in range(self.nmodes):
@@ -2278,7 +2278,7 @@ class MultivariateGaussianPrior(Prior):
         if len(self.mvg.current_sample) == 0:
             # generate a sample
             self.mvg.sample(size=size, mode=mode)
-        
+
         sample = self.mvg.current_sample[self.name]
 
         if self.name not in self.mvg.sampled_parameters:

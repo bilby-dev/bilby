@@ -51,7 +51,7 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.prior.maximum = 1
         val_below = self.prior.minimum - 0.1
         val_at_minimum = self.prior.minimum
-        val_in_prior = (self.prior.minimum + self.prior.maximum)/2.
+        val_in_prior = (self.prior.minimum + self.prior.maximum) / 2.
         val_at_maximum = self.prior.maximum
         val_above = self.prior.maximum + 0.1
         self.assertTrue(self.prior.is_in_prior_range(val_at_minimum))
@@ -411,30 +411,37 @@ class TestPriorDict(unittest.TestCase):
         self.assertDictEqual(self.priors, dict(self.prior_set_from_dict))
 
     def test_read_from_file(self):
-        expected = dict(
-            mass_1=bilby.core.prior.Uniform(
-                name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_2=bilby.core.prior.Uniform(
-                name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
-            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
-            tilt_1=bilby.core.prior.Sine(name='tilt_1'),
-            tilt_2=bilby.core.prior.Sine(name='tilt_2'),
-            phi_12=bilby.core.prior.Uniform(
-                name='phi_12', minimum=0, maximum=2 * np.pi),
-            phi_jl=bilby.core.prior.Uniform(
-                name='phi_jl', minimum=0, maximum=2 * np.pi),
-            luminosity_distance=bilby.gw.prior.UniformComovingVolume(
-                name='luminosity_distance', minimum=1e2,
-                maximum=5e3, unit='Mpc'),
-            dec=bilby.core.prior.Cosine(name='dec'),
-            ra=bilby.core.prior.Uniform(
-                name='ra', minimum=0, maximum=2 * np.pi),
-            theta_jn=bilby.core.prior.Sine(name='theta_jn'),
-            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
-            phase=bilby.core.prior.Uniform(
-                name='phase', minimum=0, maximum=2 * np.pi)
-            )
+        expected = dict(mass_1=bilby.core.prior.Uniform(name='mass_1',
+                                                        minimum=5,
+                                                        maximum=100,
+                                                        unit='$M_{\\odot}$'),
+                        mass_2=bilby.core.prior.Uniform(name='mass_2',
+                                                        minimum=5,
+                                                        maximum=100,
+                                                        unit='$M_{\\odot}$'),
+                        a_1=bilby.core.prior.Uniform(name='a_1', minimum=0,
+                                                     maximum=0.8),
+                        a_2=bilby.core.prior.Uniform(name='a_2', minimum=0,
+                                                     maximum=0.8),
+                        tilt_1=bilby.core.prior.Sine(name='tilt_1'),
+                        tilt_2=bilby.core.prior.Sine(name='tilt_2'),
+                        phi_12=bilby.core.prior.Uniform(name='phi_12',
+                                                        minimum=0,
+                                                        maximum=2 * np.pi),
+                        phi_jl=bilby.core.prior.Uniform(name='phi_jl',
+                                                        minimum=0,
+                                                        maximum=2 * np.pi),
+                        luminosity_distance=bilby.gw.prior.UniformComovingVolume(name='luminosity_distance',
+                                                                                 minimum=1e2,
+                                                                                 maximum=5e3, unit='Mpc'),
+                        dec=bilby.core.prior.Cosine(name='dec'),
+                        ra=bilby.core.prior.Uniform(name='ra', minimum=0,
+                                                    maximum=2 * np.pi),
+                        theta_jn=bilby.core.prior.Sine(name='theta_jn'),
+                        psi=bilby.core.prior.Uniform(name='psi', minimum=0,
+                                                     maximum=np.pi),
+                        phase=bilby.core.prior.Uniform(name='phase', minimum=0,
+                                                       maximum=2 * np.pi))
         self.assertDictEqual(expected, self.prior_set_from_file)
 
     def test_to_file(self):
