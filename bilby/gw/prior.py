@@ -193,7 +193,7 @@ class AlignedSpin(Interped):
 
 
 class BBHPriorDict(PriorDict):
-    def __init__(self, dictionary=None, filename=None):
+    def __init__(self, dictionary=None, filename=None, aligned_spin=False):
         """ Initialises a Prior set for Binary Black holes
 
         Parameters
@@ -203,8 +203,13 @@ class BBHPriorDict(PriorDict):
         filename: str, optional
             See superclass
         """
+        basedir = os.path.join(os.path.dirname(__file__), 'prior_files')
         if dictionary is None and filename is None:
-            filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_black_holes.prior')
+            fname = 'binary_black_holes.prior'
+            if aligned_spin:
+                fname = 'aligned_spin_' + fname
+                logger.info('Using aligned spin prior')
+            filename = os.path.join(basedir, fname)
             logger.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif filename is not None:
             if not os.path.isfile(filename):
@@ -257,7 +262,7 @@ class BBHPriorDict(PriorDict):
 
 class BNSPriorDict(PriorDict):
 
-    def __init__(self, dictionary=None, filename=None):
+    def __init__(self, dictionary=None, filename=None, aligned_spin=True):
         """ Initialises a Prior set for Binary Neutron Stars
 
         Parameters
@@ -267,6 +272,8 @@ class BNSPriorDict(PriorDict):
         filename: str, optional
             See superclass
         """
+        if not aligned_spin:
+            logger.warning('Non-aligned spins not yet supported for BNS.')
         if dictionary is None and filename is None:
             filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_neutron_stars.prior')
             logger.info('No prior given, using default BNS priors in {}.'.format(filename))

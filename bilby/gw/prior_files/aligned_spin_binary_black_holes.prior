@@ -1,0 +1,19 @@
+# These are the default priors we use for BBH systems.
+# Note that you may wish to use more specific mass and distance parameters.
+# These commands are all known to bilby.gw.prior.
+# Lines beginning "#" are ignored.
+mass_1 = Uniform(name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$')
+mass_2 = Uniform(name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$')
+# chirp_mass = Uniform(name='chirp_mass', minimum=25, maximum=100, unit='$M_{\\odot}$')
+# total_mass =  Uniform(name='total_mass', minimum=10, maximum=200, unit='$M_{\\odot}$')
+# mass_ratio =  Uniform(name='mass_ratio', minimum=0.125, maximum=1)
+# symmetric_mass_ratio =  Uniform(name='symmetric_mass_ratio', minimum=8 / 81, maximum=0.25)
+chi_1 =  bilby.gw.prior.AlignedSpin(name='chi_1', a_prior=Uniform(minimum=0, maximum=0.8))
+chi_2 =  bilby.gw.prior.AlignedSpin(name='chi_2', a_prior=Uniform(minimum=0, maximum=0.8))
+luminosity_distance =  bilby.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=1e2, maximum=5e3, unit='Mpc')
+dec =  Cosine(name='dec')
+ra =  Uniform(name='ra', minimum=0, maximum=2 * np.pi)
+theta_jn =  Sine(name='theta_jn')
+# cos_theta_jn =  Uniform(name='cos_theta_jn', minimum=-1, maximum=1)
+psi =  Uniform(name='psi', minimum=0, maximum=np.pi)
+phase =  Uniform(name='phase', minimum=0, maximum=2 * np.pi)
