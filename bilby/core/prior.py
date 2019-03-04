@@ -799,7 +799,8 @@ class Cosine(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return np.arcsin(-1 + val * 2)
+        norm = 1 / (np.sin(self.maximum) - np.sin(self.minimum))
+        return np.arcsin(val / norm + np.sin(self.minimum))
 
     def prob(self, val):
         """Return the prior probability of val. Defined over [-pi/2, pi/2].
@@ -844,7 +845,8 @@ class Sine(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         Prior.test_valid_for_rescaling(val)
-        return np.arccos(1 - val * 2)
+        norm = 1 / (np.cos(self.minimum) - np.cos(self.maximum))
+        return np.arccos(np.cos(self.minimum) - val / norm)
 
     def prob(self, val):
         """Return the prior probability of val. Defined over [0, pi].
@@ -1279,16 +1281,16 @@ class Beta(Prior):
             See superclass
 
         """
-        Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
-                       latex_label=latex_label, unit=unit)
-
         if alpha <= 0. or beta <= 0.:
             raise ValueError("alpha and beta must both be positive values")
 
-        self.alpha = alpha
-        self.beta = beta
-        self._loc = minimum
-        self._scale = maximum - minimum
+        self._alpha = alpha
+        self._beta = beta
+        self._minimum = minimum
+        self._maximum = maximum
+        Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
+                       latex_label=latex_label, unit=unit)
+        self._set_dist()
 
     def rescale(self, val):
         """
@@ -1299,8 +1301,7 @@ class Beta(Prior):
         Prior.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
-        return scipy.stats.beta.ppf(
-            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
+        return self._dist.ppf(val)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1314,8 +1315,7 @@ class Beta(Prior):
         float: Prior probability of val
         """
 
-        spdf = scipy.stats.beta.pdf(
-            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
+        spdf = self._dist.pdf(val)
         if np.all(np.isfinite(spdf)):
             return spdf
 
@@ -1328,8 +1328,7 @@ class Beta(Prior):
             return 0.
 
     def ln_prob(self, val):
-        spdf = scipy.stats.beta.logpdf(
-            val, self.alpha, self.beta, loc=self._loc, scale=self._scale)
+        spdf = self._dist.logpdf(val)
         if np.all(np.isfinite(spdf)):
             return spdf
 
@@ -1339,6 +1338,48 @@ class Beta(Prior):
             return spdf
         else:
             return -np.inf
+
+    def _set_dist(self):
+        """Try/except to stop it falling over at instantiation"""
+        self._dist = scipy.stats.beta(
+            a=self.alpha, b=self.beta, loc=self.minimum,
+            scale=(self.maximum - self.minimum))
+
+    @property
+    def maximum(self):
+        return self._maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self._maximum = maximum
+        self._set_dist()
+
+    @property
+    def minimum(self):
+        return self._minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self._minimum = minimum
+        self._set_dist()
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
+        self._set_dist()
+
+    @property
+    def beta(self):
+        return self._beta
+
+    @beta.setter
+    def beta(self, beta):
+        self._beta = beta
+        self._set_dist()
 
 
 class Logistic(Prior):
@@ -1605,7 +1646,7 @@ class Interped(Prior):
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
                        minimum=np.nanmax(np.array((min(xx), minimum))),
                        maximum=np.nanmin(np.array((max(xx), maximum))))
-        self.__update_instance()
+        self._update_instance()
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -1656,7 +1697,7 @@ class Interped(Prior):
     def minimum(self, minimum):
         self._minimum = minimum
         if '_maximum' in self.__dict__ and self._maximum < np.inf:
-            self.__update_instance()
+            self._update_instance()
 
     @property
     def maximum(self):
@@ -1675,14 +1716,14 @@ class Interped(Prior):
     def maximum(self, maximum):
         self._maximum = maximum
         if '_minimum' in self.__dict__ and self._minimum < np.inf:
-            self.__update_instance()
+            self._update_instance()
 
-    def __update_instance(self):
+    def _update_instance(self):
         self.xx = np.linspace(self.minimum, self.maximum, len(self.xx))
         self.yy = self.__all_interpolated(self.xx)
-        self.__initialize_attributes()
+        self._initialize_attributes()
 
-    def __initialize_attributes(self):
+    def _initialize_attributes(self):
         if np.trapz(self.yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self.yy /= np.trapz(self.yy, self.xx)
