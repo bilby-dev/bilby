@@ -250,6 +250,81 @@ class TestPriorClasses(unittest.TestCase):
         with self.assertRaises(ValueError):
             bilby.core.prior.Beta(name='test', unit='unit', alpha=2.0, beta=-2.0),
 
+    def test_multivariate_gaussian_fail(self):
+        with self.assertRaises(ValueError):
+            # bounds is wrong length
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  bounds=[(-1., 1.)])
+        with self.assertRaises(ValueError):
+            # bounds has lower value greater than upper
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  bounds=[(-1., 1.), (1., -1)])
+        with self.assertRaises(TypeError):
+            # bound is not a list/tuple
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  bounds=[(-1., 1.), 2])
+        with self.assertRaises(ValueError):
+            # bound contains too many values
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  bounds=[(-1., 1., 4), 2])
+        with self.assertRaises(ValueError):
+            # means is not a list
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], mus=1.)
+        with self.assertRaises(ValueError):
+            # sigmas is not a list
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=1.)
+        with self.assertRaises(TypeError):
+            # covariances is not a list
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], covs=1.)
+        with self.assertRaises(TypeError):
+            # correlation coefficients is not a list
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], corrcoefs=1.)
+        with self.assertRaises(ValueError):
+            # wrong number of weights
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], weights=[0.5, 0.5])
+        with self.assertRaises(ValueError):
+            # not enough modes set
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], mus=[[1., 2.]],
+                                                  nmodes=2)
+        with self.assertRaises(ValueError):
+            # covariance is the wrong shape
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  covs=np.array([[[1., 1.],
+                                                                  [1., 1.]]]))
+        with self.assertRaises(ValueError):
+            # covariance is the wrong shape
+            bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                  covs=np.array([[[1., 1.]]]))
+        with self.assertRaises(ValueError):
+            # correlation coefficient matrix is the wrong shape
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
+                                                  corrcoefs=np.array([[[[1., 1.],
+                                                                        [1., 1.]]]]))
+        with self.assertRaises(ValueError):
+            # correlation coefficient matrix is the wrong shape
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
+                                                  corrcoefs=np.array([[[1., 1.]]]))
+        with self.assertRaises(ValueError):
+            # correlation coefficient matrix is not symmetric
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
+                                                  corrcoefs=np.array([[-100., -1.2],
+                                                                      [-0.3, -2.3]]))
+        with self.assertRaises(ValueError):
+            # correlation coefficient matrix is not positive definite
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
+                                                  corrcoefs=np.array([[-100., -0.3],
+                                                                      [-0.3, -2.3]]))
+        with self.assertRaises(ValueError):
+            # wrong number of sigmas
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2., 3.],
+                                                  corrcoefs=np.array([[2., 0.3],
+                                                                      [0.3, 1.5]]))
+        with self.assertRaises(RuntimeError):
+            # invalid correlation coefficient matrix
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
+                                                  corrcoefs=np.array([[-np.inf, 0.3],
+                                                                      [0.3, 1.5]]))
+
     def test_probability_in_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:

@@ -1838,16 +1838,15 @@ class MultivariateGaussian(object):
 
             # check bounds
             for bound in bounds:
-                try:
+                if isinstance(bounds, (list, tuple, np.ndarray)):
                     if len(bound) != 2:
                         raise ValueError("Bounds must contain an upper and "
                                          "lower value.")
                     else:
                         if bound[1] <= bound[0]:
                             raise ValueError("Bounds are not properly set")
-                except Exception as e:
-                    raise ValueError("Bounds are not properly set: "
-                                     "{}".format(e))
+                else:
+                    raise TypeError("Bound must be a list")
 
                 logger.warning("If using bounded ranges on the multivariate "
                                "Gaussian this will lead to biased posteriors "
@@ -1986,11 +1985,7 @@ class MultivariateGaussian(object):
 
         # add the covariances if supplied
         if cov is not None:
-            try:
-                self.covs.append(np.asarray(cov))
-            except Exception as e:
-                raise TypeError("Covariance matrix is wrong type: "
-                                "{}".format(e))
+            self.covs.append(np.asarray(cov))
 
             if len(self.covs[-1].shape) != 2:
                 raise ValueError("Covariance matrix must be a 2d array")
@@ -1999,6 +1994,10 @@ class MultivariateGaussian(object):
                     self.covs[-1].shape[0] != self.num_vars):
                 raise ValueError("Covariance shape is inconsistent")
 
+            # check matrix is symmetric
+            if not np.allclose(self.covs[-1], self.covs[-1].T):
+                raise ValueError("Covariance matrix is not symmetric")
+
             self.sigmas.append(np.sqrt(np.diag(self.covs[-1])))  # standard deviations
 
             # convert covariance into a correlation coefficient matrix
@@ -2006,11 +2005,7 @@ class MultivariateGaussian(object):
             Dinv = np.linalg.inv(D)
             self.corrcoefs.append(np.dot(np.dot(Dinv, self.covs[-1]), Dinv))
         elif corrcoef is not None and sigmas is not None:
-            try:
-                self.corrcoefs.append(np.asarray(corrcoef))
-            except Exception as e:
-                raise TypeError("Correlation coefficient matrix is wrong "
-                                "type: {}".format(e))
+            self.corrcoefs.append(np.asarray(corrcoef))
 
             if len(self.corrcoefs[-1].shape) != 2:
                 raise ValueError("Correlation coefficient matrix must be a 2d "
@@ -2018,10 +2013,16 @@ class MultivariateGaussian(object):
 
             if (self.corrcoefs[-1].shape[0] != self.corrcoefs[-1].shape[1] or
                     self.corrcoefs[-1].shape[0] != self.num_vars):
-                raise ValueError("Covariance shape is inconsistent")
+                raise ValueError("Correlation coefficient matrix shape is "
+                                 "inconsistent")
+
+            # check matrix is symmetric
+            if not np.allclose(self.corrcoefs[-1], self.corrcoefs[-1].T):
+                raise ValueError("Correlation coefficient matrix is not "
+                                 "symmetric")
 
             try:
-                self.sigmas.append(list(sigmas))  # means
+                self.sigmas.append(list(sigmas))  # standard deviations
             except TypeError:
                 raise TypeError("'sigmas' must be a list")
 
@@ -2044,7 +2045,13 @@ class MultivariateGaussian(object):
             self.eigvalues.append(evals)
             self.eigvectors.append(evecs)
         except Exception as e:
-            raise RuntimeError("Problem getting eigenvalues and vectors: {}".format(e))
+            raise RuntimeError("Problem getting eigenvalues and vectors: "
+                               "{}".format(e))
+
+        # check eigenvalues are positive
+        if np.any(self.eigvalues[-1] <= 0.):
+            raise ValueError("Correlation coefficient matrix is not positive "
+                             "definite")
         self.sqeigvalues.append(np.sqrt(self.eigvalues[-1]))
 
         # set the weights
