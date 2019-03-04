@@ -2021,6 +2021,11 @@ class MultivariateGaussian(object):
                 raise ValueError("Correlation coefficient matrix is not "
                                  "symmetric")
 
+            # check diagonal is all ones
+            if not np.all(np.diag(self.corrcoefs[-1]) == 1.):
+                raise ValueError("Correlation coefficient matrix is not"
+                                 "correct")
+
             try:
                 self.sigmas.append(list(sigmas))  # standard deviations
             except TypeError:

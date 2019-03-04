@@ -305,25 +305,44 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
                                                   corrcoefs=np.array([[[1., 1.]]]))
         with self.assertRaises(ValueError):
+            # correlation coefficient has non-unity diagonal value
+            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
+                                                  corrcoefs=np.array([[1., 1.],
+                                                                      [1., 2.]]))
+        with self.assertRaises(ValueError):
             # correlation coefficient matrix is not symmetric
             bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
-                                                  corrcoefs=np.array([[-100., -1.2],
-                                                                      [-0.3, -2.3]]))
+                                                  corrcoefs=np.array([[1., -1.2],
+                                                                      [-0.3, 1.]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is not positive definite
             bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
-                                                  corrcoefs=np.array([[-100., -0.3],
-                                                                      [-0.3, -2.3]]))
+                                                  corrcoefs=np.array([[1., -1.3],
+                                                                      [-1.3, 1.]]))
         with self.assertRaises(ValueError):
             # wrong number of sigmas
             bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2., 3.],
-                                                  corrcoefs=np.array([[2., 0.3],
-                                                                      [0.3, 1.5]]))
-        with self.assertRaises(RuntimeError):
-            # invalid correlation coefficient matrix
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
-                                                  corrcoefs=np.array([[-np.inf, 0.3],
-                                                                      [0.3, 1.5]]))
+                                                  corrcoefs=np.array([[1., 0.3],
+                                                                      [0.3, 1.]]))
+
+    def test_multivariate_gaussian_covariance(self):
+        """Test that the correlation coefficient/covariance matrices are correct"""
+        cov = np.array([[4., 0], [0., 9.]])
+        mvg = bilby.core.prior.MultivariateGaussian(['a', 'b'], covs=cov)
+        self.assertEqual(mvg.nmodes, 1)
+        self.assertTrue(np.allclose(mvg.covs[0], cov))
+        self.assertTrue(np.allclose(mvg.sigmas[0], np.sqrt(np.diag(cov))))
+        self.assertTrue(np.allclose(mvg.corrcoefs[0], np.eye(2)))
+
+        corrcoef = np.array([[1., 0.5], [0.5, 1.]])
+        sigma = [2., 2.]
+        mvg = bilby.core.prior.MultivariateGaussian(['a', 'b'],
+                                                    corrcoefs=corrcoef,
+                                                    sigmas=sigma)
+        self.assertTrue(np.allclose(mvg.corrcoefs[0], corrcoef))
+        self.assertTrue(np.allclose(mvg.sigmas[0], sigma))
+        self.assertTrue(np.allclose(np.diag(mvg.covs[0]), np.square(sigma)))
+        self.assertTrue(np.allclose(np.diag(np.fliplr(mvg.covs[0])), 2.*np.ones(2)))
 
     def test_probability_in_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
