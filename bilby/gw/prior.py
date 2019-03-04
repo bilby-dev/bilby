@@ -84,8 +84,10 @@ class Cosmological(Interped):
                 self._minimum['redshift'] = cosmo.z_at_value(
                     cosmology.comoving_distance, minimum * self.unit)
             self._minimum['luminosity_distance'] = self._minimum['redshift']
-        if getattr(self._maximum, self.name, np.inf) < np.inf:
-            self.__update_instance()
+        try:
+            self._update_instance()
+        except (AttributeError, KeyError):
+            pass
 
     @property
     def maximum(self):
@@ -108,8 +110,10 @@ class Cosmological(Interped):
             self._maximum['redshift'] = cosmo.z_at_value(
                 cosmology.comoving_distance, maximum * self.unit)
             self._maximum['luminosity_distance'] = self._maximum['redshift']
-        if getattr(self._minimum, self.name, np.inf) < np.inf:
-            self.__update_instance()
+        try:
+            self._update_instance()
+        except (AttributeError, KeyError):
+            pass
 
     def get_corresponding_prior(self, name=None, unit=None):
         subclass_args = infer_args_from_method(self.__init__)
