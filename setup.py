@@ -81,7 +81,6 @@ setup(name='bilby',
           'corner',
           'numpy>=1.9',
           'matplotlib>=2.0',
-          'deepdish',
           'pandas',
           'scipy'],
       entry_points={'console_scripts':

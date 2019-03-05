@@ -5,7 +5,6 @@ from distutils.version import LooseVersion
 from collections import OrderedDict, namedtuple
 
 import numpy as np
-import deepdish
 import pandas as pd
 import corner
 import json
@@ -191,6 +190,7 @@ class Result(object):
                     If no bilby.core.result.Result is found in the path
 
         """
+        import deepdish
         filename = _determine_file_name(filename, outdir, label, 'hdf5')
 
         if os.path.isfile(filename):
@@ -424,6 +424,7 @@ class Result(object):
                 with open(file_name, 'w') as file:
                     json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
+                import deepdish
                 deepdish.io.save(file_name, dictionary)
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
