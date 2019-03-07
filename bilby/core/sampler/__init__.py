@@ -16,11 +16,13 @@ from .ptemcee import Ptemcee
 from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
+from .fake_sampler import FakeSampler
 
 IMPLEMENTED_SAMPLERS = {
     'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
     'ptemcee': Ptemcee,'ptmcmcsampler' : PTMCMCSampler,
-    'pymc3': Pymc3, 'pymultinest': Pymultinest, 'pypolychord': PyPolyChord }
+    'pymc3': Pymc3, 'pymultinest': Pymultinest, 'pypolychord': PyPolyChord,
+    'fake_sampler': FakeSampler }
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
