@@ -954,31 +954,29 @@ def compute_snrs(sample, likelihood):
                     ifo.matched_filter_snr(signal=signal)
                 sample['{}_optimal_snr'.format(ifo.name)] = \
                     ifo.optimal_snr_squared(signal=signal) ** 0.5
+
         else:
             logger.info(
                 'Computing SNRs for every sample, this may take some time.')
-            all_interferometers = likelihood.interferometers
-            matched_filter_snrs = {ifo.name: [] for ifo in all_interferometers}
-            optimal_snrs = {ifo.name: [] for ifo in all_interferometers}
+
+            matched_filter_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
+            optimal_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
+
             for ii in range(len(sample)):
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(
                         dict(sample.iloc[ii]))
-                for ifo in all_interferometers:
-                    signal = ifo.get_detector_response(
-                        signal_polarizations, sample.iloc[ii])
-                    matched_filter_snrs[ifo.name].append(
-                        ifo.matched_filter_snr(signal=signal))
-                    optimal_snrs[ifo.name].append(
-                        ifo.optimal_snr_squared(signal=signal) ** 0.5)
+                likelihood.parameters.update(sample.iloc[ii])
+                for ifo in likelihood.interferometers:
+                    per_detector_snr = likelihood.calculate_snrs(signal_polarizations, ifo)
+                    matched_filter_snrs[ifo.name].append(per_detector_snr.complex_matched_filter_snr.real)
+                    optimal_snrs[ifo.name].append(per_detector_snr.optimal_snr_squared ** 0.5)
 
             for ifo in likelihood.interferometers:
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
                     matched_filter_snrs[ifo.name]
                 sample['{}_optimal_snr'.format(ifo.name)] =\
                     optimal_snrs[ifo.name]
-
-            likelihood.interferometers = all_interferometers
 
     else:
         logger.debug('Not computing SNRs.')
