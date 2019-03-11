@@ -5,8 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from ..utils import derivatives, logger, infer_args_from_method
-from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw, MultivariateGaussian, \
-    MultivariateGaussianDist
+from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw, MultivariateGaussian
 from ..result import Result
 from .base_sampler import Sampler, MCMCSampler
 from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
@@ -407,7 +406,7 @@ class Pymc3(MCMCSampler):
             # set the prior on multiple parameters if not present yet
             if not np.all([p in self.multivariate_normal_sets for p in mvpars]):
                 mvg = self.priors[key].mvg
-                
+
                 # get bounds
                 lower = [bound[0] for bound in mvg.bounds.values()]
                 upper = [bound[1] for bound in mvg.bounds.values()]
@@ -418,9 +417,9 @@ class Pymc3(MCMCSampler):
                     if np.isinf(bound[0]) and np.isinf(bound[1]):
                         testvals.append(0.)
                     elif np.isinf(bound[0]):
-                        testvals.append(bound[1]-1.)
+                        testvals.append(bound[1] - 1.)
                     elif np.isinf(bound[1]):
-                        testvals.append(bound[0]+1.)
+                        testvals.append(bound[0] + 1.)
                     else:
                         # half-way between the two bounds
                         testvals.append(bound[0] + (bound[1] - bound[0]) / 2.)
@@ -432,9 +431,9 @@ class Pymc3(MCMCSampler):
                 maxsigma = np.max(mvg.sigmas, axis=0)
                 for i in range(len(mvpars)):
                     if np.isinf(lower[i]):
-                        lower[i] = minmu[i] - 100.*maxsigma[i]
+                        lower[i] = minmu[i] - 100. * maxsigma[i]
                     if np.isinf(upper[i]):
-                        upper[i] = maxmu[i] + 100.*maxsigma[i]
+                        upper[i] = maxmu[i] + 100. * maxsigma[i]
 
                 # create a bounded MultivariateNormal distribution
                 BoundedMvN = pymc3.Bound(pymc3.MvNormal, lower=lower, upper=upper)

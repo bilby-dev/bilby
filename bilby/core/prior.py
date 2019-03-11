@@ -2159,7 +2159,10 @@ class MultivariateGaussianDist(object):
                     inbound = True
 
         for i, name in enumerate(self.names):
-            self.current_sample[name] = samps[:, i].flatten()
+            if size == 1:
+                self.current_sample[name] = samps[:, i].flatten()[0]
+            else:
+                self.current_sample[name] = samps[:, i].flatten()
 
     def ln_prob(self, value):
         """
@@ -2217,7 +2220,7 @@ class MultivariateGaussianDist(object):
 
 
 class MultivariateNormalDist(object):
-    
+
     def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
                  covs=None, weights=None, bounds=None):
         """
@@ -2391,9 +2394,16 @@ class MultivariateGaussian(Prior):
 
             # check for the same number of values for each parameter
             for i in range(len(self.mvg) - 1):
-                if len(values[i]) != len(values[i + 1]):
-                    raise ValueError("Each parameter must have the same "
-                                     "number of requested values.")
+                if (isinstance(values[i], (list, np.ndarray)) or
+                        isinstance(values[i + 1], (list, np.ndarray))):
+                    if (isinstance(values[i], (list, np.ndarray)) and
+                            isinstance(values[i + 1], (list, np.ndarray))):
+                        if len(values[i]) != len(values[i + 1]):
+                            raise ValueError("Each parameter must have the same "
+                                             "number of requested values.")
+                    else:
+                        raise ValueError("Each parameter must have the same "
+                                         "number of requested values.")
 
             lnp = self.mvg.ln_prob(np.asarray(values).T)
 
@@ -2410,7 +2420,7 @@ class MultivariateGaussian(Prior):
             else:
                 try:
                     # check value has a length
-                    checklen = len(val)
+                    len(val)
                 except Exception as e:
                     raise TypeError('Invalid type for ln_prob: {}'.format(e))
 
@@ -2443,7 +2453,7 @@ class MultivariateGaussian(Prior):
 
 
 class MultivariateNormal(MultivariateGaussian):
-    
+
     def __init__(self, mvg, name=None, latex_label=None, unit=None):
         """A synonym for the :class:`bilby.core.prior.MultivariateGaussian`
         prior distribution.
