@@ -10,9 +10,9 @@ class TestLalBBH(unittest.TestCase):
 
     def setUp(self):
         self.parameters = dict(
-            mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.0,
-            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, theta_jn=0.0,
-            phase=0.0)
+            mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.4,
+            tilt_1=0.2, phi_12=1.0, a_2=0.8, tilt_2=2.7, phi_jl=2.9,
+            theta_jn=0.3, phase=0.0)
         self.waveform_kwargs = dict(
             waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
             minimum_frequency=20.0)
@@ -53,8 +53,8 @@ class TestLalBNS(unittest.TestCase):
 
     def setUp(self):
         self.parameters = dict(
-            mass_1=1.4, mass_2=1.4, luminosity_distance=400.0, chi_1=0.0,
-            chi_2=0.0, theta_jn=0.0, phase=0.0, lambda_1=0.0, lambda_2=0.0)
+            mass_1=1.4, mass_2=1.4, luminosity_distance=400.0, chi_1=0.4,
+            chi_2=0.3, theta_jn=1.7, phase=0.0, lambda_1=100.0, lambda_2=100.0)
         self.waveform_kwargs = dict(
             waveform_approximant='TaylorF2', reference_frequency=50.0,
             minimum_frequency=20.0)

@@ -119,8 +119,8 @@ def lal_binary_neutron_star(
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1])
     a_1 = abs(chi_1)
     a_2 = abs(chi_2)
-    tilt_1 = np.arccos(chi_1)
-    tilt_2 = np.arccos(chi_2)
+    tilt_1 = np.arccos(np.sign(chi_1))
+    tilt_2 = np.arccos(np.sign(chi_2))
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,

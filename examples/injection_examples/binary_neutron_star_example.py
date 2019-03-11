@@ -85,11 +85,11 @@ priors['delta_lambda'] = bilby.core.prior.Uniform(
 likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=interferometers, waveform_generator=waveform_generator,
     time_marginalization=False, phase_marginalization=False,
-    distance_marginalization=False, prior=priors)
+    distance_marginalization=False, priors=priors)
 
 # Run sampler.  In this case we're going to use the `nestle` sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='nestle', npoints=1000,
+    likelihood=likelihood, priors=priors, sampler='nestle', npoints=100,
     injection_parameters=injection_parameters, outdir=outdir, label=label,
     conversion_function=bilby.gw.conversion.generate_all_bns_parameters)
 
