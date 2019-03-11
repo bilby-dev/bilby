@@ -125,10 +125,10 @@ class TestPriorClasses(unittest.TestCase):
     def setUp(self):
 
         # set multivariate Gaussian
-        mvg = bilby.core.prior.MultivariateGaussian(names=['testa', 'testb'],
-                                                    mus=[1, 1],
-                                                    covs=np.array([[2., 0.5], [0.5, 2.]]),
-                                                    weights=1.)
+        mvg = bilby.core.prior.MultivariateGaussianDist(names=['testa', 'testb'],
+                                                        mus=[1, 1],
+                                                        covs=np.array([[2., 0.5], [0.5, 2.]]),
+                                                        weights=1.)
 
         self.priors = [
             bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
@@ -160,14 +160,14 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
-            bilby.core.prior.MultivariateGaussianPrior(mvg=mvg, name='testa', unit='unit'),
-            bilby.core.prior.MultivariateGaussianPrior(mvg=mvg, name='testb', unit='unit'),
+            bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
+            bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
         ]
 
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 minimum_sample = prior.rescale(0)
                 if prior.mvg.filled_rescale():
                     self.assertAlmostEqual(minimum_sample[0], prior.minimum)
@@ -179,7 +179,7 @@ class TestPriorClasses(unittest.TestCase):
     def test_maximum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 maximum_sample = prior.rescale(0)
                 if prior.mvg.filled_rescale():
                     self.assertAlmostEqual(maximum_sample[0], prior.maximum)
@@ -192,7 +192,7 @@ class TestPriorClasses(unittest.TestCase):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             many_samples = prior.rescale(np.random.uniform(0, 1, 1000))
-            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 if not prior.mvg.filled_rescale():
                     continue
             self.assertTrue(all((many_samples >= prior.minimum) & (many_samples <= prior.maximum)))
@@ -253,82 +253,82 @@ class TestPriorClasses(unittest.TestCase):
     def test_multivariate_gaussian_fail(self):
         with self.assertRaises(ValueError):
             # bounds is wrong length
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  bounds=[(-1., 1.)])
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      bounds=[(-1., 1.)])
         with self.assertRaises(ValueError):
             # bounds has lower value greater than upper
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  bounds=[(-1., 1.), (1., -1)])
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      bounds=[(-1., 1.), (1., -1)])
         with self.assertRaises(TypeError):
             # bound is not a list/tuple
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  bounds=[(-1., 1.), 2])
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      bounds=[(-1., 1.), 2])
         with self.assertRaises(ValueError):
             # bound contains too many values
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  bounds=[(-1., 1., 4), 2])
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      bounds=[(-1., 1., 4), 2])
         with self.assertRaises(ValueError):
             # means is not a list
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], mus=1.)
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], mus=1.)
         with self.assertRaises(ValueError):
             # sigmas is not a list
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=1.)
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=1.)
         with self.assertRaises(TypeError):
             # covariances is not a list
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], covs=1.)
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], covs=1.)
         with self.assertRaises(TypeError):
             # correlation coefficients is not a list
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], corrcoefs=1.)
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], corrcoefs=1.)
         with self.assertRaises(ValueError):
             # wrong number of weights
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], weights=[0.5, 0.5])
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], weights=[0.5, 0.5])
         with self.assertRaises(ValueError):
             # not enough modes set
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], mus=[[1., 2.]],
-                                                  nmodes=2)
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], mus=[[1., 2.]],
+                                                      nmodes=2)
         with self.assertRaises(ValueError):
             # covariance is the wrong shape
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  covs=np.array([[[1., 1.],
-                                                                  [1., 1.]]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      covs=np.array([[[1., 1.],
+                                                                      [1., 1.]]]))
         with self.assertRaises(ValueError):
             # covariance is the wrong shape
-            bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                  covs=np.array([[[1., 1.]]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                      covs=np.array([[[1., 1.]]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is the wrong shape
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
-                                                  corrcoefs=np.array([[[[1., 1.],
-                                                                        [1., 1.]]]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 1.],
+                                                      corrcoefs=np.array([[[[1., 1.],
+                                                                            [1., 1.]]]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is the wrong shape
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
-                                                  corrcoefs=np.array([[[1., 1.]]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 1.],
+                                                      corrcoefs=np.array([[[1., 1.]]]))
         with self.assertRaises(ValueError):
             # correlation coefficient has non-unity diagonal value
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 1.],
-                                                  corrcoefs=np.array([[1., 1.],
-                                                                      [1., 2.]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 1.],
+                                                      corrcoefs=np.array([[1., 1.],
+                                                                          [1., 2.]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is not symmetric
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
-                                                  corrcoefs=np.array([[1., -1.2],
-                                                                      [-0.3, 1.]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 2.],
+                                                      corrcoefs=np.array([[1., -1.2],
+                                                                          [-0.3, 1.]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is not positive definite
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2.],
-                                                  corrcoefs=np.array([[1., -1.3],
-                                                                      [-1.3, 1.]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 2.],
+                                                      corrcoefs=np.array([[1., -1.3],
+                                                                          [-1.3, 1.]]))
         with self.assertRaises(ValueError):
             # wrong number of sigmas
-            bilby.core.prior.MultivariateGaussian(['a', 'b'], sigmas=[1., 2., 3.],
-                                                  corrcoefs=np.array([[1., 0.3],
-                                                                      [0.3, 1.]]))
+            bilby.core.prior.MultivariateGaussianDist(['a', 'b'], sigmas=[1., 2., 3.],
+                                                      corrcoefs=np.array([[1., 0.3],
+                                                                          [0.3, 1.]]))
 
     def test_multivariate_gaussian_covariance(self):
         """Test that the correlation coefficient/covariance matrices are correct"""
         cov = np.array([[4., 0], [0., 9.]])
-        mvg = bilby.core.prior.MultivariateGaussian(['a', 'b'], covs=cov)
+        mvg = bilby.core.prior.MultivariateGaussianDist(['a', 'b'], covs=cov)
         self.assertEqual(mvg.nmodes, 1)
         self.assertTrue(np.allclose(mvg.covs[0], cov))
         self.assertTrue(np.allclose(mvg.sigmas[0], np.sqrt(np.diag(cov))))
@@ -336,9 +336,9 @@ class TestPriorClasses(unittest.TestCase):
 
         corrcoef = np.array([[1., 0.5], [0.5, 1.]])
         sigma = [2., 2.]
-        mvg = bilby.core.prior.MultivariateGaussian(['a', 'b'],
-                                                    corrcoefs=corrcoef,
-                                                    sigmas=sigma)
+        mvg = bilby.core.prior.MultivariateGaussianDist(['a', 'b'],
+                                                        corrcoefs=corrcoef,
+                                                        sigmas=sigma)
         self.assertTrue(np.allclose(mvg.corrcoefs[0], corrcoef))
         self.assertTrue(np.allclose(mvg.sigmas[0], sigma))
         self.assertTrue(np.allclose(np.diag(mvg.covs[0]), np.square(sigma)))
@@ -370,7 +370,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             if isinstance(prior, bilby.core.prior.Cauchy):
                 continue
-            if isinstance(prior, bilby.core.prior.MultivariateGaussianPrior):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 continue
             elif isinstance(prior, bilby.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
@@ -431,7 +431,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue  # we cannot test this because of the numpy arrays
             if isinstance(prior, bilby.core.prior.Beta):
                 continue  # We cannot test this as it has a frozen scipy dist
-            if isinstance(prior, (bilby.core.prior.MultivariateGaussianPrior)):
+            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 continue  # we cannot test this because of the internal objects
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)

@@ -1775,7 +1775,7 @@ class FromFile(Interped):
             logger.warning(r"x\tp(x)")
 
 
-class MultivariateGaussian(object):
+class MultivariateGaussianDist(object):
 
     def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
                  covs=None, weights=None, bounds=None):
@@ -2134,6 +2134,9 @@ class MultivariateGaussian(object):
             chosen randomly based on its weight.
         """
 
+        if size is None:
+            size = 1
+
         # samples drawn from unit variance uncorrelated multivariate Gaussian
         samps = np.zeros((size, len(self)))
         for i in range(size):
@@ -2213,7 +2216,55 @@ class MultivariateGaussian(object):
         return len(self.names)
 
 
-class MultivariateGaussianPrior(Prior):
+class MultivariateNormalDist(object):
+    
+    def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
+                 covs=None, weights=None, bounds=None):
+        """
+        A synonym for the :class:`~bilby.core.prior.MultivariateGaussianDist`
+        distribution.
+
+        Parameters
+        ----------
+        names: list
+            A list of the parameter names in the multivariate Gaussian. The
+            listed parameters must have the same order that they appear in
+            the lists of means, standard deviations, and the correlation
+            coefficient, or covariance, matrices.
+        nmodes: int
+            The number of modes for the mixture model. This defaults to 1,
+            which will be checked against the shape of the other inputs.
+        mus: array_like
+            A list of lists of means of each mode in a multivariate Gaussian
+            mixture model. A single list can be given for a single mode. If
+            this is None then means at zero will be assumed.
+        sigmas: array_like
+            A list of lists of the standard deviations of each mode of the
+            multivariate Gaussian. If supplying a correlation coefficient
+            matrix rather than a covariance matrix these values must be given.
+            If this is None unit variances will be assumed.
+        corrcoefs: array
+            A list of square matrices containing the correlation coefficients
+            of the parameters for each mode. If this is None it will be assumed
+            that the parameters are uncorrelated.
+        covs: array
+            A list of square matrices containing the covariance matrix of the
+            multivariate Gaussian.
+        weights: list
+            A list of weights (relative probabilities) for each mode of the
+            multivariate Gaussian. This will default to equal weights for each
+            mode.
+        bounds: list
+            A list of bounds on each parameter. The defaults are for bounds at
+            +/- infinity.
+        """
+        MultivariateGaussianDist.__init__(self, names, nmodes=nmodes,
+                                          mus=mus, sigmas=sigmas,
+                                          corrcoefs=corrcoefs, covs=covs,
+                                          weights=weights, bounds=bounds)
+
+
+class MultivariateGaussian(Prior):
 
     def __init__(self, mvg, name=None, latex_label=None, unit=None):
         """
@@ -2221,8 +2272,8 @@ class MultivariateGaussianPrior(Prior):
 
         Parameters
         ----------
-        mvg: MultivariateGaussian
-            A :class:`bilby.core.prior.MultivariateGaussian` object defining
+        mvg: MultivariateGaussianDist
+            A :class:`bilby.core.prior.MultivariateGaussianDist` object defining
             the multivariate Gaussian distribution. This object is not copied,
             as it needs to be shared across multiple priors, and as such its
             contents will be altered by the prior.
@@ -2235,10 +2286,10 @@ class MultivariateGaussianPrior(Prior):
 
         """
 
-        if not isinstance(mvg, MultivariateGaussian):
+        if not isinstance(mvg, MultivariateGaussianDist):
             raise TypeError("Must supply a multivariate Gaussian object")
 
-        # check name is in the MultivariateGaussian class
+        # check name is in the MultivariateGaussianDist class
         if name not in mvg.names:
             raise ValueError("'{}' is not a parameter in the multivariate "
                              "Gaussian")
@@ -2356,13 +2407,17 @@ class MultivariateGaussianPrior(Prior):
             # if not all parameters have been requested yet, just return 0
             if isinstance(val, (float, int)):
                 return 0.
-            elif isinstance(val, (list, np.ndarray)):
+            else:
+                try:
+                    # check value has a length
+                    checklen = len(val)
+                except Exception as e:
+                    raise TypeError('Invalid type for ln_prob: {}'.format(e))
+
                 if len(val) == 1:
                     return 0.
                 else:
                     return np.zeros_like(val)
-            else:
-                raise TypeError('Invalid type for ln_prob')
 
     @property
     def minimum(self):
@@ -2372,7 +2427,7 @@ class MultivariateGaussianPrior(Prior):
     def minimum(self, minimum):
         self._minimum = minimum
 
-        # update the bounds in the MultivariateGaussian
+        # update the bounds in the MultivariateGaussianDist
         self.mvg.bounds[self.name] = (minimum, self.mvg.bounds[self.name][1])
 
     @property
@@ -2383,5 +2438,29 @@ class MultivariateGaussianPrior(Prior):
     def maximum(self, maximum):
         self._maximum = maximum
 
-        # update the bounds in the MultivariateGaussian
+        # update the bounds in the MultivariateGaussianDist
         self.mvg.bounds[self.name] = (self.mvg.bounds[self.name][0], maximum)
+
+
+class MultivariateNormal(MultivariateGaussian):
+    
+    def __init__(self, mvg, name=None, latex_label=None, unit=None):
+        """A synonym for the :class:`bilby.core.prior.MultivariateGaussian`
+        prior distribution.
+
+        Parameters
+        ----------
+        mvg: MultivariateGaussianDist
+            A :class:`bilby.core.prior.MultivariateGaussianDist` object
+            defining the multivariate Gaussian distribution. This object is not
+            copied, as it needs to be shared across multiple priors, and as
+            such its contents will be altered by the prior.
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        MultivariateGaussian.__init__(self, mvg, name=name,
+                                      latex_label=latex_label, unit=unit)
