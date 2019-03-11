@@ -1580,17 +1580,20 @@ class Interferometer(object):
         label: str
             The name of the output files
         """
-        np.savetxt('{}/{}_frequency_domain_data.dat'.format(outdir, self.name),
+
+        if label is None:
+            filename_psd = '{}/{}_psd.dat'.format(outdir, self.name)
+            filename_data = '{}/{}_frequency_domain_data.dat'.format(outdir, self.name)
+        else:
+            filename_psd = '{}/{}_{}_psd.dat'.format(outdir, self.name, label)
+            filename_data = '{}/{}_{}_frequency_domain_data.dat'.format(outdir, self.name, label)
+        np.savetxt(filename_data,
                    np.array(
                        [self.frequency_array,
                         self.frequency_domain_strain.real,
                         self.frequency_domain_strain.imag]).T,
                    header='f real_h(f) imag_h(f)')
-        if label is None:
-            filename = '{}/{}_psd.dat'.format(outdir, self.name)
-        else:
-            filename = '{}/{}_{}_psd.dat'.format(outdir, self.name, label)
-        np.savetxt(filename,
+        np.savetxt(filename_psd,
                    np.array(
                        [self.frequency_array,
                         self.amplitude_spectral_density_array]).T,
