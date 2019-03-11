@@ -1,5 +1,6 @@
 from __future__ import division
 
+import os
 import json
 
 import numpy as np
@@ -297,10 +298,62 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._rho_mf_ref_array, self._rho_opt_ref_array,
             self._dist_margd_loglikelihood_array)
 
+    @property
+    def cached_lookup_table_filename(self):
+        dmin = self._distance_array[0]
+        dmax = self._distance_array[-1]
+        n = len(self._distance_array)
+        cached_lookup_table_filename = (
+            '.distance_marginalization_lookup_dmin{}_dmax{}_n{}_v1.npy'
+            .format(dmin, dmax, n))
+        return cached_lookup_table_filename
+
+    @property
+    def cached_lookup_table(self):
+        """ Reads in the cached lookup table
+
+        Returns
+        -------
+        cached_lookup_table: np.ndarray
+            Columns are _distance_array, distance_prior_array,
+            dist_marged_log_l_tc_array. This is only returned if the file
+            exists and the first two columns match the equivalent values
+            stored on disk.
+
+        """
+
+        if os.path.exists(self.cached_lookup_table_filename):
+            loaded_file = np.load(self.cached_lookup_table_filename)
+            if self._test_cached_lookup_table(loaded_file):
+                return loaded_file
+        else:
+            return None
+
+    @cached_lookup_table.setter
+    def cached_lookup_table(self, lookup_table):
+        np.save(self.cached_lookup_table_filename, lookup_table)
+
+    def _test_cached_lookup_table(self, lookup_table):
+        cond_a = np.all(self._distance_array == lookup_table[0])
+        cond_b = np.all(self.distance_prior_array == lookup_table[1])
+        if cond_a and cond_b:
+            return True
+
     def _create_lookup_table(self):
         """ Make the lookup table """
-        self.distance_prior_array = np.array([self.priors['luminosity_distance'].prob(distance)
-                                              for distance in self._distance_array])
+
+        self.distance_prior_array = np.array(
+            [self.priors['luminosity_distance'].prob(distance)
+             for distance in self._distance_array])
+
+        # Check if a cached lookup table exists in file
+        cached_lookup_table = self.cached_lookup_table
+        if cached_lookup_table is not None:
+            self._dist_margd_loglikelihood_array = cached_lookup_table[-1]
+            logger.info("Using the cached lookup table {}"
+                        .format(os.path.abspath(self.cached_lookup_table_filename)))
+            return
+
         logger.info('Building lookup table for distance marginalisation.')
 
         self._dist_margd_loglikelihood_array = np.zeros((400, 800))
@@ -317,6 +370,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         log_norm = logsumexp(0. / self._distance_array - 0. / self._distance_array ** 2.,
                              b=self.distance_prior_array * self._delta_distance)
         self._dist_margd_loglikelihood_array -= log_norm
+        self.cached_lookup_table = np.array([
+            self._distance_array,
+            self.distance_prior_array,
+            self._dist_margd_loglikelihood_array])
 
     def _setup_phase_marginalization(self):
         self._bessel_function_interped = interp1d(
