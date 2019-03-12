@@ -69,4 +69,3 @@ result = bilby.run_sampler(
 #     likelihood=likelihood, priors=priors, sampler='emcee', nsteps=1000,
 #     nwalkers=200, nburn=500, outdir=outdir, label=label)
 result.plot_corner()
-

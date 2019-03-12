@@ -1888,11 +1888,21 @@ class MultivariateGaussianDist(object):
             if covs is not None:
                 if isinstance(covs, np.ndarray):
                     covs = [covs]
-                elif not isinstance(covs, list):
+                elif isinstance(covs, list):
+                    if len(np.shape(covs)) == 2:
+                        covs = [np.array(covs)]
+                    elif len(np.shape(covs)) != 3:
+                        raise TypeError("List of covariances the wrong shape")
+                else:
                     raise TypeError("Must pass a list of covariances")
             if corrcoefs is not None:
                 if isinstance(corrcoefs, np.ndarray):
                     corrcoefs = [corrcoefs]
+                elif isinstance(corrcoefs, list):
+                    if len(np.shape(corrcoefs)) == 2:
+                        corrcoefs = [np.array(corrcoefs)]
+                    elif len(np.shape(corrcoefs)) != 3:
+                        raise TypeError("List of correlation coefficients the wrong shape")
                 elif not isinstance(corrcoefs, list):
                     raise TypeError("Must pass a list of correlation "
                                     "coefficients")
