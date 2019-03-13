@@ -2395,7 +2395,6 @@ class MultivariateGaussian(Prior):
         """
 
         # add parameter value to multivariate Gaussian
-        prevval = self.mvg.requested_parameters[self.name]  # previous value
         self.mvg.requested_parameters[self.name] = val
 
         if self.mvg.filled_request():
@@ -2418,9 +2417,7 @@ class MultivariateGaussian(Prior):
             lnp = self.mvg.ln_prob(np.asarray(values).T)
 
             # reset the requested parameters
-            if prevval is not None:
-                if np.all(np.asarray(val) != np.asarray(prevval)):
-                    self.mvg.reset_request()
+            self.mvg.reset_request()
 
             return lnp
         else:
