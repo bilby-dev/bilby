@@ -68,9 +68,9 @@ aidx = [0, 3]
 for j in range(2):  # loop over parameters
     gp = np.zeros(len(x))
     for i in range(nmodes):  # loop over modes
-        gp += weights[i]*stats.norm.pdf(x, loc=mus[i][j], scale=mvg.sigmas[i][j])
-    gp = gp/np.trapz(gp, x)  # renormalise
-    
+        gp += weights[i] * stats.norm.pdf(x, loc=mus[i][j], scale=mvg.sigmas[i][j])
+    gp = gp / np.trapz(gp, x)  # renormalise
+
     axs[aidx[j]].plot(x, gp, 'k--', lw=2)
 
 # plot the 2d distribution
