@@ -134,6 +134,19 @@ class TestGWTransient(unittest.TestCase):
                    'priors={})'.format(self.interferometers, self.waveform_generator, False, False, False, self.prior)
         self.assertEqual(expected, repr(self.likelihood))
 
+    def test_interferometers_setting_list(self):
+        ifos = [bilby.gw.detector.get_empty_interferometer(name=name) for name in ['H1', 'L1']]
+        self.likelihood.interferometers = ifos
+        self.assertListEqual(bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers)
+        self.assertTrue(type(self.likelihood.interferometers) == bilby.gw.detector.InterferometerList)
+
+    def test_interferometers_setting_interferometer_list(self):
+        ifos = bilby.gw.detector.InterferometerList([bilby.gw.detector.get_empty_interferometer(name=name)
+                                                     for name in ['H1', 'L1']])
+        self.likelihood.interferometers = ifos
+        self.assertListEqual(bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers)
+        self.assertTrue(type(self.likelihood.interferometers) == bilby.gw.detector.InterferometerList)
+
 
 class TestTimeMarginalization(unittest.TestCase):
 
