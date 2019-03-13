@@ -391,6 +391,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.time_prior_array =\
             self.priors['geocent_time'].prob(self._times) * delta_tc
 
+    @property
+    def interferometers(self):
+        return self._interferometers
+
+    @interferometers.setter
+    def interferometers(self, interferometers):
+        self._interferometers = InterferometerList(interferometers)
+
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
 
