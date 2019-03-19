@@ -41,12 +41,13 @@ class TestLalBBH(unittest.TestCase):
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters), dict)
 
-    def test_lal_bbh_works_with_time_domain_approximant(self):
-        self.waveform_kwargs['waveform_approximant'] = 'SEOBNRv3'
-        self.parameters.update(self.waveform_kwargs)
-        self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters), dict)
+    # Removed due to issue with SimInspiralFD - see https://git.ligo.org/lscsoft/lalsuite/issues/153
+    # def test_lal_bbh_works_with_time_domain_approximant(self):
+    #     self.waveform_kwargs['waveform_approximant'] = 'SEOBNRv3'
+    #     self.parameters.update(self.waveform_kwargs)
+    #     self.assertIsInstance(
+    #         bilby.gw.source.lal_binary_black_hole(
+    #             self.frequency_array, **self.parameters), dict)
 
 
 class TestLalBNS(unittest.TestCase):

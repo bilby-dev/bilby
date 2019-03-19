@@ -42,9 +42,6 @@ basic-3.7:
 python-2.7:
   stage: test
   image: bilbydev/bilby-test-suite-python27
-  before_script:
-    # Install the dependencies specified in the Pipfile
-    - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
   script:
     - python setup.py install
     # Run tests without finding coverage
@@ -54,9 +51,6 @@ python-2.7:
 python-3.7:
   stage: test
   image: bilbydev/bilby-test-suite-python37
-  before_script:
-    # Install the dependencies specified in the Pipfile
-    - pipenv install --three --python=/opt/conda/bin/python --system --deploy
   script:
     - python setup.py install
 

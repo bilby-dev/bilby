@@ -418,8 +418,10 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
 
     if loaded is False:
         ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
-                              'DCH-CLEAN_STRAIN_C02']
-        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+                              'DCH-CLEAN_STRAIN_C02', 'GWOSC-16KHZ_R1_STRAIN',
+                              'GWOSC-4KHZ_R1_STRAIN']
+        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R',
+                               'GWOSC-16KHZ_R1_STRAIN', 'GWOSC-4KHZ_R1_STRAIN']
         channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
         for detector in channel_types.keys():
             for channel_type in channel_types[detector]:
