@@ -2223,7 +2223,7 @@ class MultivariateGaussianDist(object):
         probability will not be properly normalised.
         """
 
-        return np.exp(self.log_prob(samp))
+        return np.exp(self.ln_prob(samp))
 
     def __len__(self):
         return len(self.names)

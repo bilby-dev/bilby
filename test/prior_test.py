@@ -129,6 +129,10 @@ class TestPriorClasses(unittest.TestCase):
                                                         mus=[1, 1],
                                                         covs=np.array([[2., 0.5], [0.5, 2.]]),
                                                         weights=1.)
+        mvn = bilby.core.prior.MultivariateGaussianDist(names=['testa', 'testb'],
+                                                        mus=[1, 1],
+                                                        covs=np.array([[2., 0.5], [0.5, 2.]]),
+                                                        weights=1.)
 
         self.priors = [
             bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
@@ -162,6 +166,8 @@ class TestPriorClasses(unittest.TestCase):
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
+            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testa', unit='unit'),
+            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit')
         ]
 
     def test_minimum_rescaling(self):
@@ -447,7 +453,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.HalfGaussian, bilby.core.prior.LogNormal,
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
-                    bilby.core.prior.Gamma)):
+                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian)):
                 continue
             prior.maximum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(max(prior.sample(10000)) < prior.maximum)
@@ -459,7 +465,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.HalfGaussian, bilby.core.prior.LogNormal,
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
-                    bilby.core.prior.Gamma)):
+                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian)):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
