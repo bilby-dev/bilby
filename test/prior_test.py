@@ -237,7 +237,10 @@ class TestPriorClasses(unittest.TestCase):
     def test_prob_and_ln_prob(self):
         for prior in self.priors:
             sample = prior.sample()
-            self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
+            if not isinstance(prior, bilby.core.prior.MultivariateGaussian):
+                # due to the way that the Multivariate Gaussian prior must sequentially call
+                # the prob and ln_prob functions, it must be ignored in this test.
+                self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
 
     def test_log_normal_fail(self):
         with self.assertRaises(ValueError):
