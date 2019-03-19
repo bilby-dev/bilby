@@ -162,7 +162,6 @@ class TestGWUtils(unittest.TestCase):
     def test_get_approximant(self):
         with self.assertRaises(ValueError):
             gwutils.lalsim_GetApproximantFromString(10)
-        self.assertEqual(gwutils.lalsim_GetApproximantFromString("IMRPhenomPV2"), 69)
 
     def test_lalsim_SimInspiralChooseFDWaveform(self):
         a = gwutils.lalsim_SimInspiralChooseFDWaveform(
