@@ -283,8 +283,9 @@ class TestResult(unittest.TestCase):
         x = np.linspace(0, 1, 10)
         y = np.linspace(0, 1, 10)
 
-        def model(xx):
+        def model(xx, theta):
             return xx
+        self.result.posterior = pd.DataFrame(dict(theta=[1, 2, 3]))
         self.result.plot_with_data(model, x, y, ndraws=10)
         self.assertTrue(
             os.path.isfile('{}/{}_plot_with_data.png'.format(

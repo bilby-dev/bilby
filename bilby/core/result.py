@@ -200,6 +200,8 @@ class Result(object):
             if len(dictionary) == 1 and 'data' in dictionary:
                 dictionary = dictionary['data']
             try:
+                if isinstance(dictionary.get('posterior', None), dict):
+                    dictionary['posterior'] = pd.DataFrame(dictionary['posterior'])
                 return cls(**dictionary)
             except TypeError as e:
                 raise IOError("Unable to load dictionary, error={}".format(e))
@@ -425,6 +427,9 @@ class Result(object):
                     json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
                 import deepdish
+                for key in dictionary:
+                    if isinstance(dictionary[key], pd.DataFrame):
+                        dictionary[key] = dictionary[key].to_dict()
                 deepdish.io.save(file_name, dictionary)
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
