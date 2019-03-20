@@ -770,6 +770,86 @@ class LogUniform(PowerLaw):
             logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
 
+class SymmetricLogUniform(Prior):
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None,
+                 unit=None):
+        """Symmetric Log-Uniform distribtions with bounds
+
+        This is identical to a Log-Uniform distribition, but mirrored about
+        the zero-axis and subsequently normalized. As such, the distribution
+        has support on the two regions [-maximum, -minimum] and [minimum,
+        maximum].
+
+        Parameters
+        ----------
+        minimum: float
+            See superclass
+        maximum: float
+            See superclass
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label,
+                       minimum=minimum, maximum=maximum, unit=unit)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the power-law prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Parameters
+        ----------
+        val: float
+            Uniform probability
+
+        Returns
+        -------
+        float: Rescaled probability
+        """
+        Prior.test_valid_for_rescaling(val)
+        if val < 0.5:
+            return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
+        elif val > 0.5:
+            return self.minimum * np.exp(np.log(self.maximum / self.minimum) * (2 * val - 1))
+        else:
+            raise ValueError("Rescale not valid for val=0.5")
+
+    def prob(self, val):
+        """Return the prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return (
+            np.nan_to_num(0.5 / np.abs(val) / np.log(self.maximum / self.minimum)) *
+            self.is_in_prior_range(val))
+
+    def ln_prob(self, val):
+        """Return the logarithmic prior probability of val
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float:
+
+        """
+        return np.nan_to_num(- np.log(2 * np.abs(val)) - np.log(np.log(self.maximum / self.minimum)))
+
+
 class Cosine(Prior):
 
     def __init__(self, name=None, latex_label=None, unit=None,
