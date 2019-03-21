@@ -378,6 +378,7 @@ class Dynesty(NestedSampler):
 
     def _run_test(self):
         import dynesty
+        import pandas as pd
         self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
@@ -387,7 +388,8 @@ class Dynesty(NestedSampler):
 
         self.sampler.run_nested(**sampler_kwargs)
 
-        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
+        self.result.samples = pd.DataFrame(
+            self.priors.sample(100))[self.search_parameter_keys].values
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
