@@ -11,6 +11,7 @@ import json
 
 import numpy as np
 from scipy.interpolate import interp2d
+from scipy.special import logsumexp
 import pandas as pd
 
 logger = logging.getLogger('bilby')
@@ -681,6 +682,25 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
         count += 1
 
     return grads
+
+
+def logtrapzexp(lnf, dx):
+    """
+    Perform trapezium rule integration for the logarithm of a function on a regular grid.
+
+    Parameters
+    ----------
+    lnf: array_like
+        A :class:`numpy.ndarray` of values that are the natural logarithm of a function
+    dx: (array_like, float)
+        A :class:`numpy.ndarray` of steps sizes between values in the function, or a
+        single step size value.
+
+    Returns
+    -------
+    The natural logarithm of the area under the function.
+    """
+    return np.log(dx / 2.) + logsumexp([logsumexp(lnf[:-1]), logsumexp(lnf[1:])])
 
 
 def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
