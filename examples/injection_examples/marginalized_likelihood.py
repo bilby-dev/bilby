@@ -48,7 +48,7 @@ priors['geocent_time'] = bilby.core.prior.Uniform(
     name='geocent_time', latex_label='$t_c$', unit='$s$')
 # These parameters will not be sampled
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'theta_jn', 'ra',
-            'dec']:
+            'dec', 'mass_1', 'mass_2']:
     priors[key] = injection_parameters[key]
 
 # Initialise GravitationalWaveTransient
