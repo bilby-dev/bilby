@@ -1852,3 +1852,110 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.id))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
+
+
+class FermiDirac(Prior):
+    def __init__(self, sigma, mu=None, r=None, name=None, latex_label=None,
+                 unit=None):
+        """A Fermi-Dirac type prior, with a fixed lower boundary at zero
+        (see, e.g. Section 2.3.5 of [1]_). The probability distribution
+        is defined by Equation 22 of [1]_.
+
+        Parameters
+        ----------
+        sigma: float (required)
+            The range over which the attenuation of the distribution happens
+        mu: float
+            The point at which the distribution falls to 50% of its maximum
+            value
+        r: float
+            A value giving mu/sigma. This can be used instead of specifying
+            mu.
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+
+        References
+        ----------
+
+        .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
+           <https:arxiv.org/abs/1705.08978v1>`_, 2017.
+        """
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, minimum=0.)
+
+        self.sigma = sigma
+
+        if mu is None and r is None:
+            raise ValueError("For the Fermi-Dirac prior either a 'mu' value or 'r' "
+                             "value must be given.")
+
+        if r is None and mu is not None:
+            self.mu = mu
+            self.r = self.mu / self.sigma
+        else:
+            self.r = r
+            self.mu = self.sigma * self.r
+
+        if self.r <= 0. or self.sigma <= 0.:
+            raise ValueError("For the Fermi-Dirac prior the values of sigma and r "
+                             "must be positive.")
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the appropriate Fermi-Dirac prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case,
+        see Equation 24 of [1]_.
+
+        References
+        ----------
+
+        .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
+           <https:arxiv.org/abs/1705.08978v1>`_, 2017.
+        """
+        Prior.test_valid_for_rescaling(val)
+
+        inv = (-np.exp(-1. * self.r) + (1. + np.exp(self.r))**-val +
+               np.exp(-1. * self.r) * (1. + np.exp(self.r))**-val)
+
+        # if val is 1 this will cause inv to be negative (due to numerical
+        # issues), so return np.inf
+        if isinstance(val, (float, int)):
+            if inv < 0:
+                return np.inf
+            else:
+                return -self.sigma * np.log(inv)
+        else:
+            idx = inv >= 0.
+            tmpinv = np.inf * np.ones(len(val))
+            tmpinv[idx] = -self.sigma * np.log(inv[idx])
+            return tmpinv
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ----------
+        val: float
+
+        Returns
+        -------
+        float: Prior probability of val
+        """
+        return np.exp(self.ln_prob(val))
+
+    def ln_prob(self, val):
+        norm = -np.log(self.sigma * np.log(1. + np.exp(self.r)))
+        if isinstance(val, (float, int)):
+            if val < self.minimum:
+                return -np.inf
+            else:
+                return norm - np.logaddexp((val / self.sigma) - self.r, 0.)
+        else:
+            lnp = -np.inf * np.ones(len(val))
+            idx = val >= self.minimum
+            lnp[idx] = norm - np.logaddexp((val[idx] / self.sigma) - self.r, 0.)
+            return lnp
