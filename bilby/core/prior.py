@@ -1872,7 +1872,7 @@ class FermiDirac(Prior):
         r: float
             A value giving mu/sigma. This can be used instead of specifying
             mu.
-        
+
         References
         ----------
 
@@ -2662,4 +2662,3 @@ class MultivariateNormal(MultivariateGaussian):
         """
         MultivariateGaussian.__init__(self, mvg, name=name,
                                       latex_label=latex_label, unit=unit)
-
