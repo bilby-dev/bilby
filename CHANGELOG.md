@@ -11,6 +11,23 @@
 ### Removed
 -
 
+## [0.4.2] 2019-03-21
+
+### Added
+- Fermi-Dirac and SymmetricLogUniform prior distributions
+- Multivariate Gaussian example and BNS example
+- Added standard GWOSC channel names
+- Initial work on a fake sampler for testing
+- Option for aligned spins
+- Results file command line interface
+- Full reconstruction of marginalized parameters
+
+### Changed
+- Fixed scheduled tests and simplify testing environment
+- JSON result files can now be gzipped
+- Reduced ROQ memory usage
+- Default checkpointing in cpnest
+
 ## [0.4.1] 2019-03-04
 
 ### Added

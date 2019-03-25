@@ -44,8 +44,8 @@ if command_line_args.sampler_help:
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, meta_data=None, save=True, result_class=None,
-                **kwargs):
+                clean=None, meta_data=None, save=True, gzip=False,
+                result_class=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -88,6 +88,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     save: bool
         If true, save the priors and results to disk.
         If hdf5, save as an hdf5 file instead of json.
+    gzip: bool
+        If true, and save is true, gzip the saved results file. 
     result_class: bilby.core.result.Result, or child of
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
@@ -190,7 +192,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.save_to_file(extension='hdf5')
         logger.info("Results saved to {}/".format(outdir))
     elif save:
-        result.save_to_file()
+        result.save_to_file(gzip=gzip)
         logger.info("Results saved to {}/".format(outdir))
     if plot:
         result.plot_corner()

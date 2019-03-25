@@ -194,6 +194,26 @@ class TestResult(unittest.TestCase):
         self.assertEqual(self.result.priors['c'], loaded_result.priors['c'])
         self.assertEqual(self.result.priors['d'], loaded_result.priors['d'])
 
+    def test_save_and_load_gzip(self):
+        self.result.save_to_file(gzip=True)
+        loaded_result = bilby.core.result.read_in_result(
+            outdir=self.result.outdir, label=self.result.label, gzip=True)
+        self.assertTrue(np.array_equal
+                        (self.result.posterior.sort_values(by=['x']),
+                            loaded_result.posterior.sort_values(by=['x'])))
+        self.assertTrue(self.result.fixed_parameter_keys == loaded_result.fixed_parameter_keys)
+        self.assertTrue(self.result.search_parameter_keys == loaded_result.search_parameter_keys)
+        self.assertEqual(self.result.meta_data, loaded_result.meta_data)
+        self.assertEqual(self.result.injection_parameters, loaded_result.injection_parameters)
+        self.assertEqual(self.result.log_evidence, loaded_result.log_evidence)
+        self.assertEqual(self.result.log_noise_evidence, loaded_result.log_noise_evidence)
+        self.assertEqual(self.result.log_evidence_err, loaded_result.log_evidence_err)
+        self.assertEqual(self.result.log_bayes_factor, loaded_result.log_bayes_factor)
+        self.assertEqual(self.result.priors['x'], loaded_result.priors['x'])
+        self.assertEqual(self.result.priors['y'], loaded_result.priors['y'])
+        self.assertEqual(self.result.priors['c'], loaded_result.priors['c'])
+        self.assertEqual(self.result.priors['d'], loaded_result.priors['d'])
+
     def test_save_and_dont_overwrite_default(self):
         shutil.rmtree(
             '{}/{}_result.json.old'.format(self.result.outdir, self.result.label),

@@ -163,6 +163,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
+            bilby.core.prior.FermiDirac(name='test', unit='unit', sigma=1., r=10.),
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
@@ -353,6 +354,13 @@ class TestPriorClasses(unittest.TestCase):
         self.assertTrue(np.allclose(np.diag(mvg.covs[0]), np.square(sigma)))
         self.assertTrue(np.allclose(np.diag(np.fliplr(mvg.covs[0])), 2.*np.ones(2)))
 
+    def test_fermidirac_fail(self):
+        with self.assertRaises(ValueError):
+            bilby.core.prior.FermiDirac(name='test', unit='unit', sigma=1.)
+
+        with self.assertRaises(ValueError):
+            bilby.core.prior.FermiDirac(name='test', unit='unit', sigma=1., mu=-1)
+
     def test_probability_in_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
@@ -397,6 +405,8 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(0., 1e2, 5000)
             elif isinstance(prior, bilby.core.prior.Logistic):
                 domain = np.linspace(-1e2, 1e2, 1000)
+            elif isinstance(prior, bilby.core.prior.FermiDirac):
+                domain = np.linspace(0., 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
@@ -456,7 +466,8 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.HalfGaussian, bilby.core.prior.LogNormal,
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
-                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian)):
+                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian,
+                    bilby.core.prior.FermiDirac)):
                 continue
             prior.maximum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(max(prior.sample(10000)) < prior.maximum)
@@ -468,7 +479,8 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.HalfGaussian, bilby.core.prior.LogNormal,
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
-                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian)):
+                    bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian,
+                    bilby.core.prior.FermiDirac)):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)

@@ -357,8 +357,14 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        return ((self.frequency_array >= self.minimum_frequency) &
-                (self.frequency_array <= self.maximum_frequency))
+        try:
+            return self._frequency_mask
+        except AttributeError:
+            frequency_array = self._times_and_frequencies.frequency_array
+            mask = ((frequency_array >= self.minimum_frequency) &
+                    (frequency_array <= self.maximum_frequency))
+            self._frequency_mask = mask
+            return self._frequency_mask
 
     @property
     def alpha(self):
@@ -1604,24 +1610,29 @@ class Interferometer(object):
             return
 
         fig, ax = plt.subplots()
-        ax.loglog(self.frequency_array,
-                  gwutils.asd_from_freq_series(freq_data=self.frequency_domain_strain,
-                                               df=(self.frequency_array[1] - self.frequency_array[0])),
+        df = self.frequency_array[1] - self.frequency_array[0]
+        asd = gwutils.asd_from_freq_series(
+            freq_data=self.frequency_domain_strain, df=df)
+
+        ax.loglog(self.frequency_array[self.frequency_mask],
+                  asd[self.frequency_mask],
                   color='C0', label=self.name)
-        ax.loglog(self.frequency_array,
-                  self.amplitude_spectral_density_array,
-                  color='C1', lw=0.5, label=self.name + ' ASD')
+        ax.loglog(self.frequency_array[self.frequency_mask],
+                  self.amplitude_spectral_density_array[self.frequency_mask],
+                  color='C1', lw=1.0, label=self.name + ' ASD')
         if signal is not None:
-            ax.loglog(self.frequency_array,
-                      gwutils.asd_from_freq_series(freq_data=signal,
-                                                   df=(self.frequency_array[1] - self.frequency_array[0])),
+            signal_asd = gwutils.asd_from_freq_series(
+                freq_data=signal, df=df)
+
+            ax.loglog(self.frequency_array[self.frequency_mask],
+                      signal_asd[self.frequency_mask],
                       color='C2',
                       label='Signal')
         ax.grid(True)
-        ax.set_ylabel(r'strain [strain/$\sqrt{\rm Hz}$]')
-        ax.set_xlabel(r'frequency [Hz]')
-        ax.set_xlim(20, 2000)
+        ax.set_ylabel(r'Strain [strain/$\sqrt{\rm Hz}$]')
+        ax.set_xlabel(r'Frequency [Hz]')
         ax.legend(loc='best')
+        fig.tight_layout()
         if label is None:
             fig.savefig(
                 '{}/{}_frequency_domain_data.png'.format(outdir, self.name))
