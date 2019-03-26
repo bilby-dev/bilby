@@ -16,7 +16,8 @@ from .utils import logger, infer_args_from_method, check_directory_exists_and_if
 
 
 class PriorDict(OrderedDict):
-    def __init__(self, dictionary=None, filename=None):
+    def __init__(self, dictionary=None, filename=None,
+                 conversion_function=None):
         """ A set of priors
 
         Parameters
@@ -25,6 +26,9 @@ class PriorDict(OrderedDict):
             If given, a dictionary to generate the prior set.
         filename: str, None
             If given, a file containing the prior to generate the prior set.
+        conversion_function: func
+            Function to convert between sampled parameters and constraints.
+            Default is no conversion.
         """
         OrderedDict.__init__(self)
         if isinstance(dictionary, dict):
@@ -39,6 +43,35 @@ class PriorDict(OrderedDict):
             raise ValueError("PriorDict input dictionary not understood")
 
         self.convert_floats_to_delta_functions()
+
+        if conversion_function is not None:
+            self.conversion_function = conversion_function
+        else:
+            self.conversion_function = self.default_conversion_function
+
+    def evaluate_constraints(self, sample):
+        out_sample = self.conversion_function(sample)
+        prob = 1
+        for key in self:
+            if isinstance(self[key], Constraint) and key in out_sample:
+                prob *= self[key].prob(out_sample[key])
+        return prob
+
+    def default_conversion_function(self, sample):
+        """
+        Placeholder parameter conversion function.
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary to convert
+
+        Returns
+        -------
+        sample: dict
+            Same as input
+        """
+        return sample
 
     def to_file(self, outdir, label):
         """ Write the prior distribution to file.
@@ -168,7 +201,7 @@ class PriorDict(OrderedDict):
         -------
         dict: Dictionary of the samples
         """
-        return self.sample_subset(keys=self.keys(), size=size)
+        return self.sample_subset_constrained(keys=list(self.keys()), size=size)
 
     def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
@@ -188,10 +221,34 @@ class PriorDict(OrderedDict):
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
+                if isinstance(self[key], Constraint):
+                    continue
+                else:
+                    samples[key] = self[key].sample(size=size)
             else:
                 logger.debug('{} not a known prior.'.format(key))
         return samples
+
+    def sample_subset_constrained(self, keys=iter([]), size=None):
+        if size is None or size == 1:
+            while True:
+                sample = self.sample_subset(keys=keys, size=size)
+                if self.evaluate_constraints(sample):
+                    return sample
+        else:
+            needed = np.prod(size)
+            all_samples = {key: np.array([]) for key in keys}
+            _first_key = list(all_samples.keys())[0]
+            while len(all_samples[_first_key]) <= needed:
+                samples = self.sample_subset(keys=keys, size=needed)
+                keep = np.array(self.evaluate_constraints(samples), dtype=bool)
+                for key in samples:
+                    all_samples[key] = np.hstack(
+                        [all_samples[key], samples[key][keep].flatten()])
+            all_samples = {key: np.reshape(all_samples[key][:needed], size)
+                           for key in all_samples
+                           if not isinstance(self[key], Constraint)}
+            return all_samples
 
     def prob(self, sample, **kwargs):
         """
@@ -208,7 +265,14 @@ class PriorDict(OrderedDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        return np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
+        prob = np.product([self[key].prob(sample[key])
+                           for key in sample], **kwargs)
+        if prob == 0:
+            return 0
+        elif self.evaluate_constraints(sample):
+            return prob
+        else:
+            return 0
 
     def ln_prob(self, sample, axis=None):
         """
@@ -226,8 +290,14 @@ class PriorDict(OrderedDict):
             Joint log probability of all the individual sample probabilities
 
         """
-        return np.sum([self[key].ln_prob(sample[key]) for key in sample],
-                      axis=axis)
+        ln_prob = np.sum([self[key].ln_prob(sample[key])
+                          for key in sample], axis=axis)
+        if np.isinf(ln_prob):
+            return ln_prob
+        elif self.evaluate_constraints(sample):
+            return ln_prob
+        else:
+            return -np.inf
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -259,6 +329,8 @@ class PriorDict(OrderedDict):
         """
         redundant = False
         for key in self:
+            if isinstance(self[key], Constraint):
+                continue
             temp = self.copy()
             del temp[key]
             if temp.test_redundancy(key, disable_logging=True):
@@ -490,7 +562,7 @@ class Prior(object):
         bool: Whether it's fixed or not!
 
         """
-        return isinstance(self, DeltaFunction)
+        return isinstance(self, (Constraint, DeltaFunction))
 
     @property
     def latex_label(self):
@@ -551,6 +623,20 @@ class Prior(object):
         else:
             label = self.name
         return label
+
+
+class Constraint(Prior):
+
+    def __init__(self, minimum, maximum, name=None, latex_label=None,
+                 unit=None):
+        Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
+                       latex_label=latex_label, unit=unit)
+
+    def prob(self, val):
+        return (val > self.minimum) & (val < self.maximum)
+
+    def ln_prob(self, val):
+        return np.log((val > self.minimum) & (val < self.maximum))
 
 
 class DeltaFunction(Prior):

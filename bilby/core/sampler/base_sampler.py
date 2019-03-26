@@ -5,7 +5,7 @@ import numpy as np
 from pandas import DataFrame
 
 from ..utils import logger, command_line_args
-from ..prior import Prior, PriorDict
+from ..prior import Prior, PriorDict, DeltaFunction, Constraint
 from ..result import Result, read_in_result
 
 
@@ -102,8 +102,9 @@ class Sampler(object):
         self.external_sampler_function = None
         self.plot = plot
 
-        self.__search_parameter_keys = []
-        self.__fixed_parameter_keys = []
+        self._search_parameter_keys = list()
+        self._fixed_parameter_keys = list()
+        self._constraint_keys = list()
         self._initialise_parameters()
         self._verify_parameters()
         self._verify_use_ratio()
@@ -118,28 +119,33 @@ class Sampler(object):
     @property
     def search_parameter_keys(self):
         """list: List of parameter keys that are being sampled"""
-        return self.__search_parameter_keys
+        return self._search_parameter_keys
 
     @property
     def fixed_parameter_keys(self):
         """list: List of parameter keys that are not being sampled"""
-        return self.__fixed_parameter_keys
+        return self._fixed_parameter_keys
+
+    @property
+    def constraint_parameter_keys(self):
+        """list: List of parameters providing prior constraints"""
+        return self._constraint_parameter_keys
 
     @property
     def ndim(self):
         """int: Number of dimensions of the search parameter space"""
-        return len(self.__search_parameter_keys)
+        return len(self._search_parameter_keys)
 
     @property
     def kwargs(self):
         """dict: Container for the kwargs. Has more sophisticated logic in subclasses """
-        return self.__kwargs
+        return self._kwargs
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = self.default_kwargs.copy()
+        self._kwargs = self.default_kwargs.copy()
         self._translate_kwargs(kwargs)
-        self.__kwargs.update(kwargs)
+        self._kwargs.update(kwargs)
         self._verify_kwargs_against_default_kwargs()
 
     def _translate_kwargs(self, kwargs):
@@ -179,17 +185,17 @@ class Sampler(object):
         for key in self.priors:
             if isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is False:
-                self.__search_parameter_keys.append(key)
-            elif isinstance(self.priors[key], Prior) \
-                    and self.priors[key].is_fixed is True:
-                self.likelihood.parameters[key] = \
-                    self.priors[key].sample()
-                self.__fixed_parameter_keys.append(key)
+                self._search_parameter_keys.append(key)
+            elif isinstance(self.priors[key], Constraint):
+                self._constraint_keys.append(key)
+            elif isinstance(self.priors[key], DeltaFunction):
+                self.likelihood.parameters[key] = self.priors[key].sample()
+                self._fixed_parameter_keys.append(key)
 
         logger.info("Search parameters:")
-        for key in self.__search_parameter_keys:
+        for key in self._search_parameter_keys + self._constraint_keys:
             logger.info('  {} = {}'.format(key, self.priors[key]))
-        for key in self.__fixed_parameter_keys:
+        for key in self._fixed_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key].peak))
 
     def _initialise_result(self, result_class):
@@ -202,8 +208,9 @@ class Sampler(object):
         result_kwargs = dict(
             label=self.label, outdir=self.outdir,
             sampler=self.__class__.__name__.lower(),
-            search_parameter_keys=self.__search_parameter_keys,
-            fixed_parameter_keys=self.__fixed_parameter_keys,
+            search_parameter_keys=self._search_parameter_keys,
+            fixed_parameter_keys=self._fixed_parameter_keys,
+            constraint_parameter_keys=self._constraint_keys,
             priors=self.priors, meta_data=self.meta_data,
             injection_parameters=self.injection_parameters,
             sampler_kwargs=self.kwargs)
@@ -227,6 +234,8 @@ class Sampler(object):
             prior can't be sampled.
         """
         for key in self.priors:
+            if isinstance(self.priors[key], Constraint):
+                continue
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
             except AttributeError as e:
@@ -248,7 +257,9 @@ class Sampler(object):
         self._check_if_priors_can_be_sampled()
         try:
             t1 = datetime.datetime.now()
-            self.likelihood.log_likelihood()
+            theta = [self.priors[key].sample()
+                     for key in self._search_parameter_keys]
+            self.log_likelihood(theta)
             self._log_likelihood_eval_time = (
                 datetime.datetime.now() - t1).total_seconds()
             if self._log_likelihood_eval_time == 0:
@@ -296,7 +307,7 @@ class Sampler(object):
         -------
         list: Properly rescaled sampled values
         """
-        return self.priors.rescale(self.__search_parameter_keys, theta)
+        return self.priors.rescale(self._search_parameter_keys, theta)
 
     def log_prior(self, theta):
         """
@@ -308,11 +319,12 @@ class Sampler(object):
 
         Returns
         -------
-        float: TODO: Fill in proper explanation of what this is.
+        float: Joint ln prior probability of theta
 
         """
-        return self.priors.ln_prob({
-            key: t for key, t in zip(self.__search_parameter_keys, theta)})
+        params = {
+            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        return self.priors.ln_prob(params)
 
     def log_likelihood(self, theta):
         """
@@ -328,8 +340,9 @@ class Sampler(object):
             likelihood.parameter values
 
         """
-        for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.parameters[k] = theta[i]
+        params = {
+            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        self.likelihood.parameters.update(params)
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
         else:
@@ -347,7 +360,7 @@ class Sampler(object):
         """
         new_sample = self.priors.sample()
         draw = np.array(list(new_sample[key]
-                             for key in self.__search_parameter_keys))
+                             for key in self._search_parameter_keys))
         self.check_draw(draw)
         return draw
 
@@ -458,6 +471,26 @@ class NestedSampler(Sampler):
                     "unsorted samples. Taking the first match.")
             idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
+
+    def log_likelihood(self, theta):
+        """
+        Since some nested samplers don't call the log_prior method, evaluate
+        the prior constraint here.
+
+        Parameters
+        theta: array-like
+            Parameter values at which to evaluate likelihood
+
+        Returns
+        -------
+        float: log_likelihood
+        """
+        if self.priors.evaluate_constraints({
+                key: theta[ii] for ii, key in
+                enumerate(self.search_parameter_keys)}):
+            return Sampler.log_likelihood(self, theta)
+        else:
+            return np.nan_to_num(-np.inf)
 
 
 class MCMCSampler(Sampler):

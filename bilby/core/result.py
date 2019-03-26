@@ -91,7 +91,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
 class Result(object):
     def __init__(self, label='no_label', outdir='.', sampler=None,
                  search_parameter_keys=None, fixed_parameter_keys=None,
-                 priors=None, sampler_kwargs=None, injection_parameters=None,
+                 constraint_parameter_keys=None, priors=None,
+                 sampler_kwargs=None, injection_parameters=None,
                  meta_data=None, posterior=None, samples=None,
                  nested_samples=None, log_evidence=np.nan,
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
@@ -106,9 +107,10 @@ class Result(object):
         ----------
         label, outdir, sampler: str
             The label, output directory, and sampler used
-        search_parameter_keys, fixed_parameter_keys: list
-            Lists of the search and fixed parameter keys. Elemenents of the
-            list should be of type `str` and matchs the keys of the `prior`
+        search_parameter_keys, fixed_parameter_keys, constraint_parameter_keys: list
+            Lists of the search, constraint, and fixed parameter keys.
+            Elements of the list should be of type `str` and match the keys
+            of the `prior`
         priors: dict, bilby.core.prior.PriorDict
             A dictionary of the priors used in the run
         sampler_kwargs: dict
@@ -155,6 +157,7 @@ class Result(object):
         self.sampler = sampler
         self.search_parameter_keys = search_parameter_keys
         self.fixed_parameter_keys = fixed_parameter_keys
+        self.constraint_parameter_keys = constraint_parameter_keys
         self.parameter_labels = parameter_labels
         self.parameter_labels_with_unit = parameter_labels_with_unit
         self.priors = priors
@@ -384,7 +387,8 @@ class Result(object):
             'label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err',
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
-            'fixed_parameter_keys', 'sampling_time', 'sampler_kwargs',
+            'fixed_parameter_keys', 'constraint_parameter_keys',
+            'sampling_time', 'sampler_kwargs',
             'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
             'nested_samples', 'walkers', 'nburn', 'parameter_labels',
             'parameter_labels_with_unit', 'version']
@@ -1004,8 +1008,12 @@ class Result(object):
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
             if self.log_prior_evaluations is None:
-                data_frame['log_prior'] = self.priors.ln_prob(
-                    data_frame[self.search_parameter_keys], axis=0)
+                ln_prior = list()
+                for ii in range(len(data_frame)):
+                    ln_prior.append(
+                        self.priors.ln_prob(dict(
+                            data_frame[self.search_parameter_keys].iloc[ii])))
+                data_frame['log_prior'] = np.array(ln_prior)
             else:
                 data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:

@@ -4,6 +4,7 @@
 # Lines beginning "#" are ignored.
 mass_1 = Uniform(name='mass_1', minimum=1, maximum=2, unit='$M_{\\odot}$')
 mass_2 = Uniform(name='mass_2', minimum=1, maximum=2, unit='$M_{\\odot}$')
+mass_ratio =  Constraint(name='mass_ratio', minimum=0.125, maximum=1)
 # chirp_mass = Uniform(name='chirp_mass', minimum=0.87, maximum=1.74, unit='$M_{\\odot}$')
 # total_mass =  Uniform(name='total_mass', minimum=2, maximum=4, unit='$M_{\\odot}$')
 # mass_ratio =  Uniform(name='mass_ratio', minimum=0.5, maximum=1)

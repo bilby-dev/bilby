@@ -4,9 +4,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..utils import derivatives, logger, infer_args_from_method
-from ..prior import Prior, DeltaFunction, Sine, Cosine, PowerLaw
-from ..result import Result
+from ..utils import derivatives, infer_args_from_method
+from ..prior import DeltaFunction, Sine, Cosine, PowerLaw
 from .base_sampler import Sampler, MCMCSampler
 from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
     StudentTLikelihood
@@ -67,8 +66,8 @@ class Pymc3(MCMCSampler):
         Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
                          use_ratio=use_ratio, plot=plot,
                          skip_import_verification=skip_import_verification, **kwargs)
-        self.draws = self.__kwargs['draws']
-        self.chains = self.__kwargs['chains']
+        self.draws = self._kwargs['draws']
+        self.chains = self._kwargs['chains']
 
     @staticmethod
     def _import_external_sampler():
@@ -96,71 +95,6 @@ class Pymc3(MCMCSampler):
         Change `_verify_use_ratio() to just pass.
         """
         pass
-
-    def _initialise_parameters(self):
-        """
-        Change `_initialise_parameters()`, so that it does call the `sample`
-        method in the Prior class.
-
-        """
-
-        self.__search_parameter_keys = []
-        self.__fixed_parameter_keys = []
-
-        for key in self.priors:
-            if isinstance(self.priors[key], Prior) \
-                    and self.priors[key].is_fixed is False:
-                self.__search_parameter_keys.append(key)
-            elif isinstance(self.priors[key], Prior) \
-                    and self.priors[key].is_fixed is True:
-                self.__fixed_parameter_keys.append(key)
-
-        logger.info("Search parameters:")
-        for key in self.__search_parameter_keys:
-            logger.info('  {} = {}'.format(key, self.priors[key]))
-        for key in self.__fixed_parameter_keys:
-            logger.info('  {} = {}'.format(key, self.priors[key].peak))
-
-    def _initialise_result(self, result_class):
-        """
-        Initialise results within Pymc3 subclass.
-        """
-
-        result_kwargs = dict(
-            label=self.label, outdir=self.outdir,
-            sampler=self.__class__.__name__.lower(),
-            search_parameter_keys=self.__search_parameter_keys,
-            fixed_parameter_keys=self.__fixed_parameter_keys,
-            priors=self.priors, meta_data=self.meta_data,
-            injection_parameters=self.injection_parameters,
-            sampler_kwargs=self.kwargs)
-
-        if result_class is None:
-            result = Result(**result_kwargs)
-        elif issubclass(result_class, Result):
-            result = result_class(**result_kwargs)
-        else:
-            raise ValueError(
-                "Input result_class={} not understood".format(result_class))
-
-        return result
-
-    @property
-    def kwargs(self):
-        """ Ensures that proper keyword arguments are used for the Pymc3 sampler.
-
-        Returns
-        -------
-        dict: Keyword arguments used for the Nestle Sampler
-
-        """
-        return self.__kwargs
-
-    @kwargs.setter
-    def kwargs(self, kwargs):
-        self.__kwargs = self.default_kwargs.copy()
-        self.__kwargs.update(kwargs)
-        self._verify_kwargs_against_default_kwargs()
 
     def setup_prior_mapping(self):
         """
@@ -393,8 +327,8 @@ class Pymc3(MCMCSampler):
         # set the step method
         pymc3, STEP_METHODS, floatX = self._import_external_sampler()
         step_methods = {m.__name__.lower(): m.__name__ for m in STEP_METHODS}
-        if 'step' in self.__kwargs:
-            self.step_method = self.__kwargs.pop('step')
+        if 'step' in self._kwargs:
+            self.step_method = self._kwargs.pop('step')
 
             # 'step' could be a dictionary of methods for different parameters,
             # so check for this
@@ -402,7 +336,7 @@ class Pymc3(MCMCSampler):
                 pass
             elif isinstance(self.step_method, (dict, OrderedDict)):
                 for key in self.step_method:
-                    if key not in self.__search_parameter_keys:
+                    if key not in self._search_parameter_keys:
                         raise ValueError("Setting a step method for an unknown parameter '{}'".format(key))
                     else:
                         # check if using a compound step (a list of step
@@ -780,11 +714,11 @@ class Pymc3(MCMCSampler):
                 pymc3.StudentT('likelihood', nu=self.likelihood.nu, mu=model, sd=self.likelihood.sigma,
                                observed=self.likelihood.y)
             elif isinstance(self.likelihood, (GravitationalWaveTransient, BasicGravitationalWaveTransient)):
-                # set theano Op - pass __search_parameter_keys, which only contains non-fixed variables
-                logl = LogLike(self.__search_parameter_keys, self.likelihood, self.pymc3_priors)
+                # set theano Op - pass _search_parameter_keys, which only contains non-fixed variables
+                logl = LogLike(self._search_parameter_keys, self.likelihood, self.pymc3_priors)
 
                 parameters = OrderedDict()
-                for key in self.__search_parameter_keys:
+                for key in self._search_parameter_keys:
                     try:
                         parameters[key] = self.pymc3_priors[key]
                     except KeyError:
