@@ -54,10 +54,10 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
-        self.likelihood.parameters['mass_2'] = 32
+        self.likelihood.waveform_generator.frequency_domain_strain = \
+            lambda x: None
         self.assertEqual(self.likelihood.log_likelihood_ratio(),
                          np.nan_to_num(-np.inf))
-        self.likelihood.parameters['mass_2'] = 29
 
     def test_repr(self):
         expected = 'BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})'.format(
@@ -123,10 +123,10 @@ class TestGWTransient(unittest.TestCase):
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
-        self.likelihood.parameters['mass_2'] = 32
+        self.likelihood.waveform_generator.frequency_domain_strain =\
+            lambda x: None
         self.assertEqual(self.likelihood.log_likelihood_ratio(),
                          np.nan_to_num(-np.inf))
-        self.likelihood.parameters['mass_2'] = 29
 
     def test_repr(self):
         expected = 'GravitationalWaveTransient(interferometers={},\n\twaveform_generator={},\n\t' \

@@ -221,9 +221,6 @@ def _base_lal_cbc_fd_waveform(
     frequency_bounds = ((frequency_array >= minimum_frequency) *
                         (frequency_array <= maximum_frequency))
 
-    if mass_2 > mass_1:
-        return None
-
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
@@ -378,9 +375,6 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         quadratic frequency nodes.
 
     """
-    if mass_2 > mass_1:
-        return None
-
     frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
     frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
     reference_frequency = getattr(waveform_arguments,

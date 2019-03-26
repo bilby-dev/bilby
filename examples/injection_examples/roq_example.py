@@ -32,7 +32,7 @@ duration = 4
 sampling_frequency = 2048
 
 injection_parameters = dict(
-    chirp_mass=36., mass_ratio=0.9, a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
+    mass_1=36.0, mass_2=29.0, a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
     phi_12=1.7, phi_jl=0.3, luminosity_distance=1000., theta_jn=0.4, psi=0.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
@@ -62,15 +62,14 @@ search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
                             approximant='IMRPhenomPv2'),
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
 
+# Here we add constraints on chirp mass and mass ratio to the prior
 priors = bilby.gw.prior.BBHPriorDict()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn', 'phase', 'psi', 'ra',
             'dec', 'phi_12', 'phi_jl', 'luminosity_distance']:
     priors[key] = injection_parameters[key]
-priors.pop('mass_1')
-priors.pop('mass_2')
-priors['chirp_mass'] = bilby.core.prior.Uniform(
-    15, 40, latex_label='$\\mathcal{M}$')
-priors['mass_ratio'] = bilby.core.prior.Uniform(0.5, 1, latex_label='$q$')
+priors['chirp_mass'] = bilby.core.prior.Constraint(
+    name='chirp_mass', minimum=12.5, maximum=45)
+priors['mass_ratio'] = bilby.core.prior.Constraint(0.125, 1, name='mass_ratio')
 priors['geocent_time'] = bilby.core.prior.Uniform(
     injection_parameters['geocent_time'] - 0.1,
     injection_parameters['geocent_time'] + 0.1, latex_label='$t_c$', unit='s')

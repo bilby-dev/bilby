@@ -401,6 +401,8 @@ class TestPriorDict(unittest.TestCase):
                 name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
             mass_2=bilby.core.prior.Uniform(
                 name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
+            mass_ratio=bilby.core.prior.Constraint(
+                name='mass_ratio', minimum=0.125, maximum=1.0),
             a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
             a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
             tilt_1=bilby.core.prior.Sine(name='tilt_1'),
@@ -457,6 +459,8 @@ class TestPriorDict(unittest.TestCase):
                 name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
             mass_2=bilby.core.prior.Uniform(
                 name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
+            mass_ratio=bilby.core.prior.Constraint(
+                name='mass_ratio', minimum=0.125, maximum=1.0),
             a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
             a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
             tilt_1=bilby.core.prior.Sine(name='tilt_1'),
@@ -506,7 +510,7 @@ class TestPriorDict(unittest.TestCase):
         samples1 = self.prior_set_from_dict.sample_subset(keys=self.prior_set_from_dict.keys(), size=size)
         np.random.seed(42)
         samples2 = self.prior_set_from_dict.sample(size=size)
-        self.assertEqual(samples1.keys(), samples2.keys())
+        self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
             self.assertTrue(np.array_equal(samples1[key], samples2[key]))
 
