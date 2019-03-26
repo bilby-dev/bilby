@@ -259,8 +259,14 @@ def _base_lal_cbc_fd_waveform(
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
-    h_plus = hplus.data.data[:len(frequency_array)] * frequency_bounds
-    h_cross = hcross.data.data[:len(frequency_array)] * frequency_bounds
+    h_plus = np.zeros_like(frequency_array, dtype=np.complex)
+    h_cross = np.zeros_like(frequency_array, dtype=np.complex)
+
+    h_plus[:len(hplus.data.data)] = hplus.data.data
+    h_cross[:len(hcross.data.data)] = hcross.data.data
+
+    h_plus *= frequency_bounds
+    h_cross *= frequency_bounds
 
     return {'plus': h_plus, 'cross': h_cross}
 

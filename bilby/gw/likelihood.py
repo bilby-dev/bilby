@@ -206,10 +206,11 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
+            mask = interferometer.frequency_mask
             log_l -= noise_weighted_inner_product(
-                interferometer.frequency_domain_strain,
-                interferometer.frequency_domain_strain,
-                interferometer.power_spectral_density_array,
+                interferometer.frequency_domain_strain[mask],
+                interferometer.frequency_domain_strain[mask],
+                interferometer.power_spectral_density_array[mask],
                 self.waveform_generator.duration) / 2
         return log_l.real
 
