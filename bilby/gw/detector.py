@@ -1527,8 +1527,8 @@ class Interferometer(object):
         float: The optimal signal to noise ratio possible squared
         """
         return gwutils.optimal_snr_squared(
-            signal=signal,
-            power_spectral_density=self.power_spectral_density_array,
+            signal=signal[self.frequency_mask],
+            power_spectral_density=self.power_spectral_density_array[self.frequency_mask],
             duration=self.strain_data.duration)
 
     def inner_product(self, signal):
@@ -1544,8 +1544,9 @@ class Interferometer(object):
         float: The optimal signal to noise ratio possible squared
         """
         return gwutils.noise_weighted_inner_product(
-            aa=signal, bb=self.frequency_domain_strain,
-            power_spectral_density=self.power_spectral_density_array,
+            aa=signal[self.frequency_mask],
+            bb=self.frequency_domain_strain[self.frequency_mask],
+            power_spectral_density=self.power_spectral_density_array[self.frequency_mask],
             duration=self.strain_data.duration)
 
     def matched_filter_snr(self, signal):
@@ -1562,8 +1563,9 @@ class Interferometer(object):
 
         """
         return gwutils.matched_filter_snr(
-            signal=signal, frequency_domain_strain=self.frequency_domain_strain,
-            power_spectral_density=self.power_spectral_density_array,
+            signal=signal[self.frequency_mask],
+            frequency_domain_strain=self.frequency_domain_strain[self.frequency_mask],
+            power_spectral_density=self.power_spectral_density_array[self.frequency_mask],
             duration=self.strain_data.duration)
 
     @property
@@ -1640,6 +1642,7 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_frequency_domain_data.png'.format(
                     outdir, self.name, label))
+        plt.close(fig)
 
     def plot_time_domain_data(
             self, outdir='.', label=None, bandpass_frequencies=(50, 250),
@@ -1707,6 +1710,7 @@ class Interferometer(object):
         else:
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
+        plt.close(fig)
 
     @staticmethod
     def _hdf5_filename_from_outdir_label(outdir, label):

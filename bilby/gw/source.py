@@ -221,9 +221,6 @@ def _base_lal_cbc_fd_waveform(
     frequency_bounds = ((frequency_array >= minimum_frequency) *
                         (frequency_array <= maximum_frequency))
 
-    if mass_2 > mass_1:
-        return None
-
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
@@ -262,8 +259,14 @@ def _base_lal_cbc_fd_waveform(
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
 
-    h_plus = hplus.data.data[:len(frequency_array)] * frequency_bounds
-    h_cross = hcross.data.data[:len(frequency_array)] * frequency_bounds
+    h_plus = np.zeros_like(frequency_array, dtype=np.complex)
+    h_cross = np.zeros_like(frequency_array, dtype=np.complex)
+
+    h_plus[:len(hplus.data.data)] = hplus.data.data
+    h_cross[:len(hcross.data.data)] = hcross.data.data
+
+    h_plus *= frequency_bounds
+    h_cross *= frequency_bounds
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -378,9 +381,6 @@ def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         quadratic frequency nodes.
 
     """
-    if mass_2 > mass_1:
-        return None
-
     frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
     frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
     reference_frequency = getattr(waveform_arguments,

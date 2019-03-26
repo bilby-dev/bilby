@@ -841,8 +841,8 @@ def generate_component_spins(sample):
     """
     output_sample = sample.copy()
     spin_conversion_parameters =\
-        ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
-         'mass_2', 'reference_frequency', 'phase']
+        ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2',
+         'mass_1', 'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters):
         output_sample['iota'], output_sample['spin_1x'],\
             output_sample['spin_1y'], output_sample['spin_1z'], \

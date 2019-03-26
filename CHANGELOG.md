@@ -11,6 +11,17 @@
 ### Removed
 -
 
+## [0.4.3] 2019-03-21
+
+### Added
+- Constraint prior: in prior files you can now add option of a constraint based
+on other parameters. Currently implements mass-constraints only.
+- Grid likelihood: module to evaluate the likelihood on a grid
+
+### Changed
+- The GWTransientLikelihood no longer returns -inf for  m2 > m1. It will evaluate
+the likelihood as-is. To implement the constraint, use the Constraint priors.
+
 ## [0.4.2] 2019-03-21
 
 ### Added

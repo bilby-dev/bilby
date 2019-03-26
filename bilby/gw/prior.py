@@ -4,8 +4,12 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped)
+                          Interped, Constraint)
 from ..core.utils import infer_args_from_method, logger
+from .conversion import (
+    convert_to_lal_binary_black_hole_parameters,
+    convert_to_lal_binary_neutron_star_parameters, generate_mass_parameters,
+    generate_tidal_parameters, fill_from_fixed_priors)
 from .cosmology import get_cosmology
 
 try:
@@ -193,7 +197,8 @@ class AlignedSpin(Interped):
 
 
 class BBHPriorDict(PriorDict):
-    def __init__(self, dictionary=None, filename=None, aligned_spin=False):
+    def __init__(self, dictionary=None, filename=None, aligned_spin=False,
+                 conversion_function=None):
         """ Initialises a Prior set for Binary Black holes
 
         Parameters
@@ -202,6 +207,10 @@ class BBHPriorDict(PriorDict):
             See superclass
         filename: str, optional
             See superclass
+        conversion_function: func
+            Function to convert between sampled parameters and constraints.
+            By default this generates many additional parameters, see
+            BBHPriorDict.default_conversion_function
         """
         basedir = os.path.join(os.path.dirname(__file__), 'prior_files')
         if dictionary is None and filename is None:
@@ -214,7 +223,36 @@ class BBHPriorDict(PriorDict):
         elif filename is not None:
             if not os.path.isfile(filename):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorDict.__init__(self, dictionary=dictionary, filename=filename)
+        PriorDict.__init__(self, dictionary=dictionary, filename=filename,
+                           conversion_function=conversion_function)
+
+    def default_conversion_function(self, sample):
+        """
+        Default parameter conversion function for BBH signals.
+
+        This generates:
+        - the parameters passed to source.lal_binary_black_hole
+        - all mass parameters
+
+        It does not generate:
+        - component spins
+        - source-frame parameters
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary to convert
+
+        Returns
+        -------
+        sample: dict
+            Same as input
+        """
+        out_sample = fill_from_fixed_priors(sample, self)
+        out_sample, _ = convert_to_lal_binary_black_hole_parameters(out_sample)
+        out_sample = generate_mass_parameters(out_sample)
+
+        return out_sample
 
     def test_redundancy(self, key, disable_logging=False):
         """
@@ -237,6 +275,9 @@ class BBHPriorDict(PriorDict):
             logger.debug('{} already in prior'.format(key))
             return True
 
+        sampling_parameters = {key for key in self if not isinstance(
+            self[key], (DeltaFunction, Constraint))}
+
         mass_parameters = {'mass_1', 'mass_2', 'chirp_mass', 'total_mass', 'mass_ratio', 'symmetric_mass_ratio'}
         spin_tilt_1_parameters = {'tilt_1', 'cos_tilt_1'}
         spin_tilt_2_parameters = {'tilt_2', 'cos_tilt_2'}
@@ -250,7 +291,8 @@ class BBHPriorDict(PriorDict):
                      spin_tilt_1_parameters, spin_tilt_2_parameters,
                      inclination_parameters, distance_parameters]):
             if key in parameter_set:
-                if len(parameter_set.intersection(self)) >= independent_parameters:
+                if len(parameter_set.intersection(
+                        sampling_parameters)) >= independent_parameters:
                     logger.disabled = disable_logging
                     logger.warning('{} already in prior. '
                                    'This may lead to unexpected behaviour.'
@@ -262,7 +304,8 @@ class BBHPriorDict(PriorDict):
 
 class BNSPriorDict(PriorDict):
 
-    def __init__(self, dictionary=None, filename=None, aligned_spin=True):
+    def __init__(self, dictionary=None, filename=None, aligned_spin=True,
+                 conversion_function=None):
         """ Initialises a Prior set for Binary Neutron Stars
 
         Parameters
@@ -271,6 +314,10 @@ class BNSPriorDict(PriorDict):
             See superclass
         filename: str, optional
             See superclass
+        conversion_function: func
+            Function to convert between sampled parameters and constraints.
+            By default this generates many additional parameters, see
+            BNSPriorDict.default_conversion_function
         """
         if not aligned_spin:
             logger.warning('Non-aligned spins not yet supported for BNS.')
@@ -280,7 +327,37 @@ class BNSPriorDict(PriorDict):
         elif filename is not None:
             if not os.path.isfile(filename):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorDict.__init__(self, dictionary=dictionary, filename=filename)
+        PriorDict.__init__(self, dictionary=dictionary, filename=filename,
+                           conversion_function=conversion_function)
+
+    def default_conversion_function(self, sample):
+        """
+        Default parameter conversion function for BNS signals.
+
+        This generates:
+        - the parameters passed to source.lal_binary_neutron_star
+        - all mass parameters
+        - all tidal parameters
+
+        It does not generate:
+        - component spins
+        - source-frame parameters
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary to convert
+
+        Returns
+        -------
+        sample: dict
+            Same as input
+        """
+        out_sample = fill_from_fixed_priors(sample, self)
+        out_sample, _ = convert_to_lal_binary_neutron_star_parameters(out_sample)
+        out_sample = generate_mass_parameters(out_sample)
+        out_sample = generate_tidal_parameters(out_sample)
+        return out_sample
 
     def test_redundancy(self, key, disable_logging=False):
         logger.disabled = disable_logging
@@ -292,18 +369,21 @@ class BNSPriorDict(PriorDict):
             return True
         redundant = False
 
+        sampling_parameters = {key for key in self if not isinstance(
+            self[key], (DeltaFunction, Constraint))}
+
         tidal_parameters = \
             {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda'}
 
         if key in tidal_parameters:
-            if len(tidal_parameters.intersection(self)) > 2:
+            if len(tidal_parameters.intersection(sampling_parameters)) > 2:
                 redundant = True
                 logger.disabled = disable_logging
                 logger.warning('{} already in prior. '
                                'This may lead to unexpected behaviour.'
                                .format(tidal_parameters.intersection(self)))
                 logger.disabled = False
-            elif len(tidal_parameters.intersection(self)) == 2:
+            elif len(tidal_parameters.intersection(sampling_parameters)) == 2:
                 redundant = True
         return redundant
 

@@ -29,13 +29,6 @@ class TestLalBBH(unittest.TestCase):
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters), dict)
 
-    def test_mass_ratio_greater_one_returns_none(self):
-        self.parameters['mass_2'] = 1000.0
-        self.parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters), dict)
-
     def test_lal_bbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
             bilby.gw.source.lal_binary_black_hole(
@@ -69,13 +62,6 @@ class TestLalBNS(unittest.TestCase):
     def test_lal_bns_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star(
-                self.frequency_array, **self.parameters), dict)
-
-    def test_mass_ratio_greater_one_returns_none(self):
-        self.parameters['mass_2'] = 1000.0
-        self.parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
             bilby.gw.source.lal_binary_neutron_star(
                 self.frequency_array, **self.parameters), dict)
 
@@ -123,13 +109,6 @@ class TestEccentricLalBBH(unittest.TestCase):
             bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
                 self.frequency_array, **self.parameters), dict)
 
-    def test_mass_ratio_greater_one_returns_none(self):
-        self.parameters['mass_2'] = 1000.0
-        self.parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
-            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
-                self.frequency_array, **self.parameters), dict)
-
     def test_lal_ebbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
             bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
@@ -155,8 +134,8 @@ class TestROQBBH(unittest.TestCase):
 
         self.parameters = dict(
             mass_1=30.0, mass_2=30.0, luminosity_distance=400.0, a_1=0.0,
-            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0, theta_jn=0.0,
-            phase=0.0)
+            tilt_1=0.0, phi_12=0.0, a_2=0.0, tilt_2=0.0, phi_jl=0.0,
+            theta_jn=0.0, phase=0.0)
         self.waveform_kwargs = dict(
             frequency_nodes_linear=fnodes_linear,
             frequency_nodes_quadratic=fnodes_quadratic,
@@ -172,12 +151,6 @@ class TestROQBBH(unittest.TestCase):
     def test_roq_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.roq(self.frequency_array, **self.parameters), dict)
-
-    def test_mass_ratio_greater_one_returns_none(self):
-        self.parameters['mass_2'] = 1000.0
-        self.parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
             bilby.gw.source.roq(self.frequency_array, **self.parameters), dict)
 
     def test_roq_fails_without_frequency_nodes(self):
