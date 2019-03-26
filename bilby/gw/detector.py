@@ -1642,6 +1642,7 @@ class Interferometer(object):
             fig.savefig(
                 '{}/{}_{}_frequency_domain_data.png'.format(
                     outdir, self.name, label))
+        plt.close(fig)
 
     def plot_time_domain_data(
             self, outdir='.', label=None, bandpass_frequencies=(50, 250),
@@ -1709,6 +1710,7 @@ class Interferometer(object):
         else:
             fig.savefig(
                 '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
+        plt.close(fig)
 
     @staticmethod
     def _hdf5_filename_from_outdir_label(outdir, label):
