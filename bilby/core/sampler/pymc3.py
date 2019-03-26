@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from ..utils import derivatives, infer_args_from_method
-from ..prior import DeltaFunction, Sine, Cosine, PowerLaw
+from ..prior import DeltaFunction, Sine, Cosine, PowerLaw, MultivariateGaussian
 from .base_sampler import Sampler, MCMCSampler
 from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
     StudentTLikelihood
