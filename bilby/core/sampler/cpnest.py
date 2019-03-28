@@ -49,14 +49,17 @@ class Cpnest(NestedSampler):
 
     def run_sampler(self):
         from cpnest import model as cpmodel, CPNest
+        from cpnest.parameter import LivePoint
 
         class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """
 
-            def __init__(self, names, bounds):
+            def __init__(self, names, priors):
                 self.names = names
-                self.bounds = bounds
-                self._check_bounds()
+                self.priors = priors
+                self.bounds = [
+                    [self.priors[key].minimum, self.priors[key].maximum]
+                    for key in self.names]
 
             @staticmethod
             def log_likelihood(x, **kwargs):
@@ -68,15 +71,14 @@ class Cpnest(NestedSampler):
                 theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_prior(theta)
 
-            def _check_bounds(self):
-                for bound in self.bounds:
-                    if not all(np.isfinite(bound)):
-                        raise ValueError(
-                            'CPNest requires priors to have finite bounds.')
+            def new_point(self):
+                """Draw a point from the prior"""
+                point = LivePoint(
+                    self.names, [self.priors[name].sample()
+                                 for name in self.names])
+                return point
 
-        bounds = [[self.priors[key].minimum, self.priors[key].maximum]
-                  for key in self.search_parameter_keys]
-        model = Model(self.search_parameter_keys, bounds)
+        model = Model(self.search_parameter_keys, self.priors)
         out = CPNest(model, **self.kwargs)
         out.run()
 
