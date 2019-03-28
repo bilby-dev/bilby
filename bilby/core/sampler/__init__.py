@@ -167,6 +167,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         result = sampler.run_sampler()
 
+    # Initial save of the sampler in case of failure in post-processing
+    if save:
+        result.save_to_file(extension=save, gzip=gzip)
+
     end_time = datetime.datetime.now()
     result.sampling_time = (end_time - start_time).total_seconds()
     logger.info('Sampling time: {}'.format(end_time - start_time))
@@ -188,12 +192,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
                                 conversion_function=conversion_function)
-    if save == 'hdf5':
-        result.save_to_file(extension='hdf5')
-        logger.info("Results saved to {}/".format(outdir))
-    elif save:
-        result.save_to_file(gzip=gzip)
-        logger.info("Results saved to {}/".format(outdir))
+
+    if save:
+        # The overwrite here ensures we overwrite the initially stored data
+        result.save_to_file(overwrite=True, extension=save, gzip=gzip)
+
     if plot:
         result.plot_corner()
     logger.info("Summary of results:\n{}".format(result))

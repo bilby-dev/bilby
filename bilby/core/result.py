@@ -412,12 +412,17 @@ class Result(object):
             default=False
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
-        extension: str, optional {json, hdf5}
-            Determines the method to use to store the data
+        extension: str, optional {json, hdf5, True}
+            Determines the method to use to store the data (if True defaults
+            to json)
         gzip: bool, optional
             If true, and outputing to a json file, this will gzip the resulting
             file and add '.gz' to the file extension.
         """
+
+        if extension is True:
+            extension = "json"
+
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
         file_name = result_file_name(outdir, self.label, extension, gzip)
 

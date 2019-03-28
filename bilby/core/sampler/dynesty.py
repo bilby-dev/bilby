@@ -189,7 +189,10 @@ class Dynesty(NestedSampler):
         if self.kwargs["verbose"]:
             print("")
 
-        # self.result.sampler_output = out
+        dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
+        with open(dynesty_result, 'wb') as file:
+            pickle.dump(out, file)
+
         weights = np.exp(out['logwt'] - out['logz'][-1])
         nested_samples = DataFrame(
             out.samples, columns=self.search_parameter_keys)
