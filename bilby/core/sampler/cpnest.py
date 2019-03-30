@@ -89,7 +89,7 @@ class Cpnest(NestedSampler):
         self.result.posterior.rename(columns=dict(
             logL='log_likelihood', logPrior='log_prior'), inplace=True)
         self.result.log_evidence = out.NS.state.logZ
-        self.result.log_evidence_err = np.nan
+        self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
         return self.result
 
     def _verify_kwargs_against_default_kwargs(self):
