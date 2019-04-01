@@ -17,6 +17,7 @@ from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 from .fake_sampler import FakeSampler
+from . import proposal
 
 IMPLEMENTED_SAMPLERS = {
     'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
@@ -89,7 +90,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         If true, save the priors and results to disk.
         If hdf5, save as an hdf5 file instead of json.
     gzip: bool
-        If true, and save is true, gzip the saved results file. 
+        If true, and save is true, gzip the saved results file.
     result_class: bilby.core.result.Result, or child of
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
