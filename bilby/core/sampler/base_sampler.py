@@ -218,7 +218,7 @@ class Sampler(object):
             constraint_parameter_keys=self._constraint_keys,
             priors=self.priors, meta_data=self.meta_data,
             injection_parameters=self.injection_parameters,
-            sampler_kwargs=self.kwargs)
+            sampler_kwargs=self.kwargs, use_ratio=self.use_ratio)
 
         if result_class is None:
             result = Result(**result_kwargs)

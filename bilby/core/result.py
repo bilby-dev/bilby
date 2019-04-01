@@ -99,7 +99,7 @@ class Result(object):
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
                  log_prior_evaluations=None, sampling_time=None, nburn=None,
-                 walkers=None, max_autocorrelation_time=None,
+                 walkers=None, max_autocorrelation_time=None, use_ratio=None,
                  parameter_labels=None, parameter_labels_with_unit=None,
                  gzip=False, version=None):
         """ A class to store the results of the sampling run
@@ -138,6 +138,9 @@ class Result(object):
             The samplers taken by a ensemble MCMC samplers
         max_autocorrelation_time: float
             The estimated maximum autocorrelation time for MCMC samplers
+        use_ratio: bool
+            A boolean stating whether the likelihood ratio, as opposed to the
+            likelihood was used during sampling
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
         gzip: bool
@@ -170,6 +173,7 @@ class Result(object):
         self.nested_samples = nested_samples
         self.walkers = walkers
         self.nburn = nburn
+        self.use_ratio = use_ratio
         self.log_evidence = log_evidence
         self.log_evidence_err = log_evidence_err
         self.log_noise_evidence = log_noise_evidence
@@ -389,7 +393,7 @@ class Result(object):
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
             'fixed_parameter_keys', 'constraint_parameter_keys',
-            'sampling_time', 'sampler_kwargs',
+            'sampling_time', 'sampler_kwargs', 'use_ratio',
             'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
             'nested_samples', 'walkers', 'nburn', 'parameter_labels',
             'parameter_labels_with_unit', 'version']
@@ -1183,6 +1187,32 @@ class Result(object):
                                  "Try calling " + caller_func.__name__ + " with the 'outdir' "
                                  "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
         return outdir
+
+    def __add__(self, other):
+        """
+        Method to add two Results objects.
+        """
+
+        if not isinstance(other, Result):
+            raise TypeError("Trying to add a non-Result object to a Result "
+                            "object")
+
+        # check that the results have some common features
+
+        # check parameters are the same
+        if not set(self.search_parameter_keys) == set(other.search_parameter_keys):
+            raise ValueError("Results being added contain inconsistent parameters")
+
+        if self.log_noise_evidence != other.log_noise_evidence:
+            raise ValueError("Results being added do not have consistent "
+                             "noise evidences")
+
+        # check priors are the same
+        if self.priors is not None and other.priors is not None:
+            for p in self.search_parameter_keys:
+                if not self.priors[p] == other.priors[p]:
+                    raise ValueError("Results being added used inconsistent "
+                                     "priors") 
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
