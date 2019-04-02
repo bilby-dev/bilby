@@ -65,7 +65,6 @@ class Emcee(MCMCSampler):
         self.nburn = nburn
         self.burn_in_fraction = burn_in_fraction
         self.burn_in_act = burn_in_act
-        self._old_chain = None
 
     def _translate_kwargs(self, kwargs):
         if 'nwalkers' not in kwargs:
@@ -173,10 +172,7 @@ class Emcee(MCMCSampler):
         d["_Sampler__kwargs"]["pool"] = None
         return d
 
-    def run_sampler(self):
-        import emcee
-        tqdm = get_progress_bar()
-        sampler = emcee.EnsembleSampler(**self.sampler_init_kwargs)
+    def set_up_checkpoint(self):
         out_dir = os.path.join(self.outdir, 'emcee_{}'.format(self.label))
         out_file = os.path.join(out_dir, 'chain.dat')
 
@@ -188,13 +184,26 @@ class Emcee(MCMCSampler):
         check_directory_exists_and_if_not_mkdir(out_dir)
         if not os.path.isfile(out_file):
             with open(out_file, "w") as ff:
-                ff.write('walker\t{}\tlog_l'.format(
+                ff.write('walker\t{}\tlog_l\n'.format(
                     '\t'.join(self.search_parameter_keys)))
         template =\
             '{:d}' + '\t{:.9e}' * (len(self.search_parameter_keys) + 2) + '\n'
 
-        for sample in tqdm(sampler.sample(**self.sampler_function_kwargs),
-                           total=self.nsteps):
+        return out_file, template
+
+    def run_sampler(self):
+        import emcee
+        tqdm = get_progress_bar()
+        sampler = emcee.EnsembleSampler(**self.sampler_init_kwargs)
+        out_file, template = self.set_up_checkpoint()
+
+        sampler_function_kwargs = self.sampler_function_kwargs
+        iterations = sampler_function_kwargs.pop('iterations')
+        iterations -= self._previous_iterations
+
+        for sample in tqdm(
+                sampler.sample(iterations=iterations, **sampler_function_kwargs),
+                total=iterations):
             if self.prerelease:
                 points = np.hstack([sample.coords, sample.blobs])
             else:
@@ -232,6 +241,9 @@ class Emcee(MCMCSampler):
         self.result.log_evidence_err = np.nan
         return self.result
 
+    def _draw_pos0_from_prior(self):
+        return [self.get_random_draw_from_prior() for _ in range(self.nwalkers)]
+
     def _set_pos0(self):
         if self.pos0 is not None:
             logger.debug("Using given initial positions for walkers")
@@ -248,19 +260,49 @@ class Emcee(MCMCSampler):
                 self.check_draw(draw)
         else:
             logger.debug("Generating initial walker positions from prior")
-            self.pos0 = [self.get_random_draw_from_prior()
-                         for _ in range(self.nwalkers)]
+            self.pos0 = self._draw_pos0_from_prior()
+
+    @property
+    def _old_chain(self):
+        try:
+            old_chain = self.__old_chain
+            n = old_chain.shape[0]
+            idx = n - np.mod(n, self.nwalkers)
+            return old_chain[:idx, :]
+        except AttributeError:
+            return None
+
+    @_old_chain.setter
+    def _old_chain(self, old_chain):
+        self.__old_chain = old_chain
+
+    @property
+    def _previous_iterations(self):
+        if self._old_chain is None:
+            return 0
+        try:
+            return self._old_chain.shape[0] // self.nwalkers
+        except AttributeError:
+            logger.warning(
+                "Unable to calculate previous iterations from checkpoint,"
+                " defaulting to zero")
+            return 0
 
     def load_old_chain(self, file_name=None):
         if file_name is None:
             out_dir = os.path.join(self.outdir, 'emcee_{}'.format(self.label))
             file_name = os.path.join(out_dir, 'chain.dat')
         if os.path.isfile(file_name):
-            old_chain = np.genfromtxt(file_name, skip_header=1)
-            self.pos0 = [np.squeeze(old_chain[-(self.nwalkers - ii), 1:-2])
-                         for ii in range(self.nwalkers)]
-            self._old_chain = old_chain[:-self.nwalkers + 1, 1:]
-            logger.info('Resuming from {}'.format(os.path.abspath(file_name)))
+            try:
+                old_chain = np.genfromtxt(file_name, skip_header=1)
+                self.pos0 = [np.squeeze(old_chain[-(self.nwalkers - ii), 1:-2])
+                             for ii in range(self.nwalkers)]
+                self._old_chain = old_chain[:-self.nwalkers + 1, 1:]
+                logger.info('Resuming from {}'.format(os.path.abspath(file_name)))
+            except Exception:
+                logger.warning('Failed to resume. Corrupt checkpoint file {}.'
+                               .format(file_name))
+                self._set_pos0()
         else:
             logger.warning('Failed to resume. {} not found.'.format(file_name))
             self._set_pos0()
