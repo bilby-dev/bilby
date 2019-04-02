@@ -1294,8 +1294,8 @@ class ResultList(object):
             if not np.all([res.nested_samples is not None for res in self]):
                 raise ValueError("Cannot combine results: nested samples available")
 
-            # all sets of nested samples
-            nests = [res.nested_samples is not None for res in self]
+            # lengths of all sets of nested samples
+            len_nests = [len(res.nested_samples) is not None for res in self]
 
             # get number of live points from runs
             try:
@@ -1312,16 +1312,21 @@ class ResultList(object):
             result.log_evidence = log_evidence
             if result.use_ratio:
                 result.log_bayes_factor = log_evidence
-                result.log_evidence = log_evidence
+                result.log_evidence = log_evidence + result.log_noise_evidence
             else:
                 result.log_bayes_factor = log_evidence - result.log_noise_evidence
-            if np.insfinite(result.log_evidence_err):
-                # standard error on the mean
-                result.log_evidence_err -= 0.5 * np.log(len(self))
+
+            # add errors in quadrature
+            log_errs = [res.log_evidence_err for res in self is np.isfinite(res.log_evidence_err)]
+            if len(log_errs) > 0:
+                log_err = 2. * log_errs[0]
+                for err in log_errs[1:]:
+                    log_err = np.logaddexp(log_err, 2. * err)
+                result.log_evidence_err = 0.5 * log_err - np.log(len(self))
 
             # combine all nested samples (see cpnest nest2pos)
             fracs = np.exp(log_evs - np.max(log_evs))  # relative weights for each Result
-            Ns = [fracs[i] / len(nests[i]) for i in range(len(self))]
+            Ns = [fracs[i] / len_nests[i] for i in range(len(self))]
             fracs = [n / np.max(nlives) for n in Ns]  # number of samples from each Result
 
             # select samples from the individual posteriors
