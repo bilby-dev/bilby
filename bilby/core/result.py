@@ -4,6 +4,7 @@ import os
 from distutils.version import LooseVersion
 from collections import OrderedDict, namedtuple
 from itertools import product
+from functools import reduce
 
 import numpy as np
 import pandas as pd
@@ -1322,7 +1323,6 @@ class ResultList(object):
 
             # get evidences and weights
             log_evs = np.array([res.log_evidence for res in self])
-            log_weights = [np.log(res.nested_samples['weights']) for res in self]
 
             # average the evidence for each run
             log_evidence = reduce(np.logaddexp, log_evs) - np.log(len(self))
@@ -1334,7 +1334,7 @@ class ResultList(object):
                 result.log_bayes_factor = log_evidence - result.log_noise_evidence
 
             # add errors in quadrature
-            log_errs = [res.log_evidence_err for res in self is np.isfinite(res.log_evidence_err)]
+            log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
             if len(log_errs) > 0:
                 log_err = 2. * log_errs[0]
                 for err in log_errs[1:]:
@@ -1347,7 +1347,7 @@ class ResultList(object):
             fracs = [n / np.max(nlives) for n in Ns]  # number of samples from each Result
 
             # select samples from the individual posteriors
-            posts = [res.posterior[np.random.uniform(size=len(post)) < frac] for res, frac in zip(self, fracs)]
+            posts = [res.posterior[np.random.uniform(size=len(res.posterior)) < frac] for res, frac in zip(self, fracs)]
 
             # remove original nested_samples
             result.nested_samples = None
