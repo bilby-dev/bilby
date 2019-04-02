@@ -1366,6 +1366,12 @@ class ResultList(object):
 
         return result
 
+    def __str__(self):
+        return str(self.results)
+
+    def __repr__(self):
+        return repr(self.results)
+
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, **kwargs):
