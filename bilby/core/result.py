@@ -1288,6 +1288,10 @@ class ResultList(object):
             # get first result
             result = deepcopy(self.results[0])
 
+        # append 'combined' to the label
+        if result.label is not None:
+            result.label += 'combined'
+
         # check all results are equivalent
         sampler = result.sampler
         if not np.all([res.sampler == sampler for res in self]):
