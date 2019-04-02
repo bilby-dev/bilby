@@ -1172,7 +1172,7 @@ class Result(object):
         return outdir
 
 
-class ResultsList(object):
+class ResultList(object):
 
     def __init__(self, results=None):
         """ A class to store a list of :class:`bilby.core.result.Result` objects
@@ -1201,6 +1201,12 @@ class ResultsList(object):
 
         self.append(results)
 
+    def __getitem__(self, idx):
+        return self._results[idx]
+
+    def pop(self, idx):
+        return self._results.pop(idx)
+
     def append(self, results):
         """
         Append a :class:`bilby.core.result.Result`, or set of results, to the
@@ -1214,7 +1220,7 @@ class ResultsList(object):
             pointing to results objects, to append to the list.
         """
 
-        if not isinstance(results, (list, ResultsList)):
+        if not isinstance(results, (list, ResultList)):
             results = [results]  # make into list for iteration
 
         # loop over list
@@ -1288,10 +1294,51 @@ class ResultsList(object):
             if not np.all([res.nested_samples is not None for res in self]):
                 raise ValueError("Cannot combine results: nested samples available")
 
-            # combine all nested samples
+            # all sets of nested samples
+            nests = [res.nested_samples is not None for res in self]
 
+            # get number of live points from runs
+            try:
+                nlives = [res.sampler_kwargs['nlive'] for res in self]
+            except KeyError:
+                raise KeyError("Result did not contain the number of live points used")
+
+            # get evidences and weights
+            log_evs = np.array([res.log_evidence for res in self])
+            log_weights = [np.log(res.nested_samples['weights']) for res in self]
+
+            # average the evidence for each run
+            log_evidence = reduce(np.logaddexp, log_evs) - np.log(len(self))
+            result.log_evidence = log_evidence
+            if result.use_ratio:
+                result.log_bayes_factor = log_evidence
+                result.log_evidence = log_evidence
+            else:
+                result.log_bayes_factor = log_evidence - result.log_noise_evidence
+            if np.insfinite(result.log_evidence_err):
+                # standard error on the mean
+                result.log_evidence_err -= 0.5 * np.log(len(self))
+
+            # combine all nested samples (see cpnest nest2pos)
+            fracs = np.exp(log_evs - np.max(log_evs))  # relative weights for each Result
+            Ns = [fracs[i] / len(nests[i]) for i in range(len(self))]
+            fracs = [n / np.max(nlives) for n in Ns]  # number of samples from each Result
+
+            # select samples from the individual posteriors
+            posts = [res.posterior[np.random.uniform(size=len(post)) < frac] for res, frac in zip(self, fracs)]
+
+            # remove original nested_samples
+            result.nested_samples = None
+            result.sampler_kwargs = None
         else:
             # combine MCMC samples
+            posts = [res for res in self]
+
+        # combine the samples
+        combined_posteriors = pd.concat(posts, ignore_index=True)
+        result.posterior = combined_posteriors.sample(len(combined_posteriors))  # shuffle
+
+        return result
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
