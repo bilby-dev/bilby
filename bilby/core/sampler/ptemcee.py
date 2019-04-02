@@ -27,23 +27,22 @@ class Ptemcee(Emcee):
         The number of temperatures used by ptemcee
 
     """
-    default_kwargs = dict(ntemps=2, nwalkers=500,
-                          Tmax=None, betas=None,
-                          threads=1, pool=None, a=2.0,
-                          loglargs=[], logpargs=[],
-                          loglkwargs={}, logpkwargs={},
-                          adaptation_lag=10000, adaptation_time=100,
-                          random=None, iterations=100, thin=1,
-                          storechain=True, adapt=True,
-                          swap_ratios=False,
+    default_kwargs = dict(ntemps=2, nwalkers=500, Tmax=None, betas=None,
+                          threads=1, pool=None, a=2.0, loglargs=[], logpargs=[],
+                          loglkwargs={}, logpkwargs={}, adaptation_lag=10000,
+                          adaptation_time=100, random=None, iterations=100,
+                          thin=1, storechain=True, adapt=True, swap_ratios=False,
                           )
 
-    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
-                 skip_import_verification=False, nburn=None, burn_in_fraction=0.25,
-                 burn_in_act=3, **kwargs):
-        Emcee.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
-                       use_ratio=use_ratio, plot=plot, skip_import_verification=skip_import_verification,
-                       nburn=nburn, burn_in_fraction=burn_in_fraction, burn_in_act=burn_in_act, **kwargs)
+    def __init__(self, likelihood, priors, outdir='outdir', label='label',
+                 use_ratio=False, plot=False, skip_import_verification=False,
+                 nburn=None, burn_in_fraction=0.25, burn_in_act=3, **kwargs):
+        Emcee.__init__(
+            self, likelihood=likelihood, priors=priors, outdir=outdir,
+            label=label, use_ratio=use_ratio, plot=plot,
+            skip_import_verification=skip_import_verification,
+            nburn=nburn, burn_in_fraction=burn_in_fraction,
+            burn_in_act=burn_in_act, **kwargs)
 
     @property
     def sampler_function_kwargs(self):
