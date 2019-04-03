@@ -42,7 +42,7 @@ class Ptemcee(Emcee):
             label=label, use_ratio=use_ratio, plot=plot,
             skip_import_verification=skip_import_verification,
             nburn=nburn, burn_in_fraction=burn_in_fraction,
-            burn_in_act=burn_in_act, resume=True, **kwargs)
+            burn_in_act=burn_in_act, resume=resume, **kwargs)
 
     @property
     def sampler_function_kwargs(self):
@@ -116,6 +116,7 @@ class Ptemcee(Emcee):
                                     **sampler_function_kwargs),
                 total=iterations):
             self.write_chains_to_file(pos, loglike, logpost)
+        self.checkpoint()
 
         self.calculate_autocorrelation(self.sampler.chain.reshape((-1, self.ndim)))
         self.result.sampler_output = np.nan

@@ -274,6 +274,8 @@ class Emcee(MCMCSampler):
         if hasattr(self, '_sampler'):
             pass
         elif self.resume and os.path.isfile(self.checkpoint_info.sampler_file):
+            logger.info("Resuming run from checkpoint file {}"
+                        .format(self.checkpoint_info.sampler_file))
             with open(self.checkpoint_info.sampler_file, 'rb') as f:
                 self._sampler = pickle.load(f)
             self._set_pos0_for_resume()
@@ -335,13 +337,14 @@ class Emcee(MCMCSampler):
         iterations = sampler_function_kwargs.pop('iterations')
         iterations -= self._previous_iterations
 
-        print('pos0', self.pos0)
         sampler_function_kwargs['p0'] = self.pos0
 
+        # main iteration loop
         for sample in tqdm(
                 self.sampler.sample(iterations=iterations, **sampler_function_kwargs),
                 total=iterations):
             self.write_chains_to_file(sample)
+        self.checkpoint()
 
         self.result.sampler_output = np.nan
         blobs_flat = np.array(self.sampler.blobs).reshape((-1, 2))
