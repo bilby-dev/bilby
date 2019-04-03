@@ -59,32 +59,10 @@ class Ptemcee(Emcee):
     def ntemps(self):
         return self.kwargs['ntemps']
 
-    def _draw_pos0_from_prior(self):
-        # for ptemcee, the pos0 has the shape ntemps, nwalkers, ndim
-        return [[self.get_random_draw_from_prior()
-                 for _ in range(self.nwalkers)]
-                for _ in range(self.kwargs['ntemps'])]
-
-    def _set_pos0_for_resume(self):
-        self.pos0 = None
-
-    @property
-    def _previous_iterations(self):
-        """ Returns the number of iterations that the sampler has saved
-
-        This is used when loading in a sampler from a pickle file to figure out
-        how much of the run has already been completed
-        """
-        return self.sampler.time
-
     @property
     def sampler_chain(self):
         nsteps = self._previous_iterations
         return self.sampler.chain[:, :, :nsteps, :]
-
-    @property
-    def _pos0_shape(self):
-        return (self.ntemps, self.nwalkers, self.ndim)
 
     def _initialise_sampler(self):
         import ptemcee
@@ -103,6 +81,28 @@ class Ptemcee(Emcee):
             for ii, (point, logl, logp) in enumerate(zip(pos[0, :, :], loglike, logprior)):
                 line = np.concatenate((point, [logl, logp]))
                 ff.write(self.checkpoint_info.chain_template.format(ii, *line))
+
+    @property
+    def _previous_iterations(self):
+        """ Returns the number of iterations that the sampler has saved
+
+        This is used when loading in a sampler from a pickle file to figure out
+        how much of the run has already been completed
+        """
+        return self.sampler.time
+
+    def _draw_pos0_from_prior(self):
+        # for ptemcee, the pos0 has the shape ntemps, nwalkers, ndim
+        return [[self.get_random_draw_from_prior()
+                 for _ in range(self.nwalkers)]
+                for _ in range(self.kwargs['ntemps'])]
+
+    @property
+    def _pos0_shape(self):
+        return (self.ntemps, self.nwalkers, self.ndim)
+
+    def _set_pos0_for_resume(self):
+        self.pos0 = None
 
     def run_sampler(self):
         tqdm = get_progress_bar()
