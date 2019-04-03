@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 import os
 import signal
+from shutil import copyfile
 import sys
 
 import numpy as np
@@ -285,13 +286,18 @@ class Emcee(MCMCSampler):
         return self._sampler
 
     def write_chains_to_file(self, sample):
+        chain_file = self.checkpoint_info.chain_file
+        temp_chain_file = chain_file + '.temp'
+        copyfile(chain_file, temp_chain_file)
+
         if self.prerelease:
             points = np.hstack([sample.coords, sample.blobs])
         else:
             points = np.hstack([sample[0], np.array(sample[3])])
-        with open(self.checkpoint_info.chain_file, "a") as ff:
+        with open(temp_chain_file, "a") as ff:
             for ii, point in enumerate(points):
                 ff.write(self.checkpoint_info.chain_template.format(ii, *point))
+        os.rename(temp_chain_file, chain_file)
 
     @property
     def _previous_iterations(self):
