@@ -310,8 +310,8 @@ class Dynesty(NestedSampler):
             return False
 
     def write_current_state_and_exit(self, signum=None, frame=None):
+        logger.warning("Run terminated with signal {}".format(signum))
         self.write_current_state()
-        logger.warning("Run terminated")
         sys.exit()
 
     def write_current_state(self):
@@ -331,6 +331,7 @@ class Dynesty(NestedSampler):
             NestedSampler to write to disk.
         """
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        logger.info("Writing checkpoint file {}".format(self.resume_file))
 
         current_state = dict(
             unit_cube_samples=self.sampler.saved_u,
