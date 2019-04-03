@@ -72,6 +72,7 @@ class Ptemcee(Emcee):
         self._sampler = ptemcee.Sampler(
             dim=self.ndim, logl=self.log_likelihood, logp=self.log_prior,
             **self.sampler_init_kwargs)
+        self._init_chain_file()
 
     def print_tswap_acceptance_fraction(self):
         logger.info("Sampler per-chain tswap acceptance fraction = {}".format(
@@ -80,8 +81,9 @@ class Ptemcee(Emcee):
     def write_chains_to_file(self, pos, loglike, logpost):
         chain_file = self.checkpoint_info.chain_file
         temp_chain_file = chain_file + '.temp'
+        if os.path.isfile(chain_file):
+            copyfile(chain_file, temp_chain_file)
 
-        copyfile(chain_file, temp_chain_file)
         with open(temp_chain_file, "a") as ff:
             loglike = np.squeeze(loglike[0, :])
             logprior = np.squeeze(logpost[0, :]) - loglike
