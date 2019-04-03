@@ -334,7 +334,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             dmax = self._distance_array[-1]
             n = len(self._distance_array)
             self._lookup_table_filename = (
-                '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+                '.distance_marginalization_lookup.npz'
                 .format(dmin, dmax, n))
         return self._lookup_table_filename
 
