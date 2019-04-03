@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+from shutil import copyfile
+
 import numpy as np
 
 from ..utils import logger, get_progress_bar
@@ -75,12 +77,15 @@ class Ptemcee(Emcee):
             self.sampler.tswap_acceptance_fraction))
 
     def write_chains_to_file(self, pos, loglike, logpost):
-        with open(self.checkpoint_info.chain_file, "a") as ff:
+        chain_file = self.checkpoint_info.chain_file
+        temp_chain_file = chain_file + '.temp'
+        with open(temp_chain_file, "a") as ff:
             loglike = np.squeeze(loglike[0, :])
             logprior = np.squeeze(logpost[0, :]) - loglike
             for ii, (point, logl, logp) in enumerate(zip(pos[0, :, :], loglike, logprior)):
                 line = np.concatenate((point, [logl, logp]))
                 ff.write(self.checkpoint_info.chain_template.format(ii, *line))
+        copyfile(temp_chain_file, chain_file)
 
     @property
     def _previous_iterations(self):
@@ -118,6 +123,7 @@ class Ptemcee(Emcee):
             self.write_chains_to_file(pos, loglike, logpost)
         self.checkpoint()
 
+        import IPython; IPython.embed()
         self.calculate_autocorrelation(self.sampler.chain.reshape((-1, self.ndim)))
         self.result.sampler_output = np.nan
         self.print_nburn_logging_info()
