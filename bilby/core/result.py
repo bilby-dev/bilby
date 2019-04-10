@@ -983,6 +983,17 @@ class Result(object):
         fig.savefig(filename, dpi=dpi)
         plt.close(fig)
 
+    @staticmethod
+    def _add_prior_fixed_values_to_posterior(posterior, priors):
+        if priors is None:
+            return posterior
+        for key in priors:
+            if isinstance(priors[key], DeltaFunction):
+                posterior[key] = priors[key].peak
+            elif isinstance(priors[key], float):
+                posterior[key] = priors[key]
+        return posterior
+
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
         """
@@ -1005,11 +1016,8 @@ class Result(object):
         except ValueError:
             data_frame = pd.DataFrame(
                 self.samples, columns=self.search_parameter_keys)
-            for key in priors:
-                if isinstance(priors[key], DeltaFunction):
-                    data_frame[key] = priors[key].peak
-                elif isinstance(priors[key], float):
-                    data_frame[key] = priors[key]
+            data_frame = self._add_prior_fixed_values_to_posterior(
+                data_frame, priors)
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
             if self.log_prior_evaluations is None:
