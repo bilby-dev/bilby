@@ -263,6 +263,19 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         self.assertListEqual(sorted(self.waveform_generator.parameters.keys()),
                              sorted(['amplitude', 'mu', 'sigma', 'ra', 'dec', 'geocent_time', 'psi']))
 
+    def test_caching_with_parameters(self):
+        original_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        self.assertDictEqual(original_waveform, new_waveform)
+
+    def test_caching_without_parameters(self):
+        original_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.frequency_domain_strain()
+        self.assertDictEqual(original_waveform, new_waveform)
+
 
 class TestTimeDomainStrainMethod(unittest.TestCase):
 
@@ -353,6 +366,20 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
             pass
         self.assertListEqual(sorted(self.waveform_generator.parameters.keys()),
                              sorted(['amplitude', 'mu', 'sigma', 'ra', 'dec', 'geocent_time', 'psi']))
+
+    def test_caching_with_parameters(self):
+        original_waveform = self.waveform_generator.time_domain_strain(
+            parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.time_domain_strain(
+            parameters=self.simulation_parameters)
+        self.assertDictEqual(original_waveform, new_waveform)
+
+    def test_caching_without_parameters(self):
+        original_waveform = self.waveform_generator.time_domain_strain(
+            parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.time_domain_strain()
+        self.assertDictEqual(original_waveform, new_waveform)
+
 
 
 if __name__ == '__main__':

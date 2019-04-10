@@ -62,6 +62,7 @@ class WaveformGenerator(object):
             self.waveform_arguments = dict()
         if isinstance(parameters, dict):
             self.parameters = parameters
+        self._cache = dict(parameters=None, waveform=None)
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -147,6 +148,8 @@ class WaveformGenerator(object):
                           transformed_model_data_points, parameters):
         if parameters is not None:
             self.parameters = parameters
+        if self.parameters == self._cache['parameters']:
+            return self._cache['waveform']
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -154,6 +157,8 @@ class WaveformGenerator(object):
                                                                transformation_function)
         else:
             raise RuntimeError("No source model given")
+        self._cache['waveform'] = model_strain
+        self._cache['parameters'] = self.parameters.copy()
         return model_strain
 
     def _strain_from_model(self, model_data_points, model):
