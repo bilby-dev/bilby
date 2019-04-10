@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 
 class Recalibrate(object):
@@ -83,11 +83,12 @@ class CubicSpline(Recalibrate):
         self.n_points = n_points
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
-        self.__spline_points = np.logspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
+        self._log_spline_points = np.linspace(
+            np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
 
     @property
-    def spline_points(self):
-        return self.__spline_points
+    def log_spline_points(self):
+        return self._log_spline_points
 
     def __repr__(self):
         return self.__class__.__name__ + '(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
@@ -112,13 +113,17 @@ class CubicSpline(Recalibrate):
             The factor to multiply the strain by.
         """
         self.set_calibration_parameters(**params)
-        amplitude_parameters = [self.params['amplitude_{}'.format(ii)] for ii in range(self.n_points)]
-        amplitude_spline = UnivariateSpline(self.spline_points, amplitude_parameters)
-        delta_amplitude = amplitude_spline(frequency_array)
+        amplitude_parameters = [self.params['amplitude_{}'.format(ii)]
+                                for ii in range(self.n_points)]
+        delta_amplitude = interp1d(
+            self.log_spline_points, amplitude_parameters, kind='cubic',
+            bounds_error=False, fill_value=0)(np.log10(frequency_array))
 
-        phase_parameters = [self.params['phase_{}'.format(ii)] for ii in range(self.n_points)]
-        phase_spline = UnivariateSpline(self.spline_points, phase_parameters)
-        delta_phase = phase_spline(frequency_array)
+        phase_parameters = [
+            self.params['phase_{}'.format(ii)] for ii in range(self.n_points)]
+        delta_phase = interp1d(
+            self.log_spline_points, phase_parameters, kind='cubic',
+            bounds_error=False, fill_value=0)(np.log10(frequency_array))
 
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
 
