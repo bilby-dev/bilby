@@ -7,5 +7,11 @@ E.g., sampling in chirp mass and mass ratio can be much more efficient than samp
 
 We have many functions to do this.
 
+These are used in multiple places:
+- `PriorDict`s have a `conversion_function`, for the GW PriorDicts, these are from this module.
+- `WaveformGenerator`s can use a `parameter_conversion`, again these are from this module.
+- A `conversion_function` can be passed to `run_sampler`, this is done as a post-processing step.
+For CBCs either `generate_all_bbh_parameters` or `generate_all_bns_parameters` can be used.
+
 .. automodule:: bilby.gw.conversion
     :members:
