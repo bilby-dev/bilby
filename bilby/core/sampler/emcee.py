@@ -1,10 +1,15 @@
 from __future__ import absolute_import, print_function
 
+from collections import namedtuple
 import os
+import signal
+from shutil import copyfile
+import sys
 
 import numpy as np
 from pandas import DataFrame
 from distutils.version import LooseVersion
+import dill as pickle
 
 from ..utils import (
     logger, get_progress_bar, check_directory_exists_and_if_not_mkdir)
@@ -41,11 +46,11 @@ class Emcee(MCMCSampler):
 
     """
 
-    default_kwargs = dict(nwalkers=500, a=2, args=[], kwargs={},
-                          postargs=None, pool=None, live_dangerously=False,
-                          runtime_sortingfn=None, lnprob0=None, rstate0=None,
-                          blobs0=None, iterations=100, thin=1, storechain=True,
-                          mh_proposal=None)
+    default_kwargs = dict(
+        nwalkers=500, a=2, args=[], kwargs={}, postargs=None, pool=None,
+        live_dangerously=False, runtime_sortingfn=None, lnprob0=None,
+        rstate0=None, blobs0=None, iterations=100, thin=1, storechain=True,
+        mh_proposal=None)
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False, skip_import_verification=False,
@@ -65,7 +70,9 @@ class Emcee(MCMCSampler):
         self.nburn = nburn
         self.burn_in_fraction = burn_in_fraction
         self.burn_in_act = burn_in_act
-        self._old_chain = None
+
+        signal.signal(signal.SIGTERM, self.checkpoint_and_exit)
+        signal.signal(signal.SIGINT, self.checkpoint_and_exit)
 
     def _translate_kwargs(self, kwargs):
         if 'nwalkers' not in kwargs:
@@ -136,6 +143,14 @@ class Emcee(MCMCSampler):
 
         return init_kwargs
 
+    def lnpostfn(self, theta):
+        log_prior = self.log_prior(theta)
+        if np.isinf(log_prior):
+            return -np.inf, [np.nan, np.nan]
+        else:
+            log_likelihood = self.log_likelihood(theta)
+            return log_likelihood + log_prior, [log_likelihood, log_prior]
+
     @property
     def nburn(self):
         if type(self.__nburn) in [float, int]:
@@ -166,56 +181,184 @@ class Emcee(MCMCSampler):
     def nsteps(self, nsteps):
         self.kwargs['iterations'] = nsteps
 
-    def __getstate__(self):
-        # In order to be picklable with dill, we need to discard the pool
-        # object before trying.
-        d = self.__dict__
-        d["_Sampler__kwargs"]["pool"] = None
-        return d
+    @property
+    def stored_chain(self):
+        """ Read the stored zero-temperature chain data in from disk """
+        return np.genfromtxt(self.checkpoint_info.chain_file, names=True)
 
-    def run_sampler(self):
-        import emcee
-        tqdm = get_progress_bar()
-        sampler = emcee.EnsembleSampler(**self.sampler_init_kwargs)
-        out_dir = os.path.join(self.outdir, 'emcee_{}'.format(self.label))
-        out_file = os.path.join(out_dir, 'chain.dat')
+    @property
+    def stored_samples(self):
+        """ Returns the samples stored on disk """
+        return self.stored_chain[self.search_parameter_keys]
 
-        if self.resume:
-            self.load_old_chain(out_file)
-        else:
-            self._set_pos0()
+    @property
+    def stored_loglike(self):
+        """ Returns the log-likelihood stored on disk """
+        return self.stored_chain['log_l']
 
+    @property
+    def stored_logprior(self):
+        """ Returns the log-prior stored on disk """
+        return self.stored_chain['log_p']
+
+    def _init_chain_file(self):
+        with open(self.checkpoint_info.chain_file, "w+") as ff:
+            ff.write('walker\t{}\tlog_l\tlog_p\n'.format(
+                '\t'.join(self.search_parameter_keys)))
+
+    @property
+    def checkpoint_info(self):
+        """ Defines various things related to checkpointing and storing data
+
+        Returns
+        -------
+        checkpoint_info: named_tuple
+            An object with attributes `sampler_file`, `chain_file`, and
+            `chain_template`. The first two give paths to where the sampler and
+            chain data is stored, the last a formatted-str-template with which
+            to write the chain data to disk
+
+        """
+        out_dir = os.path.join(
+            self.outdir, '{}_{}'.format(self.__class__.__name__.lower(),
+                                        self.label))
         check_directory_exists_and_if_not_mkdir(out_dir)
-        if not os.path.isfile(out_file):
-            with open(out_file, "w") as ff:
-                ff.write('walker\t{}\tlog_l'.format(
-                    '\t'.join(self.search_parameter_keys)))
-        template =\
+
+        chain_file = os.path.join(out_dir, 'chain.dat')
+        sampler_file = os.path.join(out_dir, 'sampler.pickle')
+        chain_template =\
             '{:d}' + '\t{:.9e}' * (len(self.search_parameter_keys) + 2) + '\n'
 
-        for sample in tqdm(sampler.sample(**self.sampler_function_kwargs),
-                           total=self.nsteps):
-            if self.prerelease:
-                points = np.hstack([sample.coords, sample.blobs])
-            else:
-                points = np.hstack([sample[0], np.array(sample[3])])
-            with open(out_file, "a") as ff:
-                for ii, point in enumerate(points):
-                    ff.write(template.format(ii, *point))
+        CheckpointInfo = namedtuple(
+            'CheckpointInfo', ['sampler_file', 'chain_file', 'chain_template'])
+
+        checkpoint_info = CheckpointInfo(
+            sampler_file=sampler_file, chain_file=chain_file,
+            chain_template=chain_template)
+
+        return checkpoint_info
+
+    @property
+    def sampler_chain(self):
+        nsteps = self._previous_iterations
+        return self.sampler.chain[:, :nsteps, :]
+
+    def checkpoint(self):
+        """ Writes a pickle file of the sampler to disk using dill """
+        logger.info("Checkpointing sampler to file {}"
+                    .format(self.checkpoint_info.sampler_file))
+        with open(self.checkpoint_info.sampler_file, 'wb') as f:
+            # Overwrites the stored sampler chain with one that is truncated
+            # to only the completed steps
+            self.sampler._chain = self.sampler_chain
+            pickle.dump(self._sampler, f)
+
+    def checkpoint_and_exit(self, signum, frame):
+        logger.info("Recieved signal {}".format(signum))
+        self.checkpoint()
+        sys.exit()
+
+    def _initialise_sampler(self):
+        import emcee
+        self._sampler = emcee.EnsembleSampler(**self.sampler_init_kwargs)
+        self._init_chain_file()
+
+    @property
+    def sampler(self):
+        """ Returns the ptemcee sampler object
+
+        If, alrady initialized, returns the stored _sampler value. Otherwise,
+        first checks if there is a pickle file from which to load. If there is
+        not, then initialize the sampler and set the initial random draw
+
+        """
+        if hasattr(self, '_sampler'):
+            pass
+        elif self.resume and os.path.isfile(self.checkpoint_info.sampler_file):
+            logger.info("Resuming run from checkpoint file {}"
+                        .format(self.checkpoint_info.sampler_file))
+            with open(self.checkpoint_info.sampler_file, 'rb') as f:
+                self._sampler = pickle.load(f)
+            self._set_pos0_for_resume()
+        else:
+            self._initialise_sampler()
+            self._set_pos0()
+        return self._sampler
+
+    def write_chains_to_file(self, sample):
+        chain_file = self.checkpoint_info.chain_file
+        temp_chain_file = chain_file + '.temp'
+        if os.path.isfile(chain_file):
+            copyfile(chain_file, temp_chain_file)
+
+        if self.prerelease:
+            points = np.hstack([sample.coords, sample.blobs])
+        else:
+            points = np.hstack([sample[0], np.array(sample[3])])
+        with open(temp_chain_file, "a") as ff:
+            for ii, point in enumerate(points):
+                ff.write(self.checkpoint_info.chain_template.format(ii, *point))
+        os.rename(temp_chain_file, chain_file)
+
+    @property
+    def _previous_iterations(self):
+        """ Returns the number of iterations that the sampler has saved
+
+        This is used when loading in a sampler from a pickle file to figure out
+        how much of the run has already been completed
+        """
+        return len(self.sampler.blobs)
+
+    def _draw_pos0_from_prior(self):
+        return np.array(
+            [self.get_random_draw_from_prior() for _ in range(self.nwalkers)])
+
+    @property
+    def _pos0_shape(self):
+        return (self.nwalkers, self.ndim)
+
+    def _set_pos0(self):
+        if self.pos0 is not None:
+            logger.debug("Using given initial positions for walkers")
+            if isinstance(self.pos0, DataFrame):
+                self.pos0 = self.pos0[self.search_parameter_keys].values
+            elif type(self.pos0) in (list, np.ndarray):
+                self.pos0 = np.squeeze(self.pos0)
+
+            if self.pos0.shape != self._pos0_shape:
+                raise ValueError(
+                    'Input pos0 should be of shape ndim, nwalkers')
+            logger.debug("Checking input pos0")
+            for draw in self.pos0:
+                self.check_draw(draw)
+        else:
+            logger.debug("Generating initial walker positions from prior")
+            self.pos0 = self._draw_pos0_from_prior()
+
+    def _set_pos0_for_resume(self):
+        self.pos0 = self.sampler.chain[:, -1, :]
+
+    def run_sampler(self):
+        tqdm = get_progress_bar()
+        sampler_function_kwargs = self.sampler_function_kwargs
+        iterations = sampler_function_kwargs.pop('iterations')
+        iterations -= self._previous_iterations
+
+        sampler_function_kwargs['p0'] = self.pos0
+
+        # main iteration loop
+        for sample in tqdm(
+                self.sampler.sample(iterations=iterations, **sampler_function_kwargs),
+                total=iterations):
+            self.write_chains_to_file(sample)
+        self.checkpoint()
 
         self.result.sampler_output = np.nan
-        blobs_flat = np.array(sampler.blobs).reshape((-1, 2))
+        blobs_flat = np.array(self.sampler.blobs).reshape((-1, 2))
         log_likelihoods, log_priors = blobs_flat.T
-        if self._old_chain is not None:
-            chain = np.vstack([self._old_chain[:, :-2],
-                               sampler.chain.reshape((-1, self.ndim))])
-            log_ls = np.hstack([self._old_chain[:, -2], log_likelihoods])
-            log_ps = np.hstack([self._old_chain[:, -1], log_priors])
-            self.nsteps = chain.shape[0] // self.nwalkers
-        else:
-            chain = sampler.chain.reshape((-1, self.ndim))
-            log_ls = log_likelihoods
-            log_ps = log_priors
+        chain = self.sampler.chain.reshape((-1, self.ndim))
+        log_ls = log_likelihoods
+        log_ps = log_priors
         self.calculate_autocorrelation(chain)
         self.print_nburn_logging_info()
         self.result.nburn = self.nburn
@@ -227,48 +370,7 @@ class Emcee(MCMCSampler):
         self.result.samples = chain[n_samples:, :]
         self.result.log_likelihood_evaluations = log_ls[n_samples:]
         self.result.log_prior_evaluations = log_ps[n_samples:]
-        self.result.walkers = sampler.chain
+        self.result.walkers = self.sampler.chain
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
-
-    def _set_pos0(self):
-        if self.pos0 is not None:
-            logger.debug("Using given initial positions for walkers")
-            if isinstance(self.pos0, DataFrame):
-                self.pos0 = self.pos0[self.search_parameter_keys].values
-            elif type(self.pos0) in (list, np.ndarray):
-                self.pos0 = np.squeeze(self.kwargs['pos0'])
-
-            if self.pos0.shape != (self.nwalkers, self.ndim):
-                raise ValueError(
-                    'Input pos0 should be of shape ndim, nwalkers')
-            logger.debug("Checking input pos0")
-            for draw in self.pos0:
-                self.check_draw(draw)
-        else:
-            logger.debug("Generating initial walker positions from prior")
-            self.pos0 = [self.get_random_draw_from_prior()
-                         for _ in range(self.nwalkers)]
-
-    def load_old_chain(self, file_name=None):
-        if file_name is None:
-            out_dir = os.path.join(self.outdir, 'emcee_{}'.format(self.label))
-            file_name = os.path.join(out_dir, 'chain.dat')
-        if os.path.isfile(file_name):
-            old_chain = np.genfromtxt(file_name, skip_header=1)
-            self.pos0 = [np.squeeze(old_chain[-(self.nwalkers - ii), 1:-2])
-                         for ii in range(self.nwalkers)]
-            self._old_chain = old_chain[:-self.nwalkers + 1, 1:]
-            logger.info('Resuming from {}'.format(os.path.abspath(file_name)))
-        else:
-            logger.warning('Failed to resume. {} not found.'.format(file_name))
-            self._set_pos0()
-
-    def lnpostfn(self, theta):
-        log_prior = self.log_prior(theta)
-        if np.isinf(log_prior):
-            return -np.inf, [np.nan, np.nan]
-        else:
-            log_likelihood = self.log_likelihood(theta)
-            return log_likelihood + log_prior, [log_likelihood, log_prior]
