@@ -266,6 +266,17 @@ class TestResult(unittest.TestCase):
         df = pd.read_csv(filename)
         self.assertTrue(np.allclose(self.result.posterior.values, df.values))
 
+    def test_samples_to_posterior_simple(self):
+        self.result.posterior = None
+        x = [1, 2, 3]
+        y = [4, 6, 8]
+        self.result.samples = np.array([x, y]).T
+        self.result.samples_to_posterior()
+        self.assertTrue(all(self.result.posterior['x'] == x))
+        self.assertTrue(all(self.result.posterior['y'] == y))
+        self.assertTrue(np.all(
+            None == self.result.posterior.log_likelihood.values))
+
     def test_samples_to_posterior(self):
         self.result.posterior = None
         x = [1, 2, 3]

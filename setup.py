@@ -57,7 +57,7 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '0.4.3'
+VERSION = '0.4.4'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
@@ -79,6 +79,7 @@ setup(name='bilby',
           'future',
           'dynesty',
           'corner',
+          'dill',
           'numpy>=1.9',
           'matplotlib>=2.0',
           'pandas',

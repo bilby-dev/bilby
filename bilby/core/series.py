@@ -35,7 +35,7 @@ class CoupledTimeAndFrequencySeries(object):
         -------
         array_like: The frequency array
         """
-        if self._frequency_array_updated is False:
+        if not self._frequency_array_updated:
             if self.sampling_frequency and self.duration:
                 self._frequency_array = utils.create_frequency_series(
                     sampling_frequency=self.sampling_frequency,
@@ -45,6 +45,7 @@ class CoupledTimeAndFrequencySeries(object):
                                  'legitimate sampling_frequency ({}) or duration ({})'
                                  .format(self.sampling_frequency, self.duration))
 
+            self._frequency_array_updated = True
         return self._frequency_array
 
     @frequency_array.setter
@@ -63,7 +64,7 @@ class CoupledTimeAndFrequencySeries(object):
         array_like: The time array
         """
 
-        if self._time_array_updated is False:
+        if not self._time_array_updated:
             if self.sampling_frequency and self.duration:
                 self._time_array = utils.create_time_series(
                     sampling_frequency=self.sampling_frequency,

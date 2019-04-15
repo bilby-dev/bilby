@@ -407,7 +407,7 @@ class Prior(object):
     _default_latex_labels = dict()
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=-np.inf,
-                 maximum=np.inf):
+                 maximum=np.inf, periodic_boundary=False):
         """ Implements a Prior object
 
         Parameters
@@ -422,13 +422,15 @@ class Prior(object):
             Minimum of the domain, default=-np.inf
         maximum: float, optional
             Maximum of the domain, default=np.inf
-
+        periodic_boundary: bool, optional
+            Whether or not the boundary condition is periodic. Not available in all samplers.
         """
         self.name = name
         self.latex_label = latex_label
         self.unit = unit
         self.minimum = minimum
         self.maximum = maximum
+        self.periodic_boundary = periodic_boundary
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -633,6 +635,16 @@ class Prior(object):
         self._maximum = maximum
 
     @property
+    def periodic_boundary(self):
+        return self._periodic_boundary
+
+    @periodic_boundary.setter
+    def periodic_boundary(self, periodic_boundary):
+        if type(periodic_boundary) is not bool:
+            raise ValueError('{} is not a valid setting for prior boundaries'.format(periodic_boundary))
+        self._periodic_boundary = periodic_boundary
+
+    @property
     def __default_latex_label(self):
         if self.name in self._default_latex_labels.keys():
             label = self._default_latex_labels[self.name]
@@ -709,7 +721,7 @@ class DeltaFunction(Prior):
 class PowerLaw(Prior):
 
     def __init__(self, alpha, minimum, maximum, name=None, latex_label=None,
-                 unit=None):
+                 unit=None, periodic_boundary=False):
         """Power law with bounds and alpha, spectral index
 
         Parameters
@@ -726,9 +738,12 @@ class PowerLaw(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label,
-                       minimum=minimum, maximum=maximum, unit=unit)
+                       minimum=minimum, maximum=maximum, unit=unit,
+                       periodic_boundary=periodic_boundary)
         self.alpha = alpha
 
     def rescale(self, val):
@@ -789,13 +804,14 @@ class PowerLaw(Prior):
             normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
                                               self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(1. * self.is_in_prior_range(val))
+        return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(
+            1. * self.is_in_prior_range(val))
 
 
 class Uniform(Prior):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None):
+                 unit=None, periodic_boundary=False):
         """Uniform prior with bounds
 
         Parameters
@@ -810,9 +826,12 @@ class Uniform(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label,
-                       minimum=minimum, maximum=maximum, unit=unit)
+                       minimum=minimum, maximum=maximum, unit=unit,
+                       periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
         Prior.test_valid_for_rescaling(val)
@@ -850,7 +869,7 @@ class Uniform(Prior):
 class LogUniform(PowerLaw):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None):
+                 unit=None, periodic_boundary=False):
         """Log-Uniform prior with bounds
 
         Parameters
@@ -865,9 +884,11 @@ class LogUniform(PowerLaw):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         PowerLaw.__init__(self, name=name, latex_label=latex_label, unit=unit,
-                          minimum=minimum, maximum=maximum, alpha=-1)
+                          minimum=minimum, maximum=maximum, alpha=-1, periodic_boundary=periodic_boundary)
         if self.minimum <= 0:
             logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
 
@@ -875,7 +896,7 @@ class LogUniform(PowerLaw):
 class SymmetricLogUniform(Prior):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None):
+                 unit=None, periodic_boundary=False):
         """Symmetric Log-Uniform distribtions with bounds
 
         This is identical to a Log-Uniform distribition, but mirrored about
@@ -895,9 +916,12 @@ class SymmetricLogUniform(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label,
-                       minimum=minimum, maximum=maximum, unit=unit)
+                       minimum=minimum, maximum=maximum, unit=unit,
+                       periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
         """
@@ -955,7 +979,7 @@ class SymmetricLogUniform(Prior):
 class Cosine(Prior):
 
     def __init__(self, name=None, latex_label=None, unit=None,
-                 minimum=-np.pi / 2, maximum=np.pi / 2):
+                 minimum=-np.pi / 2, maximum=np.pi / 2, periodic_boundary=False):
         """Cosine prior with bounds
 
         Parameters
@@ -970,9 +994,11 @@ class Cosine(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
-                       minimum=minimum, maximum=maximum)
+                       minimum=minimum, maximum=maximum, periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
         """
@@ -1001,7 +1027,7 @@ class Cosine(Prior):
 class Sine(Prior):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0,
-                 maximum=np.pi):
+                 maximum=np.pi, periodic_boundary=False):
         """Sine prior with bounds
 
         Parameters
@@ -1016,9 +1042,11 @@ class Sine(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
-                       minimum=minimum, maximum=maximum)
+                       minimum=minimum, maximum=maximum, periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
         """
@@ -1046,7 +1074,7 @@ class Sine(Prior):
 
 class Gaussian(Prior):
 
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Gaussian prior with mean mu and width sigma
 
         Parameters
@@ -1061,8 +1089,10 @@ class Gaussian(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
         self.mu = mu
         self.sigma = sigma
 
@@ -1094,7 +1124,7 @@ class Gaussian(Prior):
 
 class Normal(Gaussian):
 
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """A synonym for the Gaussian distribution.
 
         Parameters
@@ -1109,15 +1139,17 @@ class Normal(Gaussian):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
-        Gaussian.__init__(self, mu=mu, sigma=sigma, name=name,
-                          latex_label=latex_label, unit=unit)
+        Gaussian.__init__(self, mu=mu, sigma=sigma, name=name, latex_label=latex_label,
+                          unit=unit, periodic_boundary=periodic_boundary)
 
 
 class TruncatedGaussian(Prior):
 
     def __init__(self, mu, sigma, minimum, maximum, name=None,
-                 latex_label=None, unit=None):
+                 latex_label=None, unit=None, periodic_boundary=False):
         """Truncated Gaussian prior with mean mu and width sigma
 
         https://en.wikipedia.org/wiki/Truncated_normal_distribution
@@ -1138,9 +1170,11 @@ class TruncatedGaussian(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
-                       minimum=minimum, maximum=maximum)
+                       minimum=minimum, maximum=maximum, periodic_boundary=periodic_boundary)
         self.mu = mu
         self.sigma = sigma
 
@@ -1176,14 +1210,14 @@ class TruncatedGaussian(Prior):
         -------
         float: Prior probability of val
         """
-        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (
-            2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
+        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / \
+            (2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
 
 
 class TruncatedNormal(TruncatedGaussian):
 
     def __init__(self, mu, sigma, minimum, maximum, name=None,
-                 latex_label=None, unit=None):
+                 latex_label=None, unit=None, periodic_boundary=False):
         """A synonym for the TruncatedGaussian distribution.
 
         Parameters
@@ -1202,14 +1236,16 @@ class TruncatedNormal(TruncatedGaussian):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         TruncatedGaussian.__init__(self, mu=mu, sigma=sigma, minimum=minimum,
-                                   maximum=maximum, name=name,
-                                   latex_label=latex_label, unit=unit)
+                                   maximum=maximum, name=name, latex_label=latex_label,
+                                   unit=unit, periodic_boundary=periodic_boundary)
 
 
 class HalfGaussian(TruncatedGaussian):
-    def __init__(self, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """A Gaussian with its mode at zero, and truncated to only be positive.
 
         Parameters
@@ -1222,14 +1258,16 @@ class HalfGaussian(TruncatedGaussian):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         TruncatedGaussian.__init__(self, 0., sigma, minimum=0., maximum=np.inf,
                                    name=name, latex_label=latex_label,
-                                   unit=unit)
+                                   unit=unit, periodic_boundary=periodic_boundary)
 
 
 class HalfNormal(HalfGaussian):
-    def __init__(self, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """A synonym for the HalfGaussian distribution.
 
         Parameters
@@ -1242,14 +1280,16 @@ class HalfNormal(HalfGaussian):
             See superclass
         unit: str
             See superclass
-
+        periodic_boundary: bool
+            See superclass
         """
         HalfGaussian.__init__(self, sigma=sigma, name=name,
-                              latex_label=latex_label, unit=unit)
+                              latex_label=latex_label, unit=unit,
+                              periodic_boundary=periodic_boundary)
 
 
 class LogNormal(Prior):
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Log-normal prior with mean mu and width sigma
 
         https://en.wikipedia.org/wiki/Log-normal_distribution
@@ -1266,10 +1306,11 @@ class LogNormal(Prior):
             See superclass
         unit: str
             See superclass
-
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, minimum=0., latex_label=latex_label,
-                       unit=unit)
+                       unit=unit, periodic_boundary=periodic_boundary)
 
         if sigma <= 0.:
             raise ValueError("For the LogGaussian prior the standard deviation must be positive")
@@ -1305,7 +1346,7 @@ class LogNormal(Prior):
 
 
 class LogGaussian(LogNormal):
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Synonym of LogNormal prior
 
         https://en.wikipedia.org/wiki/Log-normal_distribution
@@ -1322,14 +1363,15 @@ class LogGaussian(LogNormal):
             See superclass
         unit: str
             See superclass
-
+        periodic_boundary: bool
+            See superclass
         """
         LogNormal.__init__(self, mu=mu, sigma=sigma, name=name,
-                           latex_label=latex_label, unit=unit)
+                           latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
 
 class Exponential(Prior):
-    def __init__(self, mu, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Exponential prior with mean mu
 
         Parameters
@@ -1342,10 +1384,11 @@ class Exponential(Prior):
             See superclass
         unit: str
             See superclass
-
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, minimum=0., latex_label=latex_label,
-                       unit=unit)
+                       unit=unit, periodic_boundary=periodic_boundary)
         self.mu = mu
 
     def rescale(self, val):
@@ -1377,7 +1420,7 @@ class Exponential(Prior):
 
 class StudentT(Prior):
     def __init__(self, df, mu=0., scale=1., name=None, latex_label=None,
-                 unit=None):
+                 unit=None, periodic_boundary=False):
         """Student's t-distribution prior with number of degrees of freedom df,
         mean mu and scale
 
@@ -1397,8 +1440,10 @@ class StudentT(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
         if df <= 0. or scale <= 0.:
             raise ValueError("For the StudentT prior the number of degrees of freedom and scale must be positive")
@@ -1437,7 +1482,7 @@ class StudentT(Prior):
 
 class Beta(Prior):
     def __init__(self, alpha, beta, minimum=0, maximum=1, name=None,
-                 latex_label=None, unit=None):
+                 latex_label=None, unit=None, periodic_boundary=False):
         """Beta distribution
 
         https://en.wikipedia.org/wiki/Beta_distribution
@@ -1461,7 +1506,8 @@ class Beta(Prior):
             See superclass
         unit: str
             See superclass
-
+        periodic_boundary: bool
+            See superclass
         """
         if alpha <= 0. or beta <= 0.:
             raise ValueError("alpha and beta must both be positive values")
@@ -1471,7 +1517,7 @@ class Beta(Prior):
         self._minimum = minimum
         self._maximum = maximum
         Prior.__init__(self, minimum=minimum, maximum=maximum, name=name,
-                       latex_label=latex_label, unit=unit)
+                       latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
         self._set_dist()
 
     def rescale(self, val):
@@ -1565,7 +1611,7 @@ class Beta(Prior):
 
 
 class Logistic(Prior):
-    def __init__(self, mu, scale, name=None, latex_label=None, unit=None):
+    def __init__(self, mu, scale, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Logistic distribution
 
         https://en.wikipedia.org/wiki/Logistic_distribution
@@ -1582,8 +1628,10 @@ class Logistic(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
         if scale <= 0.:
             raise ValueError("For the Logistic prior the scale must be positive")
@@ -1620,7 +1668,7 @@ class Logistic(Prior):
 
 
 class Cauchy(Prior):
-    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None):
+    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Cauchy distribution
 
         https://en.wikipedia.org/wiki/Cauchy_distribution
@@ -1637,8 +1685,10 @@ class Cauchy(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
         if beta <= 0.:
             raise ValueError("For the Cauchy prior the scale must be positive")
@@ -1675,7 +1725,7 @@ class Cauchy(Prior):
 
 
 class Lorentzian(Cauchy):
-    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None):
+    def __init__(self, alpha, beta, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Synonym for the Cauchy distribution
 
         https://en.wikipedia.org/wiki/Cauchy_distribution
@@ -1692,13 +1742,15 @@ class Lorentzian(Cauchy):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Cauchy.__init__(self, alpha=alpha, beta=beta, name=name,
-                        latex_label=latex_label, unit=unit)
+                        latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
 
 class Gamma(Prior):
-    def __init__(self, k, theta=1., name=None, latex_label=None, unit=None):
+    def __init__(self, k, theta=1., name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Gamma distribution
 
         https://en.wikipedia.org/wiki/Gamma_distribution
@@ -1715,9 +1767,11 @@ class Gamma(Prior):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
         Prior.__init__(self, name=name, minimum=0., latex_label=latex_label,
-                       unit=unit)
+                       unit=unit, periodic_boundary=periodic_boundary)
 
         if k <= 0 or theta <= 0:
             raise ValueError("For the Gamma prior the shape and scale must be positive")
@@ -1755,7 +1809,7 @@ class Gamma(Prior):
 
 
 class ChiSquared(Gamma):
-    def __init__(self, nu, name=None, latex_label=None, unit=None):
+    def __init__(self, nu, name=None, latex_label=None, unit=None, periodic_boundary=False):
         """Chi-squared distribution
 
         https://en.wikipedia.org/wiki/Chi-squared_distribution
@@ -1770,13 +1824,15 @@ class ChiSquared(Gamma):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
         """
 
         if nu <= 0 or not isinstance(nu, int):
             raise ValueError("For the ChiSquared prior the number of degrees of freedom must be a positive integer")
 
         Gamma.__init__(self, name=name, k=nu / 2., theta=2.,
-                       latex_label=latex_label, unit=unit)
+                       latex_label=latex_label, unit=unit, periodic_boundary=periodic_boundary)
 
     @property
     def nu(self):
@@ -1790,7 +1846,7 @@ class ChiSquared(Gamma):
 class Interped(Prior):
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None,
-                 latex_label=None, unit=None):
+                 latex_label=None, unit=None, periodic_boundary=False):
         """Creates an interpolated prior function from arrays of xx and yy=p(xx)
 
         Parameters
@@ -1808,6 +1864,8 @@ class Interped(Prior):
         latex_label: str
             See superclass
         unit: str
+            See superclass
+        periodic_boundary: bool
             See superclass
 
         Attributes
@@ -1827,7 +1885,8 @@ class Interped(Prior):
         self.__all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
                        minimum=np.nanmax(np.array((min(xx), minimum))),
-                       maximum=np.nanmin(np.array((max(xx), maximum))))
+                       maximum=np.nanmin(np.array((max(xx), maximum))),
+                       periodic_boundary=periodic_boundary)
         self._update_instance()
 
     def __eq__(self, other):
@@ -1920,7 +1979,7 @@ class Interped(Prior):
 class FromFile(Interped):
 
     def __init__(self, file_name, minimum=None, maximum=None, name=None,
-                 latex_label=None, unit=None):
+                 latex_label=None, unit=None, periodic_boundary=False):
         """Creates an interpolated prior function from arrays of xx and yy=p(xx) extracted from a file
 
         Parameters
@@ -1937,6 +1996,8 @@ class FromFile(Interped):
             See superclass
         unit: str
             See superclass
+        periodic_boundary: bool
+            See superclass
 
         Attributes
         -------
@@ -1948,8 +2009,8 @@ class FromFile(Interped):
             self.id = file_name
             xx, yy = np.genfromtxt(self.id).T
             Interped.__init__(self, xx=xx, yy=yy, minimum=minimum,
-                              maximum=maximum, name=name,
-                              latex_label=latex_label, unit=unit)
+                              maximum=maximum, name=name, latex_label=latex_label,
+                              unit=unit, periodic_boundary=periodic_boundary)
         except IOError:
             logger.warning("Can't load {}.".format(self.id))
             logger.warning("Format should be:")

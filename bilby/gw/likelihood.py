@@ -70,6 +70,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     """
 
+    _CalculatedSNRs = namedtuple('CalculatedSNRs',
+                                 ['d_inner_h',
+                                  'optimal_snr_squared',
+                                  'complex_matched_filter_snr',
+                                  'd_inner_h_squared_tc_array'])
+
     def __init__(self, interferometers, waveform_generator,
                  time_marginalization=False, distance_marginalization=False,
                  phase_marginalization=False, priors=None,
@@ -160,8 +166,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         d_inner_h = interferometer.inner_product(signal=signal)
         optimal_snr_squared = interferometer.optimal_snr_squared(signal=signal)
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
-        CalculatedSNRs = namedtuple(
-            'CalculatedSNRs', ['d_inner_h', 'optimal_snr_squared', 'complex_matched_filter_snr', 'd_inner_h_squared_tc_array'])
 
         if self.time_marginalization:
             d_inner_h_squared_tc_array =\
@@ -172,7 +176,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         else:
             d_inner_h_squared_tc_array = None
 
-        return CalculatedSNRs(
+        return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_squared_tc_array=d_inner_h_squared_tc_array)
@@ -334,7 +338,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             dmax = self._distance_array[-1]
             n = len(self._distance_array)
             self._lookup_table_filename = (
-                '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+                '.distance_marginalization_lookup.npz'
                 .format(dmin, dmax, n))
         return self._lookup_table_filename
 
@@ -609,12 +613,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         h_plus_quadratic = f_plus * signal['quadratic']['plus']
         h_cross_quadratic = f_cross * signal['quadratic']['cross']
 
-        CalculatedSNRs = namedtuple(
-            'CalculatedSNRs', ['d_inner_h', 'optimal_snr_squared', 'complex_matched_filter_snr', 'd_inner_h_squared_tc_array'])
-
         indices, in_bounds = self._closest_time_indices(ifo_time, self.time_samples)
         if not in_bounds:
-            return CalculatedSNRs(
+            return self._CalculatedSNRs(
                 d_inner_h=np.nan_to_num(-np.inf), optimal_snr_squared=0,
                 complex_matched_filter_snr=np.nan_to_num(-np.inf),
                 d_inner_h_squared_tc_array=None)
@@ -634,7 +635,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
         d_inner_h_squared_tc_array = None
 
-        return CalculatedSNRs(
+        return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_squared_tc_array=d_inner_h_squared_tc_array)

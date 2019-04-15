@@ -1,8 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
+import os
+from shutil import copyfile
+
 import numpy as np
 
-from ..utils import get_progress_bar
+from ..utils import logger, get_progress_bar
 from . import Emcee
 from .base_sampler import SamplerError
 
@@ -27,23 +30,22 @@ class Ptemcee(Emcee):
         The number of temperatures used by ptemcee
 
     """
-    default_kwargs = dict(ntemps=2, nwalkers=500,
-                          Tmax=None, betas=None,
-                          threads=1, pool=None, a=2.0,
-                          loglargs=[], logpargs=[],
-                          loglkwargs={}, logpkwargs={},
-                          adaptation_lag=10000, adaptation_time=100,
-                          random=None, iterations=100, thin=1,
-                          storechain=True, adapt=True,
-                          swap_ratios=False,
-                          )
+    default_kwargs = dict(
+        ntemps=2, nwalkers=500, Tmax=None, betas=None, threads=1, pool=None,
+        a=2.0, loglargs=[], logpargs=[], loglkwargs={}, logpkwargs={},
+        adaptation_lag=10000, adaptation_time=100, random=None, iterations=100,
+        thin=1, storechain=True, adapt=True, swap_ratios=False)
 
-    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
-                 skip_import_verification=False, nburn=None, burn_in_fraction=0.25,
-                 burn_in_act=3, **kwargs):
-        Emcee.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
-                       use_ratio=use_ratio, plot=plot, skip_import_verification=skip_import_verification,
-                       nburn=nburn, burn_in_fraction=burn_in_fraction, burn_in_act=burn_in_act, **kwargs)
+    def __init__(self, likelihood, priors, outdir='outdir', label='label',
+                 use_ratio=False, plot=False, skip_import_verification=False,
+                 nburn=None, burn_in_fraction=0.25, burn_in_act=3, resume=True,
+                 **kwargs):
+        Emcee.__init__(
+            self, likelihood=likelihood, priors=priors, outdir=outdir,
+            label=label, use_ratio=use_ratio, plot=plot,
+            skip_import_verification=skip_import_verification,
+            nburn=nburn, burn_in_fraction=burn_in_fraction,
+            burn_in_act=burn_in_act, resume=resume, **kwargs)
 
     @property
     def sampler_function_kwargs(self):
@@ -56,42 +58,97 @@ class Ptemcee(Emcee):
                 for key, value in self.kwargs.items()
                 if key not in self.sampler_function_kwargs}
 
-    def run_sampler(self):
+    @property
+    def ntemps(self):
+        return self.kwargs['ntemps']
+
+    @property
+    def sampler_chain(self):
+        nsteps = self._previous_iterations
+        return self.sampler.chain[:, :, :nsteps, :]
+
+    def _initialise_sampler(self):
         import ptemcee
+        self._sampler = ptemcee.Sampler(
+            dim=self.ndim, logl=self.log_likelihood, logp=self.log_prior,
+            **self.sampler_init_kwargs)
+        self._init_chain_file()
+
+    def print_tswap_acceptance_fraction(self):
+        logger.info("Sampler per-chain tswap acceptance fraction = {}".format(
+            self.sampler.tswap_acceptance_fraction))
+
+    def write_chains_to_file(self, pos, loglike, logpost):
+        chain_file = self.checkpoint_info.chain_file
+        temp_chain_file = chain_file + '.temp'
+        if os.path.isfile(chain_file):
+            copyfile(chain_file, temp_chain_file)
+
+        with open(temp_chain_file, "a") as ff:
+            loglike = np.squeeze(loglike[0, :])
+            logprior = np.squeeze(logpost[0, :]) - loglike
+            for ii, (point, logl, logp) in enumerate(zip(pos[0, :, :], loglike, logprior)):
+                line = np.concatenate((point, [logl, logp]))
+                ff.write(self.checkpoint_info.chain_template.format(ii, *line))
+        os.rename(temp_chain_file, chain_file)
+
+    @property
+    def _previous_iterations(self):
+        """ Returns the number of iterations that the sampler has saved
+
+        This is used when loading in a sampler from a pickle file to figure out
+        how much of the run has already been completed
+        """
+        return self.sampler.time
+
+    def _draw_pos0_from_prior(self):
+        # for ptemcee, the pos0 has the shape ntemps, nwalkers, ndim
+        return [[self.get_random_draw_from_prior()
+                 for _ in range(self.nwalkers)]
+                for _ in range(self.kwargs['ntemps'])]
+
+    @property
+    def _pos0_shape(self):
+        return (self.ntemps, self.nwalkers, self.ndim)
+
+    def _set_pos0_for_resume(self):
+        self.pos0 = None
+
+    def run_sampler(self):
         tqdm = get_progress_bar()
-        sampler = ptemcee.Sampler(dim=self.ndim, logl=self.log_likelihood,
-                                  logp=self.log_prior, **self.sampler_init_kwargs)
-        self.pos0 = [[self.get_random_draw_from_prior()
-                      for _ in range(self.nwalkers)]
-                     for _ in range(self.kwargs['ntemps'])]
+        sampler_function_kwargs = self.sampler_function_kwargs
+        iterations = sampler_function_kwargs.pop('iterations')
+        iterations -= self._previous_iterations
 
-        log_likelihood_evaluations = []
-        log_prior_evaluations = []
+        # main iteration loop
         for pos, logpost, loglike in tqdm(
-                sampler.sample(self.pos0, **self.sampler_function_kwargs),
-                total=self.nsteps):
-            log_likelihood_evaluations.append(loglike)
-            log_prior_evaluations.append(logpost - loglike)
-            pass
+                self.sampler.sample(self.pos0, iterations=iterations,
+                                    **sampler_function_kwargs),
+                total=iterations):
+            self.write_chains_to_file(pos, loglike, logpost)
+        self.checkpoint()
 
-        self.calculate_autocorrelation(sampler.chain.reshape((-1, self.ndim)))
+        self.calculate_autocorrelation(self.sampler.chain.reshape((-1, self.ndim)))
         self.result.sampler_output = np.nan
         self.print_nburn_logging_info()
+        self.print_tswap_acceptance_fraction()
+
         self.result.nburn = self.nburn
         if self.result.nburn > self.nsteps:
             raise SamplerError(
                 "The run has finished, but the chain is not burned in: "
                 "`nburn < nsteps`. Try increasing the number of steps.")
-        self.result.samples = sampler.chain[0, :, self.nburn:, :].reshape(
+
+        self.result.samples = self.sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
-        self.result.log_likelihood_evaluations = np.array(
-            log_likelihood_evaluations)[self.nburn:, 0, :].reshape((-1))
-        self.result.log_prior_evaluations = np.array(
-            log_prior_evaluations)[self.nburn:, 0, :].reshape((-1))
-        self.result.betas = sampler.betas
+        self.result.walkers = self.sampler.chain[0, :, :, :]
+
+        n_samples = self.nwalkers * self.nburn
+        self.result.log_likelihood_evaluations = self.stored_loglike[n_samples:]
+        self.result.log_prior_evaluations = self.stored_logprior[n_samples:]
+        self.result.betas = self.sampler.betas
         self.result.log_evidence, self.result.log_evidence_err =\
-            sampler.log_evidence_estimate(
-                sampler.loglikelihood, self.nburn / self.nsteps)
-        self.result.walkers = sampler.chain[0, :, :, :]
+            self.sampler.log_evidence_estimate(
+                self.sampler.loglikelihood, self.nburn / self.nsteps)
 
         return self.result

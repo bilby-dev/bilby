@@ -3,10 +3,27 @@
 ## Unreleased
 
 ### Added
--
+- 
 
 ### Changed
+- Make calibration work, maybe with interp1d
 -
+
+### Removed
+-
+
+## [0.4.4] 2019-04-03
+
+### Added
+- Infrastucture for custom jump proposals (cpnest-only)
+- Evidence uncertainty estimate to cpnest
+
+### Changed
+- Bug fix to close figures after creation
+- Improved the frequency-mask to entirely remove values outside the mask rather
+  than simply set them to zero
+- Fix problem with Prior prob and ln_prob if passing multiple samples
+- Improved cpnest prior sampling
 
 ### Removed
 -

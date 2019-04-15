@@ -6,3 +6,4 @@ matplotlib>=2.0
 scipy>=0.16
 pandas
 mock
+dill

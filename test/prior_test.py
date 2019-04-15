@@ -35,8 +35,10 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertIsNone(self.prior.rescale(1))
 
     def test_base_repr(self):
-        self.prior = bilby.core.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1)
-        expected_string = "Prior(name='test_name', latex_label='test_label', unit=None, minimum=0, maximum=1)"
+        self.prior = bilby.core.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1,
+                                            periodic_boundary=False)
+        expected_string = "Prior(name='test_name', latex_label='test_label', unit=None, minimum=0, maximum=1, " \
+                          "periodic_boundary=False)"
         self.assertEqual(expected_string, self.prior.__repr__())
 
     def test_base_prob(self):
@@ -59,6 +61,9 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertTrue(self.prior.is_in_prior_range(val_in_prior))
         self.assertFalse(self.prior.is_in_prior_range(val_below))
         self.assertFalse(self.prior.is_in_prior_range(val_above))
+
+    def test_periodic_boundary_is_false(self):
+        self.assertFalse(self.prior.periodic_boundary)
 
 
 class TestPriorName(unittest.TestCase):
@@ -105,7 +110,7 @@ class TestPriorIsFixed(unittest.TestCase):
         pass
 
     def tearDown(self):
-        pass
+        del self.prior
 
     def test_is_fixed_parent_class(self):
         self.prior = bilby.core.prior.Prior()
@@ -118,6 +123,23 @@ class TestPriorIsFixed(unittest.TestCase):
     def test_is_fixed_uniform_class(self):
         self.prior = bilby.core.prior.Uniform(minimum=0, maximum=10)
         self.assertFalse(self.prior.is_fixed)
+
+
+class TestPriorBoundary(unittest.TestCase):
+
+    def setUp(self):
+        self.prior = bilby.core.prior.Prior(periodic_boundary=False)
+
+    def tearDown(self):
+        del self.prior
+
+    def test_set_boundary_valid(self):
+        self.prior.periodic_boundary = True
+        self.assertTrue(self.prior.periodic_boundary)
+
+    def test_set_boundary_invalid(self):
+        with self.assertRaises(ValueError):
+            self.prior.periodic_boundary = 'else'
 
 
 class TestPriorClasses(unittest.TestCase):
@@ -153,7 +175,6 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Lorentzian(name='test', unit='unit', alpha=0, beta=1),
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
-            bilby.core.prior.FermiDirac(name='test', unit='unit', sigma=1., r=10.),
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
         ]
 
@@ -357,8 +378,9 @@ class TestPriorClasses(unittest.TestCase):
 class TestPriorDict(unittest.TestCase):
 
     def setUp(self):
-        self.first_prior = bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg')
-        self.second_prior = bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s')
+        self.first_prior = bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg', periodic_boundary=False)
+        self.second_prior = bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s',
+                                                      periodic_boundary=False)
         self.third_prior = bilby.core.prior.DeltaFunction(name='c', peak=42, unit='m')
         self.priors = dict(mass=self.first_prior,
                            speed=self.second_prior,
@@ -398,43 +420,46 @@ class TestPriorDict(unittest.TestCase):
     def test_read_from_file(self):
         expected = dict(
             mass_1=bilby.core.prior.Uniform(
-                name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
+                name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$', periodic_boundary=False),
             mass_2=bilby.core.prior.Uniform(
-                name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_ratio=bilby.core.prior.Constraint(
-                name='mass_ratio', minimum=0.125, maximum=1.0),
-            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
-            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
-            tilt_1=bilby.core.prior.Sine(name='tilt_1'),
-            tilt_2=bilby.core.prior.Sine(name='tilt_2'),
+                name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$', periodic_boundary=False),
+            mass_ratio=bilby.core.prior.Constraint(name='mass_ratio', minimum=0.125, maximum=1, latex_label='$q$',
+                                                   unit=None),
+            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8, periodic_boundary=False),
+            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8, periodic_boundary=False),
+            tilt_1=bilby.core.prior.Sine(name='tilt_1', periodic_boundary=False),
+            tilt_2=bilby.core.prior.Sine(name='tilt_2', periodic_boundary=False),
             phi_12=bilby.core.prior.Uniform(
-                name='phi_12', minimum=0, maximum=2 * np.pi),
+                name='phi_12', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
             phi_jl=bilby.core.prior.Uniform(
-                name='phi_jl', minimum=0, maximum=2 * np.pi),
+                name='phi_jl', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
             luminosity_distance=bilby.gw.prior.UniformComovingVolume(
                 name='luminosity_distance', minimum=1e2,
-                maximum=5e3, unit='Mpc'),
-            dec=bilby.core.prior.Cosine(name='dec'),
+                maximum=5e3, unit='Mpc', periodic_boundary=False),
+            dec=bilby.core.prior.Cosine(name='dec', periodic_boundary=False),
             ra=bilby.core.prior.Uniform(
-                name='ra', minimum=0, maximum=2 * np.pi),
-            theta_jn=bilby.core.prior.Sine(name='theta_jn'),
-            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
+                name='ra', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
+            theta_jn=bilby.core.prior.Sine(name='theta_jn', periodic_boundary=False),
+            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi, periodic_boundary=True),
             phase=bilby.core.prior.Uniform(
-                name='phase', minimum=0, maximum=2 * np.pi)
+                name='phase', minimum=0, maximum=2 * np.pi, periodic_boundary=True)
             )
         self.assertDictEqual(expected, self.prior_set_from_file)
 
     def test_to_file(self):
         expected = ["length = DeltaFunction(peak=42, name='c', latex_label='c', unit='m')\n",
-                    "speed = PowerLaw(alpha=3, minimum=1, maximum=2, name='b', latex_label='b', unit='m/s')\n",
-                    "mass = Uniform(minimum=0, maximum=1, name='a', latex_label='a', unit='kg')\n"]
+                    "speed = PowerLaw(alpha=3, minimum=1, maximum=2, name='b', latex_label='b', "
+                    "unit='m/s', periodic_boundary=False)\n",
+                    "mass = Uniform(minimum=0, maximum=1, name='a', latex_label='a', "
+                    "unit='kg', periodic_boundary=False)\n"]
         self.prior_set_from_dict.to_file(outdir='prior_files', label='to_file_test')
         with open('prior_files/to_file_test.prior') as f:
             for i, line in enumerate(f.readlines()):
                 self.assertTrue(line in expected)
 
     def test_from_dict_with_string(self):
-        string_prior = "bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s')"
+        string_prior = "bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', " \
+                       "periodic_boundary=False)"
         self.priors['speed'] = string_prior
         from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.assertDictEqual(self.prior_set_from_dict, from_dict)
@@ -444,8 +469,10 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict['e'] = 7.3
         self.prior_set_from_dict['f'] = 'unconvertable'
         self.prior_set_from_dict.convert_floats_to_delta_functions()
-        expected = dict(mass=bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg'),
-                        speed=bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s'),
+        expected = dict(mass=bilby.core.prior.Uniform(name='a', minimum=0, maximum=1, unit='kg',
+                                                      periodic_boundary=False),
+                        speed=bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s',
+                                                        periodic_boundary=False),
                         length=bilby.core.prior.DeltaFunction(name='c', peak=42, unit='m'),
                         d=bilby.core.prior.DeltaFunction(peak=5),
                         e=bilby.core.prior.DeltaFunction(peak=7.3),
@@ -454,33 +481,37 @@ class TestPriorDict(unittest.TestCase):
 
     def test_prior_set_from_dict_but_using_a_string(self):
         prior_set = bilby.core.prior.PriorDict(dictionary=self.default_prior_file)
-        expected = dict(
-            mass_1=bilby.core.prior.Uniform(
-                name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_2=bilby.core.prior.Uniform(
-                name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$'),
-            mass_ratio=bilby.core.prior.Constraint(
-                name='mass_ratio', minimum=0.125, maximum=1.0),
-            a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8),
-            a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8),
-            tilt_1=bilby.core.prior.Sine(name='tilt_1'),
-            tilt_2=bilby.core.prior.Sine(name='tilt_2'),
-            phi_12=bilby.core.prior.Uniform(
-                name='phi_12', minimum=0, maximum=2 * np.pi),
-            phi_jl=bilby.core.prior.Uniform(
-                name='phi_jl', minimum=0, maximum=2 * np.pi),
-            luminosity_distance=bilby.gw.prior.UniformComovingVolume(
-                name='luminosity_distance', minimum=1e2,
-                maximum=5e3, unit='Mpc'),
-            dec=bilby.core.prior.Cosine(name='dec'),
-            ra=bilby.core.prior.Uniform(
-                name='ra', minimum=0, maximum=2 * np.pi),
-            theta_jn=bilby.core.prior.Sine(name='theta_jn'),
-            psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi),
-            phase=bilby.core.prior.Uniform(
-                name='phase', minimum=0, maximum=2 * np.pi)
+        expected = bilby.core.prior.PriorDict(
+            dict(
+                mass_1=bilby.core.prior.Uniform(
+                    name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$', periodic_boundary=False),
+                mass_2=bilby.core.prior.Uniform(
+                    name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$', periodic_boundary=False),
+                mass_ratio=bilby.core.prior.Constraint(name='mass_ratio', minimum=0.125, maximum=1, latex_label='$q$',
+                                                       unit=None),
+                a_1=bilby.core.prior.Uniform(name='a_1', minimum=0, maximum=0.8, periodic_boundary=False),
+                a_2=bilby.core.prior.Uniform(name='a_2', minimum=0, maximum=0.8, periodic_boundary=False),
+                tilt_1=bilby.core.prior.Sine(name='tilt_1', periodic_boundary=False),
+                tilt_2=bilby.core.prior.Sine(name='tilt_2', periodic_boundary=False),
+                phi_12=bilby.core.prior.Uniform(
+                    name='phi_12', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
+                phi_jl=bilby.core.prior.Uniform(
+                    name='phi_jl', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
+                luminosity_distance=bilby.gw.prior.UniformComovingVolume(
+                    name='luminosity_distance', minimum=1e2,
+                    maximum=5e3, unit='Mpc', periodic_boundary=False),
+                dec=bilby.core.prior.Cosine(name='dec', periodic_boundary=False),
+                ra=bilby.core.prior.Uniform(
+                    name='ra', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
+                theta_jn=bilby.core.prior.Sine(name='theta_jn', periodic_boundary=False),
+                psi=bilby.core.prior.Uniform(name='psi', minimum=0, maximum=np.pi, periodic_boundary=True),
+                phase=bilby.core.prior.Uniform(
+                    name='phase', minimum=0, maximum=2 * np.pi, periodic_boundary=True)
+            )
         )
-        self.assertDictEqual(expected, prior_set)
+        all_keys = set(prior_set.keys()).union(set(expected.keys()))
+        for key in all_keys:
+            self.assertEqual(expected[key], prior_set[key])
 
     def test_dict_argument_is_not_string_or_dict(self):
         with self.assertRaises(ValueError):
