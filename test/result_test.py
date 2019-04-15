@@ -391,5 +391,57 @@ class TestResult(unittest.TestCase):
                                        self.result.kde([[0, 0.1], [0.8, 0]])))
 
 
+class TestResultList(unittest.TestCase):
+    
+    def setUp(self):
+        np.random.seed(7)
+        bilby.utils.command_line_args.test = False
+        priors = bilby.prior.PriorDict(dict(
+            x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
+            y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
+            c=1,
+            d=2))
+
+        # create two cpnest results
+        self.resultsnest = []
+        n = 100
+        for i in range(2):
+            result = bilby.core.result.Result(
+                label='label', outdir='outdir', sampler='cpnest',
+                search_parameter_keys=['x', 'y'], fixed_parameter_keys=['c', 'd'],
+                priors=priors, sampler_kwargs=dict(test='test', func=lambda x: x, nlive=10),
+                injection_parameters=dict(x=0.5, y=0.5),
+                meta_data=dict(test='test'))
+
+            posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, n),
+                                          y=np.random.normal(0, 1, n),
+                                          log_likelihood=sorted(np.random.normal(0, 1, n))))
+            result.posterior = posterior[-10:]  # use last 10 samples as posterior  
+            result.nested_samples = posterior
+            result.log_evidence = 10
+            result.log_evidence_err = 11
+            result.log_bayes_factor = 12
+            result.log_noise_evidence = 13
+            self.resultsnest.append(result)
+
+        pass
+
+    def tearDown(self):
+        bilby.utils.command_line_args.test = True
+        try:
+            shutil.rmtree(self.resultsnest[0].outdir)
+        except OSError:
+            pass
+
+        del self.resultsnest
+        pass
+
+    def test_create_list(self):
+        with self.assertRaises(IOError):
+            reslist = bilby.core.result.ResultList('blah')
+
+        with self.assertRaises(TypeError):
+            reslist = bilby.core.result.ResultList(1)
+
 if __name__ == '__main__':
     unittest.main()
