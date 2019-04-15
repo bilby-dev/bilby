@@ -189,7 +189,10 @@ class Dynesty(NestedSampler):
         if self.kwargs["verbose"]:
             print("")
 
-        # self.result.sampler_output = out
+        dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
+        with open(dynesty_result, 'wb') as file:
+            pickle.dump(out, file)
+
         weights = np.exp(out['logwt'] - out['logz'][-1])
         nested_samples = DataFrame(
             out.samples, columns=self.search_parameter_keys)
@@ -307,8 +310,8 @@ class Dynesty(NestedSampler):
             return False
 
     def write_current_state_and_exit(self, signum=None, frame=None):
+        logger.warning("Run terminated with signal {}".format(signum))
         self.write_current_state()
-        logger.warning("Run terminated")
         sys.exit()
 
     def write_current_state(self):
@@ -328,6 +331,7 @@ class Dynesty(NestedSampler):
             NestedSampler to write to disk.
         """
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        logger.info("Writing checkpoint file {}".format(self.resume_file))
 
         current_state = dict(
             unit_cube_samples=self.sampler.saved_u,

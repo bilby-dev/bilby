@@ -443,7 +443,7 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
         return None
 
 
-def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None):
+def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None, server=None):
     candidate = gracedb_to_json(gracedb, outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
@@ -453,7 +453,7 @@ def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=N
     for i, det in enumerate(detectors):
         output_cache_file = gw_data_find(
             det, gps_start_time, duration, calibration,
-            outdir=outdir, query_type=query_types[i])
+            outdir=outdir, query_type=query_types[i], server=server)
         cache_files.append(output_cache_file)
     return candidate, cache_files
 
@@ -476,7 +476,7 @@ def gracedb_to_json(gracedb, outdir=None):
     logger.info('Initialise client and attempt to download')
     try:
         client = GraceDb()
-    except FileNotFoundError:
+    except IOError:
         raise ValueError(
             'Failed to authenticate with gracedb: check your X509 '
             'certificate is accessible and valid')
@@ -499,7 +499,7 @@ def gracedb_to_json(gracedb, outdir=None):
 
 
 def gw_data_find(observatory, gps_start_time, duration, calibration,
-                 outdir='.', query_type=None):
+                 outdir='.', query_type=None, server=None):
     """ Builds a gw_data_find call and process output
 
     Parameters
@@ -542,6 +542,13 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     output_cache_file = os.path.join(outdir, cache_file)
 
     gps_end_time = gps_start_time + duration
+    if server is None:
+        server = os.environ.get("LIGO_DATAFIND_SERVER")
+        if server is None:
+            logger.warning('No data_find server found, defaulting to CIT server. '
+                           'To run on other clusters, pass the output of '
+                           '`echo $LIGO_DATAFIND_SERVER`')
+            server = 'ldr.ldas.cit:80'
 
     cl_list = ['gw_data_find']
     cl_list.append('--observatory {}'.format(observatory_code))
@@ -549,6 +556,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     cl_list.append('--gps-end-time {}'.format(int(np.ceil(gps_end_time))))
     cl_list.append('--type {}'.format(query_type))
     cl_list.append('--output {}'.format(output_cache_file))
+    cl_list.append('--server {}'.format(server))
     cl_list.append('--url-type file')
     cl_list.append('--lal-cache')
     cl = ' '.join(cl_list)
