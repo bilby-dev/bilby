@@ -494,7 +494,8 @@ class NestedSampler(Sampler):
 
 
 class MCMCSampler(Sampler):
-    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws']
+    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws', 'Niter']
+    nburn_equiv_kwargs = ['burn', 'nburn']
 
     def print_nburn_logging_info(self):
         """ Prints logging info as to how nburn was calculated """
