@@ -487,10 +487,10 @@ class CalibrationPriorDict(PriorDict):
         """
         calibration_data = np.genfromtxt(envelope_file).T
         frequency_array = calibration_data[0]
-        amplitude_median = 1 - calibration_data[1]
+        amplitude_median = calibration_data[1] - 1
         phase_median = calibration_data[2]
-        amplitude_sigma = (calibration_data[4] - calibration_data[2]) / 2
-        phase_sigma = (calibration_data[5] - calibration_data[3]) / 2
+        amplitude_sigma = (calibration_data[5] - calibration_data[3]) / 2
+        phase_sigma = (calibration_data[6] - calibration_data[4]) / 2
 
         nodes = np.logspace(np.log10(minimum_frequency),
                             np.log10(maximum_frequency), n_nodes)
