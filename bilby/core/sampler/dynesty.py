@@ -71,7 +71,7 @@ class Dynesty(NestedSampler):
         If true, resume run from checkpoint (if available)
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
-                          verbose=True,
+                          verbose=True, periodic=None,
                           check_point_delta_t=600, nlive=500,
                           first_update=None,
                           npdim=None, rstate=None, queue_size=None, pool=None,
@@ -95,6 +95,7 @@ class Dynesty(NestedSampler):
         self.n_check_point = n_check_point
         self.check_point = check_point
         self.resume = resume
+        self._apply_dynesty_boundaries()
         if self.n_check_point is None:
             # If the log_likelihood_eval_time is not calculable then
             # check_point is set to False.
@@ -172,6 +173,15 @@ class Dynesty(NestedSampler):
         # Printing.
         sys.stderr.write(print_str)
         sys.stderr.flush()
+
+    def _apply_dynesty_boundaries(self):
+        if self.kwargs['periodic'] is None:
+            logger.debug("Setting periodic boundaries for keys:")
+            self.kwargs['periodic'] = []
+            for ii, key in enumerate(self.search_parameter_keys):
+                if self.priors[key].periodic_boundary:
+                    self.kwargs['periodic'].append(ii)
+                    logger.debug("  {}".format(key))
 
     def run_sampler(self):
         import dynesty
@@ -397,3 +407,23 @@ class Dynesty(NestedSampler):
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
         return self.result
+
+    def prior_transform(self, theta):
+        """ Prior transform method that is passed into the external sampler.
+        cube we map this back to [0, 1].
+
+        Parameters
+        ----------
+        theta: list
+            List of sampled values on a unit interval
+
+        Returns
+        -------
+        list: Properly rescaled sampled values
+
+        Notes
+        -----
+        Since dynesty allows periodic parameters to wander outside the unit
+        """
+        theta = np.mod(theta, 1)
+        return self.priors.rescale(self._search_parameter_keys, theta)

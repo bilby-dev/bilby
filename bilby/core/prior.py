@@ -423,7 +423,8 @@ class Prior(object):
         maximum: float, optional
             Maximum of the domain, default=np.inf
         periodic_boundary: bool, optional
-            Whether or not the boundary condition is periodic. Not available in all samplers.
+            Whether or not the boundary condition is periodic.
+            Currently implemented in cpnest, dynesty and pymultinest.
         """
         self.name = name
         self.latex_label = latex_label
@@ -542,8 +543,8 @@ class Prior(object):
         -------
         ValueError: If val is not between 0 and 1
         """
-        val = np.atleast_1d(val)
-        tests = (val < 0) + (val > 1)
+        valarray = np.atleast_1d(val)
+        tests = (valarray < 0) + (valarray > 1)
         if np.any(tests):
             raise ValueError("Number to be rescaled should be in [0, 1]")
 
@@ -699,7 +700,7 @@ class DeltaFunction(Prior):
         -------
         float: Rescaled probability, equivalent to peak
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return self.peak * val ** 0
 
     def prob(self, val):
@@ -761,7 +762,7 @@ class PowerLaw(Prior):
         -------
         float: Rescaled probability
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         if self.alpha == -1:
             return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
@@ -834,7 +835,7 @@ class Uniform(Prior):
                        periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return self.minimum + val * (self.maximum - self.minimum)
 
     def prob(self, val):
@@ -938,7 +939,7 @@ class SymmetricLogUniform(Prior):
         -------
         float: Rescaled probability
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         if val < 0.5:
             return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
         elif val > 0.5:
@@ -1006,7 +1007,7 @@ class Cosine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         norm = 1 / (np.sin(self.maximum) - np.sin(self.minimum))
         return np.arcsin(val / norm + np.sin(self.minimum))
 
@@ -1054,7 +1055,7 @@ class Sine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         norm = 1 / (np.cos(self.minimum) - np.cos(self.maximum))
         return np.arccos(np.cos(self.minimum) - val / norm)
 
@@ -1102,7 +1103,7 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
     def prob(self, val):
@@ -1195,7 +1196,7 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return erfinv(2 * val * self.normalisation + erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
@@ -1324,7 +1325,7 @@ class LogNormal(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return scipy.stats.lognorm.ppf(val, self.sigma, scale=np.exp(self.mu))
 
     def prob(self, val):
@@ -1397,7 +1398,7 @@ class Exponential(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         return scipy.stats.expon.ppf(val, scale=self.mu)
 
     def prob(self, val):
@@ -1458,7 +1459,7 @@ class StudentT(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
         return scipy.stats.t.ppf(val, self.df, loc=self.mu, scale=self.scale)
@@ -1526,7 +1527,7 @@ class Beta(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
         return self._dist.ppf(val)
@@ -1645,7 +1646,7 @@ class Logistic(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
         return scipy.stats.logistic.ppf(val, loc=self.mu, scale=self.scale)
@@ -1702,7 +1703,7 @@ class Cauchy(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
         return scipy.stats.cauchy.ppf(val, loc=self.alpha, scale=self.beta)
@@ -1785,7 +1786,7 @@ class Gamma(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         # use scipy distribution percentage point function (ppf)
         return scipy.stats.gamma.ppf(val, self.k, loc=0., scale=self.theta)
@@ -1915,7 +1916,7 @@ class Interped(Prior):
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
         rescaled = self.inverse_cumulative_distribution(val)
         if rescaled.shape == ():
             rescaled = float(rescaled)
@@ -2079,7 +2080,7 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        Prior.test_valid_for_rescaling(val)
+        self.test_valid_for_rescaling(val)
 
         inv = (-np.exp(-1. * self.r) + (1. + np.exp(self.r))**-val +
                np.exp(-1. * self.r) * (1. + np.exp(self.r))**-val)

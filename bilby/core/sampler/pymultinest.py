@@ -46,6 +46,14 @@ class Pymultinest(NestedSampler):
                           context=0, write_output=True, log_zero=-1e100,
                           max_iter=0, init_MPI=False, dump_callback=None)
 
+    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
+                 skip_import_verification=False, **kwargs):
+        NestedSampler.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                               use_ratio=use_ratio, plot=plot,
+                               skip_import_verification=skip_import_verification,
+                               **kwargs)
+        self._apply_multinest_boundaries()
+
     def _translate_kwargs(self, kwargs):
         if 'n_live_points' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -74,6 +82,15 @@ class Pymultinest(NestedSampler):
         check_directory_exists_and_if_not_mkdir(
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
+
+    def _apply_multinest_boundaries(self):
+        if self.kwargs['wrapped_params'] is None:
+            self.kwargs['wrapped_params'] = []
+            for param, value in self.priors.items():
+                if value.periodic_boundary:
+                    self.kwargs['wrapped_params'].append(1)
+                else:
+                    self.kwargs['wrapped_params'].append(0)
 
     def run_sampler(self):
         import pymultinest
