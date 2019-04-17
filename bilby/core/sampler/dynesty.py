@@ -105,6 +105,8 @@ class Dynesty(NestedSampler):
             n_check_point_rnd = int(float("{:1.0g}".format(n_check_point_raw)))
             self.n_check_point = n_check_point_rnd
 
+        logger.info("Checkpoint every n_check_point = {}".format(self.n_check_point))
+
         self.resume_file = '{}/{}_resume.pickle'.format(self.outdir, self.label)
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
@@ -250,7 +252,6 @@ class Dynesty(NestedSampler):
         self.read_saved_state()
         sampler_kwargs['add_live'] = True
         self.sampler.run_nested(**sampler_kwargs)
-        self._remove_checkpoint()
         return self.sampler.results
 
     def _remove_checkpoint(self):
@@ -309,7 +310,6 @@ class Dynesty(NestedSampler):
             self.sampler.live_bound = saved['live_bound']
             self.sampler.live_it = saved['live_it']
             self.sampler.added_live = saved['added_live']
-            self._remove_checkpoint()
             if continuing:
                 self.write_current_state()
             return True
