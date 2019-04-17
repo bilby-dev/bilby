@@ -17,6 +17,7 @@ astropy = "<3"
 gwpy = "*"
 theano = "*"
 lalsuite = "*"
+dill = "*"
 
 # cpnest = "*"
 dynesty = "*"
