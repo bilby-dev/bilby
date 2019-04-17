@@ -770,11 +770,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             phase_marginalization=phase_marginalization,
             distance_marginalization_lookup_table=distance_marginalization_lookup_table)
 
-        self.time_samples = np.arange(
-            self.priors['geocent_time'].minimum - 0.045,
-            self.priors['geocent_time'].maximum + 0.045,
-            self._get_time_resolution()) - self.interferometers.start_time
-
         if isinstance(weights, dict):
             self.weights = weights
         elif isinstance(weights, str):
@@ -824,7 +819,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         h_plus_quadratic = f_plus * signal['quadratic']['plus']
         h_cross_quadratic = f_cross * signal['quadratic']['cross']
 
-        indices, in_bounds = self._closest_time_indices(ifo_time, self.time_samples)
+        indices, in_bounds = self._closest_time_indices(
+            ifo_time, self.weights['time_samples'])
         if not in_bounds:
             return self._CalculatedSNRs(
                 d_inner_h=np.nan_to_num(-np.inf), optimal_snr_squared=0,
@@ -836,7 +832,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             self.weights[interferometer.name + '_linear'][indices])
 
         d_inner_h = interp1d(
-            self.time_samples[indices],
+            self.weights['time_samples'][indices],
             d_inner_h_tc_array, kind='cubic')(ifo_time)
 
         optimal_snr_squared = \
@@ -883,6 +879,12 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         The times are chosen to allow all the merger times allows in the time
         prior.
         """
+
+        self.weights['time_samples'] = np.arange(
+            self.priors['geocent_time'].minimum - 0.045,
+            self.priors['geocent_time'].maximum + 0.045,
+            self._get_time_resolution()) - self.interferometers.start_time
+
         for ifo in self.interferometers:
             # only get frequency components up to maximum_frequency
             linear_matrix = linear_matrix[:, :sum(ifo.frequency_mask)]
@@ -890,22 +892,23 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
             # array of relative time shifts to be applied to the data
             # 0.045s comes from time for GW to traverse the Earth
-            time_space = (self.time_samples[1] -
-                          self.time_samples[0])
+            time_space = (self.weights['time_samples'][1] -
+                          self.weights['time_samples'][0])
 
             # array to be filled with data, shifted by discrete time_samples
             tc_shifted_data = np.zeros([
-                len(self.time_samples), sum(ifo.frequency_mask)], dtype=complex)
+                len(self.weights['time_samples']), sum(ifo.frequency_mask)],
+                dtype=complex)
 
             # shift data to beginning of the prior increment by the time step
             shifted_data =\
                 ifo.frequency_domain_strain[ifo.frequency_mask] * \
                 np.exp(2j * np.pi * ifo.frequency_array[ifo.frequency_mask] *
-                       self.time_samples[0])
+                       self.weights['time_samples'][0])
             single_time_shift = np.exp(
                 2j * np.pi * ifo.frequency_array[ifo.frequency_mask] *
                 time_space)
-            for j in range(len(self.time_samples)):
+            for j in range(len(self.weights['time_samples'])):
                 tc_shifted_data[j] = shifted_data
                 shifted_data *= single_time_shift
 
