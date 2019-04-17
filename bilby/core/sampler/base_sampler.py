@@ -153,8 +153,12 @@ class Sampler(object):
         """ Template for child classes """
         pass
 
+    @property
+    def external_sampler_name(self):
+        return self.__class__.__name__.lower()
+
     def _verify_external_sampler(self):
-        external_sampler_name = self.__class__.__name__.lower()
+        external_sampler_name = self.external_sampler_name
         try:
             self.external_sampler = __import__(external_sampler_name)
         except (ImportError, SystemExit):
