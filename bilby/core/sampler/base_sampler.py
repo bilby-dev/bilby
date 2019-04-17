@@ -107,6 +107,7 @@ class Sampler(object):
         self._constraint_keys = list()
         self._initialise_parameters()
         self._verify_parameters()
+        self._time_likelihood()
         self._verify_use_ratio()
         self.kwargs = kwargs
 
@@ -242,7 +243,9 @@ class Sampler(object):
                 logger.warning('Cannot sample from {}, {}'.format(key, e))
 
     def _verify_parameters(self):
-        """ Sets initial values for likelihood.parameters.
+        """ Evaluate a set of parameters drawn from the prior
+
+        Tests if the likelihood evaluation passes
 
         Raises
         ------
@@ -252,27 +255,44 @@ class Sampler(object):
         """
 
         if self.priors.test_has_redundant_keys():
-            raise IllegalSamplingSetError("Your sampling set contains redundant parameters.")
+            raise IllegalSamplingSetError(
+                "Your sampling set contains redundant parameters.")
 
         self._check_if_priors_can_be_sampled()
         try:
-            t1 = datetime.datetime.now()
             theta = [self.priors[key].sample()
                      for key in self._search_parameter_keys]
             self.log_likelihood(theta)
-            self._log_likelihood_eval_time = (
-                datetime.datetime.now() - t1).total_seconds()
-            if self._log_likelihood_eval_time == 0:
-                self._log_likelihood_eval_time = np.nan
-                logger.info("Unable to measure single likelihood time")
-            else:
-                logger.info("Single likelihood evaluation took {:.3e} s"
-                            .format(self._log_likelihood_eval_time))
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
                 "Have you specified all the parameters:\n{}"
                 .format(e, self.likelihood.parameters))
+
+    def _time_likelihood(self, n_evaluations=100):
+        """ Times the likelihood evaluation and print an info message
+
+        Parameters
+        ----------
+        n_evaluations: int
+            The number of evaluations to estimate the evaluation time from
+
+        """
+
+        t1 = datetime.datetime.now()
+        for _ in range(n_evaluations):
+            theta = [self.priors[key].sample()
+                     for key in self._search_parameter_keys]
+            self.log_likelihood(theta)
+        total_time = (datetime.datetime.now() - t1).total_seconds()
+        self._log_likelihood_eval_time = total_time / n_evaluations
+
+        if self._log_likelihood_eval_time == 0:
+            self._log_likelihood_eval_time = np.nan
+            logger.info("Unable to measure single likelihood time")
+        else:
+            logger.info("Single likelihood evaluation took {:.3e} s"
+                        .format(self._log_likelihood_eval_time))
 
     def _verify_use_ratio(self):
         """
