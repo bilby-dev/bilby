@@ -1184,6 +1184,48 @@ class Result(object):
                                  "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
         return outdir
 
+    def get_weights_by_new_prior(self, old_prior, new_prior, prior_names=None):
+        """ Calculate a list of sample weights based on the ratio of new to old priors
+
+            Parameters
+            ----------
+            old_prior: PriorDict,
+                The prior used in the generation of the original samples.
+
+            new_prior: PriorDict,
+                The prior to use to reweight the samples.
+
+            prior_names: list
+                A list of the priors to include in the ratio during reweighting.
+
+            Returns
+            -------
+            weights: array-like,
+                A list of sample weights.
+
+                """
+        weights = []
+
+        # Shared priors - these will form a ratio
+        if prior_names is not None:
+            shared_parameters = {key: self.posterior[key] for key in new_prior if
+                                 key in old_prior and key in prior_names}
+        else:
+            shared_parameters = {key: self.posterior[key] for key in new_prior if key in old_prior}
+        parameters = [{key: self.posterior[key][i] for key in shared_parameters.keys()}
+                      for i in range(len(self.posterior))]
+
+        for i in range(len(self.posterior)):
+            weight = 1
+            for prior_key in shared_parameters.keys():
+                val = self.posterior[prior_key][i]
+                weight *= new_prior.evaluate_constraints(parameters[i])
+                weight *= new_prior[prior_key].prob(val) / old_prior[prior_key].prob(val)
+
+            weights.append(weight)
+
+        return weights
+
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, **kwargs):
