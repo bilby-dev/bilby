@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from ..utils import derivatives, infer_args_from_method
-from ..prior import DeltaFunction, Sine, Cosine, PowerLaw
+from ..prior import DeltaFunction, Sine, Cosine, PowerLaw, MultivariateGaussian
 from .base_sampler import Sampler, MCMCSampler
 from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
     StudentTLikelihood
@@ -58,7 +58,7 @@ class Pymc3(MCMCSampler):
         draws=500, step=None, init='auto', n_init=200000, start=None, trace=None, chain_idx=0,
         chains=2, cores=1, tune=500, nuts_kwargs=None, step_kwargs=None, progressbar=True,
         model=None, random_seed=None, live_plot=False, discard_tuned_samples=True,
-        live_plot_kwargs=None, compute_convergence_checks=True, use_mmap=False)
+        live_plot_kwargs=None, compute_convergence_checks=True)
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False,
@@ -175,6 +175,8 @@ class Pymc3(MCMCSampler):
         prior_map['Cosine'] = {'internal': self._cosine_prior}
         prior_map['PowerLaw'] = {'internal': self._powerlaw_prior}
         prior_map['LogUniform'] = {'internal': self._powerlaw_prior}
+        prior_map['MultivariateGaussian'] = {'internal': self._multivariate_normal_prior}
+        prior_map['MultivariateNormal'] = {'internal': self._multivariate_normal_prior}
 
     def _deltafunction_prior(self, key, **kwargs):
         """
@@ -322,6 +324,78 @@ class Pymc3(MCMCSampler):
                                      alpha=self.priors[key].alpha)
         else:
             raise ValueError("Prior for '{}' is not a Power Law".format(key))
+
+    def _multivariate_normal_prior(self, key):
+        """
+        Map the bilby MultivariateNormal prior to a PyMC3 style function.
+        """
+
+        # check prior is a PowerLaw
+        pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+        theano, tt, as_op = self._import_theano()
+        if isinstance(self.priors[key], MultivariateGaussian):
+            # get names of multivariate Gaussian parameters
+            mvpars = self.priors[key].mvg.names
+
+            # set the prior on multiple parameters if not present yet
+            if not np.all([p in self.multivariate_normal_sets for p in mvpars]):
+                mvg = self.priors[key].mvg
+
+                # get bounds
+                lower = [bound[0] for bound in mvg.bounds.values()]
+                upper = [bound[1] for bound in mvg.bounds.values()]
+
+                # test values required for mixture
+                testvals = []
+                for bound in mvg.bounds.values():
+                    if np.isinf(bound[0]) and np.isinf(bound[1]):
+                        testvals.append(0.)
+                    elif np.isinf(bound[0]):
+                        testvals.append(bound[1] - 1.)
+                    elif np.isinf(bound[1]):
+                        testvals.append(bound[0] + 1.)
+                    else:
+                        # half-way between the two bounds
+                        testvals.append(bound[0] + (bound[1] - bound[0]) / 2.)
+
+                # if bounds are at +/-infinity set to 100 sigmas as infinities
+                # cause problems for the Bound class
+                maxmu = np.max(mvg.mus, axis=0)
+                minmu = np.min(mvg.mus, axis=0)
+                maxsigma = np.max(mvg.sigmas, axis=0)
+                for i in range(len(mvpars)):
+                    if np.isinf(lower[i]):
+                        lower[i] = minmu[i] - 100. * maxsigma[i]
+                    if np.isinf(upper[i]):
+                        upper[i] = maxmu[i] + 100. * maxsigma[i]
+
+                # create a bounded MultivariateNormal distribution
+                BoundedMvN = pymc3.Bound(pymc3.MvNormal, lower=lower, upper=upper)
+
+                comp_dists = []  # list of any component modes
+                for i in range(mvg.nmodes):
+                    comp_dists.append(BoundedMvN('comp{}'.format(i), mu=mvg.mus[i],
+                                                 cov=mvg.covs[i],
+                                                 shape=len(mvpars)).distribution)
+
+                # create a Mixture model
+                setname = 'mixture{}'.format(self.multivariate_normal_num_sets)
+                mix = pymc3.Mixture(setname, w=mvg.weights, comp_dists=comp_dists,
+                                    shape=len(mvpars), testval=testvals)
+
+                for i, p in enumerate(mvpars):
+                    self.multivariate_normal_sets[p] = {}
+                    self.multivariate_normal_sets[p]['prior'] = mix[i]
+                    self.multivariate_normal_sets[p]['set'] = setname
+                    self.multivariate_normal_sets[p]['index'] = i
+
+                self.multivariate_normal_num_sets += 1
+
+            # return required parameter
+            return self.multivariate_normal_sets[key]['prior']
+
+        else:
+            raise ValueError("Prior for '{}' is not a MultivariateGaussian".format(key))
 
     def run_sampler(self):
         # set the step method
@@ -484,14 +558,20 @@ class Pymc3(MCMCSampler):
             # perform the sampling
             trace = pymc3.sample(**self.kwargs)
 
-        nparams = len([key for key in self.priors.keys() if self.priors[key].__class__.__name__ != 'DeltaFunction'])
+        nparams = len([key for key in self.priors.keys() if not isinstance(self.priors[key], DeltaFunction)])
         nsamples = len(trace) * self.chains
 
         self.result.samples = np.zeros((nsamples, nparams))
         count = 0
         for key in self.priors.keys():
-            if self.priors[key].__class__.__name__ != 'DeltaFunction':  # ignore DeltaFunction variables
-                self.result.samples[:, count] = trace[key]
+            if not isinstance(self.priors[key], DeltaFunction):  # ignore DeltaFunction variables
+                if not isinstance(self.priors[key], MultivariateGaussian):
+                    self.result.samples[:, count] = trace[key]
+                else:
+                    # get multivariate Gaussian samples
+                    priorset = self.multivariate_normal_sets[key]['set']
+                    index = self.multivariate_normal_sets[key]['index']
+                    self.result.samples[:, count] = trace[priorset][:, index]
                 count += 1
 
         self.result.sampler_output = np.nan
@@ -509,6 +589,10 @@ class Pymc3(MCMCSampler):
 
         self.pymc3_priors = OrderedDict()
         pymc3, STEP_METHODS, floatX = self._import_external_sampler()
+
+        # initialise a dictionary of multivariate Gaussian parameters
+        self.multivariate_normal_sets = {}
+        self.multivariate_normal_num_sets = 0
 
         # set the parameter prior distributions (in the model context manager)
         with self.pymc3_model:

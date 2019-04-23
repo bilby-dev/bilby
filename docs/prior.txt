@@ -83,6 +83,54 @@ note that this list is incomplete.
    :members:
    :special-members:
 
+---------------------------
+Multivariate Gaussian prior
+---------------------------
+
+We provide a prior class for correlated parameters in the form of a
+`multivariate Gaussian distribution <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`_.
+To set the prior you first must define the distribution using the 
+:class:`bilby.core.prior.MultivariateGaussianDist` class. This requires the names of the
+correlated variables, their means, and either the covariance matrix or the correlation
+matrix and standard deviations, e.g.:
+
+.. code:: python
+
+   >>> names = ['a', 'b']  # set the parameter names
+   >>> mu = [0., 5.]  # the means of the parameters
+   >>> cov = [[2., 0.7], [0.7, 3.]]  # the covariance matrix
+   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov)
+
+It is also possible to define a mixture model of multiple multivariate Gaussian modes of
+different weights if required, e.g.:
+
+.. code:: python
+
+   >>> names = ['a', 'b']  # set the parameter names
+   >>> mu = [[0., 5.], [2., 7.]]  # the means of the parameters
+   >>> cov = [[[2., 0.7], [0.7, 3.]], [[1., -0.9], [-0.9, 5.]]]  # the covariance matrix
+   >>> weights = [0.3, 0.7]  # weights of each mode
+   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov, nmodes=2, weights=weights)
+
+The distribution can also have hard bounds on each parameter by supplying them.
+
+The :class:`bilby.core.prior.MultivariateGaussianDist` class can then be passed to
+a :class:`bilby.core.prior.MultivariateGaussian` prior for each parameter, e.g.:
+
+.. code:: python
+
+   >>> priors = dict()
+   >>> priors['a'] = bilby.core.prior.MultivariateGaussian(mvg, 'a')
+   >>> priors['b'] = bilby.core.prior.MultivariateGaussian(mvg, 'b')
+
+The detailed API information for the distribution and prior classes are below:
+
+.. autoclass:: bilby.core.prior.MultivariateGaussianDist
+   :members:
+
+.. autoclass:: bilby.core.prior.MultivariateGaussian
+   :members:
+
 -----------------------
 Defining your own prior
 -----------------------

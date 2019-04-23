@@ -3,5 +3,5 @@ dynesty
 emcee
 nestle
 ptemcee
-pymc3
+pymc3>=3.6
 pymultinest
