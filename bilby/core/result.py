@@ -535,6 +535,19 @@ class Result(object):
         """
         return self.posterior_volume / self.prior_volume(priors)
 
+    @property
+    def bayesian_model_dimensionality(self):
+        """ Characterises how many parameters are effectively constraint by the data
+
+        See <https://arxiv.org/abs/1903.06682>
+
+        Returns
+        -------
+        float: The model dimensionality
+        """
+        return 2 * (np.mean(self.posterior['log_likelihood']**2) -
+                    np.mean(self.posterior['log_likelihood'])**2)
+
     def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
                                                  quantiles=(0.16, 0.84)):
         """ Calculate the median and error bar for a given key
