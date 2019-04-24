@@ -1381,10 +1381,15 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
 
     ax.fill_between(x_values, lower, upper, alpha=0.2, color='k')
 
+    pvalues = []
+    logger.info("Key: KS-test p-value")
     for ii, key in enumerate(credible_levels):
         pp = np.array([sum(credible_levels[key].values < xx) /
                        len(credible_levels) for xx in x_values])
         plt.plot(x_values, pp, lines[ii], label=key, **kwargs)
+        pvalue = scipy.stats.kstest(credible_levels[key], 'uniform').pvalue
+        pvalues.append(pvalue)
+        logger.info("{}: {}".format(key, pvalue))
 
     ax.legend(fontsize=legend_fontsize)
     ax.set_xlim(0, 1)
@@ -1394,6 +1399,9 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
         if filename is None:
             filename = 'outdir/pp.png'
         fig.savefig(filename, dpi=500)
+
+    logger.info(
+        "Combined p-value: {}".format(scipy.stats.combine_pvalues(pvalues)[1]))
     return fig
 
 
