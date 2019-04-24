@@ -2036,6 +2036,12 @@ class FermiDirac(Prior):
         r: float
             A value giving mu/sigma. This can be used instead of specifying
             mu.
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
 
         References
         ----------
@@ -2574,7 +2580,7 @@ class MultivariateGaussianDist(object):
         return len(self.names)
 
 
-class MultivariateNormalDist(object):
+class MultivariateNormalDist(MultivariateGaussianDist):
 
     def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
                  covs=None, weights=None, bounds=None):
