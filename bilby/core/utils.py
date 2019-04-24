@@ -703,6 +703,31 @@ def logtrapzexp(lnf, dx):
     return np.log(dx / 2.) + logsumexp([logsumexp(lnf[:-1]), logsumexp(lnf[1:])])
 
 
+def credible_interval(samples, confidence_level=.9, lower=True):
+    """
+    Return location of lower or upper confidence levels
+    Based on lalinference.bayespputils.cred_interval
+
+    Parameters
+    ----------
+    x: List of samples.
+    cl: Confidence level to return the bound of.
+    lower: If ``True``, return the lower bound, otherwise return the upper bound.
+
+    Returns
+    -------
+    float: the upper or lower confidence level
+
+    """
+    def cred_level(cl, x):
+        return np.sort(x, axis=0)[int(cl * len(x))]
+
+    if lower:
+        return cred_level((1. - confidence_level) / 2, samples)
+    else:
+        return cred_level((1. + confidence_level) / 2, samples)
+
+
 def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
     """Run a string cmd as a subprocess, check for errors and return output.
 

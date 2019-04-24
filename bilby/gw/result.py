@@ -1,7 +1,13 @@
 from __future__ import division
 
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
 from ..core.result import Result as CoreResult
 from ..core.utils import logger
+from .utils import (plot_spline_pos,
+                    spline_angle_xform)
 
 
 class CompactBinaryCoalesenceResult(CoreResult):
@@ -79,6 +85,81 @@ class CompactBinaryCoalesenceResult(CoreResult):
         except ValueError:
             logger.info("No injection for detector {}".format(detector))
             return None
+
+    def plot_calibration_posterior(self, level=.9):
+        """ Plots the calibration amplitude and phase uncertainty.
+        Adapted from the LALInference version in bayespputils
+
+        Parameters
+        ----------
+        level: float,  percentage for confidence levels
+
+        Returns
+        -------
+        saves a plot to outdir+label+calibration.png
+
+        """
+        fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(15, 15), dpi=500)
+        posterior = self.posterior
+
+        font_size = 32
+        outdir = self.outdir
+
+        parameters = posterior.keys()
+        ifos = np.unique([param.split('_')[1] for param in parameters if 'recalib_' in param])
+        if ifos.size == 0:
+            logger.info("No calibration parameters found. Aborting calibration plot.")
+            return
+
+        for ifo in ifos:
+            if ifo == 'H1':
+                color = 'r'
+            elif ifo == 'L1':
+                color = 'g'
+            elif ifo == 'V1':
+                color = 'm'
+            else:
+                color = 'c'
+
+            # Assume spline control frequencies are constant
+            freq_params = np.sort([param for param in parameters if
+                                   'recalib_{0}_frequency_'.format(ifo) in param])
+
+            logfreqs = np.log([posterior[param].iloc[0] for param in freq_params])
+
+            # Amplitude calibration model
+            plt.sca(ax1)
+            amp_params = np.sort([param for param in parameters if
+                                  'recalib_{0}_amplitude_'.format(ifo) in param])
+            if len(amp_params) > 0:
+                amplitude = 100 * np.column_stack([posterior[param] for param in amp_params])
+                plot_spline_pos(logfreqs, amplitude, color=color, level=level,
+                                label="{0} (mean, {1}%)".format(ifo.upper(), int(level * 100)))
+
+            # Phase calibration model
+            plt.sca(ax2)
+            phase_params = np.sort([param for param in parameters if
+                                    'recalib_{0}_phase_'.format(ifo) in param])
+            if len(phase_params) > 0:
+                phase = np.column_stack([posterior[param] for param in phase_params])
+                plot_spline_pos(logfreqs, phase, color=color, level=level,
+                                label="{0} (mean, {1}%)".format(ifo.upper(), int(level * 100)),
+                                xform=spline_angle_xform)
+
+        ax1.tick_params(labelsize=.75 * font_size)
+        ax2.tick_params(labelsize=.75 * font_size)
+        plt.legend(loc='upper right', prop={'size': .75 * font_size}, framealpha=0.1)
+        ax1.set_xscale('log')
+        ax2.set_xscale('log')
+
+        ax2.set_xlabel('Frequency (Hz)', fontsize=font_size)
+        ax1.set_ylabel('Amplitude (%)', fontsize=font_size)
+        ax2.set_ylabel('Phase (deg)', fontsize=font_size)
+
+        filename = os.path.join(outdir, self.label + '_calibration.png')
+        fig.tight_layout()
+        fig.savefig(filename, bbox_inches='tight')
+        plt.close(fig)
 
 
 CBCResult = CompactBinaryCoalesenceResult
