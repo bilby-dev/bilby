@@ -292,6 +292,7 @@ class InterferometerStrainData(object):
         self._frequency_array = None
         self._time_domain_strain = None
         self._time_array = None
+        self._channel = None
 
     def __eq__(self, other):
         if self.minimum_frequency == other.minimum_frequency \
@@ -441,6 +442,83 @@ class InterferometerStrainData(object):
         if not len(self.frequency_array) == len(frequency_domain_strain):
             raise ValueError("The frequency_array and the set strain have different lengths")
         self._frequency_domain_strain = frequency_domain_strain
+
+    def to_gwpy_timeseries(self):
+        """
+        Output the time series strain data as a :class:`gwpy.timeseries.TimeSeries`.
+        """
+
+        return gwpy.timeseries.TimeSeries(self.time_domain_strain,
+                                          sample_rate=self.sampling_frequency,
+                                          t0=self.start_time,
+                                          channel=self.channel)
+
+    def to_pycbc_timeseries(self):
+        """
+        Output the time series strain data as a :class:`pycbc.types.timeseries.TimeSeries`.
+        """
+
+        try:
+            import pycbc
+        except ImportError:
+            raise ImportError("Cannot output strain data as PyCBC TimeSeries")
+
+        return pycbc.types.timeseries.TimeSeries(self.time_domain_strain,
+                                                 delta_t=(1. / self.sampling_frequency),
+                                                 epoch=lal.LIGOTimeGPS(self.start_time))
+
+    def to_lal_timeseries(self):
+        """
+        Output the time series strain data as a LAL TimeSeries object.
+        """
+
+        laldata = lal.CreateREAL8TimeSeries("",
+                                            lal.LIGOTimeGPS(self.start_time),
+                                            0., (1. / self.sampling_frequency),
+                                            lal.SecondUnit,
+                                            len(self.time_domain_strain))
+        laldata.data.data[:] = self.time_domain_strain
+
+        return laldata
+
+    def to_gwpy_frequencyseries(self):
+        """
+        Output the frequency series strain data as a :class:`gwpy.frequencyseries.FrequencySeries`.
+        """
+
+        return gwpy.frequencyseries.FrequencySeries(self.frequency_domain_strain,
+                                                    frequencies=self.frequency_array,
+                                                    epoch=self.start_time,
+                                                    channel=self.channel)
+
+    def to_pycbc_frequencyseries(self):
+        """
+        Output the frequency series strain data as a :class:`pycbc.types.frequencyseries.FrequencySeries`.
+        """
+
+        try:
+            import pycbc
+        except ImportError:
+            raise ImportError("Cannot output strain data as PyCBC FrequencySeries")
+
+        return pycbc.types.frequencyseries.FrequencySeries(self.frequency_domain_strain,
+                                                           delta_f=(self.frequency_array[1] - self.frequency_array[0]),
+                                                           epoch=lal.LIGOTimeGPS(self.start_time))
+
+    def to_lal_frequencyseries(self):
+        """
+        Output the frequency series strain data as a LAL FrequencySeries object.
+        """
+
+        laldata = lal.CreateCOMPLEX16FrequencySeries("",
+                                                     lal.LIGOTimeGPS(self.start_time),
+                                                     self.frequency_array[0],
+                                                     (self.frequency_array[1] - self.frequency_array[0]),
+                                                     lal.SecondUnit,
+                                                     len(self.frequency_domain_strain))
+        laldata.data.data[:] = self.frequency_domain_strain
+
+        return laldata
 
     def add_to_frequency_domain_strain(self, x):
         """Deprecated"""
@@ -626,6 +704,11 @@ class InterferometerStrainData(object):
                                                       start_time=time_series.epoch.value)
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
+        self._channel = time_series.channel
+
+    @property
+    def channel(self):
+        return self._channel
 
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
