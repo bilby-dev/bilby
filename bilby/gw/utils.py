@@ -3,10 +3,13 @@ import os
 import json
 
 import numpy as np
+from scipy import interpolate
+import matplotlib.pyplot as plt
 
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
-                          check_directory_exists_and_if_not_mkdir)
+                          check_directory_exists_and_if_not_mkdir,
+                          credible_interval)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -856,3 +859,69 @@ def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
 
     return lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
+
+
+def spline_angle_xform(delta_psi):
+    """
+    Returns the angle in degrees corresponding to the spline
+    calibration parameters delta_psi.
+    Based on the same function in lalinference.bayespputils
+
+    Parameters
+    ----------
+    delta_psi: calibration phase uncertainity
+
+    Returns
+    -------
+    float: delta_psi in degrees
+
+    """
+    rotation = (2.0 + 1.0j * delta_psi) / (2.0 - 1.0j * delta_psi)
+
+    return 180.0 / np.pi * np.arctan2(np.imag(rotation), np.real(rotation))
+
+
+def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=None, xform=None):
+    """
+    Plot calibration posterior estimates for a spline model in log space.
+    Adapted from the same function in lalinference.bayespputils
+
+    Parameters
+    ----------
+        log_freqs: The (log) location of spline control points.
+        samples: List of posterior draws of function at control points ``log_freqs``
+        nfreqs: Number of points to evaluate spline at for plotting.
+        level: Credible level to fill in.
+        color: Color to plot with.
+        label: Label for plot.
+        xform: Function to transform the spline into plotted values.
+
+    """
+    freq_points = np.exp(log_freqs)
+    freqs = np.logspace(min(log_freqs), max(log_freqs), nfreqs, base=np.exp(1))
+
+    data = np.zeros((samples.shape[0], nfreqs))
+
+    if xform is None:
+        scaled_samples = samples
+    else:
+        scaled_samples = xform(samples)
+
+    mu = np.mean(scaled_samples, axis=0)
+    lower_confidence_level = mu - credible_interval(scaled_samples, level, lower=True)
+    upper_confidence_level = credible_interval(scaled_samples, level, lower=False) - mu
+    plt.errorbar(freq_points, mu, yerr=[lower_confidence_level, upper_confidence_level],
+                 fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
+
+    for i, sample in enumerate(samples):
+        temp = interpolate.spline(log_freqs, sample, np.log(freqs))
+        if xform is None:
+            data[i] = temp
+        else:
+            data[i] = xform(temp)
+
+    line, = plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
+    color = line.get_color()
+    plt.fill_between(freqs, credible_interval(data, level), credible_interval(data, level, lower=False),
+                     color=color, alpha=.1, linewidth=0.1)
+    plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
