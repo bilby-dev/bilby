@@ -944,9 +944,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         signal in the detector. This is then used when constructing the weights
         for the ROQ.
 
-        Parameters
-        ----------
-        ifo: bilby.gw.detector.Interferometer
+        A minimum resolution is set by assuming the SNR in each detector is at
+        least 10. When the SNR is not available the SNR is assumed to be 30 in
+        each detector.
 
         Returns
         -------
@@ -983,14 +983,13 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         def c_f_scaling(snr):
             return (np.pi**2 * snr**2 / 6)**(1 / 3)
 
-        inj_snr = 0
+        inj_snr_sq = 0
         for ifo in self.interferometers:
-
-            inj_snr += getattr(ifo.meta_data, 'optimal_SNR', 30)
+            inj_snr_sq += min(10, getattr(ifo.meta_data, 'optimal_SNR', 30))**2
 
         psd = ifo.power_spectral_density_array[ifo.frequency_mask]
         freq = ifo.frequency_array[ifo.frequency_mask]
-        fhigh = calc_fhigh(freq, psd, scaling=c_f_scaling(inj_snr))
+        fhigh = calc_fhigh(freq, psd, scaling=c_f_scaling(inj_snr_sq**0.5))
 
         delta_t = fhigh**-1
 
