@@ -461,24 +461,25 @@ def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=N
     return candidate, cache_files
 
 
-def gracedb_to_json(gracedb, outdir=None):
+def gracedb_to_json(gracedb, cred=None, outdir=None):
     """ Script to download a GraceDB candidate
 
     Parameters
     ----------
     gracedb: str
         The UID of the GraceDB candidate
+    cred:
+        Credentials for authentications, see ligo.gracedb.rest.GraceDb
     outdir: str, optional
         If given, a string identfying the location in which to store the json
     """
     logger.info(
         'Starting routine to download GraceDb candidate {}'.format(gracedb))
     from ligo.gracedb.rest import GraceDb
-    import urllib3
 
     logger.info('Initialise client and attempt to download')
     try:
-        client = GraceDb()
+        client = GraceDb(cred=cred)
     except IOError:
         raise ValueError(
             'Failed to authenticate with gracedb: check your X509 '
@@ -486,8 +487,8 @@ def gracedb_to_json(gracedb, outdir=None):
     try:
         candidate = client.event(gracedb)
         logger.info('Successfully downloaded candidate')
-    except urllib3.HTTPError:
-        raise ValueError("No candidate found")
+    except Exception as e:
+        raise ValueError("Unable to obtain GraceDB candidate, exception: {}".format(e))
 
     json_output = candidate.json()
 
