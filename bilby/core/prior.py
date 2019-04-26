@@ -452,6 +452,8 @@ class Prior(object):
             if type(self.__dict__[key]) is np.ndarray:
                 if not np.array_equal(self.__dict__[key], other.__dict__[key]):
                     return False
+            elif isinstance(self.__dict__[key], type(scipy.stats.beta(1., 1.))):
+                continue
             else:
                 if not self.__dict__[key] == other.__dict__[key]:
                     return False

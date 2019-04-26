@@ -469,9 +469,7 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             if isinstance(prior, bilby.core.prior.Interped):
                 continue  # we cannot test this because of the numpy arrays
-            if isinstance(prior, bilby.core.prior.Beta):
-                continue  # We cannot test this as it has a frozen scipy dist
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            elif isinstance(prior, bilby.core.prior.MultivariateGaussian):
                 continue  # we cannot test this because of the internal objects
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)
