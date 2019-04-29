@@ -4,6 +4,7 @@ import os
 from collections import OrderedDict, namedtuple
 from copy import deepcopy
 from distutils.version import LooseVersion
+from itertools import product
 
 import corner
 import json
