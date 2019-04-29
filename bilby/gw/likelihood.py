@@ -788,6 +788,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                               quadratic_matrix=quadratic_matrix)
         self.frequency_nodes_linear =\
             waveform_generator.waveform_arguments['frequency_nodes_linear']
+        self.frequency_nodes_quadratic = \
+            waveform_generator.waveform_arguments['frequency_nodes_quadratic']
 
     def calculate_snrs(self, signal, interferometer):
         """
@@ -796,8 +798,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         Parameters
         ----------
         signal: waveform
-
-        interferometer: interferometer object
+        interferometer: bilby.gw.detector.Interferometer
 
         """
 
@@ -814,10 +815,19 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         ifo_time = self.parameters['geocent_time'] + dt - \
             interferometer.strain_data.start_time
 
-        h_plus_linear = f_plus * signal['linear']['plus']
-        h_cross_linear = f_cross * signal['linear']['cross']
-        h_plus_quadratic = f_plus * signal['quadratic']['plus']
-        h_cross_quadratic = f_cross * signal['quadratic']['cross']
+        calib_linear = interferometer.calibration_model.get_calibration_factor(
+            self.frequency_nodes_linear,
+            prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+        calib_quadratic = interferometer.calibration_model.get_calibration_factor(
+            self.frequency_nodes_quadratic,
+            prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+
+        h_plus_linear = f_plus * signal['linear']['plus'] * calib_linear
+        h_cross_linear = f_cross * signal['linear']['cross'] * calib_linear
+        h_plus_quadratic = (
+            f_plus * signal['quadratic']['plus'] * calib_quadratic)
+        h_cross_quadratic = (
+            f_cross * signal['quadratic']['cross'] * calib_quadratic)
 
         indices, in_bounds = self._closest_time_indices(
             ifo_time, self.weights['time_samples'])
