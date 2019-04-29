@@ -6,11 +6,26 @@
 - 
 
 ### Changed
-- Make calibration work, maybe with interp1d
 -
 
 ### Removed
 -
+
+## [0.4.5] 2019-04-03
+
+### Added
+- Calibration method and plotting
+- Multivariate Gaussian prior
+- Bayesian model diminsionality calculator
+- Dynamic dynesty (note: this is in an alpha stage)
+- Waveform caching
+
+### Changes
+- Fixed bugs in the ROQ time resolution
+- Fixed bugs in the gracedb wrapper-method
+- Improvements to the pp-plot method
+- Improved checkpointing for emcee/ptemcee
+- Various perforance-related improvements
 
 ## [0.4.4] 2019-04-03
 
