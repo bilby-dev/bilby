@@ -322,7 +322,7 @@ class Dynesty(NestedSampler):
     def write_current_state_and_exit(self, signum=None, frame=None):
         logger.warning("Run terminated with signal {}".format(signum))
         self.write_current_state()
-        sys.exit()
+        sys.exit(130)
 
     def write_current_state(self):
         """
