@@ -2,19 +2,19 @@ from __future__ import division
 
 import os
 from collections import OrderedDict, namedtuple
-from itertools import product
-from distutils.version import LooseVersion
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import corner
 import json
+import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import lines as mpllines
 import numpy as np
 import pandas as pd
-from scipy.special import logsumexp
 import scipy.stats
+from scipy.special import logsumexp
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
