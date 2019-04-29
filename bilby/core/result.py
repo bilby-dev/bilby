@@ -1284,7 +1284,7 @@ class ResultList(list):
     def _check_consistent_priors(self):
         for res in self:
             for p in self[0].search_parameter_keys:
-                if not self[0].priors[p] == res.priors[p] or len(self[0].priors) != res.priors:
+                if not self[0].priors[p] == res.priors[p] or len(self[0].priors) != len(res.priors):
                     raise CombineResultError("Cannot combine results: inconsistent priors")
 
     def _check_consistent_parameters(self):
