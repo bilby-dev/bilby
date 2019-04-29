@@ -1277,13 +1277,16 @@ class ResultList(list):
         return posteriors, result
 
     def _check_nested_samples(self):
-        if not np.all([res.nested_samples is not None for res in self]):
-            raise CombineResultError("Cannot combine results: No nested samples available "
-                                     "in all results")
+        for res in self:
+            try:
+                res.nested_samples
+            except ValueError:
+                raise CombineResultError("Cannot combine results: No nested samples available "
+                                         "in all results")
 
     def _check_consistent_priors(self):
         for res in self:
-            for p in self[0].search_parameter_keys:
+            for p in self[0].priors.keys():
                 if not self[0].priors[p] == res.priors[p] or len(self[0].priors) != len(res.priors):
                     raise CombineResultError("Cannot combine results: inconsistent priors")
 

@@ -524,6 +524,8 @@ class TestResultList(unittest.TestCase):
         result.log_evidence_err = 11
         result.log_bayes_factor = 12
         result.log_noise_evidence = 13
+        result._nested_samples = None
+        self.nested_results.append(result)
         with self.assertRaises(bilby.result.CombineResultError):
             self.nested_results.combine()
 
