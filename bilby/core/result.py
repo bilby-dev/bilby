@@ -3,18 +3,17 @@ from __future__ import division
 import os
 from collections import OrderedDict, namedtuple
 from itertools import product
-from functools import reduce
 from distutils.version import LooseVersion
 from copy import deepcopy
 
 import corner
 import json
-import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import lines as mpllines
 import numpy as np
 import pandas as pd
+from scipy.special import logsumexp
 import scipy.stats
 
 from . import utils
