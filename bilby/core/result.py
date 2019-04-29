@@ -2,7 +2,7 @@ from __future__ import division
 
 import os
 from collections import OrderedDict, namedtuple
-from copy import deepcopy
+from copy import copy
 from distutils.version import LooseVersion
 from itertools import product
 
@@ -1230,13 +1230,12 @@ class ResultList(list):
         Return the combined results in a :class:bilby.core.result.Result`
         object.
         """
-
         if len(self) == 0:
             return Result()
         elif len(self) == 1:
-            return deepcopy(self[0])
+            return copy(self[0])
         else:
-            result = deepcopy(self[0])
+            result = copy(self[0])
 
         if result.label is not None:
             result.label += 'combined'
