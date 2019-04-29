@@ -1,19 +1,21 @@
 from __future__ import division
 
 import os
-from distutils.version import LooseVersion
 from collections import OrderedDict, namedtuple
 from itertools import product
 from functools import reduce
+from distutils.version import LooseVersion
+from copy import deepcopy
 
-import numpy as np
-import pandas as pd
 import corner
 import json
 import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import lines as mpllines
+import numpy as np
+import pandas as pd
+import scipy.stats
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
@@ -1190,7 +1192,7 @@ class Result(object):
         return outdir
 
 
-class ResultList(object):
+class ResultList(list):
 
     def __init__(self, results=None):
         """ A class to store a list of :class:`bilby.core.result.Result` objects
@@ -1200,77 +1202,29 @@ class ResultList(object):
         Parameters
         ----------
         results: list
-            A :class:`bilby.core.result.Result` object, or list of
-            results.
+            A list of `:class:`bilby.core.result.Result`.
         """
+        list.__init__(self)
+        for result in results:
+            self.append(result)
 
-        self.results = results
-        self.__currentidx = 0  # index for iterator
-
-    @property
-    def results(self):
-        return self._results
-
-    @results.setter
-    def results(self, results):
-        self._results = []  # empty list
-        if results is None:
-            return
-
-        self.append(results)
-
-    def __getitem__(self, idx):
-        return self._results[idx]
-
-    def pop(self, idx):
-        return self._results.pop(idx)
-
-    def append(self, results):
+    def append(self, result):
         """
         Append a :class:`bilby.core.result.Result`, or set of results, to the
         list.
 
         Parameters
         ----------
-        results: :class:`bilby.core.result.Result`, or list of results
-            A :class:`bilby.core.result.Result`, list of
-            :class:`bilby.core.result.Result` object, or list of filenames
-            pointing to results objects, to append to the list.
+        result: :class:`bilby.core.result.Result` or filename
+            pointing to a result object, to append to the list.
         """
 
-        if not isinstance(results, (list, ResultList)):
-            results = [results]  # make into list for iteration
-
-        # loop over list
-        for result in results:
-            if isinstance(result, Result):
-                # append new result
-                self._results.append(result)
-            elif isinstance(result, str):
-                # try reading from file
-                try:
-                    self._results.append(read_in_result(result))
-                except Exception as e:
-                    raise IOError("Could not read in results file: "
-                                  "{}".format(e))
-            else:
-                raise TypeError("Could not append a non-Result type")
-
-    def __len__(self):
-        return len(self.results)
-
-    def __iter__(self):
-        self.__currentidx = 0  # reset iterator index
-        return self
-
-    def __next__(self):
-        if self.__currentidx >= len(self):
-            raise StopIteration
+        if isinstance(result, Result):
+            super(ResultList, self).append(result)
+        elif isinstance(result, str):
+            super(ResultList, self).append(read_in_result(result))
         else:
-            self.__currentidx += 1
-            return self.results[self.__currentidx - 1]
-
-    next = __next__  # Python 2 next
+            raise TypeError("Could not append a non-Result type")
 
     def combine(self):
         """
@@ -1278,99 +1232,74 @@ class ResultList(object):
         object.
         """
 
-        from copy import deepcopy
-
         if len(self) == 0:
             return Result()
         elif len(self) == 1:
-            return deepcopy(self.results[0])
+            return deepcopy(self[0])
         else:
-            # get first result
-            result = deepcopy(self.results[0])
+            result = deepcopy(self[0])
 
-        # append 'combined' to the label
         if result.label is not None:
             result.label += 'combined'
 
-        # check all results are equivalent
-        sampler = result.sampler
-        if not np.all([res.sampler == sampler for res in self]):
-            raise ValueError("Cannot combine results: inconsistent samplers")
-
-        log_noise_evidence = result.log_noise_evidence
-        if not np.all([res.log_noise_evidence == log_noise_evidence for res in self]):
-            raise ValueError("Cannot combine results: inconsistent data")
-
-        parameters = result.search_parameter_keys
-        if not np.all([set(parameters) == set(res.search_parameter_keys) for res in self]):
-            raise ValueError("Cannot combine results: inconsistent parameters")
-
-        priors = result.priors
-        for result in self:
-            for p in parameters:
-                if not priors[p] == result.priors[p]:
-                    raise ValueError("Cannot combine results: inconsistent priors")
+        self._check_consistent_sampler()
+        self._check_consistent_data()
+        self._check_consistent_parameters()
+        self._check_consistent_priors()
 
         # check which kind of sampler was used: MCMC or Nested Sampling
         if result.nested_samples is not None:
-            if not np.all([res.nested_samples is not None for res in self]):
-                raise ValueError("Cannot combine results: nested samples available")
-
-            # lengths of all sets of nested samples
-            len_nests = [len(res.nested_samples) is not None for res in self]
-
-            # get number of live points from runs
-            try:
-                nlives = [res.sampler_kwargs['nlive'] for res in self]
-            except KeyError:
-                raise KeyError("Result did not contain the number of live points used")
-
-            # get evidences and weights
-            log_evs = np.array([res.log_evidence for res in self])
-
-            # average the evidence for each run
-            log_evidence = reduce(np.logaddexp, log_evs) - np.log(len(self))
-            result.log_evidence = log_evidence
-            if result.use_ratio:
-                result.log_bayes_factor = log_evidence
-                result.log_evidence = log_evidence + result.log_noise_evidence
-            else:
-                result.log_bayes_factor = log_evidence - result.log_noise_evidence
-
-            # add errors in quadrature
-            log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
-            if len(log_errs) > 0:
-                log_err = 2. * log_errs[0]
-                for err in log_errs[1:]:
-                    log_err = np.logaddexp(log_err, 2. * err)
-                result.log_evidence_err = 0.5 * log_err - np.log(len(self))
-
-            # combine all nested samples (see cpnest nest2pos)
-            fracs = np.exp(log_evs - np.max(log_evs))  # relative weights for each Result
-            Ns = [fracs[i] / len_nests[i] for i in range(len(self))]
-            fracs = [n / np.max(nlives) for n in Ns]  # number of samples from each Result
-
-            # select samples from the individual posteriors
-            posts = [res.posterior[np.random.uniform(size=len(res.posterior)) < frac] for res, frac in zip(self, fracs)]
-
-            # remove original nested_samples
-            result.nested_samples = None
-            result.sampler_kwargs = None
+            posteriors, result = self._combine_nested_sampled_runs(result)
         else:
-            # combine MCMC samples
-            posts = [res for res in self]
+            posteriors = [res.posterior for res in self]
 
-        # combine the samples
-        combined_posteriors = pd.concat(posts, ignore_index=True)
+        combined_posteriors = pd.concat(posteriors, ignore_index=True)
         result.posterior = combined_posteriors.sample(len(combined_posteriors))  # shuffle
-
         return result
 
-    def __str__(self):
-        return str(self.results)
+    def _combine_nested_sampled_runs(self, result):
+        self._check_nested_samples()
+        log_evidences = np.array([res.log_evidence for res in self])
+        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+        if result.use_ratio:
+            result.log_bayes_factor = result.log_evidence
+            result.log_evidence = result.log_evidence + result.log_noise_evidence
+        else:
+            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+        log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
+        result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        result_weights = np.exp(log_evidences - np.max(log_evidences))
+        posteriors = []
+        for res, frac in zip(self, result_weights):
+            selected_samples = (np.random.uniform(size=len(res.posterior)) < frac)
+            posteriors.append(res.posterior[selected_samples])
+        # remove original nested_samples
+        result.nested_samples = None
+        result.sampler_kwargs = None
+        return posteriors, result
 
-    def __repr__(self):
-        return repr(self.results)
+    def _check_nested_samples(self):
+        if not np.all([res.nested_samples is not None for res in self]):
+            raise CombineResultError("Cannot combine results: No nested samples available "
+                                     "in all results")
+
+    def _check_consistent_priors(self):
+        for res in self:
+            for p in self[0].search_parameter_keys:
+                if not self[0].priors[p] == res.priors[p]:
+                    raise CombineResultError("Cannot combine results: inconsistent priors")
+
+    def _check_consistent_parameters(self):
+        if not np.all([set(self[0].search_parameter_keys) == set(res.search_parameter_keys) for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent parameters")
+
+    def _check_consistent_data(self):
+        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent data")
+
+    def _check_consistent_sampler(self):
+        if not np.all([res.sampler == self[0].sampler for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent samplers")
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
@@ -1532,6 +1461,10 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
 
 class ResultError(Exception):
     """ Base exception for all Result related errors """
+
+
+class CombineResultError(ResultError):
+    """ For Errors occuring during combining results. """
 
 
 class FileMovedError(ResultError):
