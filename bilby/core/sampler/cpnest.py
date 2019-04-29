@@ -101,12 +101,13 @@ class Cpnest(NestedSampler):
             out.plot()
 
         self.result.posterior = DataFrame(out.posterior_samples)
-        self.result.nested_samples = DataFrame(out.get_nested_samples(filename=None))
-        self.result.nested_samples.rename(columns=dict(logL='log_likelihood'))
-        self.result.nested_samples['weights'] = np.exp(compute_weights(self.result.nested_samples['log_likelihood'],
-                                                                       out.NS.state.nlive)[1])
-        self.result.posterior.rename(columns=dict(
-            logL='log_likelihood', logPrior='log_prior'), inplace=True)
+        self.result.nested_samples = DataFrame(out.get_nested_samples(filename=''))
+        self.result.nested_samples.rename(columns=dict(logL='log_likelihood'), inplace=True)
+        self.result.posterior.rename(columns=dict(logL='log_likelihood', logPrior='log_prior'),
+                                     inplace=True)
+        _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
+                                         np.array(out.NS.state.nlive))
+        self.result.nested_samples.weights = np.exp(log_weights)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
         return self.result
