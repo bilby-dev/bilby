@@ -8,7 +8,6 @@ from itertools import product
 
 import corner
 import json
-import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import lines as mpllines
