@@ -159,6 +159,22 @@ class UniformComovingVolume(Cosmological):
         return zs, p_dz
 
 
+class UniformSourceFrame(Cosmological):
+    """
+    Prior for redshift which is uniform in comoving volume and source frame
+    time.
+
+    For redshift this is p(z) \propto dVc/dz 1 / (1 + z), where the extra 1+z
+    is due to doppler shifting of the source frame time.
+    """
+
+    def _get_redshift_arrays(self):
+        zs = np.linspace(self._minimum['redshift'] * 0.99,
+                         self._maximum['redshift'] * 1.01, 1000)
+        p_dz = self.cosmology.differential_comoving_volume(zs).value / (1 + zs)
+        return zs, p_dz
+
+
 class AlignedSpin(Interped):
 
     def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),

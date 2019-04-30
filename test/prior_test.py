@@ -166,6 +166,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Uniform(name='test', unit='unit', minimum=0, maximum=1),
             bilby.core.prior.LogUniform(name='test', unit='unit', minimum=5e0, maximum=1e2),
             bilby.gw.prior.UniformComovingVolume(name='redshift', minimum=0.1, maximum=1.0),
+            bilby.gw.prior.UniformSourceFrame(name='redshift', minimum=0.1, maximum=1.0),
             bilby.core.prior.Sine(name='test', unit='unit'),
             bilby.core.prior.Cosine(name='test', unit='unit'),
             bilby.core.prior.Interped(name='test', unit='unit', xx=np.linspace(0, 10, 1000),
@@ -566,7 +567,7 @@ class TestPriorDict(unittest.TestCase):
                 name='phi_12', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
             phi_jl=bilby.core.prior.Uniform(
                 name='phi_jl', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
-            luminosity_distance=bilby.gw.prior.UniformComovingVolume(
+            luminosity_distance=bilby.gw.prior.UniformSourceFrame(
                 name='luminosity_distance', minimum=1e2,
                 maximum=5e3, unit='Mpc', periodic_boundary=False),
             dec=bilby.core.prior.Cosine(name='dec', periodic_boundary=False),
@@ -630,7 +631,7 @@ class TestPriorDict(unittest.TestCase):
                     name='phi_12', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
                 phi_jl=bilby.core.prior.Uniform(
                     name='phi_jl', minimum=0, maximum=2 * np.pi, periodic_boundary=True),
-                luminosity_distance=bilby.gw.prior.UniformComovingVolume(
+                luminosity_distance=bilby.gw.prior.UniformSourceFrame(
                     name='luminosity_distance', minimum=1e2,
                     maximum=5e3, unit='Mpc', periodic_boundary=False),
                 dec=bilby.core.prior.Cosine(name='dec', periodic_boundary=False),
