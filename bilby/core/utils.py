@@ -692,7 +692,7 @@ def logtrapzexp(lnf, dx):
     ----------
     lnf: array_like
         A :class:`numpy.ndarray` of values that are the natural logarithm of a function
-    dx: (array_like, float)
+    dx: Union[array_like, float]
         A :class:`numpy.ndarray` of steps sizes between values in the function, or a
         single step size value.
 
@@ -761,16 +761,31 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
 
 
 class UnsortedInterp2d(interp2d):
-    """
-    Wrapper to scipy.interpolate.interp2d which preserves the input ordering.
 
-    See https://stackoverflow.com/questions/44941271/scipy-interp2d-returned-function-sorts-input-argument-automatically-and-undesira
-    for the implementation details.
-    """
+    def __call__(self, x, y, dx=0, dy=0, assume_sorted=False):
+        """  Wrapper to scipy.interpolate.interp2d which preserves the input ordering.
 
-    def __call__(self, x, y, dx=0, dy=0):
+        See https://stackoverflow.com/questions/44941271/scipy-interp2d-returned-function-sorts-input-argument-automatically-and-undesira
+        for the implementation details.
+
+
+        Parameters
+        ----------
+        x: See superclass
+        y: See superclass
+        dx: See superclass
+        dy: See superclass
+        assume_sorted: bool, optional
+            This is just a place holder to prevent a warning.
+            Overwriting this will not do anything
+
+        Returns
+        ----------
+        array_like: See superclass
+
+        """
         unsorted_idxs = np.argsort(np.argsort(x))
-        return interp2d.__call__(self, x, y, dx=dx, dy=dy)[unsorted_idxs]
+        return interp2d.__call__(self, x, y, dx=dx, dy=dy, assume_sorted=False)[unsorted_idxs, :]
 
 
 #  Instantiate the default argument parser at runtime
@@ -804,7 +819,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {'__array__': True, 'content': obj.tolist()}
         if isinstance(obj, complex):
             return {'__complex__': True, 'real': obj.real, 'imag': obj.imag}
-        if isinstance(obj, pd.core.frame.DataFrame):
+        if isinstance(obj, pd.DataFrame):
             return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
         return json.JSONEncoder.default(self, obj)
 

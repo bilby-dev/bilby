@@ -192,6 +192,9 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit')
         ]
 
+    def tearDown(self):
+        del self.priors
+
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
