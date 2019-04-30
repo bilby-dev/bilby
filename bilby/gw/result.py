@@ -17,13 +17,32 @@ class CompactBinaryCoalesenceResult(CoreResult):
     def __get_from_nested_meta_data(self, *keys):
         dictionary = self.meta_data
         try:
+            item = None
             for k in keys:
                 item = dictionary[k]
                 dictionary = item
             return item
         except KeyError:
-            raise ValueError(
+            raise AttributeError(
                 "No information stored for {}".format('/'.join(keys)))
+
+    @property
+    def sampling_frequency(self):
+        """ Sampling frequency in Hertz"""
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'sampling_frequency')
+
+    @property
+    def duration(self):
+        """ Duration in seconds """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'duration')
+
+    @property
+    def start_time(self):
+        """ Start time in seconds """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'start_time')
 
     @property
     def time_marginalization(self):
@@ -82,7 +101,7 @@ class CompactBinaryCoalesenceResult(CoreResult):
         try:
             return self.__get_from_nested_meta_data(
                 'likelihood', 'interferometers', detector)
-        except ValueError:
+        except AttributeError:
             logger.info("No injection for detector {}".format(detector))
             return None
 
