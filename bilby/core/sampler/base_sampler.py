@@ -104,7 +104,7 @@ class Sampler(object):
 
         self._search_parameter_keys = list()
         self._fixed_parameter_keys = list()
-        self._constraint_keys = list()
+        self._constraint_parameter_keys = list()
         self._initialise_parameters()
         self._verify_parameters()
         self._time_likelihood()
@@ -192,13 +192,13 @@ class Sampler(object):
                     and self.priors[key].is_fixed is False:
                 self._search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Constraint):
-                self._constraint_keys.append(key)
+                self._constraint_parameter_keys.append(key)
             elif isinstance(self.priors[key], DeltaFunction):
                 self.likelihood.parameters[key] = self.priors[key].sample()
                 self._fixed_parameter_keys.append(key)
 
         logger.info("Search parameters:")
-        for key in self._search_parameter_keys + self._constraint_keys:
+        for key in self._search_parameter_keys + self._constraint_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key]))
         for key in self._fixed_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key].peak))
@@ -215,7 +215,7 @@ class Sampler(object):
             sampler=self.__class__.__name__.lower(),
             search_parameter_keys=self._search_parameter_keys,
             fixed_parameter_keys=self._fixed_parameter_keys,
-            constraint_parameter_keys=self._constraint_keys,
+            constraint_parameter_keys=self._constraint_parameter_keys,
             priors=self.priors, meta_data=self.meta_data,
             injection_parameters=self.injection_parameters,
             sampler_kwargs=self.kwargs)
@@ -502,7 +502,7 @@ class NestedSampler(Sampler):
         the prior constraint here.
 
         Parameters
-        theta: array-like
+        theta: array_like
             Parameter values at which to evaluate likelihood
 
         Returns

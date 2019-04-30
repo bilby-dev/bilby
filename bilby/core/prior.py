@@ -23,9 +23,9 @@ class PriorDict(OrderedDict):
 
         Parameters
         ----------
-        dictionary: dict, None
+        dictionary: Union[dict, str, None]
             If given, a dictionary to generate the prior set.
-        filename: str, None
+        filename: Union[str, None]
             If given, a file containing the prior to generate the prior set.
         conversion_function: func
             Function to convert between sampled parameters and constraints.
@@ -127,7 +127,7 @@ class PriorDict(OrderedDict):
                         val = prior
                 except (NameError, SyntaxError, TypeError):
                     logger.debug(
-                        "Failed to load dictionary value {} correctlty"
+                        "Failed to load dictionary value {} correctly"
                         .format(key))
                     pass
             self[key] = val
@@ -482,7 +482,7 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
             A random number between 0 and 1
 
         Returns
@@ -497,7 +497,7 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -511,7 +511,7 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -525,7 +525,7 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -540,7 +540,7 @@ class Prior(object):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Raises
         -------
@@ -616,7 +616,7 @@ class Prior(object):
 
     @property
     def latex_label_with_unit(self):
-        """ If a unit is specifed, returns a string of the latex label and unit """
+        """ If a unit is specified, returns a string of the latex label and unit """
         if self.unit is not None:
             return "{} [{}]".format(self.latex_label, self.unit)
         else:
@@ -697,7 +697,7 @@ class DeltaFunction(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -711,11 +711,11 @@ class DeltaFunction(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: np.inf if val = peak, 0 otherwise
+         Union[float, array_like]: np.inf if val = peak, 0 otherwise
 
         """
         at_peak = (val == self.peak)
@@ -758,12 +758,12 @@ class PowerLaw(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
             Uniform probability
 
         Returns
         -------
-        float: Rescaled probability
+        Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
         if self.alpha == -1:
@@ -777,7 +777,7 @@ class PowerLaw(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -795,7 +795,7 @@ class PowerLaw(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -838,6 +838,20 @@ class Uniform(Prior):
                        periodic_boundary=periodic_boundary)
 
     def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the power-law prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+            Uniform probability
+
+        Returns
+        -------
+        Union[float, array_like]: Rescaled probability
+        """
         self.test_valid_for_rescaling(val)
         return self.minimum + val * (self.maximum - self.minimum)
 
@@ -846,7 +860,7 @@ class Uniform(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -860,7 +874,7 @@ class Uniform(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -901,9 +915,9 @@ class SymmetricLogUniform(Prior):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
                  unit=None, periodic_boundary=False):
-        """Symmetric Log-Uniform distribtions with bounds
+        """Symmetric Log-Uniform distributions with bounds
 
-        This is identical to a Log-Uniform distribition, but mirrored about
+        This is identical to a Log-Uniform distribution, but mirrored about
         the zero-axis and subsequently normalized. As such, the distribution
         has support on the two regions [-maximum, -minimum] and [minimum,
         maximum].
@@ -935,12 +949,12 @@ class SymmetricLogUniform(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
             Uniform probability
 
         Returns
         -------
-        float: Rescaled probability
+        Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
         if val < 0.5:
@@ -955,7 +969,7 @@ class SymmetricLogUniform(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -970,7 +984,7 @@ class SymmetricLogUniform(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -1019,7 +1033,7 @@ class Cosine(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -1067,11 +1081,11 @@ class Sine(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
         return np.sin(val) / 2 * self.is_in_prior_range(val)
 
@@ -1104,6 +1118,10 @@ class Gaussian(Prior):
         """
         'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
 
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         self.test_valid_for_rescaling(val)
@@ -1114,15 +1132,26 @@ class Gaussian(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
 
     def ln_prob(self, val):
+        """Return the Log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
 
 
@@ -1208,7 +1237,7 @@ class TruncatedGaussian(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -1332,20 +1361,31 @@ class LogNormal(Prior):
         return scipy.stats.lognorm.ppf(val, self.sigma, scale=np.exp(self.mu))
 
     def prob(self, val):
-        """Return the prior probability of val.
+        """Returns the prior probability of val.
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
 
         return scipy.stats.lognorm.pdf(val, self.sigma, scale=np.exp(self.mu))
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return scipy.stats.lognorm.logpdf(val, self.sigma, scale=np.exp(self.mu))
 
 
@@ -1409,16 +1449,27 @@ class Exponential(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
 
         return scipy.stats.expon.pdf(val, scale=self.mu)
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return scipy.stats.expon.logpdf(val, scale=self.mu)
 
 
@@ -1472,15 +1523,26 @@ class StudentT(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
         return scipy.stats.t.pdf(val, self.df, loc=self.mu, scale=self.scale)
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return scipy.stats.t.logpdf(val, self.df, loc=self.mu, scale=self.scale)
 
 
@@ -1540,11 +1602,11 @@ class Beta(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
 
         spdf = self._dist.pdf(val)
@@ -1560,6 +1622,17 @@ class Beta(Prior):
             return 0.
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         spdf = self._dist.logpdf(val)
         if np.all(np.isfinite(spdf)):
             return spdf
@@ -1572,7 +1645,6 @@ class Beta(Prior):
             return -np.inf
 
     def _set_dist(self):
-        """Try/except to stop it falling over at instantiation"""
         self._dist = scipy.stats.beta(
             a=self.alpha, b=self.beta, loc=self.minimum,
             scale=(self.maximum - self.minimum))
@@ -1659,15 +1731,26 @@ class Logistic(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
         return scipy.stats.logistic.pdf(val, loc=self.mu, scale=self.scale)
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return scipy.stats.logistic.logpdf(val, loc=self.mu, scale=self.scale)
 
 
@@ -1716,15 +1799,25 @@ class Cauchy(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+        Union[float, array_like]: Prior probability of val
         """
         return scipy.stats.cauchy.pdf(val, loc=self.alpha, scale=self.beta)
 
     def ln_prob(self, val):
+        """Return the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Log prior probability of val
+        """
         return scipy.stats.cauchy.logpdf(val, loc=self.alpha, scale=self.beta)
 
 
@@ -1799,16 +1892,27 @@ class Gamma(Prior):
 
         Parameters
         ----------
-        val: float
+        val:  Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+         Union[float, array_like]: Prior probability of val
         """
 
         return scipy.stats.gamma.pdf(val, self.k, loc=0., scale=self.theta)
 
     def ln_prob(self, val):
+        """Returns the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Prior probability of val
+        """
+
         return scipy.stats.gamma.logpdf(val, self.k, loc=0., scale=self.theta)
 
 
@@ -1873,7 +1977,7 @@ class Interped(Prior):
             See superclass
 
         Attributes
-        -------
+        ----------
         probability_density: scipy.interpolate.interp1d
             Interpolated prior probability distribution
         cumulative_distribution: scipy.interpolate.interp1d
@@ -1886,10 +1990,15 @@ class Interped(Prior):
         """
         self.xx = xx
         self.yy = yy
+        self.YY = None
+        self.probability_density = None
+        self.cumulative_distribution = None
+        self.inverse_cumulative_distribution = None
         self.__all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
+        minimum = float(np.nanmax(np.array((min(xx), minimum))))
+        maximum = float(np.nanmin(np.array((max(xx), maximum))))
         Prior.__init__(self, name=name, latex_label=latex_label, unit=unit,
-                       minimum=np.nanmax(np.array((min(xx), minimum))),
-                       maximum=np.nanmin(np.array((max(xx), maximum))),
+                       minimum=minimum, maximum=maximum,
                        periodic_boundary=periodic_boundary)
         self._update_instance()
 
@@ -1905,11 +2014,11 @@ class Interped(Prior):
 
         Parameters
         ----------
-        val: float
+        val:  Union[float, int, array_like]
 
         Returns
         -------
-        float: Prior probability of val
+         Union[float, array_like]: Prior probability of val
         """
         return self.probability_density(val)
 
@@ -2003,11 +2112,6 @@ class FromFile(Interped):
         periodic_boundary: bool
             See superclass
 
-        Attributes
-        -------
-        all_interpolated: scipy.interpolate.interp1d
-            Interpolated prior function
-
         """
         try:
             self.id = file_name
@@ -2074,6 +2178,10 @@ class FermiDirac(Prior):
         """
         'Rescale' a sample from the unit line element to the appropriate Fermi-Dirac prior.
 
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
         This maps to the inverse CDF. This has been analytically solved for this case,
         see Equation 24 of [1]_.
 
@@ -2097,7 +2205,7 @@ class FermiDirac(Prior):
                 return -self.sigma * np.log(inv)
         else:
             idx = inv >= 0.
-            tmpinv = np.inf * np.ones(len(val))
+            tmpinv = np.inf * np.ones(len(np.atleast_1d(val)))
             tmpinv[idx] = -self.sigma * np.log(inv[idx])
             return tmpinv
 
@@ -2106,7 +2214,7 @@ class FermiDirac(Prior):
 
         Parameters
         ----------
-        val: float
+        val: Union[float, int, array_like]
 
         Returns
         -------
@@ -2115,6 +2223,17 @@ class FermiDirac(Prior):
         return np.exp(self.ln_prob(val))
 
     def ln_prob(self, val):
+        """Return the log prior probability of val.
+
+        Parameters
+        ----------
+        val: Union[float, int, array_like]
+
+        Returns
+        -------
+        Union[float, array_like]: Log prior probability of val
+        """
+
         norm = -np.log(self.sigma * np.log(1. + np.exp(self.r)))
         if isinstance(val, (float, int)):
             if val < self.minimum:
@@ -2122,6 +2241,7 @@ class FermiDirac(Prior):
             else:
                 return norm - np.logaddexp((val / self.sigma) - self.r, 0.)
         else:
+            val = np.atleast_1d(val)
             lnp = -np.inf * np.ones(len(val))
             idx = val >= self.minimum
             lnp[idx] = norm - np.logaddexp((val[idx] / self.sigma) - self.r, 0.)

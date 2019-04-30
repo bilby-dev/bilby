@@ -14,9 +14,11 @@ class Likelihood(object):
 
         Parameters
         ----------
-        parameters:
+        parameters: dict
+            A dictionary of the parameter names and associated values
         """
         self.parameters = parameters
+        self._meta_data = None
 
     def __repr__(self):
         return self.__class__.__name__ + '(parameters={})'.format(self.parameters)
@@ -50,10 +52,7 @@ class Likelihood(object):
 
     @property
     def meta_data(self):
-        try:
-            return self._meta_data
-        except AttributeError:
-            return None
+        return self._meta_data
 
     @meta_data.setter
     def meta_data(self, meta_data):
@@ -84,8 +83,8 @@ class Analytical1DLikelihood(Likelihood):
         Likelihood.__init__(self, dict.fromkeys(parameters))
         self.x = x
         self.y = y
-        self.__func = func
-        self.__function_keys = list(self.parameters.keys())
+        self._func = func
+        self._function_keys = list(self.parameters.keys())
 
     def __repr__(self):
         return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
@@ -93,7 +92,7 @@ class Analytical1DLikelihood(Likelihood):
     @property
     def func(self):
         """ Make func read-only """
-        return self.__func
+        return self._func
 
     @property
     def model_parameters(self):
@@ -103,7 +102,7 @@ class Analytical1DLikelihood(Likelihood):
     @property
     def function_keys(self):
         """ Makes function_keys read_only """
-        return self.__function_keys
+        return self._function_keys
 
     @property
     def n(self):
@@ -113,24 +112,24 @@ class Analytical1DLikelihood(Likelihood):
     @property
     def x(self):
         """ The independent variable. Setter assures that single numbers will be converted to arrays internally """
-        return self.__x
+        return self._x
 
     @x.setter
     def x(self, x):
         if isinstance(x, int) or isinstance(x, float):
             x = np.array([x])
-        self.__x = x
+        self._x = x
 
     @property
     def y(self):
         """ The dependent variable. Setter assures that single numbers will be converted to arrays internally """
-        return self.__y
+        return self._y
 
     @y.setter
     def y(self, y):
         if isinstance(y, int) or isinstance(y, float):
             y = np.array([y])
-        self.__y = y
+        self._y = y
 
     @property
     def residual(self):
@@ -287,7 +286,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
     @property
     def y(self):
         """ Property assures that y-value is positive. """
-        return self.__y
+        return self._y
 
     @y.setter
     def y(self, y):
@@ -295,7 +294,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             y = np.array([y])
         if np.any(y < 0):
             raise ValueError("Data must be non-negative")
-        self.__y = y
+        self._y = y
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
@@ -403,19 +402,19 @@ class JointLikelihood(Likelihood):
     @property
     def likelihoods(self):
         """ The list of likelihoods """
-        return self.__likelihoods
+        return self._likelihoods
 
     @likelihoods.setter
     def likelihoods(self, likelihoods):
         likelihoods = copy.deepcopy(likelihoods)
         if isinstance(likelihoods, tuple) or isinstance(likelihoods, list):
             if all(isinstance(likelihood, Likelihood) for likelihood in likelihoods):
-                self.__likelihoods = list(likelihoods)
+                self._likelihoods = list(likelihoods)
             else:
                 raise ValueError('Try setting the JointLikelihood like this\n'
                                  'JointLikelihood(first_likelihood, second_likelihood, ...)')
         elif isinstance(likelihoods, Likelihood):
-            self.__likelihoods = [likelihoods]
+            self._likelihoods = [likelihoods]
         else:
             raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
 
