@@ -508,6 +508,11 @@ class TestResultList(unittest.TestCase):
         with self.assertRaises(bilby.result.CombineResultError):
             self.nested_results.combine()
 
+    def test_combine_inconsistent_data_nan(self):
+        self.nested_results[0].log_noise_evidence = np.nan
+        self.nested_results[1].log_noise_evidence = np.nan
+        self.nested_results.combine()
+
     def test_combine_inconsistent_sampling_data(self):
         result = bilby.core.result.Result(
             label=self.label, outdir=self.outdir, sampler='cpnest',

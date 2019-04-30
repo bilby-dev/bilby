@@ -1295,7 +1295,8 @@ class ResultList(list):
             raise CombineResultError("Cannot combine results: inconsistent parameters")
 
     def _check_consistent_data(self):
-        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self]):
+        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self])\
+                and not np.all([np.isnan(res.log_noise_evidence) for res in self]):
             raise CombineResultError("Cannot combine results: inconsistent data")
 
     def _check_consistent_sampler(self):
