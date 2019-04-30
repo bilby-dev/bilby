@@ -147,6 +147,20 @@ class TestGWTransient(unittest.TestCase):
         self.assertListEqual(bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers)
         self.assertTrue(type(self.likelihood.interferometers) == bilby.gw.detector.InterferometerList)
 
+    def test_meta_data(self):
+        expected = dict(
+            interferometers=self.interferometers.meta_data,
+            time_marginalization=False,
+            phase_marginalization=False,
+            distance_marginalization=False,
+            waveform_arguments=self.waveform_generator.waveform_arguments,
+            frequency_domain_source_model=str(
+                self.waveform_generator.frequency_domain_source_model),
+            sampling_frequency=self.waveform_generator.sampling_frequency,
+            duration=self.waveform_generator.duration,
+            start_time=self.waveform_generator.start_time)
+        self.assertDictEqual(expected, self.likelihood.meta_data)
+
 
 class TestTimeMarginalization(unittest.TestCase):
 

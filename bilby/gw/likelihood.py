@@ -91,14 +91,6 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         self.phase_marginalization = phase_marginalization
         self.priors = priors
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
-        self.meta_data = dict(
-            interferometers=self.interferometers.meta_data,
-            time_marginalization=self.time_marginalization,
-            phase_marginalization=self.phase_marginalization,
-            distance_marginalization=self.distance_marginalization,
-            waveform_arguments=waveform_generator.waveform_arguments,
-            frequency_domain_source_model=str(
-                waveform_generator.frequency_domain_source_model))
 
         if self.time_marginalization:
             self._check_prior_is_set(key='geocent_time')
@@ -634,6 +626,20 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     def _rescale_signal(self, signal, new_distance):
         for mode in signal:
             signal[mode] *= self._ref_dist / new_distance
+
+    @property
+    def meta_data(self):
+        return dict(
+            interferometers=self.interferometers.meta_data,
+            time_marginalization=self.time_marginalization,
+            phase_marginalization=self.phase_marginalization,
+            distance_marginalization=self.distance_marginalization,
+            waveform_arguments=self.waveform_generator.waveform_arguments,
+            frequency_domain_source_model=str(
+                self.waveform_generator.frequency_domain_source_model),
+            sampling_frequency=self.waveform_generator.sampling_frequency,
+            duration=self.waveform_generator.duration,
+            start_time=self.waveform_generator.start_time)
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
