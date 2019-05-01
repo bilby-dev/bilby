@@ -785,7 +785,7 @@ class UnsortedInterp2d(interp2d):
 
         """
         unsorted_idxs = np.argsort(np.argsort(x))
-        return interp2d.__call__(self, x, y, dx=dx, dy=dy, assume_sorted=False)[unsorted_idxs, :]
+        return interp2d.__call__(self, x, y, dx=dx, dy=dy, assume_sorted=False)[unsorted_idxs]
 
 
 #  Instantiate the default argument parser at runtime
