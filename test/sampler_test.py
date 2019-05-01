@@ -147,14 +147,14 @@ class TestDynesty(unittest.TestCase):
 
     def test_default_kwargs(self):
         expected = dict(bound='multi', sample='rwalk', periodic=None, verbose=True,
-                        check_point_delta_t=600, nlive=500, first_update=None,
+                        check_point_delta_t=600, nlive=1000, first_update=None,
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
-                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=True,
-                        walks=10, update_interval=300, print_func='func')
+                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
+                        walks=20, update_interval=600, print_func='func')
         self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
         self.assertListEqual([0], self.sampler.kwargs['periodic'])  # Check this separately
         self.sampler.kwargs['periodic'] = None  # The dict comparison can't handle lists
@@ -166,19 +166,19 @@ class TestDynesty(unittest.TestCase):
 
     def test_translate_kwargs(self):
         expected = dict(bound='multi', sample='rwalk', periodic=[0], verbose=True,
-                        check_point_delta_t=600, nlive=250, first_update=None,
+                        check_point_delta_t=600, nlive=1000, first_update=None,
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
-                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=True,
-                        walks=10, update_interval=300, print_func='func')
+                        logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
+                        walks=20, update_interval=600, print_func='func')
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nlive']
-            new_kwargs[equiv] = 250
+            new_kwargs[equiv] = 1000
             self.sampler.kwargs = new_kwargs
             self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
             self.assertDictEqual(expected, self.sampler.kwargs)

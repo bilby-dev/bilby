@@ -44,7 +44,7 @@ class Dynesty(NestedSampler):
 
     Other Parameters
     ----------------
-    npoints: int, (250)
+    npoints: int, (1000)
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]
     bound: {'none', 'single', 'multi', 'balls', 'cubes'}, ('multi')
@@ -72,18 +72,18 @@ class Dynesty(NestedSampler):
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
                           verbose=True, periodic=None,
-                          check_point_delta_t=600, nlive=500,
-                          first_update=None,
+                          check_point_delta_t=600, nlive=1000,
+                          first_update=None, walks=None,
                           npdim=None, rstate=None, queue_size=None, pool=None,
                           use_pool=None, live_points=None,
                           logl_args=None, logl_kwargs=None,
                           ptform_args=None, ptform_kwargs=None,
                           enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                           facc=0.5, slices=5,
-                          walks=None, update_interval=None, print_func=None,
+                          update_interval=None, print_func=None,
                           dlogz=0.1, maxiter=None, maxcall=None,
                           logl_max=np.inf, add_live=True, print_progress=True,
-                          save_bounds=True)
+                          save_bounds=False)
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
                  skip_import_verification=False, check_point=True, n_check_point=None, check_point_delta_t=600,
@@ -135,7 +135,7 @@ class Dynesty(NestedSampler):
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs['walks']:
-            self.kwargs['walks'] = self.ndim * 5
+            self.kwargs['walks'] = self.ndim * 10
         if not self.kwargs['update_interval']:
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
         if not self.kwargs['print_func']:
