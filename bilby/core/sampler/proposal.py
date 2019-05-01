@@ -72,7 +72,8 @@ class JumpProposal(object):
         return self._apply_boundaries(sample)
 
     def _move_reflecting_keys(self, sample):
-        keys = [key for key in sample.keys() if not self.priors[key].periodic_boundary]
+        keys = [key for key in sample.keys()
+                if self.priors[key].boundary == 'reflective']
         for key in keys:
             if sample[key] > self.priors[key].maximum or sample[key] < self.priors[key].minimum:
                 r = self.priors[key].maximum - self.priors[key].minimum
@@ -84,7 +85,8 @@ class JumpProposal(object):
         return sample
 
     def _move_periodic_keys(self, sample):
-        keys = [key for key in sample.keys() if self.priors[key].periodic_boundary]
+        keys = [key for key in sample.keys()
+                if self.priors[key].boundary == 'periodic']
         for key in keys:
             if sample[key] > self.priors[key].maximum or sample[key] < self.priors[key].minimum:
                 sample[key] = (self.priors[key].minimum +

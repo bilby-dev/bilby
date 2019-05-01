@@ -95,6 +95,8 @@ class Dynesty(NestedSampler):
         self.n_check_point = n_check_point
         self.check_point = check_point
         self.resume = resume
+        self._periodic = list()
+        self._reflective = list()
         self._apply_dynesty_boundaries()
         if self.n_check_point is None:
             # If the log_likelihood_eval_time is not calculable then
@@ -180,10 +182,16 @@ class Dynesty(NestedSampler):
         if self.kwargs['periodic'] is None:
             logger.debug("Setting periodic boundaries for keys:")
             self.kwargs['periodic'] = []
+            self._periodic = list()
+            self._reflective = list()
             for ii, key in enumerate(self.search_parameter_keys):
-                if self.priors[key].periodic_boundary:
+                if self.priors[key].boundary in ['periodic', 'reflective']:
                     self.kwargs['periodic'].append(ii)
                     logger.debug("  {}".format(key))
+                    if self.priors[key].boundary == 'periodic':
+                        self._periodic.append(ii)
+                    else:
+                        self._reflective.append(ii)
 
     def run_sampler(self):
         import dynesty
@@ -371,8 +379,9 @@ class Dynesty(NestedSampler):
         try:
             weights = np.exp(current_state['sample_log_weights'] -
                              current_state['cumulative_log_evidence'][-1])
+            from dynesty.utils import resample_equal
 
-            current_state['posterior'] = self.external_sampler.utils.resample_equal(
+            current_state['posterior'] = resample_equal(
                 np.array(current_state['physical_samples']), weights)
         except ValueError:
             logger.debug("Unable to create posterior")
@@ -424,6 +433,13 @@ class Dynesty(NestedSampler):
         Notes
         -----
         Since dynesty allows periodic parameters to wander outside the unit
+        We also allow parameters with reflective boundaries to wander outside
+
+        The logic ensures that when theta < 0 you shift to |theta| and when
+        theta > 1 you return 2 - theta
         """
-        theta = np.mod(theta, 1)
+        theta[self._periodic] = np.mod(theta[self._periodic], 1)
+        theta_ref = theta[self._reflective]
+        theta[self._reflective] = np.minimum(
+            np.maximum(theta_ref, abs(theta_ref)), 2 - theta_ref)
         return self.priors.rescale(self._search_parameter_keys, theta)
