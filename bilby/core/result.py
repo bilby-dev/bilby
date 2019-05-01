@@ -1,18 +1,20 @@
 from __future__ import division
 
 import os
-from distutils.version import LooseVersion
 from collections import OrderedDict, namedtuple
+from copy import copy
+from distutils.version import LooseVersion
 from itertools import product
 
-import numpy as np
-import pandas as pd
 import corner
 import json
-import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import lines as mpllines
+import numpy as np
+import pandas as pd
+import scipy.stats
+from scipy.special import logsumexp
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
@@ -99,7 +101,7 @@ class Result(object):
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
                  log_prior_evaluations=None, sampling_time=None, nburn=None,
-                 walkers=None, max_autocorrelation_time=None,
+                 walkers=None, max_autocorrelation_time=None, use_ratio=None,
                  parameter_labels=None, parameter_labels_with_unit=None,
                  gzip=False, version=None):
         """ A class to store the results of the sampling run
@@ -138,6 +140,9 @@ class Result(object):
             The samplers taken by a ensemble MCMC samplers
         max_autocorrelation_time: float
             The estimated maximum autocorrelation time for MCMC samplers
+        use_ratio: bool
+            A boolean stating whether the likelihood ratio, as opposed to the
+            likelihood was used during sampling
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
         gzip: bool
@@ -170,6 +175,7 @@ class Result(object):
         self.nested_samples = nested_samples
         self.walkers = walkers
         self.nburn = nburn
+        self.use_ratio = use_ratio
         self.log_evidence = log_evidence
         self.log_evidence_err = log_evidence_err
         self.log_noise_evidence = log_noise_evidence
@@ -389,7 +395,7 @@ class Result(object):
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
             'fixed_parameter_keys', 'constraint_parameter_keys',
-            'sampling_time', 'sampler_kwargs',
+            'sampling_time', 'sampler_kwargs', 'use_ratio',
             'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
             'nested_samples', 'walkers', 'nburn', 'parameter_labels',
             'parameter_labels_with_unit', 'version']
@@ -1240,6 +1246,119 @@ class Result(object):
         return weights
 
 
+class ResultList(list):
+
+    def __init__(self, results=None):
+        """ A class to store a list of :class:`bilby.core.result.Result` objects
+        from equivalent runs on the same data. This provides methods for
+        outputing combined results.
+
+        Parameters
+        ----------
+        results: list
+            A list of `:class:`bilby.core.result.Result`.
+        """
+        list.__init__(self)
+        for result in results:
+            self.append(result)
+
+    def append(self, result):
+        """
+        Append a :class:`bilby.core.result.Result`, or set of results, to the
+        list.
+
+        Parameters
+        ----------
+        result: :class:`bilby.core.result.Result` or filename
+            pointing to a result object, to append to the list.
+        """
+
+        if isinstance(result, Result):
+            super(ResultList, self).append(result)
+        elif isinstance(result, str):
+            super(ResultList, self).append(read_in_result(result))
+        else:
+            raise TypeError("Could not append a non-Result type")
+
+    def combine(self):
+        """
+        Return the combined results in a :class:bilby.core.result.Result`
+        object.
+        """
+        if len(self) == 0:
+            return Result()
+        elif len(self) == 1:
+            return copy(self[0])
+        else:
+            result = copy(self[0])
+
+        if result.label is not None:
+            result.label += 'combined'
+
+        self._check_consistent_sampler()
+        self._check_consistent_data()
+        self._check_consistent_parameters()
+        self._check_consistent_priors()
+
+        # check which kind of sampler was used: MCMC or Nested Sampling
+        if result.nested_samples is not None:
+            posteriors, result = self._combine_nested_sampled_runs(result)
+        else:
+            posteriors = [res.posterior for res in self]
+
+        combined_posteriors = pd.concat(posteriors, ignore_index=True)
+        result.posterior = combined_posteriors.sample(len(combined_posteriors))  # shuffle
+        return result
+
+    def _combine_nested_sampled_runs(self, result):
+        self._check_nested_samples()
+        log_evidences = np.array([res.log_evidence for res in self])
+        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+        if result.use_ratio:
+            result.log_bayes_factor = result.log_evidence
+            result.log_evidence = result.log_evidence + result.log_noise_evidence
+        else:
+            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+        log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
+        result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        result_weights = np.exp(log_evidences - np.max(log_evidences))
+        posteriors = []
+        for res, frac in zip(self, result_weights):
+            selected_samples = (np.random.uniform(size=len(res.posterior)) < frac)
+            posteriors.append(res.posterior[selected_samples])
+        # remove original nested_samples
+        result.nested_samples = None
+        result.sampler_kwargs = None
+        return posteriors, result
+
+    def _check_nested_samples(self):
+        for res in self:
+            try:
+                res.nested_samples
+            except ValueError:
+                raise CombineResultError("Cannot combine results: No nested samples available "
+                                         "in all results")
+
+    def _check_consistent_priors(self):
+        for res in self:
+            for p in self[0].priors.keys():
+                if not self[0].priors[p] == res.priors[p] or len(self[0].priors) != len(res.priors):
+                    raise CombineResultError("Cannot combine results: inconsistent priors")
+
+    def _check_consistent_parameters(self):
+        if not np.all([set(self[0].search_parameter_keys) == set(res.search_parameter_keys) for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent parameters")
+
+    def _check_consistent_data(self):
+        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self])\
+                and not np.all([np.isnan(res.log_noise_evidence) for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent data")
+
+    def _check_consistent_sampler(self):
+        if not np.all([res.sampler == self[0].sampler for res in self]):
+            raise CombineResultError("Cannot combine results: inconsistent samplers")
+
+
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, **kwargs):
     """ Generate a corner plot overlaying two sets of results
@@ -1407,6 +1526,10 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
 
 class ResultError(Exception):
     """ Base exception for all Result related errors """
+
+
+class CombineResultError(ResultError):
+    """ For Errors occuring during combining results. """
 
 
 class FileMovedError(ResultError):

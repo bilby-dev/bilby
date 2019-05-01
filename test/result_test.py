@@ -391,5 +391,149 @@ class TestResult(unittest.TestCase):
                                        self.result.kde([[0, 0.1], [0.8, 0]])))
 
 
+class TestResultList(unittest.TestCase):
+    
+    def setUp(self):
+        np.random.seed(7)
+        bilby.utils.command_line_args.test = False
+        self.priors = bilby.prior.PriorDict(dict(
+            x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
+            y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
+            c=1,
+            d=2))
+
+        # create two cpnest results
+        self.nested_results = bilby.result.ResultList([])
+        self.mcmc_results = bilby.result.ResultList([])
+        self.expected_nested = []
+
+        self.outdir = 'outdir'
+        self.label = 'label'
+        n = 100
+        for i in range(2):
+            result = bilby.core.result.Result(
+                label=self.label + str(i), outdir=self.outdir, sampler='cpnest',
+                search_parameter_keys=['x', 'y'], fixed_parameter_keys=['c', 'd'],
+                priors=self.priors, sampler_kwargs=dict(test='test', func=lambda x: x, nlive=10),
+                injection_parameters=dict(x=0.5, y=0.5),
+                meta_data=dict(test='test'))
+
+            posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, n),
+                                          y=np.random.normal(0, 1, n),
+                                          log_likelihood=sorted(np.random.normal(0, 1, n))))
+            result.posterior = posterior[-10:]  # use last 10 samples as posterior
+            result.nested_samples = posterior
+            result.log_evidence = 10
+            result.log_evidence_err = 11
+            result.log_bayes_factor = 12
+            result.log_noise_evidence = 13
+            self.nested_results.append(result)
+            self.expected_nested.append(result)
+        for i in range(2):
+            result = bilby.core.result.Result(
+                label=self.label + str(i) + 'mcmc', outdir=self.outdir, sampler='emcee',
+                search_parameter_keys=['x', 'y'], fixed_parameter_keys=['c', 'd'],
+                priors=self.priors, sampler_kwargs=dict(test='test', func=lambda x: x, nlive=10),
+                injection_parameters=dict(x=0.5, y=0.5),
+                meta_data=dict(test='test'))
+
+            posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, n),
+                                          y=np.random.normal(0, 1, n),
+                                          log_likelihood=sorted(np.random.normal(0, 1, n))))
+            result.posterior = posterior[-10:]
+            result.log_evidence = 10
+            result.log_evidence_err = 11
+            result.log_bayes_factor = 12
+            result.log_noise_evidence = 13
+            self.mcmc_results.append(result)
+        for res in self.nested_results:
+            res.save_to_file()
+
+    def tearDown(self):
+        bilby.utils.command_line_args.test = True
+        try:
+            shutil.rmtree(self.nested_results[0].outdir)
+        except OSError:
+            pass
+
+        del self.nested_results
+        del self.label
+        del self.outdir
+        del self.expected_nested
+        del self.mcmc_results
+        del self.priors
+
+    def test_append_illegal_type(self):
+        with self.assertRaises(TypeError):
+            _ = bilby.core.result.ResultList(1)
+
+    def test_append_from_string(self):
+        self.nested_results.append(self.outdir + '/' + self.label + '1_result.json')
+        self.assertEqual(3, len(self.nested_results))
+
+    def test_append_result_type(self):
+        self.nested_results.append(self.nested_results[1])
+        self.expected_nested.append(self.expected_nested[1])
+        self.assertListEqual(self.nested_results, self.nested_results)
+
+    def test_combine_inconsistent_samplers(self):
+        self.nested_results[0].sampler = 'dynesty'
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+    def test_combine_inconsistent_priors_length(self):
+        self.nested_results[0].priors = bilby.prior.PriorDict(dict(
+            x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
+            y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
+            c=1))
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+    def test_combine_inconsistent_priors_types(self):
+        self.nested_results[0].priors = bilby.prior.PriorDict(dict(
+            x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
+            y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
+            c=1,
+            d=bilby.core.prior.Cosine()))
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+    def test_combine_inconsistent_search_parameters(self):
+        self.nested_results[0].search_parameter_keys = ['y']
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+    def test_combine_inconsistent_data(self):
+        self.nested_results[0].log_noise_evidence = -7
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+    def test_combine_inconsistent_data_nan(self):
+        self.nested_results[0].log_noise_evidence = np.nan
+        self.nested_results[1].log_noise_evidence = np.nan
+        self.nested_results.combine()
+
+    def test_combine_inconsistent_sampling_data(self):
+        result = bilby.core.result.Result(
+            label=self.label, outdir=self.outdir, sampler='cpnest',
+            search_parameter_keys=['x', 'y'], fixed_parameter_keys=['c', 'd'],
+            priors=self.priors, sampler_kwargs=dict(test='test', func=lambda x: x, nlive=10),
+            injection_parameters=dict(x=0.5, y=0.5),
+            meta_data=dict(test='test'))
+
+        posterior = pd.DataFrame(dict(x=np.random.normal(0, 1, 100),
+                                      y=np.random.normal(0, 1, 100),
+                                      log_likelihood=sorted(np.random.normal(0, 1, 100))))
+        result.posterior = posterior[-10:]  # use last 10 samples as posterior
+        result.log_evidence = 10
+        result.log_evidence_err = 11
+        result.log_bayes_factor = 12
+        result.log_noise_evidence = 13
+        result._nested_samples = None
+        self.nested_results.append(result)
+        with self.assertRaises(bilby.result.CombineResultError):
+            self.nested_results.combine()
+
+
 if __name__ == '__main__':
     unittest.main()

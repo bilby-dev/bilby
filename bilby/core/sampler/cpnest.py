@@ -53,6 +53,7 @@ class Cpnest(NestedSampler):
     def run_sampler(self):
         from cpnest import model as cpmodel, CPNest
         from cpnest.parameter import LivePoint
+        from cpnest.nest2pos import compute_weights
 
         class Model(cpmodel.Model):
             """ A wrapper class to pass our log_likelihood into cpnest """
@@ -100,8 +101,13 @@ class Cpnest(NestedSampler):
             out.plot()
 
         self.result.posterior = DataFrame(out.posterior_samples)
-        self.result.posterior.rename(columns=dict(
-            logL='log_likelihood', logPrior='log_prior'), inplace=True)
+        self.result.nested_samples = DataFrame(out.get_nested_samples(filename=''))
+        self.result.nested_samples.rename(columns=dict(logL='log_likelihood'), inplace=True)
+        self.result.posterior.rename(columns=dict(logL='log_likelihood', logPrior='log_prior'),
+                                     inplace=True)
+        _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
+                                         np.array(out.NS.state.nlive))
+        self.result.nested_samples.weights = np.exp(log_weights)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
         return self.result
