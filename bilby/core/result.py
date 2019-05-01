@@ -1469,8 +1469,9 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
 
     Returns
     -------
-    fig:
-        matplotlib figure
+    fig, pvals:
+        matplotlib figure and a NamedTuple with attributes `combined_pvalue`,
+        `pvalues`, and `names`.
     """
 
     credible_levels = pd.DataFrame()
@@ -1519,9 +1520,13 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
             filename = 'outdir/pp.png'
         fig.savefig(filename, dpi=500)
 
+    Pvals = namedtuple('pvals', ['combined_pvalue', 'pvalues', 'names'])
+    pvals = Pvals(combined_pvalue=scipy.stats.combine_pvalues(pvalues)[1],
+                  pvalues=pvalues,
+                  names=list(credible_levels.keys()))
     logger.info(
-        "Combined p-value: {}".format(scipy.stats.combine_pvalues(pvalues)[1]))
-    return fig
+        "Combined p-value: {}".format(pvals.combined_pvalue))
+    return fig, pvals
 
 
 class ResultError(Exception):
