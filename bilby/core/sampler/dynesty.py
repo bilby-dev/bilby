@@ -209,6 +209,7 @@ class Dynesty(NestedSampler):
         if self.kwargs["verbose"]:
             print("")
 
+        check_directory_exists_and_if_not_mkdir(self.outdir)
         dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
         with open(dynesty_result, 'wb') as file:
             pickle.dump(out, file)
