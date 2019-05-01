@@ -6,7 +6,11 @@
 - 
 
 ### Changed
--
+- The `periodic_boundary` option to the prior classes has been changed to `boundary`.
+This breaks backward compatibility.
+The options to `boundary` are `{'periodic', 'reflective', None}`.
+Periodic boundaries are supported as before.
+Reflective boundaries are supported in `dynesty` and `cpnest`.  
 
 ### Removed
 -

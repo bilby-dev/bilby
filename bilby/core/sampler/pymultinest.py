@@ -87,7 +87,7 @@ class Pymultinest(NestedSampler):
         if self.kwargs['wrapped_params'] is None:
             self.kwargs['wrapped_params'] = []
             for param, value in self.priors.items():
-                if value.periodic_boundary:
+                if value.boundary == 'periodic':
                     self.kwargs['wrapped_params'].append(1)
                 else:
                     self.kwargs['wrapped_params'].append(0)
