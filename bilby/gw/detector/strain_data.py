@@ -5,7 +5,7 @@ from bilby.core import utils
 from bilby.core.series import CoupledTimeAndFrequencySeries
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
-from bilby.gw.detector.utils import SubclassPropertyAccessor
+from bilby.gw.utils import SubclassPropertyAccessor
 
 try:
     import gwpy

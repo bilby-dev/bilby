@@ -9,7 +9,7 @@ from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
 from bilby.gw.calibration import Recalibrate
 from bilby.gw.detector.geometry import InterferometerGeometry
-from bilby.gw.detector.utils import SubclassPropertyAccessor
+from bilby.gw.utils import SubclassPropertyAccessor
 from .strain_data import InterferometerStrainData
 
 try:
