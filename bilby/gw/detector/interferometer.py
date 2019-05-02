@@ -23,7 +23,7 @@ class _GenericInterferometerProperty(object):
     """
     Generic descriptor class that allows handy access of properties without long
     boilerplate code. The properties of Interferometer are defined as instances
-    of this class.
+    of this class. Don't touch this if you don't know what you are doing.
 
     This avoids lengthy code like
     ```
