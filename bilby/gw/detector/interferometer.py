@@ -58,10 +58,10 @@ class Interferometer(object):
             Calibration model, this applies the calibration correction to the
             template, the default model applies no correction.
         """
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
-        self.__detector_tensor_updated = False
+        self._x_updated = False
+        self._y_updated = False
+        self._vertex_updated = False
+        self._detector_tensor_updated = False
 
         self.name = name
         self.length = length
@@ -72,6 +72,10 @@ class Interferometer(object):
         self.yarm_azimuth = yarm_azimuth
         self.xarm_tilt = xarm_tilt
         self.yarm_tilt = yarm_tilt
+        self._vertex = None
+        self._x = None
+        self._y = None
+        self._detector_tensor = None
         self.power_spectral_density = power_spectral_density
         self.calibration_model = calibration_model
         self._strain_data = InterferometerStrainData(
@@ -251,14 +255,14 @@ class Interferometer(object):
         -------
         float: The latitude position of the detector in degree
         """
-        return self.__latitude * 180 / np.pi
+        return self._latitude * 180 / np.pi
 
     @latitude.setter
     def latitude(self, latitude):
-        self.__latitude = latitude * np.pi / 180
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
+        self._latitude = latitude * np.pi / 180
+        self._x_updated = False
+        self._y_updated = False
+        self._vertex_updated = False
 
     @property
     def longitude(self):
@@ -268,14 +272,14 @@ class Interferometer(object):
         -------
         float: The longitude position of the detector in degree
         """
-        return self.__longitude * 180 / np.pi
+        return self._longitude * 180 / np.pi
 
     @longitude.setter
     def longitude(self, longitude):
-        self.__longitude = longitude * np.pi / 180
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
+        self._longitude = longitude * np.pi / 180
+        self._x_updated = False
+        self._y_updated = False
+        self._vertex_updated = False
 
     @property
     def elevation(self):
@@ -285,12 +289,12 @@ class Interferometer(object):
         -------
         float: The height about the surface in meters
         """
-        return self.__elevation
+        return self._elevation
 
     @elevation.setter
     def elevation(self, elevation):
-        self.__elevation = elevation
-        self.__vertex_updated = False
+        self._elevation = elevation
+        self._vertex_updated = False
 
     @property
     def xarm_azimuth(self):
@@ -301,12 +305,12 @@ class Interferometer(object):
         float: The x-arm azimuth in degrees.
 
         """
-        return self.__xarm_azimuth * 180 / np.pi
+        return self._xarm_azimuth * 180 / np.pi
 
     @xarm_azimuth.setter
     def xarm_azimuth(self, xarm_azimuth):
-        self.__xarm_azimuth = xarm_azimuth * np.pi / 180
-        self.__x_updated = False
+        self._xarm_azimuth = xarm_azimuth * np.pi / 180
+        self._x_updated = False
 
     @property
     def yarm_azimuth(self):
@@ -317,12 +321,12 @@ class Interferometer(object):
         float: The y-arm azimuth in degrees.
 
         """
-        return self.__yarm_azimuth * 180 / np.pi
+        return self._yarm_azimuth * 180 / np.pi
 
     @yarm_azimuth.setter
     def yarm_azimuth(self, yarm_azimuth):
-        self.__yarm_azimuth = yarm_azimuth * np.pi / 180
-        self.__y_updated = False
+        self._yarm_azimuth = yarm_azimuth * np.pi / 180
+        self._y_updated = False
 
     @property
     def xarm_tilt(self):
@@ -333,12 +337,12 @@ class Interferometer(object):
         float: The x-arm tilt in radians.
 
         """
-        return self.__xarm_tilt
+        return self._xarm_tilt
 
     @xarm_tilt.setter
     def xarm_tilt(self, xarm_tilt):
-        self.__xarm_tilt = xarm_tilt
-        self.__x_updated = False
+        self._xarm_tilt = xarm_tilt
+        self._x_updated = False
 
     @property
     def yarm_tilt(self):
@@ -349,12 +353,12 @@ class Interferometer(object):
         float: The y-arm tilt in radians.
 
         """
-        return self.__yarm_tilt
+        return self._yarm_tilt
 
     @yarm_tilt.setter
     def yarm_tilt(self, yarm_tilt):
-        self.__yarm_tilt = yarm_tilt
-        self.__y_updated = False
+        self._yarm_tilt = yarm_tilt
+        self._y_updated = False
 
     @property
     def vertex(self):
@@ -366,11 +370,11 @@ class Interferometer(object):
         -------
         array_like: A 3D array representation of the vertex
         """
-        if not self.__vertex_updated:
-            self.__vertex = gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude,
-                                                                   self.elevation)
-            self.__vertex_updated = True
-        return self.__vertex
+        if not self._vertex_updated:
+            self._vertex = gwutils.get_vertex_position_geocentric(self._latitude, self._longitude,
+                                                                  self.elevation)
+            self._vertex_updated = True
+        return self._vertex
 
     @property
     def x(self):
@@ -383,11 +387,11 @@ class Interferometer(object):
         array_like: A 3D array representation of a unit vector along the x-arm
 
         """
-        if not self.__x_updated:
-            self.__x = self.unit_vector_along_arm('x')
-            self.__x_updated = True
-            self.__detector_tensor_updated = False
-        return self.__x
+        if not self._x_updated:
+            self._x = self.unit_vector_along_arm('x')
+            self._x_updated = True
+            self._detector_tensor_updated = False
+        return self._x
 
     @property
     def y(self):
@@ -400,11 +404,11 @@ class Interferometer(object):
         array_like: A 3D array representation of a unit vector along the y-arm
 
         """
-        if not self.__y_updated:
-            self.__y = self.unit_vector_along_arm('y')
-            self.__y_updated = True
-            self.__detector_tensor_updated = False
-        return self.__y
+        if not self._y_updated:
+            self._y = self.unit_vector_along_arm('y')
+            self._y_updated = True
+            self._detector_tensor_updated = False
+        return self._y
 
     @property
     def detector_tensor(self):
@@ -420,12 +424,39 @@ class Interferometer(object):
         array_like: A 3x3 array representation of the detector tensor
 
         """
-        if not self.__x_updated or not self.__y_updated:
+        if not self._x_updated or not self._y_updated:
             _, _ = self.x, self.y  # noqa
-        if not self.__detector_tensor_updated:
-            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-            self.__detector_tensor_updated = True
-        return self.__detector_tensor
+        if not self._detector_tensor_updated:
+            self._detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
+            self._detector_tensor_updated = True
+        return self._detector_tensor
+
+    def unit_vector_along_arm(self, arm):
+        """
+        Calculate the unit vector pointing along the specified arm in cartesian Earth-based coordinates.
+
+        See Eqs. B14-B17 in arXiv:gr-qc/0008066
+
+        Parameters
+        -------
+        arm: str
+            'x' or 'y' (arm of the detector)
+
+        Returns
+        -------
+        array_like: 3D unit vector along arm in cartesian Earth-based coordinates
+
+        Raises
+        -------
+        ValueError: If arm is neither 'x' nor 'y'
+
+        """
+        if arm == 'x':
+            return self._calculate_arm(self._xarm_tilt, self._xarm_azimuth)
+        elif arm == 'y':
+            return self._calculate_arm(self._yarm_tilt, self._yarm_azimuth)
+        else:
+            raise ValueError("Arm must either be 'x' or 'y'.")
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -571,39 +602,12 @@ class Interferometer(object):
 
         return injection_polarizations
 
-    def unit_vector_along_arm(self, arm):
-        """
-        Calculate the unit vector pointing along the specified arm in cartesian Earth-based coordinates.
-
-        See Eqs. B14-B17 in arXiv:gr-qc/0008066
-
-        Parameters
-        -------
-        arm: str
-            'x' or 'y' (arm of the detector)
-
-        Returns
-        -------
-        array_like: 3D unit vector along arm in cartesian Earth-based coordinates
-
-        Raises
-        -------
-        ValueError: If arm is neither 'x' nor 'y'
-
-        """
-        if arm == 'x':
-            return self.__calculate_arm(self.__xarm_tilt, self.__xarm_azimuth)
-        elif arm == 'y':
-            return self.__calculate_arm(self.__yarm_tilt, self.__yarm_azimuth)
-        else:
-            raise ValueError("Arm must either be 'x' or 'y'.")
-
-    def __calculate_arm(self, arm_tilt, arm_azimuth):
-        e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
-        e_lat = np.array([-np.sin(self.__latitude) * np.cos(self.__longitude),
-                          -np.sin(self.__latitude) * np.sin(self.__longitude), np.cos(self.__latitude)])
-        e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
-                        np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
+    def _calculate_arm(self, arm_tilt, arm_azimuth):
+        e_long = np.array([-np.sin(self._longitude), np.cos(self._longitude), 0])
+        e_lat = np.array([-np.sin(self._latitude) * np.cos(self._longitude),
+                          -np.sin(self._latitude) * np.sin(self._longitude), np.cos(self._latitude)])
+        e_h = np.array([np.cos(self._latitude) * np.cos(self._longitude),
+                        np.cos(self._latitude) * np.sin(self._longitude), np.sin(self._latitude)])
 
         return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
                 np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
@@ -688,7 +692,7 @@ class Interferometer(object):
         -------
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+        return gwutils.get_vertex_position_geocentric(self._latitude, self._longitude, self._elevation)
 
     def optimal_snr_squared(self, signal):
         """
