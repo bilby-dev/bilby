@@ -18,17 +18,35 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-class _GenericProperty(object):
+class _GenericInterferometerProperty(object):
+    """
+    Generic descriptor class that allows handy access of properties without long
+    boilerplate code. The properties of Interferometer are defined as instances
+    of this class.
 
-    def __init__(self, property_name, instance_name):
+    This avoids lengthy code like
+    ```
+    @property
+    def length(self):
+        return self.geometry.length
+
+    @length_setter
+    def length(self, length)
+        self.geometry.length = length
+
+    in the Interferometer class
+    ```
+    """
+
+    def __init__(self, property_name, container_instance_name):
         self.property_name = property_name
-        self.instance_name = instance_name
+        self.container_instance_name = container_instance_name
 
     def __get__(self, instance, owner):
-        return getattr(getattr(instance, self.instance_name), self.property_name)
+        return getattr(getattr(instance, self.container_instance_name), self.property_name)
 
     def __set__(self, instance, value):
-        setattr(getattr(instance, self.instance_name), self.property_name, value)
+        setattr(getattr(instance, self.container_instance_name), self.property_name, value)
 
 
 class InterferometerGeometry(object):
@@ -298,26 +316,26 @@ class InterferometerGeometry(object):
 class Interferometer(object):
     """Class for the Interferometer """
 
-    length = _GenericProperty('length', 'geometry')
-    latitude = _GenericProperty('latitude', 'geometry')
-    latitude_radians = _GenericProperty('latitude_radians', 'geometry')
-    longitude = _GenericProperty('longitude', 'geometry')
-    longitude_radians = _GenericProperty('longitude_radians', 'geometry')
-    elevation = _GenericProperty('elevation', 'geometry')
-    x = _GenericProperty('x', 'geometry')
-    y = _GenericProperty('y', 'geometry')
-    xarm_azimuth = _GenericProperty('xarm_azimuth', 'geometry')
-    yarm_azimuth = _GenericProperty('yarm_azimuth', 'geometry')
-    xarm_tilt = _GenericProperty('xarm_tilt', 'geometry')
-    yarm_tilt = _GenericProperty('yarm_tilt', 'geometry')
-    vertex = _GenericProperty('vertex', 'geometry')
-    detector_tensor = _GenericProperty('detector_tensor', 'geometry')
+    length = _GenericInterferometerProperty('length', 'geometry')
+    latitude = _GenericInterferometerProperty('latitude', 'geometry')
+    latitude_radians = _GenericInterferometerProperty('latitude_radians', 'geometry')
+    longitude = _GenericInterferometerProperty('longitude', 'geometry')
+    longitude_radians = _GenericInterferometerProperty('longitude_radians', 'geometry')
+    elevation = _GenericInterferometerProperty('elevation', 'geometry')
+    x = _GenericInterferometerProperty('x', 'geometry')
+    y = _GenericInterferometerProperty('y', 'geometry')
+    xarm_azimuth = _GenericInterferometerProperty('xarm_azimuth', 'geometry')
+    yarm_azimuth = _GenericInterferometerProperty('yarm_azimuth', 'geometry')
+    xarm_tilt = _GenericInterferometerProperty('xarm_tilt', 'geometry')
+    yarm_tilt = _GenericInterferometerProperty('yarm_tilt', 'geometry')
+    vertex = _GenericInterferometerProperty('vertex', 'geometry')
+    detector_tensor = _GenericInterferometerProperty('detector_tensor', 'geometry')
 
-    frequency_array = _GenericProperty('frequency_array', 'strain_data')
-    time_array = _GenericProperty('time_array', 'strain_data')
-    frequency_mask = _GenericProperty('frequency_mask', 'strain_data')
-    frequency_domain_strain = _GenericProperty('frequency_domain_strain', 'strain_data')
-    time_domain_strain = _GenericProperty('time_domain_strain', 'strain_data')
+    frequency_array = _GenericInterferometerProperty('frequency_array', 'strain_data')
+    time_array = _GenericInterferometerProperty('time_array', 'strain_data')
+    frequency_mask = _GenericInterferometerProperty('frequency_mask', 'strain_data')
+    frequency_domain_strain = _GenericInterferometerProperty('frequency_domain_strain', 'strain_data')
+    time_domain_strain = _GenericInterferometerProperty('time_domain_strain', 'strain_data')
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
                  elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
