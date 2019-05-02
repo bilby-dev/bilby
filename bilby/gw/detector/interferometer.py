@@ -18,7 +18,20 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-class _InterferometerGeometry(object):
+class _GenericProperty(object):
+
+    def __init__(self, property_name, instance_name):
+        self.property_name = property_name
+        self.instance_name = instance_name
+
+    def __get__(self, instance, owner):
+        return getattr(getattr(instance, self.instance_name), self.property_name)
+
+    def __set__(self, instance, value):
+        setattr(getattr(instance, self.instance_name), self.property_name, value)
+
+
+class InterferometerGeometry(object):
     def __init__(self, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
                  xarm_tilt=0., yarm_tilt=0.):
         self._x_updated = False
@@ -282,35 +295,29 @@ class _InterferometerGeometry(object):
                 np.sin(arm_tilt) * e_h)
 
 
-class _GeometryProperty(object):
-
-    def __init__(self, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        return getattr(instance.geometry, self.name)
-
-    def __set__(self, instance, value):
-        setattr(instance.geometry, self.name, value)
-
-
 class Interferometer(object):
     """Class for the Interferometer """
 
-    length = _GeometryProperty('length')
-    latitude = _GeometryProperty('latitude')
-    latitude_radians = _GeometryProperty('latitude_radians')
-    longitude = _GeometryProperty('longitude')
-    longitude_radians = _GeometryProperty('longitude_radians')
-    elevation = _GeometryProperty('elevation')
-    x = _GeometryProperty('x')
-    y = _GeometryProperty('y')
-    xarm_azimuth = _GeometryProperty('xarm_azimuth')
-    yarm_azimuth = _GeometryProperty('yarm_azimuth')
-    xarm_tilt = _GeometryProperty('xarm_tilt')
-    yarm_tilt = _GeometryProperty('yarm_tilt')
-    vertex = _GeometryProperty('vertex')
-    detector_tensor = _GeometryProperty('detector_tensor')
+    length = _GenericProperty('length', 'geometry')
+    latitude = _GenericProperty('latitude', 'geometry')
+    latitude_radians = _GenericProperty('latitude_radians', 'geometry')
+    longitude = _GenericProperty('longitude', 'geometry')
+    longitude_radians = _GenericProperty('longitude_radians', 'geometry')
+    elevation = _GenericProperty('elevation', 'geometry')
+    x = _GenericProperty('x', 'geometry')
+    y = _GenericProperty('y', 'geometry')
+    xarm_azimuth = _GenericProperty('xarm_azimuth', 'geometry')
+    yarm_azimuth = _GenericProperty('yarm_azimuth', 'geometry')
+    xarm_tilt = _GenericProperty('xarm_tilt', 'geometry')
+    yarm_tilt = _GenericProperty('yarm_tilt', 'geometry')
+    vertex = _GenericProperty('vertex', 'geometry')
+    detector_tensor = _GenericProperty('detector_tensor', 'geometry')
+
+    frequency_array = _GenericProperty('frequency_array', 'strain_data')
+    time_array = _GenericProperty('time_array', 'strain_data')
+    frequency_mask = _GenericProperty('frequency_mask', 'strain_data')
+    frequency_domain_strain = _GenericProperty('frequency_domain_strain', 'strain_data')
+    time_domain_strain = _GenericProperty('time_domain_strain', 'strain_data')
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
                  elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
@@ -348,8 +355,8 @@ class Interferometer(object):
             Calibration model, this applies the calibration correction to the
             template, the default model applies no correction.
         """
-        self.geometry = _InterferometerGeometry(length, latitude, longitude, elevation,
-                                                xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt)
+        self.geometry = InterferometerGeometry(length, latitude, longitude, elevation,
+                                               xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt)
 
         self.name = name
         self.power_spectral_density = power_spectral_density
@@ -691,28 +698,6 @@ class Interferometer(object):
         """
         return (self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array) *
                 self.strain_data.window_factor)
-
-    @property
-    def frequency_array(self):
-        return self.strain_data.frequency_array
-
-    @property
-    def frequency_mask(self):
-        return self.strain_data.frequency_mask
-
-    @property
-    def frequency_domain_strain(self):
-        """ The frequency domain strain in units of strain / Hz """
-        return self.strain_data.frequency_domain_strain
-
-    @property
-    def time_domain_strain(self):
-        """ The time domain strain in units of s """
-        return self.strain_data.time_domain_strain
-
-    @property
-    def time_array(self):
-        return self.strain_data.time_array
 
     def unit_vector_along_arm(self, arm):
         logger.warning("This method has been moved and will be removed in the future."
