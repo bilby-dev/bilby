@@ -5,6 +5,7 @@ from bilby.core import utils
 from bilby.core.series import CoupledTimeAndFrequencySeries
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
+from bilby.gw.detector.utils import SubclassPropertyAccessor
 
 try:
     import gwpy
@@ -22,6 +23,12 @@ except ImportError:
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
+
+    duration = SubclassPropertyAccessor('duration', '_times_and_frequencies')
+    sampling_frequency = SubclassPropertyAccessor('sampling_frequency', '_times_and_frequencies')
+    start_time = SubclassPropertyAccessor('start_time', '_times_and_frequencies')
+    frequency_array = SubclassPropertyAccessor('frequency_array', '_times_and_frequencies')
+    time_array = SubclassPropertyAccessor('time_array', '_times_and_frequencies')
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
                  roll_off=0.2):
@@ -49,6 +56,7 @@ class InterferometerStrainData(object):
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
         # self._set_time_and_frequency_array_parameters(None, None, None)
 
+        self._frequency_mask = None
         self._frequency_domain_strain = None
         self._frequency_array = None
         self._time_domain_strain = None
@@ -94,24 +102,16 @@ class InterferometerStrainData(object):
             return True
 
     @property
-    def minimum_frequency(self):
-        return self.__minimum_frequency
-
-    @minimum_frequency.setter
-    def minimum_frequency(self, minimum_frequency):
-        self.__minimum_frequency = minimum_frequency
-
-    @property
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
         if self.sampling_frequency is not None:
-            if 2 * self.__maximum_frequency > self.sampling_frequency:
-                self.__maximum_frequency = self.sampling_frequency / 2.
-        return self.__maximum_frequency
+            if 2 * self._maximum_frequency > self.sampling_frequency:
+                self._maximum_frequency = self.sampling_frequency / 2.
+        return self._maximum_frequency
 
     @maximum_frequency.setter
     def maximum_frequency(self, maximum_frequency):
-        self.__maximum_frequency = maximum_frequency
+        self._maximum_frequency = maximum_frequency
 
     @property
     def frequency_mask(self):
@@ -121,14 +121,12 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        try:
+        if self._frequency_mask is not None:
             return self._frequency_mask
-        except AttributeError:
-            frequency_array = self._times_and_frequencies.frequency_array
-            mask = ((frequency_array >= self.minimum_frequency) &
-                    (frequency_array <= self.maximum_frequency))
-            self._frequency_mask = mask
-            return self._frequency_mask
+        frequency_array = self._times_and_frequencies.frequency_array
+        self._frequency_mask = ((frequency_array >= self.minimum_frequency) &
+                                (frequency_array <= self.maximum_frequency))
+        return self._frequency_mask
 
     @property
     def alpha(self):
@@ -644,45 +642,3 @@ class InterferometerStrainData(object):
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
                                                                     sampling_frequency=sampling_frequency,
                                                                     start_time=start_time)
-
-    @property
-    def sampling_frequency(self):
-        return self._times_and_frequencies.sampling_frequency
-
-    @sampling_frequency.setter
-    def sampling_frequency(self, sampling_frequency):
-        self._times_and_frequencies.sampling_frequency = sampling_frequency
-
-    @property
-    def duration(self):
-        return self._times_and_frequencies.duration
-
-    @duration.setter
-    def duration(self, duration):
-        self._times_and_frequencies.duration = duration
-
-    @property
-    def start_time(self):
-        return self._times_and_frequencies.start_time
-
-    @start_time.setter
-    def start_time(self, start_time):
-        self._times_and_frequencies.start_time = start_time
-
-    @property
-    def frequency_array(self):
-        """ Frequencies of the data in Hz """
-        return self._times_and_frequencies.frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self._times_and_frequencies.frequency_array = frequency_array
-
-    @property
-    def time_array(self):
-        """ Time of the data in seconds """
-        return self._times_and_frequencies.time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self._times_and_frequencies.time_array = time_array
