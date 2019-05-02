@@ -408,12 +408,15 @@ class Result(object):
                 pass
         return dictionary
 
-    def save_to_file(self, overwrite=False, outdir=None, extension='json', gzip=False):
+    def save_to_file(self, filename=None, overwrite=False, outdir=None,
+                     extension='json', gzip=False):
         """
         Writes the Result to a json or deepdish h5 file
 
         Parameters
         ----------
+        filename: optional,
+            Filename to write to (overwrites the default)
         overwrite: bool, optional
             Whether or not to overwrite an existing result file.
             default=False
@@ -431,19 +434,20 @@ class Result(object):
             extension = "json"
 
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
-        file_name = result_file_name(outdir, self.label, extension, gzip)
+        if filename is None:
+            filename = result_file_name(outdir, self.label, extension, gzip)
 
-        if os.path.isfile(file_name):
+        if os.path.isfile(filename):
             if overwrite:
-                logger.debug('Removing existing file {}'.format(file_name))
-                os.remove(file_name)
+                logger.debug('Removing existing file {}'.format(filename))
+                os.remove(filename)
             else:
                 logger.debug(
-                    'Renaming existing file {} to {}.old'.format(file_name,
-                                                                 file_name))
-                os.rename(file_name, file_name + '.old')
+                    'Renaming existing file {} to {}.old'.format(filename,
+                                                                 filename))
+                os.rename(filename, filename + '.old')
 
-        logger.debug("Saving result to {}".format(file_name))
+        logger.debug("Saving result to {}".format(filename))
 
         # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()
@@ -462,17 +466,17 @@ class Result(object):
                     import gzip
                     # encode to a string
                     json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
-                    with gzip.GzipFile(file_name, 'w') as file:
+                    with gzip.GzipFile(filename, 'w') as file:
                         file.write(json_str)
                 else:
-                    with open(file_name, 'w') as file:
+                    with open(filename, 'w') as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
                 import deepdish
                 for key in dictionary:
                     if isinstance(dictionary[key], pd.DataFrame):
                         dictionary[key] = dictionary[key].to_dict()
-                deepdish.io.save(file_name, dictionary)
+                deepdish.io.save(filename, dictionary)
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
         except Exception as e:
@@ -1293,7 +1297,7 @@ class ResultList(list):
             result = copy(self[0])
 
         if result.label is not None:
-            result.label += 'combined'
+            result.label += '_combined'
 
         self._check_consistent_sampler()
         self._check_consistent_data()
