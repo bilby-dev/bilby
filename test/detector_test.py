@@ -845,7 +845,7 @@ class TestInterferometerList(unittest.TestCase):
 
     def test_init_with_string_list(self):
         """ Merely checks if this ends up in the right bracket """
-        with mock.patch('bilby.gw.detector.get_empty_interferometer') as m:
+        with mock.patch('bilby.gw.detector.networks.get_empty_interferometer') as m:
             m.side_effect = TypeError
             with self.assertRaises(TypeError):
                 bilby.gw.detector.InterferometerList(['string'])
