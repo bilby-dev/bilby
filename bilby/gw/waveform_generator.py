@@ -2,16 +2,16 @@ import numpy as np
 
 from ..core import utils
 from ..core.series import CoupledTimeAndFrequencySeries
-from .utils import SubclassPropertyAccessor
+from .utils import PropertyAccessor
 
 
 class WaveformGenerator(object):
 
-    duration = SubclassPropertyAccessor('duration', '_times_and_frequencies')
-    sampling_frequency = SubclassPropertyAccessor('sampling_frequency', '_times_and_frequencies')
-    start_time = SubclassPropertyAccessor('start_time', '_times_and_frequencies')
-    frequency_array = SubclassPropertyAccessor('frequency_array', '_times_and_frequencies')
-    time_array = SubclassPropertyAccessor('time_array', '_times_and_frequencies')
+    duration = PropertyAccessor('duration', '_times_and_frequencies')
+    sampling_frequency = PropertyAccessor('sampling_frequency', '_times_and_frequencies')
+    start_time = PropertyAccessor('start_time', '_times_and_frequencies')
+    frequency_array = PropertyAccessor('frequency_array', '_times_and_frequencies')
+    time_array = PropertyAccessor('time_array', '_times_and_frequencies')
 
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,

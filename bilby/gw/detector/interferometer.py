@@ -9,7 +9,7 @@ from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
 from bilby.gw.calibration import Recalibrate
 from bilby.gw.detector.geometry import InterferometerGeometry
-from bilby.gw.utils import SubclassPropertyAccessor
+from bilby.gw.utils import PropertyAccessor
 from .strain_data import InterferometerStrainData
 
 try:
@@ -23,28 +23,28 @@ except ImportError:
 class Interferometer(object):
     """Class for the Interferometer """
 
-    length = SubclassPropertyAccessor('length', 'geometry')
-    latitude = SubclassPropertyAccessor('latitude', 'geometry')
-    latitude_radians = SubclassPropertyAccessor('latitude_radians', 'geometry')
-    longitude = SubclassPropertyAccessor('longitude', 'geometry')
-    longitude_radians = SubclassPropertyAccessor('longitude_radians', 'geometry')
-    elevation = SubclassPropertyAccessor('elevation', 'geometry')
-    x = SubclassPropertyAccessor('x', 'geometry')
-    y = SubclassPropertyAccessor('y', 'geometry')
-    xarm_azimuth = SubclassPropertyAccessor('xarm_azimuth', 'geometry')
-    yarm_azimuth = SubclassPropertyAccessor('yarm_azimuth', 'geometry')
-    xarm_tilt = SubclassPropertyAccessor('xarm_tilt', 'geometry')
-    yarm_tilt = SubclassPropertyAccessor('yarm_tilt', 'geometry')
-    vertex = SubclassPropertyAccessor('vertex', 'geometry')
-    detector_tensor = SubclassPropertyAccessor('detector_tensor', 'geometry')
+    length = PropertyAccessor('length', 'geometry')
+    latitude = PropertyAccessor('latitude', 'geometry')
+    latitude_radians = PropertyAccessor('latitude_radians', 'geometry')
+    longitude = PropertyAccessor('longitude', 'geometry')
+    longitude_radians = PropertyAccessor('longitude_radians', 'geometry')
+    elevation = PropertyAccessor('elevation', 'geometry')
+    x = PropertyAccessor('x', 'geometry')
+    y = PropertyAccessor('y', 'geometry')
+    xarm_azimuth = PropertyAccessor('xarm_azimuth', 'geometry')
+    yarm_azimuth = PropertyAccessor('yarm_azimuth', 'geometry')
+    xarm_tilt = PropertyAccessor('xarm_tilt', 'geometry')
+    yarm_tilt = PropertyAccessor('yarm_tilt', 'geometry')
+    vertex = PropertyAccessor('vertex', 'geometry')
+    detector_tensor = PropertyAccessor('detector_tensor', 'geometry')
 
-    frequency_array = SubclassPropertyAccessor('frequency_array', 'strain_data')
-    time_array = SubclassPropertyAccessor('time_array', 'strain_data')
-    minimum_frequency = SubclassPropertyAccessor('minimum_frequency', 'strain_data')
-    maximum_frequency = SubclassPropertyAccessor('maximum_frequency', 'strain_data')
-    frequency_mask = SubclassPropertyAccessor('frequency_mask', 'strain_data')
-    frequency_domain_strain = SubclassPropertyAccessor('frequency_domain_strain', 'strain_data')
-    time_domain_strain = SubclassPropertyAccessor('time_domain_strain', 'strain_data')
+    frequency_array = PropertyAccessor('frequency_array', 'strain_data')
+    time_array = PropertyAccessor('time_array', 'strain_data')
+    minimum_frequency = PropertyAccessor('minimum_frequency', 'strain_data')
+    maximum_frequency = PropertyAccessor('maximum_frequency', 'strain_data')
+    frequency_mask = PropertyAccessor('frequency_mask', 'strain_data')
+    frequency_domain_strain = PropertyAccessor('frequency_domain_strain', 'strain_data')
+    time_domain_strain = PropertyAccessor('time_domain_strain', 'strain_data')
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
                  elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):

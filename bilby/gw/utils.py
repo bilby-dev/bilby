@@ -928,7 +928,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
 
 
-class SubclassPropertyAccessor(object):
+class PropertyAccessor(object):
     """
     Generic descriptor class that allows handy access of properties without long
     boilerplate code. The properties of Interferometer are defined as instances

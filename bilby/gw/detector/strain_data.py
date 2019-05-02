@@ -5,7 +5,7 @@ from bilby.core import utils
 from bilby.core.series import CoupledTimeAndFrequencySeries
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
-from bilby.gw.utils import SubclassPropertyAccessor
+from bilby.gw.utils import PropertyAccessor
 
 try:
     import gwpy
@@ -24,11 +24,11 @@ except ImportError:
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
 
-    duration = SubclassPropertyAccessor('duration', '_times_and_frequencies')
-    sampling_frequency = SubclassPropertyAccessor('sampling_frequency', '_times_and_frequencies')
-    start_time = SubclassPropertyAccessor('start_time', '_times_and_frequencies')
-    frequency_array = SubclassPropertyAccessor('frequency_array', '_times_and_frequencies')
-    time_array = SubclassPropertyAccessor('time_array', '_times_and_frequencies')
+    duration = PropertyAccessor('duration', '_times_and_frequencies')
+    sampling_frequency = PropertyAccessor('sampling_frequency', '_times_and_frequencies')
+    start_time = PropertyAccessor('start_time', '_times_and_frequencies')
+    frequency_array = PropertyAccessor('frequency_array', '_times_and_frequencies')
+    time_array = PropertyAccessor('time_array', '_times_and_frequencies')
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
                  roll_off=0.2):
