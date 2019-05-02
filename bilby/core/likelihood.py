@@ -52,7 +52,7 @@ class Likelihood(object):
 
     @property
     def meta_data(self):
-        return self._meta_data
+        return getattr(self, '_meta_data', None)
 
     @meta_data.setter
     def meta_data(self, meta_data):

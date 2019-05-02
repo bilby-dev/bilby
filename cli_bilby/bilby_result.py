@@ -29,14 +29,17 @@ import bilby
 
 def setup_command_line_args():
     parser = argparse.ArgumentParser(
-        description="Helper tool for bilby result files",
-        epilog=print(__doc__))
+        description="Helper tool for bilby result files")
     parser.add_argument("-r", "--results", nargs='+', required=True,
                         help="List of results files.")
     parser.add_argument("-c", "--convert", type=str, choices=['json', 'hdf5'],
                         help="Convert all results.", default=False)
+    parser.add_argument("-m", "--merge", action='store_true',
+                        help="Merge the set of runs, output saved using the outdir and label")
     parser.add_argument("-o", "--outdir", type=str, default=None,
                         help="Output directory.")
+    parser.add_argument("-l", "--label", type=str, default=None,
+                        help="New label for output result object")
     parser.add_argument("-b", "--bayes", action='store_true',
                         help="Print all Bayes factors.")
     parser.add_argument("-p", "--print", nargs='+', default=None,
@@ -55,7 +58,7 @@ def read_in_results(filename_list):
     results_list = []
     for filename in filename_list:
         results_list.append(bilby.core.result.read_in_result(filename=filename))
-    return results_list
+    return bilby.core.result.ResultList(results_list)
 
 
 def print_bayes_factors(results_list):
@@ -97,3 +100,10 @@ def main():
         print_bayes_factors(results_list)
     if args.ipython:
         drop_to_ipython(results_list)
+    if args.merge:
+        result = results_list.combine()
+        if args.label is not None:
+            result.label = args.label
+        if args.outdir is not None:
+            result.outdir = args.outdir
+        result.save_to_file()
