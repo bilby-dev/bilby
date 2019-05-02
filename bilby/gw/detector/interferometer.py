@@ -18,52 +18,14 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-class Interferometer(object):
-    """Class for the Interferometer """
-
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
-                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
-        """
-        Instantiate an Interferometer object.
-
-        Parameters
-        ----------
-        name: str
-            Interferometer name, e.g., H1.
-        power_spectral_density: bilby.gw.detector.PowerSpectralDensity
-            Power spectral density determining the sensitivity of the detector.
-        minimum_frequency: float
-            Minimum frequency to analyse for detector.
-        maximum_frequency: float
-            Maximum frequency to analyse for detector.
-        length: float
-            Length of the interferometer in km.
-        latitude: float
-            Latitude North in degrees (South is negative).
-        longitude: float
-            Longitude East in degrees (West is negative).
-        elevation: float
-            Height above surface in metres.
-        xarm_azimuth: float
-            Orientation of the x arm in degrees North of East.
-        yarm_azimuth: float
-            Orientation of the y arm in degrees North of East.
-        xarm_tilt: float, optional
-            Tilt of the x arm in radians above the horizontal defined by
-            ellipsoid earth model in LIGO-T980044-08.
-        yarm_tilt: float, optional
-            Tilt of the y arm in radians above the horizontal.
-        calibration_model: Recalibration
-            Calibration model, this applies the calibration correction to the
-            template, the default model applies no correction.
-        """
+class _InterferometerGeometry(object):
+    def __init__(self, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
+                 xarm_tilt=0., yarm_tilt=0.):
         self._x_updated = False
         self._y_updated = False
         self._vertex_updated = False
         self._detector_tensor_updated = False
 
-        self.name = name
         self.length = length
         self.latitude = latitude
         self.longitude = longitude
@@ -76,176 +38,6 @@ class Interferometer(object):
         self._x = None
         self._y = None
         self._detector_tensor = None
-        self.power_spectral_density = power_spectral_density
-        self.calibration_model = calibration_model
-        self._strain_data = InterferometerStrainData(
-            minimum_frequency=minimum_frequency,
-            maximum_frequency=maximum_frequency)
-        self.meta_data = dict()
-
-    def __eq__(self, other):
-        if self.name == other.name and \
-                self.length == other.length and \
-                self.latitude == other.latitude and \
-                self.longitude == other.longitude and \
-                self.elevation == other.elevation and \
-                self.xarm_azimuth == other.xarm_azimuth and \
-                self.xarm_tilt == other.xarm_tilt and \
-                self.yarm_azimuth == other.yarm_azimuth and \
-                self.yarm_tilt == other.yarm_tilt and \
-                self.power_spectral_density.__eq__(other.power_spectral_density) and \
-                self.calibration_model == other.calibration_model and \
-                self.strain_data == other.strain_data:
-            return True
-        return False
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
-                                         'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
-                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
-            .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
-                    float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
-                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
-                    float(self.yarm_tilt))
-
-    @property
-    def minimum_frequency(self):
-        return self.strain_data.minimum_frequency
-
-    @minimum_frequency.setter
-    def minimum_frequency(self, minimum_frequency):
-        self._strain_data.minimum_frequency = minimum_frequency
-
-    @property
-    def maximum_frequency(self):
-        return self.strain_data.maximum_frequency
-
-    @maximum_frequency.setter
-    def maximum_frequency(self, maximum_frequency):
-        self._strain_data.maximum_frequency = maximum_frequency
-
-    @property
-    def strain_data(self):
-        """ A bilby.gw.detector.InterferometerStrainData instance """
-        return self._strain_data
-
-    @strain_data.setter
-    def strain_data(self, strain_data):
-        """ Set the strain_data
-
-        This sets the Interferometer.strain_data equal to the provided
-        strain_data. This will override the minimum_frequency and
-        maximum_frequency of the provided strain_data object with those of
-        the Interferometer object.
-        """
-        strain_data.minimum_frequency = self.minimum_frequency
-        strain_data.maximum_frequency = self.maximum_frequency
-
-        self._strain_data = strain_data
-
-    def set_strain_data_from_frequency_domain_strain(
-            self, frequency_domain_strain, sampling_frequency=None,
-            duration=None, start_time=0, frequency_array=None):
-        """ Set the `Interferometer.strain_data` from a numpy array
-
-        Parameters
-        ----------
-        frequency_domain_strain: array_like
-            The data to set.
-        sampling_frequency: float
-            The sampling frequency (in Hz).
-        duration: float
-            The data duration (in s).
-        start_time: float
-            The GPS start-time of the data.
-        frequency_array: array_like
-            The array of frequencies, if sampling_frequency and duration not
-            given.
-
-        """
-        self.strain_data.set_from_frequency_domain_strain(
-            frequency_domain_strain=frequency_domain_strain,
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time, frequency_array=frequency_array)
-
-    def set_strain_data_from_power_spectral_density(
-            self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` from a power spectal density
-
-        This uses the `interferometer.power_spectral_density` object to set
-        the `strain_data` to a noise realization. See
-        `bilby.gw.detector.InterferometerStrainData` for further information.
-
-        Parameters
-        ----------
-        sampling_frequency: float
-            The sampling frequency (in Hz)
-        duration: float
-            The data duration (in s)
-        start_time: float
-            The GPS start-time of the data
-
-        """
-        self.strain_data.set_from_power_spectral_density(
-            self.power_spectral_density, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time)
-
-    def set_strain_data_from_frame_file(
-            self, frame_file, sampling_frequency, duration, start_time=0,
-            channel=None, buffer_time=1):
-        """ Set the `Interferometer.strain_data` from a frame file
-
-        Parameters
-        ----------
-        frame_file: str
-            File from which to load data.
-        channel: str
-            Channel to read from frame.
-        sampling_frequency: float
-            The sampling frequency (in Hz)
-        duration: float
-            The data duration (in s)
-        start_time: float
-            The GPS start-time of the data
-        buffer_time: float
-            Read in data with `start_time-buffer_time` and
-            `start_time+duration+buffer_time`
-
-        """
-        self.strain_data.set_from_frame_file(
-            frame_file=frame_file, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time,
-            channel=channel, buffer_time=buffer_time)
-
-    def set_strain_data_from_csv(self, filename):
-        """ Set the `Interferometer.strain_data` from a csv file
-
-        Parameters
-        ----------
-        filename: str
-            The path to the file to read in
-
-        """
-        self.strain_data.set_from_csv(filename)
-
-    def set_strain_data_from_zero_noise(
-            self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` to zero noise
-
-        Parameters
-        ----------
-        sampling_frequency: float
-            The sampling frequency (in Hz)
-        duration: float
-            The data duration (in s)
-        start_time: float
-            The GPS start-time of the data
-
-        """
-
-        self.strain_data.set_from_zero_noise(
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time)
 
     @property
     def latitude(self):
@@ -265,6 +57,16 @@ class Interferometer(object):
         self._vertex_updated = False
 
     @property
+    def latitude_radians(self):
+        """
+        Returns
+        -------
+        float: The latitude position of the detector in radians
+        """
+
+        return self._latitude
+
+    @property
     def longitude(self):
         """ Saves longitude in rad internally. Updates related quantities if set to a different value.
 
@@ -280,6 +82,16 @@ class Interferometer(object):
         self._x_updated = False
         self._y_updated = False
         self._vertex_updated = False
+
+    @property
+    def longitude_radians(self):
+        """
+        Returns
+        -------
+        float: The latitude position of the detector in radians
+        """
+
+        return self._longitude
 
     @property
     def elevation(self):
@@ -458,6 +270,259 @@ class Interferometer(object):
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")
 
+    def _calculate_arm(self, arm_tilt, arm_azimuth):
+        e_long = np.array([-np.sin(self._longitude), np.cos(self._longitude), 0])
+        e_lat = np.array([-np.sin(self._latitude) * np.cos(self._longitude),
+                          -np.sin(self._latitude) * np.sin(self._longitude), np.cos(self._latitude)])
+        e_h = np.array([np.cos(self._latitude) * np.cos(self._longitude),
+                        np.cos(self._latitude) * np.sin(self._longitude), np.sin(self._latitude)])
+
+        return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
+                np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
+                np.sin(arm_tilt) * e_h)
+
+
+class _GeometryProperty(object):
+
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        return getattr(instance.geometry, self.name)
+
+    def __set__(self, instance, value):
+        setattr(instance.geometry, self.name, value)
+
+
+class Interferometer(object):
+    """Class for the Interferometer """
+
+    length = _GeometryProperty('length')
+    latitude = _GeometryProperty('latitude')
+    latitude_radians = _GeometryProperty('latitude_radians')
+    longitude = _GeometryProperty('longitude')
+    longitude_radians = _GeometryProperty('longitude_radians')
+    elevation = _GeometryProperty('elevation')
+    x = _GeometryProperty('x')
+    y = _GeometryProperty('y')
+    xarm_azimuth = _GeometryProperty('xarm_azimuth')
+    yarm_azimuth = _GeometryProperty('yarm_azimuth')
+    xarm_tilt = _GeometryProperty('xarm_tilt')
+    yarm_tilt = _GeometryProperty('yarm_tilt')
+    vertex = _GeometryProperty('vertex')
+    detector_tensor = _GeometryProperty('detector_tensor')
+
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
+                 elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
+        """
+        Instantiate an Interferometer object.
+
+        Parameters
+        ----------
+        name: str
+            Interferometer name, e.g., H1.
+        power_spectral_density: bilby.gw.detector.PowerSpectralDensity
+            Power spectral density determining the sensitivity of the detector.
+        minimum_frequency: float
+            Minimum frequency to analyse for detector.
+        maximum_frequency: float
+            Maximum frequency to analyse for detector.
+        length: float
+            Length of the interferometer in km.
+        latitude: float
+            Latitude North in degrees (South is negative).
+        longitude: float
+            Longitude East in degrees (West is negative).
+        elevation: float
+            Height above surface in metres.
+        xarm_azimuth: float
+            Orientation of the x arm in degrees North of East.
+        yarm_azimuth: float
+            Orientation of the y arm in degrees North of East.
+        xarm_tilt: float, optional
+            Tilt of the x arm in radians above the horizontal defined by
+            ellipsoid earth model in LIGO-T980044-08.
+        yarm_tilt: float, optional
+            Tilt of the y arm in radians above the horizontal.
+        calibration_model: Recalibration
+            Calibration model, this applies the calibration correction to the
+            template, the default model applies no correction.
+        """
+        self.geometry = _InterferometerGeometry(length, latitude, longitude, elevation,
+                                                xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt)
+
+        self.name = name
+        self.power_spectral_density = power_spectral_density
+        self.calibration_model = calibration_model
+        self._strain_data = InterferometerStrainData(
+            minimum_frequency=minimum_frequency,
+            maximum_frequency=maximum_frequency)
+        self.meta_data = dict()
+
+    def __eq__(self, other):
+        if self.name == other.name and \
+                self.length == other.length and \
+                self.latitude == other.latitude and \
+                self.longitude == other.longitude and \
+                self.elevation == other.elevation and \
+                self.xarm_azimuth == other.xarm_azimuth and \
+                self.xarm_tilt == other.xarm_tilt and \
+                self.yarm_azimuth == other.yarm_azimuth and \
+                self.yarm_tilt == other.yarm_tilt and \
+                self.power_spectral_density.__eq__(other.power_spectral_density) and \
+                self.calibration_model == other.calibration_model and \
+                self.strain_data == other.strain_data:
+            return True
+        return False
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
+                                         'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
+                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(self.name, self.power_spectral_density, float(self.minimum_frequency),
+                    float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
+                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
+                    float(self.yarm_tilt))
+
+    @property
+    def minimum_frequency(self):
+        return self.strain_data.minimum_frequency
+
+    @minimum_frequency.setter
+    def minimum_frequency(self, minimum_frequency):
+        self._strain_data.minimum_frequency = minimum_frequency
+
+    @property
+    def maximum_frequency(self):
+        return self.strain_data.maximum_frequency
+
+    @maximum_frequency.setter
+    def maximum_frequency(self, maximum_frequency):
+        self._strain_data.maximum_frequency = maximum_frequency
+
+    @property
+    def strain_data(self):
+        """ A bilby.gw.detector.InterferometerStrainData instance """
+        return self._strain_data
+
+    @strain_data.setter
+    def strain_data(self, strain_data):
+        """ Set the strain_data
+
+        This sets the Interferometer.strain_data equal to the provided
+        strain_data. This will override the minimum_frequency and
+        maximum_frequency of the provided strain_data object with those of
+        the Interferometer object.
+        """
+        strain_data.minimum_frequency = self.minimum_frequency
+        strain_data.maximum_frequency = self.maximum_frequency
+
+        self._strain_data = strain_data
+
+    def set_strain_data_from_frequency_domain_strain(
+            self, frequency_domain_strain, sampling_frequency=None,
+            duration=None, start_time=0, frequency_array=None):
+        """ Set the `Interferometer.strain_data` from a numpy array
+
+        Parameters
+        ----------
+        frequency_domain_strain: array_like
+            The data to set.
+        sampling_frequency: float
+            The sampling frequency (in Hz).
+        duration: float
+            The data duration (in s).
+        start_time: float
+            The GPS start-time of the data.
+        frequency_array: array_like
+            The array of frequencies, if sampling_frequency and duration not
+            given.
+
+        """
+        self.strain_data.set_from_frequency_domain_strain(
+            frequency_domain_strain=frequency_domain_strain,
+            sampling_frequency=sampling_frequency, duration=duration,
+            start_time=start_time, frequency_array=frequency_array)
+
+    def set_strain_data_from_power_spectral_density(
+            self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` from a power spectal density
+
+        This uses the `interferometer.power_spectral_density` object to set
+        the `strain_data` to a noise realization. See
+        `bilby.gw.detector.InterferometerStrainData` for further information.
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        self.strain_data.set_from_power_spectral_density(
+            self.power_spectral_density, sampling_frequency=sampling_frequency,
+            duration=duration, start_time=start_time)
+
+    def set_strain_data_from_frame_file(
+            self, frame_file, sampling_frequency, duration, start_time=0,
+            channel=None, buffer_time=1):
+        """ Set the `Interferometer.strain_data` from a frame file
+
+        Parameters
+        ----------
+        frame_file: str
+            File from which to load data.
+        channel: str
+            Channel to read from frame.
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+        buffer_time: float
+            Read in data with `start_time-buffer_time` and
+            `start_time+duration+buffer_time`
+
+        """
+        self.strain_data.set_from_frame_file(
+            frame_file=frame_file, sampling_frequency=sampling_frequency,
+            duration=duration, start_time=start_time,
+            channel=channel, buffer_time=buffer_time)
+
+    def set_strain_data_from_csv(self, filename):
+        """ Set the `Interferometer.strain_data` from a csv file
+
+        Parameters
+        ----------
+        filename: str
+            The path to the file to read in
+
+        """
+        self.strain_data.set_from_csv(filename)
+
+    def set_strain_data_from_zero_noise(
+            self, sampling_frequency, duration, start_time=0):
+        """ Set the `Interferometer.strain_data` to zero noise
+
+        Parameters
+        ----------
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=sampling_frequency, duration=duration,
+            start_time=start_time)
+
     def antenna_response(self, ra, dec, time, psi, mode):
         """
         Calculate the antenna response function for a given sky location
@@ -574,7 +639,7 @@ class Interferometer(object):
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
-                .format(self.strain_data.start_time, parameters['geocent_time']))
+                    .format(self.strain_data.start_time, parameters['geocent_time']))
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         if np.shape(self.frequency_domain_strain).__eq__(np.shape(signal_ifo)):
@@ -601,17 +666,6 @@ class Interferometer(object):
             logger.info('  {} = {}'.format(key, parameters[key]))
 
         return injection_polarizations
-
-    def _calculate_arm(self, arm_tilt, arm_azimuth):
-        e_long = np.array([-np.sin(self._longitude), np.cos(self._longitude), 0])
-        e_lat = np.array([-np.sin(self._latitude) * np.cos(self._longitude),
-                          -np.sin(self._latitude) * np.sin(self._longitude), np.cos(self._latitude)])
-        e_h = np.array([np.cos(self._latitude) * np.cos(self._longitude),
-                        np.cos(self._latitude) * np.sin(self._longitude), np.sin(self._latitude)])
-
-        return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
-                np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
-                np.sin(arm_tilt) * e_h)
 
     @property
     def amplitude_spectral_density_array(self):
@@ -660,6 +714,11 @@ class Interferometer(object):
     def time_array(self):
         return self.strain_data.time_array
 
+    def unit_vector_along_arm(self, arm):
+        logger.warning("This method has been moved and will be removed in the future."
+                       "Use Interferometer.geometry.unit_vector_along_arm instead.")
+        return self.geometry.unit_vector_along_arm(arm)
+
     def time_delay_from_geocenter(self, ra, dec, time):
         """
         Calculate the time delay from the geocenter for the interferometer.
@@ -692,7 +751,9 @@ class Interferometer(object):
         -------
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self._latitude, self._longitude, self._elevation)
+        return gwutils.get_vertex_position_geocentric(self.latitude_radians,
+                                                      self.longitude_radians,
+                                                      self.elevation)
 
     def optimal_snr_squared(self, signal):
         """

@@ -126,56 +126,56 @@ class TestInterferometer(unittest.TestCase):
                                         np.array([1])))
 
     def test_x_with_xarm_tilt_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.xarm_tilt = 0
         self.assertTrue(np.array_equal(self.ifo.x,
                                        np.array([1])))
 
     def test_x_with_xarm_azimuth_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.xarm_azimuth = 0
         self.assertTrue(np.array_equal(self.ifo.x,
                                        np.array([1])))
 
     def test_x_with_longitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.longitude = 0
         self.assertTrue(np.array_equal(self.ifo.x,
                                        np.array([1])))
 
     def test_x_with_latitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.latitude = 0
         self.assertTrue(np.array_equal(self.ifo.x,
                                        np.array([1])))
 
     def test_y_without_update(self):
         _ = self.ifo.y
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
 
         self.assertFalse(np.array_equal(self.ifo.y,
                                         np.array([1])))
 
     def test_y_with_yarm_tilt_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.yarm_tilt = 0
         self.assertTrue(np.array_equal(self.ifo.y,
                                        np.array([1])))
 
     def test_y_with_yarm_azimuth_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.yarm_azimuth = 0
         self.assertTrue(np.array_equal(self.ifo.y,
                                        np.array([1])))
 
     def test_y_with_longitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.longitude = 0
         self.assertTrue(np.array_equal(self.ifo.y,
                                        np.array([1])))
 
     def test_y_with_latitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.ifo.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
         self.ifo.latitude = 0
         self.assertTrue(np.array_equal(self.ifo.y,
                                        np.array([1])))
