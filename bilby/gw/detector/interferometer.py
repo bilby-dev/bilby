@@ -9,6 +9,7 @@ from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
 from bilby.gw.calibration import Recalibrate
 from bilby.gw.detector.geometry import InterferometerGeometry
+from bilby.gw.detector.utils import SubclassPropertyAccessor
 from .strain_data import InterferometerStrainData
 
 try:
@@ -19,62 +20,31 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
-class _GenericInterferometerProperty(object):
-    """
-    Generic descriptor class that allows handy access of properties without long
-    boilerplate code. The properties of Interferometer are defined as instances
-    of this class. Don't touch this if you don't know what you are doing.
-
-    This avoids lengthy code like
-    ```
-    @property
-    def length(self):
-        return self.geometry.length
-
-    @length_setter
-    def length(self, length)
-        self.geometry.length = length
-
-    in the Interferometer class
-    ```
-    """
-
-    def __init__(self, property_name, container_instance_name):
-        self.property_name = property_name
-        self.container_instance_name = container_instance_name
-
-    def __get__(self, instance, owner):
-        return getattr(getattr(instance, self.container_instance_name), self.property_name)
-
-    def __set__(self, instance, value):
-        setattr(getattr(instance, self.container_instance_name), self.property_name, value)
-
-
 class Interferometer(object):
     """Class for the Interferometer """
 
-    length = _GenericInterferometerProperty('length', 'geometry')
-    latitude = _GenericInterferometerProperty('latitude', 'geometry')
-    latitude_radians = _GenericInterferometerProperty('latitude_radians', 'geometry')
-    longitude = _GenericInterferometerProperty('longitude', 'geometry')
-    longitude_radians = _GenericInterferometerProperty('longitude_radians', 'geometry')
-    elevation = _GenericInterferometerProperty('elevation', 'geometry')
-    x = _GenericInterferometerProperty('x', 'geometry')
-    y = _GenericInterferometerProperty('y', 'geometry')
-    xarm_azimuth = _GenericInterferometerProperty('xarm_azimuth', 'geometry')
-    yarm_azimuth = _GenericInterferometerProperty('yarm_azimuth', 'geometry')
-    xarm_tilt = _GenericInterferometerProperty('xarm_tilt', 'geometry')
-    yarm_tilt = _GenericInterferometerProperty('yarm_tilt', 'geometry')
-    vertex = _GenericInterferometerProperty('vertex', 'geometry')
-    detector_tensor = _GenericInterferometerProperty('detector_tensor', 'geometry')
+    length = SubclassPropertyAccessor('length', 'geometry')
+    latitude = SubclassPropertyAccessor('latitude', 'geometry')
+    latitude_radians = SubclassPropertyAccessor('latitude_radians', 'geometry')
+    longitude = SubclassPropertyAccessor('longitude', 'geometry')
+    longitude_radians = SubclassPropertyAccessor('longitude_radians', 'geometry')
+    elevation = SubclassPropertyAccessor('elevation', 'geometry')
+    x = SubclassPropertyAccessor('x', 'geometry')
+    y = SubclassPropertyAccessor('y', 'geometry')
+    xarm_azimuth = SubclassPropertyAccessor('xarm_azimuth', 'geometry')
+    yarm_azimuth = SubclassPropertyAccessor('yarm_azimuth', 'geometry')
+    xarm_tilt = SubclassPropertyAccessor('xarm_tilt', 'geometry')
+    yarm_tilt = SubclassPropertyAccessor('yarm_tilt', 'geometry')
+    vertex = SubclassPropertyAccessor('vertex', 'geometry')
+    detector_tensor = SubclassPropertyAccessor('detector_tensor', 'geometry')
 
-    frequency_array = _GenericInterferometerProperty('frequency_array', 'strain_data')
-    time_array = _GenericInterferometerProperty('time_array', 'strain_data')
-    minimum_frequency = _GenericInterferometerProperty('minimum_frequency', 'strain_data')
-    maximum_frequency = _GenericInterferometerProperty('maximum_frequency', 'strain_data')
-    frequency_mask = _GenericInterferometerProperty('frequency_mask', 'strain_data')
-    frequency_domain_strain = _GenericInterferometerProperty('frequency_domain_strain', 'strain_data')
-    time_domain_strain = _GenericInterferometerProperty('time_domain_strain', 'strain_data')
+    frequency_array = SubclassPropertyAccessor('frequency_array', 'strain_data')
+    time_array = SubclassPropertyAccessor('time_array', 'strain_data')
+    minimum_frequency = SubclassPropertyAccessor('minimum_frequency', 'strain_data')
+    maximum_frequency = SubclassPropertyAccessor('maximum_frequency', 'strain_data')
+    frequency_mask = SubclassPropertyAccessor('frequency_mask', 'strain_data')
+    frequency_domain_strain = SubclassPropertyAccessor('frequency_domain_strain', 'strain_data')
+    time_domain_strain = SubclassPropertyAccessor('time_domain_strain', 'strain_data')
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
                  elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
