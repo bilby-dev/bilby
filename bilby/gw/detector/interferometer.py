@@ -333,6 +333,8 @@ class Interferometer(object):
 
     frequency_array = _GenericInterferometerProperty('frequency_array', 'strain_data')
     time_array = _GenericInterferometerProperty('time_array', 'strain_data')
+    minimum_frequency = _GenericInterferometerProperty('minimum_frequency', 'strain_data')
+    maximum_frequency = _GenericInterferometerProperty('maximum_frequency', 'strain_data')
     frequency_mask = _GenericInterferometerProperty('frequency_mask', 'strain_data')
     frequency_domain_strain = _GenericInterferometerProperty('frequency_domain_strain', 'strain_data')
     time_domain_strain = _GenericInterferometerProperty('time_domain_strain', 'strain_data')
@@ -379,7 +381,7 @@ class Interferometer(object):
         self.name = name
         self.power_spectral_density = power_spectral_density
         self.calibration_model = calibration_model
-        self._strain_data = InterferometerStrainData(
+        self.strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
         self.meta_data = dict()
@@ -408,41 +410,6 @@ class Interferometer(object):
                     float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
-
-    @property
-    def minimum_frequency(self):
-        return self.strain_data.minimum_frequency
-
-    @minimum_frequency.setter
-    def minimum_frequency(self, minimum_frequency):
-        self._strain_data.minimum_frequency = minimum_frequency
-
-    @property
-    def maximum_frequency(self):
-        return self.strain_data.maximum_frequency
-
-    @maximum_frequency.setter
-    def maximum_frequency(self, maximum_frequency):
-        self._strain_data.maximum_frequency = maximum_frequency
-
-    @property
-    def strain_data(self):
-        """ A bilby.gw.detector.InterferometerStrainData instance """
-        return self._strain_data
-
-    @strain_data.setter
-    def strain_data(self, strain_data):
-        """ Set the strain_data
-
-        This sets the Interferometer.strain_data equal to the provided
-        strain_data. This will override the minimum_frequency and
-        maximum_frequency of the provided strain_data object with those of
-        the Interferometer object.
-        """
-        strain_data.minimum_frequency = self.minimum_frequency
-        strain_data.maximum_frequency = self.maximum_frequency
-
-        self._strain_data = strain_data
 
     def set_strain_data_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
