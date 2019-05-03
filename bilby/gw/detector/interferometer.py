@@ -488,11 +488,12 @@ class Interferometer(object):
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
         dt = parameters['geocent_time'] + time_shift - self.strain_data.start_time
 
-        signal_ifo = signal_ifo * np.exp(
-            -1j * 2 * np.pi * dt * self.frequency_array)
+        signal_ifo[self.frequency_mask] = signal_ifo[self.frequency_mask] * np.exp(
+            -1j * 2 * np.pi * dt * self.frequency_array[self.frequency_mask])
 
-        signal_ifo *= self.calibration_model.get_calibration_factor(
-            self.frequency_array, prefix='recalib_{}_'.format(self.name), **parameters)
+        signal_ifo[self.frequency_mask] *= self.calibration_model.get_calibration_factor(
+            self.frequency_array[self.frequency_mask],
+            prefix='recalib_{}_'.format(self.name), **parameters)
 
         return signal_ifo
 
