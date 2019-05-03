@@ -5,6 +5,7 @@ import numpy as np
 
 from bilby.core import utils
 from bilby.core.utils import logger
+from bilby.gw import utils as gwutils
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 from .strain_data import InterferometerStrainData
@@ -306,7 +307,7 @@ def get_event_data(
     ------
     list: A list of bilby.gw.detector.Interferometer objects
     """
-    event_time = utils.get_event_time(event)
+    event_time = gwutils.get_event_time(event)
 
     interferometers = []
 
