@@ -188,7 +188,7 @@ class CompactBinaryCoalesenceResult(CoreResult):
             self, maxpts=None, trials=5, jobs=1, enable_multiresolution=True,
             objid=None, instruments=None, geo=False, dpi=600,
             transparent=False, colorbar=False, contour=[50, 90],
-            annotate=True, cmap='cylon'):
+            annotate=True, cmap='cylon', load_pickle=False):
         """ Generate a fits file and sky map from a result
 
         Code adapted from ligo.skymap.tool.ligo_skymap_from_samples and
@@ -223,6 +223,9 @@ class CompactBinaryCoalesenceResult(CoreResult):
             Annotate image with details
         cmap: str
             Name of the colormap to use
+        load_pickle: bool, str
+            If true, load the cached pickle file (default name), or the
+            pickle-file give as a path.
         """
 
         try:
@@ -242,23 +245,34 @@ class CompactBinaryCoalesenceResult(CoreResult):
             logger.info('Taking random subsample of chain')
             data = data.sample(maxpts)
 
-        try:
-            pts = data[['ra', 'dec', 'luminosity_distance']].values
-            cls = kde.Clustered2Plus1DSkyKDE
-            distance = True
-        except KeyError:
-            logger.warning("The results file does not contain luminosity_distance")
-            pts = data[['ra', 'dec']].values
-            cls = kde.Clustered2DSkyKDE
-            distance = False
+        default_obj_filename = os.path.join(self.outdir, '{}_skypost.obj'.format(self.label))
 
-        logger.info('Initialising skymap class')
-        skypost = cls(pts, trials=trials, multiprocess=jobs)
+        if load_pickle is False:
+            try:
+                pts = data[['ra', 'dec', 'luminosity_distance']].values
+                cls = kde.Clustered2Plus1DSkyKDE
+                distance = True
+            except KeyError:
+                logger.warning("The results file does not contain luminosity_distance")
+                pts = data[['ra', 'dec']].values
+                cls = kde.Clustered2DSkyKDE
+                distance = False
 
-        obj_filename = os.path.join(self.outdir, '{}_skypost.obj'.format(self.label))
-        logger.info('Pickling skymap to {}'.format(obj_filename))
-        with open(obj_filename, 'wb') as out:
-            pickle.dump(skypost, out)
+            logger.info('Initialising skymap class')
+            skypost = cls(pts, trials=trials, multiprocess=jobs)
+            logger.info('Pickling skymap to {}'.format(default_obj_filename))
+            with open(default_obj_filename, 'wb') as out:
+                pickle.dump(skypost, out)
+
+        else:
+            if isinstance(load_pickle, str):
+                obj_filename = load_pickle
+            else:
+                obj_filename = default_obj_filename
+            logger.info('Reading from pickle {}'.format(obj_filename))
+            with open(obj_filename, 'rb') as file:
+                skypost = pickle.load(file)
+            skypost.multiprocess = jobs
 
         logger.info('Making skymap')
         hpmap = skypost.as_healpix()
