@@ -1,6 +1,7 @@
 from __future__ import division
 
 import json
+import pickle
 import os
 
 import matplotlib.pyplot as plt
@@ -191,7 +192,8 @@ class CompactBinaryCoalesenceResult(CoreResult):
         """ Generate a fits file and sky map from a result
 
         Code adapted from ligo.skymap.tool.ligo_skymap_from_samples and
-        ligo.skymap.tool.plot_skymap
+        ligo.skymap.tool.plot_skymap. Note, the use of this additionally
+        required the installation of ligo.skymap.
 
         Parameters
         ----------
@@ -223,18 +225,13 @@ class CompactBinaryCoalesenceResult(CoreResult):
             Name of the colormap to use
         """
 
-        from ligo.skymap import io
-        from ligo.skymap.bayestar import rasterize
-        from ligo.skymap import version
-        from astropy.time import Time
-        import numpy as np
-        import os
-        import pickle
-        from ligo.skymap.kde import Clustered2Plus1DSkyKDE, Clustered2DSkyKDE
-        import healpy as hp
-        from ligo.skymap.io import fits
-        from ligo.skymap import plot
-        from ligo.skymap import postprocess
+        try:
+            from astropy.time import Time
+            from ligo.skymap import io, version, plot, postprocess, bayestar, kde
+            import healpy as hp
+        except ImportError as e:
+            logger.info("Unable to generate skymap: error {}".format(e))
+            return
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
 
@@ -247,12 +244,12 @@ class CompactBinaryCoalesenceResult(CoreResult):
 
         try:
             pts = data[['ra', 'dec', 'luminosity_distance']].values
-            cls = Clustered2Plus1DSkyKDE
+            cls = kde.Clustered2Plus1DSkyKDE
             distance = True
         except KeyError:
             logger.warning("The results file does not contain luminosity_distance")
             pts = data[['ra', 'dec']].values
-            cls = Clustered2DSkyKDE
+            cls = kde.Clustered2DSkyKDE
             distance = False
 
         logger.info('Initialising skymap class')
@@ -266,7 +263,7 @@ class CompactBinaryCoalesenceResult(CoreResult):
         logger.info('Making skymap')
         hpmap = skypost.as_healpix()
         if not enable_multiresolution:
-            hpmap = rasterize(hpmap)
+            hpmap = bayestar.rasterize(hpmap)
 
         hpmap.meta.update(io.fits.metadata_for_version_module(version))
         hpmap.meta['creator'] = "bilby"
@@ -291,7 +288,7 @@ class CompactBinaryCoalesenceResult(CoreResult):
         logger.info('Saving skymap fits-file to {}'.format(fits_filename))
         io.write_sky_map(fits_filename, hpmap, nest=True)
 
-        skymap, metadata = fits.read_sky_map(fits_filename, nest=None)
+        skymap, metadata = io.fits.read_sky_map(fits_filename, nest=None)
         nside = hp.npix2nside(len(skymap))
 
         # Convert sky map from probability to probability per square degree.
