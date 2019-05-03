@@ -255,6 +255,7 @@ class CompactBinaryCoalesenceResult(CoreResult):
             cls = Clustered2DSkyKDE
             distance = False
 
+        logger.info('Initialising skymap class')
         skypost = cls(pts, trials=trials, multiprocess=jobs)
 
         obj_filename = os.path.join(self.outdir, '{}_skypost.obj'.format(self.label))
@@ -350,10 +351,8 @@ class CompactBinaryCoalesenceResult(CoreResult):
                 ii = np.round(np.searchsorted(np.sort(cls), contour) *
                               deg2perpix).astype(int)
                 for i, p in zip(ii, pp):
-                    # FIXME: use Unicode symbol instead of TeX '$^2$'
-                    # because of broken fonts on Scientific Linux 7.
                     text.append(
-                        u'{:d}% area: {:d} deg²'.format(p, i, grouping=True))
+                        u'{:d}% area: {:d} deg$^2$'.format(p, i, grouping=True))
             ax.text(1, 1, '\n'.join(text), transform=ax.transAxes, ha='right')
 
         filename = os.path.join(self.outdir, "{}_skymap.png".format(self.label))
