@@ -401,11 +401,7 @@ class Dynesty(NestedSampler):
             labels = [label.replace('_', ' ') for label in self.search_parameter_keys]
             filename = "{}/{}_checkpoint_trace.png".format(self.outdir, self.label)
             try:
-                truths = None
-                if self.injection_parameters is not None:
-                    truths = [self.injection_parameters[key] for key in self.search_parameter_keys]
-                fig = dyplot.traceplot(self.sampler.results, labels=labels,
-                                       truths=truths)[0]
+                fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
                 fig.tight_layout()
                 fig.savefig(filename)
                 plt.close('all')
