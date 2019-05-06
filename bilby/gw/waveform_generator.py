@@ -7,11 +7,11 @@ from .utils import PropertyAccessor
 
 class WaveformGenerator(object):
 
-    duration = PropertyAccessor('duration', '_times_and_frequencies')
-    sampling_frequency = PropertyAccessor('sampling_frequency', '_times_and_frequencies')
-    start_time = PropertyAccessor('start_time', '_times_and_frequencies')
-    frequency_array = PropertyAccessor('frequency_array', '_times_and_frequencies')
-    time_array = PropertyAccessor('time_array', '_times_and_frequencies')
+    duration = PropertyAccessor('_times_and_frequencies', 'duration')
+    sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
+    start_time = PropertyAccessor('_times_and_frequencies', 'start_time')
+    frequency_array = PropertyAccessor('_times_and_frequencies', 'frequency_array')
+    time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
 
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,

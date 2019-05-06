@@ -932,7 +932,7 @@ class PropertyAccessor(object):
     """
     Generic descriptor class that allows handy access of properties without long
     boilerplate code. The properties of Interferometer are defined as instances
-    of this class. Don't touch this if you don't know what you are doing.
+    of this class.
 
     This avoids lengthy code like
     ```
@@ -948,7 +948,7 @@ class PropertyAccessor(object):
     ```
     """
 
-    def __init__(self, property_name, container_instance_name):
+    def __init__(self, container_instance_name, property_name):
         self.property_name = property_name
         self.container_instance_name = container_instance_name
 
