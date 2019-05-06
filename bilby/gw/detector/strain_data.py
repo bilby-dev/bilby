@@ -41,6 +41,8 @@ class InterferometerStrainData(object):
             This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
+        self.__freq_mask_updated = False
+
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
         self.roll_off = roll_off
@@ -100,6 +102,7 @@ class InterferometerStrainData(object):
     @minimum_frequency.setter
     def minimum_frequency(self, minimum_frequency):
         self.__minimum_frequency = minimum_frequency
+        self.__freq_mask_updated = False
 
     @property
     def maximum_frequency(self):
@@ -112,6 +115,7 @@ class InterferometerStrainData(object):
     @maximum_frequency.setter
     def maximum_frequency(self, maximum_frequency):
         self.__maximum_frequency = maximum_frequency
+        self.__freq_mask_updated = False
 
     @property
     def frequency_mask(self):
@@ -121,14 +125,12 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        try:
-            return self._frequency_mask
-        except AttributeError:
+        if not self.__freq_mask_updated:
             frequency_array = self._times_and_frequencies.frequency_array
             mask = ((frequency_array >= self.minimum_frequency) &
                     (frequency_array <= self.maximum_frequency))
             self._frequency_mask = mask
-            return self._frequency_mask
+        return self._frequency_mask
 
     @property
     def alpha(self):
