@@ -54,7 +54,6 @@ class InterferometerStrainData(object):
         self.window_factor = 1
 
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
-        # self._set_time_and_frequency_array_parameters(None, None, None)
 
         self._frequency_mask = None
         self._frequency_domain_strain = None
