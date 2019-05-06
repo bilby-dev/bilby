@@ -408,9 +408,9 @@ class InterferometerStrainData(object):
         else:
             raise ValueError(
                 "Insufficient information given to set arrays")
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -463,9 +463,10 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided gwpy TimeSeries object')
         if type(time_series) != gwpy.timeseries.TimeSeries:
             raise ValueError("Input time_series is not a gwpy TimeSeries")
-        self._set_time_and_frequency_array_parameters(duration=time_series.duration.value,
-                                                      sampling_frequency=time_series.sample_rate.value,
-                                                      start_time=time_series.epoch.value)
+        self._times_and_frequencies = \
+            CoupledTimeAndFrequencySeries(duration=time_series.duration.value,
+                                          sampling_frequency=time_series.sample_rate.value,
+                                          start_time=time_series.epoch.value)
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
         self._channel = time_series.channel
@@ -570,10 +571,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
-
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
         logger.debug(
             'Setting data using noise realization from provided'
             'power_spectal_density')
@@ -600,10 +600,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
-
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
         logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
                                                       dtype=np.complex)
@@ -631,9 +630,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
 
         logger.info('Reading data from frame file {}'.format(frame_file))
         strain = gwutils.read_frame_file(
@@ -642,8 +641,3 @@ class InterferometerStrainData(object):
             resample=sampling_frequency)
 
         self.set_from_gwpy_timeseries(strain)
-
-    def _set_time_and_frequency_array_parameters(self, duration, sampling_frequency, start_time):
-        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
-                                                                    sampling_frequency=sampling_frequency,
-                                                                    start_time=start_time)
