@@ -48,6 +48,8 @@ class InterferometerStrainData(object):
             This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
+        self._freq_mask_updated = False
+
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
         self.roll_off = roll_off
@@ -101,6 +103,15 @@ class InterferometerStrainData(object):
             return True
 
     @property
+    def minimum_frequency(self):
+        return self._minimum_frequency
+
+    @minimum_frequency.setter
+    def minimum_frequency(self, minimum_frequency):
+        self._minimum_frequency = minimum_frequency
+        self._freq_mask_updated = False
+
+    @property
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
         if self.sampling_frequency is not None:
@@ -111,6 +122,7 @@ class InterferometerStrainData(object):
     @maximum_frequency.setter
     def maximum_frequency(self, maximum_frequency):
         self._maximum_frequency = maximum_frequency
+        self.__freq_mask_updated = False
 
     @property
     def frequency_mask(self):
@@ -120,11 +132,11 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        if self._frequency_mask is not None:
-            return self._frequency_mask
-        frequency_array = self._times_and_frequencies.frequency_array
-        self._frequency_mask = ((frequency_array >= self.minimum_frequency) &
-                                (frequency_array <= self.maximum_frequency))
+        if not self.__freq_mask_updated:
+            frequency_array = self._times_and_frequencies.frequency_array
+            mask = ((frequency_array >= self.minimum_frequency) &
+                    (frequency_array <= self.maximum_frequency))
+            self._frequency_mask = mask
         return self._frequency_mask
 
     @property
