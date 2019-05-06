@@ -115,7 +115,12 @@ class PriorDict(OrderedDict):
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
                 val = '='.join(elements[1:])
-                prior[key] = eval(val)
+                try:
+                    prior[key] = eval(val)
+                except TypeError as e:
+                    raise TypeError(
+                        "Unable to parse dictionary file {}, bad line: {} = {}. Error message {}"
+                        .format(filename, key, val, e))
         self.update(prior)
 
     def from_dictionary(self, dictionary):
