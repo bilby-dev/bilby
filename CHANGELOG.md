@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- 
+- A plot_skymap method to the CBCResult object based on ligo.skymap
 
 ### Changed
 - The `periodic_boundary` option to the prior classes has been changed to `boundary`.
@@ -16,7 +16,7 @@ function to create trace plots during the dynesty checkpoints
 - Dynesty now prints the progress to STDOUT rather than STDERR
 
 ### Removed
--
+- Obsolete (and potentially incorrect) plot_skymap methods from gw.utils
 
 ## [0.4.5] 2019-04-03
 
