@@ -5,6 +5,7 @@ import sys
 import pickle
 import signal
 
+import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 
@@ -89,7 +90,7 @@ class Dynesty(NestedSampler):
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False, skip_import_verification=False,
-                 check_point=True, check_point_plot=False, n_check_point=None,
+                 check_point=True, check_point_plot=True, n_check_point=None,
                  check_point_delta_t=600, resume=True, **kwargs):
         NestedSampler.__init__(self, likelihood=likelihood, priors=priors,
                                outdir=outdir, label=label, use_ratio=use_ratio,
@@ -118,6 +119,7 @@ class Dynesty(NestedSampler):
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
+        signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
 
     @property
     def sampler_function_kwargs(self):
@@ -180,8 +182,8 @@ class Dynesty(NestedSampler):
             niter, key, logz, logzerr, delta_logz, dlogz)
 
         # Printing.
-        sys.stderr.write(print_str)
-        sys.stderr.flush()
+        sys.stdout.write(print_str)
+        sys.stdout.flush()
 
     def _apply_dynesty_boundaries(self):
         if self.kwargs['periodic'] is None:
@@ -293,12 +295,11 @@ class Dynesty(NestedSampler):
             state is mostly written back to disk.
         """
 
-        logger.debug("Reading resume file {}".format(self.resume_file))
-
         if os.path.isfile(self.resume_file):
+            logger.info("Reading resume file {}".format(self.resume_file))
             with open(self.resume_file, 'rb') as file:
                 saved = pickle.load(file)
-            logger.debug(
+            logger.info(
                 "Succesfuly read resume file {}".format(self.resume_file))
 
             self.sampler.saved_u = list(saved['unit_cube_samples'])
@@ -324,13 +325,11 @@ class Dynesty(NestedSampler):
             self.sampler.live_bound = saved['live_bound']
             self.sampler.live_it = saved['live_it']
             self.sampler.added_live = saved['added_live']
-            if continuing:
-                self.write_current_state(plot=False)
             return True
 
         else:
             logger.debug(
-                "Failed to read resume file {}".format(self.resume_file))
+                "No resume file {}".format(self.resume_file))
             return False
 
     def write_current_state_and_exit(self, signum=None, frame=None):
@@ -397,11 +396,16 @@ class Dynesty(NestedSampler):
 
         if plot and self.check_point_plot:
             import dynesty.plotting as dyplot
-            labels = self.search_parameter_keys
-            fn = "{}/{}_checkpoint_trace.png".format(self.outdir, self.label)
-            fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
-            fig.tight_layout()
-            fig.savefig(fn)
+            labels = [label.replace('_', ' ') for label in self.search_parameter_keys]
+            filename = "{}/{}_checkpoint_trace.png".format(self.outdir, self.label)
+            try:
+                fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
+                fig.tight_layout()
+                fig.savefig(filename)
+                plt.close('all')
+            except (RuntimeError, np.linalg.linalg.LinAlgError) as e:
+                logger.warning(e)
+                logger.warning('Failed to create dynesty state plot at checkpoint')
 
     def generate_trace_plots(self, dynesty_results):
         check_directory_exists_and_if_not_mkdir(self.outdir)
@@ -446,11 +450,13 @@ class Dynesty(NestedSampler):
 
         Notes
         -----
-        Since dynesty allows periodic parameters to wander outside the unit
-        We also allow parameters with reflective boundaries to wander outside
+        Since dynesty allows periodic parameters to wander outside the unit,
+        here we transform them depending of if they should be periodic or
+        reflective. For reflective boundaries, theta < 0 you shift to |theta|
+        and when theta > 1 you return 2 - theta. For periodic boundaries,
+        if theta < 0, you shift to 1-|theta| and when theta > 1 you shift to
+        |theta| - 1 (i.e. wrap around).
 
-        The logic ensures that when theta < 0 you shift to |theta| and when
-        theta > 1 you return 2 - theta
         """
         theta[self._periodic] = np.mod(theta[self._periodic], 1)
         theta_ref = theta[self._reflective]

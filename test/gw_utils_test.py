@@ -166,7 +166,7 @@ class TestGWUtils(unittest.TestCase):
     def test_lalsim_SimInspiralChooseFDWaveform(self):
         a = gwutils.lalsim_SimInspiralChooseFDWaveform(
             35.2, 20.4, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 1000, 2, 2.3,
-            45., 0.1, 10, 0.01, 10, 1000, 20, None, 69)
+            45., 0.1, 10, 0.01, 10, 1000, 20, None, lalsim.IMRPhenomPv2)
         self.assertEqual(len(a), 2)
         self.assertEqual(type(a[0]), lal.COMPLEX16FrequencySeries)
         self.assertEqual(type(a[1]), lal.COMPLEX16FrequencySeries)

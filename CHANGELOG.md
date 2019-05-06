@@ -11,6 +11,9 @@ This breaks backward compatibility.
 The options to `boundary` are `{'periodic', 'reflective', None}`.
 Periodic boundaries are supported as before.
 Reflective boundaries are supported in `dynesty` and `cpnest`.  
+- Added state plotting for dynesty. Use `check_point_plot=True` in the `run_sampler` 
+function to create trace plots during the dynesty checkpoints
+- Dynesty now prints the progress to STDOUT rather than STDERR
 
 ### Removed
 -
