@@ -48,7 +48,6 @@ class InterferometerStrainData(object):
             This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
-        self._freq_mask_updated = False
 
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
@@ -57,11 +56,10 @@ class InterferometerStrainData(object):
 
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
 
+        self._freq_mask_updated = False
         self._frequency_mask = None
         self._frequency_domain_strain = None
-        self._frequency_array = None
         self._time_domain_strain = None
-        self._time_array = None
         self._channel = None
 
     def __eq__(self, other):
@@ -289,10 +287,6 @@ class InterferometerStrainData(object):
         laldata.data.data[:] = self.frequency_domain_strain
 
         return laldata
-
-    def add_to_frequency_domain_strain(self, x):
-        """Deprecated"""
-        self._frequency_domain_strain += x
 
     def low_pass_filter(self, filter_freq=None):
         """ Low pass filter the data """
