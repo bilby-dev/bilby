@@ -119,6 +119,7 @@ class Dynesty(NestedSampler):
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
+        signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
 
     @property
     def sampler_function_kwargs(self):
@@ -181,8 +182,8 @@ class Dynesty(NestedSampler):
             niter, key, logz, logzerr, delta_logz, dlogz)
 
         # Printing.
-        sys.stderr.write(print_str)
-        sys.stderr.flush()
+        sys.stdout.write(print_str)
+        sys.stdout.flush()
 
     def _apply_dynesty_boundaries(self):
         if self.kwargs['periodic'] is None:
@@ -294,12 +295,11 @@ class Dynesty(NestedSampler):
             state is mostly written back to disk.
         """
 
-        logger.debug("Reading resume file {}".format(self.resume_file))
-
         if os.path.isfile(self.resume_file):
+            logger.info("Reading resume file {}".format(self.resume_file))
             with open(self.resume_file, 'rb') as file:
                 saved = pickle.load(file)
-            logger.debug(
+            logger.info(
                 "Succesfuly read resume file {}".format(self.resume_file))
 
             self.sampler.saved_u = list(saved['unit_cube_samples'])
@@ -325,13 +325,11 @@ class Dynesty(NestedSampler):
             self.sampler.live_bound = saved['live_bound']
             self.sampler.live_it = saved['live_it']
             self.sampler.added_live = saved['added_live']
-            if continuing:
-                self.write_current_state(plot=False)
             return True
 
         else:
             logger.debug(
-                "Failed to read resume file {}".format(self.resume_file))
+                "No resume file {}".format(self.resume_file))
             return False
 
     def write_current_state_and_exit(self, signum=None, frame=None):
@@ -452,11 +450,13 @@ class Dynesty(NestedSampler):
 
         Notes
         -----
-        Since dynesty allows periodic parameters to wander outside the unit
-        We also allow parameters with reflective boundaries to wander outside
+        Since dynesty allows periodic parameters to wander outside the unit,
+        here we transform them depending of if they should be periodic or
+        reflective. For reflective boundaries, theta < 0 you shift to |theta|
+        and when theta > 1 you return 2 - theta. For periodic boundaries,
+        if theta < 0, you shift to 1-|theta| and when theta > 1 you shift to
+        |theta| - 1 (i.e. wrap around).
 
-        The logic ensures that when theta < 0 you shift to |theta| and when
-        theta > 1 you return 2 - theta
         """
         theta[self._periodic] = np.mod(theta[self._periodic], 1)
         theta_ref = theta[self._reflective]
