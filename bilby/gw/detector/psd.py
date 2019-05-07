@@ -40,6 +40,8 @@ class PowerSpectralDensity(object):
             Interpolated function of the PSD
 
         """
+        self._cache = dict(
+            frequency_array=np.array([]), psd_array=None, asd_array=None)
         self.frequency_array = np.array(frequency_array)
         if psd_array is not None:
             self.psd_array = psd_array
@@ -47,9 +49,6 @@ class PowerSpectralDensity(object):
             self.asd_array = asd_array
         self.psd_file = psd_file
         self.asd_file = asd_file
-        self._cache = dict(
-            frequency_array=np.array([]), psd_array=None, asd_array=None)
-        self._update_cache(self.frequency_array)
 
     def _update_cache(self, frequency_array):
         psd_array = self.power_spectral_density_interpolated(frequency_array)
@@ -191,6 +190,7 @@ class PowerSpectralDensity(object):
                                                               self.psd_array,
                                                               bounds_error=False,
                                                               fill_value=np.inf)
+        self._update_cache(self.frequency_array)
 
     def get_power_spectral_density_array(self, frequency_array):
         if not np.array_equal(frequency_array, self._cache['frequency_array']):
