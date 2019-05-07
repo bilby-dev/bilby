@@ -3,8 +3,8 @@ import os
 import numpy as np
 from scipy.interpolate import interp1d
 
-from bilby.core import utils
-from bilby.core.utils import logger
+from ...core import utils
+from ...core.utils import logger
 from .strain_data import InterferometerStrainData
 
 

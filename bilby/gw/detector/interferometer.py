@@ -4,12 +4,12 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 
-from bilby.core import utils
-from bilby.core.utils import logger
-from bilby.gw import utils as gwutils
-from bilby.gw.detector.calibration import Recalibrate
-from bilby.gw.detector.geometry import InterferometerGeometry
-from bilby.gw.utils import PropertyAccessor
+from ...core import utils
+from ...core.utils import logger
+from .. import utils as gwutils
+from ..utils import PropertyAccessor
+from .calibration import Recalibrate
+from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
 
 try:

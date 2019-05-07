@@ -4,7 +4,7 @@ from inspect import isclass
 import numpy as np
 import random
 
-from bilby.core.prior import Uniform
+from ..prior import Uniform
 
 
 class Sample(OrderedDict):

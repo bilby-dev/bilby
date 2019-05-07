@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from bilby.core.sampler.proposal import JumpProposal
+from ...core.sampler.proposal import JumpProposal
 
 
 class SkyLocationWanderJump(JumpProposal):

@@ -1,11 +1,11 @@
 import numpy as np
 from scipy.signal.windows import tukey
 
-from bilby.core import utils
-from bilby.core.series import CoupledTimeAndFrequencySeries
-from bilby.core.utils import logger
-from bilby.gw import utils as gwutils
-from bilby.gw.utils import PropertyAccessor
+from ...core import utils
+from ...core.series import CoupledTimeAndFrequencySeries
+from ...core.utils import logger
+from .. import utils as gwutils
+from ..utils import PropertyAccessor
 
 try:
     import gwpy

@@ -1,4 +1,4 @@
-from bilby.core.utils import infer_parameters_from_function
+from ..core.utils import infer_parameters_from_function
 
 
 class Model(object):
