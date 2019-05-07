@@ -1,4 +1,5 @@
 from bilby.gw import conversion
+from .calibration import *
 from .interferometer import *
 from .networks import *
 from .psd import *

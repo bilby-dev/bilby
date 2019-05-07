@@ -5,6 +5,7 @@ from bilby.core import utils
 from bilby.core.series import CoupledTimeAndFrequencySeries
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
+from bilby.gw.utils import PropertyAccessor
 
 try:
     import gwpy
@@ -22,6 +23,12 @@ except ImportError:
 
 class InterferometerStrainData(object):
     """ Strain data for an interferometer """
+
+    duration = PropertyAccessor('_times_and_frequencies', 'duration')
+    sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
+    start_time = PropertyAccessor('_times_and_frequencies', 'start_time')
+    frequency_array = PropertyAccessor('_times_and_frequencies', 'frequency_array')
+    time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
                  roll_off=0.2):
@@ -41,7 +48,6 @@ class InterferometerStrainData(object):
             This corresponds to alpha * duration / 2 for scipy tukey window.
 
         """
-        self.__freq_mask_updated = False
 
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
@@ -49,12 +55,11 @@ class InterferometerStrainData(object):
         self.window_factor = 1
 
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
-        # self._set_time_and_frequency_array_parameters(None, None, None)
 
+        self._freq_mask_updated = False
+        self._frequency_mask = None
         self._frequency_domain_strain = None
-        self._frequency_array = None
         self._time_domain_strain = None
-        self._time_array = None
         self._channel = None
 
     def __eq__(self, other):
@@ -97,24 +102,24 @@ class InterferometerStrainData(object):
 
     @property
     def minimum_frequency(self):
-        return self.__minimum_frequency
+        return self._minimum_frequency
 
     @minimum_frequency.setter
     def minimum_frequency(self, minimum_frequency):
-        self.__minimum_frequency = minimum_frequency
-        self.__freq_mask_updated = False
+        self._minimum_frequency = minimum_frequency
+        self._freq_mask_updated = False
 
     @property
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
         if self.sampling_frequency is not None:
-            if 2 * self.__maximum_frequency > self.sampling_frequency:
-                self.__maximum_frequency = self.sampling_frequency / 2.
-        return self.__maximum_frequency
+            if 2 * self._maximum_frequency > self.sampling_frequency:
+                self._maximum_frequency = self.sampling_frequency / 2.
+        return self._maximum_frequency
 
     @maximum_frequency.setter
     def maximum_frequency(self, maximum_frequency):
-        self.__maximum_frequency = maximum_frequency
+        self._maximum_frequency = maximum_frequency
         self.__freq_mask_updated = False
 
     @property
@@ -283,10 +288,6 @@ class InterferometerStrainData(object):
 
         return laldata
 
-    def add_to_frequency_domain_strain(self, x):
-        """Deprecated"""
-        self._frequency_domain_strain += x
-
     def low_pass_filter(self, filter_freq=None):
         """ Low pass filter the data """
 
@@ -407,9 +408,9 @@ class InterferometerStrainData(object):
         else:
             raise ValueError(
                 "Insufficient information given to set arrays")
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
 
     def set_from_time_domain_strain(
             self, time_domain_strain, sampling_frequency=None, duration=None,
@@ -462,9 +463,10 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided gwpy TimeSeries object')
         if type(time_series) != gwpy.timeseries.TimeSeries:
             raise ValueError("Input time_series is not a gwpy TimeSeries")
-        self._set_time_and_frequency_array_parameters(duration=time_series.duration.value,
-                                                      sampling_frequency=time_series.sample_rate.value,
-                                                      start_time=time_series.epoch.value)
+        self._times_and_frequencies = \
+            CoupledTimeAndFrequencySeries(duration=time_series.duration.value,
+                                          sampling_frequency=time_series.sample_rate.value,
+                                          start_time=time_series.epoch.value)
         self._time_domain_strain = time_series.value
         self._frequency_domain_strain = None
         self._channel = time_series.channel
@@ -569,10 +571,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
-
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
         logger.debug(
             'Setting data using noise realization from provided'
             'power_spectal_density')
@@ -599,10 +600,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
-
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
         logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
                                                       dtype=np.complex)
@@ -630,9 +630,9 @@ class InterferometerStrainData(object):
 
         """
 
-        self._set_time_and_frequency_array_parameters(duration=duration,
-                                                      sampling_frequency=sampling_frequency,
-                                                      start_time=start_time)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
+                                                                    sampling_frequency=sampling_frequency,
+                                                                    start_time=start_time)
 
         logger.info('Reading data from frame file {}'.format(frame_file))
         strain = gwutils.read_frame_file(
@@ -641,50 +641,3 @@ class InterferometerStrainData(object):
             resample=sampling_frequency)
 
         self.set_from_gwpy_timeseries(strain)
-
-    def _set_time_and_frequency_array_parameters(self, duration, sampling_frequency, start_time):
-        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
-                                                                    sampling_frequency=sampling_frequency,
-                                                                    start_time=start_time)
-
-    @property
-    def sampling_frequency(self):
-        return self._times_and_frequencies.sampling_frequency
-
-    @sampling_frequency.setter
-    def sampling_frequency(self, sampling_frequency):
-        self._times_and_frequencies.sampling_frequency = sampling_frequency
-
-    @property
-    def duration(self):
-        return self._times_and_frequencies.duration
-
-    @duration.setter
-    def duration(self, duration):
-        self._times_and_frequencies.duration = duration
-
-    @property
-    def start_time(self):
-        return self._times_and_frequencies.start_time
-
-    @start_time.setter
-    def start_time(self, start_time):
-        self._times_and_frequencies.start_time = start_time
-
-    @property
-    def frequency_array(self):
-        """ Frequencies of the data in Hz """
-        return self._times_and_frequencies.frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self._times_and_frequencies.frequency_array = frequency_array
-
-    @property
-    def time_array(self):
-        """ Time of the data in seconds """
-        return self._times_and_frequencies.time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self._times_and_frequencies.time_array = time_array
