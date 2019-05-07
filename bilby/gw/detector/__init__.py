@@ -1,9 +1,9 @@
 from bilby.gw import conversion
+from . import calibration
 from .interferometer import *
 from .networks import *
 from .psd import *
 from .strain_data import *
-from .calibration import *
 
 try:
     import lal
