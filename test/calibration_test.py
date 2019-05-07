@@ -1,4 +1,4 @@
-from bilby.gw import calibration
+from bilby.gw.detector import calibration
 import unittest
 import numpy as np
 

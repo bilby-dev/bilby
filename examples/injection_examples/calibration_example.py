@@ -50,7 +50,7 @@ for ifo in ifos:
         'recalib_{}_amplitude_{}'.format(ifo.name, ii): 0.1 for ii in range(5)})
     injection_parameters.update({
         'recalib_{}_phase_{}'.format(ifo.name, ii): 0.01 for ii in range(5)})
-    ifo.calibration_model = bilby.gw.calibration.CubicSpline(
+    ifo.calibration_model = bilby.gw.detector.calibration.CubicSpline(
         prefix='recalib_{}_'.format(ifo.name),
         minimum_frequency=ifo.minimum_frequency,
         maximum_frequency=ifo.maximum_frequency, n_points=5)

@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from bilby.core import utils
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
-from bilby.gw.calibration import Recalibrate
+from bilby.gw.detector.calibration import Recalibrate
 from bilby.gw.detector.geometry import InterferometerGeometry
 from bilby.gw.utils import PropertyAccessor
 from .strain_data import InterferometerStrainData
