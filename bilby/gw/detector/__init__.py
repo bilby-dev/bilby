@@ -1,4 +1,4 @@
-from bilby.gw import conversion
+from ..conversion import convert_to_lal_binary_black_hole_parameters
 from .calibration import *
 from .interferometer import *
 from .networks import *
@@ -64,7 +64,7 @@ def inject_signal_into_gwpy_timeseries(
     ifo = get_empty_interferometer(det)
     ifo.strain_data.set_from_gwpy_timeseries(data)
 
-    parameters_check, _ = conversion.convert_to_lal_binary_black_hole_parameters(parameters)
+    parameters_check, _ = convert_to_lal_binary_black_hole_parameters(parameters)
     safe_time = get_safe_signal_duration(**parameters_check)
     if data.duration.value < safe_time:
         ValueError(

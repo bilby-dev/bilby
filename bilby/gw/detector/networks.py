@@ -3,9 +3,9 @@ import sys
 
 import numpy as np
 
-from bilby.core import utils
-from bilby.core.utils import logger
-from bilby.gw import utils as gwutils
+from ...core import utils
+from ...core.utils import logger
+from .. import utils as gwutils
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 from .strain_data import InterferometerStrainData

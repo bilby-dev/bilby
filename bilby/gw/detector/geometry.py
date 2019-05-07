@@ -1,6 +1,6 @@
 import numpy as np
 
-from bilby.gw import utils as gwutils
+from .. import utils as gwutils
 
 
 class InterferometerGeometry(object):
