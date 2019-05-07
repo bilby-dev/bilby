@@ -407,9 +407,9 @@ class Interferometer(object):
 
         """
         return (
-                self.power_spectral_density.get_amplitude_spectral_density_array(
-                    frequency_array=self.frequency_array) *
-                self.strain_data.window_factor**0.5)
+            self.power_spectral_density.get_amplitude_spectral_density_array(
+                frequency_array=self.frequency_array) *
+            self.strain_data.window_factor**0.5)
 
     @property
     def power_spectral_density_array(self):
