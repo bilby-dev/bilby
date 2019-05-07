@@ -8,6 +8,7 @@ from bilby.core import utils
 from bilby.core.utils import logger
 from bilby.gw import utils as gwutils
 from bilby.gw.calibration import Recalibrate
+from bilby.gw.detector.geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
 
 try:
@@ -18,12 +19,65 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 
+class _GenericInterferometerProperty(object):
+    """
+    Generic descriptor class that allows handy access of properties without long
+    boilerplate code. The properties of Interferometer are defined as instances
+    of this class.
+
+    This avoids lengthy code like
+    ```
+    @property
+    def length(self):
+        return self.geometry.length
+
+    @length_setter
+    def length(self, length)
+        self.geometry.length = length
+
+    in the Interferometer class
+    ```
+    """
+
+    def __init__(self, property_name, container_instance_name):
+        self.property_name = property_name
+        self.container_instance_name = container_instance_name
+
+    def __get__(self, instance, owner):
+        return getattr(getattr(instance, self.container_instance_name), self.property_name)
+
+    def __set__(self, instance, value):
+        setattr(getattr(instance, self.container_instance_name), self.property_name, value)
+
+
 class Interferometer(object):
     """Class for the Interferometer """
 
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
-                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
+    length = _GenericInterferometerProperty('length', 'geometry')
+    latitude = _GenericInterferometerProperty('latitude', 'geometry')
+    latitude_radians = _GenericInterferometerProperty('latitude_radians', 'geometry')
+    longitude = _GenericInterferometerProperty('longitude', 'geometry')
+    longitude_radians = _GenericInterferometerProperty('longitude_radians', 'geometry')
+    elevation = _GenericInterferometerProperty('elevation', 'geometry')
+    x = _GenericInterferometerProperty('x', 'geometry')
+    y = _GenericInterferometerProperty('y', 'geometry')
+    xarm_azimuth = _GenericInterferometerProperty('xarm_azimuth', 'geometry')
+    yarm_azimuth = _GenericInterferometerProperty('yarm_azimuth', 'geometry')
+    xarm_tilt = _GenericInterferometerProperty('xarm_tilt', 'geometry')
+    yarm_tilt = _GenericInterferometerProperty('yarm_tilt', 'geometry')
+    vertex = _GenericInterferometerProperty('vertex', 'geometry')
+    detector_tensor = _GenericInterferometerProperty('detector_tensor', 'geometry')
+
+    frequency_array = _GenericInterferometerProperty('frequency_array', 'strain_data')
+    time_array = _GenericInterferometerProperty('time_array', 'strain_data')
+    minimum_frequency = _GenericInterferometerProperty('minimum_frequency', 'strain_data')
+    maximum_frequency = _GenericInterferometerProperty('maximum_frequency', 'strain_data')
+    frequency_mask = _GenericInterferometerProperty('frequency_mask', 'strain_data')
+    frequency_domain_strain = _GenericInterferometerProperty('frequency_domain_strain', 'strain_data')
+    time_domain_strain = _GenericInterferometerProperty('time_domain_strain', 'strain_data')
+
+    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
+                 elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
         """
         Instantiate an Interferometer object.
 
@@ -58,23 +112,13 @@ class Interferometer(object):
             Calibration model, this applies the calibration correction to the
             template, the default model applies no correction.
         """
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
-        self.__detector_tensor_updated = False
+        self.geometry = InterferometerGeometry(length, latitude, longitude, elevation,
+                                               xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt)
 
         self.name = name
-        self.length = length
-        self.latitude = latitude
-        self.longitude = longitude
-        self.elevation = elevation
-        self.xarm_azimuth = xarm_azimuth
-        self.yarm_azimuth = yarm_azimuth
-        self.xarm_tilt = xarm_tilt
-        self.yarm_tilt = yarm_tilt
         self.power_spectral_density = power_spectral_density
         self.calibration_model = calibration_model
-        self._strain_data = InterferometerStrainData(
+        self.strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
         self.meta_data = dict()
@@ -103,41 +147,6 @@ class Interferometer(object):
                     float(self.maximum_frequency), float(self.length), float(self.latitude), float(self.longitude),
                     float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
                     float(self.yarm_tilt))
-
-    @property
-    def minimum_frequency(self):
-        return self.strain_data.minimum_frequency
-
-    @minimum_frequency.setter
-    def minimum_frequency(self, minimum_frequency):
-        self._strain_data.minimum_frequency = minimum_frequency
-
-    @property
-    def maximum_frequency(self):
-        return self.strain_data.maximum_frequency
-
-    @maximum_frequency.setter
-    def maximum_frequency(self, maximum_frequency):
-        self._strain_data.maximum_frequency = maximum_frequency
-
-    @property
-    def strain_data(self):
-        """ A bilby.gw.detector.InterferometerStrainData instance """
-        return self._strain_data
-
-    @strain_data.setter
-    def strain_data(self, strain_data):
-        """ Set the strain_data
-
-        This sets the Interferometer.strain_data equal to the provided
-        strain_data. This will override the minimum_frequency and
-        maximum_frequency of the provided strain_data object with those of
-        the Interferometer object.
-        """
-        strain_data.minimum_frequency = self.minimum_frequency
-        strain_data.maximum_frequency = self.maximum_frequency
-
-        self._strain_data = strain_data
 
     def set_strain_data_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
@@ -242,190 +251,6 @@ class Interferometer(object):
         self.strain_data.set_from_zero_noise(
             sampling_frequency=sampling_frequency, duration=duration,
             start_time=start_time)
-
-    @property
-    def latitude(self):
-        """ Saves latitude in rad internally. Updates related quantities if set to a different value.
-
-        Returns
-        -------
-        float: The latitude position of the detector in degree
-        """
-        return self.__latitude * 180 / np.pi
-
-    @latitude.setter
-    def latitude(self, latitude):
-        self.__latitude = latitude * np.pi / 180
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
-
-    @property
-    def longitude(self):
-        """ Saves longitude in rad internally. Updates related quantities if set to a different value.
-
-        Returns
-        -------
-        float: The longitude position of the detector in degree
-        """
-        return self.__longitude * 180 / np.pi
-
-    @longitude.setter
-    def longitude(self, longitude):
-        self.__longitude = longitude * np.pi / 180
-        self.__x_updated = False
-        self.__y_updated = False
-        self.__vertex_updated = False
-
-    @property
-    def elevation(self):
-        """ Updates related quantities if set to a different values.
-
-        Returns
-        -------
-        float: The height about the surface in meters
-        """
-        return self.__elevation
-
-    @elevation.setter
-    def elevation(self, elevation):
-        self.__elevation = elevation
-        self.__vertex_updated = False
-
-    @property
-    def xarm_azimuth(self):
-        """ Saves the x-arm azimuth in rad internally. Updates related quantities if set to a different values.
-
-        Returns
-        -------
-        float: The x-arm azimuth in degrees.
-
-        """
-        return self.__xarm_azimuth * 180 / np.pi
-
-    @xarm_azimuth.setter
-    def xarm_azimuth(self, xarm_azimuth):
-        self.__xarm_azimuth = xarm_azimuth * np.pi / 180
-        self.__x_updated = False
-
-    @property
-    def yarm_azimuth(self):
-        """ Saves the y-arm azimuth in rad internally. Updates related quantities if set to a different values.
-
-        Returns
-        -------
-        float: The y-arm azimuth in degrees.
-
-        """
-        return self.__yarm_azimuth * 180 / np.pi
-
-    @yarm_azimuth.setter
-    def yarm_azimuth(self, yarm_azimuth):
-        self.__yarm_azimuth = yarm_azimuth * np.pi / 180
-        self.__y_updated = False
-
-    @property
-    def xarm_tilt(self):
-        """ Updates related quantities if set to a different values.
-
-        Returns
-        -------
-        float: The x-arm tilt in radians.
-
-        """
-        return self.__xarm_tilt
-
-    @xarm_tilt.setter
-    def xarm_tilt(self, xarm_tilt):
-        self.__xarm_tilt = xarm_tilt
-        self.__x_updated = False
-
-    @property
-    def yarm_tilt(self):
-        """ Updates related quantities if set to a different values.
-
-        Returns
-        -------
-        float: The y-arm tilt in radians.
-
-        """
-        return self.__yarm_tilt
-
-    @yarm_tilt.setter
-    def yarm_tilt(self, yarm_tilt):
-        self.__yarm_tilt = yarm_tilt
-        self.__y_updated = False
-
-    @property
-    def vertex(self):
-        """ Position of the IFO vertex in geocentric coordinates in meters.
-
-        Is automatically updated if related quantities are modified.
-
-        Returns
-        -------
-        array_like: A 3D array representation of the vertex
-        """
-        if not self.__vertex_updated:
-            self.__vertex = gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude,
-                                                                   self.elevation)
-            self.__vertex_updated = True
-        return self.__vertex
-
-    @property
-    def x(self):
-        """ A unit vector along the x-arm
-
-        Is automatically updated if related quantities are modified.
-
-        Returns
-        -------
-        array_like: A 3D array representation of a unit vector along the x-arm
-
-        """
-        if not self.__x_updated:
-            self.__x = self.unit_vector_along_arm('x')
-            self.__x_updated = True
-            self.__detector_tensor_updated = False
-        return self.__x
-
-    @property
-    def y(self):
-        """ A unit vector along the y-arm
-
-        Is automatically updated if related quantities are modified.
-
-        Returns
-        -------
-        array_like: A 3D array representation of a unit vector along the y-arm
-
-        """
-        if not self.__y_updated:
-            self.__y = self.unit_vector_along_arm('y')
-            self.__y_updated = True
-            self.__detector_tensor_updated = False
-        return self.__y
-
-    @property
-    def detector_tensor(self):
-        """
-        Calculate the detector tensor from the unit vectors along each arm of the detector.
-
-        See Eq. B6 of arXiv:gr-qc/0008066
-
-        Is automatically updated if related quantities are modified.
-
-        Returns
-        -------
-        array_like: A 3x3 array representation of the detector tensor
-
-        """
-        if not self.__x_updated or not self.__y_updated:
-            _, _ = self.x, self.y  # noqa
-        if not self.__detector_tensor_updated:
-            self.__detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
-            self.__detector_tensor_updated = True
-        return self.__detector_tensor
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -572,44 +397,6 @@ class Interferometer(object):
 
         return injection_polarizations
 
-    def unit_vector_along_arm(self, arm):
-        """
-        Calculate the unit vector pointing along the specified arm in cartesian Earth-based coordinates.
-
-        See Eqs. B14-B17 in arXiv:gr-qc/0008066
-
-        Parameters
-        -------
-        arm: str
-            'x' or 'y' (arm of the detector)
-
-        Returns
-        -------
-        array_like: 3D unit vector along arm in cartesian Earth-based coordinates
-
-        Raises
-        -------
-        ValueError: If arm is neither 'x' nor 'y'
-
-        """
-        if arm == 'x':
-            return self.__calculate_arm(self.__xarm_tilt, self.__xarm_azimuth)
-        elif arm == 'y':
-            return self.__calculate_arm(self.__yarm_tilt, self.__yarm_azimuth)
-        else:
-            raise ValueError("Arm must either be 'x' or 'y'.")
-
-    def __calculate_arm(self, arm_tilt, arm_azimuth):
-        e_long = np.array([-np.sin(self.__longitude), np.cos(self.__longitude), 0])
-        e_lat = np.array([-np.sin(self.__latitude) * np.cos(self.__longitude),
-                          -np.sin(self.__latitude) * np.sin(self.__longitude), np.cos(self.__latitude)])
-        e_h = np.array([np.cos(self.__latitude) * np.cos(self.__longitude),
-                        np.cos(self.__latitude) * np.sin(self.__longitude), np.sin(self.__latitude)])
-
-        return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
-                np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
-                np.sin(arm_tilt) * e_h)
-
     @property
     def amplitude_spectral_density_array(self):
         """ Returns the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
@@ -640,27 +427,10 @@ class Interferometer(object):
                 frequency_array=self.frequency_array) *
             self.strain_data.window_factor)
 
-    @property
-    def frequency_array(self):
-        return self.strain_data.frequency_array
-
-    @property
-    def frequency_mask(self):
-        return self.strain_data.frequency_mask
-
-    @property
-    def frequency_domain_strain(self):
-        """ The frequency domain strain in units of strain / Hz """
-        return self.strain_data.frequency_domain_strain
-
-    @property
-    def time_domain_strain(self):
-        """ The time domain strain in units of s """
-        return self.strain_data.time_domain_strain
-
-    @property
-    def time_array(self):
-        return self.strain_data.time_array
+    def unit_vector_along_arm(self, arm):
+        logger.warning("This method has been moved and will be removed in the future. "
+                       "Use Interferometer.geometry.unit_vector_along_arm instead.")
+        return self.geometry.unit_vector_along_arm(arm)
 
     def time_delay_from_geocenter(self, ra, dec, time):
         """
@@ -694,7 +464,9 @@ class Interferometer(object):
         -------
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self.__latitude, self.__longitude, self.__elevation)
+        return gwutils.get_vertex_position_geocentric(self.latitude_radians,
+                                                      self.longitude_radians,
+                                                      self.elevation)
 
     def optimal_snr_squared(self, signal):
         """

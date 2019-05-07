@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
-                          credible_interval)
+                          SamplesSummary)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -568,84 +568,6 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     return output_cache_file
 
 
-def save_to_fits(posterior, outdir, label):
-    """ Generate a fits file from a posterior array """
-    from astropy.io import fits
-    from astropy.units import pixel
-    from astropy.table import Table
-    import healpy as hp
-    nside = hp.get_nside(posterior)
-    npix = hp.nside2npix(nside)
-    logger.debug('Generating table')
-    m = Table([posterior], names=['PROB'])
-    m['PROB'].unit = pixel ** -1
-
-    ordering = 'RING'
-    extra_header = [('PIXTYPE', 'HEALPIX',
-                     'HEALPIX pixelisation'),
-                    ('ORDERING', ordering,
-                     'Pixel ordering scheme: RING, NESTED, or NUNIQ'),
-                    ('COORDSYS', 'C',
-                     'Ecliptic, Galactic or Celestial (equatorial)'),
-                    ('NSIDE', hp.npix2nside(npix),
-                     'Resolution parameter of HEALPIX'),
-                    ('INDXSCHM', 'IMPLICIT',
-                     'Indexing: IMPLICIT or EXPLICIT')]
-
-    fname = '{}/{}_{}.fits'.format(outdir, label, nside)
-    hdu = fits.table_to_hdu(m)
-    hdu.header.extend(extra_header)
-    hdulist = fits.HDUList([fits.PrimaryHDU(), hdu])
-    logger.debug('Writing to a fits file')
-    hdulist.writeto(fname, overwrite=True)
-
-
-def plot_skymap(result, center='120d -40d', nside=512):
-    """ Generate a sky map from a result """
-    import scipy
-    from astropy.units import deg
-    import healpy as hp
-    import ligo.skymap.plot  # noqa
-    import matplotlib.pyplot as plt
-    logger.debug('Generating skymap')
-
-    logger.debug('Reading in ra and dec, creating kde and converting')
-    ra_dec_radians = result.posterior[['ra', 'dec']].values
-    kde = scipy.stats.gaussian_kde(ra_dec_radians.T)
-    npix = hp.nside2npix(nside)
-    ipix = range(npix)
-    theta, phi = hp.pix2ang(nside, ipix)
-    ra = phi
-    dec = 0.5 * np.pi - theta
-
-    logger.debug('Generating posterior')
-    post = kde(np.row_stack([ra, dec]))
-    post /= np.sum(post * hp.nside2pixarea(nside))
-
-    fig = plt.figure(figsize=(5, 5))
-    ax = plt.axes([0.05, 0.05, 0.9, 0.9],
-                  projection='astro globe',
-                  center=center)
-    ax.coords.grid(True, linestyle='--')
-    lon = ax.coords[0]
-    lat = ax.coords[1]
-    lon.set_ticks(exclude_overlapping=True, spacing=45 * deg)
-    lat.set_ticks(spacing=30 * deg)
-
-    lon.set_major_formatter('dd')
-    lat.set_major_formatter('hh')
-    lon.set_ticklabel(color='k')
-    lat.set_ticklabel(color='k')
-
-    logger.debug('Plotting sky map')
-    ax.imshow_hpx(post)
-
-    lon.set_ticks_visible(False)
-    lat.set_ticks_visible(False)
-
-    fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))
-
-
 def build_roq_weights(data, basis, deltaF):
 
     """
@@ -908,10 +830,12 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     else:
         scaled_samples = xform(samples)
 
-    mu = np.mean(scaled_samples, axis=0)
-    lower_confidence_level = mu - credible_interval(scaled_samples, level, lower=True)
-    upper_confidence_level = credible_interval(scaled_samples, level, lower=False) - mu
-    plt.errorbar(freq_points, mu, yerr=[lower_confidence_level, upper_confidence_level],
+    scaled_samples_summary = SamplesSummary(scaled_samples, average='mean')
+    data_summary = SamplesSummary(data, average='mean')
+
+    plt.errorbar(freq_points, scaled_samples_summary.average,
+                 yerr=[-scaled_samples_summary.lower_relative_credible_interval,
+                       scaled_samples_summary.upper_relative_credible_interval],
                  fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
 
     for i, sample in enumerate(samples):
@@ -923,6 +847,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
 
     line, = plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
     color = line.get_color()
-    plt.fill_between(freqs, credible_interval(data, level), credible_interval(data, level, lower=False),
+    plt.fill_between(freqs, data_summary.lower_absolute_credible_interval,
+                     data_summary.upper_absolute_credible_interval,
                      color=color, alpha=.1, linewidth=0.1)
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
