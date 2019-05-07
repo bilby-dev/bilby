@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
-                          credible_interval)
+                          SamplesSummary)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -830,10 +830,12 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     else:
         scaled_samples = xform(samples)
 
-    mu = np.mean(scaled_samples, axis=0)
-    lower_confidence_level = mu - credible_interval(scaled_samples, level, lower=True)
-    upper_confidence_level = credible_interval(scaled_samples, level, lower=False) - mu
-    plt.errorbar(freq_points, mu, yerr=[lower_confidence_level, upper_confidence_level],
+    scaled_samples_summary = SamplesSummary(scaled_samples, average='mean')
+    data_summary = SamplesSummary(data, average='mean')
+
+    plt.errorbar(freq_points, scaled_samples_summary.average,
+                 yerr=[-scaled_samples_summary.lower_relative_credible_interval,
+                       scaled_samples_summary.upper_relative_credible_interval],
                  fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
 
     for i, sample in enumerate(samples):
@@ -845,6 +847,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
 
     line, = plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
     color = line.get_color()
-    plt.fill_between(freqs, credible_interval(data, level), credible_interval(data, level, lower=False),
+    plt.fill_between(freqs, data_summary.lower_absolute_credible_interval,
+                     data_summary.upper_absolute_credible_interval,
                      color=color, alpha=.1, linewidth=0.1)
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
