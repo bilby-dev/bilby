@@ -376,7 +376,10 @@ class Interferometer(object):
         array_like: An array representation of the ASD
 
         """
-        return self.power_spectral_density_array ** 0.5
+        return (
+            self.power_spectral_density.get_amplitude_spectral_density_array(
+                frequency_array=self.frequency_array) *
+            self.strain_data.window_factor**0.5)
 
     @property
     def power_spectral_density_array(self):
@@ -389,8 +392,10 @@ class Interferometer(object):
         array_like: An array representation of the PSD
 
         """
-        return (self.power_spectral_density.power_spectral_density_interpolated(self.frequency_array) *
-                self.strain_data.window_factor)
+        return (
+            self.power_spectral_density.get_power_spectral_density_array(
+                frequency_array=self.frequency_array) *
+            self.strain_data.window_factor)
 
     def unit_vector_along_arm(self, arm):
         logger.warning("This method has been moved and will be removed in the future."
