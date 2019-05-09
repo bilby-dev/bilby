@@ -497,6 +497,9 @@ class TestROQLikelihood(unittest.TestCase):
         fnodes_linear = np.load(fnodes_linear_file).T
         fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
+        self.linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
+        self.quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
+        self.params_file = "{}/params.dat".format(roq_dir)
 
         self.test_parameters = dict(
             mass_1=36.0, mass_2=36.0, a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0,
@@ -520,6 +523,8 @@ class TestROQLikelihood(unittest.TestCase):
         ifos.inject_signal(
             parameters=self.test_parameters, waveform_generator=non_roq_wfg)
 
+        self.ifos = ifos
+
         roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.roq,
@@ -528,6 +533,8 @@ class TestROQLikelihood(unittest.TestCase):
                 frequency_nodes_quadratic=fnodes_quadratic,
                 reference_frequency=20., minimum_frequency=20.,
                 approximant='IMRPhenomPv2'))
+
+        self.roq_wfg = roq_wfg
 
         self.non_roq = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=ifos, waveform_generator=non_roq_wfg)
@@ -548,7 +555,8 @@ class TestROQLikelihood(unittest.TestCase):
             phase_marginalization=True, priors=self.priors.copy())
 
     def tearDown(self):
-        pass
+        del (self.roq, self.non_roq, self.non_roq_phase, self.roq_phase,
+             self.ifos, self.priors)
 
     def test_matches_non_roq(self):
         self.non_roq.parameters.update(self.test_parameters)
@@ -572,6 +580,31 @@ class TestROQLikelihood(unittest.TestCase):
             abs(self.non_roq_phase.log_likelihood_ratio() -
                 self.roq_phase.log_likelihood_ratio()) /
             self.non_roq_phase.log_likelihood_ratio(), 1e-3)
+
+    def test_create_roq_weights_with_params(self):
+        roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=self.roq_wfg,
+            linear_matrix=self.linear_matrix_file, roq_params=self.params_file,
+            quadratic_matrix=self.quadratic_matrix_file, priors=self.priors)
+        roq.parameters.update(self.test_parameters)
+        self.roq.parameters.update(self.test_parameters)
+        self.assertEqual(
+            roq.log_likelihood_ratio(), self.roq.log_likelihood_ratio())
+
+    def test_create_roq_weights_frequency_mismatch_works_with_params(self):
+        self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
+        _ = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=self.roq_wfg,
+            linear_matrix=self.linear_matrix_file, roq_params=self.params_file,
+            quadratic_matrix=self.quadratic_matrix_file, priors=self.priors)
+
+    def test_create_roq_weights_frequency_mismatch_fails_without_params(self):
+        self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
+        with self.assertRaises(ValueError):
+            _ = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                quadratic_matrix=self.quadratic_matrix_file, priors=self.priors)
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):
