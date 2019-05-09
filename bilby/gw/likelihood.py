@@ -17,7 +17,7 @@ from scipy.special import i0e
 from ..core import likelihood
 from ..core.utils import (
     logger, UnsortedInterp2d, BilbyJsonEncoder, decode_bilby_json,
-    create_time_series)
+    create_frequency_series, create_time_series)
 from ..core.prior import Interped, Prior, Uniform
 from .detector import InterferometerList
 from .prior import BBHPriorDict
@@ -912,17 +912,27 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         for ifo in self.interferometers:
             if self.roq_params is not None:
-                frequencies = np.arange(
-                    self.roq_params['flow'],
-                    self.roq_params['fhigh'] + 1 / self.roq_params['seglen'],
-                    1 / self.roq_params['seglen'])
+                frequencies = create_frequency_series(
+                    sampling_frequency=self.roq_params['fhigh'] * 2,
+                    duration=self.roq_params['seglen'])
+                roq_mask = [frequencies >= self.roq_params['flow']]
+                frequencies = frequencies[roq_mask]
                 overlap_frequencies, ifo_idxs, roq_idxs = np.intersect1d(
                     ifo.frequency_array[ifo.frequency_mask], frequencies,
                     return_indices=True)
             else:
                 overlap_frequencies = ifo.frequency_array[ifo.frequency_mask]
                 roq_idxs = np.arange(linear_matrix.shape[0], dtype=int)
-                ifo_idxs = ifo.frequency_mask
+                ifo_idxs = [True] * sum(ifo.frequency_mask)
+                if sum(ifo_idxs) != len(roq_idxs):
+                    raise ValueError(
+                        "Mismatch between ROQ basis and frequency array for "
+                        "{}".format(ifo.name))
+            logger.info(
+                "Building ROQ weights for {} with {} frequencies between {} "
+                "and {}.".format(
+                    ifo.name, len(overlap_frequencies),
+                    min(overlap_frequencies), max(overlap_frequencies)))
 
             # array of relative time shifts to be applied to the data
             # 0.045s comes from time for GW to traverse the Earth
@@ -936,7 +946,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
             # shift data to beginning of the prior increment by the time step
             shifted_data =\
-                ifo.frequency_domain_strain[ifo_idxs] * \
+                ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs] * \
                 np.exp(2j * np.pi * overlap_frequencies *
                        self.weights['time_samples'][0])
             single_time_shift = np.exp(
@@ -951,14 +961,16 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             max_elements = int((max_block_gigabytes * 2 ** 30) / 8)
 
             self.weights[ifo.name + '_linear'] = blockwise_dot_product(
-                tc_shifted_data / ifo.power_spectral_density_array[ifo_idxs],
+                tc_shifted_data /
+                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs],
                 linear_matrix[roq_idxs],
                 max_elements) * 4 / ifo.strain_data.duration
 
             del tc_shifted_data
 
             self.weights[ifo.name + '_quadratic'] = build_roq_weights(
-                1 / ifo.power_spectral_density_array[ifo_idxs],
+                1 /
+                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs],
                 quadratic_matrix[roq_idxs].real,
                 1 / ifo.strain_data.duration)
 
