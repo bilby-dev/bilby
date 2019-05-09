@@ -3,17 +3,33 @@
 ## Unreleased
 
 ### Added
+- 
+### Changed
+- 
+### Removed
+- 
+
+## [0.5.0] 2019-05-08
+
+### Added
 - A plot_skymap method to the CBCResult object based on ligo.skymap
+- A plot_calibration_posterior method to the CBCResult object
+- Method to merge results
 
 ### Changed
+- Significant refactoring of detector module: this should be backward conmpatible. This work was done to break the large detector.py file into smaller, more manageable chunks. 
 - The `periodic_boundary` option to the prior classes has been changed to `boundary`.
-This breaks backward compatibility.
+*This breaks backward compatibility*.
 The options to `boundary` are `{'periodic', 'reflective', None}`.
 Periodic boundaries are supported as before.
 Reflective boundaries are supported in `dynesty` and `cpnest`.  
+- Minor speed improvements by caching intermediate steps
 - Added state plotting for dynesty. Use `check_point_plot=True` in the `run_sampler` 
 function to create trace plots during the dynesty checkpoints
 - Dynesty now prints the progress to STDOUT rather than STDERR
+- `detector` module refactored into subpackage. Maintains backward compatibility.
+- Specifying alternative frequency bounds for the ROQ now possible if the appropriate
+`params.dat` file is passed.
 
 ### Removed
 - Obsolete (and potentially incorrect) plot_skymap methods from gw.utils
