@@ -1029,7 +1029,7 @@ class Result(object):
         ----------
         likelihood: bilby.likelihood.GravitationalWaveTransient, optional
             GravitationalWaveTransient likelihood used for sampling.
-        priors: dict, optional
+        priors: bilby.prior.PriorDict, optional
             Dictionary of prior object, used to fill in delta function priors.
         conversion_function: function, optional
             Function which adds in extra parameters to the data frame,
@@ -1044,13 +1044,9 @@ class Result(object):
                 data_frame, priors)
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
-            if self.log_prior_evaluations is None:
-                ln_prior = list()
-                for ii in range(len(data_frame)):
-                    ln_prior.append(
-                        self.priors.ln_prob(dict(
-                            data_frame[self.search_parameter_keys].iloc[ii])))
-                data_frame['log_prior'] = np.array(ln_prior)
+            if self.log_prior_evaluations is None and priors is not None:
+                data_frame['log_prior'] = priors.ln_prob(
+                    dict(data_frame[self.search_parameter_keys]), axis=0)
             else:
                 data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:
