@@ -6,6 +6,31 @@ from .. import utils as gwutils
 class InterferometerGeometry(object):
     def __init__(self, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
                  xarm_tilt=0., yarm_tilt=0.):
+        """
+        Instantiate an Interferometer object.
+
+        Parameters
+        ----------
+
+        length: float
+            Length of the interferometer in km.
+        latitude: float
+            Latitude North in degrees (South is negative).
+        longitude: float
+            Longitude East in degrees (West is negative).
+        elevation: float
+            Height above surface in metres.
+        xarm_azimuth: float
+            Orientation of the x arm in degrees North of East.
+        yarm_azimuth: float
+            Orientation of the y arm in degrees North of East.
+        xarm_tilt: float, optional
+            Tilt of the x arm in radians above the horizontal defined by
+            ellipsoid earth model in LIGO-T980044-08.
+        yarm_tilt: float, optional
+            Tilt of the y arm in radians above the horizontal.
+        """
+
         self._x_updated = False
         self._y_updated = False
         self._vertex_updated = False
@@ -23,6 +48,20 @@ class InterferometerGeometry(object):
         self._x = None
         self._y = None
         self._detector_tensor = None
+
+    def __eq__(self, other):
+        for attribute in ['length', 'latitude', 'longitude', 'elevation',
+                          'xarm_azimuth', 'yarm_azimuth', 'xarm_tilt', 'yarm_tilt']:
+            if not getattr(self, attribute) == getattr(other, attribute):
+                return False
+        return True
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(length={}, latitude={}, longitude={}, elevation={}, ' \
+                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(float(self.length), float(self.latitude), float(self.longitude),
+                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
+                    float(self.yarm_tilt))
 
     @property
     def latitude(self):
