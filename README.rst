@@ -48,7 +48,7 @@ as requested in their associated documentation.
 * `emcee <https://github.com/dfm/emcee>`__
 * `ptemcee <https://github.com/willvousden/ptemcee>`__
 * `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
-* `pypolychord <https://github.com/vhaasteren/pypolychord>`__
+* `pypolychord <https://github.com/PolyChord/PolyChordLite>`__
 * `PyMC3 <https://github.com/pymc-devs/pymc3>`_
 
 
