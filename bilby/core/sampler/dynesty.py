@@ -202,6 +202,10 @@ class Dynesty(NestedSampler):
 
     def run_sampler(self):
         import dynesty
+        if self.kwargs['live_points'] is None:
+            self.kwargs['live_points'] = (
+                self.get_initial_points_from_prior(
+                    self.kwargs['nlive']))
         self.sampler = dynesty.NestedSampler(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
