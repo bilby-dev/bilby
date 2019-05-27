@@ -447,7 +447,7 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
 
 
 def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None, server=None):
-    candidate = gracedb_to_json(gracedb, outdir)
+    candidate = gracedb_to_json(gracedb, outdir=outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
     cache_files = []
