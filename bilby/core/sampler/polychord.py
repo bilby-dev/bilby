@@ -35,22 +35,25 @@ class PyPolyChord(NestedSampler):
         import pypolychord
         from pypolychord.settings import PolyChordSettings
         if self.kwargs['use_polychord_defaults']:
-            settings = PolyChordSettings(nDims=self.ndim, nDerived=self.ndim, base_dir=self.outdir,
+            settings = PolyChordSettings(nDims=self.ndim, nDerived=self.ndim,
+                                         base_dir=self._sample_file_directory,
                                          file_root=self.label)
         else:
             self._setup_dynamic_defaults()
             pc_kwargs = self.kwargs.copy()
-            pc_kwargs['base_dir'] = self.outdir
+            pc_kwargs['base_dir'] = self._sample_file_directory
             pc_kwargs['file_root'] = self.label
             pc_kwargs.pop('use_polychord_defaults')
             settings = PolyChordSettings(nDims=self.ndim, nDerived=self.ndim, **pc_kwargs)
         self._verify_kwargs_against_default_kwargs()
 
-        pypolychord.run_polychord(loglikelihood=self.log_likelihood, nDims=self.ndim,
-                                  nDerived=self.ndim, settings=settings, prior=self.prior_transform)
-
-        self.result.log_evidence, self.result.log_evidence_err = self._read_out_stats_file()
-        self.result.samples = self._read_sample_file()
+        out = pypolychord.run_polychord(loglikelihood=self.log_likelihood, nDims=self.ndim,
+                                        nDerived=self.ndim, settings=settings, prior=self.prior_transform)
+        self.result.log_evidence = out.logZ
+        self.result.log_evidence_err = out.logZerr
+        log_likelihoods, physical_parameters = self._read_sample_file()
+        self.result.log_likelihood_evaluations = log_likelihoods
+        self.result.samples = physical_parameters
         return self.result
 
     def _setup_dynamic_defaults(self):
@@ -74,21 +77,23 @@ class PyPolyChord(NestedSampler):
         """ Overrides the log_likelihood so that PolyChord understands it """
         return super(PyPolyChord, self).log_likelihood(theta), theta
 
-    def _read_out_stats_file(self):
-        statsfile = self.outdir + '/' + self.label + '.stats'
-        with open(statsfile) as f:
-            for line in f:
-                if line.startswith('log(Z)'):
-                    line = line.replace('log(Z)', '')
-                    line = line.replace('=', '')
-                    line = line.replace(' ', '')
-                    print(line)
-                    z = line.split('+/-')
-                    log_z = float(z[0])
-                    log_z_err = float(z[1])
-                    return log_z, log_z_err
-
     def _read_sample_file(self):
-        sample_file = self.outdir + '/' + self.label + '_equal_weights.txt'
+        """
+        This method reads out the _equal_weights.txt file that polychord produces.
+        The first column is omitted since it is just composed of 1s, i.e. the equal weights/
+        The second column are the log likelihoods, the remaining columns are the physical parameters
+
+        Returns
+        -------
+        array_like, array_like: The log_likelihoods and the associated parameters
+
+        """
+        sample_file = self._sample_file_directory + '/' + self.label + '_equal_weights.txt'
         samples = np.loadtxt(sample_file)
-        return samples[:, -self.ndim:]  # extract last ndim columns
+        log_likelihoods = -0.5 * samples[:, 1]
+        physical_parameters = samples[:, -self.ndim:]
+        return log_likelihoods, physical_parameters
+
+    @property
+    def _sample_file_directory(self):
+        return self.outdir + '/chains'
