@@ -14,9 +14,9 @@ from .utils import (plot_spline_pos,
                     spline_angle_xform)
 
 
-class CompactBinaryCoalesenceResult(CoreResult):
+class CompactBinaryCoalescenceResult(CoreResult):
     def __init__(self, **kwargs):
-        super(CompactBinaryCoalesenceResult, self).__init__(**kwargs)
+        super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
     def __get_from_nested_meta_data(self, *keys):
         dictionary = self.meta_data
@@ -371,4 +371,12 @@ class CompactBinaryCoalesenceResult(CoreResult):
         plt.savefig(filename, dpi=500)
 
 
-CBCResult = CompactBinaryCoalesenceResult
+class CompactBinaryCoalesenceResult(CompactBinaryCoalescenceResult):
+
+    def __init__(self, **kwargs):
+        logger.warning('CompactBinaryCoalesenceResult is deprecated use '
+                       'CompactBinaryCoalescenceResult')
+        super(CompactBinaryCoalesenceResult, self).__init__(**kwargs)
+
+
+CBCResult = CompactBinaryCoalescenceResult
