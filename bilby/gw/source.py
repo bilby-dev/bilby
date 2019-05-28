@@ -4,14 +4,13 @@ import numpy as np
 
 from ..core import utils
 from ..core.utils import logger
-from .conversion import transform_precessing_spins
+from .conversion import bilby_to_lalsimulation_spins
 from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
                     lalsim_SimInspiralChooseFDWaveform,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda2,
-                    lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame,
-                    lalsim_SimIMRPhenomPFrequencySequence)
+                    lalsim_SimInspiralChooseFDWaveformSequence)
 
 try:
     import lal
@@ -227,10 +226,9 @@ def _base_lal_cbc_fd_waveform(
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
-    if (pn_amplitude_order != 0):
-        start_frequency = lalsim.SimInspiralfLow2fStart(minimum_frequency,
-                                                        int(pn_amplitude_order),
-                                                        approximant)
+    if pn_amplitude_order != 0:
+        start_frequency = lalsim.SimInspiralfLow2fStart(
+            minimum_frequency, int(pn_amplitude_order), approximant)
     else:
         start_frequency = minimum_frequency
 
@@ -243,30 +241,27 @@ def _base_lal_cbc_fd_waveform(
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    if tilt_1 in [0.0, np.pi] and tilt_2 in [0, np.pi]:
-        spin_1x = 0.0
-        spin_1y = 0.0
-        spin_1z = a_1 * np.cos(tilt_1)
-        spin_2x = 0.0
-        spin_2y = 0.0
-        spin_2z = a_2 * np.cos(tilt_2)
-        iota = theta_jn
-    else:
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-            transform_precessing_spins(
-                theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-                mass_2, reference_frequency, phase))
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
 
     waveform_dictionary = lal.CreateDict()
-    lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(waveform_dictionary, int(pn_spin_order))
-    lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(waveform_dictionary, int(pn_tidal_order))
-    lalsim.SimInspiralWaveformParamsInsertPNPhaseOrder(waveform_dictionary, int(pn_phase_order))
-    lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(waveform_dictionary, int(pn_amplitude_order))
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
+    lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(
+        waveform_dictionary, int(pn_spin_order))
+    lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(
+        waveform_dictionary, int(pn_tidal_order))
+    lalsim.SimInspiralWaveformParamsInsertPNPhaseOrder(
+        waveform_dictionary, int(pn_phase_order))
+    lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
+        waveform_dictionary, int(pn_amplitude_order))
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
 
     if lalsim.SimInspiralImplementedFDApproximants(approximant):
         wf_func = lalsim_SimInspiralChooseFDWaveform
@@ -291,7 +286,139 @@ def _base_lal_cbc_fd_waveform(
     h_plus *= frequency_bounds
     h_cross *= frequency_bounds
 
-    return {'plus': h_plus, 'cross': h_cross}
+    return dict(plus=h_plus, cross=h_cross)
+
+
+def roq(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
+    logger.warning(
+        'bilby.gw.source.roq has been deprecated and will be removed. Use '
+        'bilby.gw.source.binary_black_hole_roq instead.')
+    return binary_black_hole_roq(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, a_1=a_1, tilt_1=tilt_1,
+        phi_12=phi_12, a_2=a_2, tilt_2=tilt_2, phi_jl=phi_jl,
+        theta_jn=theta_jn, phase=phase, **waveform_arguments)
+
+
+def binary_black_hole_roq(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2', reference_frequency=20.0)
+    waveform_kwargs.update(waveform_arguments)
+    return _base_roq_waveform(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
+
+
+def binary_neutron_star_roq(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
+        **waveform_arguments):
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomD_NRTidal', reference_frequency=20.0)
+    waveform_kwargs.update(waveform_arguments)
+    return _base_roq_waveform(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
+
+
+def _base_roq_waveform(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, lambda_1, lambda_2, phi_jl, theta_jn, phase,
+        **waveform_arguments):
+    """
+    See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
+
+    Parameters
+    ----------
+    frequency_array: np.array
+        This input is ignored for the roq source model
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+
+    theta_jn: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+
+    Waveform arguments
+    ------------------
+    Non-sampled extra data used in the source model calculation
+    frequency_nodes_linear: np.array
+    frequency_nodes_quadratic: np.array
+    reference_frequency: float
+    approximant: str
+
+    Note: for the frequency_nodes_linear and frequency_nodes_quadratic arguments,
+    if using data from https://git.ligo.org/lscsoft/ROQ_data, this should be
+    loaded as `np.load(filename).T`.
+
+    Returns
+    -------
+    waveform_polarizations: dict
+        Dict containing plus and cross modes evaluated at the linear and
+        quadratic frequency nodes.
+    """
+    frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
+    frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
+    reference_frequency = waveform_arguments['reference_frequency']
+    approximant = lalsim_GetApproximantFromString(
+        waveform_arguments['approximant'])
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    waveform_dictionary = lal.CreateDict()
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+
+    h_linear_plus, h_linear_cross = lalsim_SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_nodes_linear)
+
+    h_quadratic_plus, h_quadratic_cross = lalsim_SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_nodes_quadratic)
+
+    waveform_polarizations = dict()
+    waveform_polarizations['linear'] = dict(
+        plus=h_linear_plus.data.data, cross=h_linear_cross.data.data)
+    waveform_polarizations['quadratic'] = dict(
+        plus=h_quadratic_plus.data.data, cross=h_quadratic_cross.data.data)
+
+    return waveform_polarizations
 
 
 def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
@@ -351,110 +478,3 @@ def supernova_pca_model(
                          pc_coeff4 * pc4 + pc_coeff5 * pc5)
 
     return {'plus': h_plus, 'cross': h_cross}
-
-
-def roq(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
-    """
-    See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
-
-    Parameters
-    ----------
-    frequency_array: np.array
-        This input is ignored for the roq source model
-    mass_1: float
-        The mass of the heavier object in solar masses
-    mass_2: float
-        The mass of the lighter object in solar masses
-    luminosity_distance: float
-        The luminosity distance in megaparsec
-    a_1: float
-        Dimensionless primary spin magnitude
-    tilt_1: float
-        Primary tilt angle
-    phi_12: float
-
-    a_2: float
-        Dimensionless secondary spin magnitude
-    tilt_2: float
-        Secondary tilt angle
-    phi_jl: float
-
-    theta_jn: float
-        Orbital inclination
-    phase: float
-        The phase at coalescence
-
-    Waveform arguments
-    ------------------
-    Non-sampled extra data used in the source model calculation
-    frequency_nodes_linear: np.array
-    frequency_nodes_quadratic: np.array
-    reference_frequency: float
-    version: str
-
-    Note: for the frequency_nodes_linear and frequency_nodes_quadratic arguments,
-    if using data from https://git.ligo.org/lscsoft/ROQ_data, this should be
-    loaded as `np.load(filename).T`.
-
-    Returns
-    -------
-    waveform_polarizations: dict
-        Dict containing plus and cross modes evaluated at the linear and
-        quadratic frequency nodes.
-
-    """
-    frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
-    frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
-    reference_frequency = getattr(waveform_arguments,
-                                  'reference_frequency', 20.0)
-    versions = dict(IMRPhenomPv2=lalsim.IMRPhenomPv2_V)
-    version = versions[getattr(waveform_arguments, 'version', 'IMRPhenomPv2')]
-
-    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
-    mass_1 = mass_1 * utils.solar_mass
-    mass_2 = mass_2 * utils.solar_mass
-
-    if tilt_1 == 0 and tilt_2 == 0:
-        spin_1x = 0
-        spin_1y = 0
-        spin_1z = a_1
-        spin_2x = 0
-        spin_2y = 0
-        spin_2z = a_2
-        iota = theta_jn
-    else:
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
-            transform_precessing_spins(
-                theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-                mass_2, reference_frequency, phase)
-
-    chi_1_l, chi_2_l, chi_p, theta_jn, alpha, phase_aligned, zeta =\
-        lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(
-            mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
-            spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version)
-
-    waveform_polarizations = dict()
-
-    h_linear_plus, h_linear_cross = lalsim_SimIMRPhenomPFrequencySequence(
-        frequency_nodes_linear, chi_1_l, chi_2_l, chi_p, theta_jn,
-        mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency, version)
-    h_quadratic_plus, h_quadratic_cross = lalsim_SimIMRPhenomPFrequencySequence(
-        frequency_nodes_quadratic, chi_1_l, chi_2_l, chi_p, theta_jn,
-        mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency, version)
-
-    waveform_polarizations['linear'] = dict(
-        plus=(np.cos(2 * zeta) * h_linear_plus.data.data +
-              np.sin(2 * zeta) * h_linear_cross.data.data),
-        cross=(np.cos(2 * zeta) * h_linear_cross.data.data -
-               np.sin(2 * zeta) * h_linear_plus.data.data))
-
-    waveform_polarizations['quadratic'] = dict(
-        plus=(np.cos(2 * zeta) * h_quadratic_plus.data.data +
-              np.sin(2 * zeta) * h_quadratic_cross.data.data),
-        cross=(np.cos(2 * zeta) * h_quadratic_cross.data.data -
-               np.sin(2 * zeta) * h_quadratic_plus.data.data))
-
-    return waveform_polarizations

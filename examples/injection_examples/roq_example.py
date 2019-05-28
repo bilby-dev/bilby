@@ -69,12 +69,11 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # make ROQ waveform generator
 search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=bilby.gw.source.roq,
-    waveform_arguments=dict(frequency_nodes_linear=freq_nodes_linear,
-                            frequency_nodes_quadratic=freq_nodes_quadratic,
-                            reference_frequency=20. * scale_factor,
-                            minimum_frequency=20. * scale_factor,
-                            approximant='IMRPhenomPv2'),
+    frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+    waveform_arguments=dict(
+        frequency_nodes_linear=freq_nodes_linear,
+        frequency_nodes_quadratic=freq_nodes_quadratic,
+        reference_frequency=20. * scale_factor, approximant='IMRPhenomPv2'),
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
 
 # Here we add constraints on chirp mass and mass ratio to the prior, these are

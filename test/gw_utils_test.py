@@ -38,6 +38,10 @@ class TestGWUtils(unittest.TestCase):
         self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5)**2))
 
     def test_time_delay_from_geocenter(self):
+        """
+        The difference in the two detector case is due to rounding error.
+        Different hardware gives different numbers in the last decimal place.
+        """
         det1 = np.array([0.1, 0.2, 0.3])
         det2 = np.array([0.1, 0.2, 0.5])
         ra = 0.5
@@ -45,9 +49,9 @@ class TestGWUtils(unittest.TestCase):
         time = 10
         self.assertEqual(
             gwutils.time_delay_geocentric(det1, det1, ra, dec, time), 0)
-        self.assertEqual(
+        self.assertAlmostEqual(
             gwutils.time_delay_geocentric(det1, det2, ra, dec, time),
-            1.3253791114055397e-10)
+            1.3253791114055397e-10, 14)
 
     def test_get_polarization_tensor(self):
         ra = 1
@@ -171,16 +175,15 @@ class TestGWUtils(unittest.TestCase):
         self.assertEqual(type(a[0]), lal.COMPLEX16FrequencySeries)
         self.assertEqual(type(a[1]), lal.COMPLEX16FrequencySeries)
 
-        with self.assertRaises(ValueError):
-            a = gwutils.lalsim_SimInspiralChooseFDWaveform(
+        with self.assertRaises(RuntimeError):
+            _ = gwutils.lalsim_SimInspiralChooseFDWaveform(
                 35.2, 20.4, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 1000, 2, 2.3,
-                45., 0.1, 10, 0.01, 10, 1000, 20, None, 'IMRPhenomPV2')
+                45., 0.1, 10, 0.01, 10, 1000, 20, None, 'Fail')
 
-    def test_lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(self):
-        version = lalsim.IMRPhenomPv2_V
-        a = gwutils.lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(
-            25.6, 12.2, 50, 0.2, 0, 0, 0, 0, 0, 0, 0, version)
-        self.assertEqual(len(a), 7)
+        with self.assertRaises(ValueError):
+            _ = gwutils.lalsim_SimInspiralChooseFDWaveform(
+                35.2, 20.4, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 1000, 2, 2.3,
+                45., 0.1, 10, 0.01, 10, 1000, 20, None, 1.5)
 
 
 if __name__ == '__main__':

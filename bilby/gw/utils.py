@@ -18,6 +18,7 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 try:
+    import lal
     import lalsimulation as lalsim
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will"
@@ -688,8 +689,33 @@ def lalsim_SimInspiralFD(
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant):
+    """
+    Safely call lalsimulation.SimInspiralFD
 
-    # Convert values to floats
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    longitude_ascending_nodes: float, int
+    eccentricity: float, int
+    mean_per_ano: float, int
+    delta_frequency: float, int
+    minimum_frequency: float, int
+    maximum_frequency: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    """
+
     [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
      luminosity_distance, iota, phase, longitude_ascending_nodes,
      eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
@@ -699,8 +725,11 @@ def lalsim_SimInspiralFD(
         eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
         maximum_frequency, reference_frequency)
 
-    # Note, this is the approximant number returns by GetApproximantFromString
-    if isinstance(approximant, int) is False:
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
         raise ValueError("approximant not an int")
 
     return lalsim.SimInspiralFD(
@@ -717,8 +746,33 @@ def lalsim_SimInspiralChooseFDWaveform(
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant):
+    """
+    Safely call lalsimulation.SimInspiralChooseFDWaveform
 
-    # Convert values to floats
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    longitude_ascending_nodes: float, int
+    eccentricity: float, int
+    mean_per_ano: float, int
+    delta_frequency: float, int
+    minimum_frequency: float, int
+    maximum_frequency: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    """
+
     [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
      luminosity_distance, iota, phase, longitude_ascending_nodes,
      eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
@@ -728,8 +782,11 @@ def lalsim_SimInspiralChooseFDWaveform(
         eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
         maximum_frequency, reference_frequency)
 
-    # Note, this is the approximant number returns by GetApproximantFromString
-    if isinstance(approximant, int) is False:
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
         raise ValueError("approximant not an int")
 
     return lalsim.SimInspiralChooseFDWaveform(
@@ -740,31 +797,53 @@ def lalsim_SimInspiralChooseFDWaveform(
         waveform_dictionary, approximant)
 
 
-def lalsim_SimIMRPhenomPCalculateModelParametersFromSourceFrame(
-        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
-        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version):
-    [mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
-     spin_1y, spin_1z, spin_2x, spin_2y, spin_2z] = convert_args_list_to_float(
-        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
-        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z)
-    return lalsim.SimIMRPhenomPCalculateModelParametersFromSourceFrame(
-        mass_1, mass_2, reference_frequency, phase, iota, spin_1x,
-        spin_1y, spin_1z, spin_2x, spin_2y, spin_2z, version)
+def lalsim_SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_array):
+    """
+    Safely call lalsimulation.SimInspiralChooseFDWaveformSequence
 
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    frequency_array: np.ndarray, lal.REAL8Vector
+    """
 
-def lalsim_SimIMRPhenomPFrequencySequence(
-        frequency_nodes, chi_1_l, chi_2_l, chi_p, theta_jn,
-        mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency, version):
-    [chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2, luminosity_distance,
-     alpha, phase_aligned, reference_frequency] = convert_args_list_to_float(
-        chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2, luminosity_distance,
-        alpha, phase_aligned, reference_frequency)
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, reference_frequency)
 
-    return lalsim.SimIMRPhenomPFrequencySequence(
-        frequency_nodes, chi_1_l, chi_2_l, chi_p, theta_jn, mass_1, mass_2,
-        luminosity_distance, alpha, phase_aligned, reference_frequency, version,
-        None)
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
+        raise ValueError("approximant not an int")
+
+    if not isinstance(frequency_array, lal.REAL8Vector):
+        old_frequency_array = frequency_array.copy()
+        frequency_array = lal.CreateREAL8Vector(len(old_frequency_array))
+        frequency_array.data = old_frequency_array
+
+    return lalsim.SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_array)
 
 
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
