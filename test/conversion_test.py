@@ -250,13 +250,6 @@ class TestConvertToLALParams(unittest.TestCase):
     def test_lambda_1(self):
         self._conversion_to_component_tidal(['lambda_1'])
 
-    def test_bns_spherical_spin_to_aligned(self):
-        self.parameters['a_1'] = -1
-        self.parameters['tilt_1'] = np.arccos(0.5)
-        chi_1 = self.parameters['a_1'] * np.cos(self.parameters['tilt_1'])
-        self.bns_convert()
-        self.assertEqual(self.parameters['chi_1'], chi_1)
-
 
 class TestDistanceTransformations(unittest.TestCase):
 

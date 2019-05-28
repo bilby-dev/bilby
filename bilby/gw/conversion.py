@@ -254,7 +254,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
 
 
     Mass: mass_1, mass_2
-    Spin: chi_1, chi_2, tilt_1, tilt_2, phi_12, phi_jl
+    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
     Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
 
     This involves popping a lot of things from parameters.
@@ -277,19 +277,6 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
-    for idx in ['1', '2']:
-        mag = 'a_{}'.format(idx)
-        if mag in original_keys:
-            tilt = 'tilt_{}'.format(idx)
-            if tilt in original_keys:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag] *
-                    np.cos(converted_parameters[tilt]))
-            else:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag])
-
-    # catch if tidal parameters aren't present
     if not any([key in converted_parameters for key in
                 ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
         converted_parameters['lambda_1'] = 0

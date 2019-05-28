@@ -72,8 +72,9 @@ def lal_binary_black_hole(
 
 
 def lal_binary_neutron_star(
-        frequency_array, mass_1, mass_2, luminosity_distance, chi_1, chi_2,
-        theta_jn, phase, lambda_1, lambda_2, **kwargs):
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, lambda_1, lambda_2,
+        **kwargs):
     """ A Binary Neutron Star waveform model using lalsimulation
 
     Parameters
@@ -86,27 +87,27 @@ def lal_binary_neutron_star(
         The mass of the lighter object in solar masses
     luminosity_distance: float
         The luminosity distance in megaparsec
-    chi_1: float
-        Dimensionless aligned spin
-    chi_2: float
-        Dimensionless aligned spin
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
     theta_jn: float
         Orbital inclination
     phase: float
         The phase at coalescence
-    ra: float
-        The right ascension of the binary
-    dec: float
-        The declination of the object
-    geocent_time: float
-        The time at coalescence
-    psi: float
-        Orbital polarisation
     lambda_1: float
         Dimensionless tidal deformability of mass_1
     lambda_2: float
         Dimensionless tidal deformability of mass_2
-
     kwargs: dict
         Optional keyword arguments
 
@@ -115,20 +116,16 @@ def lal_binary_neutron_star(
     dict: A dictionary with the plus and cross polarisation strain modes
     """
     waveform_kwargs = dict(
-        waveform_approximant='TaylorF2', reference_frequency=50.0,
+        waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1],
-        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1, pn_amplitude_order=0)
-
-    a_1 = abs(chi_1)
-    a_2 = abs(chi_2)
-    tilt_1 = np.arccos(np.sign(chi_1))
-    tilt_2 = np.arccos(np.sign(chi_2))
+        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
+        pn_amplitude_order=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
-        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, lambda_1=lambda_1,
-        lambda_2=lambda_2, **waveform_kwargs)
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
+        phi_jl=phi_jl, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
 
 
 def lal_eccentric_binary_black_hole_no_spins(
