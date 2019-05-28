@@ -39,7 +39,7 @@ sampling_frequency = 2 * 1570.
 start_time = injection_parameters['geocent_time'] + 2 - duration
 
 # Fixed arguments passed into the source model. The analysis starts at 40 Hz.
-waveform_arguments = dict(waveform_approximant='TaylorF2',
+waveform_arguments = dict(waveform_approximant='IMRPhenomPv2_NRTidal',
                           reference_frequency=50., minimum_frequency=40.0)
 
 # Create the waveform_generator using a LAL Binary Neutron Star source function
@@ -64,6 +64,8 @@ interferometers.inject_signal(parameters=injection_parameters,
 # Load the default prior for binary neutron stars.
 # We're going to sample in chirp_mass, symmetric_mass_ratio, lambda_tilde, and
 # delta_lambda rather than mass_1, mass_2, lambda_1, and lambda_2.
+# BNS have aligned spins by default, if you want to allow precessing spins
+# pass aligned_spin=False to the BNSPriorDict
 priors = bilby.gw.prior.BNSPriorDict()
 for key in ['psi', 'geocent_time', 'ra', 'dec', 'chi_1', 'chi_2',
             'theta_jn', 'luminosity_distance', 'phase']:
@@ -81,7 +83,7 @@ priors['delta_lambda'] = bilby.core.prior.Uniform(
     -5000, 5000, name='delta_lambda')
 
 # Initialise the likelihood by passing in the interferometer data (IFOs)
-# and the waveoform generator
+# and the waveform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=interferometers, waveform_generator=waveform_generator,
     time_marginalization=False, phase_marginalization=False,

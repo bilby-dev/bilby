@@ -47,11 +47,12 @@ class TestLalBNS(unittest.TestCase):
 
     def setUp(self):
         self.parameters = dict(
-            mass_1=1.4, mass_2=1.4, luminosity_distance=400.0, chi_1=0.4,
-            chi_2=0.3, theta_jn=1.7, phase=0.0, lambda_1=100.0, lambda_2=100.0)
+            mass_1=1.4, mass_2=1.4, luminosity_distance=400.0, a_1=0.4,
+            a_2=0.3, tilt_1=0.2, tilt_2=1.7, phi_jl=0.2, phi_12=0.9,
+            theta_jn=1.7, phase=0.0, lambda_1=100.0, lambda_2=100.0)
         self.waveform_kwargs = dict(
-            waveform_approximant='TaylorF2', reference_frequency=50.0,
-            minimum_frequency=20.0)
+            waveform_approximant='IMRPhenomPv2_NRTidal',
+            reference_frequency=50.0, minimum_frequency=20.0)
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
 
     def tearDown(self):
@@ -59,7 +60,7 @@ class TestLalBNS(unittest.TestCase):
         del self.waveform_kwargs
         del self.frequency_array
 
-    def test_lal_bns_works_runs_valid_parameters(self):
+    def test_lal_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
             bilby.gw.source.lal_binary_neutron_star(
@@ -73,14 +74,6 @@ class TestLalBNS(unittest.TestCase):
     def test_fails_without_tidal_parameters(self):
         self.parameters.pop('lambda_1')
         self.parameters.pop('lambda_2')
-        self.parameters.update(self.waveform_kwargs)
-        with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star(
-                self.frequency_array, **self.parameters)
-
-    def test_fails_without_aligned_spins(self):
-        self.parameters.pop('chi_1')
-        self.parameters.pop('chi_2')
         self.parameters.update(self.waveform_kwargs)
         with self.assertRaises(TypeError):
             bilby.gw.source.lal_binary_neutron_star(

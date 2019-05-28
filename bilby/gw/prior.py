@@ -336,10 +336,12 @@ class BNSPriorDict(PriorDict):
             By default this generates many additional parameters, see
             BNSPriorDict.default_conversion_function
         """
-        if not aligned_spin:
-            logger.warning('Non-aligned spins not yet supported for BNS.')
+        if aligned_spin:
+            default_file = 'binary_neutron_stars.prior'
+        else:
+            default_file = 'precessing_binary_neutron_stars.prior'
         if dictionary is None and filename is None:
-            filename = os.path.join(os.path.dirname(__file__), 'prior_files', 'binary_neutron_stars.prior')
+            filename = os.path.join(os.path.dirname(__file__), 'prior_files', default_file)
             logger.info('No prior given, using default BNS priors in {}.'.format(filename))
         elif filename is not None:
             if not os.path.isfile(filename):
