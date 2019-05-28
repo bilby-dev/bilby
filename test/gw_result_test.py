@@ -92,6 +92,11 @@ class TestCBCResult(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.result.waveform_approximant
 
+    def test_waveform_arguments(self):
+        self.assertEqual(
+            self.result.waveform_arguments,
+            self.meta_data['likelihood']['waveform_arguments'])
+
     def test_frequency_domain_source_model(self):
         self.assertEqual(
             self.result.frequency_domain_source_model,
@@ -101,6 +106,11 @@ class TestCBCResult(unittest.TestCase):
         self.result.meta_data['likelihood'].pop('frequency_domain_source_model')
         with self.assertRaises(AttributeError):
             self.result.frequency_domain_source_model
+
+    def test_interferometer_names(self):
+        self.assertEqual(
+            self.result.interferometers,
+            [name for name in self.meta_data['likelihood']['interferometers']])
 
     def test_detector_injection_properties(self):
         self.assertEqual(
