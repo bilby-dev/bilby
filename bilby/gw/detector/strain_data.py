@@ -56,7 +56,7 @@ class InterferometerStrainData(object):
 
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
 
-        self._freq_mask_updated = False
+        self._frequency_mask_updated = False
         self._frequency_mask = None
         self._frequency_domain_strain = None
         self._time_domain_strain = None
@@ -107,7 +107,7 @@ class InterferometerStrainData(object):
     @minimum_frequency.setter
     def minimum_frequency(self, minimum_frequency):
         self._minimum_frequency = minimum_frequency
-        self._freq_mask_updated = False
+        self._frequency_mask_updated = False
 
     @property
     def maximum_frequency(self):
@@ -120,7 +120,7 @@ class InterferometerStrainData(object):
     @maximum_frequency.setter
     def maximum_frequency(self, maximum_frequency):
         self._maximum_frequency = maximum_frequency
-        self.__freq_mask_updated = False
+        self._frequency_mask_updated = False
 
     @property
     def frequency_mask(self):
@@ -130,11 +130,12 @@ class InterferometerStrainData(object):
         -------
         array_like: An array of boolean values
         """
-        if not self.__freq_mask_updated:
+        if not self._frequency_mask_updated:
             frequency_array = self._times_and_frequencies.frequency_array
             mask = ((frequency_array >= self.minimum_frequency) &
                     (frequency_array <= self.maximum_frequency))
             self._frequency_mask = mask
+            self._frequency_mask_updated = True
         return self._frequency_mask
 
     @property
