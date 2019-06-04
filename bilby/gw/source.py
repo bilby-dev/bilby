@@ -382,7 +382,7 @@ def _base_roq_waveform(
     frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
     reference_frequency = waveform_arguments['reference_frequency']
     approximant = lalsim_GetApproximantFromString(
-        waveform_arguments['approximant'])
+        waveform_arguments['waveform_approximant'])
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass

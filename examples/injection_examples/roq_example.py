@@ -73,7 +73,7 @@ search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
     waveform_arguments=dict(
         frequency_nodes_linear=freq_nodes_linear,
         frequency_nodes_quadratic=freq_nodes_quadratic,
-        reference_frequency=20. * scale_factor, approximant='IMRPhenomPv2'),
+        reference_frequency=20. * scale_factor, waveform_approximant='IMRPhenomPv2'),
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
 
 # Here we add constraints on chirp mass and mass ratio to the prior, these are
