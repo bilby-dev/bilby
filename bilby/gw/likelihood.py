@@ -925,9 +925,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
 
-        # Maximum delay time to geocentre plus 10%
-        earth_light_crossing_time = 1.1 * radius_of_earth / speed_of_light
         time_space = self._get_time_resolution()
+        # Maximum delay time to geocentre + 5 steps
+        earth_light_crossing_time = radius_of_earth / speed_of_light + 5 * time_space
         delta_times = np.arange(
             self.priors['geocent_time'].minimum - earth_light_crossing_time,
             self.priors['geocent_time'].maximum + earth_light_crossing_time,
@@ -963,18 +963,29 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                     ifo.name, len(overlap_frequencies),
                     min(overlap_frequencies), max(overlap_frequencies)))
 
+            logger.debug("Preallocate array")
+            tc_shifted_data = np.zeros((
+                len(self.weights['time_samples']), len(overlap_frequencies)),
+                dtype=complex)
+
+            logger.debug("Calculate shifted data")
             data = ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs]
-            tc_shifted_data = data * np.exp(
-                2j * np.pi * overlap_frequencies * time_samples[:, np.newaxis])
+            prefactor = (
+                data /
+                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs]
+            )
+            for j in range(len(self.weights['time_samples'])):
+                tc_shifted_data[j] = prefactor * np.exp(
+                    2j * np.pi * overlap_frequencies * time_samples[j])
 
             # to not kill all computers this minimises the memory usage of the
             # required inner products
             max_block_gigabytes = 4
             max_elements = int((max_block_gigabytes * 2 ** 30) / 8)
 
+            logger.debug("Apply dot product")
             self.weights[ifo.name + '_linear'] = blockwise_dot_product(
-                tc_shifted_data /
-                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs],
+                tc_shifted_data,
                 linear_matrix[roq_idxs],
                 max_elements) * 4 / ifo.strain_data.duration
 
