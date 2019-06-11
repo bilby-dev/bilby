@@ -600,10 +600,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         self._dist_margd_loglikelihood_array = np.zeros((400, 800))
         for ii, optimal_snr_squared_ref in enumerate(self._optimal_snr_squared_ref_array):
+            optimal_snr_squared_array = (
+                optimal_snr_squared_ref * self._ref_dist ** 2. /
+                self._distance_array ** 2)
             for jj, d_inner_h_ref in enumerate(self._d_inner_h_ref_array):
-                optimal_snr_squared_array = (
-                    optimal_snr_squared_ref * self._ref_dist ** 2. /
-                    self._distance_array ** 2)
                 d_inner_h_array = (
                     d_inner_h_ref * self._ref_dist / self._distance_array)
                 if self.phase_marginalization:
