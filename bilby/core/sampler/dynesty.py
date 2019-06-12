@@ -121,6 +121,12 @@ class Dynesty(NestedSampler):
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
         signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
 
+    def __getstate__(self):
+        """ For pickle: remove external_sampler, which can be an unpicklable "module" """
+        state = self.__dict__.copy()
+        del state['external_sampler']
+        return state
+
     @property
     def sampler_function_kwargs(self):
         keys = ['dlogz', 'print_progress', 'print_func', 'maxiter',
