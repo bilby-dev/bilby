@@ -187,6 +187,28 @@ class Interferometer(object):
             duration=duration, start_time=start_time,
             channel=channel, buffer_time=buffer_time)
 
+    def set_strain_data_from_channel_name(
+            self, channel, sampling_frequency, duration, start_time=0):
+        """
+        Set the `Interferometer.strain_data` by fetching from given channel
+        using strain_data.set_from_channel_name()
+
+        Parameters
+        ----------
+        channel: str
+            Channel to look for using gwpy in the format `IFO:Channel`
+        sampling_frequency: float
+            The sampling frequency (in Hz)
+        duration: float
+            The data duration (in s)
+        start_time: float
+            The GPS start-time of the data
+
+        """
+        self.strain_data.set_from_channel_name(
+            channel=channel, sampling_frequency=sampling_frequency,
+            duration=duration, start_time=start_time)
+
     def set_strain_data_from_csv(self, filename):
         """ Set the `Interferometer.strain_data` from a csv file
 

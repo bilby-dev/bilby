@@ -233,7 +233,13 @@ def load_data_from_cache_file(
     psd_set = False
 
     with open(cache_file, 'r') as ff:
-        for line in ff:
+        lines = ff.readlines()
+        if len(lines)>1:
+            raise ValueError('This method cannot handle cache files with'
+                             ' multiple frames. Use `load_data_by_channel_name'
+                             ' instead.')
+        else:
+            line = lines[0]
             cache = lal.utils.cache.CacheEntry(line)
             data_in_cache = (
                 (cache.segment[0].gpsSeconds < start_time) &
@@ -243,7 +249,13 @@ def load_data_from_cache_file(
                 (cache.segment[1].gpsSeconds > psd_start_time + psd_duration))
             ifo = get_empty_interferometer(
                 "{}1".format(cache.observatory))
-            if not data_set & data_in_cache:
+            if not data_in_cache:
+                raise ValueError('The specified data segment does not exist in' 
+                                 ' this frame.')
+            if not psd_in_cache:
+                raise ValueError('The specified PSD data segment does not exist' 
+                                 ' in this frame.')
+            if (not data_set) & data_in_cache:
                 ifo.set_strain_data_from_frame_file(
                     frame_file=cache.path,
                     sampling_frequency=sampling_frequency,
@@ -251,7 +263,7 @@ def load_data_from_cache_file(
                     start_time=start_time,
                     channel=channel_name, buffer_time=0)
                 data_set = True
-            if not psd_set & psd_in_cache:
+            if (not psd_set) & psd_in_cache:
                 ifo.power_spectral_density = \
                     PowerSpectralDensity.from_frame_file(
                         cache.path,
@@ -272,3 +284,64 @@ def load_data_from_cache_file(
         raise ValueError('Data not loaded for {}'.format(ifo.name))
     elif not psd_set:
         raise ValueError('PSD not created for {}'.format(ifo.name))
+
+
+def load_data_by_channel_name(
+        channel_name, start_time, segment_duration, psd_duration, psd_start_time,
+        sampling_frequency=4096, roll_off=0.2,
+        overlap=0, outdir=None):
+    """ Helper routine to generate an interferometer from a channel name
+    This function creates an empty interferometer specified in the name 
+    of the channel. It calls `ifo.set_strain_data_from_channel_name` to 
+    set the data and PSD in the interferometer using data retrieved from 
+    the specified channel using gwpy.TimeSeries.get()
+
+    Parameters
+    ----------
+    channel_name: str
+        Channel name with the format `IFO:Channel`
+    start_time, psd_start_time: float
+        GPS start time of the segment and data stretch used for the PSD
+    segment_duration, psd_duration: float
+        Segment duration and duration of data to use to generate the PSD (in
+        seconds).
+    roll_off: float, optional
+        Rise time in seconds of tukey window.
+    overlap: float,
+        Number of seconds of overlap between FFTs.
+    sampling_frequency: int
+        Sampling frequency
+    outdir: str, optional
+        The output directory in which the data is saved
+
+    Returns
+    -------
+    ifo: bilby.gw.detector.Interferometer
+        An initialised interferometer object with strain data set to the
+        appropriate data fetched from the specified channel and a PSD.
+    """
+    try:
+        det = channel_name.split(':')[-2]
+    except IndexError:
+        raise IndexError("Channel name must be of the format `IFO:Channel`")
+    ifo = get_empty_interferometer(det)
+        
+    ifo.set_strain_data_from_channel_name(
+        channel = channel_name,
+        sampling_frequency=sampling_frequency,
+        duration=segment_duration,
+        start_time=start_time)
+    
+    ifo.power_spectral_density = \
+        PowerSpectralDensity.from_channel_name(
+            channel=channel_name,
+            psd_start_time=psd_start_time,
+            psd_duration=psd_duration,
+            fft_length=segment_duration,
+            sampling_frequency=sampling_frequency,
+            roll_off=roll_off,
+            overlap=overlap,
+            name=det,
+            outdir=outdir,
+            analysis_segment_start_time=start_time)
+    return ifo

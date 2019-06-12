@@ -141,6 +141,49 @@ class PowerSpectralDensity(object):
         return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
     @staticmethod
+    def from_channel_name(channel, psd_start_time, psd_duration,
+                          fft_length=4, sampling_frequency=4096, roll_off=0.2,
+                          overlap=0, name=None, outdir=None,
+                          analysis_segment_start_time=None):
+        """ Generate power spectral density from a given channel name
+        by loading data using `strain_data.set_from_channel_name`
+
+        Parameters
+        ----------
+        psd_start_time: float
+            Beginning of segment to analyse.
+        psd_duration: float, optional
+            Duration of data (in seconds) to generate PSD from.
+        fft_length: float, optional
+            Number of seconds in a single fft.
+        sampling_frequency: float, optional
+            Sampling frequency for time series.
+            This is twice the maximum frequency.
+        roll_off: float, optional
+            Rise time in seconds of tukey window.
+        overlap: float,
+            Number of seconds of overlap between FFTs.
+        channel: str
+            Name of channel to use to generate PSD in the format
+            `IFO:Channel`
+        name, outdir: str, optional
+            Name (and outdir) of the detector for which a PSD is to be
+            generated.
+        analysis_segment_start_time: float, optional
+            The start time of the analysis segment, if given, this data will
+            be removed before creating the PSD.
+
+        """
+        strain = InterferometerStrainData(roll_off=roll_off)
+        strain.set_from_channel_name(
+            channel, duration=psd_duration, start_time=psd_start_time,
+            sampling_frequency=sampling_frequency)
+        frequency_array, psd_array = strain.create_power_spectral_density(
+            fft_length=fft_length, name=name, outdir=outdir, overlap=overlap,
+            analysis_segment_start_time=analysis_segment_start_time)
+        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
+
+    @staticmethod
     def from_amplitude_spectral_density_array(frequency_array, asd_array):
         return PowerSpectralDensity(frequency_array=frequency_array, asd_array=asd_array)
 
