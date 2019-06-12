@@ -307,10 +307,14 @@ class Dynesty(NestedSampler):
 
         if os.path.isfile(self.resume_file):
             logger.info("Reading resume file {}".format(self.resume_file))
-            with open(self.resume_file, 'rb') as file:
-                saved = pickle.load(file)
-            logger.info(
-                "Succesfuly read resume file {}".format(self.resume_file))
+            try:
+                with open(self.resume_file, 'rb') as file:
+                    saved = pickle.load(file)
+                logger.info(
+                    "Succesfuly read resume file {}".format(self.resume_file))
+            except EOFError as e:
+                logger.warning("Resume file reading failed with error {}".format(e))
+                return False
 
             self.sampler.saved_u = list(saved['unit_cube_samples'])
             self.sampler.saved_v = list(saved['physical_samples'])
