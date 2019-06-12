@@ -4,7 +4,7 @@
 Transient gravitational wave data I/O
 =====================================
 
-This document describs how :code:`bilby` handles interferometer data and how
+This document describes how :code:`bilby` handles interferometer data and how
 you can load data.
 
 What is used by the likelihood?
@@ -66,6 +66,15 @@ Setting the strain data from a frame file
 To set the data from a frame file, use this method
 
 .. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frame_file
+
+Setting the strain data from a channel name
+===========================================
+
+To set the data by specifying the channel name, use this method. It calls 
+:code:`gwpy.TimeSeries.get`, which dynamically accesses either frames on disk, 
+or a remote NDS2 server to find and return data.
+
+.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_channel_name
 
 Setting the strain data to be Gaussian noise
 ============================================
