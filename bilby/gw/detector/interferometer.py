@@ -581,7 +581,7 @@ class Interferometer(object):
                    header='f h(f)')
 
     def plot_data(self, signal=None, outdir='.', label=None):
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         fig, ax = plt.subplots()
