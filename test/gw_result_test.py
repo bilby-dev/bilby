@@ -8,7 +8,7 @@ import shutil
 class TestCBCResult(unittest.TestCase):
 
     def setUp(self):
-        bilby.utils.command_line_args.test = False
+        bilby.utils.command_line_args.bilby_test_mode = False
         priors = bilby.prior.PriorDict(dict(
             x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
@@ -34,7 +34,7 @@ class TestCBCResult(unittest.TestCase):
         pass
 
     def tearDown(self):
-        bilby.utils.command_line_args.test = True
+        bilby.utils.command_line_args.bilby_test_mode = True
         try:
             shutil.rmtree(self.result.outdir)
         except OSError:

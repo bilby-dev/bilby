@@ -148,7 +148,7 @@ class InterferometerList(list):
             interferometer.save_data(outdir=outdir, label=label)
 
     def plot_data(self, signal=None, outdir='.', label=None):
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         for interferometer in self:

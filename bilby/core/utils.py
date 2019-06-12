@@ -535,7 +535,7 @@ def set_up_command_line_arguments():
                         help="Force cached data and do not check its validity")
     parser.add_argument("--sampler-help", nargs='?', default=False,
                         const='None', help="Print help for given sampler")
-    parser.add_argument("-t", "--test", action="store_true",
+    parser.add_argument("--bilby-test-mode", action="store_true",
                         help=("Used for testing only: don't run full PE, but"
                               " just check nothing breaks"))
     args, unknown_args = parser.parse_known_args()

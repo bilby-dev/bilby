@@ -54,7 +54,7 @@ class TestResult(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(7)
-        bilby.utils.command_line_args.test = False
+        bilby.utils.command_line_args.bilby_test_mode = False
         priors = bilby.prior.PriorDict(dict(
             x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
@@ -79,7 +79,7 @@ class TestResult(unittest.TestCase):
         pass
 
     def tearDown(self):
-        bilby.utils.command_line_args.test = True
+        bilby.utils.command_line_args.bilby_test_mode = True
         try:
             shutil.rmtree(self.result.outdir)
         except OSError:
@@ -395,7 +395,7 @@ class TestResultList(unittest.TestCase):
     
     def setUp(self):
         np.random.seed(7)
-        bilby.utils.command_line_args.test = False
+        bilby.utils.command_line_args.bilby_test_mode = False
         self.priors = bilby.prior.PriorDict(dict(
             x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
@@ -450,7 +450,7 @@ class TestResultList(unittest.TestCase):
             res.save_to_file()
 
     def tearDown(self):
-        bilby.utils.command_line_args.test = True
+        bilby.utils.command_line_args.bilby_test_mode = True
         try:
             shutil.rmtree(self.nested_results[0].outdir)
         except OSError:

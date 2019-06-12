@@ -164,7 +164,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     start_time = datetime.datetime.now()
 
-    if command_line_args.test:
+    if command_line_args.bilby_test_mode:
         result = sampler._run_test()
     else:
         result = sampler.run_sampler()

@@ -15,7 +15,7 @@ import bilby.core.utils
 import numpy as np
 import inspect
 
-bilby.core.utils.command_line_args.test = True
+bilby.core.utils.command_line_args.bilby_test_mode = True
 
 
 class Test(unittest.TestCase):

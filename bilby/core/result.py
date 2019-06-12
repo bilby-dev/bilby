@@ -800,7 +800,7 @@ class Result(object):
         """
 
         # If in testing mode, not corner plots are generated
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         # bilby default corner kwargs. Overwritten by anything passed to kwargs
@@ -909,7 +909,7 @@ class Result(object):
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
 
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         nwalkers, nsteps, ndim = self.walkers.shape
