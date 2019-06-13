@@ -70,6 +70,7 @@ class Nestle(NestedSampler):
             sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz
         self.result.log_evidence_err = out.logzerr
+        self.calc_likelihood_count()
         return self.result
 
     def _run_test(self):
@@ -92,4 +93,5 @@ class Nestle(NestedSampler):
         self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
+        self.calc_likelihood_count()
         return self.result

@@ -8,6 +8,7 @@ import traceback
 import inspect
 import subprocess
 import json
+import multiprocessing
 
 import numpy as np
 from scipy.interpolate import interp2d
@@ -825,6 +826,28 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
     else:
         process = subprocess.Popen(cl, shell=True)
         process.communicate()
+
+
+class Counter(object):
+    """
+    General class to count number of times a function is Called, returns total
+    number of function calls
+    Parameters
+    ----------
+    initalval : int, 0
+    number to start counting from
+    """
+    def __init__(self, initval=0):
+        self.val = multiprocessing.RawValue('i', initval)
+        self.lock = multiprocessing.Lock()
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    @property
+    def value(self):
+        return self.val.value
 
 
 class UnsortedInterp2d(interp2d):

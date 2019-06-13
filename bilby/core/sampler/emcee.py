@@ -361,6 +361,7 @@ class Emcee(MCMCSampler):
         log_ps = log_priors
         self.calculate_autocorrelation(chain)
         self.print_nburn_logging_info()
+        self.calc_likelihood_count()
         self.result.nburn = self.nburn
         n_samples = self.nwalkers * self.nburn
         if self.result.nburn > self.nsteps:

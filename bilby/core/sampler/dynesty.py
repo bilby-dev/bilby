@@ -242,6 +242,7 @@ class Dynesty(NestedSampler):
         self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
             unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
             sorted_samples=self.result.samples)
+        self.calc_likelihood_count()
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
 
@@ -442,7 +443,6 @@ class Dynesty(NestedSampler):
         sampler_kwargs['maxiter'] = 2
 
         self.sampler.run_nested(**sampler_kwargs)
-
         self.result.samples = pd.DataFrame(
             self.priors.sample(100))[self.search_parameter_keys].values
         self.result.log_evidence = np.nan

@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas import DataFrame
 
-from ..utils import logger, command_line_args
+from ..utils import logger, command_line_args, Counter
 from ..prior import Prior, PriorDict, DeltaFunction, Constraint
 from ..result import Result, read_in_result
 
@@ -86,6 +86,7 @@ class Sampler(object):
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
             injection_parameters=None, meta_data=None, result_class=None,
+            likelihood_benchmark=False,
             **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
@@ -101,6 +102,7 @@ class Sampler(object):
             self._verify_external_sampler()
         self.external_sampler_function = None
         self.plot = plot
+        self.likelihood_benchmark = likelihood_benchmark
 
         self._search_parameter_keys = list()
         self._fixed_parameter_keys = list()
@@ -116,6 +118,9 @@ class Sampler(object):
         self._log_summary_for_sampler()
 
         self.result = self._initialise_result(result_class)
+        self.likelihood_count = None
+        if self.likelihood_benchmark:
+            self.likelihood_count = Counter()
 
     @property
     def search_parameter_keys(self):
@@ -364,6 +369,11 @@ class Sampler(object):
             likelihood.parameter values
 
         """
+        if self.likelihood_benchmark:
+            try:
+                self.likelihood_count.increment()
+            except AttributeError:
+                pass
         params = {
             key: t for key, t in zip(self._search_parameter_keys, theta)}
         self.likelihood.parameters.update(params)
@@ -505,6 +515,12 @@ class Sampler(object):
                                        .format(kwargs_print[k].shape))
             logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
+
+    def calc_likelihood_count(self):
+        if self.likelihood_benchmark:
+            self.result.num_likelihood_evaluations = self.likelihood_count.value
+        else:
+            return None
 
 
 class NestedSampler(Sampler):

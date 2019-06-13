@@ -138,7 +138,7 @@ class Ptemcee(Emcee):
             raise SamplerError(
                 "The run has finished, but the chain is not burned in: "
                 "`nburn < nsteps`. Try increasing the number of steps.")
-
+        self.calc_likelihood_count()
         self.result.samples = self.sampler.chain[0, :, self.nburn:, :].reshape(
             (-1, self.ndim))
         self.result.walkers = self.sampler.chain[0, :, :, :]
