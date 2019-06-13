@@ -107,5 +107,6 @@ class Pymultinest(NestedSampler):
         self.result.samples = post_equal_weights_data[:, :-1]
         self.result.log_evidence = out['logZ']
         self.result.log_evidence_err = out['logZerr']
+        self.calc_likelihood_count()
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result

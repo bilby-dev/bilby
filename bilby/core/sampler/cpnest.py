@@ -100,6 +100,7 @@ class Cpnest(NestedSampler):
         if self.plot:
             out.plot()
 
+        self.calc_likelihood_count()
         self.result.posterior = DataFrame(out.posterior_samples)
         self.result.nested_samples = DataFrame(out.get_nested_samples(filename=''))
         self.result.nested_samples.rename(columns=dict(logL='log_likelihood'), inplace=True)

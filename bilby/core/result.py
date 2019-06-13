@@ -101,7 +101,8 @@ class Result(object):
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
                  log_prior_evaluations=None, sampling_time=None, nburn=None,
-                 walkers=None, max_autocorrelation_time=None, use_ratio=None,
+                 num_likelihood_evaluations=None, walkers=None,
+                 max_autocorrelation_time=None, use_ratio=None,
                  parameter_labels=None, parameter_labels_with_unit=None,
                  gzip=False, version=None):
         """ A class to store the results of the sampling run
@@ -130,6 +131,8 @@ class Result(object):
             Natural log evidences
         log_likelihood_evaluations: array_like
             The evaluations of the likelihood for each sample point
+        num_likelihood_evaluations: int
+            The number of times the likelihood function is called
         log_prior_evaluations: array_like
             The evaluations of the prior for each sample point
         sampling_time: float
@@ -182,6 +185,7 @@ class Result(object):
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
         self.log_prior_evaluations = log_prior_evaluations
+        self.num_likelihood_evaluations = num_likelihood_evaluations
         self.sampling_time = sampling_time
         self.version = version
         self.max_autocorrelation_time = max_autocorrelation_time
@@ -328,6 +332,18 @@ class Result(object):
     @samples.setter
     def samples(self, samples):
         self._samples = samples
+
+    @property
+    def num_likelihood_evaluations(self):
+        """ number of likelihood evaluations """
+        if self._num_likelihood_evaluations is not None:
+            return self._num_likelihood_evaluations
+        else:
+            raise ValueError("Result object has no stored likelihood evaluations")
+
+    @num_likelihood_evaluations.setter
+    def num_likelihood_evaluations(self, num_likelihood_evaluations):
+        self._num_likelihood_evaluations = num_likelihood_evaluations
 
     @property
     def nested_samples(self):

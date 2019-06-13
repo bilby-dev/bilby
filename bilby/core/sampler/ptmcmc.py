@@ -148,6 +148,7 @@ class PTMCMCSampler(MCMCSampler):
         sampler.sample(p0=self.p0, **self.sampler_function_kwargs)
         samples, meta, loglike = self.__read_in_data()
 
+        self.calc_likelihood_count()
         self.result.nburn = self.sampler_function_kwargs['burn']
         self.result.samples = samples[self.result.nburn:]
         self.meta_data['sampler_meta'] = meta
@@ -161,7 +162,10 @@ class PTMCMCSampler(MCMCSampler):
     def __read_in_data(self):
         """ Read the data stored by PTMCMC to disk """
         temp_outDir = self.sampler_init_kwargs['outDir']
-        data = np.loadtxt('{}/chain_1.txt'.format(temp_outDir))
+        try:
+            data = np.loadtxt('{}chain_1.txt'.format(temp_outDir))
+        except OSError:
+            data = np.loadtxt('{}chain_1.0.txt'.format(temp_outDir))
         jumpfiles = glob.glob('{}/*jump.txt'.format(temp_outDir))
         jumps = map(np.loadtxt, jumpfiles)
         samples = data[:, :-4]
@@ -171,8 +175,8 @@ class PTMCMCSampler(MCMCSampler):
         for ct, j in enumerate(jumps):
             label = jumpfiles[ct].split('/')[-1].split('_jump.txt')[0]
             jump_accept[label] = j
-        PT_swap = {'swap_accept': data[-1]}
-        tot_accept = {'tot_accept': data[-2]}
+        PT_swap = {'swap_accept': data[:, -1]}
+        tot_accept = {'tot_accept': data[:, -2]}
         log_post = {'log_post': data[:, -4]}
         meta = {}
         meta['tot_accept'] = tot_accept

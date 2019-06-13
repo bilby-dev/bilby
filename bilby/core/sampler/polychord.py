@@ -46,7 +46,6 @@ class PyPolyChord(NestedSampler):
             pc_kwargs.pop('use_polychord_defaults')
             settings = PolyChordSettings(nDims=self.ndim, nDerived=self.ndim, **pc_kwargs)
         self._verify_kwargs_against_default_kwargs()
-
         out = pypolychord.run_polychord(loglikelihood=self.log_likelihood, nDims=self.ndim,
                                         nDerived=self.ndim, settings=settings, prior=self.prior_transform)
         self.result.log_evidence = out.logZ
@@ -54,6 +53,7 @@ class PyPolyChord(NestedSampler):
         log_likelihoods, physical_parameters = self._read_sample_file()
         self.result.log_likelihood_evaluations = log_likelihoods
         self.result.samples = physical_parameters
+        self.calc_likelihood_count()
         return self.result
 
     def _setup_dynamic_defaults(self):
