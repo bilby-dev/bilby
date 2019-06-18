@@ -9,6 +9,21 @@
 ### Removed
 - 
 
+## [0.5.2] 2019-06-18
+### Added
+- Method to read data in using gwpy get (and associated example)
+- Adds a catch for broken resume files with improves reporting
+
+### Changed
+- Updated and fixed bugs in examples
+- Resolve sampling time persistence for runs which are interupted
+- Improvements to the PP plot
+- Speed up of the distance calculation
+- Fixed a bug in the inteference of bilby command line arguments with user specified command lines
+- Generalised the consistency checks for ResultLists
+- Fixes to some tests
+- Makes the parameter conversion a static method rather than a lambda expression
+
 ## [0.5.1] 2019-06-05
 ### Added
 - Option for the GraceDB service URL
