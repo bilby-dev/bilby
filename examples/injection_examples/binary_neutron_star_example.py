@@ -34,8 +34,8 @@ injection_parameters = dict(
 # Set the duration and sampling frequency of the data segment that we're going
 # to inject the signal into. For the
 # TaylorF2 waveform, we cut the signal close to the isco frequency
-duration = 8
-sampling_frequency = 2 * 1570.
+duration = 32
+sampling_frequency = 2 * 1024
 start_time = injection_parameters['geocent_time'] + 2 - duration
 
 # Fixed arguments passed into the source model. The analysis starts at 40 Hz.
