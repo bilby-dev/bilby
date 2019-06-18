@@ -1336,7 +1336,10 @@ class ResultList(list):
         else:
             result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
-        result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        if len(log_errs) > 0:
+            result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        else:
+            result.log_evidence_err = np.nan
         result_weights = np.exp(log_evidences - np.max(log_evidences))
         posteriors = []
         for res, frac in zip(self, result_weights):
