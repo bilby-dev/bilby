@@ -592,7 +592,7 @@ class TestPriorDict(unittest.TestCase):
                 self.assertTrue(line in expected)
 
     def test_from_dict_with_string(self):
-        string_prior = "bilby.core.prior.PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', " \
+        string_prior = "PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', " \
                        "boundary=None)"
         self.priors['speed'] = string_prior
         from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)

@@ -2,11 +2,11 @@
 # Note that you may wish to use more specific mass and distance parameters.
 # These commands are all known to bilby.gw.prior.
 # Lines beginning "#" are ignored.
-mass_1 = Uniform(name='mass_1', minimum=5, maximum=100, unit='$M_{\\odot}$', boundary=None)
-mass_2 = Uniform(name='mass_2', minimum=5, maximum=100, unit='$M_{\\odot}$', boundary=None)
+mass_1 = Uniform(name='mass_1', minimum=5, maximum=100, unit='$M_{\odot}$', boundary=None)
+mass_2 = Uniform(name='mass_2', minimum=5, maximum=100, unit='$M_{\odot}$', boundary=None)
 mass_ratio = Constraint(name='mass_ratio', minimum=0.125, maximum=1)
-# chirp_mass = Uniform(name='chirp_mass', minimum=25, maximum=100, unit='$M_{\\odot}$', boundary=None)
-# total_mass = Uniform(name='total_mass', minimum=10, maximum=200, unit='$M_{\\odot}$', boundary=None)
+# chirp_mass = Uniform(name='chirp_mass', minimum=25, maximum=100, unit='$M_{\odot}$', boundary=None)
+# total_mass = Uniform(name='total_mass', minimum=10, maximum=200, unit='$M_{\odot}$', boundary=None)
 # mass_ratio = Uniform(name='mass_ratio', minimum=0.125, maximum=1, boundary=None)
 # symmetric_mass_ratio =  Uniform(name='symmetric_mass_ratio', minimum=8 / 81, maximum=0.25, boundary=None)
 chi_1 = bilby.gw.prior.AlignedSpin(name='chi_1', a_prior=Uniform(minimum=0, maximum=0.8), boundary='reflective')
