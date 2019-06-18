@@ -57,7 +57,7 @@ class WaveformGenerator(object):
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self.__parameters_from_source_model()
         if parameter_conversion is None:
-            self.parameter_conversion = lambda params: (params, [])
+            self.parameter_conversion = self._default_parameter_conversion
         else:
             self.parameter_conversion = parameter_conversion
         if waveform_arguments is not None:
@@ -77,7 +77,7 @@ class WaveformGenerator(object):
             tdsm_name = self.time_domain_source_model.__name__
         else:
             tdsm_name = None
-        if self.parameter_conversion.__name__ == '<lambda>':
+        if self.parameter_conversion.__name__ == '_default_parameter_conversion':
             param_conv_name = None
         else:
             param_conv_name = self.parameter_conversion.__name__
@@ -235,3 +235,7 @@ class WaveformGenerator(object):
             raise AttributeError('Either time or frequency domain source '
                                  'model must be provided.')
         return set(utils.infer_parameters_from_function(model))
+
+    @staticmethod
+    def _default_parameter_conversion(params):
+        return params, []
