@@ -114,6 +114,11 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
             self.time_array)
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
 
+    def test_get_sampling_frequency_from_time_array_unequally_sampled(self):
+        self.time_array[-1] += 0.0001
+        with self.assertRaises(ValueError):
+            _, _ = utils.get_sampling_frequency_and_duration_from_time_array(self.time_array)
+
     def test_get_duration_from_time_array(self):
         _, new_duration = utils.get_sampling_frequency_and_duration_from_time_array(self.time_array)
         self.assertEqual(self.duration, new_duration)
@@ -126,6 +131,11 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         new_sampling_freq, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(
             self.frequency_array)
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
+
+    def test_get_sampling_frequency_from_frequency_array_unequally_sampled(self):
+        self.frequency_array[-1] += 0.0001
+        with self.assertRaises(ValueError):
+            _, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
 
     def test_get_duration_from_frequency_array(self):
         _, new_duration = utils.get_sampling_frequency_and_duration_from_frequency_array(
@@ -147,6 +157,12 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
             utils.create_frequency_series(sampling_frequency=new_sampling_frequency,
                                           duration=new_duration)
         self.assertTrue(np.allclose(self.frequency_array, new_frequency_array))
+
+    def test_illegal_sampling_frequency_and_duration(self):
+        with self.assertRaises(utils.IllegalDurationAndSamplingFrequencyException):
+            _ = utils.create_time_series(sampling_frequency=7.7,
+                                         duration=1.3,
+                                         starting_time=0)
 
 
 if __name__ == '__main__':
