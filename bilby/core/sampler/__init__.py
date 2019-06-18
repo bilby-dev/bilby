@@ -163,15 +163,18 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         return sampler.cached_result
 
     start_time = datetime.datetime.now()
-
     if command_line_args.bilby_test_mode:
         result = sampler._run_test()
     else:
         result = sampler.run_sampler()
-
     end_time = datetime.datetime.now()
-    result.sampling_time = (end_time - start_time).total_seconds()
-    logger.info('Sampling time: {}'.format(end_time - start_time))
+
+    # Some samplers calculate the sampling time internally
+    if result.sampling_time is None:
+        result.sampling_time = end_time - start_time
+    logger.info('Sampling time: {}'.format(result.sampling_time))
+    # Convert sampling time into seconds
+    result.sampling_time = result.sampling_time.total_seconds()
 
     if sampler.use_ratio:
         result.log_noise_evidence = likelihood.noise_log_likelihood()

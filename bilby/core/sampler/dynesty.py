@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import datetime
 import os
 import sys
 import pickle
@@ -116,6 +117,7 @@ class Dynesty(NestedSampler):
         logger.info("Checkpoint every n_check_point = {}".format(self.n_check_point))
 
         self.resume_file = '{}/{}_resume.pickle'.format(self.outdir, self.label)
+        self.sampling_time = datetime.timedelta()
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
@@ -245,6 +247,7 @@ class Dynesty(NestedSampler):
         self.calc_likelihood_count()
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
+        self.result.sampling_time = self.sampling_time
 
         if self.plot:
             self.generate_trace_plots(out)
@@ -267,6 +270,7 @@ class Dynesty(NestedSampler):
         sampler_kwargs = self.sampler_function_kwargs.copy()
         sampler_kwargs['maxcall'] = self.n_check_point
         sampler_kwargs['add_live'] = False
+        self.start_time = datetime.datetime.now()
         while True:
             sampler_kwargs['maxcall'] += self.n_check_point
             self.sampler.run_nested(**sampler_kwargs)
@@ -276,7 +280,6 @@ class Dynesty(NestedSampler):
 
             self.write_current_state()
 
-        self.read_saved_state()
         sampler_kwargs['add_live'] = True
         self.sampler.run_nested(**sampler_kwargs)
         return self.sampler.results
@@ -340,6 +343,7 @@ class Dynesty(NestedSampler):
             self.sampler.live_bound = saved['live_bound']
             self.sampler.live_it = saved['live_it']
             self.sampler.added_live = saved['added_live']
+            self.sampling_time += datetime.timedelta(seconds=saved['sampling_time'])
             return True
 
         else:
@@ -371,6 +375,10 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         logger.info("Writing checkpoint file {}".format(self.resume_file))
 
+        end_time = datetime.datetime.now()
+        self.sampling_time += end_time - self.start_time
+        self.start_time = end_time
+
         current_state = dict(
             unit_cube_samples=self.sampler.saved_u,
             physical_samples=self.sampler.saved_v,
@@ -386,6 +394,7 @@ class Dynesty(NestedSampler):
             boundidx=self.sampler.saved_boundidx,
             bounditer=self.sampler.saved_bounditer,
             scale=self.sampler.saved_scale,
+            sampling_time=self.sampling_time.total_seconds()
         )
 
         current_state.update(
