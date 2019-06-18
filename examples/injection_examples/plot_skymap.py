@@ -43,9 +43,10 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 
 result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-    injection_parameters=injection_parameters, outdir=outdir, label=label)
+    injection_parameters=injection_parameters, outdir=outdir, label=label, result_class=bilby.gw.result.CBCResult)
 
 # make some plots of the outputs
 result.plot_corner()
 
-bilby.gw.utils.plot_skymap(result, nside=2**6)
+# will require installation of ligo.skymap (pip install ligo.skymap)
+result.plot_skymap(maxpts=5000)
