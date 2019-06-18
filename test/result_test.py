@@ -391,7 +391,7 @@ class TestResult(unittest.TestCase):
                                        self.result.kde([[0, 0.1], [0.8, 0]])))
 
 
-class TestResultList(unittest.TestCase):
+class TestResultListError(unittest.TestCase):
     
     def setUp(self):
         np.random.seed(7)
@@ -478,7 +478,7 @@ class TestResultList(unittest.TestCase):
 
     def test_combine_inconsistent_samplers(self):
         self.nested_results[0].sampler = 'dynesty'
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
     def test_combine_inconsistent_priors_length(self):
@@ -486,7 +486,7 @@ class TestResultList(unittest.TestCase):
             x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
             c=1))
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
     def test_combine_inconsistent_priors_types(self):
@@ -495,17 +495,17 @@ class TestResultList(unittest.TestCase):
             y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
             c=1,
             d=bilby.core.prior.Cosine()))
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
     def test_combine_inconsistent_search_parameters(self):
         self.nested_results[0].search_parameter_keys = ['y']
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
     def test_combine_inconsistent_data(self):
         self.nested_results[0].log_noise_evidence = -7
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
     def test_combine_inconsistent_data_nan(self):
@@ -531,7 +531,7 @@ class TestResultList(unittest.TestCase):
         result.log_noise_evidence = 13
         result._nested_samples = None
         self.nested_results.append(result)
-        with self.assertRaises(bilby.result.CombineResultError):
+        with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
 
