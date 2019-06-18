@@ -1,5 +1,6 @@
 from __future__ import division
 
+from importlib import import_module
 import os
 from collections import OrderedDict
 from future.utils import iteritems
@@ -11,9 +12,8 @@ from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfinv
 
-# Keep import bilby statement, it is necessary for some eval() statements
-import bilby  # noqa
-from .utils import logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir
+from .utils import (
+    logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir)
 
 
 class PriorDict(OrderedDict):
@@ -112,15 +112,28 @@ class PriorDict(OrderedDict):
             for line in f:
                 if line[0] in comments:
                     continue
+                line.replace(' ', '')
                 elements = line.split('=')
                 key = elements[0].replace(' ', '')
-                val = '='.join(elements[1:])
-                try:
-                    prior[key] = eval(val)
-                except TypeError as e:
-                    raise TypeError(
-                        "Unable to parse dictionary file {}, bad line: {} = {}. Error message {}"
-                        .format(filename, key, val, e))
+                val = '='.join(elements[1:]).strip()
+                cls = val.split('(')[0]
+                args = '('.join(val.split('(')[1:])[:-1]
+                if "." in cls:
+                    module = '.'.join(cls.split('.')[:-1])
+                    cls = cls.split('.')[-1]
+                else:
+                    module = __name__
+                cls = getattr(import_module(module), cls)
+                if key.lower() == "conversion_function":
+                    setattr(self, key, cls)
+                else:
+                    try:
+                        prior[key] = cls.from_repr(args)
+                    except TypeError as e:
+                        raise TypeError(
+                            "Unable to parse dictionary file {}, bad line: {} "
+                            "= {}. Error message {}".format(
+                                filename, key, val, e))
         self.update(prior)
 
     def from_dictionary(self, dictionary):
@@ -660,6 +673,68 @@ class Prior(object):
         else:
             label = self.name
         return label
+
+    @classmethod
+    def from_repr(cls, string):
+        subclass_args = infer_args_from_method(cls.__init__)
+
+        string = string.replace(' ', '')
+        kwargs = cls._split_repr(string)
+        for key in kwargs:
+            val = kwargs[key]
+            if key not in subclass_args:
+                raise AttributeError('Unknown argument {} for class {}'.format(
+                    key, cls.__name__))
+            else:
+                kwargs[key] = cls._parse_argument_string(val)
+        return cls(**kwargs)
+
+    @classmethod
+    def _split_repr(cls, string):
+        subclass_args = infer_args_from_method(cls.__init__)
+        args = string.split(',')
+        remove = list()
+        for ii, key in enumerate(args):
+            if '(' in key:
+                args[ii] = ','.join([args[ii], args[ii + 1]]).strip()
+                remove.append(ii + 1)
+        remove.reverse()
+        for ii in remove:
+            del args[ii]
+        kwargs = dict()
+        for ii, arg in enumerate(args):
+            try:
+                key, val = arg.split('=')
+            except ValueError:
+                logger.debug(
+                    'Reading priors with non-keyword arguments is dangerous!')
+                key = subclass_args[ii]
+                val = arg
+            kwargs[key] = val
+        return kwargs
+
+    @classmethod
+    def _parse_argument_string(cls, val):
+        if '(' in val:
+            other_cls = val.split('(')[0]
+            vals = '('.join(val.split('(')[1:])[:-1]
+            if "." in other_cls:
+                module = '.'.join(other_cls.split('.')[:-1])
+                other_cls = other_cls.split('.')[-1]
+            else:
+                module = __name__
+            other_cls = getattr(import_module(module), other_cls)
+            val = other_cls.from_repr(vals)
+        elif "'" in val:
+            val = val.strip("'")
+        elif val == 'None':
+            val = None
+        else:
+            try:
+                val = eval(val, dict(), dict(np=np))
+            except NameError:
+                raise TypeError()
+        return val
 
 
 class Constraint(Prior):

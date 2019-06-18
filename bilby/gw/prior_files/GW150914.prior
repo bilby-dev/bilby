@@ -1,6 +1,6 @@
 # These are the default priors for analysing GW150914.
-mass_1 = Uniform(name='mass_1', minimum=30, maximum=50, unit='$M_{\\odot}$', boundary=None)
-mass_2 = Uniform(name='mass_2', minimum=20, maximum=40, unit='$M_{\\odot}$', boundary=None)
+mass_1 = Uniform(name='mass_1', minimum=30, maximum=50, unit='$M_{\odot}$', boundary=None)
+mass_2 = Uniform(name='mass_2', minimum=20, maximum=40, unit='$M_{\odot}$', boundary=None)
 mass_ratio = Constraint(name='mass_ratio', minimum=0.125, maximum=1)
 a_1 = Uniform(name='a_1', minimum=0, maximum=0.8, boundary='reflective')
 a_2 = Uniform(name='a_2', minimum=0, maximum=0.8, boundary='reflective')

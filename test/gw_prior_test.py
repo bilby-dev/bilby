@@ -36,7 +36,7 @@ class TestBBHPriorDict(unittest.TestCase):
                       for key in default.keys()])
         names = all([self.bbh_prior_dict[key].name == default[key].name
                      for key in default.keys()])
-        boundaries = all([self.bbh_prior_dict[key].boundary is default[key].boundary
+        boundaries = all([self.bbh_prior_dict[key].boundary == default[key].boundary
                           for key in default.keys()])
 
         self.assertTrue(all([minima, maxima, names, boundaries]))
