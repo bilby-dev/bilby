@@ -453,7 +453,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
         phases = np.linspace(0, 2 * np.pi, 101)
         phasor = np.exp(-2j * phases)
-        phase_log_post = d_inner_h * phasor - d_inner_h / 2
+        phase_log_post = d_inner_h * phasor - h_inner_h / 2
         phase_post = np.exp(phase_log_post.real - max(phase_log_post.real))
         new_phase = Interped(phases, phase_post).sample()
         return new_phase
