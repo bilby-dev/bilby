@@ -10,7 +10,7 @@ import numpy as np
 
 from ..core.result import Result as CoreResult
 from ..core.utils import infft, logger, check_directory_exists_and_if_not_mkdir
-from .utils import plot_spline_pos, spline_angle_xform
+from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
 from .waveform_generator import WaveformGenerator
 from .detector import get_empty_interferometer, Interferometer
 from .source import lal_binary_black_hole
@@ -200,7 +200,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
         plt.close(fig)
 
     def plot_waveform_posterior(
-            self, interferometers=None, level=0.9, n_samples=None):
+            self, interferometers=None, level=0.9, n_samples=None,
+            format='png', start_time=None, end_time=None):
         """
         Plot the posterior for the waveform in the frequency domain and
         whitened time domain for all detectors.
@@ -217,22 +218,31 @@ class CompactBinaryCoalescenceResult(CoreResult):
         n_samples: int, optional
             number of samples to use to calculate the median/interval
             default is all
-
-        Returns
-        -------
-        fig: figure-handle, only is save=False
+        format: str, optional
+            format to save the figure in, default is png
+        start_time: float, optional
+            the amount of time before merger to begin the time domain plot.
+            the merger time is defined as the mean of the geocenter time
+            posterior. Default is - 0.4
+        end_time: float, optional
+            the amount of time before merger to end the time domain plot.
+            the merger time is defined as the mean of the geocenter time
+            posterior. Default is 0.2
         """
         if interferometers is None:
             interferometers = self.interferometers
         elif not isinstance(interferometers, list):
             raise TypeError(
-                'interferometers must be a list of InterferometerList')
+                'interferometers must be a list or InterferometerList')
         for ifo in interferometers:
             self.plot_interferometer_waveform_posterior(
-                interferometer=ifo, level=level, n_samples=n_samples, save=True)
+                interferometer=ifo, level=level, n_samples=n_samples,
+                save=True, format=format, start_time=start_time,
+                end_time=end_time)
 
     def plot_interferometer_waveform_posterior(
-            self, interferometer, level=0.9, n_samples=None, save=True):
+            self, interferometer, level=0.9, n_samples=None, save=True,
+            format='png', start_time=None, end_time=None):
         """
         Plot the posterior for the waveform in the frequency domain and
         whitened time domain.
@@ -254,10 +264,26 @@ class CompactBinaryCoalescenceResult(CoreResult):
         save: bool, optional
             whether to save the image, default=True
             if False, figure handle is returned
+        format: str, optional
+            format to save the figure in, default is png
+        start_time: float, optional
+            the amount of time before merger to begin the time domain plot.
+            the merger time is defined as the mean of the geocenter time
+            posterior. Default is - 0.4
+        end_time: float, optional
+            the amount of time before merger to end the time domain plot.
+            the merger time is defined as the mean of the geocenter time
+            posterior. Default is 0.2
 
         Returns
         -------
         fig: figure-handle, only is save=False
+
+        Notes
+        -----
+        To reduce the memory footprint we decimate the frequency domain
+        waveforms to have ~4000 entries. This should be sufficient for decent
+        resolution.
         """
         if isinstance(interferometer, str):
             interferometer = get_empty_interferometer(interferometer)
@@ -267,9 +293,40 @@ class CompactBinaryCoalescenceResult(CoreResult):
         elif not isinstance(interferometer, Interferometer):
             raise TypeError(
                 'interferometer must be either str or Interferometer')
+        logger.info("Generating waveform figure for {}".format(
+            interferometer.name))
 
         if n_samples is None:
             n_samples = len(self.posterior)
+        elif n_samples > len(self.posterior):
+            logger.debug(
+                "Requested more waveform samples ({}) than we have "
+                "posterior samples ({})!".format(
+                    n_samples, len(self.posterior)
+                )
+            )
+            n_samples = len(self.posterior)
+
+        if start_time is None:
+            start_time = - 0.4
+        start_time = np.mean(self.posterior.geocent_time) + start_time
+        if end_time is None:
+            end_time = 0.2
+        end_time = np.mean(self.posterior.geocent_time) + end_time
+        time_idxs = (
+            (interferometer.time_array >= start_time) &
+            (interferometer.time_array <= end_time)
+        )
+        frequency_idxs = np.where(interferometer.frequency_mask)[0]
+        logger.debug("Frequency mask contains {} values".format(
+            len(frequency_idxs))
+        )
+        frequency_idxs = frequency_idxs[::max(1, len(frequency_idxs) // 4000)]
+        logger.debug("Downsampling frequency mask to {} values".format(
+            len(frequency_idxs))
+        )
+        plot_times = interferometer.time_array[time_idxs]
+        plot_frequencies = interferometer.frequency_array[frequency_idxs]
 
         waveform_generator = WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
@@ -284,72 +341,104 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     self.injection_parameters)
                 hf_inj_det = interferometer.get_detector_response(
                     hf_inj, self.injection_parameters)
-                axs[0].loglog(interferometer.frequency_array, abs(hf_inj_det),
-                              color='k', label='injected', linestyle='--')
+                axs[0].loglog(
+                    plot_frequencies,
+                    asd_from_freq_series(
+                        hf_inj_det[frequency_idxs],
+                        1 / interferometer.strain_data.duration),
+                    color='k', label='injected', linestyle='--')
                 axs[1].plot(
-                    interferometer.time_array,
-                    infft(hf_inj_det / interferometer.amplitude_spectral_density_array,
-                          self.sampling_frequency),
+                    plot_times,
+                    infft(hf_inj_det /
+                          interferometer.amplitude_spectral_density_array,
+                          self.sampling_frequency)[time_idxs],
                     color='k', linestyle='--')
+                logger.debug('Plotted injection.')
             except IndexError:
                 logger.info('Failed to plot injection.')
 
         fd_waveforms = list()
+        td_waveforms = list()
         for ii in range(n_samples):
             params = dict(self.posterior.iloc[ii])
             wf_pols = waveform_generator.frequency_domain_strain(params)
-            fd_waveforms.append(
-                interferometer.get_detector_response(wf_pols, params))
-        fd_waveforms = np.array(fd_waveforms)
-        td_waveforms = infft(
-            fd_waveforms / interferometer.amplitude_spectral_density_array,
-            self.sampling_frequency)
+            fd_waveform = interferometer.get_detector_response(wf_pols, params)
+            fd_waveforms.append(fd_waveform[frequency_idxs])
+            td_waveform = infft(
+                fd_waveform / interferometer.amplitude_spectral_density_array,
+                self.sampling_frequency)[time_idxs]
+            td_waveforms.append(td_waveform)
+        fd_waveforms = asd_from_freq_series(
+            fd_waveforms,
+            1 / interferometer.strain_data.duration)
+        td_waveforms = np.array(td_waveforms)
 
-        lower_percentile = level * 100 / 2
-        upper_percentile = 100 - lower_percentile
+        delta = (1 + level) / 2
+        upper_percentile = delta * 100
+        lower_percentile = (1 - delta) * 100
+        logger.debug(
+            'Plotting posterior between the {} and {} percentiles'.format(
+                lower_percentile, upper_percentile
+            )
+        )
 
         axs[0].loglog(
-            interferometer.frequency_array,
-            np.median(abs(fd_waveforms), axis=0), color='r', label='Median')
+            plot_frequencies,
+            np.median(fd_waveforms, axis=0), color='r', label='Median')
         axs[0].fill_between(
-            interferometer.frequency_array, np.percentile(
-                abs(fd_waveforms), lower_percentile, axis=0),
-            np.percentile(abs(fd_waveforms), upper_percentile, axis=0),
-            color='r', label='{} % Interval'.format(int(level * 100)),
-            alpha=0.5)
+            plot_frequencies,
+            np.percentile(fd_waveforms, lower_percentile, axis=0),
+            np.percentile(fd_waveforms, upper_percentile, axis=0),
+            color='r', label='{} % Interval'.format(
+                int(upper_percentile - lower_percentile)),
+            alpha=0.3)
         axs[1].plot(
-            interferometer.time_array, np.median(td_waveforms, axis=0),
+            plot_times, np.median(td_waveforms, axis=0),
             color='r')
         axs[1].fill_between(
-            interferometer.time_array, np.percentile(
+            plot_times, np.percentile(
                 td_waveforms, lower_percentile, axis=0),
             np.percentile(td_waveforms, upper_percentile, axis=0), color='r',
-            alpha=0.5)
+            alpha=0.3)
 
         try:
             axs[0].loglog(
-                interferometer.frequency_array,
-                abs(interferometer.frequency_domain_strain),
-                color='b', label='Data', alpha=0.5)
+                plot_frequencies,
+                asd_from_freq_series(
+                    interferometer.frequency_domain_strain[frequency_idxs],
+                    1 / interferometer.strain_data.duration),
+                color='b', label='Data', alpha=0.3)
+            axs[0].loglog(
+                plot_frequencies,
+                interferometer.amplitude_spectral_density_array[frequency_idxs],
+                color='b', label='PSD')
             axs[1].plot(
-                interferometer.time_array, infft(
+                plot_times, infft(
                     interferometer.whitened_frequency_domain_strain,
-                    sampling_frequency=interferometer.strain_data.sampling_frequency),
-                color='b', alpha=0.5)
+                    sampling_frequency=interferometer.strain_data.sampling_frequency)[time_idxs],
+                color='b', alpha=0.3)
+            logger.debug('Plotted interferometer data.')
         except AttributeError:
             pass
 
-        axs[0].legend()
         axs[0].set_xlim(interferometer.minimum_frequency,
                         interferometer.maximum_frequency)
-        axs[1].set_xlim(
-            np.mean(self.posterior.geocent_time) - 0.5,
-            np.mean(self.posterior.geocent_time) + 0.5)
+        axs[1].set_xlim(start_time, end_time)
+
+        axs[0].set_xlabel('$f$ [$Hz$]')
+        axs[1].set_xlabel('$t$ [$s$]')
+        axs[0].set_ylabel('$\\tilde{h}(f)$ [Hz$^{-\\frac{1}{2}}$]')
+        axs[1].set_ylabel('Whitened strain')
+        axs[0].legend(loc='lower left')
+
         plt.tight_layout()
         if save:
-            plt.savefig(os.path.join(
+            filename = os.path.join(
                 self.outdir,
-                self.label + '_{}_waveform.png'.format(interferometer.name)))
+                self.label + '_{}_waveform.{}'.format(
+                    interferometer.name, format))
+            plt.savefig(filename, format=format, dpi=600)
+            logger.debug("Figure saved to {}".format(filename))
             plt.close()
         else:
             return fig
