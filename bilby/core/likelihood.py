@@ -62,6 +62,31 @@ class Likelihood(object):
             raise ValueError("The meta_data must be an instance of dict")
 
 
+class ZeroLikelihood(Likelihood):
+    """ A special test-only class which already returns zero likelihood
+
+    Parameters
+    ----------
+    likelihood: bilby.core.likelihood.Likelihood
+        A likelihood object to mimic
+
+    """
+
+    def __init__(self, likelihood):
+        Likelihood.__init__(self, dict.fromkeys(likelihood.parameters))
+        self.parameters = likelihood.parameters
+        self._parent = likelihood
+
+    def log_likelihood(self):
+        return 0
+
+    def noise_log_likelihood(self):
+        return 0
+
+    def __getattr__(self, name):
+        return getattr(self._parent, name)
+
+
 class Analytical1DLikelihood(Likelihood):
     """
     A general class for 1D analytical functions. The model

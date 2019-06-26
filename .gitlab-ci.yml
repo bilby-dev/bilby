@@ -85,6 +85,7 @@ scheduled-python-3.7:
     # Run tests which are only done on schedule
     - pytest test/example_test.py
     - pytest test/gw_example_test.py
+    - pytest test/sample_from_the_prior_test.py
 
 pages:
   stage: deploy
