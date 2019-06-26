@@ -4,6 +4,14 @@ Installation
 
 .. tabs::
 
+   .. tab:: Conda
+
+      .. code-block:: console
+
+          $ conda install -c conda-forge bilby
+
+      Supported python versions: 2.7, 3.5+.
+
    .. tab:: Pip
 
       .. code-block:: console
@@ -12,13 +20,6 @@ Installation
 
       Supported python versions: 2.7, 3.5+.
 
-   .. tab:: Conda
-
-      .. code-block:: console
-
-          $ conda install -c conda-forge bilby
-
-      Supported python versions: 2.7, 3.5+.
 
 This will install all requirements for running :code:`bilby` for general
 inference problems, including our default sampler `dynesty
@@ -30,17 +31,17 @@ wave inference, please additionally run the following commands.
 
 .. tabs::
 
-   .. tab:: Pip
-
-      .. code-block:: console
-
-          $ pip install gwpy lalsuite
-
    .. tab:: Conda
 
       .. code-block:: console
 
           $ conda install -c conda-forge gwpy python-lalsimulation
+
+   .. tab:: Pip
+
+      .. code-block:: console
+
+          $ pip install gwpy lalsuite
 
 
 Install bilby from source

@@ -1,6 +1,6 @@
-========================
-GW Parameter Conversions
-========================
+==================================================
+Transient gravitational wave parameter conversions
+==================================================
 
 Sometimes it is useful to sample in some parameters and return others in the output.
 E.g., sampling in chirp mass and mass ratio can be much more efficient than sampling in component masses.

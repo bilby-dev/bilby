@@ -18,7 +18,9 @@ Welcome to bilby's documentation!
    bilby-output
    compact-binary-coalescence-parameter-estimation
    transient-gw-data
+   gw_likelihood
    conversion
+   gw_references
    writing-documentation
    hyperparameters
    containers
