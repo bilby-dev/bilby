@@ -35,7 +35,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
     This is the usual likelihood object to use for transient gravitational
     wave parameter estimation. It computes the log-likelihood in the frequency
     domain assuming a colored Gaussian noise model described by a power
-    spectral density
+    spectral density. See Thrane & Talbot (2019), arxiv.org/abs/1809.02293.
 
 
     Parameters
