@@ -138,6 +138,11 @@ class InterferometerStrainData(object):
             self._frequency_mask_updated = True
         return self._frequency_mask
 
+    @frequency_mask.setter
+    def frequency_mask(self, mask):
+        self._frequency_mask = mask
+        self._frequency_mask_updated = True
+
     @property
     def alpha(self):
         return 2 * self.roll_off / self.duration
