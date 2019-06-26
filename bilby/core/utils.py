@@ -539,6 +539,9 @@ def set_up_command_line_arguments():
     parser.add_argument("--bilby-test-mode", action="store_true",
                         help=("Used for testing only: don't run full PE, but"
                               " just check nothing breaks"))
+    parser.add_argument("--bilby-zero-likelihood-mode", action="store_true",
+                        help=("Used for testing only: don't run full PE, but"
+                              " just check nothing breaks"))
     args, unknown_args = parser.parse_known_args()
     if args.quiet:
         args.log_level = logging.WARNING

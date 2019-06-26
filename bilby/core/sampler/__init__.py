@@ -133,6 +133,11 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         meta_data = dict()
     meta_data['likelihood'] = likelihood.meta_data
 
+    if command_line_args.bilby_zero_likelihood_mode:
+        from bilby.core.likelihood import ZeroLikelihood
+        likelihood = ZeroLikelihood(likelihood)
+
+
     if isinstance(sampler, Sampler):
         pass
     elif isinstance(sampler, str):
