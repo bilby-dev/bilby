@@ -149,6 +149,17 @@ class Cosmological(Interped):
     def _get_redshift_arrays(self):
         raise NotImplementedError
 
+    @classmethod
+    def from_repr(cls, string):
+        if "FlatLambdaCDM" in string:
+            logger.warning(
+                "Cosmological priors cannot be loaded from a string. "
+                "If the prior has a name, use that instead."
+            )
+            return string
+        else:
+            return cls._from_repr(string)
+
 
 class UniformComovingVolume(Cosmological):
 
