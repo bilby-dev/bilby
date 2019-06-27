@@ -184,11 +184,11 @@ class TestTimeMarginalization(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             start_time=1126259640)
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
+        self.priors = bilby.gw.prior.BBHPriorDict()
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, priors=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.priors.copy()
         )
 
         self.likelihood.parameters = self.parameters.copy()
@@ -199,7 +199,7 @@ class TestTimeMarginalization(unittest.TestCase):
         del self.parameters
         del self.interferometers
         del self.waveform_generator
-        del self.prior
+        del self.priors
         del self.likelihood
 
     def test_time_marginalisation_full_segment(self):
@@ -209,13 +209,13 @@ class TestTimeMarginalization(unittest.TestCase):
         """
         likes = []
         lls = []
-        self.prior['geocent_time'] = bilby.prior.Uniform(
+        self.priors['geocent_time'] = bilby.prior.Uniform(
             minimum=self.waveform_generator.start_time,
             maximum=self.waveform_generator.start_time + self.duration)
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, priors=self.prior.copy()
+            time_marginalization=True, priors=self.priors
         )
         times = self.waveform_generator.start_time + np.linspace(
             0, self.duration, 4097)[:-1]
@@ -225,8 +225,9 @@ class TestTimeMarginalization(unittest.TestCase):
             likes.append(np.exp(lls[-1]))
 
         marg_like = np.log(np.trapz(
-            likes * self.prior['geocent_time'].prob(times), times))
+            likes * self.time.priors['geocent_time'].prob(times), times))
         self.time.parameters = self.parameters.copy()
+        self.time.parameters['time_jitter'] = 0.0
         self.time.parameters['geocent_time'] = self.waveform_generator.start_time
         self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
                                delta=0.5)
@@ -238,13 +239,13 @@ class TestTimeMarginalization(unittest.TestCase):
         """
         likes = []
         lls = []
-        self.prior['geocent_time'] = bilby.prior.Uniform(
+        self.priors['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] + 1 - 0.1,
             maximum=self.parameters['geocent_time'] + 1 + 0.1)
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, priors=self.prior.copy()
+            time_marginalization=True, priors=self.priors
         )
         times = self.waveform_generator.start_time + np.linspace(
             0, self.duration, 4097)[:-1]
@@ -254,8 +255,9 @@ class TestTimeMarginalization(unittest.TestCase):
             likes.append(np.exp(lls[-1]))
 
         marg_like = np.log(np.trapz(
-            likes * self.prior['geocent_time'].prob(times), times))
+            likes * self.time.priors['geocent_time'].prob(times), times))
         self.time.parameters = self.parameters.copy()
+        self.time.parameters['time_jitter'] = 0.0
         self.time.parameters['geocent_time'] = self.waveform_generator.start_time
         self.assertAlmostEqual(marg_like, self.time.log_likelihood_ratio(),
                                delta=0.5)
@@ -410,33 +412,33 @@ class TestTimePhaseMarginalization(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             start_time=1126259640)
 
-        self.prior = bilby.gw.prior.BBHPriorDict()
-        self.prior['geocent_time'] = bilby.prior.Uniform(
+        self.priors = bilby.gw.prior.BBHPriorDict()
+        self.priors['geocent_time'] = bilby.prior.Uniform(
             minimum=self.parameters['geocent_time'] - self.duration / 2,
             maximum=self.parameters['geocent_time'] + self.duration / 2)
 
         self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
-            waveform_generator=self.waveform_generator, priors=self.prior.copy()
+            waveform_generator=self.waveform_generator, priors=self.priors.copy()
         )
 
         self.time = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            time_marginalization=True, priors=self.prior.copy()
+            time_marginalization=True, priors=self.priors.copy()
         )
 
         self.phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
-            phase_marginalization=True, priors=self.prior.copy()
+            phase_marginalization=True, priors=self.priors.copy()
         )
 
         self.time_phase = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             time_marginalization=True, phase_marginalization=True,
-            priors=self.prior.copy()
+            priors=self.priors
         )
         for like in [self.likelihood, self.time, self.phase, self.time_phase]:
             like.parameters = self.parameters.copy()
@@ -447,17 +449,21 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         del self.parameters
         del self.interferometers
         del self.waveform_generator
-        del self.prior
+        del self.priors
         del self.likelihood
         del self.time
         del self.phase
         del self.time_phase
 
-    def test_time_phase_marginalisation(self):
-        """Test time and marginalised likelihood matches brute force version"""
+    def test_time_marginalisation(self):
+        """
+        Test time marginalised likelihood matches brute force version when
+        also marginalising over phase.
+        """
         like = []
-        times = np.linspace(self.prior['geocent_time'].minimum,
-                            self.prior['geocent_time'].maximum, 4097)[:-1]
+        times = np.linspace(
+            self.time_phase.priors['geocent_time'].minimum,
+            self.time_phase.priors['geocent_time'].maximum, 4097)[:-1]
         for time in times:
             self.phase.parameters['geocent_time'] = time
             like.append(np.exp(self.phase.log_likelihood_ratio()))
@@ -465,18 +471,26 @@ class TestTimePhaseMarginalization(unittest.TestCase):
         marg_like = np.log(np.trapz(like, times)
                            / self.waveform_generator.duration)
         self.time_phase.parameters = self.parameters.copy()
+        self.time_phase.parameters['time_jitter'] = 0.0
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
 
+    def test_phase_marginalisation(self):
+        """
+        Test phase marginalised likelihood matches brute force version when
+        also marginalising over time.
+        """
         like = []
         phases = np.linspace(0, 2 * np.pi, 1000)
         for phase in phases:
             self.time.parameters['phase'] = phase
+            self.time.parameters['time_jitter'] = 0.0
             like.append(np.exp(self.time.log_likelihood_ratio()))
 
         marg_like = np.log(np.trapz(like, phases) / (2 * np.pi))
         self.time_phase.parameters = self.parameters.copy()
+        self.time_phase.parameters['time_jitter'] = 0.0
         self.assertAlmostEqual(marg_like,
                                self.time_phase.log_likelihood_ratio(),
                                delta=0.5)
