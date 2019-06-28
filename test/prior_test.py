@@ -702,6 +702,22 @@ class TestPriorDict(unittest.TestCase):
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))
 
 
+class TestLoadPrior(unittest.TestCase):
+    def test_load_prior_with_float(self):
+        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                'prior_files/prior_with_floats.prior')
+        prior = bilby.core.prior.PriorDict(filename)
+        self.assertTrue("mass_1" in prior)
+        self.assertTrue("mass_2" in prior)
+        self.assertTrue(prior['mass_2'].peak == 20)
+
+    def test_load_prior_with_parentheses(self):
+        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                'prior_files/prior_with_parentheses.prior')
+        prior = bilby.core.prior.PriorDict(filename)
+        self.assertTrue(isinstance(prior['logA'], bilby.core.prior.Uniform))
+
+
 class TestFillPrior(unittest.TestCase):
 
     def setUp(self):
