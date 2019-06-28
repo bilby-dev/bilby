@@ -1,5 +1,6 @@
 from __future__ import division
 
+import re
 from importlib import import_module
 import os
 from collections import OrderedDict
@@ -750,7 +751,10 @@ class Prior(object):
 
     @classmethod
     def _parse_argument_string(cls, val):
-        if '(' in val:
+        if re.sub(r'\'.*\'', '', val) in ['r', 'u']:
+            # If the val is a latex label like "r"\log(x)"' then ignore it
+            pass
+        elif '(' in val:
             other_cls = val.split('(')[0]
             vals = '('.join(val.split('(')[1:])[:-1]
             if "." in other_cls:

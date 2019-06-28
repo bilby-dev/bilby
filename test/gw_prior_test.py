@@ -110,6 +110,37 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
 
 
+class TestPackagedPriors(unittest.TestCase):
+    """ Test that the prepackaged priors load """
+
+    def test_aligned(self):
+        filename = 'aligned_spin_binary_black_holes.prior'
+        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
+        self.assertTrue('chi_1' in prior_dict)
+        self.assertTrue('chi_2' in prior_dict)
+
+    def test_GW150914(self):
+        filename = 'GW150914.prior'
+        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
+        self.assertTrue('geocent_time' in prior_dict)
+
+    def test_precessing(self):
+        filename = 'precessing_binary_neutron_stars.prior'
+        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
+        self.assertTrue('lambda_1' in prior_dict)
+        self.assertTrue('lambda_2' in prior_dict)
+
+    def test_binary_black_holes(self):
+        filename = 'binary_black_holes.prior'
+        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
+        self.assertTrue('a_1' in prior_dict)
+
+    def test_binary_neutron_stars(self):
+        filename = 'binary_neutron_stars.prior'
+        prior_dict = bilby.gw.prior.BNSPriorDict(filename=filename)
+        self.assertTrue('lambda_1' in prior_dict)
+
+
 class TestBNSPriorDict(unittest.TestCase):
 
     def setUp(self):
