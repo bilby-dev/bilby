@@ -679,7 +679,10 @@ class Result(object):
 
         if isinstance(prior, Prior):
             theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
-            ax.plot(theta, prior.prob(theta), color='C2')
+            if cumulative is False:
+                ax.plot(theta, prior.prob(theta), color='C2')
+            else:
+                ax.plot(theta, prior.cdf(theta), color='C2')
 
         if save:
             fig.tight_layout()

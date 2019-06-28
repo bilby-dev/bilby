@@ -536,6 +536,19 @@ class Prior(object):
         """
         return np.nan
 
+    def cdf(self, val):
+        """ Generic method to calculate CDF, can be overwritten in subclass """
+        if np.any(np.isinf([self.minimum, self.maximum])):
+            raise ValueError(
+                "Unable to use the generic CDF calculation for priors with"
+                "infinite support")
+        x = np.linspace(self.minimum, self.maximum, 1000)
+        pdf = self.prob(x)
+        cdf = cumtrapz(pdf, x, initial=0)
+        interp = interp1d(x, cdf, assume_sorted=True, bounds_error=False,
+                          fill_value=(0, 1))
+        return interp(val)
+
     def ln_prob(self, val):
         """Return the prior ln probability of val, this should be overwritten
 
