@@ -403,7 +403,7 @@ class BNSPriorDict(PriorDict):
             self[key], (DeltaFunction, Constraint))}
 
         tidal_parameters = \
-            {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda'}
+            {'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde'}
 
         if key in tidal_parameters:
             if len(tidal_parameters.intersection(sampling_parameters)) > 2:
@@ -446,7 +446,7 @@ Prior._default_latex_labels = {
     'lambda_1': '$\\Lambda_1$',
     'lambda_2': '$\\Lambda_2$',
     'lambda_tilde': '$\\tilde{\\Lambda}$',
-    'delta_lambda': '$\\delta\\Lambda$'}
+    'delta_lambda_tilde': '$\\delta\\tilde{\\Lambda}$'}
 
 
 class CalibrationPriorDict(PriorDict):
