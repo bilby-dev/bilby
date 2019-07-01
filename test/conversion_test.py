@@ -30,7 +30,7 @@ class TestBasicConversions(unittest.TestCase):
                - 11 * self.symmetric_mass_ratio**2)
             * (self.lambda_1 - self.lambda_2)
         )
-        self.delta_lambda = 1 / 2 * (
+        self.delta_lambda_tilde = 1 / 2 * (
                 (1 - 4 * self.symmetric_mass_ratio)**0.5
                 * (1 - 13272 / 1319 * self.symmetric_mass_ratio
                    + 8944 / 1319 * self.symmetric_mass_ratio**2)
@@ -93,10 +93,10 @@ class TestBasicConversions(unittest.TestCase):
         self.assertTrue(all([abs(self.lambda_1 - lambda_1) < 1e-5,
                              abs(self.lambda_2 - lambda_2) < 1e-5]))
 
-    def test_lambda_tilde_delta_lambda_to_lambda_1_lambda_2(self):
+    def test_lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(self):
         lambda_1, lambda_2 =\
-            conversion.lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
-                self.lambda_tilde, self.delta_lambda, self.mass_1, self.mass_2)
+            conversion.lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
+                self.lambda_tilde, self.delta_lambda_tilde, self.mass_1, self.mass_2)
         self.assertTrue(all([abs(self.lambda_1 - lambda_1) < 1e-5,
                              abs(self.lambda_2 - lambda_2) < 1e-5]))
 
@@ -106,11 +106,11 @@ class TestBasicConversions(unittest.TestCase):
                 self.lambda_1, self.lambda_2, self.mass_1, self.mass_2)
         self.assertTrue((self.lambda_tilde - lambda_tilde) < 1e-5)
 
-    def test_lambda_1_lambda_2_to_delta_lambda(self):
-        delta_lambda = \
-            conversion.lambda_1_lambda_2_to_delta_lambda(
+    def test_lambda_1_lambda_2_to_delta_lambda_tilde(self):
+        delta_lambda_tilde = \
+            conversion.lambda_1_lambda_2_to_delta_lambda_tilde(
                 self.lambda_1, self.lambda_2, self.mass_1, self.mass_2)
-        self.assertTrue((self.delta_lambda - delta_lambda) < 1e-5)
+        self.assertTrue((self.delta_lambda_tilde - delta_lambda_tilde) < 1e-5)
 
 
 class TestConvertToLALParams(unittest.TestCase):
@@ -134,8 +134,8 @@ class TestConvertToLALParams(unittest.TestCase):
         self.tidal_parameters = self.component_tidal_parameters.copy()
         self.tidal_parameters['lambda_tilde'] = \
             conversion.lambda_1_lambda_2_to_lambda_tilde(**self.all_component_pars)
-        self.tidal_parameters['delta_lambda'] = \
-            conversion.lambda_1_lambda_2_to_delta_lambda(**self.all_component_pars)
+        self.tidal_parameters['delta_lambda_tilde'] = \
+            conversion.lambda_1_lambda_2_to_delta_lambda_tilde(**self.all_component_pars)
 
     def tearDown(self):
         del self.search_keys
@@ -241,8 +241,8 @@ class TestConvertToLALParams(unittest.TestCase):
             key: self.parameters[key] for key in ['lambda_1', 'lambda_2']}
         self.assertDictEqual(component_dict, self.component_tidal_parameters)
 
-    def test_lambda_tilde_delta_lambda(self):
-        self._conversion_to_component_tidal(['lambda_tilde', 'delta_lambda'])
+    def test_lambda_tilde_delta_lambda_tilde(self):
+        self._conversion_to_component_tidal(['lambda_tilde', 'delta_lambda_tilde'])
 
     def test_lambda_tilde(self):
         self._conversion_to_component_tidal(['lambda_tilde'])

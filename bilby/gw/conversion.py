@@ -278,17 +278,17 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
     if not any([key in converted_parameters for key in
-                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde']]):
         converted_parameters['lambda_1'] = 0
         converted_parameters['lambda_2'] = 0
         added_keys = added_keys + ['lambda_1', 'lambda_2']
         return converted_parameters, added_keys
 
-    if 'delta_lambda' in converted_parameters.keys():
+    if 'delta_lambda_tilde' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
-            lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
+            lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
-                parameters['delta_lambda'], converted_parameters['mass_1'],
+                parameters['delta_lambda_tilde'], converted_parameters['mass_1'],
                 converted_parameters['mass_2'])
     elif 'lambda_tilde' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
@@ -535,7 +535,7 @@ def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     return lambda_tilde
 
 
-def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
+def lambda_1_lambda_2_to_delta_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     """
     Convert from individual tidal parameters to second domainant tidal term.
 
@@ -554,22 +554,22 @@ def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
 
     Return
     ------
-    delta_lambda: float
+    delta_lambda_tilde: float
         Second dominant tidal term.
     """
     eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
-    delta_lambda = 1 / 2 * (
+    delta_lambda_tilde = 1 / 2 * (
         (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
         lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
                        3380 / 1319 * eta**3) * lambda_minus)
 
-    return delta_lambda
+    return delta_lambda_tilde
 
 
-def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
-        lambda_tilde, delta_lambda, mass_1, mass_2):
+def lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
+        lambda_tilde, delta_lambda_tilde, mass_1, mass_2):
     """
     Convert from dominant tidal terms to individual tidal parameters.
 
@@ -579,7 +579,7 @@ def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
     ----------
     lambda_tilde: float
         Dominant tidal term.
-    delta_lambda: float
+    delta_lambda_tilde: float
         Secondary tidal term.
     mass_1: float
         Mass of more massive neutron star.
@@ -602,12 +602,12 @@ def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
                      3380 / 1319 * eta**3)
     lambda_1 =\
         (13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4) -
-         2 * delta_lambda * (coefficient_1 - coefficient_2))\
+         2 * delta_lambda_tilde * (coefficient_1 - coefficient_2))\
         / ((coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4) -
            (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4))
     lambda_2 =\
         (13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4) -
-         2 * delta_lambda * (coefficient_1 + coefficient_2)) \
+         2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)) \
         / ((coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4) -
            (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4))
     return lambda_1, lambda_2
@@ -884,7 +884,7 @@ def generate_tidal_parameters(sample):
     """
     Generate all tidal parameters
 
-    lambda_tilde, delta_lambda
+    lambda_tilde, delta_lambda_tilde
 
     Parameters
     ----------
@@ -902,8 +902,8 @@ def generate_tidal_parameters(sample):
         lambda_1_lambda_2_to_lambda_tilde(
             output_sample['lambda_1'], output_sample['lambda_2'],
             output_sample['mass_1'], output_sample['mass_2'])
-    output_sample['delta_lambda'] = \
-        lambda_1_lambda_2_to_delta_lambda(
+    output_sample['delta_lambda_tilde'] = \
+        lambda_1_lambda_2_to_delta_lambda_tilde(
             output_sample['lambda_1'], output_sample['lambda_2'],
             output_sample['mass_1'], output_sample['mass_2'])
 

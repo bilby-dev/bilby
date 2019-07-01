@@ -180,7 +180,7 @@ class TestBNSPriorDict(unittest.TestCase):
     def test_redundant_priors_not_in_dict_before(self):
         for prior in ['chirp_mass', 'total_mass', 'mass_ratio',
                       'symmetric_mass_ratio', 'cos_theta_jn', 'comoving_distance',
-                      'redshift', 'lambda_tilde', 'delta_lambda']:
+                      'redshift', 'lambda_tilde', 'delta_lambda_tilde']:
             self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
 
     def test_redundant_priors_already_in_dict(self):
@@ -211,7 +211,7 @@ class TestBNSPriorDict(unittest.TestCase):
 
     def test_correct_not_redundant_priors_tidal(self):
         del self.bns_prior_dict['lambda_1']
-        for prior in['lambda_1', 'lambda_tilde', 'delta_lambda']:
+        for prior in['lambda_1', 'lambda_tilde', 'delta_lambda_tilde']:
             self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
 
     def test_add_unrelated_prior(self):
