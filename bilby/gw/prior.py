@@ -160,6 +160,19 @@ class Cosmological(Interped):
         else:
             return cls._from_repr(string)
 
+    @property
+    def _repr_dict(self):
+        """
+        Get a dictionary containing the arguments needed to reproduce this object.
+        """
+        dict_with_properties = super(Cosmological, self)._repr_dict
+        if isinstance(dict_with_properties['cosmology'], cosmo.core.Cosmology):
+            if dict_with_properties['cosmology'].name is not None:
+                dict_with_properties['cosmology'] = dict_with_properties['cosmology'].name
+        if isinstance(dict_with_properties['unit'], units.Unit):
+            dict_with_properties['unit'] = dict_with_properties['unit'].to_string()
+        return dict_with_properties
+
 
 class UniformComovingVolume(Cosmological):
 

@@ -35,11 +35,16 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertIsNone(self.prior.rescale(1))
 
     def test_base_repr(self):
+        """
+        We compare that the strings contain all of the same characters in not
+        necessarily the same order as python2 doesn't conserve the order of the
+        arguments.
+        """
         self.prior = bilby.core.prior.Prior(name='test_name', latex_label='test_label', minimum=0, maximum=1,
                                             boundary=None)
         expected_string = "Prior(name='test_name', latex_label='test_label', unit=None, minimum=0, maximum=1, " \
                           "boundary=None)"
-        self.assertEqual(expected_string, self.prior.__repr__())
+        self.assertTrue(sorted(expected_string) == sorted(self.prior.__repr__()))
 
     def test_base_prob(self):
         self.assertTrue(np.isnan(self.prior.prob(5)))
@@ -581,6 +586,11 @@ class TestPriorDict(unittest.TestCase):
         self.assertDictEqual(expected, self.prior_set_from_file)
 
     def test_to_file(self):
+        """
+        We compare that the strings contain all of the same characters in not
+        necessarily the same order as python2 doesn't conserve the order of the
+        arguments.
+        """
         expected = ["length = DeltaFunction(peak=42, name='c', latex_label='c', unit='m')\n",
                     "speed = PowerLaw(alpha=3, minimum=1, maximum=2, name='b', latex_label='b', "
                     "unit='m/s', boundary=None)\n",
@@ -589,7 +599,8 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict.to_file(outdir='prior_files', label='to_file_test')
         with open('prior_files/to_file_test.prior') as f:
             for i, line in enumerate(f.readlines()):
-                self.assertTrue(line in expected)
+                self.assertTrue(any([
+                    sorted(line) == sorted(expect) for expect in expected]))
 
     def test_from_dict_with_string(self):
         string_prior = "PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', " \

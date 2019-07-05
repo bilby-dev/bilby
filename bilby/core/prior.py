@@ -606,15 +606,21 @@ class Prior(object):
         str: A string representation of this instance
 
         """
-        subclass_args = infer_args_from_method(self.__init__)
         prior_name = self.__class__.__name__
-
-        property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
-        dict_with_properties = self.__dict__.copy()
-        for key in property_names:
-            dict_with_properties[key] = getattr(self, key)
-        args = ', '.join(['{}={}'.format(key, repr(dict_with_properties[key])) for key in subclass_args])
+        args = ', '.join(['{}={}'.format(key, repr(self._repr_dict[key])) for key in self._repr_dict])
         return "{}({})".format(prior_name, args)
+
+    @property
+    def _repr_dict(self):
+        """
+        Get a dictionary containing the arguments needed to reproduce this object.
+        """
+        property_names = {p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)}
+        subclass_args = infer_args_from_method(self.__init__)
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names.intersection(subclass_args):
+            dict_with_properties[key] = getattr(self, key)
+        return {key: dict_with_properties[key] for key in subclass_args}
 
     @property
     def is_fixed(self):
