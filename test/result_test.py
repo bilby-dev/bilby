@@ -261,10 +261,25 @@ class TestResult(unittest.TestCase):
 
     def test_save_samples(self):
         self.result.save_posterior_samples()
-        filename = '{}/{}_posterior_samples.txt'.format(self.result.outdir, self.result.label)
+        filename = '{}/{}_posterior_samples.dat'.format(self.result.outdir, self.result.label)
         self.assertTrue(os.path.isfile(filename))
-        df = pd.read_csv(filename)
+        df = pd.read_csv(filename, sep=' ')
         self.assertTrue(np.allclose(self.result.posterior.values, df.values))
+
+    def test_save_samples_from_filename(self):
+        filename = '{}/{}_posterior_samples_OTHER.dat'.format(self.result.outdir, self.result.label)
+        self.result.save_posterior_samples(filename=filename)
+        self.assertTrue(os.path.isfile(filename))
+        df = pd.read_csv(filename, sep=' ')
+        self.assertTrue(np.allclose(self.result.posterior.values, df.values))
+
+    def test_save_samples_numpy_load(self):
+        self.result.save_posterior_samples()
+        filename = '{}/{}_posterior_samples.dat'.format(self.result.outdir, self.result.label)
+        self.assertTrue(os.path.isfile(filename))
+        data = np.genfromtxt(filename, names=True)
+        df = pd.read_csv(filename, sep=' ')
+        self.assertTrue(len(data.dtype) == len(df.keys()))
 
     def test_samples_to_posterior_simple(self):
         self.result.posterior = None

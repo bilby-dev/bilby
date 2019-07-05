@@ -499,11 +499,44 @@ class Result(object):
             logger.error("\n\n Saving the data has failed with the "
                          "following message:\n {} \n\n".format(e))
 
-    def save_posterior_samples(self, outdir=None):
-        """Saves posterior samples to a file"""
-        outdir = self._safe_outdir_creation(outdir, self.save_posterior_samples)
-        filename = '{}/{}_posterior_samples.txt'.format(outdir, self.label)
-        self.posterior.to_csv(filename, index=False, header=True)
+    def save_posterior_samples(self, filename=None, outdir=None, label=None):
+        """ Saves posterior samples to a file
+
+        Generates a .dat file containing the posterior samples and auxillary
+        data saved in the posterior. Note, strings in the posterior are
+        removed while complex numbers will be given as absolute values with
+        abs appended to the column name
+
+        Parameters
+        ----------
+        filename: str
+            Alternative filename to use. Defaults to
+            outdir/label_posterior_samples.dat
+        outdir, label: str
+            Alternative outdir and label to use
+
+        """
+        if filename is None:
+            if label is None:
+                label = self.label
+            outdir = self._safe_outdir_creation(outdir, self.save_posterior_samples)
+            filename = '{}/{}_posterior_samples.dat'.format(outdir, label)
+        else:
+            outdir = os.path.dirname(filename)
+            self._safe_outdir_creation(outdir, self.save_posterior_samples)
+
+        # Drop non-numeric columns
+        df = self.posterior.select_dtypes([np.number]).copy()
+
+        # Convert complex columns to abs
+        for key in df.keys():
+            if np.any(np.iscomplex(df[key])):
+                complex_term = df.pop(key)
+                df.loc[:, key + "_abs"] = np.abs(complex_term)
+                df.loc[:, key + "_angle"] = np.angle(complex_term)
+
+        logger.info("Writing samples file to {}".format(filename))
+        df.to_csv(filename, index=False, header=True, sep=' ')
 
     def get_latex_labels_from_parameter_keys(self, keys):
         """ Returns a list of latex_labels corresponding to the given keys
