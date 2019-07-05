@@ -865,6 +865,18 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self.frequency_nodes_quadratic = \
             waveform_generator.waveform_arguments['frequency_nodes_quadratic']
 
+    def get_d_inner_h_interp(self, d_inner_h_tc_array, indices):
+        """ Return the updated interpolant or generate a new one if required """
+        if hasattr(self, '_d_inner_h_interp'):
+            self._d_inner_h_interp.x = self.weights['time_samples'][indices]
+            self._d_inner_h_interp.y = d_inner_h_tc_array
+        else:
+            self._d_inner_h_interp = interp1d(
+                self.weights['time_samples'][indices],
+                d_inner_h_tc_array, kind='cubic', assume_sorted=True)
+
+        return self._d_inner_h_interp
+
     def calculate_snrs(self, waveform_polarizations, interferometer):
         """
         Compute the snrs for ROQ
@@ -916,9 +928,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             'i,ji->j', np.conjugate(h_plus_linear + h_cross_linear),
             self.weights[interferometer.name + '_linear'][indices])
 
-        d_inner_h = interp1d(
-            self.weights['time_samples'][indices],
-            d_inner_h_tc_array, kind='cubic', assume_sorted=True)(ifo_time)
+        d_inner_h = self.get_d_inner_h_interp(d_inner_h_tc_array, indices)(ifo_time)
 
         optimal_snr_squared = \
             np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,

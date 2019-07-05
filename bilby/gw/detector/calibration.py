@@ -94,6 +94,34 @@ class CubicSpline(Recalibrate):
         return self.__class__.__name__ + '(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
             .format(self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points)
 
+    @property
+    def delta_amplitude_interp(self):
+        """ Return the updated interpolant or generate a new one if required """
+        amplitude_parameters = [self.params['amplitude_{}'.format(ii)]
+                                for ii in range(self.n_points)]
+
+        if hasattr(self, '_delta_amplitude_interp'):
+            self._delta_amplitude_interp.y = amplitude_parameters
+        else:
+            self._delta_amplitude_interp = interp1d(
+                self.log_spline_points, amplitude_parameters, kind='cubic',
+                bounds_error=False, fill_value=0)
+        return self._delta_amplitude_interp
+
+    @property
+    def delta_phase_interp(self):
+        """ Return the updated interpolant or generate a new one if required """
+        phase_parameters = [
+            self.params['phase_{}'.format(ii)] for ii in range(self.n_points)]
+
+        if hasattr(self, '_delta_phase_interp'):
+            self._delta_phase_interp.y = phase_parameters
+        else:
+            self._delta_phase_interp = interp1d(
+                self.log_spline_points, phase_parameters, kind='cubic',
+                bounds_error=False, fill_value=0)
+        return self._delta_phase_interp
+
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
 
@@ -113,17 +141,10 @@ class CubicSpline(Recalibrate):
             The factor to multiply the strain by.
         """
         self.set_calibration_parameters(**params)
-        amplitude_parameters = [self.params['amplitude_{}'.format(ii)]
-                                for ii in range(self.n_points)]
-        delta_amplitude = interp1d(
-            self.log_spline_points, amplitude_parameters, kind='cubic',
-            bounds_error=False, fill_value=0)(np.log10(frequency_array))
+        log10_frequency_array = np.log10(frequency_array)
 
-        phase_parameters = [
-            self.params['phase_{}'.format(ii)] for ii in range(self.n_points)]
-        delta_phase = interp1d(
-            self.log_spline_points, phase_parameters, kind='cubic',
-            bounds_error=False, fill_value=0)(np.log10(frequency_array))
+        delta_amplitude = self.delta_amplitude_interp(log10_frequency_array)
+        delta_phase = self.delta_phase_interp(log10_frequency_array)
 
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
 
