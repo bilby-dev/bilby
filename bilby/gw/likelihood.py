@@ -572,17 +572,13 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._create_lookup_table()
         self._interp_dist_margd_loglikelihood = UnsortedInterp2d(
             self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array)
+            self._dist_margd_loglikelihood_array, kind='cubic')
 
     @property
     def cached_lookup_table_filename(self):
         if self._lookup_table_filename is None:
-            dmin = self._distance_array[0]
-            dmax = self._distance_array[-1]
-            n = len(self._distance_array)
             self._lookup_table_filename = (
-                '.distance_marginalization_lookup.npz'
-                .format(dmin, dmax, n))
+                '.distance_marginalization_lookup.npz')
         return self._lookup_table_filename
 
     @cached_lookup_table_filename.setter
