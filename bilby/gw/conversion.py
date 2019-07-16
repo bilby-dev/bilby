@@ -864,9 +864,12 @@ def generate_component_spins(sample):
                 output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] =\
-            np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
+            np.fmod(2 * np.pi + np.arctan2(
+                output_sample['spin_1y'], output_sample['spin_1x']), 2 * np.pi)
         output_sample['phi_2'] =\
-            np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
+            np.fmod(2 * np.pi + np.arctan2(
+                output_sample['spin_2y'], output_sample['spin_2x']), 2 * np.pi)
+
     elif 'chi_1' in output_sample and 'chi_2' in output_sample:
         output_sample['spin_1x'] = 0
         output_sample['spin_1y'] = 0
