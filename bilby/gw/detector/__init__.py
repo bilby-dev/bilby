@@ -65,6 +65,8 @@ def inject_signal_into_gwpy_timeseries(
     ifo.strain_data.set_from_gwpy_timeseries(data)
 
     parameters_check, _ = convert_to_lal_binary_black_hole_parameters(parameters)
+    parameters_check = {key: parameters_check[key] for key in
+                        ['mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2']}
     safe_time = get_safe_signal_duration(**parameters_check)
     if data.duration.value < safe_time:
         ValueError(
@@ -325,13 +327,13 @@ def load_data_by_channel_name(
     except IndexError:
         raise IndexError("Channel name must be of the format `IFO:Channel`")
     ifo = get_empty_interferometer(det)
-        
+
     ifo.set_strain_data_from_channel_name(
         channel = channel_name,
         sampling_frequency=sampling_frequency,
         duration=segment_duration,
         start_time=start_time)
-    
+
     ifo.power_spectral_density = \
         PowerSpectralDensity.from_channel_name(
             channel=channel_name,
