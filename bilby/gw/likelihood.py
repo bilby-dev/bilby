@@ -1058,7 +1058,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             with open(filename, 'r') as file:
                 weights = json.load(file, object_hook=decode_bilby_json)
         elif format == "npz":
-            weights = np.load(filename)
+            # Wrap in dict to load data into memory
+            weights = dict(np.load(filename))
         return weights
 
     def _get_time_resolution(self):
