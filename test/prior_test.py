@@ -479,12 +479,16 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.Interped):
                 continue  # we cannot test this because of the numpy arrays
             elif isinstance(prior, bilby.core.prior.MultivariateGaussian):
-                continue  # we cannot test this because of the internal objects
+                repr_prior_string = 'bilby.core.prior.' + repr(prior)
+                repr_prior_string = repr_prior_string.replace(
+                    'MultivariateGaussianDist',
+                    'bilby.core.prior.MultivariateGaussianDist'
+                )
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)
             else:
                 repr_prior_string = 'bilby.core.prior.' + repr(prior)
-            repr_prior = eval(repr_prior_string)
+            repr_prior = eval(repr_prior_string, None, dict(inf=np.inf))
             self.assertEqual(prior, repr_prior)
 
     def test_set_maximum_setting(self):
