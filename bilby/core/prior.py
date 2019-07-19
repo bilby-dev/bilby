@@ -89,10 +89,23 @@ class PriorDict(OrderedDict):
         check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
+        mvgs = []
         with open(prior_file, "w") as outfile:
             for key in self.keys():
-                outfile.write(
-                    "{} = {}\n".format(key, self[key]))
+                if isinstance(self[key], MultivariateGaussian):
+                    mvgname = '_'.join(self[key].mvg.names) + '_mvg'
+                    if mvgname not in mvgs:
+                        mvgs.append(mvgname)
+                        outfile.write(
+                            "{} = {}\n".format(mvgname, self[key].mvg))
+                    mvgstr = repr(self[key].mvg)
+                    priorstr = repr(self[key])
+                    outfile.write(
+                        "{} = {}\n".format(key, priorstr.replace(mvgstr,
+                                                                 mvgname)))
+                else:
+                    outfile.write(
+                        "{} = {}\n".format(key, self[key]))
 
     def from_file(self, filename):
         """ Reads in a prior from a file specification
@@ -114,6 +127,7 @@ class PriorDict(OrderedDict):
 
         comments = ['#', '\n']
         prior = dict()
+        mvgdict = dict(inf=np.inf)  # evaluate inf as np.inf
         with open(filename, 'r') as f:
             for line in f:
                 if line[0] in comments:
@@ -139,6 +153,13 @@ class PriorDict(OrderedDict):
                 cls = getattr(import_module(module), cls)
                 if key.lower() == "conversion_function":
                     setattr(self, key, cls)
+                elif (cls.__name__ in ['MultivariateGaussianDist',
+                                       'MultivariateNormalDist']):
+                    if key not in mvgdict:
+                        mvgdict[key] = eval(val, None, mvgdict)
+                elif (cls.__name__ in ['MultivariateGaussian',
+                                       'MultivariateNormal']):
+                    prior[key] = eval(val, None, mvgdict)
                 else:
                     try:
                         prior[key] = cls.from_repr(args)
@@ -2824,6 +2845,67 @@ class MultivariateGaussianDist(object):
 
     def __len__(self):
         return len(self.names)
+
+    def __repr__(self):
+        """Overrides the special method __repr__.
+
+        Returns a representation of this instance that resembles how it is instantiated.
+        Works correctly for all child classes
+
+        Returns
+        -------
+        str: A string representation of this instance
+
+        """
+        subclass_args = infer_args_from_method(self.__init__)
+        dist_name = self.__class__.__name__
+
+        property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+
+        argslist = []
+        for key in subclass_args:
+            # make sure lists containing arrays are returned just as lists
+            if isinstance(dict_with_properties[key], list):
+                argsval = np.asarray(dict_with_properties[key]).tolist()
+            else:
+                argsval = dict_with_properties[key]
+            argslist.append('{}={}'.format(key, repr(argsval)))
+        args = ', '.join(argslist)
+        return "{}({})".format(dist_name, args)
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
+            return False
+        for key in self.__dict__:
+            if key == 'mvn':
+                if len(self.__dict__[key]) != len(other.__dict__[key]):
+                    return False
+                for thismvn, othermvn in zip(self.__dict__[key], other.__dict__[key]):
+                    if (not isinstance(thismvn, scipy.stats._multivariate.multivariate_normal_frozen) or
+                            not isinstance(othermvn, scipy.stats._multivariate.multivariate_normal_frozen)):
+                        return False
+            elif isinstance(self.__dict__[key], (np.ndarray, list)):
+                thisarr = np.asarray(self.__dict__[key])
+                otherarr = np.asarray(other.__dict__[key])
+                if thisarr.dtype == np.float and otherarr.dtype == np.float:
+                    fin1 = np.isfinite(np.asarray(self.__dict__[key]))
+                    fin2 = np.isfinite(np.asarray(other.__dict__[key]))
+                    if not np.array_equal(fin1, fin2):
+                        return False
+                    if not np.allclose(thisarr[fin1], otherarr[fin2], atol=1e-15):
+                        return False
+                else:
+                    if not np.array_equal(thisarr, otherarr):
+                        return False
+            else:
+                if not self.__dict__[key] == other.__dict__[key]:
+                    return False
+        return True
 
 
 class MultivariateNormalDist(MultivariateGaussianDist):
