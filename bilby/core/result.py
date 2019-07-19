@@ -1145,7 +1145,7 @@ class Result(object):
                              "Cannot compute credible levels.")
         credible_levels = {key: self.get_injection_credible_level(key)
                            for key in keys
-                           if isinstance(self.injection_parameters[key], float)}
+                           if isinstance(self.injection_parameters.get(key, None), float)}
         return credible_levels
 
     def get_injection_credible_level(self, parameter):
