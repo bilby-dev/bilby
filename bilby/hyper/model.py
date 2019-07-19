@@ -23,7 +23,7 @@ class Model(object):
             for key in param_keys:
                 self.parameters[key] = None
 
-    def prob(self, data):
+    def prob(self, data, **kwargs):
         probability = 1.0
         for ii, function in enumerate(self.models):
             probability *= function(data, **self._get_function_parameters(function))
