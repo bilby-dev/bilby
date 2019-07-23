@@ -9,6 +9,26 @@
 ### Removed
 - 
 
+## [0.5.3] 2019-07-23
+### Added
+- Jitter time marginalization. For the time-marginalized likelihood, a jitter
+  is used to ensure proper sampling without artifacts (!534)
+- Zero likelihood mode for testing and zero-likelihood test to the nightly C.I ((!542)
+- 15D analytic Gaussian test example (!547) 
+
+### Changes
+- Dynesty version minimum set to 0.9.7. Changes to this sampler vastly improve
+  performance (!537)
+- Improvements to waveform plotting (!534) 
+- Fixed bugs in the prior loading and added tests (!531 !539 !553 !515)
+- Fixed issue in 1D CDF prior plots (!538)
+- ROQ weights stored as npz rather than json (memory-performance improvement) (!536)
+- Distance marginalisation now uses cubic rather than linear interpolation. Improves
+  distance/inclination posteriors for high SNR systems. (!552)
+- Inputs to hyperpe modified to allow for more flexible sampling prior specification
+  and improve efficiency. (!545)
+- Fix definition of some spin phase parameters (!556).
+
 ## [0.5.2] 2019-06-18
 ### Added
 - Method to read data in using gwpy get (and associated example)
