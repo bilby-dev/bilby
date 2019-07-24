@@ -46,7 +46,7 @@ kwargs = {"sample_rate": 4096}
 interferometers = bilby.gw.detector.get_event_data(
     label, interferometer_names=interferometer_names,
     duration=duration, roll_off=roll_off, psd_offset=psd_offset,
-    psd_duration=psd_duration, cache=True,
+    psd_duration=psd_duration, cache=True, outdir=outdir,
     filter_freq=filter_freq, **kwargs)
 
 # CHOOSE PRIOR FILE
