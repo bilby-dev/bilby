@@ -149,6 +149,10 @@ class Dynesty(NestedSampler):
         if 'print_progress' not in kwargs:
             if 'verbose' in kwargs:
                 kwargs['print_progress'] = kwargs.pop('verbose')
+        if 'walks' not in kwargs:
+            for equiv in self.walks_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['walks'] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs['walks']:

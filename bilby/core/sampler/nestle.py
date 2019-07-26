@@ -29,13 +29,17 @@ class Nestle(NestedSampler):
     default_kwargs = dict(verbose=True, method='multi', npoints=500,
                           update_interval=None, npdim=None, maxiter=None,
                           maxcall=None, dlogz=None, decline_factor=None,
-                          rstate=None, callback=None)
+                          rstate=None, callback=None, steps=20, enlarge=1.2)
 
     def _translate_kwargs(self, kwargs):
         if 'npoints' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['npoints'] = kwargs.pop(equiv)
+        if 'steps' not in kwargs:
+            for equiv in self.walks_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['steps'] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
         if self.kwargs['verbose']:

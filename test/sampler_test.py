@@ -240,14 +240,14 @@ class TestNestle(unittest.TestCase):
         expected = dict(verbose=False, method='multi', npoints=500,
                         update_interval=None, npdim=None, maxiter=None,
                         maxcall=None, dlogz=None, decline_factor=None,
-                        rstate=None, callback=None)
+                        rstate=None, callback=None, steps=20, enlarge=1.2)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
         expected = dict(verbose=False, method='multi', npoints=345,
                         update_interval=None, npdim=None, maxiter=None,
                         maxcall=None, dlogz=None, decline_factor=None,
-                        rstate=None, callback=None)
+                        rstate=None, callback=None, steps=20, enlarge=1.2)
         self.sampler.kwargs['npoints'] = 123
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
