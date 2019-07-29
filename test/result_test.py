@@ -347,6 +347,9 @@ class TestResult(unittest.TestCase):
         self.result.plot_corner(parameters=dict(x=1, y=1))
         self.result.plot_corner(truths=dict(x=1, y=1))
         self.result.plot_corner(truth=dict(x=1, y=1))
+        self.result.plot_corner(truths=None)
+        self.result.plot_corner(truths=False)
+        self.result.plot_corner(truths=True)
         with self.assertRaises(ValueError):
             self.result.plot_corner(truths=dict(x=1, y=1),
                                     parameters=dict(x=1, y=1))
