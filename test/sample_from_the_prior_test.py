@@ -2,11 +2,20 @@ from __future__ import absolute_import
 import shutil
 import os
 import logging
+from packaging import version
 
 import unittest
 import numpy as np
 import bilby
+import scipy
 from scipy.stats import ks_2samp, kstest
+
+
+def ks_2samp_wrapper(data1, data2):
+    if version.parse(scipy.__version__) >= version.parse("1.3.0"):
+        return ks_2samp(data1, data2, alternative="two-sided", mode="asymp")
+    else:
+        return ks_2samp(data1, data2)
 
 
 class Test(unittest.TestCase):
@@ -70,8 +79,8 @@ class Test(unittest.TestCase):
         result = bilby.run_sampler(
             likelihood=likelihood, priors=priors, sampler='dynesty',
             npoints=1000, walks=100, outdir=self.outdir, label=label)
-        pvalues = [ks_2samp(result.priors[key].sample(10000),
-                            result.posterior[key].values).pvalue
+        pvalues = [ks_2samp_wrapper(result.priors[key].sample(10000),
+                                    result.posterior[key].values).pvalue
                    for key in priors.keys()]
         print("P values per parameter")
         for key, p in zip(priors.keys(), pvalues):
