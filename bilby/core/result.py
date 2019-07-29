@@ -1363,21 +1363,41 @@ class ResultList(list):
         return result
 
     def _combine_nested_sampled_runs(self, result):
+        """
+        Combine multiple nested sampling runs.
+
+        Currently this keeps posterior samples from each run in proportion with
+        the evidence for each individual run
+
+        Parameters
+        ----------
+        result: bilby.core.result.Result
+            The result object to put the new samples in.
+
+        Returns
+        -------
+        posteriors: list
+            A list of pandas DataFrames containing the reduced sample set from
+            each run.
+        result: bilby.core.result.Result
+            The result object with the combined evidences.
+        """
         self.check_nested_samples()
-        log_evidences = np.array([res.log_evidence for res in self])
-        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
         if result.use_ratio:
-            result.log_bayes_factor = result.log_evidence
-            result.log_evidence = result.log_evidence + result.log_noise_evidence
+            log_bayes_factors = np.array([res.log_bayes_factor for res in self])
+            result.log_bayes_factor = logsumexp(log_bayes_factors, b=1. / len(self))
+            result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
+            result_weights = np.exp(log_bayes_factors - np.max(log_bayes_factors))
         else:
-            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+            log_evidences = np.array([res.log_evidence for res in self])
+            result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+            result_weights = np.exp(log_evidences - np.max(log_evidences))
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
             result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
         else:
             result.log_evidence_err = np.nan
-        result_weights = np.exp(log_evidences - np.max(log_evidences))
-        posteriors = []
+        posteriors = list()
         for res, frac in zip(self, result_weights):
             selected_samples = (np.random.uniform(size=len(res.posterior)) < frac)
             posteriors.append(res.posterior[selected_samples])
