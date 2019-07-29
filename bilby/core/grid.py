@@ -1,14 +1,42 @@
 from __future__ import division
 
 import numpy as np
+import os
+import json
+from collections import OrderedDict
 
 from .prior import Prior, PriorDict
-from .utils import logtrapzexp
+from .utils import (logtrapzexp, check_directory_exists_and_if_not_mkdir,
+                    logger, BilbyJsonEncoder, decode_bilby_json)
+from .result import FileMovedError
+
+
+def grid_file_name(outdir, label, gzip=False):
+    """ Returns the standard filename used for a grid file
+
+    Parameters
+    ----------
+    outdir: str
+        Name of the output directory
+    label: str
+        Naming scheme of the output file
+    gzip: bool, optional
+        Set to True to append `.gz` to the extension for saving in gzipped format
+
+    Returns
+    -------
+    str: File name of the output file
+    """
+    if gzip:
+        return os.path.join(outdir, '{}_grid.json.gz'.format(label))
+    else:
+        return os.path.join(outdir, '{}_grid.json'.format(label))
 
 
 class Grid(object):
 
-    def __init__(self, likelihood, priors, grid_size=101):
+    def __init__(self, likelihood=None, priors=dict(), grid_size=101,
+                 save=False, label='no_label', outdir='.', gzip=False):
         """
 
         Parameters
@@ -21,7 +49,16 @@ class Grid(object):
             - list: dimensions will use these points/this number of points in
             order of priors
             - dict: as for list
+        save: bool
+            Set whether to save the results of the grid
+        label: str
+            The label for the filename to which the grid is saved
+        outdir: str
+            The output directory to which the grid will be saved
+        gzip: bool
+            Set whether to gzip the output grid file
         """
+
         self.likelihood = likelihood
         self.priors = PriorDict(priors)
         self.n_dims = len(priors)
@@ -30,14 +67,26 @@ class Grid(object):
         self.sample_points = dict()
         self._get_sample_points(grid_size)
         # evaluate the prior on the grid points
-        self._ln_prior = self.priors.ln_prob(
-            {key: self.mesh_grid[i].flatten() for i, key in
-             enumerate(self.parameter_names)}, axis=0).reshape(
-            self.mesh_grid[0].shape)
+        if self.n_dims > 0:
+            self._ln_prior = self.priors.ln_prob(
+                {key: self.mesh_grid[i].flatten() for i, key in
+                 enumerate(self.parameter_names)}, axis=0).reshape(
+                self.mesh_grid[0].shape)
         self._ln_likelihood = None
 
         # evaluate the likelihood on the grid points
-        self._evaluate()
+        if likelihood is not None and self.n_dims > 0:
+            self._evaluate()
+
+        self.save = save
+        self.label = None
+        self.outdir = None
+        if self.save:
+            if isinstance(label, str):
+                self.label = label
+            if isinstance(outdir, str):
+                self.outdir = os.path.abspath(outdir)
+            self.save_to_file(gzip=gzip)
 
     @property
     def ln_prior(self):
@@ -157,7 +206,11 @@ class Grid(object):
     def log_evidence(self):
         return self.ln_evidence
 
-    def marginalize_ln_likelihood(self, parameter=None, not_parameter=None):
+    @property
+    def log_noise_evidence(self):
+        return self.ln_noise_evidence
+
+    def marginalize_ln_likelihood(self, parameters=None, not_parameters=None):
         """
         Marginalize the ln likelihood over either the specified parameter or
         all but the specified "not_parameter". If neither is specified the
@@ -165,19 +218,20 @@ class Grid(object):
 
         Parameters
         ----------
-        parameter: str, optional
-            Name of the parameter to marginalize over.
-        not_parameter: str, optional
-            Name of the parameter to not marginalize over.
+        parameters: str, list, optional
+            Name of, or list of names of, the parameter(s) to marginalize over.
+        not_parameters: str, optional
+            Name of, or list of names of, the parameter(s) to not marginalize over.
+
         Returns
         -------
         array-like:
             The marginalized ln likelihood.
         """
-        return self.marginalize(self.ln_likelihood, parameters=parameter,
-                                not_parameters=not_parameter)
+        return self.marginalize(self.ln_likelihood, parameters=parameters,
+                                not_parameters=not_parameters)
 
-    def marginalize_ln_posterior(self, parameter=None, not_parameter=None):
+    def marginalize_ln_posterior(self, parameters=None, not_parameters=None):
         """
         Marginalize the ln posterior over either the specified parameter or all
         but the specified "not_parameter". If neither is specified the
@@ -185,19 +239,20 @@ class Grid(object):
 
         Parameters
         ----------
-        parameter: str, optional
-            Name of the parameter to marginalize over.
-        not_parameter: str, optional
-            Name of the parameter to not marginalize over.
+        parameters: str, list, optional
+            Name of, or list of names of, the parameter(s) to marginalize over.
+        not_parameters: str, optional
+            Name of, or list of names of, the parameter(s) to not marginalize over.
+
         Returns
         -------
         array-like:
             The marginalized ln posterior.
         """
-        return self.marginalize(self.ln_posterior, parameters=parameter,
-                                not_parameters=not_parameter)
+        return self.marginalize(self.ln_posterior, parameters=parameters,
+                                not_parameters=not_parameters)
 
-    def marginalize_likelihood(self, parameter=None, not_parameter=None):
+    def marginalize_likelihood(self, parameters=None, not_parameters=None):
         """
         Marginalize the likelihood over either the specified parameter or all
         but the specified "not_parameter". If neither is specified the
@@ -205,45 +260,48 @@ class Grid(object):
 
         Parameters
         ----------
-        parameter: str, optional
-            Name of the parameter to marginalize over.
-        not_parameter: str, optional
-            Name of the parameter to not marginalize over.
+        parameters: str, list, optional
+            Name of, or list of names of, the parameter(s) to marginalize over.
+        not_parameters: str, optional
+            Name of, or list of names of, the parameter(s) to not marginalize over.
+
         Returns
         -------
         array-like:
             The marginalized likelihood.
         """
-        ln_like = self.marginalize(self.ln_likelihood, parameters=parameter,
-                                   not_parameters=not_parameter)
-        # NOTE: this outputs will not be properly normalised
+        ln_like = self.marginalize(self.ln_likelihood, parameters=parameters,
+                                   not_parameters=not_parameters)
+        # NOTE: the output will not be properly normalised
         return np.exp(ln_like - np.max(ln_like))
 
-    def marginalize_posterior(self, parameter=None, not_parameter=None):
+    def marginalize_posterior(self, parameters=None, not_parameters=None):
         """
         Marginalize the posterior over either the specified parameter or all
-        but the specified "not_parameter". If neither is specified the
+        but the specified "not_parameters". If neither is specified the
         posterior will be fully marginalized over.
 
         Parameters
         ----------
-        parameter: str, optional
-            Name of the parameter to marginalize over.
-        not_parameter: str, optional
-            Name of the parameter to not marginalize over.
+        parameters: str, list, optional
+            Name of, or list of names of, the parameter(s) to marginalize over.
+        not_parameters: str, optional
+            Name of, or list of names of, the parameter(s) to not marginalize over.
+
         Returns
         -------
         array-like:
             The marginalized posterior.
         """
-        ln_post = self.marginalize(self.ln_posterior, parameters=parameter,
-                                   not_parameters=not_parameter)
-        # NOTE: this outputs will not be properly normalised
+        ln_post = self.marginalize(self.ln_posterior, parameters=parameters,
+                                   not_parameters=not_parameters)
+        # NOTE: the output will not be properly normalised
         return np.exp(ln_post - np.max(ln_post))
 
     def _evaluate(self):
         self._ln_likelihood = np.empty(self.mesh_grid[0].shape)
         self._evaluate_recursion(0)
+        self.ln_noise_evidence = self.likelihood.noise_log_likelihood()
 
     def _evaluate_recursion(self, dimension):
         if dimension == self.n_dims:
@@ -275,8 +333,158 @@ class Grid(object):
                             np.linspace(0, 1, grid_size[key]))
                     else:
                         self.sample_points[key] = grid_size[key]
+                else:
+                    raise TypeError("Unrecognized 'grid_size' type")
 
         # set the mesh of points
         self.mesh_grid = np.meshgrid(
             *(self.sample_points[key] for key in self.parameter_names),
             indexing='ij')
+
+    def _get_save_data_dictionary(self):
+        # This list defines all the parameters saved in the grid object
+        save_attrs = [
+            'label', 'outdir', 'parameter_names', 'n_dims', 'priors',
+            'sample_points', 'ln_likelihood', 'ln_evidence',
+            'ln_noise_evidence']
+        dictionary = OrderedDict()
+        for attr in save_attrs:
+            try:
+                dictionary[attr] = getattr(self, attr)
+            except ValueError as e:
+                logger.debug("Unable to save {}, message: {}".format(attr, e))
+                pass
+        return dictionary
+
+    def _safe_outdir_creation(self, outdir=None, caller_func=None):
+        if outdir is None:
+            outdir = self.outdir
+        try:
+            check_directory_exists_and_if_not_mkdir(outdir)
+        except PermissionError:
+            raise FileMovedError("Can not write in the out directory.\n"
+                                 "Did you move the here file from another system?\n"
+                                 "Try calling " + caller_func.__name__ + " with the 'outdir' "
+                                 "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
+        return outdir
+
+    def save_to_file(self, filename=None, overwrite=False, outdir=None,
+                     gzip=False):
+        """
+        Writes the Grid to a file.
+
+        Parameters
+        ----------
+        filename: str, optional
+            Filename to write to (overwrites the default)
+        overwrite: bool, optional
+            Whether or not to overwrite an existing result file.
+            default=False
+        outdir: str, optional
+            Path to the outdir. Default is the one stored in the Grid object.
+        gzip: bool, optional
+            If true this will gzip the resulting file and add '.gz' to the file
+            extension.
+        """
+
+        outdir = self._safe_outdir_creation(outdir, self.save_to_file)
+        if filename is None:
+            if self.label is None:
+                raise ValueError("'label' for the output file name is not given")
+
+            filename = grid_file_name(outdir, self.label, gzip)
+
+        if os.path.isfile(filename):
+            if overwrite:
+                logger.debug('Removing existing file {}'.format(filename))
+                os.remove(filename)
+            else:
+                logger.debug(
+                    'Renaming existing file {} to {}.old'.format(filename,
+                                                                 filename))
+                os.rename(filename, filename + '.old')
+
+        logger.debug("Saving result to {}".format(filename))
+
+        # Convert the prior to a string representation for saving on disk
+        dictionary = self._get_save_data_dictionary()
+        if dictionary.get('priors', False):
+            dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
+
+        try:
+            if gzip or (os.path.splitext(filename)[-1] == '.gz'):
+                import gzip
+                # encode to a string
+                json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
+                with gzip.GzipFile(filename, 'w') as file:
+                    file.write(json_str)
+            else:
+                with open(filename, 'w') as file:
+                    json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
+        except Exception as e:
+            logger.error("\n\n Saving the data has failed with the "
+                         "following message:\n {} \n\n".format(e))
+
+    @classmethod
+    def read(cls, filename=None, outdir=None, label=None, gzip=False):
+        """ Read in a saved .json grid file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+        outdir, label: str
+            If given, use the default naming convention for saved results file
+        gzip: bool
+            If given, whether the file is gzipped or not (only required if the
+            file is gzipped, but does not have the standard '.gz' file
+            extension)
+
+        Returns
+        -------
+        grid: bilby.core.grid.Grid
+
+        Raises
+        -------
+        ValueError: If no filename is given and either outdir or label is None
+                    If no bilby.core.grid.Grid is found in the path
+
+        """
+
+        if filename is not None:
+            fname = filename
+        else:
+            if (outdir is None) and (label is None):
+                raise ValueError("No information given to load file")
+            else:
+                fname = grid_file_name(outdir, label, gzip)
+
+        if os.path.isfile(fname):
+            if gzip or os.path.splitext(fname)[1].lstrip('.') == 'gz':
+                import gzip
+                with gzip.GzipFile(fname, 'r') as file:
+                    json_str = file.read().decode('utf-8')
+                dictionary = json.loads(json_str, object_hook=decode_bilby_json)
+            else:
+                with open(fname, 'r') as file:
+                    dictionary = json.load(file, object_hook=decode_bilby_json)
+            for key in dictionary.keys():
+                # Convert the loaded priors to bilby prior type
+                if key == 'priors':
+                    for param in dictionary[key].keys():
+                        dictionary[key][param] = str(dictionary[key][param])
+                    dictionary[key] = PriorDict(dictionary[key])
+            try:
+                grid = cls(likelihood=None, priors=dictionary['priors'],
+                           grid_size=dictionary['sample_points'],
+                           label=dictionary['label'], outdir=dictionary['outdir'])
+
+                # set the likelihood
+                grid._ln_likelihood = dictionary['ln_likelihood']
+                grid.ln_noise_evidence = dictionary['ln_noise_evidence']
+
+                return grid
+            except TypeError as e:
+                raise IOError("Unable to load dictionary, error={}".format(e))
+        else:
+            raise IOError("No result '{}' found".format(filename))

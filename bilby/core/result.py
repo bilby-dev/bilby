@@ -43,9 +43,9 @@ def result_file_name(outdir, label, extension='json', gzip=False):
     """
     if extension in ['json', 'hdf5']:
         if extension == 'json' and gzip:
-            return '{}/{}_result.{}.gz'.format(outdir, label, extension)
+            return os.path.join(outdir, '{}_result.{}.gz'.format(label, extension))
         else:
-            return '{}/{}_result.{}'.format(outdir, label, extension)
+            return os.path.join(outdir, '{}_result.{}'.format(label, extension))
     else:
         raise ValueError("Extension type {} not understood".format(extension))
 
