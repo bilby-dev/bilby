@@ -273,6 +273,33 @@ class TestPriorClasses(unittest.TestCase):
                 # the prob and ln_prob functions, it must be ignored in this test.
                 self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
 
+    def test_cdf_is_inverse_of_rescaling(self):
+        domain = np.linspace(0, 1, 100)
+        threshold = 1e-9
+        for prior in self.priors:
+            if isinstance(prior, (
+                    bilby.core.prior.DeltaFunction,
+                    bilby.core.prior.MultivariateGaussian)):
+                continue
+            rescaled = prior.rescale(domain)
+            max_difference = max(np.abs(domain - prior.cdf(rescaled)))
+            self.assertLess(max_difference, threshold)
+
+    def test_cdf_one_above_domain(self):
+        for prior in self.priors:
+            if prior.maximum != np.inf:
+                outside_domain = np.linspace(
+                    prior.maximum + 1, prior.maximum + 1e4, 1000)
+                self.assertTrue(all(prior.cdf(outside_domain) == 1))
+
+    def test_cdf_zero_below_domain(self):
+        for prior in self.priors:
+            if prior.minimum != -np.inf:
+                outside_domain = np.linspace(
+                    prior.minimum - 1e4, prior.minimum - 1, 1000)
+                self.assertTrue(all(
+                    np.nan_to_num(prior.cdf(outside_domain)) == 0))
+
     def test_log_normal_fail(self):
         with self.assertRaises(ValueError):
             bilby.core.prior.LogNormal(name='test', unit='unit', mu=0, sigma=-1)

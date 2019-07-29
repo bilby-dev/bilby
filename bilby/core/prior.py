@@ -867,6 +867,9 @@ class DeltaFunction(Prior):
         at_peak = (val == self.peak)
         return np.nan_to_num(np.multiply(at_peak, np.inf))
 
+    def cdf(self, val):
+        return np.ones_like(val) * (val > self.peak)
+
 
 class PowerLaw(Prior):
 
@@ -957,6 +960,20 @@ class PowerLaw(Prior):
         return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(
             1. * self.is_in_prior_range(val))
 
+    def cdf(self, val):
+        if self.alpha == -1:
+            _cdf = (
+                np.log(val / self.minimum) /
+                np.log(self.maximum / self.minimum))
+        else:
+            _cdf = np.atleast_1d(
+                val**(self.alpha + 1) - self.minimum**(self.alpha + 1)
+            ) / (
+                self.maximum**(self.alpha + 1) - self.minimum**(self.alpha + 1))
+        _cdf = np.minimum(_cdf, 1)
+        _cdf = np.maximum(_cdf, 0)
+        return _cdf
+
 
 class Uniform(Prior):
 
@@ -1028,6 +1045,12 @@ class Uniform(Prior):
         """
         return scipy.stats.uniform.logpdf(val, loc=self.minimum,
                                           scale=self.maximum - self.minimum)
+
+    def cdf(self, val):
+        _cdf = (val - self.minimum) / (self.maximum - self.minimum)
+        _cdf = np.minimum(_cdf, 1)
+        _cdf = np.maximum(_cdf, 0)
+        return _cdf
 
 
 class LogUniform(PowerLaw):
@@ -1187,6 +1210,13 @@ class Cosine(Prior):
         """
         return np.cos(val) / 2 * self.is_in_prior_range(val)
 
+    def cdf(self, val):
+        _cdf = np.atleast_1d((np.sin(val) - np.sin(self.minimum)) /
+                             (np.sin(self.maximum) - np.sin(self.minimum)))
+        _cdf[val > self.maximum] = 1
+        _cdf[val < self.minimum] = 0
+        return _cdf
+
 
 class Sine(Prior):
 
@@ -1234,6 +1264,13 @@ class Sine(Prior):
         Union[float, array_like]: Prior probability of val
         """
         return np.sin(val) / 2 * self.is_in_prior_range(val)
+
+    def cdf(self, val):
+        _cdf = np.atleast_1d((np.cos(val) - np.cos(self.minimum)) /
+                             (np.cos(self.maximum) - np.cos(self.minimum)))
+        _cdf[val > self.maximum] = 1
+        _cdf[val < self.minimum] = 0
+        return _cdf
 
 
 class Gaussian(Prior):
@@ -1299,6 +1336,9 @@ class Gaussian(Prior):
         """
 
         return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+
+    def cdf(self, val):
+        return (1 - erf((self.mu - val) / 2**0.5 / self.sigma)) / 2
 
 
 class Normal(Gaussian):
@@ -1391,6 +1431,13 @@ class TruncatedGaussian(Prior):
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / \
             (2 * np.pi) ** 0.5 / self.sigma / self.normalisation * self.is_in_prior_range(val)
+
+    def cdf(self, val):
+        _cdf = (erf((val - self.mu) / 2 ** 0.5 / self.sigma) - erf(
+            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2 / self.normalisation
+        _cdf[val > self.maximum] = 1
+        _cdf[val < self.minimum] = 0
+        return _cdf
 
 
 class TruncatedNormal(TruncatedGaussian):
@@ -1534,6 +1581,9 @@ class LogNormal(Prior):
 
         return scipy.stats.lognorm.logpdf(val, self.sigma, scale=np.exp(self.mu))
 
+    def cdf(self, val):
+        return scipy.stats.lognorm.cdf(val, self.sigma, scale=np.exp(self.mu))
+
 
 class LogGaussian(LogNormal):
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None):
@@ -1618,6 +1668,9 @@ class Exponential(Prior):
 
         return scipy.stats.expon.logpdf(val, scale=self.mu)
 
+    def cdf(self, val):
+        return scipy.stats.expon.cdf(val, scale=self.mu)
+
 
 class StudentT(Prior):
     def __init__(self, df, mu=0., scale=1., name=None, latex_label=None,
@@ -1690,6 +1743,9 @@ class StudentT(Prior):
         """
 
         return scipy.stats.t.logpdf(val, self.df, loc=self.mu, scale=self.scale)
+
+    def cdf(self, val):
+        return scipy.stats.t.cdf(val, self.df, loc=self.mu, scale=self.scale)
 
 
 class Beta(Prior):
@@ -1789,6 +1845,9 @@ class Beta(Prior):
             return spdf
         else:
             return -np.inf
+
+    def cdf(self, val):
+        return self._dist.cdf(val)
 
     def _set_dist(self):
         self._dist = scipy.stats.beta(
@@ -1899,6 +1958,9 @@ class Logistic(Prior):
 
         return scipy.stats.logistic.logpdf(val, loc=self.mu, scale=self.scale)
 
+    def cdf(self, val):
+        return scipy.stats.logistic.cdf(val, loc=self.mu, scale=self.scale)
+
 
 class Cauchy(Prior):
     def __init__(self, alpha, beta, name=None, latex_label=None, unit=None, boundary=None):
@@ -1965,6 +2027,9 @@ class Cauchy(Prior):
         Union[float, array_like]: Log prior probability of val
         """
         return scipy.stats.cauchy.logpdf(val, loc=self.alpha, scale=self.beta)
+
+    def cdf(self, val):
+        return scipy.stats.cauchy.cdf(val, loc=self.alpha, scale=self.beta)
 
 
 class Lorentzian(Cauchy):
@@ -2060,6 +2125,9 @@ class Gamma(Prior):
         """
 
         return scipy.stats.gamma.logpdf(val, self.k, loc=0., scale=self.theta)
+
+    def cdf(self, val):
+        return scipy.stats.gamma.cdf(val, self.k, loc=0., scale=self.theta)
 
 
 class ChiSquared(Gamma):
@@ -2167,6 +2235,9 @@ class Interped(Prior):
         """
         return self.probability_density(val)
 
+    def cdf(self, val):
+        return self.cumulative_distribution(val)
+
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the prior.
@@ -2230,7 +2301,7 @@ class Interped(Prior):
         # Need last element of cumulative distribution to be exactly one.
         self.YY[-1] = 1
         self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
-        self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=0)
+        self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=(0, 1))
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
 
