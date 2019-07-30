@@ -2,14 +2,17 @@
 
 ## Unreleased
 
+## [0.5.4] 2019-07-30
+
 ### Added
-- 
+- Analytic CDFs 
+- Reading/writing of grid results objects
+
 ### Changed
 - Dynesty default settings changed: by default, now uses 30xndim walks. This was
 shown (!564) to provide better convergence for the long-duration high-spin tests.
-
-### Removed
-- 
+- Fix bug in combined runs log evidence calculations
+- Fixed bugs in the nightly tests 
 
 ## [0.5.3] 2019-07-23
 ### Added
