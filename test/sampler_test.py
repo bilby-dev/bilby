@@ -5,7 +5,6 @@ import unittest
 from mock import MagicMock
 import numpy as np
 import os
-import sys
 import shutil
 import copy
 
@@ -154,14 +153,13 @@ class TestDynesty(unittest.TestCase):
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func')
+                        walks=60, update_interval=600, print_func='func')
         self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
         self.assertListEqual([0, 1], self.sampler.kwargs['periodic'])  # Check this separately
         self.sampler.kwargs['periodic'] = None  # The dict comparison can't handle lists
         for key in self.sampler.kwargs.keys():
-            print(key)
-            print(expected[key])
-            print(self.sampler.kwargs[key])
+            print("key={}, expected={}, actual={}"
+                  .format(key, expected[key], self.sampler.kwargs[key]))
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
@@ -173,7 +171,7 @@ class TestDynesty(unittest.TestCase):
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func')
+                        walks=60, update_interval=600, print_func='func')
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()

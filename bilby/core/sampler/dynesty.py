@@ -55,7 +55,7 @@ class Dynesty(NestedSampler):
         Method used to sample uniformly within the likelihood constraints,
         conditioned on the provided bounds
     walks: int
-        Number of walks taken if using `sample='rwalk'`, defaults to `ndim * 5`
+        Number of walks taken if using `sample='rwalk'`, defaults to `ndim * 30`
     dlogz: float, (0.1)
         Stopping criteria
     verbose: Bool
@@ -156,7 +156,7 @@ class Dynesty(NestedSampler):
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs['walks']:
-            self.kwargs['walks'] = self.ndim * 10
+            self.kwargs['walks'] = self.ndim * 30
         if not self.kwargs['update_interval']:
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
         if not self.kwargs['print_func']:

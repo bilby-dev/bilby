@@ -5,7 +5,9 @@
 ### Added
 - 
 ### Changed
-- 
+- Dynesty default settings changed: by default, now uses 30xndim walks. This was
+shown (!564) to provide better convergence for the long-duration high-spin tests.
+
 ### Removed
 - 
 
