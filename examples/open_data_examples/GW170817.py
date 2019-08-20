@@ -31,10 +31,10 @@ filter_freq = None  # low pass filter frequency to cut signal content above
 kwargs = {}
 # Data are stored by LOSC at 4096 Hz, however
 # there may be event-related data releases with a 16384 Hz rate.
-kwargs["sample_rate"] = 4096
+kwargs['sample_rate'] = 4096
 # For O2 events a "tag" is required to download the data.
-# CLN = clean data; C00 or C01 = raw data
-kwargs["tag"] = 'C00'
+# CLN = clean data; C02 = raw data
+kwargs['tag'] = 'C02'
 interferometers = bilby.gw.detector.get_event_data(
     label,
     interferometer_names=interferometer_names,
@@ -46,30 +46,32 @@ interferometers = bilby.gw.detector.get_event_data(
     filter_freq=filter_freq,
     **kwargs)
 # CHOOSE PRIOR FILE
-prior = bilby.gw.prior.BNSPriorDict(filename='binary_neutron_stars.prior')
+prior = bilby.gw.prior.BNSPriorDict(filename='GW170817.prior')
 deltaT = 0.1
-prior["geocent_time"] = bilby.core.prior.Uniform(
+prior['geocent_time'] = bilby.core.prior.Uniform(
     minimum=time_of_event - deltaT / 2,
     maximum=time_of_event + deltaT / 2,
-    name="geocent_time",
-    latex_label="$t_c$",
-    unit="$s$")
+    name='geocent_time',
+    latex_label='$t_c$',
+    unit='$s$')
 # GENERATE WAVEFORM
 # OVERVIEW OF APPROXIMANTS:
 # https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/Waveforms/Overview
 duration = None  # duration and sampling frequency will be overwritten
 # to match the ones in interferometers.
-sampling_frequency = kwargs["sample_rate"]
+sampling_frequency = kwargs['sample_rate']
 start_time = 0  # set the starting time of the time array
 waveform_arguments = {
-    'waveform_approximant': 'TaylorF2', 'reference_frequency': 20}
+    'waveform_approximant': 'IMRPhenomPv2_NRTidal', 'reference_frequency': 20}
 
 source_model = bilby.gw.source.lal_binary_neutron_star
+convert_bns = bilby.gw.conversion.convert_to_lal_binary_neutron_star_parameters
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     start_time=start_time,
     frequency_domain_source_model=source_model,
+    parameter_conversion=convert_bns,
     waveform_arguments=waveform_arguments,)
 
 # CHOOSE LIKELIHOOD FUNCTION
@@ -97,6 +99,6 @@ result = bilby.run_sampler(
     sampler=sampler,
     npoints=npoints,
     use_ratio=False,
-    injection_parameters=None,
-    conversion_function=None)
+    conversion_function=bilby.gw.conversion.generate_all_bns_parameters)
+
 result.plot_corner()
