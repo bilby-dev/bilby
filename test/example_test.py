@@ -43,8 +43,8 @@ class Test(unittest.TestCase):
 
     def test_examples(self):
         """ Loop over examples to check they run """
-        examples = ['examples/other_examples/linear_regression.py',
-                    'examples/other_examples/linear_regression_unknown_noise.py',
+        examples = ['examples/core_examples/linear_regression.py',
+                    'examples/core_examples/linear_regression_unknown_noise.py',
                     ]
         for filename in examples:
             print("Testing {}".format(filename))
