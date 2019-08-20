@@ -120,11 +120,6 @@ class TestPackagedPriors(unittest.TestCase):
         self.assertTrue('chi_1' in prior_dict)
         self.assertTrue('chi_2' in prior_dict)
 
-    def test_GW150914(self):
-        filename = 'GW150914.prior'
-        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
-        self.assertTrue('geocent_time' in prior_dict)
-
     def test_precessing(self):
         filename = 'precessing_binary_neutron_stars.prior'
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
