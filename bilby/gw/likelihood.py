@@ -16,10 +16,10 @@ except ImportError:
 from scipy.special import i0e
 
 from ..core import likelihood
+from ..core.utils import BilbyJsonEncoder, decode_bilby_json
 from ..core.utils import (
-    logger, UnsortedInterp2d, BilbyJsonEncoder, decode_bilby_json,
-    create_frequency_series, create_time_series, speed_of_light,
-    radius_of_earth)
+    logger, UnsortedInterp2d, create_frequency_series, create_time_series,
+    speed_of_light, radius_of_earth)
 from ..core.prior import Interped, Prior, Uniform
 from .detector import InterferometerList
 from .prior import BBHPriorDict

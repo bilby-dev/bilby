@@ -42,8 +42,8 @@ class Cosmological(Interped):
         if latex_label is not None:
             label_args['latex_label'] = latex_label
         if unit is not None:
-            if isinstance(unit, str):
-                unit = units.__dict__[unit]
+            if not isinstance(unit, units.Unit):
+                unit = units.Unit(unit)
             label_args['unit'] = unit
         self.unit = label_args['unit']
         self._minimum = dict()
