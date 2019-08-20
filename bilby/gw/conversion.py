@@ -663,8 +663,11 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
-        generate_posterior_samples_from_marginalized_likelihood(
-            samples=output_sample, likelihood=likelihood)
+        if (hasattr(likelihood, 'phase_marginalization') or
+            hasattr(likelihood, 'time_marginalization') or
+            hasattr(likelihood, 'distance_marginalization')):
+            generate_posterior_samples_from_marginalized_likelihood(
+                samples=output_sample, likelihood=likelihood)
         if priors is not None:
             for par, name in zip(
                     ['distance', 'phase', 'time'],
