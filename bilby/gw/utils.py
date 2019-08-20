@@ -3,7 +3,7 @@ import os
 import json
 
 import numpy as np
-from scipy import interpolate
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
 from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
@@ -923,14 +923,15 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
                  fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
 
     for i, sample in enumerate(samples):
-        temp = interpolate.spline(log_freqs, sample, np.log(freqs))
+        temp = interp1d(
+            log_freqs, sample, kind="cubic", fill_value=0,
+            bounds_error=False)(np.log(freqs))
         if xform is None:
             data[i] = temp
         else:
             data[i] = xform(temp)
 
-    line, = plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
-    color = line.get_color()
+    plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
     plt.fill_between(freqs, data_summary.lower_absolute_credible_interval,
                      data_summary.upper_absolute_credible_interval,
                      color=color, alpha=.1, linewidth=0.1)
