@@ -137,7 +137,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     # Calculating omega here to avoid calculation when model in [plus, cross, breathing]
     omega = np.cross(m, n)
     if mode.lower() == 'longitudinal':
-        return np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
+        return np.einsum('i,j->ij', omega, omega)
     elif mode.lower() == 'x':
         return np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
     elif mode.lower() == 'y':
