@@ -590,7 +590,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def load_lookup_table(self, filename):
         if os.path.exists(filename):
-            loaded_file = dict(np.load(filename))
+            try:
+                loaded_file = dict(np.load(filename))
+            except AttributeError as e:
+                logger.warning(e)
+                self._create_lookup_table()
+                return None
             match, failure = self._test_cached_lookup_table(loaded_file)
             if match:
                 logger.info('Loaded distance marginalisation lookup table from '
@@ -599,13 +604,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             else:
                 logger.info('Loaded distance marginalisation lookup table does '
                             'not match for {}.'.format(failure))
-                return None
         elif isinstance(filename, str):
             logger.info('Distance marginalisation file {} does not '
                         'exist'.format(filename))
-            return None
-        else:
-            return None
+        return None
 
     def cache_lookup_table(self):
         np.savez(self.cached_lookup_table_filename,
