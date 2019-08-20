@@ -5,16 +5,21 @@ from importlib import import_module
 import os
 from collections import OrderedDict
 from future.utils import iteritems
-from matplotlib.cbook import flatten
+import json
 
 import numpy as np
 import scipy.stats
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfinv
+from matplotlib.cbook import flatten
 
+# Keep import bilby statement, it is necessary for some eval() statements
+from .utils import BilbyJsonEncoder, decode_bilby_json
 from .utils import (
-    logger, infer_args_from_method, check_directory_exists_and_if_not_mkdir)
+    check_directory_exists_and_if_not_mkdir,
+    infer_args_from_method, logger
+)
 
 
 class PriorDict(OrderedDict):
@@ -107,6 +112,22 @@ class PriorDict(OrderedDict):
                     outfile.write(
                         "{} = {}\n".format(key, self[key]))
 
+    def _get_json_dict(self):
+        self.convert_floats_to_delta_functions()
+        total_dict = {key: json.loads(self[key].to_json()) for key in self}
+        total_dict["__prior_dict__"] = True
+        total_dict["__module__"] = self.__module__
+        total_dict["__name__"] = self.__class__.__name__
+        return total_dict
+
+    def to_json(self, outdir, label):
+        check_directory_exists_and_if_not_mkdir(outdir)
+        prior_file = os.path.join(outdir, "{}_prior.json".format(label))
+        logger.debug("Writing priors to {}".format(prior_file))
+        with open(prior_file, "w") as outfile:
+            json.dump(self._get_json_dict(), outfile, cls=BilbyJsonEncoder,
+                      indent=2)
+
     def from_file(self, filename):
         """ Reads in a prior from a file specification
 
@@ -150,7 +171,7 @@ class PriorDict(OrderedDict):
                     cls = cls.split('.')[-1]
                 else:
                     module = __name__
-                cls = getattr(import_module(module), cls)
+                cls = getattr(import_module(module), cls, cls)
                 if key.lower() == "conversion_function":
                     setattr(self, key, cls)
                 elif (cls.__name__ in ['MultivariateGaussianDist',
@@ -170,6 +191,38 @@ class PriorDict(OrderedDict):
                                 filename, key, val, e))
         self.update(prior)
 
+    @classmethod
+    def _get_from_json_dict(cls, prior_dict):
+        try:
+            cls == getattr(
+                import_module(prior_dict["__module__"]),
+                prior_dict["__name__"])
+        except ImportError:
+            logger.debug("Cannot import prior module {}.{}".format(
+                prior_dict["__module__"], prior_dict["__name__"]
+            ))
+        except KeyError:
+            logger.debug("Cannot find module name to load")
+        for key in ["__module__", "__name__", "__prior_dict__"]:
+            if key in prior_dict:
+                del prior_dict[key]
+        obj = cls(dict())
+        obj.from_dictionary(prior_dict)
+        return obj
+
+    @classmethod
+    def from_json(cls, filename):
+        """ Reads in a prior from a json file
+
+        Parameters
+        ----------
+        filename: str
+            Name of the file to be read in
+        """
+        with open(filename, "r") as ff:
+            obj = json.load(ff, object_hook=decode_bilby_json)
+        return obj
+
     def from_dictionary(self, dictionary):
         for key, val in iteritems(dictionary):
             if isinstance(val, str):
@@ -182,6 +235,10 @@ class PriorDict(OrderedDict):
                         "Failed to load dictionary value {} correctly"
                         .format(key))
                     pass
+            elif isinstance(val, dict):
+                logger.warning(
+                    'Cannot convert {} into a prior object. '
+                    'Leaving as dictionary.'.format(key))
             self[key] = val
 
     def convert_floats_to_delta_functions(self):
@@ -628,7 +685,9 @@ class Prior(object):
 
         """
         prior_name = self.__class__.__name__
-        args = ', '.join(['{}={}'.format(key, repr(self._repr_dict[key])) for key in self._repr_dict])
+        instantiation_dict = self._get_instantiation_dict()
+        args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
+                          for key in instantiation_dict])
         return "{}({})".format(prior_name, args)
 
     @property
@@ -709,6 +768,18 @@ class Prior(object):
     def maximum(self, maximum):
         self._maximum = maximum
 
+    def _get_instantiation_dict(self):
+        subclass_args = infer_args_from_method(self.__init__)
+        property_names = [p for p in dir(self.__class__)
+                          if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+        instantiation_dict = OrderedDict()
+        for key in subclass_args:
+            instantiation_dict[key] = dict_with_properties[key]
+        return instantiation_dict
+
     @property
     def boundary(self):
         return self._boundary
@@ -726,6 +797,13 @@ class Prior(object):
         else:
             label = self.name
         return label
+
+    def to_json(self):
+        return json.dumps(self, cls=BilbyJsonEncoder)
+
+    @classmethod
+    def from_json(cls, dct):
+        return decode_bilby_json(dct)
 
     @classmethod
     def from_repr(cls, string):
@@ -2914,6 +2992,22 @@ class MultivariateGaussianDist(object):
 
         return np.exp(self.ln_prob(samp))
 
+    def _get_instantiation_dict(self):
+        subclass_args = infer_args_from_method(self.__init__)
+        property_names = [p for p in dir(self.__class__)
+                          if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+        instantiation_dict = OrderedDict()
+        for key in subclass_args:
+            if isinstance(dict_with_properties[key], list):
+                value = np.asarray(dict_with_properties[key]).tolist()
+            else:
+                value = dict_with_properties[key]
+            instantiation_dict[key] = value
+        return instantiation_dict
+
     def __len__(self):
         return len(self.names)
 
@@ -2928,23 +3022,10 @@ class MultivariateGaussianDist(object):
         str: A string representation of this instance
 
         """
-        subclass_args = infer_args_from_method(self.__init__)
         dist_name = self.__class__.__name__
-
-        property_names = [p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)]
-        dict_with_properties = self.__dict__.copy()
-        for key in property_names:
-            dict_with_properties[key] = getattr(self, key)
-
-        argslist = []
-        for key in subclass_args:
-            # make sure lists containing arrays are returned just as lists
-            if isinstance(dict_with_properties[key], list):
-                argsval = np.asarray(dict_with_properties[key]).tolist()
-            else:
-                argsval = dict_with_properties[key]
-            argslist.append('{}={}'.format(key, repr(argsval)))
-        args = ', '.join(argslist)
+        instantiation_dict = self._get_instantiation_dict()
+        args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
+                          for key in instantiation_dict])
         return "{}({})".format(dist_name, args)
 
     def __eq__(self, other):

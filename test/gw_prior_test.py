@@ -1,4 +1,5 @@
 from __future__ import division, absolute_import
+from collections import OrderedDict
 import unittest
 import os
 import sys
@@ -144,7 +145,7 @@ class TestPackagedPriors(unittest.TestCase):
 class TestBNSPriorDict(unittest.TestCase):
 
     def setUp(self):
-        self.prior_dict = dict()
+        self.prior_dict = OrderedDict()
         self.base_directory =\
             '/'.join(os.path.dirname(
                 os.path.abspath(sys.argv[0])).split('/')[:-1])
