@@ -683,6 +683,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             signal[mode] *= self._ref_dist / new_distance
 
     @property
+    def lal_version(self):
+        try:
+            from lal import git_version
+            lal_version = str(git_version.verbose_msg).replace("\n", ";")
+            logger.info("Using LAL version {}".format(lal_version))
+            return lal_version
+        except (ImportError, AttributeError):
+            return "N/A"
+
+    @property
     def meta_data(self):
         return dict(
             interferometers=self.interferometers.meta_data,
@@ -694,7 +704,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 self.waveform_generator.frequency_domain_source_model),
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
-            start_time=self.waveform_generator.start_time)
+            start_time=self.waveform_generator.start_time,
+            lal_version=self.lal_version)
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):

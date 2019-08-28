@@ -158,7 +158,8 @@ class TestGWTransient(unittest.TestCase):
                 self.waveform_generator.frequency_domain_source_model),
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
-            start_time=self.waveform_generator.start_time)
+            start_time=self.waveform_generator.start_time,
+            lal_version=self.likelihood.lal_version)
         self.assertDictEqual(expected, self.likelihood.meta_data)
 
 
