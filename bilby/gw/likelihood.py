@@ -895,8 +895,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         dt = interferometer.time_delay_from_geocenter(
             self.parameters['ra'], self.parameters['dec'],
             self.parameters['geocent_time'])
-        ifo_time = self.parameters['geocent_time'] + dt - \
-            interferometer.strain_data.start_time
+        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
+        ifo_time = dt_geocent + dt
 
         calib_linear = interferometer.calibration_model.get_calibration_factor(
             self.frequency_nodes_linear,
