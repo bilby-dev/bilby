@@ -2922,7 +2922,7 @@ class MultivariateGaussianDist(object):
                 # sample the multivariate Gaussian keys
                 vals = np.random.uniform(0, 1, len(self))
 
-                samp = self.rescale(vals, mode=mode)
+                samp = np.atleast_1d(self.rescale(vals, mode=mode))
                 samps[i, :] = samp
 
                 # check sample is in bounds (otherwise perform another draw)
