@@ -119,7 +119,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                     minimum=- self._delta_tc / 2, maximum=self._delta_tc / 2,
                     boundary='periodic')
         elif self.jitter_time:
-            logger.info(
+            logger.debug(
                 "Time jittering requested with non-time-marginalised "
                 "likelihood, ignoring.")
             self.jitter_time = False
