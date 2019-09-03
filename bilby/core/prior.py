@@ -6,6 +6,7 @@ import os
 from collections import OrderedDict
 from future.utils import iteritems
 import json
+from io import open as ioopen
 
 import numpy as np
 import scipy.stats
@@ -149,7 +150,7 @@ class PriorDict(OrderedDict):
         comments = ['#', '\n']
         prior = dict()
         mvgdict = dict(inf=np.inf)  # evaluate inf as np.inf
-        with open(filename, 'r') as f:
+        with ioopen(filename, 'r', encoding='unicode_escape') as f:
             for line in f:
                 if line[0] in comments:
                     continue
