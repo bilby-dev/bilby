@@ -431,7 +431,7 @@ class Dynesty(NestedSampler):
                 fig.tight_layout()
                 fig.savefig(filename)
                 plt.close('all')
-            except (RuntimeError, np.linalg.linalg.LinAlgError) as e:
+            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError) as e:
                 logger.warning(e)
                 logger.warning('Failed to create dynesty state plot at checkpoint')
 
