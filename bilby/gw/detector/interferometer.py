@@ -113,6 +113,17 @@ class Interferometer(object):
                     float(self.geometry.yarm_azimuth), float(self.geometry.xarm_tilt),
                     float(self.geometry.yarm_tilt))
 
+    def set_strain_data_from_gwpy_timeseries(self, time_series):
+        """ Set the `Interferometer.strain_data` from a gwpy TimeSeries
+
+        Parameters
+        ----------
+        time_series: gwpy.timeseries.timeseries.TimeSeries
+            The data to set.
+
+        """
+        self.strain_data.set_from_gwpy_timeseries(time_series=time_series)
+
     def set_strain_data_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
             duration=None, start_time=0, frequency_array=None):
