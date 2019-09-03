@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 import numpy as np
 
@@ -307,6 +308,12 @@ def get_event_data(
     ------
     list: A list of bilby.gw.detector.Interferometer objects
     """
+
+    warnings.warn(
+        "get_event_data is deprecated, use set_strain_data_from_gwpy instead",
+        DeprecationWarning
+    )
+
     event_time = gwutils.get_event_time(event)
 
     interferometers = []
@@ -435,6 +442,11 @@ def get_interferometer_with_open_data(
     bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
+
+    warnings.warn(
+        "get_interferometer_with_open_data is deprecated, use set_strain_data_from_gwpy instead",
+        DeprecationWarning
+    )
 
     logger.warning(
         "Parameter estimation for real interferometer data in bilby is in "
