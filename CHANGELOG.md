@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.5.6] 2019-09-04
+
+### Changes
+- Deprecation of the old helper functions (e.g., fetch open data)
+- Improvements to the documentation
+- Fix a bug in the dt calculations of the GW likelihood
+- Various small bug fixes
+
+### Added
+- LAL version information in the meta data
+
 ## [0.5.5] 2019-08-22
 
 ### Added
