@@ -10,29 +10,46 @@ you can load data.
 What is used by the likelihood?
 -------------------------------
 
-First up, the :ref:`likelihood` used for transient gravitational wave searches
-is either :code:`bilby.gw.likelihood.GravitationalWaveTransient` or
-:code:`bilby.gw.likelihood.BasicGravitationalWaveTransient`. Both of these take
+The primary likelihhod for use in transient gravitational wave data analysis
+is the `GravitationalWaveTransient <gw_likelihood.html>`_ . This takes
 an argument `interferometers` which is a list of
 `bilby.gw.detector.Interferometer` objects. These objects know about the
 geometry of the detector, the noise properties of the detector, and the
 segment of data which is to be analysed. In the following, we'll describe
-difference ways to set this data.
+different ways to initilalse a likelihood for gravitational wave data analysis.
 
 Making an Interferometer
 ------------------------
 
-First up, you can easily get one of the known interferometers using this command::
+To make an empty interferometer, for example the Hanford detector::
 
    >>> H1 = bilby.gw.detector.get_empty_interferometer('H1')
 
-By default, these will have power spectral densities based on typical behaviour
-of the detector. The strain data (i.e. the data about the segment of interferomer
-data which we want to analyse) is in an attribute :code:`H1.strain_data`. The
-following is a list of ways to set this strain data.
+By default, these will have power spectral densities based on the expected
+design sensitivity of the detector. The strain data (i.e. the data about the
+segment of interferomer data which we want to analyse) is in an attribute
+:code:`H1.strain_data`. The following is a list of ways to set this strain
+data.
 
 Setting the strain data
 -----------------------
+
+Setting the strain data using gwpy
+==================================
+
+The `gwpy <https://gwpy.github.io/>`_ module is the recommended way to read in
+and manipulate gravitational wave strain data. For example, here is a snippet
+taken from the documentation to obtain the Hanford open date for GW150914::
+
+   >>> from gwpy.timeseries import TimeSeries
+   >>> time_series = TimeSeries.fetch_open_data('H1', 1126259446, 1126259478)
+
+Gwpy provides a complete interface for reading any type of data related to
+gravitational wave strain data. Once you have created your time series, you can
+pass it into your :code:`bilby` interferometer as follows::
+
+   >>> H1.set_strain_data_from_gwpy_time_series(time_series=time_series)
+
 
 Setting the strain data directly
 ================================
@@ -60,22 +77,6 @@ Here is the full API:
 .. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frequency_domain_strain
 
 
-Setting the strain data from a frame file
-=========================================
-
-To set the data from a frame file, use this method
-
-.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frame_file
-
-Setting the strain data from a channel name
-===========================================
-
-To set the data by specifying the channel name, use this method. It calls 
-:code:`gwpy.TimeSeries.get`, which dynamically accesses either frames on disk, 
-or a remote NDS2 server to find and return data.
-
-.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_channel_name
-
 Setting the strain data to be Gaussian noise
 ============================================
 
@@ -88,6 +89,8 @@ method:
 Setting the strain data to be zero noise
 ========================================
 
+You can also set the strain data without any noise at all
+
 .. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_zero_noise
 
 Injecting a signal
@@ -96,16 +99,3 @@ Injecting a signal
 If you wish to inject a signal into the data, you can use this function
 
 .. automethod:: bilby.gw.detector.Interferometer.inject_signal
-
-Helper functions
-----------------
-
-To help setting things up, we provide a few convienience functions for typical
-operations:
-
-.. autofunction:: bilby.gw.detector.get_interferometer_with_fake_noise_and_injection
-
-.. autofunction:: bilby.gw.detector.get_interferometer_with_open_data
-
-.. autofunction:: bilby.gw.detector.get_event_data
-

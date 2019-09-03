@@ -464,6 +464,7 @@ class InterferometerStrainData(object):
         Parameters
         ----------
         time_series: gwpy.timeseries.timeseries.TimeSeries
+            The data to use
 
         """
         logger.debug('Setting data using provided gwpy TimeSeries object')

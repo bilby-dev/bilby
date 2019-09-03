@@ -82,7 +82,7 @@ PyMultinest
 PyPolyChord
 ===========
 
-.. autoclass:: bilby.core.sampler.pypolychord.PyPolyChord
+.. autoclass:: bilby.core.sampler.polychord.PyPolyChord
 
 
 -------------

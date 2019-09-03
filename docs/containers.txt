@@ -1,8 +1,8 @@
 .. _containers:
 
-==========
-Containers
-==========
+================
+Using Containers
+================
 
 Containers package software together, providing all the neccersery dependencies
 to run :code:`bilby`. Using containers can help eliminate

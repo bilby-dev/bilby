@@ -1,3 +1,5 @@
+.. gw_likelihood:
+
 =======================================
 Transient gravitational wave likelihood
 =======================================
