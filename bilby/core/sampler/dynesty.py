@@ -198,19 +198,15 @@ class Dynesty(NestedSampler):
         sys.stdout.flush()
 
     def _apply_dynesty_boundaries(self):
-        if self.kwargs['periodic'] is None:
-            logger.debug("Setting periodic boundaries for keys:")
-            self.kwargs['periodic'] = []
-            self._periodic = list()
-            self._reflective = list()
-            for ii, key in enumerate(self.search_parameter_keys):
-                if self.priors[key].boundary in ['periodic', 'reflective']:
-                    self.kwargs['periodic'].append(ii)
-                    logger.debug("  {}".format(key))
-                    if self.priors[key].boundary == 'periodic':
-                        self._periodic.append(ii)
-                    else:
-                        self._reflective.append(ii)
+        self._periodic = list()
+        self._reflective = list()
+        for ii, key in enumerate(self.search_parameter_keys):
+            if self.priors[key].boundary == 'periodic':
+                logger.debug("Setting periodic boundary for {}".format(key))
+                self._periodic.append(ii)
+            elif self.priors[key].boundary == 'reflective':
+                logger.debug("Setting reflective boundary for {}".format(key))
+                self._reflective.append(ii)
 
     def run_sampler(self):
         import dynesty
