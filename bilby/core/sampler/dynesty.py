@@ -208,6 +208,11 @@ class Dynesty(NestedSampler):
                 logger.debug("Setting reflective boundary for {}".format(key))
                 self._reflective.append(ii)
 
+        # The periodic kwargs passed into dynesty allows the parameters to
+        # wander out of the bounds, this includes both periodic and reflective.
+        # these are then handled in the prior_transform
+        self.kwargs["periodic"] = sorted(self._periodic + self._reflective)
+
     def run_sampler(self):
         import dynesty
         if self.kwargs['live_points'] is None:
