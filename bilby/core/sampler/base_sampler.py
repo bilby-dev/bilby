@@ -4,8 +4,8 @@ import numpy as np
 
 from pandas import DataFrame
 
-from ..utils import logger, command_line_args
-from ..prior import Prior, PriorDict
+from ..utils import logger, command_line_args, Counter
+from ..prior import Prior, PriorDict, DeltaFunction, Constraint
 from ..result import Result, read_in_result
 
 
@@ -35,6 +35,10 @@ class Sampler(object):
         A dictionary of the injection parameters
     meta_data:
         A dictionary of extra meta data to store in the result
+    result_class: bilby.core.result.Result, or child of
+        The result class to use. By default, `bilby.core.result.Result` is used,
+        but objects which inherit from this class can be given providing
+        additional methods.
     **kwargs: dict
         Additional keyword arguments
 
@@ -81,7 +85,9 @@ class Sampler(object):
     def __init__(
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
-            injection_parameters=None, meta_data=None, **kwargs):
+            injection_parameters=None, meta_data=None, result_class=None,
+            likelihood_benchmark=False,
+            **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
             self.priors = priors
@@ -96,11 +102,14 @@ class Sampler(object):
             self._verify_external_sampler()
         self.external_sampler_function = None
         self.plot = plot
+        self.likelihood_benchmark = likelihood_benchmark
 
-        self.__search_parameter_keys = []
-        self.__fixed_parameter_keys = []
+        self._search_parameter_keys = list()
+        self._fixed_parameter_keys = list()
+        self._constraint_parameter_keys = list()
         self._initialise_parameters()
         self._verify_parameters()
+        self._time_likelihood()
         self._verify_use_ratio()
         self.kwargs = kwargs
 
@@ -108,41 +117,53 @@ class Sampler(object):
 
         self._log_summary_for_sampler()
 
-        self.result = self._initialise_result()
+        self.result = self._initialise_result(result_class)
+        self.likelihood_count = None
+        if self.likelihood_benchmark:
+            self.likelihood_count = Counter()
 
     @property
     def search_parameter_keys(self):
         """list: List of parameter keys that are being sampled"""
-        return self.__search_parameter_keys
+        return self._search_parameter_keys
 
     @property
     def fixed_parameter_keys(self):
         """list: List of parameter keys that are not being sampled"""
-        return self.__fixed_parameter_keys
+        return self._fixed_parameter_keys
+
+    @property
+    def constraint_parameter_keys(self):
+        """list: List of parameters providing prior constraints"""
+        return self._constraint_parameter_keys
 
     @property
     def ndim(self):
         """int: Number of dimensions of the search parameter space"""
-        return len(self.__search_parameter_keys)
+        return len(self._search_parameter_keys)
 
     @property
     def kwargs(self):
         """dict: Container for the kwargs. Has more sophisticated logic in subclasses """
-        return self.__kwargs
+        return self._kwargs
 
     @kwargs.setter
     def kwargs(self, kwargs):
-        self.__kwargs = self.default_kwargs.copy()
+        self._kwargs = self.default_kwargs.copy()
         self._translate_kwargs(kwargs)
-        self.__kwargs.update(kwargs)
+        self._kwargs.update(kwargs)
         self._verify_kwargs_against_default_kwargs()
 
     def _translate_kwargs(self, kwargs):
         """ Template for child classes """
         pass
 
+    @property
+    def external_sampler_name(self):
+        return self.__class__.__name__.lower()
+
     def _verify_external_sampler(self):
-        external_sampler_name = self.__class__.__name__.lower()
+        external_sampler_name = self.external_sampler_name
         try:
             self.external_sampler = __import__(external_sampler_name)
         except (ImportError, SystemExit):
@@ -174,33 +195,44 @@ class Sampler(object):
         for key in self.priors:
             if isinstance(self.priors[key], Prior) \
                     and self.priors[key].is_fixed is False:
-                self.__search_parameter_keys.append(key)
-            elif isinstance(self.priors[key], Prior) \
-                    and self.priors[key].is_fixed is True:
-                self.likelihood.parameters[key] = \
-                    self.priors[key].sample()
-                self.__fixed_parameter_keys.append(key)
+                self._search_parameter_keys.append(key)
+            elif isinstance(self.priors[key], Constraint):
+                self._constraint_parameter_keys.append(key)
+            elif isinstance(self.priors[key], DeltaFunction):
+                self.likelihood.parameters[key] = self.priors[key].sample()
+                self._fixed_parameter_keys.append(key)
 
         logger.info("Search parameters:")
-        for key in self.__search_parameter_keys:
+        for key in self._search_parameter_keys + self._constraint_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key]))
-        for key in self.__fixed_parameter_keys:
+        for key in self._fixed_parameter_keys:
             logger.info('  {} = {}'.format(key, self.priors[key].peak))
 
-    def _initialise_result(self):
+    def _initialise_result(self, result_class):
         """
         Returns
         -------
         bilby.core.result.Result: An initial template for the result
 
         """
-        result = Result(label=self.label, outdir=self.outdir,
-                        sampler=self.__class__.__name__.lower(),
-                        search_parameter_keys=self.__search_parameter_keys,
-                        fixed_parameter_keys=self.__fixed_parameter_keys,
-                        priors=self.priors, meta_data=self.meta_data,
-                        injection_parameters=self.injection_parameters,
-                        sampler_kwargs=self.kwargs)
+        result_kwargs = dict(
+            label=self.label, outdir=self.outdir,
+            sampler=self.__class__.__name__.lower(),
+            search_parameter_keys=self._search_parameter_keys,
+            fixed_parameter_keys=self._fixed_parameter_keys,
+            constraint_parameter_keys=self._constraint_parameter_keys,
+            priors=self.priors, meta_data=self.meta_data,
+            injection_parameters=self.injection_parameters,
+            sampler_kwargs=self.kwargs, use_ratio=self.use_ratio)
+
+        if result_class is None:
+            result = Result(**result_kwargs)
+        elif issubclass(result_class, Result):
+            result = result_class(**result_kwargs)
+        else:
+            raise ValueError(
+                "Input result_class={} not understood".format(result_class))
+
         return result
 
     def _check_if_priors_can_be_sampled(self):
@@ -212,13 +244,17 @@ class Sampler(object):
             prior can't be sampled.
         """
         for key in self.priors:
+            if isinstance(self.priors[key], Constraint):
+                continue
             try:
                 self.likelihood.parameters[key] = self.priors[key].sample()
             except AttributeError as e:
                 logger.warning('Cannot sample from {}, {}'.format(key, e))
 
     def _verify_parameters(self):
-        """ Sets initial values for likelihood.parameters.
+        """ Evaluate a set of parameters drawn from the prior
+
+        Tests if the likelihood evaluation passes
 
         Raises
         ------
@@ -226,23 +262,46 @@ class Sampler(object):
             Likelihood can't be evaluated.
 
         """
+
+        if self.priors.test_has_redundant_keys():
+            raise IllegalSamplingSetError(
+                "Your sampling set contains redundant parameters.")
+
         self._check_if_priors_can_be_sampled()
         try:
-            t1 = datetime.datetime.now()
-            self.likelihood.log_likelihood()
-            self._log_likelihood_eval_time = (
-                datetime.datetime.now() - t1).total_seconds()
-            if self._log_likelihood_eval_time == 0:
-                self._log_likelihood_eval_time = np.nan
-                logger.info("Unable to measure single likelihood time")
-            else:
-                logger.info("Single likelihood evaluation took {:.3e} s"
-                            .format(self._log_likelihood_eval_time))
+            theta = [self.priors[key].sample()
+                     for key in self._search_parameter_keys]
+            self.log_likelihood(theta)
         except TypeError as e:
             raise TypeError(
                 "Likelihood evaluation failed with message: \n'{}'\n"
                 "Have you specified all the parameters:\n{}"
                 .format(e, self.likelihood.parameters))
+
+    def _time_likelihood(self, n_evaluations=100):
+        """ Times the likelihood evaluation and print an info message
+
+        Parameters
+        ----------
+        n_evaluations: int
+            The number of evaluations to estimate the evaluation time from
+
+        """
+
+        t1 = datetime.datetime.now()
+        for _ in range(n_evaluations):
+            theta = [self.priors[key].sample()
+                     for key in self._search_parameter_keys]
+            self.log_likelihood(theta)
+        total_time = (datetime.datetime.now() - t1).total_seconds()
+        self._log_likelihood_eval_time = total_time / n_evaluations
+
+        if self._log_likelihood_eval_time == 0:
+            self._log_likelihood_eval_time = np.nan
+            logger.info("Unable to measure single likelihood time")
+        else:
+            logger.info("Single likelihood evaluation took {:.3e} s"
+                        .format(self._log_likelihood_eval_time))
 
     def _verify_use_ratio(self):
         """
@@ -277,7 +336,7 @@ class Sampler(object):
         -------
         list: Properly rescaled sampled values
         """
-        return self.priors.rescale(self.__search_parameter_keys, theta)
+        return self.priors.rescale(self._search_parameter_keys, theta)
 
     def log_prior(self, theta):
         """
@@ -289,11 +348,12 @@ class Sampler(object):
 
         Returns
         -------
-        float: TODO: Fill in proper explanation of what this is.
+        float: Joint ln prior probability of theta
 
         """
-        return self.priors.ln_prob({
-            key: t for key, t in zip(self.__search_parameter_keys, theta)})
+        params = {
+            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        return self.priors.ln_prob(params)
 
     def log_likelihood(self, theta):
         """
@@ -309,8 +369,14 @@ class Sampler(object):
             likelihood.parameter values
 
         """
-        for i, k in enumerate(self.__search_parameter_keys):
-            self.likelihood.parameters[k] = theta[i]
+        if self.likelihood_benchmark:
+            try:
+                self.likelihood_count.increment()
+            except AttributeError:
+                pass
+        params = {
+            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        self.likelihood.parameters.update(params)
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
         else:
@@ -328,16 +394,66 @@ class Sampler(object):
         """
         new_sample = self.priors.sample()
         draw = np.array(list(new_sample[key]
-                             for key in self.__search_parameter_keys))
+                             for key in self._search_parameter_keys))
         self.check_draw(draw)
         return draw
 
-    def check_draw(self, draw):
-        """ Checks if the draw will generate an infinite prior or likelihood """
-        if np.isinf(self.log_likelihood(draw)):
-            logger.warning('Prior draw {} has inf likelihood'.format(draw))
-        if np.isinf(self.log_prior(draw)):
-            logger.warning('Prior draw {} has inf prior'.format(draw))
+    def get_initial_points_from_prior(self, npoints=1):
+        """ Method to draw a set of live points from the prior
+
+        This iterates over draws from the prior until all the samples have a
+        finite prior and likelihood (relevant for constrained priors).
+
+        Parameters
+        ----------
+        npoints: int
+            The number of values to return
+
+        Returns
+        -------
+        unit_cube, parameters, likelihood: tuple of array_like
+            unit_cube (nlive, ndim) is an array of the prior samples from the
+            unit cube, parameters (nlive, ndim) is the unit_cube array
+            transformed to the target space, while likelihood (nlive) are the
+            likelihood evaluations.
+
+        """
+        unit_cube = []
+        parameters = []
+        likelihood = []
+        while len(unit_cube) < npoints:
+            unit = np.random.rand(self.ndim)
+            theta = self.prior_transform(unit)
+            if self.check_draw(theta, warning=False):
+                unit_cube.append(unit)
+                parameters.append(theta)
+                likelihood.append(self.log_likelihood(theta))
+
+        return np.array(unit_cube), np.array(parameters), np.array(likelihood)
+
+    def check_draw(self, theta, warning=True):
+        """ Checks if the draw will generate an infinite prior or likelihood
+
+        Parameters
+        ----------
+        theta: array_like
+            Parameter values at which to evaluate likelihood
+
+        Returns
+        -------
+        bool, cube (nlive,
+            True if the likelihood and prior are finite, false otherwise
+
+        """
+        if np.isinf(self.log_prior(theta)):
+            if warning:
+                logger.warning('Prior draw {} has inf prior'.format(theta))
+            return False
+        if np.isinf(self.log_likelihood(theta)):
+            if warning:
+                logger.warning('Prior draw {} has inf likelihood'.format(theta))
+            return False
+        return True
 
     def run_sampler(self):
         """A template method to run in subclasses"""
@@ -400,9 +516,16 @@ class Sampler(object):
             logger.info("Using sampler {} with kwargs {}".format(
                 self.__class__.__name__, kwargs_print))
 
+    def calc_likelihood_count(self):
+        if self.likelihood_benchmark:
+            self.result.num_likelihood_evaluations = self.likelihood_count.value
+        else:
+            return None
+
 
 class NestedSampler(Sampler):
     npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive']
+    walks_equiv_kwargs = ['walks', 'steps', 'nmcmc']
 
     def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,
                                sorted_samples):
@@ -440,9 +563,30 @@ class NestedSampler(Sampler):
             idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
 
+    def log_likelihood(self, theta):
+        """
+        Since some nested samplers don't call the log_prior method, evaluate
+        the prior constraint here.
+
+        Parameters
+        theta: array_like
+            Parameter values at which to evaluate likelihood
+
+        Returns
+        -------
+        float: log_likelihood
+        """
+        if self.priors.evaluate_constraints({
+                key: theta[ii] for ii, key in
+                enumerate(self.search_parameter_keys)}):
+            return Sampler.log_likelihood(self, theta)
+        else:
+            return np.nan_to_num(-np.inf)
+
 
 class MCMCSampler(Sampler):
-    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws']
+    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws', 'Niter']
+    nburn_equiv_kwargs = ['burn', 'nburn']
 
     def print_nburn_logging_info(self):
         """ Prints logging info as to how nburn was calculated """
@@ -487,3 +631,7 @@ class SamplerError(Error):
 
 class SamplerNotInstalledError(SamplerError):
     """ Base class for Error raised by not installed samplers """
+
+
+class IllegalSamplingSetError(Error):
+    """ Class for illegal sets of sampling parameters """

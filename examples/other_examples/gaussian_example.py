@@ -31,9 +31,9 @@ class SimpleGaussianLikelihood(bilby.Likelihood):
         data: array_like
             The data to analyse
         """
+        bilby.Likelihood.__init__(self, parameters={'mu': None, 'sigma': None})
         self.data = data
         self.N = len(data)
-        self.parameters = {'mu': None, 'sigma': None}
 
     def log_likelihood(self):
         mu = self.parameters['mu']

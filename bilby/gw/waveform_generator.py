@@ -1,10 +1,17 @@
 import numpy as np
 
 from ..core import utils
-from ..gw.series import CoupledTimeAndFrequencySeries
+from ..core.series import CoupledTimeAndFrequencySeries
+from .utils import PropertyAccessor
 
 
 class WaveformGenerator(object):
+
+    duration = PropertyAccessor('_times_and_frequencies', 'duration')
+    sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
+    start_time = PropertyAccessor('_times_and_frequencies', 'start_time')
+    frequency_array = PropertyAccessor('_times_and_frequencies', 'frequency_array')
+    time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
 
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
@@ -46,14 +53,11 @@ class WaveformGenerator(object):
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
                                                                     sampling_frequency=sampling_frequency,
                                                                     start_time=start_time)
-        self.duration = duration
-        self.sampling_frequency = sampling_frequency
-        self.start_time = start_time
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self.__parameters_from_source_model()
         if parameter_conversion is None:
-            self.parameter_conversion = lambda params: (params, [])
+            self.parameter_conversion = self._default_parameter_conversion
         else:
             self.parameter_conversion = parameter_conversion
         if waveform_arguments is not None:
@@ -62,6 +66,7 @@ class WaveformGenerator(object):
             self.waveform_arguments = dict()
         if isinstance(parameters, dict):
             self.parameters = parameters
+        self._cache = dict(parameters=None, waveform=None, model=None)
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -72,7 +77,7 @@ class WaveformGenerator(object):
             tdsm_name = self.time_domain_source_model.__name__
         else:
             tdsm_name = None
-        if self.parameter_conversion.__name__ == '<lambda>':
+        if self.parameter_conversion.__name__ == '_default_parameter_conversion':
             param_conv_name = None
         else:
             param_conv_name = self.parameter_conversion.__name__
@@ -147,6 +152,8 @@ class WaveformGenerator(object):
                           transformed_model_data_points, parameters):
         if parameters is not None:
             self.parameters = parameters
+        if self.parameters == self._cache['parameters'] and self._cache['model'] == model:
+            return self._cache['waveform']
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
         elif transformed_model is not None:
@@ -154,6 +161,9 @@ class WaveformGenerator(object):
                                                                transformation_function)
         else:
             raise RuntimeError("No source model given")
+        self._cache['waveform'] = model_strain
+        self._cache['parameters'] = self.parameters.copy()
+        self._cache['model'] = model
         return model_strain
 
     def _strain_from_model(self, model_data_points, model):
@@ -226,68 +236,6 @@ class WaveformGenerator(object):
                                  'model must be provided.')
         return set(utils.infer_parameters_from_function(model))
 
-    @property
-    def frequency_array(self):
-        """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
-
-        Returns
-        -------
-        array_like: The frequency array
-        """
-        return self._times_and_frequencies.frequency_array
-
-    @frequency_array.setter
-    def frequency_array(self, frequency_array):
-        self._times_and_frequencies.frequency_array = frequency_array
-
-    @property
-    def time_array(self):
-        """ Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
-
-        Returns
-        -------
-        array_like: The time array
-        """
-        return self._times_and_frequencies.time_array
-
-    @time_array.setter
-    def time_array(self, time_array):
-        self._times_and_frequencies.time_array = time_array
-
-    @property
-    def duration(self):
-        """ Allows one to set the time duration and automatically updates the frequency and time array.
-
-        Returns
-        -------
-        float: The time duration.
-
-        """
-        return self._times_and_frequencies.duration
-
-    @duration.setter
-    def duration(self, duration):
-        self._times_and_frequencies.duration = duration
-
-    @property
-    def sampling_frequency(self):
-        """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
-
-        Returns
-        -------
-        float: The sampling frequency.
-
-        """
-        return self._times_and_frequencies.sampling_frequency
-
-    @sampling_frequency.setter
-    def sampling_frequency(self, sampling_frequency):
-        self._times_and_frequencies.sampling_frequency = sampling_frequency
-
-    @property
-    def start_time(self):
-        return self._times_and_frequencies.start_time
-
-    @start_time.setter
-    def start_time(self, start_time):
-        self._times_and_frequencies.start_time = start_time
+    @staticmethod
+    def _default_parameter_conversion(params):
+        return params, []

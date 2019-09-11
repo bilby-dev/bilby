@@ -1,0 +1,13 @@
+# GEO600 at the sensitivity during initial LIGO S6.
+# arXiv:gr-qc/0008066 Table 1
+# http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
+name = 'GEO600'
+power_spectral_density = PowerSpectralDensity(asd_file='GEO600_S6e_asd.txt')
+minimum_frequency = 40
+maximum_frequency = 2048
+length = 0.6
+latitude = 52 + 14. / 60 + 42.528 / 3600
+longitude = 9 + 48. / 60 + 25.894 / 3600
+elevation = 114.425
+xarm_azimuth = 115.9431
+yarm_azimuth = 21.6117

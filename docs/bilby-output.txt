@@ -11,110 +11,74 @@ documents, we'll assume the defaults where used (which are :code:`outdir` and
 :code:`label`).
 
 
-The raw data
-------------
+The result file
+---------------
 
-First off, the primary data dump of :code:`bilby` goes into :code:`outdir/label_result.h5`.
-This is a binary file, so isn't human readable, but you can use it using a
-command-line tool :code:`ddls` [#f1]_ (you have this installed already if you have installed
-the :code:`bilby` requirements). To have a look at what is inside run
+First off, the primary data dump of :code:`bilby` goes into
+:code:`outdir/label_result.json`.  This is a `JSON file
+<https://en.wikipedia.org/wiki/JSON>`_, so it is human readable. Note, older
+version of bilby used a H5 file, the use of H5 files is still possible in bilby,
+but we recommend using the default JSON format.
+
+Here is an example of the first 10 lines of a result file
 
 .. code-block:: console
 
-   $ ddls outdir/label_result.h5
-   /fixed_parameter_keys                       list
-   /fixed_parameter_keys/i0                    'dec' (3) [ascii]
-   /fixed_parameter_keys/i1                    'psi' (3) [ascii]
-   /fixed_parameter_keys/i2                    'a_2' (3) [ascii]
-   /fixed_parameter_keys/i3                    'a_1' (3) [ascii]
-   /fixed_parameter_keys/i4                    'geocent_time' (12) [ascii]
-   /fixed_parameter_keys/i5                    'phi_jl' (6) [ascii]
-   /fixed_parameter_keys/i6                    'ra' (2) [ascii]
-   /fixed_parameter_keys/i7                    'phase' (5) [ascii]
-   /fixed_parameter_keys/i8                    'phi_12' (6) [ascii]
-   /fixed_parameter_keys/i9                    'tilt_2' (6) [ascii]
-   /fixed_parameter_keys/i10                   'tilt_1' (6) [ascii]
-   /injection_parameters                       dict
-   /injection_parameters/a_1                   0.4 [float64]
-   /injection_parameters/a_2                   0.3 [float64]
-   /injection_parameters/dec                   -1.2108 [float64]
-   /injection_parameters/geocent_time          1126259642.413 [float64]
-   /injection_parameters/iota                  0.4 [float64]
-   /injection_parameters/luminosity_distance   4000.0 [float64]
-   /injection_parameters/mass_1                36.0 [float64]
-   /injection_parameters/mass_2                29.0 [float64]
-   /injection_parameters/phase                 1.3 [float64]
-   /injection_parameters/phi_12                1.7 [float64]
-   /injection_parameters/phi_jl                0.3 [float64]
-   /injection_parameters/psi                   2.659 [float64]
-   /injection_parameters/ra                    1.375 [float64]
-   /injection_parameters/reference_frequency   50.0 [float64]
-   /injection_parameters/tilt_1                0.5 [float64]
-   /injection_parameters/tilt_2                1.0 [float64]
-   /injection_parameters/waveform_approximant  'IMRPhenomPv2' (12) [ascii]
-   /kwargs                                     dict
-   /kwargs/bound                               'multi' (5) [ascii]
-   /kwargs/dlogz                               0.1 [float64]
-   /kwargs/nlive                               1000 [int64]
-   /kwargs/sample                              'rwalk' (5) [ascii]
-   /kwargs/update_interval                     600 [int64]
-   /kwargs/verbose                             True [bool]
-   /kwargs/walks                               20 [int64]
-   /label                                      'basic_tutorial' (14) [ascii]
-   /log_bayes_factor                           29.570224130853056 [float64]
-   /logz                                       -12042.875089354413 [float64]
-   /logzerr                                    0.040985337772488764 [float64]
-   /noise_logz                                 -12072.445313485267 [float64]
-   /outdir                                     'outdir' (6) [ascii]
-   /parameter_labels                           list
-   /parameter_labels/i0                        '$d_L$' (5) [ascii]
-   /parameter_labels/i1                        '$m_2$' (5) [ascii]
-   /parameter_labels/i2                        '$m_1$' (5) [ascii]
-   /parameter_labels/i3                        '$\\iota$' (7) [ascii]
-   /posterior                                  DataFrame (4, 15073)
-   /search_parameter_keys                      list
-   /search_parameter_keys/i0                   'luminosity_distance' (19) [ascii]
-   /search_parameter_keys/i1                   'mass_2' (6) [ascii]
-   /search_parameter_keys/i2                   'mass_1' (6) [ascii]
-   /search_parameter_keys/i3                   'iota' (4) [ascii]
+   (base) 15:49 outdir [master]: $ head gaussian_example_result.json
+   {
+     "label": "gaussian_example",
+     "outdir": "/home/user1/bilby/examples/other_examples/outdir",
+     "sampler": "dynesty",
+     "log_evidence": -278.8659756143005,
+     "log_evidence_err": 0.06169580559443693,
+     "log_noise_evidence": NaN,
+     "log_bayes_factor": NaN,
+     "priors": {
+       "mu": "Uniform(minimum=0, maximum=5, name='mu', latex_label='mu', unit=None, boundary=None)",
+     ...
+     ...
 
 
-This shows the different data that is stored in the :code:`h5` file. You can think of
-the file like a python dictionary - its a bag with lots of different kind of
-data which can be accessed via a :code:`key` (a string). We use `deepdish
-<http://deepdish.io/>`_ to handle the saving of :code:`h5` files in :code:`bilby`. In python,
-you can load any :code:`h5` file and access its contents like a dictionary::
+At its core, the JSON file is a nested set of dictionaries. JSON is a cross
+platform and language agnostic data format. In python, you can read in a JSON
+file like this
 
-   >>> import deepdish
-   >>> output = deepdish.io.load('outdir/label_result.h5')
-   >>> print(output['logz'])
-   -146.23
+.. code-block:: python
 
-Here we printed the stored data for the :code:`'logz'` key, but you could equally get
-the :code:`posterior` or any other attribute. For a full list, print the
-`output.keys()`.
+   import json
+   with open(filename, "r") as f:
+       data = json.load(f)
+
+   print(In [5]: data.keys())
+   dict_keys(['label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err', 'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior', 'injection_parameters', 'meta_data', 'search_parameter_keys', 'fixed_parameter_keys', 'constraint_parameter_keys', 'sampling_time', 'sampler_kwargs', 'use_ratio', 'log_likelihood_evaluations', 'log_prior_evaluations', 'samples', 'nested_samples', 'parameter_labels', 'parameter_labels_with_unit', 'version']))
+
+
+This will read in any properly formatted JSON file. However, JSON by default
+only understands simple data types (str, int, dict, etc). So, complicated things
+like the posterior (which is a pandas dataframe) will exist, but won't be easy
+to use.
 
 Reading in a result file
 ------------------------
-Rather than reading in the raw :code:`h5` file, may find it more convienient to
-instead load a :code:`*result.h5` as a :code:`bilby` :code:`result` object (i.e., like the output
-of :code:`run_sampler`). To do this::
+Rather than reading in the raw :code:`json` file, you will find it more convienient to
+instead load the data using :code:`bilby`. To do this::
 
    >>> import bilby
-   >>> result = bilby.result.read_in_result(outdir=outdir, label=label)
-   >>> result = bilby.result.read_in_result(filename='outdir/label_result.h5)
+   >>> result = bilby.result.read_in_result(outdir=outdir, label=label)  # OR
+   >>> result = bilby.result.read_in_result(filename='outdir/label_result.json')
 
 Note, these two lines are equivalent, but show two different ways to read in
-the data. Using this method, :code:`result` is now a :code:`bilby.result.Result` instance
-and has all the methods and attributes. So, for example, you could call
-`result.plot_corner()` to generate a corner plot.
+the data. Using this method, :code:`result` is now a
+:code:`bilby.result.Result` instance and has all the methods and attributes.
+So, for example, you could call `result.plot_corner()` to generate a corner
+plot. This method will also read in a :code:`h5` file.
 
 Accessing samples directly
 --------------------------
 
 To get the samples for a particular parameter, use::
 
-   >>> result.posterior.[key]
+   >>> result.posterior[key]
 
 where :code:`key` is a string of the parameter name you are interested in. The
 `posterior` attribute is a :code:`pandas.DataFrame`, so if you want to return just
@@ -131,7 +95,3 @@ done via::
    result.save_posterior_samples()
 
 which will generate a file :code:`outdir/label_posterior.txt`.
-
-
-.. rubric:: Footnotes
-.. [#f1] :code:`ddls` is an acronym for deep-dish ls

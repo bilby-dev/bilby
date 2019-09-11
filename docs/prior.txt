@@ -83,11 +83,133 @@ note that this list is incomplete.
    :members:
    :special-members:
 
+---------------------------
+Multivariate Gaussian prior
+---------------------------
+
+We provide a prior class for correlated parameters in the form of a
+`multivariate Gaussian distribution <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`_.
+To set the prior you first must define the distribution using the 
+:class:`bilby.core.prior.MultivariateGaussianDist` class. This requires the names of the
+correlated variables, their means, and either the covariance matrix or the correlation
+matrix and standard deviations, e.g.:
+
+.. code:: python
+
+   >>> names = ['a', 'b']  # set the parameter names
+   >>> mu = [0., 5.]  # the means of the parameters
+   >>> cov = [[2., 0.7], [0.7, 3.]]  # the covariance matrix
+   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov)
+
+It is also possible to define a mixture model of multiple multivariate Gaussian modes of
+different weights if required, e.g.:
+
+.. code:: python
+
+   >>> names = ['a', 'b']  # set the parameter names
+   >>> mu = [[0., 5.], [2., 7.]]  # the means of the parameters
+   >>> cov = [[[2., 0.7], [0.7, 3.]], [[1., -0.9], [-0.9, 5.]]]  # the covariance matrix
+   >>> weights = [0.3, 0.7]  # weights of each mode
+   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov, nmodes=2, weights=weights)
+
+The distribution can also have hard bounds on each parameter by supplying them.
+
+The :class:`bilby.core.prior.MultivariateGaussianDist` class can then be passed to
+a :class:`bilby.core.prior.MultivariateGaussian` prior for each parameter, e.g.:
+
+.. code:: python
+
+   >>> priors = dict()
+   >>> priors['a'] = bilby.core.prior.MultivariateGaussian(mvg, 'a')
+   >>> priors['b'] = bilby.core.prior.MultivariateGaussian(mvg, 'b')
+
+The detailed API information for the distribution and prior classes are below:
+
+.. autoclass:: bilby.core.prior.MultivariateGaussianDist
+   :members:
+
+.. autoclass:: bilby.core.prior.MultivariateGaussian
+   :members:
+
+-----------------------
 Defining your own prior
-=======================
+-----------------------
 
 You can define your own by subclassing the :code:`bilby.prior.Prior` class.
 
 .. autoclass:: bilby.core.prior.Prior
    :members:
    :special-members:
+
+-----------------
+Prior Constraints
+-----------------
+
+Added v. 0.4.3
+
+This allows cuts to be specified in the prior space.
+
+You can provide the `PriorDict` a `conversion_function` and a set of `Constraint` priors to remove parts of the prior space.
+
+*Note*: after doing this the prior probability will not be normalised.
+
+Simple example
+==============
+
+Sample from uniform distributions in two parameters x and y with the condition x >= y.
+
+First thing: define a function which generates z=x-y from x and y.
+
+.. code:: python
+
+    def convert_x_y_to_z(parameters):
+        """
+        Function to convert between sampled parameters and constraint parameter.
+
+        Parameters
+        ----------
+        parameters: dict
+            Dictionary containing sampled parameter values, 'x', 'y'.
+
+        Returns
+        -------
+        dict: Dictionary with constraint parameter 'z' added.
+        """
+        parameters['z'] = parameters['x'] - parameters['y']
+        return parameters
+
+Create our prior:
+
+.. code:: python
+
+    from bilby.core.prior import PriorDict, Uniform, Constraint
+
+    priors = PriorDict(conversion_function=convert_x_y_to_z)
+    priors['x'] = Uniform(minimum=0, maximum=10)
+    priors['y'] = Uniform(minimum=0, maximum=10)
+    priors['z'] = Constraint(minimum=0, maximum=10)
+
+Sample from this distribution and plot the samples.
+
+.. code:: python
+
+    import matplotlib.pyplot as plt
+
+    samples = priors.sample(1000000)
+    plt.hist2d(samples['x'], samples['y'], bins=100, cmap='Blues')
+    plt.xlabel('$x$')
+    plt.ylabel('$y$')
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+------
+
+Gravitational wave priors
+=========================
+
+We provide default conversion functions for the BBH and BNS PriorDicts.
+
+For BBHs this generates all the BBH mass parameters so constraints can be placed on any mass parameters.
+
+For BNSs it also generates the tidal deformability parameters.

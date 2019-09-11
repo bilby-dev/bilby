@@ -17,7 +17,7 @@ np.random.seed(151012)
 
 injection_parameters = dict(
     mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., iota=0.4, psi=2.659,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=4000., theta_jn=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
@@ -41,7 +41,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # This loads in a predefined set of priors for BBHs.
 priors = bilby.gw.prior.BBHPriorDict()
 # These parameters will not be sampled
-for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'iota', 'ra',
+for key in ['tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'phase', 'theta_jn', 'ra',
             'dec', 'geocent_time', 'psi']:
     priors[key] = injection_parameters[key]
 # We can make uniform distributions.

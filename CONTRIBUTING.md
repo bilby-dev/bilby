@@ -33,7 +33,7 @@ when you change the code your installed version will automatically be updated.
 #### Removing previously installed versions
 
 If you have previously installed `bilby` using `pip` (or generally find buggy
-behaviour). It may be worthwhile purging your system and reinstalling. To do
+behaviour), it may be worthwhile purging your system and reinstalling. To do
 this, first find out where the module is being imported from: from any
 directory that is *not* the source directory, do the following
 
@@ -170,7 +170,7 @@ interested party) please key these three things in mind
 
 * If you open a discussion, be timely in responding to the submitter. Note, the
   reverse does not need to apply.
-* Keep your questions/comments focussed on the scope of the merge request. If
+* Keep your questions/comments focused on the scope of the merge request. If
   while reviewing the code you notice other things which could be improved, open
   a new issue.
 * Be supportive - merge requests represent a lot of hard work and effort and
