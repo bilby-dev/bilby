@@ -1956,17 +1956,11 @@ class CorrelatedUniform(Prior):
         Prior.__init__(self, name=name, latex_label=latex_label,
                        minimum=minimum, maximum=maximum, unit=unit)
         if not correlation_func:
-            self.correlation_func = lambda x, **y: x
+            def correlation_func(minimim, maximum, **correlated_variables):
+                return minimum, maximum
+            self.correlation_func = correlation_func
         else:
             self.correlation_func = correlation_func
-
-    def mean(self, **correlated_variables):
-        mean = (self.maximum + self.minimum)/2
-        return self.correlation_func(mean, **correlated_variables)
-
-    @property
-    def width(self):
-        return self.maximum - self.minimum
 
     @property
     def correlated_variables(self):
@@ -1991,8 +1985,7 @@ class CorrelatedUniform(Prior):
 
     def rescale(self, val, **correlated_variables):
         Prior.test_valid_for_rescaling(val)
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
         return minimum + val * (maximum - minimum)
 
     def prob(self, val, **correlated_variables):
@@ -2006,8 +1999,7 @@ class CorrelatedUniform(Prior):
         -------
         float: Prior probability of val
         """
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
         return scipy.stats.uniform.pdf(val, loc=minimum,
                                        scale=maximum - minimum)
 
@@ -2022,7 +2014,6 @@ class CorrelatedUniform(Prior):
         -------
         float: log probability of val
         """
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
         return scipy.stats.uniform.logpdf(val, loc=minimum,
                                           scale=maximum - minimum)
