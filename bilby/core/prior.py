@@ -502,10 +502,11 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: sample[key] for key in method_kwargs}
-            ls.append(self[key].prob(sample[key], **correlated_variables))
+            if key in self.correlated_keys:
+                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
+                ls.append(self[key].prob(sample[key], **correlated_variables))
+            else:
+                ls.append(self[key].prob(sample[key]))
         return np.product(ls, **kwargs)
 
     def ln_prob(self, sample):
@@ -523,10 +524,11 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: sample[key] for key in method_kwargs}
-            ls.append(self[key].ln_prob(sample[key], **correlated_variables))
+            if key in self.correlated_keys:
+                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
+                ls.append(self[key].ln_prob(sample[key], **correlated_variables))
+            else:
+                ls.append(self[key].ln_prob(sample[key]))
         return np.sum(ls)
 
     def rescale(self, keys, theta):
@@ -543,12 +545,16 @@ class CorrelatedPriorDict(PriorDict):
         -------
         list: List of floats containing the rescaled sample
         """
-        ls = []
-        for key in theta:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: theta for key in method_kwargs}
-            ls.append(self[key].rescale(sample, correlated_variables) for key, sample in zip(keys, theta))
+
+        rescale_dict = {}
+        correlated_keys, correlated_inds, _ = np.intersect1d(keys, self.correlated_keys, return_indices=True)
+        uncorrelated_keys, uncorrelated_inds, _ = np.intersect1d(keys, self.uncorrelated_keys, return_indices=True)
+        for key, ind in zip(uncorrelated_keys, uncorrelated_inds):
+            rescale_dict[key] = self[key].rescale(theta[ind])
+        for key, ind in zip(correlated_keys, correlated_inds):
+            correlated_variables = dict([(k, rescale_dict[k]) for k in self[key].correlated_variables])
+            rescale_dict[key] = self[key].rescale(theta[ind], **correlated_variables)
+        ls = [rescale_dict[key] for key in keys]
         return ls
 
 
