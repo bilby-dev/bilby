@@ -36,7 +36,7 @@ def grid_file_name(outdir, label, gzip=False):
 
 class Grid(object):
 
-    def __init__(self, likelihood=None, priors=dict(), grid_size=101,
+    def __init__(self, likelihood=None, priors=None, grid_size=101,
                  save=False, label='no_label', outdir='.', gzip=False):
         """
 
@@ -60,6 +60,8 @@ class Grid(object):
             Set whether to gzip the output grid file
         """
 
+        if priors is None:
+            priors = dict()
         self.likelihood = likelihood
         self.priors = PriorDict(priors)
         self.n_dims = len(priors)
