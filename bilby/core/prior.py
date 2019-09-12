@@ -3477,9 +3477,10 @@ class CorrelatedUniform(Prior):
         """
         Prior.__init__(self, name=name, latex_label=latex_label,
                        minimum=minimum, maximum=maximum, unit=unit, boundary=None)
+        self.extrema_dict = dict(minimum=minimum, maximum=maximum)
         if not correlation_func:
-            def correlation_func(minimim, maximum, **correlated_variables):
-                return minimum, maximum
+            def correlation_func(extrema_dict, **correlated_variables):
+                return extrema_dict['minimum'], extrema_dict['maximum']
             self.correlation_func = correlation_func
         else:
             self.correlation_func = correlation_func
@@ -3507,7 +3508,7 @@ class CorrelatedUniform(Prior):
 
     def rescale(self, val, **correlated_variables):
         Prior.test_valid_for_rescaling(val)
-        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return minimum + val * (maximum - minimum)
 
     def prob(self, val, **correlated_variables):
@@ -3521,7 +3522,7 @@ class CorrelatedUniform(Prior):
         -------
         float: Prior probability of val
         """
-        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return scipy.stats.uniform.pdf(val, loc=minimum,
                                        scale=maximum - minimum)
 
@@ -3536,6 +3537,6 @@ class CorrelatedUniform(Prior):
         -------
         float: log probability of val
         """
-        minimum, maximum = self.correlation_func(self.minimum, self.maximum, **correlated_variables)
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return scipy.stats.uniform.logpdf(val, loc=minimum,
                                           scale=maximum - minimum)
