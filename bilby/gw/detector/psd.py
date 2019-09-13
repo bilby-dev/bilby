@@ -290,11 +290,41 @@ class PowerSpectralDensity(object):
     @staticmethod
     def __validate_file_name(file):
         """
-        Test if the file contains a path (i.e., contains '/').
-        If not assume the file is in the default directory.
+        Test if the file exists or is available in the default directory.
+
+        Parameters
+        ----------
+        file: str, None
+            A string pointing either to a PSD file, or the name of a psd file
+            in the default directory. If none, no check is performed.
+
+        Returns
+        -------
+        file: str
+            The path to the PSD file to use
+
+        Raises
+        ------
+        ValueError:
+            If the PSD file cannot be located
+
         """
-        if file is not None and '/' not in file:
-            file = os.path.join(os.path.dirname(__file__), 'noise_curves', file)
+        if file is None:
+            logger.debug("PSD file set to None")
+            return None
+        elif os.path.isfile(file):
+            logger.debug("PSD file {} exists".format(file))
+            return file
+        else:
+            file_in_default_directory = (
+                os.path.join(os.path.dirname(__file__), 'noise_curves', file))
+            if os.path.isfile(file_in_default_directory):
+                logger.debug("PSD file {} exists in default dir.".format(file))
+                return file_in_default_directory
+            else:
+                raise ValueError(
+                    "Unable to locate PSD file {} locally or in the default dir"
+                    .format(file))
         return file
 
     def __import_amplitude_spectral_density(self):

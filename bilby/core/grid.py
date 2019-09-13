@@ -7,7 +7,8 @@ from collections import OrderedDict
 
 from .prior import Prior, PriorDict
 from .utils import (logtrapzexp, check_directory_exists_and_if_not_mkdir,
-                    logger, BilbyJsonEncoder, decode_bilby_json)
+                    logger)
+from .utils import BilbyJsonEncoder, decode_bilby_json
 from .result import FileMovedError
 
 
@@ -35,7 +36,7 @@ def grid_file_name(outdir, label, gzip=False):
 
 class Grid(object):
 
-    def __init__(self, likelihood=None, priors=dict(), grid_size=101,
+    def __init__(self, likelihood=None, priors=None, grid_size=101,
                  save=False, label='no_label', outdir='.', gzip=False):
         """
 
@@ -59,6 +60,8 @@ class Grid(object):
             Set whether to gzip the output grid file
         """
 
+        if priors is None:
+            priors = dict()
         self.likelihood = likelihood
         self.priors = PriorDict(priors)
         self.n_dims = len(priors)
@@ -406,12 +409,10 @@ class Grid(object):
 
         logger.debug("Saving result to {}".format(filename))
 
-        # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()
-        if dictionary.get('priors', False):
-            dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
 
         try:
+            dictionary["priors"] = dictionary["priors"]._get_json_dict()
             if gzip or (os.path.splitext(filename)[-1] == '.gz'):
                 import gzip
                 # encode to a string
@@ -468,12 +469,6 @@ class Grid(object):
             else:
                 with open(fname, 'r') as file:
                     dictionary = json.load(file, object_hook=decode_bilby_json)
-            for key in dictionary.keys():
-                # Convert the loaded priors to bilby prior type
-                if key == 'priors':
-                    for param in dictionary[key].keys():
-                        dictionary[key][param] = str(dictionary[key][param])
-                    dictionary[key] = PriorDict(dictionary[key])
             try:
                 grid = cls(likelihood=None, priors=dictionary['priors'],
                            grid_size=dictionary['sample_points'],

@@ -583,6 +583,7 @@ class NestedSampler(Sampler):
         the prior constraint here.
 
         Parameters
+        ----------
         theta: array_like
             Parameter values at which to evaluate likelihood
 

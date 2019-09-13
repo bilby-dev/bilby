@@ -113,6 +113,17 @@ class Interferometer(object):
                     float(self.geometry.yarm_azimuth), float(self.geometry.xarm_tilt),
                     float(self.geometry.yarm_tilt))
 
+    def set_strain_data_from_gwpy_timeseries(self, time_series):
+        """ Set the `Interferometer.strain_data` from a gwpy TimeSeries
+
+        Parameters
+        ----------
+        time_series: gwpy.timeseries.timeseries.TimeSeries
+            The data to set.
+
+        """
+        self.strain_data.set_from_gwpy_timeseries(time_series=time_series)
+
     def set_strain_data_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
             duration=None, start_time=0, frequency_array=None):
@@ -298,7 +309,11 @@ class Interferometer(object):
 
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
-        dt = parameters['geocent_time'] + time_shift - self.strain_data.start_time
+
+        # Be careful to first substract the two GPS times which are ~1e9 sec.
+        # And then add the time_shift which varies at ~1e-5 sec
+        dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
+        dt = dt_geocent + time_shift
 
         signal_ifo[self.strain_data.frequency_mask] = signal_ifo[self.strain_data.frequency_mask] * np.exp(
             -1j * 2 * np.pi * dt * self.strain_data.frequency_array[self.strain_data.frequency_mask])

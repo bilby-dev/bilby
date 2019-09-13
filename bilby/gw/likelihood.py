@@ -16,10 +16,10 @@ except ImportError:
 from scipy.special import i0e
 
 from ..core import likelihood
+from ..core.utils import BilbyJsonEncoder, decode_bilby_json
 from ..core.utils import (
-    logger, UnsortedInterp2d, BilbyJsonEncoder, decode_bilby_json,
-    create_frequency_series, create_time_series, speed_of_light,
-    radius_of_earth)
+    logger, UnsortedInterp2d, create_frequency_series, create_time_series,
+    speed_of_light, radius_of_earth)
 from ..core.prior import Interped, Prior, Uniform
 from .detector import InterferometerList
 from .prior import BBHPriorDict
@@ -119,7 +119,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                     minimum=- self._delta_tc / 2, maximum=self._delta_tc / 2,
                     boundary='periodic')
         elif self.jitter_time:
-            logger.info(
+            logger.debug(
                 "Time jittering requested with non-time-marginalised "
                 "likelihood, ignoring.")
             self.jitter_time = False
@@ -590,7 +590,12 @@ class GravitationalWaveTransient(likelihood.Likelihood):
 
     def load_lookup_table(self, filename):
         if os.path.exists(filename):
-            loaded_file = dict(np.load(filename))
+            try:
+                loaded_file = dict(np.load(filename))
+            except AttributeError as e:
+                logger.warning(e)
+                self._create_lookup_table()
+                return None
             match, failure = self._test_cached_lookup_table(loaded_file)
             if match:
                 logger.info('Loaded distance marginalisation lookup table from '
@@ -599,13 +604,10 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             else:
                 logger.info('Loaded distance marginalisation lookup table does '
                             'not match for {}.'.format(failure))
-                return None
         elif isinstance(filename, str):
             logger.info('Distance marginalisation file {} does not '
                         'exist'.format(filename))
-            return None
-        else:
-            return None
+        return None
 
     def cache_lookup_table(self):
         np.savez(self.cached_lookup_table_filename,
@@ -681,6 +683,16 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             signal[mode] *= self._ref_dist / new_distance
 
     @property
+    def lal_version(self):
+        try:
+            from lal import git_version
+            lal_version = str(git_version.verbose_msg).replace("\n", ";")
+            logger.info("Using LAL version {}".format(lal_version))
+            return lal_version
+        except (ImportError, AttributeError):
+            return "N/A"
+
+    @property
     def meta_data(self):
         return dict(
             interferometers=self.interferometers.meta_data,
@@ -692,7 +704,8 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 self.waveform_generator.frequency_domain_source_model),
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
-            start_time=self.waveform_generator.start_time)
+            start_time=self.waveform_generator.start_time,
+            lal_version=self.lal_version)
 
 
 class BasicGravitationalWaveTransient(likelihood.Likelihood):
@@ -882,8 +895,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         dt = interferometer.time_delay_from_geocenter(
             self.parameters['ra'], self.parameters['dec'],
             self.parameters['geocent_time'])
-        ifo_time = self.parameters['geocent_time'] + dt - \
-            interferometer.strain_data.start_time
+        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
+        ifo_time = dt_geocent + dt
 
         calib_linear = interferometer.calibration_model.get_calibration_factor(
             self.frequency_nodes_linear,

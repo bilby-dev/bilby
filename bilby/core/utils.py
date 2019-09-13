@@ -7,8 +7,9 @@ import argparse
 import traceback
 import inspect
 import subprocess
-import json
 import multiprocessing
+from importlib import import_module
+import json
 
 import numpy as np
 from scipy.interpolate import interp2d
@@ -907,7 +908,25 @@ else:
 
 
 class BilbyJsonEncoder(json.JSONEncoder):
+
     def default(self, obj):
+        from .prior import MultivariateGaussianDist, Prior, PriorDict
+        if isinstance(obj, PriorDict):
+            return {'__prior_dict__': True, 'content': obj._get_json_dict()}
+        if isinstance(obj, (MultivariateGaussianDist, Prior)):
+            return {'__prior__': True, '__module__': obj.__module__,
+                    '__name__': obj.__class__.__name__,
+                    'kwargs': dict(obj._get_instantiation_dict())}
+        try:
+            from astropy import cosmology as cosmo, units
+            if isinstance(obj, cosmo.FLRW):
+                return encode_astropy_cosmology(obj)
+            if isinstance(obj, units.Quantity):
+                return encode_astropy_quantity(obj)
+            if isinstance(obj, units.PrefixUnit):
+                return str(obj)
+        except ImportError:
+            logger.info("Cannot import astropy, cannot write cosmological priors")
         if isinstance(obj, np.ndarray):
             return {'__array__': True, 'content': obj.tolist()}
         if isinstance(obj, complex):
@@ -917,7 +936,35 @@ class BilbyJsonEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+def encode_astropy_cosmology(obj):
+    cls_name = obj.__class__.__name__
+    dct = {key: getattr(obj, key) for
+           key in infer_args_from_method(obj.__init__)}
+    dct['__cosmology__'] = True
+    dct['__name__'] = cls_name
+    return dct
+
+
+def encode_astropy_quantity(dct):
+    dct = dict(__astropy_quantity__=True, value=dct.value, unit=str(dct.unit))
+    if isinstance(dct['value'], np.ndarray):
+        dct['value'] = list(dct['value'])
+    return dct
+
+
 def decode_bilby_json(dct):
+    if dct.get("__prior_dict__", False):
+        cls = getattr(import_module(dct['__module__']), dct['__name__'])
+        obj = cls._get_from_json_dict(dct)
+        return obj
+    if dct.get("__prior__", False):
+        cls = getattr(import_module(dct['__module__']), dct['__name__'])
+        obj = cls(**dct['kwargs'])
+        return obj
+    if dct.get("__cosmology__", False):
+        return decode_astropy_cosmology(dct)
+    if dct.get("__astropy_quantity__", False):
+        return decode_astropy_quantity(dct)
     if dct.get("__array__", False):
         return np.asarray(dct["content"])
     if dct.get("__complex__", False):
@@ -925,6 +972,32 @@ def decode_bilby_json(dct):
     if dct.get("__dataframe__", False):
         return pd.DataFrame(dct['content'])
     return dct
+
+
+def decode_astropy_cosmology(dct):
+    try:
+        from astropy import cosmology as cosmo
+        cosmo_cls = getattr(cosmo, dct['__name__'])
+        del dct['__cosmology__'], dct['__name__']
+        return cosmo_cls(**dct)
+    except ImportError:
+        logger.info("Cannot import astropy, cosmological priors may not be "
+                    "properly loaded.")
+        return dct
+
+
+def decode_astropy_quantity(dct):
+    try:
+        from astropy import units
+        if dct['value'] is None:
+            return None
+        else:
+            del dct['__astropy_quantity__']
+            return units.Quantity(**dct)
+    except ImportError:
+        logger.info("Cannot import astropy, cosmological priors may not be "
+                    "properly loaded.")
+        return dct
 
 
 class IllegalDurationAndSamplingFrequencyException(Exception):

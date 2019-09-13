@@ -1,4 +1,5 @@
 from __future__ import division, absolute_import
+from collections import OrderedDict
 import unittest
 import os
 import sys
@@ -119,11 +120,6 @@ class TestPackagedPriors(unittest.TestCase):
         self.assertTrue('chi_1' in prior_dict)
         self.assertTrue('chi_2' in prior_dict)
 
-    def test_GW150914(self):
-        filename = 'GW150914.prior'
-        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
-        self.assertTrue('geocent_time' in prior_dict)
-
     def test_precessing(self):
         filename = 'precessing_binary_neutron_stars.prior'
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
@@ -144,7 +140,7 @@ class TestPackagedPriors(unittest.TestCase):
 class TestBNSPriorDict(unittest.TestCase):
 
     def setUp(self):
-        self.prior_dict = dict()
+        self.prior_dict = OrderedDict()
         self.base_directory =\
             '/'.join(os.path.dirname(
                 os.path.abspath(sys.argv[0])).split('/')[:-1])

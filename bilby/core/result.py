@@ -18,9 +18,9 @@ from scipy.special import logsumexp
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
-                    check_directory_exists_and_if_not_mkdir,
-                    BilbyJsonEncoder, decode_bilby_json)
-from .prior import Prior, PriorDict, DeltaFunction
+                    check_directory_exists_and_if_not_mkdir,)
+from .utils import BilbyJsonEncoder, decode_bilby_json
+from .prior import Prior, PriorDict, DeltaFunction, CorrelatedPriorDict
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -264,12 +264,6 @@ class Result(object):
             else:
                 with open(filename, 'r') as file:
                     dictionary = json.load(file, object_hook=decode_bilby_json)
-            for key in dictionary.keys():
-                # Convert the loaded priors to bilby prior type
-                if key == 'priors':
-                    for param in dictionary[key].keys():
-                        dictionary[key][param] = str(dictionary[key][param])
-                    dictionary[key] = PriorDict(dictionary[key])
             try:
                 return cls(**dictionary)
             except TypeError as e:
@@ -305,7 +299,10 @@ class Result(object):
     @priors.setter
     def priors(self, priors):
         if isinstance(priors, dict):
-            self._priors = PriorDict(priors)
+            if isinstance(priors, CorrelatedPriorDict):
+                self._priors = priors
+            else: 
+                self._priors = PriorDict(priors)
             if self.parameter_labels is None:
                 self.parameter_labels = [self.priors[k].latex_label for k in
                                          self.search_parameter_keys]
@@ -467,8 +464,6 @@ class Result(object):
 
         # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()
-        if dictionary.get('priors', False):
-            dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
 
         # Convert callable sampler_kwargs to strings
         if dictionary.get('sampler_kwargs', None) is not None:
@@ -478,6 +473,7 @@ class Result(object):
 
         try:
             if extension == 'json':
+                dictionary["priors"] = dictionary["priors"]._get_json_dict()
                 if gzip:
                     import gzip
                     # encode to a string
@@ -1110,7 +1106,7 @@ class Result(object):
             data_frame = self._add_prior_fixed_values_to_posterior(
                 data_frame, priors)
             data_frame['log_likelihood'] = getattr(
-                self, 'log_likelihood_evaluations', np.nan)
+                self, 'log_likelihood_evaluations', np.nan) 
             if self.log_prior_evaluations is None and priors is not None:
                 data_frame['log_prior'] = priors.ln_prob(
                     dict(data_frame[self.search_parameter_keys]), axis=0)

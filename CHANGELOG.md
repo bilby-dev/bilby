@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## [0.5.6] 2019-09-04
+
+### Changes
+- Deprecation of the old helper functions (e.g., fetch open data)
+- Improvements to the documentation
+- Fix a bug in the dt calculations of the GW likelihood
+- Various small bug fixes
+
+### Added
+- LAL version information in the meta data
+
+## [0.5.5] 2019-08-22
+
+### Added
+- Reading/writing of the prior in a JSON format
+- Checks for marginalization flags
+
+### Changes
+- Improvements to the examples: reorganisation and fixing bugs
+- Fixed bug with scipy>=1.3.0 and spline
+- Removed the sqrt(2) normalisation from the scalar longitudinal mode
+- Improve PSD filename reading (no longer required "/" to read local files)
+- Fix bug in emcee chains
+- Added a try/except cluase for building the lookup table
+
 ## [0.5.4] 2019-07-30
 
 ### Added

@@ -112,13 +112,15 @@ class TestCPNest(unittest.TestCase):
     def test_default_kwargs(self):
         expected = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
-                        output='outdir/cpnest_label/', proposals=None)
+                        output='outdir/cpnest_label/', proposals=None,
+                        n_periodic_checkpoint=None)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
         expected = dict(verbose=1, nthreads=1, nlive=250, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
-                        output='outdir/cpnest_label/', proposals=None)
+                        output='outdir/cpnest_label/', proposals=None,
+                        n_periodic_checkpoint=None)
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nlive']
@@ -153,7 +155,7 @@ class TestDynesty(unittest.TestCase):
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=60, update_interval=600, print_func='func')
+                        walks=20, update_interval=600, print_func='func')
         self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
         self.assertListEqual([0, 1], self.sampler.kwargs['periodic'])  # Check this separately
         self.sampler.kwargs['periodic'] = None  # The dict comparison can't handle lists
@@ -171,7 +173,7 @@ class TestDynesty(unittest.TestCase):
                         enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
                         facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=60, update_interval=600, print_func='func')
+                        walks=20, update_interval=600, print_func='func')
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()

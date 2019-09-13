@@ -40,7 +40,7 @@ class Cpnest(NestedSampler):
     """
     default_kwargs = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
                           seed=None, poolsize=100, nhamiltonian=0, resume=True,
-                          output=None, proposals=None)
+                          output=None, proposals=None, n_periodic_checkpoint=None)
 
     def _translate_kwargs(self, kwargs):
         if 'nlive' not in kwargs:
@@ -84,17 +84,22 @@ class Cpnest(NestedSampler):
 
         self._resolve_proposal_functions()
         model = Model(self.search_parameter_keys, self.priors)
-        try:
-            out = CPNest(model, **self.kwargs)
-        except TypeError as e:
-            if 'proposals' in self.kwargs.keys():
-                logger.warning('YOU ARE TRYING TO USE PROPOSALS IN A VERSION OF CPNEST THAT DOES'
-                               'NOT ACCEPT CUSTOM PROPOSALS. SAMPLING WILL COMMENCE WITH THE DEFAULT'
-                               'PROPOSALS.')
-                del self.kwargs['proposals']
+        out = None
+        remove_kwargs = ["proposals", "n_periodic_checkpoint"]
+        while out is None:
+            try:
                 out = CPNest(model, **self.kwargs)
-            else:
-                raise TypeError(e)
+            except TypeError as e:
+                if len(remove_kwargs) > 0:
+                    kwarg = remove_kwargs.pop(0)
+                else:
+                    raise TypeError("Unable to initialise cpnest sampler")
+                logger.info(
+                    "CPNest init. failed with error {}, please update"
+                    .format(e))
+                logger.info(
+                    "Attempting to rerun with kwarg {} removed".format(kwarg))
+                self.kwargs.pop(kwarg)
         out.run()
 
         if self.plot:

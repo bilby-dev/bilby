@@ -2,37 +2,27 @@
 Examples
 ========
 
-1. `General inference examples <https://git.ligo.org/lscsoft/bilby/tree/master/examples/other_examples>`_
+1. `General inference examples <https://git.ligo.org/lscsoft/bilby/tree/master/examples/core_examples>`_
+   - `A simple Gaussian likelihood <https://git.ligo.org/lscsoft/bilby/blob/master/examples/core_examples/gaussian_example.py>`_: a good example to see how to write your own likelihood.
+   - `Linear regression for unknown noise <https://git.ligo.org/lscsoft/bilby/blob/master/examples/core_examples/linear_regression_unknown_noise.py>`_: fitting to general time-domain data.
 
-   - `A simple Gaussian likelihood <https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/gaussian_example.py>`_: a good example to see how to write your own likelihood.
-   - `Linear regression for unknown noise <https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_: fitting to general time-domain data.
 
 2. `Examples of injecting and recovering
-   data <https://git.ligo.org/lscsoft/bilby/tree/master/examples/injection_examples>`__
+   data <https://git.ligo.org/lscsoft/bilby/tree/master/examples/gw_examples/injection_examples>`__
+   -  `4-parameter CBC tutorial <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/fast_tutorial.py>`__
+   -  `15-parameter CBC tutorial <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/standard_15d_cbc_tutorial.py>`__
+   -  `Create your own source model <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/create_your_own_source_model.py>`__
+   -  `Create your own time-domain source model <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/create_your_own_time_domain_source_model.py>`__
+   -  `How to specify the prior <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/how_to_specify_the_prior.py>`__
+   -  `Using a partially marginalized likelihood <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/injection_examples/marginalized_likelihood.py>`__
 
-   -  `4-parameter CBC
-      tutorial <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/fast_tutorial.py>`__
-   -  `15-parameter CBC tutorial
-      <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/fast_tutorial.py>`__
-   -  `Create your own source
-      model <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/create_your_own_source_model.py>`__
-   -  `Create your own time-domain source
-      model <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/create_your_own_time_domain_source_model.py>`__
-   -  `How to specify the
-      prior <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/how_to_specify_the_prior.py>`__
-   -  `Using a partially marginalized
-      likelihood <https://git.ligo.org/lscsoft/bilby/blob/master/examples/injection_examples/marginalized_likelihood.py>`__
 
 3. `Examples using open
-   data <https://git.ligo.org/lscsoft/bilby/tree/master/examples/open_data_examples>`__
+   data <https://git.ligo.org/lscsoft/bilby/tree/master/examples/gw_examples/data_examples>`__
+   -  `Analysing the first Binary Black hole detection, GW150914 <https://git.ligo.org/lscsoft/bilby/blob/master/examples/gw_examples/data_examples/GW150914.py>`__
 
-   -  `Analysing the first Binary Black hole detection,
-      GW150914 <https://git.ligo.org/lscsoft/bilby/blob/master/examples/open_data_examples/GW150914.py>`__
 
-4. `Notebook-style
-   tutorials <https://git.ligo.org/lscsoft/bilby/tree/master/examples/tutorials>`__
+4. `Notebook-style tutorials <https://git.ligo.org/lscsoft/bilby/tree/master/examples/tutorials>`__
 
-   -  `Comparing different
-      samplers <https://git.ligo.org/lscsoft/bilby/blob/master/examples/tutorials/compare_samplers.ipynb>`__
-   -  `Visualising the
-      output <https://git.ligo.org/lscsoft/bilby/blob/master/examples/tutorials/visualising_the_results.ipynb>`__
+   -  `Comparing different samplers <https://git.ligo.org/lscsoft/bilby/blob/master/examples/tutorials/compare_samplers.ipynb>`__
+   -  `Visualising the output <https://git.ligo.org/lscsoft/bilby/blob/master/examples/tutorials/visualising_the_results.ipynb>`__
