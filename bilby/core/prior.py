@@ -915,7 +915,7 @@ class Prior(object):
             dict_with_properties[key] = getattr(self, key)
         instantiation_dict = OrderedDict()
         for key in subclass_args:
-            if key=='correlation_func':
+            if key == 'correlation_func':
                 instantiation_dict[key] = str(dict_with_properties[key])
             else:
                 instantiation_dict[key] = dict_with_properties[key]
