@@ -301,7 +301,7 @@ class Result(object):
         if isinstance(priors, dict):
             if isinstance(priors, CorrelatedPriorDict):
                 self._priors = priors
-            else: 
+            else:
                 self._priors = PriorDict(priors)
             if self.parameter_labels is None:
                 self.parameter_labels = [self.priors[k].latex_label for k in
@@ -1106,7 +1106,7 @@ class Result(object):
             data_frame = self._add_prior_fixed_values_to_posterior(
                 data_frame, priors)
             data_frame['log_likelihood'] = getattr(
-                self, 'log_likelihood_evaluations', np.nan) 
+                self, 'log_likelihood_evaluations', np.nan)
             if self.log_prior_evaluations is None and priors is not None:
                 data_frame['log_prior'] = priors.ln_prob(
                     dict(data_frame[self.search_parameter_keys]), axis=0)
