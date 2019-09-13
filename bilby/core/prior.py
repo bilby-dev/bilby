@@ -915,7 +915,10 @@ class Prior(object):
             dict_with_properties[key] = getattr(self, key)
         instantiation_dict = OrderedDict()
         for key in subclass_args:
-            instantiation_dict[key] = dict_with_properties[key]
+            if callable(dict_with_properties[key]):
+                instantiation_dict[key] = str(dict_with_properties[key])
+            else:
+                instantiation_dict[key] = dict_with_properties[key]
         return instantiation_dict
 
     @property
