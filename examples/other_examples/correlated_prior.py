@@ -57,7 +57,6 @@ c = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=co
 correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
 
 samples = correlated_uniform.sample(1000000)
-pdb.set_trace()
 samples = np.array([samples['a'], samples['b'], samples['c']]).T
 corner.corner(np.array(samples))
 plt.show()
