@@ -48,10 +48,10 @@ class Pymultinest(NestedSampler):
 
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
                  skip_import_verification=False, **kwargs):
-        NestedSampler.__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
-                               use_ratio=use_ratio, plot=plot,
-                               skip_import_verification=skip_import_verification,
-                               **kwargs)
+        super(Pymultinest, self).__init__(likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                                          use_ratio=use_ratio, plot=plot,
+                                          skip_import_verification=skip_import_verification,
+                                          **kwargs)
         self._apply_multinest_boundaries()
 
     def _translate_kwargs(self, kwargs):

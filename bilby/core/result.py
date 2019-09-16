@@ -1318,7 +1318,7 @@ class ResultList(list):
         results: list
             A list of `:class:`bilby.core.result.Result`.
         """
-        list.__init__(self)
+        super(ResultList, self).__init__()
         for result in results:
             self.append(result)
 

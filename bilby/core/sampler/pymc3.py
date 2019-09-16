@@ -6,7 +6,7 @@ import numpy as np
 
 from ..utils import derivatives, infer_args_from_method
 from ..prior import DeltaFunction, Sine, Cosine, PowerLaw, MultivariateGaussian
-from .base_sampler import Sampler, MCMCSampler
+from .base_sampler import MCMCSampler
 from ..likelihood import GaussianLikelihood, PoissonLikelihood, ExponentialLikelihood, \
     StudentTLikelihood
 from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
@@ -63,9 +63,9 @@ class Pymc3(MCMCSampler):
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False,
                  skip_import_verification=False, **kwargs):
-        Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
-                         use_ratio=use_ratio, plot=plot,
-                         skip_import_verification=skip_import_verification, **kwargs)
+        super(Pymc3, self).__init__(likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                                    use_ratio=use_ratio, plot=plot,
+                                    skip_import_verification=skip_import_verification, **kwargs)
         self.draws = self._kwargs['draws']
         self.chains = self._kwargs['chains']
 
