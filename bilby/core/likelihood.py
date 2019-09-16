@@ -73,7 +73,7 @@ class ZeroLikelihood(Likelihood):
     """
 
     def __init__(self, likelihood):
-        Likelihood.__init__(self, dict.fromkeys(likelihood.parameters))
+        super(ZeroLikelihood, self).__init__(dict.fromkeys(likelihood.parameters))
         self.parameters = likelihood.parameters
         self._parent = likelihood
 
@@ -105,7 +105,7 @@ class Analytical1DLikelihood(Likelihood):
 
     def __init__(self, x, y, func):
         parameters = infer_parameters_from_function(func)
-        Likelihood.__init__(self, dict.fromkeys(parameters))
+        super(Analytical1DLikelihood, self).__init__(dict.fromkeys(parameters))
         self.x = x
         self.y = y
         self._func = func
@@ -185,7 +185,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
             to that for `x` and `y`.
         """
 
-        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        super(GaussianLikelihood, self).__init__(x=x, y=y, func=func)
         self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
@@ -246,7 +246,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
             fixed value is given).
         """
 
-        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        super(PoissonLikelihood, self).__init__(x=x, y=y, func=func)
 
     def log_likelihood(self):
         rate = self.func(self.x, **self.model_parameters)
@@ -297,7 +297,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             value is given). The model should return the expected mean of
             the exponential distribution for each data point.
         """
-        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        super(ExponentialLikelihood, self).__init__(x=x, y=y, func=func)
 
     def log_likelihood(self):
         mu = self.func(self.x, **self.model_parameters)
@@ -352,7 +352,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
             Set the scale of the distribution. If not given then this defaults
             to 1, which specifies a standard (central) Student's t-distribution
         """
-        Analytical1DLikelihood.__init__(self, x=x, y=y, func=func)
+        super(StudentTLikelihood, self).__init__(x=x, y=y, func=func)
 
         self.nu = nu
         self.sigma = sigma
@@ -413,7 +413,7 @@ class JointLikelihood(Likelihood):
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
-        Likelihood.__init__(self, parameters={})
+        super(JointLikelihood, self).__init__(parameters={})
         self.__sync_parameters()
 
     def __sync_parameters(self):

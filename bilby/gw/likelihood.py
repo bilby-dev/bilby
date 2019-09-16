@@ -101,7 +101,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                  jitter_time=True):
 
         self.waveform_generator = waveform_generator
-        likelihood.Likelihood.__init__(self, dict())
+        super(GravitationalWaveTransient, self).__init__(dict())
         self.interferometers = InterferometerList(interferometers)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
@@ -730,7 +730,7 @@ class BasicGravitationalWaveTransient(likelihood.Likelihood):
             given some set of parameters
 
         """
-        likelihood.Likelihood.__init__(self, dict())
+        super(BasicGravitationalWaveTransient, self).__init__(dict())
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
@@ -838,8 +838,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                  roq_params=None,
                  distance_marginalization=False, phase_marginalization=False,
                  distance_marginalization_lookup_table=None):
-        GravitationalWaveTransient.__init__(
-            self, interferometers=interferometers,
+        super(ROQGravitationalWaveTransient, self).__init__(
+            interferometers=interferometers,
             waveform_generator=waveform_generator, priors=priors,
             distance_marginalization=distance_marginalization,
             phase_marginalization=phase_marginalization,

@@ -77,7 +77,7 @@ class CubicSpline(Recalibrate):
         n_points: int
             number of spline points
         """
-        Recalibrate.__init__(self, prefix=prefix)
+        super(CubicSpline, self).__init__(prefix=prefix)
         if n_points < 4:
             raise ValueError('Cubic spline calibration requires at least 4 spline nodes.')
         self.n_points = n_points
