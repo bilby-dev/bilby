@@ -75,7 +75,7 @@ class Dynesty(NestedSampler):
         If true, resume run from checkpoint (if available)
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
-                          verbose=True, periodic=None,
+                          verbose=True, periodic=None, reflective=None,
                           check_point_delta_t=600, nlive=1000,
                           first_update=None, walks=None,
                           npdim=None, rstate=None, queue_size=None, pool=None,
@@ -211,7 +211,8 @@ class Dynesty(NestedSampler):
         # The periodic kwargs passed into dynesty allows the parameters to
         # wander out of the bounds, this includes both periodic and reflective.
         # these are then handled in the prior_transform
-        self.kwargs["periodic"] = sorted(self._periodic + self._reflective)
+        self.kwargs["periodic"] = self._periodic
+        self.kwargs["reflective"] = self._reflective
 
     def run_sampler(self):
         import dynesty
@@ -486,8 +487,4 @@ class Dynesty(NestedSampler):
         |theta| - 1 (i.e. wrap around).
 
         """
-        theta[self._periodic] = np.mod(theta[self._periodic], 1)
-        theta_ref = theta[self._reflective]
-        theta[self._reflective] = np.minimum(
-            np.maximum(theta_ref, abs(theta_ref)), 2 - theta_ref)
         return self.priors.rescale(self._search_parameter_keys, theta)
