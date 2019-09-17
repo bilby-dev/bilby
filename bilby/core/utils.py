@@ -10,6 +10,7 @@ import subprocess
 import multiprocessing
 from importlib import import_module
 import json
+import warnings
 
 import numpy as np
 from scipy.interpolate import interp2d
@@ -18,12 +19,11 @@ import pandas as pd
 
 logger = logging.getLogger('bilby')
 
-
-# Constants: values taken from astropy v3.0.4
+# Constants: values taken from LAL cd65f38ce43cef3a1dec217c060de25caf99bf14
 speed_of_light = 299792458.0  # m/s
-parsec = 3.0856775814671916e+16  # m
-solar_mass = 1.9884754153381438e+30  # Kg
-radius_of_earth = 6378100.0  # m
+parsec = 3.085677581491367e+16  # m
+solar_mass = 1.9885469549614615e+30  # Kg
+radius_of_earth = 6378136.6  # m
 
 _TOL = 14
 
@@ -254,6 +254,10 @@ def gps_time_to_gmst(gps_time):
     float: Greenwich mean sidereal time in radians
 
     """
+    warnings.warn(
+        "Function gps_time_to_gmst deprecated, use "
+        "lal.GreenwichMeanSiderealTime(time) instead",
+        DeprecationWarning)
     omega_earth = 2 * np.pi * (1 / 365.2425 + 1) / 86400.
     gps_2000 = 630720013.
     gmst_2000 = (6 + 39. / 60 + 51.251406103947375 / 3600) * np.pi / 12
