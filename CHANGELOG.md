@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## [0.5.7] 2019-09-19
+
+### Added
+- bilby_convert_resume file CL tool for converting dynesty resume files into preresults !599
+
+### Changes
+- Change the constants (Msun, REarth etc) to match the values in LAL !597
+- Change the Greenwhich Mean Sidereal Time conversion to match the method in LAL !597
+- Update dynesty requirement to 0.9.8
+- Improve integration of bounds with dynesty !589
+- Fixed issue with mutable default argument !596
+- Allow the use of n_effective in dynesty !592
+- Allow the use of n_periodic in cpnest !591
+- Fix bug in dt calc
+
 ## [0.5.6] 2019-09-04
 
 ### Changes
