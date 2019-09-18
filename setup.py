@@ -87,7 +87,8 @@ setup(name='bilby',
           'scipy'],
       entry_points={'console_scripts':
                     ['bilby_plot=cli_bilby.plot_multiple_posteriors:main',
-                     'bilby_result=cli_bilby.bilby_result:main']
+                     'bilby_result=cli_bilby.bilby_result:main',
+                     'bilby_convert_resume=cli_bilby.resume:main']
                     },
       classifiers=[
           "Programming Language :: Python :: 2.7",
