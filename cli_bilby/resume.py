@@ -78,7 +78,7 @@ def convert_df_to_preresult(df, format, resume_file):
     result.posterior = df
     result.priors = dict()
     filename = bilby.core.result.result_file_name(outdir, label, format)
-    filename = filename.replace("result", "preresult")
+    filename = filename.replace("result.{}".format(format), "preresult.{}".format(format))
     result.save_to_file(filename=filename, extension=format)
 
 
