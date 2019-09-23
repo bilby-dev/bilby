@@ -438,6 +438,7 @@ class Dynesty(NestedSampler):
 
             current_state['posterior'] = resample_equal(
                 np.array(current_state['physical_samples']), weights)
+            current_state['search_parameter_keys'] = self.search_parameter_keys
         except ValueError:
             logger.debug("Unable to create posterior")
 

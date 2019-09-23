@@ -1006,3 +1006,10 @@ def decode_astropy_quantity(dct):
 
 class IllegalDurationAndSamplingFrequencyException(Exception):
     pass
+
+
+class tcolors:
+    KEY = '\033[93m'
+    VALUE = '\033[91m'
+    HIGHLIGHT = '\033[95m'
+    END = '\033[0m'
