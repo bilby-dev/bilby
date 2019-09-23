@@ -24,9 +24,15 @@ stages:
     - python -m pip install .
     - python -c "import bilby"
     - python -c "import bilby.core"
+    - python -c "import bilby.core.sampler"
     - python -c "import bilby.gw"
+    - python -c "import bilby.gw.detector"
+    - python -c "import bilby.gw.sampler"
     - python -c "import bilby.hyper"
     - python -c "import cli_bilby"
+    - for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
+          ${script} --help;
+      done
 
 # test basic setup on python2
 basic-2.7:
