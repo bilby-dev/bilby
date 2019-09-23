@@ -78,7 +78,7 @@ setup(name='bilby',
                     'bilby': [version_file]},
       install_requires=[
           'future',
-          'dynesty>=0.9.7',
+          'dynesty>=1.0.0',
           'corner',
           'dill',
           'numpy>=1.9',
