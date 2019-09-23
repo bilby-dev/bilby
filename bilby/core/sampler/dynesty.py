@@ -75,7 +75,7 @@ class Dynesty(NestedSampler):
         If true, resume run from checkpoint (if available)
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
-                          verbose=True, periodic=None,
+                          verbose=True, periodic=None, reflective=None,
                           check_point_delta_t=600, nlive=1000,
                           first_update=None, walks=None,
                           npdim=None, rstate=None, queue_size=None, pool=None,
@@ -198,19 +198,21 @@ class Dynesty(NestedSampler):
         sys.stdout.flush()
 
     def _apply_dynesty_boundaries(self):
-        if self.kwargs['periodic'] is None:
-            logger.debug("Setting periodic boundaries for keys:")
-            self.kwargs['periodic'] = []
-            self._periodic = list()
-            self._reflective = list()
-            for ii, key in enumerate(self.search_parameter_keys):
-                if self.priors[key].boundary in ['periodic', 'reflective']:
-                    self.kwargs['periodic'].append(ii)
-                    logger.debug("  {}".format(key))
-                    if self.priors[key].boundary == 'periodic':
-                        self._periodic.append(ii)
-                    else:
-                        self._reflective.append(ii)
+        self._periodic = list()
+        self._reflective = list()
+        for ii, key in enumerate(self.search_parameter_keys):
+            if self.priors[key].boundary == 'periodic':
+                logger.debug("Setting periodic boundary for {}".format(key))
+                self._periodic.append(ii)
+            elif self.priors[key].boundary == 'reflective':
+                logger.debug("Setting reflective boundary for {}".format(key))
+                self._reflective.append(ii)
+
+        # The periodic kwargs passed into dynesty allows the parameters to
+        # wander out of the bounds, this includes both periodic and reflective.
+        # these are then handled in the prior_transform
+        self.kwargs["periodic"] = self._periodic
+        self.kwargs["reflective"] = self._reflective
 
     def run_sampler(self):
         import dynesty
@@ -505,8 +507,4 @@ class Dynesty(NestedSampler):
         |theta| - 1 (i.e. wrap around).
 
         """
-        theta[self._periodic] = np.mod(theta[self._periodic], 1)
-        theta_ref = theta[self._reflective]
-        theta[self._reflective] = np.minimum(
-            np.maximum(theta_ref, abs(theta_ref)), 2 - theta_ref)
         return self.priors.rescale(self._search_parameter_keys, theta)
