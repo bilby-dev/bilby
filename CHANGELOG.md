@@ -10,7 +10,7 @@
 ### Changes
 - Change the constants (Msun, REarth etc) to match the values in LAL !597
 - Change the Greenwhich Mean Sidereal Time conversion to match the method in LAL !597
-- Update dynesty requirement to 0.9.8
+- Update dynesty requirement to 1.0.0
 - Improve integration of bounds with dynesty !589
 - Fixed issue with mutable default argument !596
 - Allow the use of n_effective in dynesty !592
