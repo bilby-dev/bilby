@@ -61,8 +61,8 @@ class Emcee(MCMCSampler):
             self.prerelease = True
         else:
             self.prerelease = False
-        MCMCSampler.__init__(
-            self, likelihood=likelihood, priors=priors, outdir=outdir,
+        super(Emcee, self).__init__(
+            likelihood=likelihood, priors=priors, outdir=outdir,
             label=label, use_ratio=use_ratio, plot=plot,
             skip_import_verification=skip_import_verification, **kwargs)
         self.resume = resume

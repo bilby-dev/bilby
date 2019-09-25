@@ -58,8 +58,8 @@ class Cosmological(Interped):
             xx, yy = self._get_luminosity_distance_arrays()
         else:
             raise ValueError('Name {} not recognized.'.format(name))
-        Interped.__init__(self, xx=xx, yy=yy, minimum=minimum, maximum=maximum,
-                          boundary=boundary, **label_args)
+        super(Cosmological, self).__init__(xx=xx, yy=yy, minimum=minimum, maximum=maximum,
+                                           boundary=boundary, **label_args)
 
     @property
     def minimum(self):
@@ -232,9 +232,9 @@ class AlignedSpin(Interped):
         aas = np.linspace(a_prior.minimum, a_prior.maximum, 1000)
         yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
                                      z_prior.prob(x / aas)), aas) for x in xx]
-        Interped.__init__(self, xx=xx, yy=yy, name=name,
-                          latex_label=latex_label, unit=unit,
-                          boundary=boundary)
+        super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
+                                          latex_label=latex_label, unit=unit,
+                                          boundary=boundary)
 
 
 class BBHPriorDict(PriorDict):
@@ -264,8 +264,8 @@ class BBHPriorDict(PriorDict):
         elif filename is not None:
             if not os.path.isfile(filename):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorDict.__init__(self, dictionary=dictionary, filename=filename,
-                           conversion_function=conversion_function)
+        super(BBHPriorDict, self).__init__(dictionary=dictionary, filename=filename,
+                                           conversion_function=conversion_function)
 
     def default_conversion_function(self, sample):
         """
@@ -370,8 +370,8 @@ class BNSPriorDict(PriorDict):
         elif filename is not None:
             if not os.path.isfile(filename):
                 filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
-        PriorDict.__init__(self, dictionary=dictionary, filename=filename,
-                           conversion_function=conversion_function)
+        super(BNSPriorDict, self).__init__(dictionary=dictionary, filename=filename,
+                                           conversion_function=conversion_function)
 
     def default_conversion_function(self, sample):
         """
@@ -477,7 +477,7 @@ class CalibrationPriorDict(PriorDict):
         if dictionary is None and filename is not None:
             filename = os.path.join(os.path.dirname(__file__),
                                     'prior_files', filename)
-        PriorDict.__init__(self, dictionary=dictionary, filename=filename)
+        super(CalibrationPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self.source = None
 
     def to_file(self, outdir, label):

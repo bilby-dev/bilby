@@ -52,7 +52,7 @@ class HyperparameterLikelihood(Likelihood):
         self.hyper_prior = hyper_prior
         self.sampling_prior = sampling_prior
         self.max_samples = max_samples
-        Likelihood.__init__(self, hyper_prior.parameters)
+        super(HyperparameterLikelihood, self).__init__(hyper_prior.parameters)
 
         self.data = self.resample_posteriors()
         self.n_posteriors = len(self.posteriors)

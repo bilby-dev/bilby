@@ -27,7 +27,7 @@ class InterferometerList(list):
             The list of interferometers
         """
 
-        list.__init__(self)
+        super(InterferometerList, self).__init__()
         if type(interferometers) == str:
             raise TypeError("Input must not be a string")
         for ifo in interferometers:
@@ -246,7 +246,7 @@ class TriangularInterferometer(InterferometerList):
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
                  length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
                  xarm_tilt=0., yarm_tilt=0.):
-        InterferometerList.__init__(self, [])
+        super(TriangularInterferometer, self).__init__([])
         self.name = name
         # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
         if isinstance(power_spectral_density, PowerSpectralDensity):

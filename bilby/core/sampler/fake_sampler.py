@@ -24,10 +24,10 @@ class FakeSampler(Sampler):
                  label='label', use_ratio=False, plot=False,
                  injection_parameters=None, meta_data=None, result_class=None,
                  **kwargs):
-        Sampler.__init__(self, likelihood, priors, outdir=outdir, label=label,
-                         use_ratio=False, plot=False, skip_import_verification=True,
-                         injection_parameters=None, meta_data=None, result_class=None,
-                         **kwargs)
+        super(FakeSampler, self).__init__(likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                                          use_ratio=False, plot=False, skip_import_verification=True,
+                                          injection_parameters=None, meta_data=None, result_class=None,
+                                          **kwargs)
         self._read_parameter_list_from_file(sample_file)
         self.result.outdir = outdir
         self.result.label = label

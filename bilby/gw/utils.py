@@ -1,12 +1,13 @@
 from __future__ import division
 import os
 import json
+from math import fmod
 
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
-from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
+from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary)
@@ -87,7 +88,7 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     float: Time delay between the two detectors in the geocentric frame
 
     """
-    gmst = gps_time_to_gmst(time)
+    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     omega = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
     delta_d = detector2 - detector1
@@ -120,8 +121,8 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     array_like: A 3x3 representation of the polarization_tensor for the specified mode.
 
     """
-    greenwich_mean_sidereal_time = gps_time_to_gmst(time)
-    theta, phi = ra_dec_to_theta_phi(ra, dec, greenwich_mean_sidereal_time)
+    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
+    theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
     v = np.array([-np.sin(phi), np.cos(phi), 0])
     m = -u * np.sin(psi) - v * np.cos(psi)
