@@ -24,7 +24,7 @@ import bilby.gw.prior
 
 
 def correlation_func_a(mu, a=0):
-    return mu + a**2 + 2*a + 3
+    return mu + a**2 + 2 * a + 3
 
 
 def correlation_func_b(mu, a=0, b=0):
@@ -44,14 +44,19 @@ corner.corner(np.array(samples))
 plt.show()
 
 
+def correlation_func_min_max(extrema_dict, a, b):
+    maximum = extrema_dict['maximum'] + a**b
+    minimum = np.log(b)
+    return minimum, maximum
+
+
 a = bilby.core.prior.Uniform(minimum=0, maximum=1)
-b = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=correlation_func_a)
-c = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=correlation_func_b)
+b = bilby.core.prior.Uniform(minimum=1e-6, maximum=1e-1)
+c = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=correlation_func_min_max)
 
 correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
 
 samples = correlated_uniform.sample(1000000)
-
 samples = np.array([samples['a'], samples['b'], samples['c']]).T
 corner.corner(np.array(samples))
 plt.show()

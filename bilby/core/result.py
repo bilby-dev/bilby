@@ -20,7 +20,7 @@ from . import utils
 from .utils import (logger, infer_parameters_from_function,
                     check_directory_exists_and_if_not_mkdir,)
 from .utils import BilbyJsonEncoder, decode_bilby_json
-from .prior import Prior, PriorDict, DeltaFunction
+from .prior import Prior, PriorDict, DeltaFunction, CorrelatedPriorDict
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -299,7 +299,10 @@ class Result(object):
     @priors.setter
     def priors(self, priors):
         if isinstance(priors, dict):
-            self._priors = PriorDict(priors)
+            if isinstance(priors, CorrelatedPriorDict):
+                self._priors = priors
+            else:
+                self._priors = PriorDict(priors)
             if self.parameter_labels is None:
                 self.parameter_labels = [self.priors[k].latex_label for k in
                                          self.search_parameter_keys]

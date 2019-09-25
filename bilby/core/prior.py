@@ -560,13 +560,14 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: sample[key] for key in method_kwargs}
-            ls.append(self[key].prob(sample[key], **correlated_variables))
+            if key in self.correlated_keys:
+                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
+                ls.append(self[key].prob(sample[key], **correlated_variables))
+            else:
+                ls.append(self[key].prob(sample[key]))
         return np.product(ls, **kwargs)
 
-    def ln_prob(self, sample):
+    def ln_prob(self, sample, axis=None):
         """
 
         Parameters
@@ -581,11 +582,12 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: sample[key] for key in method_kwargs}
-            ls.append(self[key].ln_prob(sample[key], **correlated_variables))
-        return np.sum(ls)
+            if key in self.correlated_keys:
+                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
+                ls.append(self[key].ln_prob(sample[key], **correlated_variables))
+            else:
+                ls.append(self[key].ln_prob(sample[key]))
+        return np.sum(ls, axis=axis)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -601,12 +603,16 @@ class CorrelatedPriorDict(PriorDict):
         -------
         list: List of floats containing the rescaled sample
         """
-        ls = []
-        for key in theta:
-            method_kwargs = infer_args_from_method(self[key].prob)
-            method_kwargs.remove('val')
-            correlated_variables = {key: theta for key in method_kwargs}
-            ls.append(self[key].rescale(sample, correlated_variables) for key, sample in zip(keys, theta))
+
+        rescale_dict = {}
+        correlated_keys, correlated_inds, _ = np.intersect1d(keys, self.correlated_keys, return_indices=True)
+        uncorrelated_keys, uncorrelated_inds, _ = np.intersect1d(keys, self.uncorrelated_keys, return_indices=True)
+        for key, ind in zip(uncorrelated_keys, uncorrelated_inds):
+            rescale_dict[key] = self[key].rescale(theta[ind])
+        for key, ind in zip(correlated_keys, correlated_inds):
+            correlated_variables = dict([(k, rescale_dict[k]) for k in self[key].correlated_variables])
+            rescale_dict[key] = self[key].rescale(theta[ind], **correlated_variables)
+        ls = [rescale_dict[key] for key in keys]
         return ls
 
 
@@ -909,7 +915,10 @@ class Prior(object):
             dict_with_properties[key] = getattr(self, key)
         instantiation_dict = OrderedDict()
         for key in subclass_args:
-            instantiation_dict[key] = dict_with_properties[key]
+            if key == 'correlation_func':
+                instantiation_dict[key] = str(dict_with_properties[key])
+            else:
+                instantiation_dict[key] = dict_with_properties[key]
         return instantiation_dict
 
     @property
@@ -3288,7 +3297,7 @@ class MultivariateNormal(MultivariateGaussian):
 
 class CorrelatedGaussian(Prior):
 
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, correlation_func=None):
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None, correlation_func=None):
         """Gaussian prior with mean mu and width sigma
 
         Parameters
@@ -3304,7 +3313,7 @@ class CorrelatedGaussian(Prior):
         unit: str
             See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit)
+        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
         self.sigma = sigma
         if not correlation_func:
@@ -3368,7 +3377,7 @@ class CorrelatedGaussian(Prior):
 class CorrelatedUniform(Prior):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, correlation_func=None):
+                 unit=None, boundary=None, correlation_func=None):
         """Uniform prior with bounds
 
         Parameters
@@ -3385,19 +3394,14 @@ class CorrelatedUniform(Prior):
             See superclass
         """
         Prior.__init__(self, name=name, latex_label=latex_label,
-                       minimum=minimum, maximum=maximum, unit=unit)
+                       minimum=minimum, maximum=maximum, unit=unit, boundary=None)
+        self.extrema_dict = dict(minimum=minimum, maximum=maximum)
         if not correlation_func:
-            self.correlation_func = lambda x, **y: x
+            def correlation_func(extrema_dict, **correlated_variables):
+                return extrema_dict['minimum'], extrema_dict['maximum']
+            self.correlation_func = correlation_func
         else:
             self.correlation_func = correlation_func
-
-    def mean(self, **correlated_variables):
-        mean = (self.maximum + self.minimum)/2
-        return self.correlation_func(mean, **correlated_variables)
-
-    @property
-    def width(self):
-        return self.maximum - self.minimum
 
     @property
     def correlated_variables(self):
@@ -3422,8 +3426,7 @@ class CorrelatedUniform(Prior):
 
     def rescale(self, val, **correlated_variables):
         Prior.test_valid_for_rescaling(val)
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return minimum + val * (maximum - minimum)
 
     def prob(self, val, **correlated_variables):
@@ -3437,8 +3440,7 @@ class CorrelatedUniform(Prior):
         -------
         float: Prior probability of val
         """
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return scipy.stats.uniform.pdf(val, loc=minimum,
                                        scale=maximum - minimum)
 
@@ -3453,7 +3455,6 @@ class CorrelatedUniform(Prior):
         -------
         float: log probability of val
         """
-        minimum = self.mean(**correlated_variables) - self.width/2
-        maximum = self.mean(**correlated_variables) + self.width/2
+        minimum, maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
         return scipy.stats.uniform.logpdf(val, loc=minimum,
                                           scale=maximum - minimum)
