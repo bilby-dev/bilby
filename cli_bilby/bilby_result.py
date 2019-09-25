@@ -47,7 +47,7 @@ def setup_command_line_args():
                         help="New label for output result object")
     parser.add_argument("-b", "--bayes", action='store_true',
                         help="Print all Bayes factors.")
-    parser.add_argument("-p", "--print", nargs='+', default=None,
+    parser.add_argument("-p", "--print", nargs='+', default=None, dest="keys",
                         help="Result dictionary keys to print.")
     parser.add_argument("--call", nargs='+', default=None,
                         help="Result dictionary methods to call (no argument passing available).")
@@ -98,7 +98,7 @@ def drop_to_ipython(results_list):
 def print_matches(results_list, args):
     for r in results_list:
         print("\nResult file: {}/{}".format(r.outdir, r.label))
-        for key in args.print:
+        for key in args.keys:
             for attr in r.__dict__:
                 if key in attr:
                     print_line = [
@@ -113,7 +113,7 @@ def main():
     if args.convert:
         for r in results_list:
             r.save_to_file(extension=args.convert, outdir=args.outdir)
-    if args.print is not None:
+    if args.keys is not None:
         print_matches(results_list, args)
     if args.call is not None:
         for r in results_list:
