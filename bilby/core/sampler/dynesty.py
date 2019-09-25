@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 
-from ..utils import logger, check_directory_exists_and_if_not_mkdir
+from ..utils import logger, check_directory_exists_and_if_not_mkdir, reflect
 from .base_sampler import Sampler, NestedSampler
 
 
@@ -216,6 +216,7 @@ class Dynesty(NestedSampler):
 
     def run_sampler(self):
         import dynesty
+        logger.info("Using dynesty version {}".format(dynesty.__version__))
         if self.kwargs['live_points'] is None:
             self.kwargs['live_points'] = (
                 self.get_initial_points_from_prior(
@@ -509,4 +510,5 @@ class Dynesty(NestedSampler):
         |theta| - 1 (i.e. wrap around).
 
         """
+        theta[self._reflective] = reflect(theta[self._reflective])
         return self.priors.rescale(self._search_parameter_keys, theta)
