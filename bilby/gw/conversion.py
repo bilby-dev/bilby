@@ -1,5 +1,7 @@
 from __future__ import division
+import sys
 
+from tqdm import tqdm
 import numpy as np
 from pandas import DataFrame
 
@@ -969,13 +971,13 @@ def compute_snrs(sample, likelihood):
 
         else:
             logger.info(
-                'Computing SNRs for every sample, this may take some time.')
+                'Computing SNRs for every sample.')
 
             matched_filter_snrs = {
                 ifo.name: [] for ifo in likelihood.interferometers}
             optimal_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
 
-            for ii in range(len(sample)):
+            for ii in tqdm(range(len(sample)), file=sys.stdout):
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(
                         dict(sample.iloc[ii]))
@@ -1030,7 +1032,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
         new_time_samples = list()
         new_distance_samples = list()
         new_phase_samples = list()
-        for ii in range(len(samples)):
+        for ii in tqdm(range(len(samples)), file=sys.stdout):
             sample = dict(samples.iloc[ii]).copy()
             likelihood.parameters.update(sample)
             new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
