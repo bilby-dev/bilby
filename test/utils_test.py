@@ -165,5 +165,37 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
                                          starting_time=0)
 
 
+class TestReflect(unittest.TestCase):
+
+    def test_in_range(self):
+        xprime = np.array([0.1, 0.5, 0.9])
+        x = np.array([0.1, 0.5, 0.9])
+        self.assertTrue(
+            np.testing.assert_allclose(utils.reflect(xprime),  x) is None)
+
+    def test_in_one_to_two(self):
+        xprime = np.array([1.1, 1.5, 1.9])
+        x = np.array([0.9, 0.5, 0.1])
+        self.assertTrue(
+            np.testing.assert_allclose(utils.reflect(xprime),  x) is None)
+
+    def test_in_two_to_three(self):
+        xprime = np.array([2.1, 2.5, 2.9])
+        x = np.array([0.1, 0.5, 0.9])
+        self.assertTrue(
+            np.testing.assert_allclose(utils.reflect(xprime),  x) is None)
+
+    def test_in_minus_one_to_zero(self):
+        xprime = np.array([-0.9, -0.5, -0.1])
+        x = np.array([0.9, 0.5, 0.1])
+        self.assertTrue(
+            np.testing.assert_allclose(utils.reflect(xprime),  x) is None)
+
+    def test_in_minus_two_to_minus_one(self):
+        xprime = np.array([-1.9, -1.5, -1.1])
+        x = np.array([0.1, 0.5, 0.9])
+        self.assertTrue(
+            np.testing.assert_allclose(utils.reflect(xprime),  x) is None)
+
 if __name__ == '__main__':
     unittest.main()
