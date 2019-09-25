@@ -295,7 +295,7 @@ class Dynesty(NestedSampler):
         old_ncall = self.sampler.ncall
         sampler_kwargs = self.sampler_function_kwargs.copy()
         sampler_kwargs['maxcall'] = self.n_check_point
-        sampler_kwargs['add_live'] = False
+        sampler_kwargs['add_live'] = True
         self.start_time = datetime.datetime.now()
         while True:
             sampler_kwargs['maxcall'] += self.n_check_point
@@ -304,6 +304,7 @@ class Dynesty(NestedSampler):
                 break
             old_ncall = self.sampler.ncall
 
+            self.sampler._remove_live_points()
             self.write_current_state()
 
         sampler_kwargs['add_live'] = True
