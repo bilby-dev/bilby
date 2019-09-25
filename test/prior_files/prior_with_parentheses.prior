@@ -1,0 +1,1 @@
+logA = Uniform(name='logA', minimum=10, maximum=20, latex_label=r'$\log(A_{0})$')

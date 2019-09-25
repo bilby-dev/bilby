@@ -13,29 +13,44 @@ stages:
   - test
   - deploy
 
-# test example on python 2
-python-2:
+.test-python: &test-python
   stage: test
-  image: bilbydev/test-suite-py2
+  image: python
   before_script:
-    # Source the .bashrc for MultiNest
-    - source /root/.bashrc
-    # Install the dependencies specified in the Pipfile
-    - pipenv install --two --python=/opt/conda/bin/python2 --system --deploy
+    # this is required because pytables doesn't use a wheel on py37
+    - apt-get -yqq update
+    - apt-get -yqq install libhdf5-dev
+  script:
+    - python -m pip install .
+    - python -c "import bilby"
+    - python -c "import bilby.core"
+    - python -c "import bilby.gw"
+    - python -c "import bilby.hyper"
+    - python -c "import cli_bilby"
+
+# test basic setup on python2
+basic-2.7:
+  <<: *test-python
+  image: python:2.7
+
+# test basic setup on python3
+basic-3.7:
+  <<: *test-python
+  image: python:3.7
+
+# test example on python 2
+python-2.7:
+  stage: test
+  image: bilbydev/bilby-test-suite-python27
   script:
     - python setup.py install
     # Run tests without finding coverage
     - pytest --ignore=test/utils_py3_test.py
 
 # test example on python 3
-python-3:
+python-3.7:
   stage: test
-  image: bilbydev/test-suite-py3
-  before_script:
-    # Source the .bashrc for MultiNest
-    - source /root/.bashrc
-    # Install the dependencies specified in the Pipfile
-    - pipenv install --three --python=/opt/conda/bin/python --system --deploy
+  image: bilbydev/bilby-test-suite-python37
   script:
     - python setup.py install
 
@@ -49,7 +64,6 @@ python-3:
 
     # Make the documentation
     - cd docs
-    - conda install -y make
     - make clean
     - make html
 
@@ -59,11 +73,25 @@ python-3:
       - coverage_badge.svg
       - docs/_build/html/
 
+# Tests run at a fixed schedule rather than on push
+scheduled-python-3.7:
+  stage: test
+  image: bilbydev/bilby-test-suite-python37
+  only:
+    - schedules
+  script:
+    - python setup.py install
+
+    # Run tests which are only done on schedule
+    - pytest test/example_test.py
+    - pytest test/gw_example_test.py
+    - pytest test/sample_from_the_prior_test.py
+
 pages:
   stage: deploy
   dependencies:
-    - python-3
-    - python-2
+    - python-3.7
+    - python-2.7
   script:
     - mkdir public/
     - mv htmlcov/ public/

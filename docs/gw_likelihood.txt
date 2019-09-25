@@ -1,0 +1,21 @@
+.. gw_likelihood:
+
+=======================================
+Transient gravitational wave likelihood
+=======================================
+
+The likelihood for gravitational waves transient analysis is
+:code:`GravitationalWaveTransient`:
+
+.. autoclass:: bilby.gw.likelihood.GravitationalWaveTransient
+
+The likelihood for gravitational waves transient analysis with an ROQ is
+:code:`ROQGravitationalWaveTransient`:
+
+.. autoclass:: bilby.gw.likelihood.ROQGravitationalWaveTransient
+
+We also provide a simpler likelihood, :code:`BasicGravitationalWaveTransient`:
+
+.. autoclass:: bilby.gw.likelihood.BasicGravitationalWaveTransient
+
+

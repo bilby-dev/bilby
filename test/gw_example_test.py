@@ -15,7 +15,7 @@ import bilby.core.utils
 import numpy as np
 import inspect
 
-bilby.core.utils.command_line_args.test = True
+bilby.core.utils.command_line_args.bilby_test_mode = True
 
 
 class Test(unittest.TestCase):
@@ -43,9 +43,9 @@ class Test(unittest.TestCase):
 
     def test_examples(self):
         """ Loop over examples to check they run """
-        examples = ['examples/injection_examples/basic_tutorial.py',
-                    'examples/injection_examples/marginalized_likelihood.py',
-                    'examples/open_data_examples/GW150914.py',
+        examples = ['examples/gw_examples/injection_examples/fast_tutorial.py',
+                    'examples/gw_examples/injection_examples/marginalized_likelihood.py',
+                    'examples/gw_examples/data_examples/GW150914.py',
                     ]
         for filename in examples:
             print("Testing {}".format(filename))
@@ -54,5 +54,3 @@ class Test(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-

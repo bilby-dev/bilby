@@ -232,20 +232,6 @@ the following common likelihood functions:
 .. autoclass:: bilby.core.likelihood.ExponentialLikelihood
    :members:
 
-Likelihood for transient gravitational waves
---------------------------------------------
-
-In the examples above, we show how to write your own likelihood. However, for
-routine gravitational wave data analysis of transient events, we have in built
-likelihoods.  The default likelihood we use in the examples is
-`GravitationalWaveTransient`:
-
-.. autoclass:: bilby.gw.likelihood.GravitationalWaveTransient
-
-We also provide a simpler likelihood
-
-.. autoclass:: bilby.gw.likelihood.BasicGravitationalWaveTransient
-
 Empty likelihood for subclassing
 --------------------------------
 

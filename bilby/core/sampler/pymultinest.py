@@ -46,6 +46,14 @@ class Pymultinest(NestedSampler):
                           context=0, write_output=True, log_zero=-1e100,
                           max_iter=0, init_MPI=False, dump_callback=None)
 
+    def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
+                 skip_import_verification=False, **kwargs):
+        super(Pymultinest, self).__init__(likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+                                          use_ratio=use_ratio, plot=plot,
+                                          skip_import_verification=skip_import_verification,
+                                          **kwargs)
+        self._apply_multinest_boundaries()
+
     def _translate_kwargs(self, kwargs):
         if 'n_live_points' not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -75,6 +83,15 @@ class Pymultinest(NestedSampler):
             self.kwargs['outputfiles_basename'])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
+    def _apply_multinest_boundaries(self):
+        if self.kwargs['wrapped_params'] is None:
+            self.kwargs['wrapped_params'] = []
+            for param, value in self.priors.items():
+                if value.boundary == 'periodic':
+                    self.kwargs['wrapped_params'].append(1)
+                else:
+                    self.kwargs['wrapped_params'].append(0)
+
     def run_sampler(self):
         import pymultinest
         self._verify_kwargs_against_default_kwargs()
@@ -90,5 +107,6 @@ class Pymultinest(NestedSampler):
         self.result.samples = post_equal_weights_data[:, :-1]
         self.result.log_evidence = out['logZ']
         self.result.log_evidence_err = out['logZerr']
+        self.calc_likelihood_count()
         self.result.outputfiles_basename = self.kwargs['outputfiles_basename']
         return self.result

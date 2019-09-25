@@ -1,24 +1,29 @@
 from __future__ import division
 
 import os
-from distutils.version import LooseVersion
 from collections import OrderedDict, namedtuple
+from copy import copy
+from distutils.version import LooseVersion
+from itertools import product
 
-import numpy as np
-import deepdish
-import pandas as pd
 import corner
-import scipy.stats
+import json
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import lines as mpllines
+import numpy as np
+import pandas as pd
+import scipy.stats
+from scipy.special import logsumexp
 
 from . import utils
 from .utils import (logger, infer_parameters_from_function,
-                    check_directory_exists_and_if_not_mkdir)
+                    check_directory_exists_and_if_not_mkdir,)
+from .utils import BilbyJsonEncoder, decode_bilby_json
 from .prior import Prior, PriorDict, DeltaFunction
 
 
-def result_file_name(outdir, label):
+def result_file_name(outdir, label, extension='json', gzip=False):
     """ Returns the standard filename used for a result file
 
     Parameters
@@ -27,65 +32,89 @@ def result_file_name(outdir, label):
         Name of the output directory
     label: str
         Naming scheme of the output file
+    extension: str, optional
+        Whether to save as `hdf5` or `json`
+    gzip: bool, optional
+        Set to True to append `.gz` to the extension for saving in gzipped format
 
     Returns
     -------
     str: File name of the output file
     """
-    return '{}/{}_result.h5'.format(outdir, label)
+    if extension in ['json', 'hdf5']:
+        if extension == 'json' and gzip:
+            return os.path.join(outdir, '{}_result.{}.gz'.format(label, extension))
+        else:
+            return os.path.join(outdir, '{}_result.{}'.format(label, extension))
+    else:
+        raise ValueError("Extension type {} not understood".format(extension))
 
 
-def read_in_result(filename=None, outdir=None, label=None):
-    """ Read in a saved .h5 data file
+def _determine_file_name(filename, outdir, label, extension, gzip):
+    """ Helper method to determine the filename """
+    if filename is not None:
+        return filename
+    else:
+        if (outdir is None) and (label is None):
+            raise ValueError("No information given to load file")
+        else:
+            return result_file_name(outdir, label, extension, gzip)
+
+
+def read_in_result(filename=None, outdir=None, label=None, extension='json', gzip=False):
+    """ Reads in a stored bilby result object
 
     Parameters
     ----------
     filename: str
-        If given, try to load from this filename
-    outdir, label: str
-        If given, use the default naming convention for saved results file
-
-    Returns
-    -------
-    result: bilby.core.result.Result
-
-    Raises
-    -------
-    ValueError: If no filename is given and either outdir or label is None
-                If no bilby.core.result.Result is found in the path
+        Path to the file to be read (alternative to giving the outdir and label)
+    outdir, label, extension: str
+        Name of the output directory, label and extension used for the default
+        naming scheme.
 
     """
-    if filename is None:
-        if (outdir is None) and (label is None):
-            raise ValueError("No information given to load file")
-        else:
-            filename = result_file_name(outdir, label)
-    if os.path.isfile(filename):
-        return Result(**deepdish.io.load(filename))
+    filename = _determine_file_name(filename, outdir, label, extension, gzip)
+
+    # Get the actual extension (may differ from the default extension if the filename is given)
+    extension = os.path.splitext(filename)[1].lstrip('.')
+    if extension == 'gz':  # gzipped file
+        extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
+
+    if 'json' in extension:
+        result = Result.from_json(filename=filename)
+    elif ('hdf5' in extension) or ('h5' in extension):
+        result = Result.from_hdf5(filename=filename)
+    elif extension is None:
+        raise ValueError("No filetype extension provided")
     else:
-        raise IOError("No result '{}' found".format(filename))
+        raise ValueError("Filetype {} not understood".format(extension))
+    return result
 
 
 class Result(object):
     def __init__(self, label='no_label', outdir='.', sampler=None,
                  search_parameter_keys=None, fixed_parameter_keys=None,
-                 priors=None, sampler_kwargs=None, injection_parameters=None,
+                 constraint_parameter_keys=None, priors=None,
+                 sampler_kwargs=None, injection_parameters=None,
                  meta_data=None, posterior=None, samples=None,
                  nested_samples=None, log_evidence=np.nan,
                  log_evidence_err=np.nan, log_noise_evidence=np.nan,
                  log_bayes_factor=np.nan, log_likelihood_evaluations=None,
-                 sampling_time=None, nburn=None, walkers=None,
-                 max_autocorrelation_time=None, parameter_labels=None,
-                 parameter_labels_with_unit=None, version=None):
+                 log_prior_evaluations=None, sampling_time=None, nburn=None,
+                 num_likelihood_evaluations=None, walkers=None,
+                 max_autocorrelation_time=None, use_ratio=None,
+                 parameter_labels=None, parameter_labels_with_unit=None,
+                 gzip=False, version=None):
         """ A class to store the results of the sampling run
 
         Parameters
         ----------
         label, outdir, sampler: str
             The label, output directory, and sampler used
-        search_parameter_keys, fixed_parameter_keys: list
-            Lists of the search and fixed parameter keys. Elemenents of the
-            list should be of type `str` and matchs the keys of the `prior`
+        search_parameter_keys, fixed_parameter_keys, constraint_parameter_keys: list
+            Lists of the search, constraint, and fixed parameter keys.
+            Elements of the list should be of type `str` and match the keys
+            of the `prior`
         priors: dict, bilby.core.prior.PriorDict
             A dictionary of the priors used in the run
         sampler_kwargs: dict
@@ -102,6 +131,10 @@ class Result(object):
             Natural log evidences
         log_likelihood_evaluations: array_like
             The evaluations of the likelihood for each sample point
+        num_likelihood_evaluations: int
+            The number of times the likelihood function is called
+        log_prior_evaluations: array_like
+            The evaluations of the prior for each sample point
         sampling_time: float
             The time taken to complete the sampling
         nburn: int
@@ -110,15 +143,21 @@ class Result(object):
             The samplers taken by a ensemble MCMC samplers
         max_autocorrelation_time: float
             The estimated maximum autocorrelation time for MCMC samplers
+        use_ratio: bool
+            A boolean stating whether the likelihood ratio, as opposed to the
+            likelihood was used during sampling
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
+        gzip: bool
+            Set to True to gzip the results file (if using json format)
         version: str,
             Version information for software used to generate the result. Note,
             this information is generated when the result object is initialized
 
-        Note:
-            All sampling output parameters, e.g. the samples themselves are
-            typically not given at initialisation, but set at a later stage.
+        Note
+        ---------
+        All sampling output parameters, e.g. the samples themselves are
+        typically not given at initialisation, but set at a later stage.
 
         """
 
@@ -127,6 +166,7 @@ class Result(object):
         self.sampler = sampler
         self.search_parameter_keys = search_parameter_keys
         self.fixed_parameter_keys = fixed_parameter_keys
+        self.constraint_parameter_keys = constraint_parameter_keys
         self.parameter_labels = parameter_labels
         self.parameter_labels_with_unit = parameter_labels_with_unit
         self.priors = priors
@@ -138,14 +178,98 @@ class Result(object):
         self.nested_samples = nested_samples
         self.walkers = walkers
         self.nburn = nburn
+        self.use_ratio = use_ratio
         self.log_evidence = log_evidence
         self.log_evidence_err = log_evidence_err
         self.log_noise_evidence = log_noise_evidence
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
+        self.log_prior_evaluations = log_prior_evaluations
+        self.num_likelihood_evaluations = num_likelihood_evaluations
         self.sampling_time = sampling_time
         self.version = version
         self.max_autocorrelation_time = max_autocorrelation_time
+
+        self.prior_values = None
+        self._kde = None
+
+    @classmethod
+    def from_hdf5(cls, filename=None, outdir=None, label=None):
+        """ Read in a saved .h5 data file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+        outdir, label: str
+            If given, use the default naming convention for saved results file
+
+        Returns
+        -------
+        result: bilby.core.result.Result
+
+        Raises
+        -------
+        ValueError: If no filename is given and either outdir or label is None
+                    If no bilby.core.result.Result is found in the path
+
+        """
+        import deepdish
+        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
+
+        if os.path.isfile(filename):
+            dictionary = deepdish.io.load(filename)
+            # Some versions of deepdish/pytables return the dictionanary as
+            # a dictionary with a key 'data'
+            if len(dictionary) == 1 and 'data' in dictionary:
+                dictionary = dictionary['data']
+            try:
+                if isinstance(dictionary.get('posterior', None), dict):
+                    dictionary['posterior'] = pd.DataFrame(dictionary['posterior'])
+                return cls(**dictionary)
+            except TypeError as e:
+                raise IOError("Unable to load dictionary, error={}".format(e))
+        else:
+            raise IOError("No result '{}' found".format(filename))
+
+    @classmethod
+    def from_json(cls, filename=None, outdir=None, label=None, gzip=False):
+        """ Read in a saved .json data file
+
+        Parameters
+        ----------
+        filename: str
+            If given, try to load from this filename
+        outdir, label: str
+            If given, use the default naming convention for saved results file
+
+        Returns
+        -------
+        result: bilby.core.result.Result
+
+        Raises
+        -------
+        ValueError: If no filename is given and either outdir or label is None
+                    If no bilby.core.result.Result is found in the path
+
+        """
+        filename = _determine_file_name(filename, outdir, label, 'json', gzip)
+
+        if os.path.isfile(filename):
+            if gzip or os.path.splitext(filename)[1].lstrip('.') == 'gz':
+                import gzip
+                with gzip.GzipFile(filename, 'r') as file:
+                    json_str = file.read().decode('utf-8')
+                dictionary = json.loads(json_str, object_hook=decode_bilby_json)
+            else:
+                with open(filename, 'r') as file:
+                    dictionary = json.load(file, object_hook=decode_bilby_json)
+            try:
+                return cls(**dictionary)
+            except TypeError as e:
+                raise IOError("Unable to load dictionary, error={}".format(e))
+        else:
+            raise IOError("No result '{}' found".format(filename))
 
     def __str__(self):
         """Print a summary """
@@ -202,6 +326,18 @@ class Result(object):
     @samples.setter
     def samples(self, samples):
         self._samples = samples
+
+    @property
+    def num_likelihood_evaluations(self):
+        """ number of likelihood evaluations """
+        if self._num_likelihood_evaluations is not None:
+            return self._num_likelihood_evaluations
+        else:
+            raise ValueError("Result object has no stored likelihood evaluations")
+
+    @num_likelihood_evaluations.setter
+    def num_likelihood_evaluations(self, num_likelihood_evaluations):
+        self._num_likelihood_evaluations = num_likelihood_evaluations
 
     @property
     def nested_samples(self):
@@ -268,9 +404,10 @@ class Result(object):
             'label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err',
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
-            'fixed_parameter_keys', 'sampling_time', 'sampler_kwargs',
-            'log_likelihood_evaluations', 'samples', 'nested_samples',
-            'walkers', 'nburn', 'parameter_labels',
+            'fixed_parameter_keys', 'constraint_parameter_keys',
+            'sampling_time', 'sampler_kwargs', 'use_ratio',
+            'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
+            'nested_samples', 'walkers', 'nburn', 'parameter_labels',
             'parameter_labels_with_unit', 'version']
         dictionary = OrderedDict()
         for attr in save_attrs:
@@ -281,52 +418,118 @@ class Result(object):
                 pass
         return dictionary
 
-    def save_to_file(self, overwrite=False):
+    def save_to_file(self, filename=None, overwrite=False, outdir=None,
+                     extension='json', gzip=False):
         """
-        Writes the Result to a deepdish h5 file
+        Writes the Result to a json or deepdish h5 file
 
         Parameters
         ----------
+        filename: optional,
+            Filename to write to (overwrites the default)
         overwrite: bool, optional
             Whether or not to overwrite an existing result file.
             default=False
+        outdir: str, optional
+            Path to the outdir. Default is the one stored in the result object.
+        extension: str, optional {json, hdf5, True}
+            Determines the method to use to store the data (if True defaults
+            to json)
+        gzip: bool, optional
+            If true, and outputing to a json file, this will gzip the resulting
+            file and add '.gz' to the file extension.
         """
-        file_name = result_file_name(self.outdir, self.label)
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-        if os.path.isfile(file_name):
+
+        if extension is True:
+            extension = "json"
+
+        outdir = self._safe_outdir_creation(outdir, self.save_to_file)
+        if filename is None:
+            filename = result_file_name(outdir, self.label, extension, gzip)
+
+        if os.path.isfile(filename):
             if overwrite:
-                logger.debug('Removing existing file {}'.format(file_name))
-                os.remove(file_name)
+                logger.debug('Removing existing file {}'.format(filename))
+                os.remove(filename)
             else:
                 logger.debug(
-                    'Renaming existing file {} to {}.old'.format(file_name,
-                                                                 file_name))
-                os.rename(file_name, file_name + '.old')
+                    'Renaming existing file {} to {}.old'.format(filename,
+                                                                 filename))
+                os.rename(filename, filename + '.old')
 
-        logger.debug("Saving result to {}".format(file_name))
+        logger.debug("Saving result to {}".format(filename))
 
         # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()
-        if dictionary.get('priors', False):
-            dictionary['priors'] = {key: str(self.priors[key]) for key in self.priors}
 
-        # Convert callable sampler_kwargs to strings to avoid pickling issues
+        # Convert callable sampler_kwargs to strings
         if dictionary.get('sampler_kwargs', None) is not None:
             for key in dictionary['sampler_kwargs']:
                 if hasattr(dictionary['sampler_kwargs'][key], '__call__'):
                     dictionary['sampler_kwargs'][key] = str(dictionary['sampler_kwargs'])
 
         try:
-            deepdish.io.save(file_name, dictionary)
+            if extension == 'json':
+                dictionary["priors"] = dictionary["priors"]._get_json_dict()
+                if gzip:
+                    import gzip
+                    # encode to a string
+                    json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
+                    with gzip.GzipFile(filename, 'w') as file:
+                        file.write(json_str)
+                else:
+                    with open(filename, 'w') as file:
+                        json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
+            elif extension == 'hdf5':
+                import deepdish
+                for key in dictionary:
+                    if isinstance(dictionary[key], pd.DataFrame):
+                        dictionary[key] = dictionary[key].to_dict()
+                deepdish.io.save(filename, dictionary)
+            else:
+                raise ValueError("Extension type {} not understood".format(extension))
         except Exception as e:
             logger.error("\n\n Saving the data has failed with the "
                          "following message:\n {} \n\n".format(e))
 
-    def save_posterior_samples(self):
-        """Saves posterior samples to a file"""
-        filename = '{}/{}_posterior_samples.txt'.format(self.outdir, self.label)
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-        self.posterior.to_csv(filename, index=False, header=True)
+    def save_posterior_samples(self, filename=None, outdir=None, label=None):
+        """ Saves posterior samples to a file
+
+        Generates a .dat file containing the posterior samples and auxillary
+        data saved in the posterior. Note, strings in the posterior are
+        removed while complex numbers will be given as absolute values with
+        abs appended to the column name
+
+        Parameters
+        ----------
+        filename: str
+            Alternative filename to use. Defaults to
+            outdir/label_posterior_samples.dat
+        outdir, label: str
+            Alternative outdir and label to use
+
+        """
+        if filename is None:
+            if label is None:
+                label = self.label
+            outdir = self._safe_outdir_creation(outdir, self.save_posterior_samples)
+            filename = '{}/{}_posterior_samples.dat'.format(outdir, label)
+        else:
+            outdir = os.path.dirname(filename)
+            self._safe_outdir_creation(outdir, self.save_posterior_samples)
+
+        # Drop non-numeric columns
+        df = self.posterior.select_dtypes([np.number]).copy()
+
+        # Convert complex columns to abs
+        for key in df.keys():
+            if np.any(np.iscomplex(df[key])):
+                complex_term = df.pop(key)
+                df.loc[:, key + "_abs"] = np.abs(complex_term)
+                df.loc[:, key + "_angle"] = np.angle(complex_term)
+
+        logger.info("Writing samples file to {}".format(filename))
+        df.to_csv(filename, index=False, header=True, sep=' ')
 
     def get_latex_labels_from_parameter_keys(self, keys):
         """ Returns a list of latex_labels corresponding to the given keys
@@ -384,8 +587,21 @@ class Result(object):
         """
         return self.posterior_volume / self.prior_volume(priors)
 
+    @property
+    def bayesian_model_dimensionality(self):
+        """ Characterises how many parameters are effectively constraint by the data
+
+        See <https://arxiv.org/abs/1903.06682>
+
+        Returns
+        -------
+        float: The model dimensionality
+        """
+        return 2 * (np.mean(self.posterior['log_likelihood']**2) -
+                    np.mean(self.posterior['log_likelihood'])**2)
+
     def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
-                                                 quantiles=[0.16, 0.84]):
+                                                 quantiles=(0.16, 0.84)):
         """ Calculate the median and error bar for a given key
 
         Parameters
@@ -394,8 +610,8 @@ class Result(object):
             The parameter key for which to calculate the median and error bar
         fmt: str, ('.2f')
             A format string
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+        quantiles: list, tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
 
         Returns
@@ -424,8 +640,8 @@ class Result(object):
     def plot_single_density(self, key, prior=None, cumulative=False,
                             title=None, truth=None, save=True,
                             file_base_name=None, bins=50, label_fontsize=16,
-                            title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
-        """ Plot a 1D marginal density, either probablility or cumulative.
+                            title_fontsize=16, quantiles=(0.16, 0.84), dpi=300):
+        """ Plot a 1D marginal density, either probability or cumulative.
 
         Parameters
         ----------
@@ -454,8 +670,8 @@ class Result(object):
             The number of histogram bins
         label_fontsize, title_fontsize: int
             The fontsizes for the labels and titles
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+        quantiles: tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
         dpi: int
             Dots per inch resolution of the plot
@@ -489,7 +705,10 @@ class Result(object):
 
         if isinstance(prior, Prior):
             theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
-            ax.plot(theta, Prior.prob(theta), color='C2')
+            if cumulative is False:
+                ax.plot(theta, prior.prob(theta), color='C2')
+            else:
+                ax.plot(theta, prior.cdf(theta), color='C2')
 
         if save:
             fig.tight_layout()
@@ -504,7 +723,8 @@ class Result(object):
 
     def plot_marginals(self, parameters=None, priors=None, titles=True,
                        file_base_name=None, bins=50, label_fontsize=16,
-                       title_fontsize=16, quantiles=[0.16, 0.84], dpi=300):
+                       title_fontsize=16, quantiles=(0.16, 0.84), dpi=300,
+                       outdir=None):
         """ Plot 1D marginal distributions
 
         Parameters
@@ -527,12 +747,14 @@ class Result(object):
         bins: int
             The number of histogram bins
         label_fontsize, title_fontsize: int
-            The fontsizes for the labels and titles
-        quantiles: list
-            A length-2 list of the lower and upper-quantiles to calculate
+            The font sizes for the labels and titles
+        quantiles: tuple
+            A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
         dpi: int
             Dots per inch resolution of the plot
+        outdir: str, optional
+            Path to the outdir. Default is the one store in the result object.
 
         Returns
         -------
@@ -554,7 +776,8 @@ class Result(object):
                 truths = self.injection_parameters
 
         if file_base_name is None:
-            file_base_name = '{}/{}_1d/'.format(self.outdir, self.label)
+            outdir = self._safe_outdir_creation(outdir, self.plot_marginals)
+            file_base_name = '{}/{}_1d/'.format(outdir, self.label)
             check_directory_exists_and_if_not_mkdir(file_base_name)
 
         if priors is True:
@@ -605,13 +828,20 @@ class Result(object):
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
-            overridden.
+            overridden. Also optional an 'outdir' argument which can be used
+            to override the outdir set by the absolute path of the result object.
 
         Notes
         -----
             The generation of the corner plot themselves is done by the corner
             python module, see https://corner.readthedocs.io for more
             information.
+
+            Truth-lines can be passed in in several ways. Either as the values
+            of the parameters dict, or a list via the `truths` kwarg. If
+            injection_parameters where given to run_sampler, these will auto-
+            matically be added to the plot. This behaviour can be stopped by
+            adding truths=False.
 
         Returns
         -------
@@ -621,7 +851,7 @@ class Result(object):
         """
 
         # If in testing mode, not corner plots are generated
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         # bilby default corner kwargs. Overwritten by anything passed to kwargs
@@ -648,7 +878,7 @@ class Result(object):
         # Handle if truths was passed in
         if 'truth' in kwargs:
             kwargs['truths'] = kwargs.pop('truth')
-        if kwargs.get('truths'):
+        if "truths" in kwargs:
             truths = kwargs.get('truths')
             if isinstance(parameters, list) and isinstance(truths, list):
                 if len(parameters) != len(truths):
@@ -656,6 +886,10 @@ class Result(object):
                         "Length of parameters and truths don't match")
             elif isinstance(truths, dict) and parameters is None:
                 parameters = kwargs.pop('truths')
+            elif isinstance(truths, bool):
+                pass
+            elif truths is None:
+                kwargs["truths"] = False
             else:
                 raise ValueError(
                     "Combination of parameters and truths not understood")
@@ -664,7 +898,8 @@ class Result(object):
         # but do not overwrite input parameters (or truths)
         cond1 = getattr(self, 'injection_parameters', None) is not None
         cond2 = parameters is None
-        if cond1 and cond2:
+        cond3 = bool(kwargs.get("truths", True))
+        if cond1 and cond2 and cond3:
             parameters = {key: self.injection_parameters[key] for key in
                           self.search_parameter_keys}
 
@@ -686,6 +921,10 @@ class Result(object):
         # Unless already set, set the range to include all samples
         # This prevents ValueErrors being raised for parameters with no range
         kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
+
+        # Remove truths if it is a bool
+        if isinstance(kwargs.get('truths'), bool):
+            kwargs.pop('truths')
 
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
@@ -716,8 +955,8 @@ class Result(object):
 
         if save:
             if filename is None:
-                utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-                filename = '{}/{}_corner.png'.format(self.outdir, self.label)
+                outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_corner)
+                filename = '{}/{}_corner.png'.format(outdir, self.label)
             logger.debug('Saving corner plot to {}'.format(filename))
             fig.savefig(filename, dpi=dpi)
             plt.close(fig)
@@ -730,7 +969,7 @@ class Result(object):
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
 
-        if utils.command_line_args.test:
+        if utils.command_line_args.bilby_test_mode:
             return
 
         nwalkers, nsteps, ndim = self.walkers.shape
@@ -748,16 +987,16 @@ class Result(object):
             ax.set_ylabel(self.parameter_labels[i])
 
         fig.tight_layout()
-        filename = '{}/{}_walkers.png'.format(self.outdir, self.label)
+        outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_walkers)
+        filename = '{}/{}_walkers.png'.format(outdir, self.label)
         logger.debug('Saving walkers plot to {}'.format('filename'))
-        utils.check_directory_exists_and_if_not_mkdir(self.outdir)
         fig.savefig(filename)
         plt.close(fig)
 
     def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
                        xlabel=None, ylabel=None, data_label='data',
                        data_fmt='o', draws_label=None, filename=None,
-                       maxl_label='max likelihood', dpi=300):
+                       maxl_label='max likelihood', dpi=300, outdir=None):
         """ Generate a figure showing the data and fits to the data
 
         Parameters
@@ -783,6 +1022,8 @@ class Result(object):
         filename: str
             If given, the filename to use. Otherwise, the filename is generated
             from the outdir and label attributes.
+        outdir: str, optional
+            Path to the outdir. Default is the one store in the result object.
 
         """
 
@@ -821,10 +1062,21 @@ class Result(object):
         ax.legend(numpoints=3)
         fig.tight_layout()
         if filename is None:
-            utils.check_directory_exists_and_if_not_mkdir(self.outdir)
-            filename = '{}/{}_plot_with_data'.format(self.outdir, self.label)
+            outdir = self._safe_outdir_creation(outdir, self.plot_with_data)
+            filename = '{}/{}_plot_with_data'.format(outdir, self.label)
         fig.savefig(filename, dpi=dpi)
         plt.close(fig)
+
+    @staticmethod
+    def _add_prior_fixed_values_to_posterior(posterior, priors):
+        if priors is None:
+            return posterior
+        for key in priors:
+            if isinstance(priors[key], DeltaFunction):
+                posterior[key] = priors[key].peak
+            elif isinstance(priors[key], float):
+                posterior[key] = priors[key]
+        return posterior
 
     def samples_to_posterior(self, likelihood=None, priors=None,
                              conversion_function=None):
@@ -837,7 +1089,7 @@ class Result(object):
         ----------
         likelihood: bilby.likelihood.GravitationalWaveTransient, optional
             GravitationalWaveTransient likelihood used for sampling.
-        priors: dict, optional
+        priors: bilby.prior.PriorDict, optional
             Dictionary of prior object, used to fill in delta function priors.
         conversion_function: function, optional
             Function which adds in extra parameters to the data frame,
@@ -848,13 +1100,15 @@ class Result(object):
         except ValueError:
             data_frame = pd.DataFrame(
                 self.samples, columns=self.search_parameter_keys)
-            for key in priors:
-                if isinstance(priors[key], DeltaFunction):
-                    data_frame[key] = priors[key].peak
-                elif isinstance(priors[key], float):
-                    data_frame[key] = priors[key]
+            data_frame = self._add_prior_fixed_values_to_posterior(
+                data_frame, priors)
             data_frame['log_likelihood'] = getattr(
                 self, 'log_likelihood_evaluations', np.nan)
+            if self.log_prior_evaluations is None and priors is not None:
+                data_frame['log_prior'] = priors.ln_prob(
+                    dict(data_frame[self.search_parameter_keys]), axis=0)
+            else:
+                data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:
             data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
@@ -877,21 +1131,29 @@ class Result(object):
                     self.prior_values[key]\
                         = priors[key].prob(self.posterior[key].values)
 
-    def get_all_injection_credible_levels(self):
+    def get_all_injection_credible_levels(self, keys=None):
         """
-        Get credible levels for all parameters in self.injection_parameters
+        Get credible levels for all parameters
+
+        Parameters
+        ----------
+        keys: list, optional
+            A list of keys for which return the credible levels, if None,
+            defaults to search_parameter_keys
 
         Returns
         -------
         credible_levels: dict
             The credible levels at which the injected parameters are found.
         """
+        if keys is None:
+            keys = self.search_parameter_keys
         if self.injection_parameters is None:
             raise(TypeError, "Result object has no 'injection_parameters'. "
-                             "Cannot copmute credible levels.")
+                             "Cannot compute credible levels.")
         credible_levels = {key: self.get_injection_credible_level(key)
-                           for key in self.search_parameter_keys
-                           if isinstance(self.injection_parameters[key], float)}
+                           for key in keys
+                           if isinstance(self.injection_parameters.get(key, None), float)}
         return credible_levels
 
     def get_injection_credible_level(self, parameter):
@@ -935,20 +1197,20 @@ class Result(object):
         bool: True if attribute name matches with an attribute of other_object, False otherwise
 
         """
-        A = getattr(self, name, False)
-        B = getattr(other_object, name, False)
-        logger.debug('Checking {} value: {}=={}'.format(name, A, B))
-        if (A is not False) and (B is not False):
-            typeA = type(A)
-            typeB = type(B)
-            if typeA == typeB:
-                if typeA in [str, float, int, dict, list]:
+        a = getattr(self, name, False)
+        b = getattr(other_object, name, False)
+        logger.debug('Checking {} value: {}=={}'.format(name, a, b))
+        if (a is not False) and (b is not False):
+            type_a = type(a)
+            type_b = type(b)
+            if type_a == type_b:
+                if type_a in [str, float, int, dict, list]:
                     try:
-                        return A == B
+                        return a == b
                     except ValueError:
                         return False
-                elif typeA in [np.ndarray]:
-                    return np.all(A == B)
+                elif type_a in [np.ndarray]:
+                    return np.all(a == b)
         return False
 
     @property
@@ -957,9 +1219,9 @@ class Result(object):
 
         Uses `scipy.stats.gaussian_kde` to generate the kernel density
         """
-        try:
+        if self._kde:
             return self._kde
-        except AttributeError:
+        else:
             self._kde = scipy.stats.gaussian_kde(
                 self.posterior[self.search_parameter_keys].values.T)
             return self._kde
@@ -988,6 +1250,195 @@ class Result(object):
         ordered_sample = [[s[key] for key in self.search_parameter_keys]
                           for s in sample]
         return self.kde(ordered_sample)
+
+    def _safe_outdir_creation(self, outdir=None, caller_func=None):
+        if outdir is None:
+            outdir = self.outdir
+        try:
+            utils.check_directory_exists_and_if_not_mkdir(outdir)
+        except PermissionError:
+            raise FileMovedError("Can not write in the out directory.\n"
+                                 "Did you move the here file from another system?\n"
+                                 "Try calling " + caller_func.__name__ + " with the 'outdir' "
+                                 "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
+        return outdir
+
+    def get_weights_by_new_prior(self, old_prior, new_prior, prior_names=None):
+        """ Calculate a list of sample weights based on the ratio of new to old priors
+
+            Parameters
+            ----------
+            old_prior: PriorDict,
+                The prior used in the generation of the original samples.
+
+            new_prior: PriorDict,
+                The prior to use to reweight the samples.
+
+            prior_names: list
+                A list of the priors to include in the ratio during reweighting.
+
+            Returns
+            -------
+            weights: array-like,
+                A list of sample weights.
+
+                """
+        weights = []
+
+        # Shared priors - these will form a ratio
+        if prior_names is not None:
+            shared_parameters = {key: self.posterior[key] for key in new_prior if
+                                 key in old_prior and key in prior_names}
+        else:
+            shared_parameters = {key: self.posterior[key] for key in new_prior if key in old_prior}
+        parameters = [{key: self.posterior[key][i] for key in shared_parameters.keys()}
+                      for i in range(len(self.posterior))]
+
+        for i in range(len(self.posterior)):
+            weight = 1
+            for prior_key in shared_parameters.keys():
+                val = self.posterior[prior_key][i]
+                weight *= new_prior.evaluate_constraints(parameters[i])
+                weight *= new_prior[prior_key].prob(val) / old_prior[prior_key].prob(val)
+
+            weights.append(weight)
+
+        return weights
+
+
+class ResultList(list):
+
+    def __init__(self, results=None):
+        """ A class to store a list of :class:`bilby.core.result.Result` objects
+        from equivalent runs on the same data. This provides methods for
+        outputing combined results.
+
+        Parameters
+        ----------
+        results: list
+            A list of `:class:`bilby.core.result.Result`.
+        """
+        super(ResultList, self).__init__()
+        for result in results:
+            self.append(result)
+
+    def append(self, result):
+        """
+        Append a :class:`bilby.core.result.Result`, or set of results, to the
+        list.
+
+        Parameters
+        ----------
+        result: :class:`bilby.core.result.Result` or filename
+            pointing to a result object, to append to the list.
+        """
+
+        if isinstance(result, Result):
+            super(ResultList, self).append(result)
+        elif isinstance(result, str):
+            super(ResultList, self).append(read_in_result(result))
+        else:
+            raise TypeError("Could not append a non-Result type")
+
+    def combine(self):
+        """
+        Return the combined results in a :class:bilby.core.result.Result`
+        object.
+        """
+        if len(self) == 0:
+            return Result()
+        elif len(self) == 1:
+            return copy(self[0])
+        else:
+            result = copy(self[0])
+
+        if result.label is not None:
+            result.label += '_combined'
+
+        self.check_consistent_sampler()
+        self.check_consistent_data()
+        self.check_consistent_parameters()
+        self.check_consistent_priors()
+
+        # check which kind of sampler was used: MCMC or Nested Sampling
+        if result.nested_samples is not None:
+            posteriors, result = self._combine_nested_sampled_runs(result)
+        else:
+            posteriors = [res.posterior for res in self]
+
+        combined_posteriors = pd.concat(posteriors, ignore_index=True)
+        result.posterior = combined_posteriors.sample(len(combined_posteriors))  # shuffle
+        return result
+
+    def _combine_nested_sampled_runs(self, result):
+        """
+        Combine multiple nested sampling runs.
+
+        Currently this keeps posterior samples from each run in proportion with
+        the evidence for each individual run
+
+        Parameters
+        ----------
+        result: bilby.core.result.Result
+            The result object to put the new samples in.
+
+        Returns
+        -------
+        posteriors: list
+            A list of pandas DataFrames containing the reduced sample set from
+            each run.
+        result: bilby.core.result.Result
+            The result object with the combined evidences.
+        """
+        self.check_nested_samples()
+        if result.use_ratio:
+            log_bayes_factors = np.array([res.log_bayes_factor for res in self])
+            result.log_bayes_factor = logsumexp(log_bayes_factors, b=1. / len(self))
+            result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
+            result_weights = np.exp(log_bayes_factors - np.max(log_bayes_factors))
+        else:
+            log_evidences = np.array([res.log_evidence for res in self])
+            result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+            result_weights = np.exp(log_evidences - np.max(log_evidences))
+        log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
+        if len(log_errs) > 0:
+            result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        else:
+            result.log_evidence_err = np.nan
+        posteriors = list()
+        for res, frac in zip(self, result_weights):
+            selected_samples = (np.random.uniform(size=len(res.posterior)) < frac)
+            posteriors.append(res.posterior[selected_samples])
+        # remove original nested_samples
+        result.nested_samples = None
+        result.sampler_kwargs = None
+        return posteriors, result
+
+    def check_nested_samples(self):
+        for res in self:
+            try:
+                res.nested_samples
+            except ValueError:
+                raise ResultListError("Not all results contain nested samples")
+
+    def check_consistent_priors(self):
+        for res in self:
+            for p in self[0].priors.keys():
+                if not self[0].priors[p] == res.priors[p] or len(self[0].priors) != len(res.priors):
+                    raise ResultListError("Inconsistent priors between results")
+
+    def check_consistent_parameters(self):
+        if not np.all([set(self[0].search_parameter_keys) == set(res.search_parameter_keys) for res in self]):
+            raise ResultListError("Inconsistent parameters between results")
+
+    def check_consistent_data(self):
+        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self])\
+                and not np.all([np.isnan(res.log_noise_evidence) for res in self]):
+            raise ResultListError("Inconsistent data between results")
+
+    def check_consistent_sampler(self):
+        if not np.all([res.sampler == self[0].sampler for res in self]):
+            raise ResultListError("Inconsistent samplers between results")
 
 
 def plot_multiple(results, filename=None, labels=None, colours=None,
@@ -1041,7 +1492,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         hist_kwargs['color'] = c
         fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
-        lines.append(matplotlib.lines.Line2D([0], [0], color=c))
+        lines.append(mpllines.Line2D([0], [0], color=c))
         default_labels.append(result.label)
 
     # Rescale the axes
@@ -1073,7 +1524,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     return fig
 
 
-def make_pp_plot(results, filename=None, save=True, **kwargs):
+def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
+                 lines=None, legend_fontsize='x-small', keys=None, title=True,
+                 **kwargs):
     """
     Make a P-P plot for a set of runs with injected signals.
 
@@ -1085,31 +1538,102 @@ def make_pp_plot(results, filename=None, save=True, **kwargs):
         The name of the file to save, the default is "outdir/pp.png"
     save: bool, optional
         Whether to save the file, default=True
+    confidence_interval: float, optional
+        The confidence interval to be plotted, defaulting to 0.9 (90%)
+    lines: list
+        If given, a list of matplotlib line formats to use, must be greater
+        than the number of parameters.
+    legend_fontsize: float
+        The font size for the legend
+    keys: list
+        A list of keys to use, if None defaults to search_parameter_keys
     kwargs:
         Additional kwargs to pass to matplotlib.pyplot.plot
 
     Returns
     -------
-    fig:
-        Matplotlib figure
+    fig, pvals:
+        matplotlib figure and a NamedTuple with attributes `combined_pvalue`,
+        `pvalues`, and `names`.
     """
-    fig = plt.figure()
+
+    if keys is None:
+        keys = results[0].search_parameter_keys
+
     credible_levels = pd.DataFrame()
     for result in results:
         credible_levels = credible_levels.append(
-            result.get_all_injection_credible_levels(), ignore_index=True)
-    n_parameters = len(credible_levels.keys())
-    x_values = np.linspace(0, 1, 101)
-    for key in credible_levels:
-        plt.plot(x_values, [sum(credible_levels[key].values < xx) /
-                            len(credible_levels) for xx in x_values],
-                 color='k', alpha=min([1, 4 / n_parameters]), **kwargs)
-    plt.plot([0, 1], [0, 1], linestyle='--', color='r')
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.tight_layout()
+            result.get_all_injection_credible_levels(keys), ignore_index=True)
+
+    if lines is None:
+        colors = ["C{}".format(i) for i in range(8)]
+        linestyles = ["-", "--", ":"]
+        lines = ["{}{}".format(a, b) for a, b in product(linestyles, colors)]
+    if len(lines) < len(credible_levels.keys()):
+        raise ValueError("Larger number of parameters than unique linestyles")
+
+    x_values = np.linspace(0, 1, 1001)
+
+    # Putting in the confidence bands
+    N = len(credible_levels)
+    edge_of_bound = (1. - confidence_interval) / 2.
+    lower = scipy.stats.binom.ppf(1 - edge_of_bound, N, x_values) / N
+    upper = scipy.stats.binom.ppf(edge_of_bound, N, x_values) / N
+    # The binomial point percent function doesn't always return 0 @ 0,
+    # so set those bounds explicitly to be sure
+    lower[0] = 0
+    upper[0] = 0
+    fig, ax = plt.subplots()
+
+    ax.fill_between(x_values, lower, upper, alpha=0.2, color='k')
+
+    pvalues = []
+    logger.info("Key: KS-test p-value")
+    for ii, key in enumerate(credible_levels):
+        pp = np.array([sum(credible_levels[key].values < xx) /
+                       len(credible_levels) for xx in x_values])
+        pvalue = scipy.stats.kstest(credible_levels[key], 'uniform').pvalue
+        pvalues.append(pvalue)
+        logger.info("{}: {}".format(key, pvalue))
+
+        try:
+            name = results[0].priors[key].latex_label
+        except AttributeError:
+            name = key
+        label = "{} ({:2.3f})".format(name, pvalue)
+        plt.plot(x_values, pp, lines[ii], label=label, **kwargs)
+
+    Pvals = namedtuple('pvals', ['combined_pvalue', 'pvalues', 'names'])
+    pvals = Pvals(combined_pvalue=scipy.stats.combine_pvalues(pvalues)[1],
+                  pvalues=pvalues,
+                  names=list(credible_levels.keys()))
+    logger.info(
+        "Combined p-value: {}".format(pvals.combined_pvalue))
+
+    if title:
+        ax.set_title("N={}, p-value={:2.4f}".format(
+            len(results), pvals.combined_pvalue))
+    ax.set_xlabel("C.I.")
+    ax.set_ylabel("Fraction of events in C.I.")
+    ax.legend(linewidth=1, labelspacing=0.25, fontsize=legend_fontsize)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    fig.tight_layout()
     if save:
         if filename is None:
             filename = 'outdir/pp.png'
-        plt.savefig(filename)
-    return fig
+        fig.savefig(filename, dpi=500)
+
+    return fig, pvals
+
+
+class ResultError(Exception):
+    """ Base exception for all Result related errors """
+
+
+class ResultListError(ResultError):
+    """ For Errors occuring during combining results. """
+
+
+class FileMovedError(ResultError):
+    """ Exceptions that occur when files have been moved """

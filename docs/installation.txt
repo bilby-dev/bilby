@@ -2,23 +2,52 @@
 Installation
 ============
 
-The lastest stable release of Bilby can be `pip-installed
-<https://pypi.org/project/BILBY/>`_ from
+.. tabs::
 
-.. code-block:: console
+   .. tab:: Conda
 
-   $ pip install bilby
+      .. code-block:: console
 
-This will install our default sampler `dynesty
-<https://dynesty.readthedocs.io/en/latest/>`_, other samplers will need to be
-installed via pip or the appropriate means.  If you plan to contribute to the
-development, or simply would like the latest code, see the instructions below
-for installing from source.
+          $ conda install -c conda-forge bilby
+
+      Supported python versions: 2.7, 3.5+.
+
+   .. tab:: Pip
+
+      .. code-block:: console
+
+          $ pip install bilby
+
+      Supported python versions: 2.7, 3.5+.
+
+
+This will install all requirements for running :code:`bilby` for general
+inference problems, including our default sampler `dynesty
+<https://dynesty.readthedocs.io/en/latest/>`_. Other samplers will need to be
+installed via pip or the appropriate means.
+
+To install the requirements for running :code:`bilby.gw` for gravitational
+wave inference, please additionally run the following commands.
+
+.. tabs::
+
+   .. tab:: Conda
+
+      .. code-block:: console
+
+          $ conda install -c conda-forge gwpy python-lalsimulation
+
+   .. tab:: Pip
+
+      .. code-block:: console
+
+          $ pip install gwpy lalsuite
+
 
 Install bilby from source
 -------------------------
 
-:code:`bilby` is developed and tested with both Python 2.7+ and Python 3+. In the
+:code:`bilby` is developed and tested with both Python 2.7+ and Python 3.7+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our

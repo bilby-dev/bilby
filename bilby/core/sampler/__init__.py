@@ -9,20 +9,27 @@ from ..prior import PriorDict
 from .base_sampler import Sampler
 from .cpnest import Cpnest
 from .dynesty import Dynesty
+from .dynamic_dynesty import DynamicDynesty
 from .emcee import Emcee
 from .nestle import Nestle
+from .polychord import PyPolyChord
 from .ptemcee import Ptemcee
+from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
+from .fake_sampler import FakeSampler
+from . import proposal
 
-implemented_samplers = {
-    'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
-    'ptemcee': Ptemcee, 'pymc3': Pymc3, 'pymultinest': Pymultinest}
+IMPLEMENTED_SAMPLERS = {
+    'cpnest': Cpnest, 'dynamic_dynesty': DynamicDynesty, 'dynesty': Dynesty, 'emcee': Emcee, 'nestle': Nestle,
+    'ptemcee': Ptemcee,'ptmcmcsampler' : PTMCMCSampler,
+    'pymc3': Pymc3, 'pymultinest': Pymultinest, 'pypolychord': PyPolyChord,
+    'fake_sampler': FakeSampler }
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
-    if sampler in implemented_samplers:
-        sampler_class = implemented_samplers[sampler]
+    if sampler in IMPLEMENTED_SAMPLERS:
+        sampler_class = IMPLEMENTED_SAMPLERS[sampler]
         print('Help for sampler "{}":'.format(sampler))
         print(sampler_class.__doc__)
     else:
@@ -31,7 +38,7 @@ if command_line_args.sampler_help:
                   'the name of the sampler')
         else:
             print('Requested sampler {} not implemented'.format(sampler))
-        print('Available samplers = {}'.format(implemented_samplers))
+        print('Available samplers = {}'.format(IMPLEMENTED_SAMPLERS))
 
     sys.exit()
 
@@ -39,7 +46,8 @@ if command_line_args.sampler_help:
 def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
-                clean=None, meta_data=None, save=True, **kwargs):
+                clean=None, meta_data=None, save=True, gzip=False,
+                result_class=None, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -81,6 +89,13 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         overwritten.
     save: bool
         If true, save the priors and results to disk.
+        If hdf5, save as an hdf5 file instead of json.
+    gzip: bool
+        If true, and save is true, gzip the saved results file.
+    result_class: bilby.core.result.Result, or child of
+        The result class to use. By default, `bilby.core.result.Result` is used,
+        but objects which inherit from this class can be given providing
+        additional methods.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -99,7 +114,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if command_line_args.clean:
         kwargs['resume'] = False
 
-    from . import implemented_samplers
+    from . import IMPLEMENTED_SAMPLERS
 
     if priors is None:
         priors = dict()
@@ -118,17 +133,23 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         meta_data = dict()
     meta_data['likelihood'] = likelihood.meta_data
 
+    if command_line_args.bilby_zero_likelihood_mode:
+        from bilby.core.likelihood import ZeroLikelihood
+        likelihood = ZeroLikelihood(likelihood)
+
+
     if isinstance(sampler, Sampler):
         pass
     elif isinstance(sampler, str):
-        if sampler.lower() in implemented_samplers:
-            sampler_class = implemented_samplers[sampler.lower()]
+        if sampler.lower() in IMPLEMENTED_SAMPLERS:
+            sampler_class = IMPLEMENTED_SAMPLERS[sampler.lower()]
             sampler = sampler_class(
                 likelihood, priors=priors, outdir=outdir, label=label,
                 injection_parameters=injection_parameters, meta_data=meta_data,
-                use_ratio=use_ratio, plot=plot, **kwargs)
+                use_ratio=use_ratio, plot=plot, result_class=result_class,
+                **kwargs)
         else:
-            print(implemented_samplers)
+            print(IMPLEMENTED_SAMPLERS)
             raise ValueError(
                 "Sampler {} not yet implemented".format(sampler))
     elif inspect.isclass(sampler):
@@ -140,22 +161,25 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     else:
         raise ValueError(
             "Provided sampler should be a Sampler object or name of a known "
-            "sampler: {}.".format(', '.join(implemented_samplers.keys())))
+            "sampler: {}.".format(', '.join(IMPLEMENTED_SAMPLERS.keys())))
 
     if sampler.cached_result:
         logger.warning("Using cached result")
         return sampler.cached_result
 
     start_time = datetime.datetime.now()
-
-    if command_line_args.test:
+    if command_line_args.bilby_test_mode:
         result = sampler._run_test()
     else:
         result = sampler.run_sampler()
-
     end_time = datetime.datetime.now()
-    result.sampling_time = (end_time - start_time).total_seconds()
-    logger.info('Sampling time: {}'.format(end_time - start_time))
+
+    # Some samplers calculate the sampling time internally
+    if result.sampling_time is None:
+        result.sampling_time = end_time - start_time
+    logger.info('Sampling time: {}'.format(result.sampling_time))
+    # Convert sampling time into seconds
+    result.sampling_time = result.sampling_time.total_seconds()
 
     if sampler.use_ratio:
         result.log_noise_evidence = likelihood.noise_log_likelihood()
@@ -167,18 +191,22 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         result.log_bayes_factor = \
             result.log_evidence - result.log_noise_evidence
 
-    if result.injection_parameters is not None:
-        if conversion_function is not None:
-            result.injection_parameters = conversion_function(
-                result.injection_parameters)
-
-    result.samples_to_posterior(likelihood=likelihood, priors=priors,
-                                conversion_function=conversion_function)
+    # Initial save of the sampler in case of failure in post-processing
     if save:
-        result.save_to_file()
-        logger.info("Results saved to {}/".format(outdir))
+        result.save_to_file(extension=save, gzip=gzip)
+
+    if None not in [result.injection_parameters, conversion_function]:
+        result.injection_parameters = conversion_function(
+            result.injection_parameters)
+
+    result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
+                                conversion_function=conversion_function)
+
+    if save:
+        # The overwrite here ensures we overwrite the initially stored data
+        result.save_to_file(overwrite=True, extension=save, gzip=gzip)
+
     if plot:
         result.plot_corner()
     logger.info("Summary of results:\n{}".format(result))
     return result
-

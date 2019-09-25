@@ -1,0 +1,15 @@
+Bootstrap: docker
+From: bilbydev/bilby-test-suite-python37
+
+%help
+A singularity container for running bilby scripts. To use, simply execute the
+container, providing the bilby_script and any additional arguments. E.g.,
+
+./name_of_this_container.simg run_script.py
+
+%post
+export PATH="/opt/conda/bin:$PATH"
+pip install bilby==0.3.5
+
+%runscript
+exec /opt/conda/bin/python "$@"

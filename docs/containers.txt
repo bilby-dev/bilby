@@ -1,0 +1,99 @@
+.. _containers:
+
+================
+Using Containers
+================
+
+Containers package software together, providing all the neccersery dependencies
+to run :code:`bilby`. Using containers can help eliminate
+installation/dependency issues, as well as ensure things are run in a
+standardized, reproducible environment. For a general introduction to
+containers, see `the docker documentation
+<https://www.docker.com/resources/what-container>`_.
+
+We provide two sorts of containers for :code:`bilby`
+
+* `Docker images <https://hub.docker.com/r/bilbydev/bilby/tags/>`_, and
+* `Singularity images <https://www.singularity-hub.org/collections/2047>`_
+
+Both of these are industry standard software, see `this page for getting
+started with Docker <https://docs.docker.com/get-started/>`_ and `this page for
+getting started with singularity
+<https://www.sylabs.io/guides/3.0/user-guide/quick_start.html>`_.
+
+While Docker is better known throughout software development, singularity
+is often preferred in science applications as it focusses on reproducibility,
+makes interacting with your home file system easy, and is typically preferred
+by cluster admins as it does not require root-priveledges as run time.
+
+Running a bilby script with Singularity
+---------------------------------------
+
+Once you have singularity installed, you can pull (or download) the bilby
+image by running the command
+
+.. code-block:: console
+
+   $ singularity pull shub://lscsoft/bilby:0.3.6
+
+This will download a file :code:`lscsoft-bilby-master-0.3.6.simg`, you can
+rename this file as you wish, for the sake of this example let's rename it
+
+.. code-block:: console
+
+   $ mv lscsoft-bilby-master-0.3.6.simg bilby.simg
+
+Next, we start the container interactively
+
+.. code-block:: console
+
+   $ singularity shell -B $PWD bilby.simg
+
+This will drop you into the container with the current working directory
+available. So, for example, if you had a bilby script :code:`script.py` that
+you wished to run, simply do
+
+.. code-block:: console
+
+   $ python script.py
+
+from inside the container. Note, this :code:`python` is **not** your system
+installed python, but that of the container. To check this, from inside the
+container run
+
+.. code-block:: console
+
+   $ which python
+   /opt/conda/bin/python
+   $ python --version
+   Python 3.7.2
+
+The benefit of the container is that it has all the neccersery software
+is preinstalled, circumventing any dependency issues.
+
+.. note::
+
+   **Version numbers** -
+   In the example above, we pull the :code:`0.3.6` version of bilby. To see a
+   list of all available versions held on singularity-hub head to `the main
+   bilby page <https://www.singularity-hub.org/collections/2047>`_.
+
+.. note::
+
+   **Issues with interactive matplotlib backends** - If you experience issues
+   with backends, these can be caused due to the container trying to use an
+   interactive matplotlib backend. You may wish to start the container with the
+   command :code:`DISPLAY= singularity shell bilby.simg` to force a
+   non-interactive backend to be used.
+
+.. note::
+
+   **Binding your local directory** - in the examples above, we gave the flag
+   :code:`-B $PWD`. This can be neglected if you are working in your
+   home directory.
+
+
+
+
+
+

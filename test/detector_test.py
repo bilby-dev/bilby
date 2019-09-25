@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import bilby
+import inspect
 import unittest
 import mock
 from mock import MagicMock
@@ -12,6 +13,227 @@ import sys
 from shutil import rmtree
 import logging
 import deepdish as dd
+
+
+class TestInterferometerGeometry(unittest.TestCase):
+
+    def setUp(self):
+        self.length = 30
+        self.latitude = 1
+        self.longitude = 2
+        self.elevation = 3
+        self.xarm_azimuth = 4
+        self.yarm_azimuth = 5
+        self.xarm_tilt = 0.
+        self.yarm_tilt = 0.
+        self.geometry = bilby.gw.detector.InterferometerGeometry(length=self.length,
+                                                                 latitude=self.latitude,
+                                                                 longitude=self.longitude,
+                                                                 elevation=self.elevation,
+                                                                 xarm_azimuth=self.xarm_azimuth,
+                                                                 yarm_azimuth=self.yarm_azimuth,
+                                                                 xarm_tilt=self.xarm_tilt,
+                                                                 yarm_tilt=self.yarm_tilt)
+
+    def tearDown(self):
+        del self.length
+        del self.latitude
+        del self.longitude
+        del self.elevation
+        del self.xarm_azimuth
+        del self.yarm_azimuth
+        del self.xarm_tilt
+        del self.yarm_tilt
+        del self.geometry
+
+    def test_length_setting(self):
+        self.assertEqual(self.geometry.length, self.length)
+
+    def test_latitude_setting(self):
+        self.assertEqual(self.geometry.latitude, self.latitude)
+
+    def test_longitude_setting(self):
+        self.assertEqual(self.geometry.longitude, self.longitude)
+
+    def test_elevation_setting(self):
+        self.assertEqual(self.geometry.elevation, self.elevation)
+
+    def test_xarm_azi_setting(self):
+        self.assertEqual(self.geometry.xarm_azimuth, self.xarm_azimuth)
+
+    def test_yarm_azi_setting(self):
+        self.assertEqual(self.geometry.yarm_azimuth, self.yarm_azimuth)
+
+    def test_xarm_tilt_setting(self):
+        self.assertEqual(self.geometry.xarm_tilt, self.xarm_tilt)
+
+    def test_yarm_tilt_setting(self):
+        self.assertEqual(self.geometry.yarm_tilt, self.yarm_tilt)
+
+    def test_vertex_without_update(self):
+        _ = self.geometry.vertex
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
+            m.return_value = np.array([1])
+            self.assertFalse(np.array_equal(self.geometry.vertex, np.array([1])))
+
+    def test_vertex_with_latitude_update(self):
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
+            m.return_value = np.array([1])
+            self.geometry.latitude = 5
+            self.assertEqual(self.geometry.vertex, np.array([1]))
+
+    def test_vertex_with_longitude_update(self):
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
+            m.return_value = np.array([1])
+            self.geometry.longitude = 5
+            self.assertEqual(self.geometry.vertex, np.array([1]))
+
+    def test_vertex_with_elevation_update(self):
+        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
+            m.return_value = np.array([1])
+            self.geometry.elevation = 5
+            self.assertEqual(self.geometry.vertex, np.array([1]))
+
+    def test_x_without_update(self):
+        _ = self.geometry.x
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+
+        self.assertFalse(np.array_equal(self.geometry.x,
+                                        np.array([1])))
+
+    def test_x_with_xarm_tilt_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.xarm_tilt = 0
+        self.assertTrue(np.array_equal(self.geometry.x,
+                                       np.array([1])))
+
+    def test_x_with_xarm_azimuth_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.xarm_azimuth = 0
+        self.assertTrue(np.array_equal(self.geometry.x,
+                                       np.array([1])))
+
+    def test_x_with_longitude_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.longitude = 0
+        self.assertTrue(np.array_equal(self.geometry.x,
+                                       np.array([1])))
+
+    def test_x_with_latitude_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.latitude = 0
+        self.assertTrue(np.array_equal(self.geometry.x,
+                                       np.array([1])))
+
+    def test_y_without_update(self):
+        _ = self.geometry.y
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+
+        self.assertFalse(np.array_equal(self.geometry.y,
+                                        np.array([1])))
+
+    def test_y_with_yarm_tilt_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.yarm_tilt = 0
+        self.assertTrue(np.array_equal(self.geometry.y,
+                                       np.array([1])))
+
+    def test_y_with_yarm_azimuth_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.yarm_azimuth = 0
+        self.assertTrue(np.array_equal(self.geometry.y,
+                                       np.array([1])))
+
+    def test_y_with_longitude_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.longitude = 0
+        self.assertTrue(np.array_equal(self.geometry.y,
+                                       np.array([1])))
+
+    def test_y_with_latitude_update(self):
+        self.geometry.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
+        self.geometry.latitude = 0
+        self.assertTrue(np.array_equal(self.geometry.y,
+                                       np.array([1])))
+
+    def test_detector_tensor_without_update(self):
+        _ = self.geometry.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            expected = np.array([[-9.24529394e-06, 1.02425803e-04, 3.24550668e-04],
+                                 [1.02425803e-04, 1.37390844e-03, -8.61137566e-03],
+                                 [3.24550668e-04, -8.61137566e-03, -1.36466315e-03]])
+            self.assertTrue(np.allclose(expected, self.geometry.detector_tensor))
+
+    def test_detector_tensor_with_x_azimuth_update(self):
+        _ = self.geometry.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.geometry.xarm_azimuth = 1
+            self.assertEqual(0, self.geometry.detector_tensor)
+
+    def test_detector_tensor_with_y_azimuth_update(self):
+        _ = self.geometry.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.geometry.yarm_azimuth = 1
+            self.assertEqual(0, self.geometry.detector_tensor)
+
+    def test_detector_tensor_with_x_tilt_update(self):
+        _ = self.geometry.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.geometry.xarm_tilt = 1
+            self.assertEqual(0, self.geometry.detector_tensor)
+
+    def test_detector_tensor_with_y_tilt_update(self):
+        _ = self.geometry.detector_tensor
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.geometry.yarm_tilt = 1
+            self.assertEqual(0, self.geometry.detector_tensor)
+
+    def test_detector_tensor_with_longitude_update(self):
+        with mock.patch('numpy.einsum') as m:
+            m.return_value = 1
+            self.geometry.longitude = 1
+            self.assertEqual(0, self.geometry.detector_tensor)
+
+    def test_detector_tensor_with_latitude_update(self):
+        with mock.patch('numpy.einsum') as m:
+            _ = self.geometry.detector_tensor
+            m.return_value = 1
+            self.geometry.latitude = 1
+            self.assertEqual(self.geometry.detector_tensor, 0)
+
+    def test_unit_vector_along_arm_default(self):
+        with self.assertRaises(ValueError):
+            self.geometry.unit_vector_along_arm('z')
+
+    def test_unit_vector_along_arm_x(self):
+        with mock.patch('numpy.array') as m:
+            m.return_value = 1
+            self.geometry.xarm_tilt = 0
+            self.geometry.xarm_azimuth = 0
+            self.geometry.yarm_tilt = 0
+            self.geometry.yarm_azimuth = 90
+            self.assertAlmostEqual(self.geometry.unit_vector_along_arm('x'), 1)
+
+    def test_unit_vector_along_arm_y(self):
+        with mock.patch('numpy.array') as m:
+            m.return_value = 1
+            self.geometry.xarm_tilt = 0
+            self.geometry.xarm_azimuth = 90
+            self.geometry.yarm_tilt = 0
+            self.geometry.yarm_azimuth = 180
+            self.assertAlmostEqual(self.geometry.unit_vector_along_arm('y'), -1)
+
+    def test_repr(self):
+        expected = 'InterferometerGeometry(length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, ' \
+                   'yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
+            .format(float(self.length), float(self.latitude), float(self.longitude), float(self.elevation),
+                    float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt), float(self.yarm_tilt))
+        self.assertEqual(expected, repr(self.geometry))
 
 
 class TestInterferometer(unittest.TestCase):
@@ -39,7 +261,19 @@ class TestInterferometer(unittest.TestCase):
                                                     xarm_tilt=self.xarm_tilt, yarm_tilt=self.yarm_tilt)
         self.ifo.strain_data.set_from_frequency_domain_strain(
             np.linspace(0, 4096, 4097), sampling_frequency=4096, duration=2)
-        bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
+        self.outdir = 'outdir'
+
+        self.injection_polarizations = dict()
+        np.random.seed(42)
+        self.injection_polarizations['plus'] = np.random.random(4097)
+        self.injection_polarizations['cross'] = np.random.random(4097)
+
+        self.waveform_generator = MagicMock()
+        self.wg_polarizations = dict(plus=np.random.random(4097), cross=np.random.random(4097))
+        self.waveform_generator.frequency_domain_strain = lambda _: self.wg_polarizations
+        self.parameters = dict(ra=0., dec=0., geocent_time=0., psi=0.)
+
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
 
     def tearDown(self):
         del self.name
@@ -55,7 +289,11 @@ class TestInterferometer(unittest.TestCase):
         del self.xarm_tilt
         del self.yarm_tilt
         del self.ifo
-        rmtree('outdir')
+        del self.injection_polarizations
+        del self.wg_polarizations
+        del self.waveform_generator
+        del self.parameters
+        rmtree(self.outdir)
 
     def test_name_setting(self):
         self.assertEqual(self.ifo.name, self.name)
@@ -68,166 +306,6 @@ class TestInterferometer(unittest.TestCase):
 
     def test_max_freq_setting(self):
         self.assertEqual(self.ifo.strain_data.maximum_frequency, self.maximum_frequency)
-
-    def test_length_setting(self):
-        self.assertEqual(self.ifo.length, self.length)
-
-    def test_latitude_setting(self):
-        self.assertEqual(self.ifo.latitude, self.latitude)
-
-    def test_longitude_setting(self):
-        self.assertEqual(self.ifo.longitude, self.longitude)
-
-    def test_elevation_setting(self):
-        self.assertEqual(self.ifo.elevation, self.elevation)
-
-    def test_xarm_azi_setting(self):
-        self.assertEqual(self.ifo.xarm_azimuth, self.xarm_azimuth)
-
-    def test_yarm_azi_setting(self):
-        self.assertEqual(self.ifo.yarm_azimuth, self.yarm_azimuth)
-
-    def test_xarm_tilt_setting(self):
-        self.assertEqual(self.ifo.xarm_tilt, self.xarm_tilt)
-
-    def test_yarm_tilt_setting(self):
-        self.assertEqual(self.ifo.yarm_tilt, self.yarm_tilt)
-
-    def test_vertex_without_update(self):
-        _ = self.ifo.vertex
-        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
-            m.return_value = np.array([1])
-            self.assertFalse(np.array_equal(self.ifo.vertex, np.array([1])))
-
-    def test_vertex_with_latitude_update(self):
-        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
-            m.return_value = np.array([1])
-            self.ifo.latitude = 5
-            self.assertEqual(self.ifo.vertex, np.array([1]))
-
-    def test_vertex_with_longitude_update(self):
-        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
-            m.return_value = np.array([1])
-            self.ifo.longitude = 5
-            self.assertEqual(self.ifo.vertex, np.array([1]))
-
-    def test_vertex_with_elevation_update(self):
-        with mock.patch('bilby.gw.utils.get_vertex_position_geocentric') as m:
-            m.return_value = np.array([1])
-            self.ifo.elevation = 5
-            self.assertEqual(self.ifo.vertex, np.array([1]))
-
-    def test_x_without_update(self):
-        _ = self.ifo.x
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-
-        self.assertFalse(np.array_equal(self.ifo.x,
-                                        np.array([1])))
-
-    def test_x_with_xarm_tilt_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.xarm_tilt = 0
-        self.assertTrue(np.array_equal(self.ifo.x,
-                                       np.array([1])))
-
-    def test_x_with_xarm_azimuth_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.xarm_azimuth = 0
-        self.assertTrue(np.array_equal(self.ifo.x,
-                                       np.array([1])))
-
-    def test_x_with_longitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.longitude = 0
-        self.assertTrue(np.array_equal(self.ifo.x,
-                                       np.array([1])))
-
-    def test_x_with_latitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.latitude = 0
-        self.assertTrue(np.array_equal(self.ifo.x,
-                                       np.array([1])))
-
-    def test_y_without_update(self):
-        _ = self.ifo.y
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-
-        self.assertFalse(np.array_equal(self.ifo.y,
-                                        np.array([1])))
-
-    def test_y_with_yarm_tilt_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.yarm_tilt = 0
-        self.assertTrue(np.array_equal(self.ifo.y,
-                                       np.array([1])))
-
-    def test_y_with_yarm_azimuth_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.yarm_azimuth = 0
-        self.assertTrue(np.array_equal(self.ifo.y,
-                                       np.array([1])))
-
-    def test_y_with_longitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.longitude = 0
-        self.assertTrue(np.array_equal(self.ifo.y,
-                                       np.array([1])))
-
-    def test_y_with_latitude_update(self):
-        self.ifo.unit_vector_along_arm = MagicMock(return_value=np.array([1]))
-        self.ifo.latitude = 0
-        self.assertTrue(np.array_equal(self.ifo.y,
-                                       np.array([1])))
-
-    def test_detector_tensor_without_update(self):
-        _ = self.ifo.detector_tensor
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            expected = np.array([[-9.24529394e-06, 1.02425803e-04, 3.24550668e-04],
-                                 [1.02425803e-04, 1.37390844e-03, -8.61137566e-03],
-                                 [3.24550668e-04, -8.61137566e-03, -1.36466315e-03]])
-            self.assertTrue(np.allclose(expected, self.ifo.detector_tensor))
-
-    def test_detector_tensor_with_x_azimuth_update(self):
-        _ = self.ifo.detector_tensor
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            self.ifo.xarm_azimuth = 1
-            self.assertEqual(0, self.ifo.detector_tensor)
-
-    def test_detector_tensor_with_y_azimuth_update(self):
-        _ = self.ifo.detector_tensor
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            self.ifo.yarm_azimuth = 1
-            self.assertEqual(0, self.ifo.detector_tensor)
-
-    def test_detector_tensor_with_x_tilt_update(self):
-        _ = self.ifo.detector_tensor
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            self.ifo.xarm_tilt = 1
-            self.assertEqual(0, self.ifo.detector_tensor)
-
-    def test_detector_tensor_with_y_tilt_update(self):
-        _ = self.ifo.detector_tensor
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            self.ifo.yarm_tilt = 1
-            self.assertEqual(0, self.ifo.detector_tensor)
-
-    def test_detector_tensor_with_longitude_update(self):
-        with mock.patch('numpy.einsum') as m:
-            m.return_value = 1
-            self.ifo.longitude = 1
-            self.assertEqual(0, self.ifo.detector_tensor)
-
-    def test_detector_tensor_with_latitude_update(self):
-        with mock.patch('numpy.einsum') as m:
-            _ = self.ifo.detector_tensor
-            m.return_value = 1
-            self.ifo.latitude = 1
-            self.assertEqual(self.ifo.detector_tensor, 0)
 
     def test_antenna_response_default(self):
         with mock.patch('bilby.gw.utils.get_polarization_tensor') as m:
@@ -260,15 +338,12 @@ class TestInterferometer(unittest.TestCase):
         self.ifo.epoch = 1
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        # self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
         plus = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
             waveform_polarizations=dict(plus=plus),
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
         expected_response = plus * self.ifo.frequency_mask * np.exp(-1j * 2 * np.pi * self.ifo.frequency_array)
-        self.assertTrue(np.allclose(abs(response),
-                                    abs(plus * self.ifo.frequency_mask * np.exp(
-                                        -1j * 2 * np.pi * self.ifo.frequency_array))))
+        self.assertTrue(np.allclose(abs(expected_response), abs(response)))
 
     def test_get_detector_response_multiple_modes(self):
         self.ifo.antenna_response = MagicMock(return_value=1)
@@ -276,7 +351,6 @@ class TestInterferometer(unittest.TestCase):
         self.ifo.epoch = 0
         self.minimum_frequency = 10
         self.maximum_frequency = 20
-        # self.ifo.frequency_array = np.array([8, 12, 16, 20, 24])
         plus = np.linspace(0, 4096, 4097)
         cross = np.linspace(0, 4096, 4097)
         response = self.ifo.get_detector_response(
@@ -284,31 +358,88 @@ class TestInterferometer(unittest.TestCase):
             parameters=dict(ra=0, dec=0, geocent_time=0, psi=0))
         self.assertTrue(np.array_equal(response, (plus + cross) * self.ifo.frequency_mask * np.exp(-0j)))
 
-    def test_inject_signal_no_waveform_polarizations(self):
+    def test_inject_signal_from_waveform_polarizations_correct_injection(self):
+        original_strain = self.ifo.strain_data.frequency_domain_strain
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,
+                                                           injection_polarizations=self.injection_polarizations)
+        expected = self.injection_polarizations['plus'] + self.injection_polarizations['cross'] + original_strain
+        self.assertTrue(np.array_equal(expected, self.ifo.strain_data._frequency_domain_strain))
+
+    def test_inject_signal_from_waveform_polarizations_meta_data(self):
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,
+                                                           injection_polarizations=self.injection_polarizations)
+        signal_ifo_expected = self.injection_polarizations['plus'] + self.injection_polarizations['cross']
+        self.assertAlmostEqual(self.ifo.optimal_snr_squared(signal=signal_ifo_expected).real,
+                               self.ifo.meta_data['optimal_SNR']**2, 10)
+        self.assertAlmostEqual(self.ifo.matched_filter_snr(signal=signal_ifo_expected),
+                               self.ifo.meta_data['matched_filter_SNR'], 10)
+        self.assertDictEqual(self.parameters,
+                             self.ifo.meta_data['parameters'])
+
+    def test_inject_signal_from_waveform_polarizations_incorrect_length(self):
+        self.injection_polarizations['plus'] = np.random.random(1000)
+        self.injection_polarizations['cross'] = np.random.random(1000)
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        with self.assertRaises(ValueError):
+            self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,
+                                                               injection_polarizations=self.injection_polarizations)
+
+    @patch.object(bilby.core.utils.logger, 'warning')
+    def test_inject_signal_outside_segment_logs_warning(self, m):
+        self.parameters['geocent_time'] = 24345.
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,
+                                                           injection_polarizations=self.injection_polarizations)
+        self.assertTrue(m.called)
+
+    def test_inject_signal_from_waveform_generator_correct_return_value(self):
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        returned_polarizations = self.ifo.inject_signal_from_waveform_generator(parameters=self.parameters,
+                                                                                waveform_generator=self.waveform_generator)
+        self.assertTrue(np.array_equal(self.wg_polarizations['plus'], returned_polarizations['plus']))
+        self.assertTrue(np.array_equal(self.wg_polarizations['cross'], returned_polarizations['cross']))
+
+    @patch.object(bilby.gw.detector.Interferometer, 'inject_signal_from_waveform_generator')
+    def test_inject_signal_with_waveform_generator_correct_call(self, m):
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        _ = self.ifo.inject_signal(parameters=self.parameters,
+                                   waveform_generator=self.waveform_generator)
+        m.assert_called_with(parameters=self.parameters,
+                             waveform_generator=self.waveform_generator)
+
+    def test_inject_signal_from_waveform_generator_correct_injection(self):
+        original_strain = self.ifo.strain_data.frequency_domain_strain
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        injection_polarizations = self.ifo.inject_signal_from_waveform_generator(parameters=self.parameters,
+                                                                                 waveform_generator=self.waveform_generator)
+        expected = injection_polarizations['plus'] + injection_polarizations['cross'] + original_strain
+        self.assertTrue(np.array_equal(expected, self.ifo.strain_data._frequency_domain_strain))
+
+    def test_inject_signal_with_injection_polarizations(self):
+        original_strain = self.ifo.strain_data.frequency_domain_strain
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        self.ifo.inject_signal(parameters=self.parameters,
+                               injection_polarizations=self.injection_polarizations)
+        expected = self.injection_polarizations['plus'] + self.injection_polarizations['cross'] + original_strain
+        self.assertTrue(np.array_equal(expected, self.ifo.strain_data._frequency_domain_strain))
+
+    @patch.object(bilby.gw.detector.Interferometer, 'inject_signal_from_waveform_polarizations')
+    def test_inject_signal_with_injection_polarizations_and_waveform_generator(self, m):
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        _ = self.ifo.inject_signal(parameters=self.parameters,
+                                   waveform_generator=self.waveform_generator,
+                                   injection_polarizations=self.injection_polarizations)
+        m.assert_called_with(parameters=self.parameters,
+                             injection_polarizations=self.injection_polarizations)
+        with self.assertRaises(ValueError):
+            m.assert_called_with(parameters=self.parameters,
+                                 injection_polarizations=self.wg_polarizations)
+
+    def test_inject_signal_raises_value_error(self):
         with self.assertRaises(ValueError):
             self.ifo.inject_signal(injection_polarizations=None, parameters=None)
-
-    def test_unit_vector_along_arm_default(self):
-        with self.assertRaises(ValueError):
-            self.ifo.unit_vector_along_arm('z')
-
-    def test_unit_vector_along_arm_x(self):
-        with mock.patch('numpy.array') as m:
-            m.return_value = 1
-            self.ifo.xarm_tilt = 0
-            self.ifo.xarm_azimuth = 0
-            self.ifo.yarm_tilt = 0
-            self.ifo.yarm_azimuth = 90
-            self.assertAlmostEqual(self.ifo.unit_vector_along_arm('x'), 1)
-
-    def test_unit_vector_along_arm_y(self):
-        with mock.patch('numpy.array') as m:
-            m.return_value = 1
-            self.ifo.xarm_tilt = 0
-            self.ifo.xarm_azimuth = 90
-            self.ifo.yarm_tilt = 0
-            self.ifo.yarm_azimuth = 180
-            self.assertAlmostEqual(self.ifo.unit_vector_along_arm('y'), -1)
 
     def test_time_delay_from_geocenter(self):
         with mock.patch('bilby.gw.utils.time_delay_geocentric') as m:
@@ -321,14 +452,20 @@ class TestInterferometer(unittest.TestCase):
             self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 
     def test_optimal_snr_squared(self):
-        """ Merely checks parameters are given in the right order """
+        """
+        Merely checks parameters are given in the right order and the frequency
+        mask is applied.
+        """
         with mock.patch('bilby.gw.utils.noise_weighted_inner_product') as m:
             m.side_effect = lambda a, b, c, d: [a, b, c, d]
-            signal = 1
-            expected = [signal, signal, self.ifo.power_spectral_density_array, self.ifo.strain_data.duration]
+            signal = np.ones_like(self.ifo.power_spectral_density_array)
+            mask = self.ifo.frequency_mask
+            expected = [signal[mask], signal[mask],
+                        self.ifo.power_spectral_density_array[mask],
+                        self.ifo.strain_data.duration]
             actual = self.ifo.optimal_snr_squared(signal=signal)
-            self.assertEqual(expected[0], actual[0])
-            self.assertEqual(expected[1], actual[1])
+            self.assertTrue(np.array_equal(expected[0], actual[0]))
+            self.assertTrue(np.array_equal(expected[1], actual[1]))
             self.assertTrue(np.array_equal(expected[2], actual[2]))
             self.assertEqual(expected[3], actual[3])
 
@@ -475,8 +612,8 @@ class TestInterferometerEquals(unittest.TestCase):
         self.assertNotEqual(self.ifo_1, self.ifo_2)
 
     def test_eq_false_different_ifo_strain_data(self):
-        self.strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
-                                                          duration=self.duration*2)
+        self.strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency / 2,
+                                                          duration=self.duration * 2)
         self.ifo_1.set_strain_data_from_frequency_domain_strain(frequency_array=self.frequency_array,
                                                                 frequency_domain_strain=self.strain)
         self.assertNotEqual(self.ifo_1, self.ifo_2)
@@ -545,7 +682,8 @@ class TestInterferometerStrainData(unittest.TestCase):
         sampling_frequency = 10
         time_array = bilby.core.utils.create_time_series(
             sampling_frequency=sampling_frequency, duration=duration)
-        time_domain_strain = np.random.normal(0, 1, len(time_array))
+        time_domain_strain = np.random.normal(
+            0, duration - 1 / sampling_frequency, len(time_array))
         self.ifosd.roll_off = 0
         self.ifosd.set_from_time_domain_strain(
             time_domain_strain=time_domain_strain, duration=duration,
@@ -711,11 +849,11 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_sampling_frequency(self):
-        self.ifosd_1.sampling_frequency -= 0.1
+        self.ifosd_1.sampling_frequency *= 2
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_sampling_duration(self):
-        self.ifosd_1.duration -= 0.1
+        self.ifosd_1.duration *= 2
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_start_time(self):
@@ -723,27 +861,27 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_frequency_array(self):
-        new_frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
-                                                                  duration=self.duration*2)
+        new_frequency_array = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency / 2,
+                                                                  duration=self.duration * 2)
         self.ifosd_1.frequency_array = new_frequency_array
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_frequency_domain_strain(self):
-        new_strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency/2,
-                                                         duration=self.duration*2)
+        new_strain = bilby.utils.create_frequency_series(sampling_frequency=self.sampling_frequency / 2,
+                                                         duration=self.duration * 2)
         self.ifosd_1._frequency_domain_strain = new_strain
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_time_array(self):
-        new_time_array = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
-                                                        duration=self.duration*2)
+        new_time_array = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency / 2,
+                                                        duration=self.duration * 2)
         self.ifosd_1.time_array = new_time_array
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
     def test_eq_different_time_domain_strain(self):
-        new_strain = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency/2,
-                                                    duration=self.duration*2)
-        self.ifosd_1._time_domain_strain= new_strain
+        new_strain = bilby.utils.create_time_series(sampling_frequency=self.sampling_frequency / 2,
+                                                    duration=self.duration * 2)
+        self.ifosd_1._time_domain_strain = new_strain
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
 
 
@@ -797,7 +935,8 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo2.strain_data.set_from_frequency_domain_strain(
             self.frequency_arrays, sampling_frequency=4096, duration=2)
         self.ifo_list = bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
-        bilby.core.utils.check_directory_exists_and_if_not_mkdir('outdir')
+        self.outdir = 'outdir'
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
 
     def tearDown(self):
         del self.frequency_arrays
@@ -828,7 +967,7 @@ class TestInterferometerList(unittest.TestCase):
         del self.ifo1
         del self.ifo2
         del self.ifo_list
-        rmtree('outdir')
+        rmtree(self.outdir)
 
     def test_init_with_string(self):
         with self.assertRaises(TypeError):
@@ -836,7 +975,7 @@ class TestInterferometerList(unittest.TestCase):
 
     def test_init_with_string_list(self):
         """ Merely checks if this ends up in the right bracket """
-        with mock.patch('bilby.gw.detector.get_empty_interferometer') as m:
+        with mock.patch('bilby.gw.detector.networks.get_empty_interferometer') as m:
             m.side_effect = TypeError
             with self.assertRaises(TypeError):
                 bilby.gw.detector.InterferometerList(['string'])
@@ -894,6 +1033,13 @@ class TestInterferometerList(unittest.TestCase):
     def test_inject_signal_pol_and_wg_none(self):
         with self.assertRaises(ValueError):
             self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
+
+    def test_meta_data(self):
+        ifos_list = [self.ifo1, self.ifo2]
+        ifos = bilby.gw.detector.InterferometerList(ifos_list)
+        self.assertTrue(isinstance(ifos.meta_data, dict))
+        meta_data = {ifo.name: ifo.meta_data for ifo in ifos_list}
+        self.assertEqual(ifos.meta_data, meta_data)
 
     @patch.object(bilby.gw.waveform_generator.WaveformGenerator, 'frequency_domain_strain')
     def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
@@ -984,6 +1130,15 @@ class TestInterferometerList(unittest.TestCase):
                 outdir='outdir', label='psd')
             with self.assertRaises(TypeError):
                 bilby.gw.detector.InterferometerList.from_hdf5(filename)
+
+    def test_plot_data(self):
+        ifos = bilby.gw.detector.InterferometerList(['H1', 'L1'])
+        ifos.set_strain_data_from_power_spectral_densities(2048, 4)
+        ifos.plot_data(outdir=self.outdir)
+
+        ifos = bilby.gw.detector.InterferometerList(['H1', 'L1', 'V1'])
+        ifos.set_strain_data_from_power_spectral_densities(2048, 4)
+        ifos.plot_data(outdir=self.outdir)
 
 
 class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
@@ -1190,9 +1345,9 @@ class TestPowerSpectralDensityEquals(unittest.TestCase):
         self.frequency_array = np.linspace(1, 100)
         self.psd_array = np.linspace(1, 100)
         self.psd_from_array_1 = bilby.gw.detector.PowerSpectralDensity. \
-            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array= self.psd_array)
+            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.psd_from_array_2 = bilby.gw.detector.PowerSpectralDensity. \
-            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array= self.psd_array)
+            from_power_spectral_density_array(frequency_array=self.frequency_array, psd_array=self.psd_array)
 
     def tearDown(self):
         del self.psd_from_file_1

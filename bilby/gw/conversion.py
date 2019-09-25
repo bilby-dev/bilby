@@ -4,44 +4,69 @@ import numpy as np
 from pandas import DataFrame
 
 from ..core.utils import logger, solar_mass
-from ..core.prior import DeltaFunction, Interped
+from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
-
+from .cosmology import get_cosmology
 
 try:
-    from astropy.cosmology import z_at_value, Planck15
-    import astropy.units as u
+    from astropy import units
+    from astropy.cosmology import z_at_value
 except ImportError:
-    logger.warning("You do not have astropy installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+    logger.debug("You do not have astropy installed currently. You will"
+                 " not be able to use some of the prebuilt functions.")
 
 
-def redshift_to_luminosity_distance(redshift):
-    return Planck15.luminosity_distance(redshift).value
+def redshift_to_luminosity_distance(redshift, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    return cosmology.luminosity_distance(redshift).value
 
 
-def redshift_to_comoving_distance(redshift):
-    return Planck15.comoving_distance(redshift).value
-
-
-@np.vectorize
-def luminosity_distance_to_redshift(distance):
-    return z_at_value(Planck15.luminosity_distance, distance * u.Mpc)
+def redshift_to_comoving_distance(redshift, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    return cosmology.comoving_distance(redshift).value
 
 
 @np.vectorize
-def comoving_distance_to_redshift(distance):
-    return z_at_value(Planck15.comoving_distance, distance * u.Mpc)
+def luminosity_distance_to_redshift(distance, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    return z_at_value(cosmology.luminosity_distance, distance * units.Mpc)
 
 
-def comoving_distance_to_luminosity_distance(distance):
-    redshift = comoving_distance_to_redshift(distance)
-    return redshift_to_luminosity_distance(redshift)
+@np.vectorize
+def comoving_distance_to_redshift(distance, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    return z_at_value(cosmology.comoving_distance, distance * units.Mpc)
 
 
-def luminosity_distance_to_comoving_distance(distance):
-    redshift = luminosity_distance_to_redshift(distance)
-    return redshift_to_comoving_distance(redshift)
+def comoving_distance_to_luminosity_distance(distance, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    redshift = comoving_distance_to_redshift(distance, cosmology)
+    return redshift_to_luminosity_distance(redshift, cosmology)
+
+
+def luminosity_distance_to_comoving_distance(distance, cosmology=None):
+    cosmology = get_cosmology(cosmology)
+    redshift = luminosity_distance_to_redshift(distance, cosmology)
+    return redshift_to_comoving_distance(redshift, cosmology)
+
+
+def bilby_to_lalsimulation_spins(
+        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
+        reference_frequency, phase):
+    if tilt_1 in [0, np.pi] and tilt_2 in [0, np.pi]:
+        spin_1x = 0
+        spin_1y = 0
+        spin_1z = a_1 * np.cos(tilt_1)
+        spin_2x = 0
+        spin_2y = 0
+        spin_2z = a_2 * np.cos(tilt_2)
+        iota = theta_jn
+    else:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = \
+            transform_precessing_spins(
+                theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
+                mass_2, reference_frequency, phase)
+    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
 @np.vectorize
@@ -123,6 +148,23 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
 
+    if 'redshift' in converted_parameters.keys():
+        converted_parameters['luminosity_distance'] = \
+            redshift_to_luminosity_distance(parameters['redshift'])
+    elif 'comoving_distance' in converted_parameters.keys():
+        converted_parameters['luminosity_distance'] = \
+            comoving_distance_to_luminosity_distance(
+                parameters['comoving_distance'])
+
+    for key in original_keys:
+        if key[-7:] == '_source':
+            if 'redshift' not in converted_parameters.keys():
+                converted_parameters['redshift'] =\
+                    luminosity_distance_to_redshift(
+                        parameters['luminosity_distance'])
+            converted_parameters[key[:-7]] = converted_parameters[key] * (
+                1 + converted_parameters['redshift'])
+
     if 'chirp_mass' in converted_parameters.keys():
         if 'total_mass' in converted_parameters.keys():
             converted_parameters['symmetric_mass_ratio'] =\
@@ -192,19 +234,11 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
             converted_parameters['phi_jl'] = 0.0
             converted_parameters['phi_12'] = 0.0
 
-    for angle in ['tilt_1', 'tilt_2', 'iota']:
+    for angle in ['tilt_1', 'tilt_2', 'theta_jn']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
             converted_parameters[angle] =\
                 np.arccos(converted_parameters[cos_angle])
-
-    if 'redshift' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] =\
-            redshift_to_luminosity_distance(parameters['redshift'])
-    elif 'comoving_distance' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] = \
-            comoving_distance_to_luminosity_distance(
-                parameters['comoving_distance'])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
@@ -220,7 +254,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
 
 
     Mass: mass_1, mass_2
-    Spin: chi_1, chi_2, tilt_1, tilt_2, phi_12, phi_jl
+    Spin: a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl
     Extrinsic: luminosity_distance, theta_jn, phase, ra, dec, geocent_time, psi
 
     This involves popping a lot of things from parameters.
@@ -243,19 +277,18 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     converted_parameters, added_keys =\
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
-    # catch if tidal parameters aren't present
     if not any([key in converted_parameters for key in
-                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda']]):
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde']]):
         converted_parameters['lambda_1'] = 0
         converted_parameters['lambda_2'] = 0
         added_keys = added_keys + ['lambda_1', 'lambda_2']
         return converted_parameters, added_keys
 
-    if 'delta_lambda' in converted_parameters.keys():
+    if 'delta_lambda_tilde' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
-            lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
+            lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
-                parameters['delta_lambda'], converted_parameters['mass_1'],
+                parameters['delta_lambda_tilde'], converted_parameters['mass_1'],
                 converted_parameters['mass_2'])
     elif 'lambda_tilde' in converted_parameters.keys():
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
@@ -272,18 +305,6 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
-
-    for idx in ['1', '2']:
-        mag = 'a_{}'.format(idx)
-        if mag in original_keys:
-            tilt = 'tilt_{}'.format(idx)
-            if tilt in original_keys:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag] *
-                    np.cos(converted_parameters[tilt]))
-            else:
-                converted_parameters['chi_{}'.format(idx)] = (
-                    converted_parameters[mag])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
@@ -514,7 +535,7 @@ def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     return lambda_tilde
 
 
-def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
+def lambda_1_lambda_2_to_delta_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     """
     Convert from individual tidal parameters to second domainant tidal term.
 
@@ -533,22 +554,22 @@ def lambda_1_lambda_2_to_delta_lambda(lambda_1, lambda_2, mass_1, mass_2):
 
     Return
     ------
-    delta_lambda: float
+    delta_lambda_tilde: float
         Second dominant tidal term.
     """
     eta = component_masses_to_symmetric_mass_ratio(mass_1, mass_2)
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
-    delta_lambda = 1 / 2 * (
+    delta_lambda_tilde = 1 / 2 * (
         (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
         lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
                        3380 / 1319 * eta**3) * lambda_minus)
 
-    return delta_lambda
+    return delta_lambda_tilde
 
 
-def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
-        lambda_tilde, delta_lambda, mass_1, mass_2):
+def lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
+        lambda_tilde, delta_lambda_tilde, mass_1, mass_2):
     """
     Convert from dominant tidal terms to individual tidal parameters.
 
@@ -558,7 +579,7 @@ def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
     ----------
     lambda_tilde: float
         Dominant tidal term.
-    delta_lambda: float
+    delta_lambda_tilde: float
         Secondary tidal term.
     mass_1: float
         Mass of more massive neutron star.
@@ -581,12 +602,12 @@ def lambda_tilde_delta_lambda_to_lambda_1_lambda_2(
                      3380 / 1319 * eta**3)
     lambda_1 =\
         (13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4) -
-         2 * delta_lambda * (coefficient_1 - coefficient_2))\
+         2 * delta_lambda_tilde * (coefficient_1 - coefficient_2))\
         / ((coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4) -
            (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4))
     lambda_2 =\
         (13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4) -
-         2 * delta_lambda * (coefficient_1 + coefficient_2)) \
+         2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)) \
         / ((coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4) -
            (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4))
     return lambda_1, lambda_2
@@ -637,17 +658,24 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
         except (KeyError, AttributeError):
             default = waveform_defaults[key]
             output_sample[key] = default
-            logger.warning('Assuming {} = {}'.format(key, default))
+            logger.debug('Assuming {} = {}'.format(key, default))
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
+    if likelihood is not None:
+        if (hasattr(likelihood, 'phase_marginalization') or
+            hasattr(likelihood, 'time_marginalization') or
+            hasattr(likelihood, 'distance_marginalization')):
+            generate_posterior_samples_from_marginalized_likelihood(
+                samples=output_sample, likelihood=likelihood)
+        if priors is not None:
+            for par, name in zip(
+                    ['distance', 'phase', 'time'],
+                    ['luminosity_distance', 'phase', 'geocent_time']):
+                if getattr(likelihood, '{}_marginalization'.format(par), False):
+                    priors[name] = likelihood.priors[name]
     output_sample = generate_mass_parameters(output_sample)
     output_sample = generate_spin_parameters(output_sample)
-    if likelihood is not None:
-        if likelihood.distance_marginalization:
-            output_sample = \
-                generate_distance_samples_from_marginalized_likelihood(
-                    output_sample, likelihood)
     output_sample = generate_source_frame_parameters(output_sample)
     compute_snrs(output_sample, likelihood)
     return output_sample
@@ -767,7 +795,7 @@ def generate_spin_parameters(sample):
     Add all spin parameters to the data frame/dictionary.
 
     We add:
-        cartestian spin components, chi_eff, chi_p cos tilt 1, cos tilt 2
+        cartesian spin components, chi_eff, chi_p cos tilt 1, cos tilt 2
 
     Parameters
     ----------
@@ -812,7 +840,7 @@ def generate_component_spins(sample):
     Parameters
     ----------
     sample: A dictionary with the necessary spin conversion parameters:
-    'iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
+    'theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
     'mass_2', 'reference_frequency', 'phase'
 
     Returns
@@ -822,15 +850,15 @@ def generate_component_spins(sample):
     """
     output_sample = sample.copy()
     spin_conversion_parameters =\
-        ['iota', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
-         'mass_2', 'reference_frequency', 'phase']
+        ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2',
+         'mass_1', 'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters):
         output_sample['iota'], output_sample['spin_1x'],\
             output_sample['spin_1y'], output_sample['spin_1z'], \
             output_sample['spin_2x'], output_sample['spin_2y'],\
             output_sample['spin_2z'] =\
             transform_precessing_spins(
-                output_sample['iota'], output_sample['phi_jl'],
+                output_sample['theta_jn'], output_sample['phi_jl'],
                 output_sample['tilt_1'], output_sample['tilt_2'],
                 output_sample['phi_12'], output_sample['a_1'],
                 output_sample['a_2'],
@@ -839,9 +867,12 @@ def generate_component_spins(sample):
                 output_sample['reference_frequency'], output_sample['phase'])
 
         output_sample['phi_1'] =\
-            np.arctan(output_sample['spin_1y'] / output_sample['spin_1x'])
+            np.fmod(2 * np.pi + np.arctan2(
+                output_sample['spin_1y'], output_sample['spin_1x']), 2 * np.pi)
         output_sample['phi_2'] =\
-            np.arctan(output_sample['spin_2y'] / output_sample['spin_2x'])
+            np.fmod(2 * np.pi + np.arctan2(
+                output_sample['spin_2y'], output_sample['spin_2x']), 2 * np.pi)
+
     elif 'chi_1' in output_sample and 'chi_2' in output_sample:
         output_sample['spin_1x'] = 0
         output_sample['spin_1y'] = 0
@@ -851,7 +882,6 @@ def generate_component_spins(sample):
         output_sample['spin_2z'] = output_sample['chi_2']
     else:
         logger.warning("Component spin extraction failed.")
-        logger.warning(output_sample.keys())
 
     return output_sample
 
@@ -860,7 +890,7 @@ def generate_tidal_parameters(sample):
     """
     Generate all tidal parameters
 
-    lambda_tilde, delta_lambda
+    lambda_tilde, delta_lambda_tilde
 
     Parameters
     ----------
@@ -878,8 +908,8 @@ def generate_tidal_parameters(sample):
         lambda_1_lambda_2_to_lambda_tilde(
             output_sample['lambda_1'], output_sample['lambda_2'],
             output_sample['mass_1'], output_sample['mass_2'])
-    output_sample['delta_lambda'] = \
-        lambda_1_lambda_2_to_delta_lambda(
+    output_sample['delta_lambda_tilde'] = \
+        lambda_1_lambda_2_to_delta_lambda_tilde(
             output_sample['lambda_1'], output_sample['lambda_2'],
             output_sample['mass_1'], output_sample['mass_2'])
 
@@ -936,23 +966,27 @@ def compute_snrs(sample, likelihood):
                     ifo.matched_filter_snr(signal=signal)
                 sample['{}_optimal_snr'.format(ifo.name)] = \
                     ifo.optimal_snr_squared(signal=signal) ** 0.5
+
         else:
             logger.info(
                 'Computing SNRs for every sample, this may take some time.')
-            all_interferometers = likelihood.interferometers
-            matched_filter_snrs = {ifo.name: [] for ifo in all_interferometers}
-            optimal_snrs = {ifo.name: [] for ifo in all_interferometers}
+
+            matched_filter_snrs = {
+                ifo.name: [] for ifo in likelihood.interferometers}
+            optimal_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
+
             for ii in range(len(sample)):
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(
                         dict(sample.iloc[ii]))
-                for ifo in all_interferometers:
-                    signal = ifo.get_detector_response(
-                        signal_polarizations, sample.iloc[ii])
+                likelihood.parameters.update(sample.iloc[ii])
+                for ifo in likelihood.interferometers:
+                    per_detector_snr = likelihood.calculate_snrs(
+                        signal_polarizations, ifo)
                     matched_filter_snrs[ifo.name].append(
-                        ifo.matched_filter_snr(signal=signal))
+                        per_detector_snr.complex_matched_filter_snr)
                     optimal_snrs[ifo.name].append(
-                        ifo.optimal_snr_squared(signal=signal) ** 0.5)
+                        per_detector_snr.optimal_snr_squared.real ** 0.5)
 
             for ifo in likelihood.interferometers:
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
@@ -960,87 +994,50 @@ def compute_snrs(sample, likelihood):
                 sample['{}_optimal_snr'.format(ifo.name)] =\
                     optimal_snrs[ifo.name]
 
-            likelihood.interferometers = all_interferometers
-
     else:
         logger.debug('Not computing SNRs.')
 
 
-def generate_distance_samples_from_marginalized_likelihood(samples, likelihood):
+def generate_posterior_samples_from_marginalized_likelihood(
+        samples, likelihood):
     """
     Reconstruct the distance posterior from a run which used a likelihood which
-    explicitly marginalised over distance.
+    explicitly marginalised over time/distance/phase.
 
     See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
     Parameters
     ----------
     samples: DataFrame
-        Posterior from run with distance marginalisation turned on.
+        Posterior from run with a marginalised likelihood.
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
         Likelihood used during sampling.
 
     Return
     ------
     sample: DataFrame
-        Returns the posterior with distance samples.
+        Returns the posterior with new samples.
     """
-    if not likelihood.distance_marginalization:
+    if not any([likelihood.phase_marginalization,
+                likelihood.distance_marginalization,
+                likelihood.time_marginalization]):
         return samples
-    if likelihood.phase_marginalization or likelihood.time_marginalization:
-        logger.warning('Cannot currently reconstruct distance posterior '
-                       'when other marginalizations are turned on.')
-        return samples
+    else:
+        logger.info('Reconstructing marginalised parameters.')
     if isinstance(samples, dict):
         pass
     elif isinstance(samples, DataFrame):
+        new_time_samples = list()
+        new_distance_samples = list()
+        new_phase_samples = list()
         for ii in range(len(samples)):
-            temp = _generate_distance_sample_from_marginalized_likelihood(
-                dict(samples.iloc[ii]), likelihood)
-            samples['luminosity_distance'][ii] = temp['luminosity_distance']
+            sample = dict(samples.iloc[ii]).copy()
+            likelihood.parameters.update(sample)
+            new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
+            new_time_samples.append(new_sample['geocent_time'])
+            new_distance_samples.append(new_sample['luminosity_distance'])
+            new_phase_samples.append(new_sample['phase'])
+        samples['geocent_time'] = new_time_samples
+        samples['luminosity_distance'] = new_distance_samples
+        samples['phase'] = new_phase_samples
     return samples
-
-
-def _generate_distance_sample_from_marginalized_likelihood(sample, likelihood):
-    """
-    Generate a single sample from the posterior distribution for luminosity
-    distance when using a likelihood which explicitly marginalises over
-    distance.
-
-    See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
-
-    Parameters
-    ----------
-    sample: dict
-        The set of parameters used with the marginalised likelihood.
-    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
-        The likelihood used.
-
-    Returns
-    -------
-    sample: dict
-        Modifed dictionary with the distance sampled from the posterior.
-    """
-    signal_polarizations = \
-        likelihood.waveform_generator.frequency_domain_strain(sample)
-    d_inner_h = 0
-    rho_opt_sq = 0
-    for ifo in likelihood.interferometers:
-        signal = ifo.get_detector_response(signal_polarizations, sample)
-        d_inner_h += ifo.inner_product(signal=signal)
-        rho_opt_sq += ifo.optimal_snr_squared(signal=signal)
-
-    d_inner_h_dist = (d_inner_h * sample['luminosity_distance'] /
-                      likelihood._distance_array)
-
-    rho_opt_sq_dist = (rho_opt_sq * sample['luminosity_distance']**2 /
-                       likelihood._distance_array**2)
-
-    distance_log_like = (d_inner_h_dist.real - rho_opt_sq_dist.real / 2)
-
-    distance_post = np.exp(distance_log_like - max(distance_log_like)) *\
-        likelihood.distance_prior_array
-
-    sample['luminosity_distance'] = Interped(
-        likelihood._distance_array, distance_post).sample()
-    return sample

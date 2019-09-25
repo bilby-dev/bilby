@@ -1,12 +1,16 @@
 from __future__ import division
 import os
 import json
+from math import fmod
 
 import numpy as np
+from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
 
-from ..core.utils import (gps_time_to_gmst, ra_dec_to_theta_phi,
+from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
-                          check_directory_exists_and_if_not_mkdir)
+                          check_directory_exists_and_if_not_mkdir,
+                          SamplesSummary)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -15,6 +19,7 @@ except ImportError:
                    " not be able to use some of the prebuilt functions.")
 
 try:
+    import lal
     import lalsimulation as lalsim
 except ImportError:
     logger.warning("You do not have lalsuite installed currently. You will"
@@ -83,7 +88,7 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     float: Time delay between the two detectors in the geocentric frame
 
     """
-    gmst = gps_time_to_gmst(time)
+    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     omega = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
     delta_d = detector2 - detector1
@@ -116,8 +121,8 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     array_like: A 3x3 representation of the polarization_tensor for the specified mode.
 
     """
-    greenwich_mean_sidereal_time = gps_time_to_gmst(time)
-    theta, phi = ra_dec_to_theta_phi(ra, dec, greenwich_mean_sidereal_time)
+    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
+    theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
     v = np.array([-np.sin(phi), np.cos(phi), 0])
     m = -u * np.sin(psi) - v * np.cos(psi)
@@ -130,16 +135,16 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     elif mode.lower() == 'breathing':
         return np.einsum('i,j->ij', m, m) + np.einsum('i,j->ij', n, n)
 
+    # Calculating omega here to avoid calculation when model in [plus, cross, breathing]
     omega = np.cross(m, n)
     if mode.lower() == 'longitudinal':
-        return np.sqrt(2) * np.einsum('i,j->ij', omega, omega)
+        return np.einsum('i,j->ij', omega, omega)
     elif mode.lower() == 'x':
         return np.einsum('i,j->ij', m, omega) + np.einsum('i,j->ij', omega, m)
     elif mode.lower() == 'y':
         return np.einsum('i,j->ij', n, omega) + np.einsum('i,j->ij', omega, n)
     else:
-        logger.warning("{} not a polarization mode!".format(mode))
-        return None
+        raise ValueError("{} not a polarization mode!".format(mode))
 
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
@@ -380,7 +385,7 @@ def get_open_strain_data(
     return strain
 
 
-def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1, **kwargs):
+def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -416,10 +421,12 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
         except RuntimeError:
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
 
-    while not loaded:
+    if loaded is False:
         ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
-                              'DCH-CLEAN_STRAIN_C02']
-        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R']
+                              'DCH-CLEAN_STRAIN_C02', 'GWOSC-16KHZ_R1_STRAIN',
+                              'GWOSC-4KHZ_R1_STRAIN']
+        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R',
+                               'GWOSC-16KHZ_R1_STRAIN', 'GWOSC-4KHZ_R1_STRAIN']
         channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
         for detector in channel_types.keys():
             for channel_type in channel_types[detector]:
@@ -441,8 +448,8 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=1
         return None
 
 
-def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None):
-    candidate = gracedb_to_json(gracedb, outdir)
+def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None, server=None):
+    candidate = gracedb_to_json(gracedb, outdir=outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
     cache_files = []
@@ -451,38 +458,44 @@ def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=N
     for i, det in enumerate(detectors):
         output_cache_file = gw_data_find(
             det, gps_start_time, duration, calibration,
-            outdir=outdir, query_type=query_types[i])
+            outdir=outdir, query_type=query_types[i], server=server)
         cache_files.append(output_cache_file)
     return candidate, cache_files
 
 
-def gracedb_to_json(gracedb, outdir=None):
+def gracedb_to_json(gracedb, cred=None, service_url='https://gracedb.ligo.org/api/', outdir=None):
     """ Script to download a GraceDB candidate
 
     Parameters
     ----------
     gracedb: str
         The UID of the GraceDB candidate
+    cred:
+        Credentials for authentications, see ligo.gracedb.rest.GraceDb
+    service_url:
+        The url of the GraceDB candidate
+        GraceDB 'https://gracedb.ligo.org/api/' (default)
+        GraceDB-playground 'https://gracedb-playground.ligo.org/api/'
     outdir: str, optional
         If given, a string identfying the location in which to store the json
     """
     logger.info(
         'Starting routine to download GraceDb candidate {}'.format(gracedb))
     from ligo.gracedb.rest import GraceDb
-    import urllib3
 
     logger.info('Initialise client and attempt to download')
+    logger.info('Fetching from {}'.format(service_url))
     try:
-        client = GraceDb()
-    except FileNotFoundError:
+        client = GraceDb(cred=cred, service_url=service_url)
+    except IOError:
         raise ValueError(
             'Failed to authenticate with gracedb: check your X509 '
             'certificate is accessible and valid')
     try:
         candidate = client.event(gracedb)
         logger.info('Successfully downloaded candidate')
-    except urllib3.HTTPError:
-        raise ValueError("No candidate found")
+    except Exception as e:
+        raise ValueError("Unable to obtain GraceDB candidate, exception: {}".format(e))
 
     json_output = candidate.json()
 
@@ -491,13 +504,13 @@ def gracedb_to_json(gracedb, outdir=None):
         outfilepath = os.path.join(outdir, '{}.json'.format(gracedb))
         logger.info('Writing candidate to {}'.format(outfilepath))
         with open(outfilepath, 'w') as outfile:
-                json.dump(json_output, outfile, indent=2)
+            json.dump(json_output, outfile, indent=2)
 
     return json_output
 
 
 def gw_data_find(observatory, gps_start_time, duration, calibration,
-                 outdir='.', query_type=None):
+                 outdir='.', query_type=None, server=None):
     """ Builds a gw_data_find call and process output
 
     Parameters
@@ -528,7 +541,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
 
     if query_type is None:
         logger.warning('No query type provided. This may prevent data from being read.')
-        if observatory_code is 'V':
+        if observatory_code == 'V':
             query_type = 'V1Online'
         else:
             query_type = '{}_HOFT_C0{}'.format(observatory, calibration)
@@ -540,13 +553,21 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     output_cache_file = os.path.join(outdir, cache_file)
 
     gps_end_time = gps_start_time + duration
+    if server is None:
+        server = os.environ.get("LIGO_DATAFIND_SERVER")
+        if server is None:
+            logger.warning('No data_find server found, defaulting to CIT server. '
+                           'To run on other clusters, pass the output of '
+                           '`echo $LIGO_DATAFIND_SERVER`')
+            server = 'ldr.ldas.cit:80'
 
     cl_list = ['gw_data_find']
     cl_list.append('--observatory {}'.format(observatory_code))
-    cl_list.append('--gps-start-time {}'.format(gps_start_time))
-    cl_list.append('--gps-end-time {}'.format(gps_end_time))
+    cl_list.append('--gps-start-time {}'.format(int(np.floor(gps_start_time))))
+    cl_list.append('--gps-end-time {}'.format(int(np.ceil(gps_end_time))))
     cl_list.append('--type {}'.format(query_type))
     cl_list.append('--output {}'.format(output_cache_file))
+    cl_list.append('--server {}'.format(server))
     cl_list.append('--url-type file')
     cl_list.append('--lal-cache')
     cl = ' '.join(cl_list)
@@ -554,82 +575,86 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     return output_cache_file
 
 
-def save_to_fits(posterior, outdir, label):
-    """ Generate a fits file from a posterior array """
-    from astropy.io import fits
-    from astropy.units import pixel
-    from astropy.table import Table
-    import healpy as hp
-    nside = hp.get_nside(posterior)
-    npix = hp.nside2npix(nside)
-    logger.debug('Generating table')
-    m = Table([posterior], names=['PROB'])
-    m['PROB'].unit = pixel ** -1
+def build_roq_weights(data, basis, deltaF):
 
-    ordering = 'RING'
-    extra_header = [('PIXTYPE', 'HEALPIX',
-                     'HEALPIX pixelisation'),
-                    ('ORDERING', ordering,
-                     'Pixel ordering scheme: RING, NESTED, or NUNIQ'),
-                    ('COORDSYS', 'C',
-                     'Ecliptic, Galactic or Celestial (equatorial)'),
-                    ('NSIDE', hp.npix2nside(npix),
-                     'Resolution parameter of HEALPIX'),
-                    ('INDXSCHM', 'IMPLICIT',
-                     'Indexing: IMPLICIT or EXPLICIT')]
+    """
+    for a data array and reduced basis compute roq weights
+    basis: (reduced basis element)*invV (the inverse Vandermonde matrix)
+    data: data set
+    PSD: detector noise power spectral density (must be same shape as data)
+    deltaF: integration element df
 
-    fname = '{}/{}_{}.fits'.format(outdir, label, nside)
-    hdu = fits.table_to_hdu(m)
-    hdu.header.extend(extra_header)
-    hdulist = fits.HDUList([fits.PrimaryHDU(), hdu])
-    logger.debug('Writing to a fits file')
-    hdulist.writeto(fname, overwrite=True)
+    """
+    weights = np.dot(data, np.conjugate(basis)) * deltaF * 4.
+    return weights
 
 
-def plot_skymap(result, center='120d -40d', nside=512):
-    """ Generate a sky map from a result """
-    import scipy
-    from astropy.units import deg
-    import healpy as hp
-    import ligo.skymap.plot  # noqa
-    import matplotlib.pyplot as plt
-    logger.debug('Generating skymap')
+def blockwise_dot_product(matrix_a, matrix_b, max_elements=int(2 ** 27),
+                          out=None):
+    """
+    Memory efficient
+    Computes the dot product of two matrices in a block-wise fashion.
+    Only blocks of `matrix_a` with a maximum size of `max_elements` will be
+    processed simultaneously.
 
-    logger.debug('Reading in ra and dec, creating kde and converting')
-    ra_dec_radians = result.posterior[['ra', 'dec']].values
-    kde = scipy.stats.gaussian_kde(ra_dec_radians.T)
-    npix = hp.nside2npix(nside)
-    ipix = range(npix)
-    theta, phi = hp.pix2ang(nside, ipix)
-    ra = phi
-    dec = 0.5 * np.pi - theta
+    Parameters
+    ----------
+    matrix_a, matrix_b: array-like
+        Matrices to be dot producted, matrix_b is complex conjugated.
+    max_elements: int
+        Maximum number of elements to consider simultaneously, should be memory
+        limited.
+    out: array-like
+        Output array
 
-    logger.debug('Generating posterior')
-    post = kde(np.row_stack([ra, dec]))
-    post /= np.sum(post * hp.nside2pixarea(nside))
+    Return
+    ------
+    out: array-like
+        Dot producted array
+    """
+    def block_slices(dim_size, block_size):
+        """Generator that yields slice objects for indexing into
+        sequential blocks of an array along a particular axis
+        Useful for blockwise dot
+        """
+        count = 0
+        while True:
+            yield slice(count, count + block_size, 1)
+            count += block_size
+            if count > dim_size:
+                return
 
-    fig = plt.figure(figsize=(5, 5))
-    ax = plt.axes([0.05, 0.05, 0.9, 0.9],
-                  projection='astro globe',
-                  center=center)
-    ax.coords.grid(True, linestyle='--')
-    lon = ax.coords[0]
-    lat = ax.coords[1]
-    lon.set_ticks(exclude_overlapping=True, spacing=45 * deg)
-    lat.set_ticks(spacing=30 * deg)
+    matrix_b = np.conjugate(matrix_b)
+    m, n = matrix_a.shape
+    n1, o = matrix_b.shape
+    if n1 != n:
+        raise ValueError(
+            'Matrices are not aligned, matrix a has shape ' +
+            '{}, matrix b has shape {}.'.format(matrix_a.shape, matrix_b.shape))
 
-    lon.set_major_formatter('dd')
-    lat.set_major_formatter('hh')
-    lon.set_ticklabel(color='k')
-    lat.set_ticklabel(color='k')
+    if matrix_a.flags.f_contiguous:
+        # prioritize processing as many columns of matrix_a as possible
+        max_cols = max(1, max_elements // m)
+        max_rows = max_elements // max_cols
 
-    logger.debug('Plotting sky map')
-    ax.imshow_hpx(post)
+    else:
+        # prioritize processing as many rows of matrix_a as possible
+        max_rows = max(1, max_elements // n)
+        max_cols = max_elements // max_rows
 
-    lon.set_ticks_visible(False)
-    lat.set_ticks_visible(False)
+    if out is None:
+        out = np.empty((m, o), dtype=np.result_type(matrix_a, matrix_b))
+    elif out.shape != (m, o):
+        raise ValueError('Output array has incorrect dimensions.')
 
-    fig.savefig('{}/{}_skymap.png'.format(result.outdir, result.label))
+    for mm in block_slices(m, max_rows):
+        out[mm, :] = 0
+        for nn in block_slices(n, max_cols):
+            a_block = matrix_a[mm, nn].copy()  # copy to force a read
+            out[mm, :] += np.dot(a_block, matrix_b[nn, :])
+            del a_block
+
+    return out
 
 
 def convert_args_list_to_float(*args_list):
@@ -659,14 +684,39 @@ def lalsim_GetApproximantFromString(waveform_approximant):
         raise ValueError("waveform_approximant must be of type str")
 
 
-def lalsim_SimInspiralChooseFDWaveform(
+def lalsim_SimInspiralFD(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, luminosity_distance, iota, phase,
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant):
+    """
+    Safely call lalsimulation.SimInspiralFD
 
-    # Convert values to floats
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    longitude_ascending_nodes: float, int
+    eccentricity: float, int
+    mean_per_ano: float, int
+    delta_frequency: float, int
+    minimum_frequency: float, int
+    maximum_frequency: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    """
+
     [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
      luminosity_distance, iota, phase, longitude_ascending_nodes,
      eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
@@ -676,8 +726,68 @@ def lalsim_SimInspiralChooseFDWaveform(
         eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
         maximum_frequency, reference_frequency)
 
-    # Note, this is the approximant number returns by GetApproximantFromString
-    if isinstance(approximant, int) is False:
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
+        raise ValueError("approximant not an int")
+
+    return lalsim.SimInspiralFD(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant)
+
+
+def lalsim_SimInspiralChooseFDWaveform(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, luminosity_distance, iota, phase,
+        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+        minimum_frequency, maximum_frequency, reference_frequency,
+        waveform_dictionary, approximant):
+    """
+    Safely call lalsimulation.SimInspiralChooseFDWaveform
+
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    longitude_ascending_nodes: float, int
+    eccentricity: float, int
+    mean_per_ano: float, int
+    delta_frequency: float, int
+    minimum_frequency: float, int
+    maximum_frequency: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    """
+
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, longitude_ascending_nodes,
+     eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+     maximum_frequency, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, longitude_ascending_nodes,
+        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
+        maximum_frequency, reference_frequency)
+
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
         raise ValueError("approximant not an int")
 
     return lalsim.SimInspiralChooseFDWaveform(
@@ -686,6 +796,55 @@ def lalsim_SimInspiralChooseFDWaveform(
         longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
         minimum_frequency, maximum_frequency, reference_frequency,
         waveform_dictionary, approximant)
+
+
+def lalsim_SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_array):
+    """
+    Safely call lalsimulation.SimInspiralChooseFDWaveformSequence
+
+    Parameters
+    ----------
+    phase: float, int
+    mass_1: float, int
+    mass_2: float, int
+    spin_1x: float, int
+    spin_1y: float, int
+    spin_1z: float, int
+    spin_2x: float, int
+    spin_2y: float, int
+    spin_2z: float, int
+    reference_frequency: float, int
+    luminosity_distance: float, int
+    iota: float, int
+    waveform_dictionary: None, lal.Dict
+    approximant: int, str
+    frequency_array: np.ndarray, lal.REAL8Vector
+    """
+
+    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+     luminosity_distance, iota, phase, reference_frequency] = convert_args_list_to_float(
+        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+        luminosity_distance, iota, phase, reference_frequency)
+
+    if isinstance(approximant, int):
+        pass
+    elif isinstance(approximant, str):
+        approximant = lalsim_GetApproximantFromString(approximant)
+    else:
+        raise ValueError("approximant not an int")
+
+    if not isinstance(frequency_array, lal.REAL8Vector):
+        old_frequency_array = frequency_array.copy()
+        frequency_array = lal.CreateREAL8Vector(len(old_frequency_array))
+        frequency_array.data = old_frequency_array
+
+    return lalsim.SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_array)
 
 
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
@@ -708,3 +867,104 @@ def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
 
     return lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
+
+
+def spline_angle_xform(delta_psi):
+    """
+    Returns the angle in degrees corresponding to the spline
+    calibration parameters delta_psi.
+    Based on the same function in lalinference.bayespputils
+
+    Parameters
+    ----------
+    delta_psi: calibration phase uncertainity
+
+    Returns
+    -------
+    float: delta_psi in degrees
+
+    """
+    rotation = (2.0 + 1.0j * delta_psi) / (2.0 - 1.0j * delta_psi)
+
+    return 180.0 / np.pi * np.arctan2(np.imag(rotation), np.real(rotation))
+
+
+def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=None, xform=None):
+    """
+    Plot calibration posterior estimates for a spline model in log space.
+    Adapted from the same function in lalinference.bayespputils
+
+    Parameters
+    ----------
+        log_freqs: The (log) location of spline control points.
+        samples: List of posterior draws of function at control points ``log_freqs``
+        nfreqs: Number of points to evaluate spline at for plotting.
+        level: Credible level to fill in.
+        color: Color to plot with.
+        label: Label for plot.
+        xform: Function to transform the spline into plotted values.
+
+    """
+    freq_points = np.exp(log_freqs)
+    freqs = np.logspace(min(log_freqs), max(log_freqs), nfreqs, base=np.exp(1))
+
+    data = np.zeros((samples.shape[0], nfreqs))
+
+    if xform is None:
+        scaled_samples = samples
+    else:
+        scaled_samples = xform(samples)
+
+    scaled_samples_summary = SamplesSummary(scaled_samples, average='mean')
+    data_summary = SamplesSummary(data, average='mean')
+
+    plt.errorbar(freq_points, scaled_samples_summary.average,
+                 yerr=[-scaled_samples_summary.lower_relative_credible_interval,
+                       scaled_samples_summary.upper_relative_credible_interval],
+                 fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
+
+    for i, sample in enumerate(samples):
+        temp = interp1d(
+            log_freqs, sample, kind="cubic", fill_value=0,
+            bounds_error=False)(np.log(freqs))
+        if xform is None:
+            data[i] = temp
+        else:
+            data[i] = xform(temp)
+
+    plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
+    plt.fill_between(freqs, data_summary.lower_absolute_credible_interval,
+                     data_summary.upper_absolute_credible_interval,
+                     color=color, alpha=.1, linewidth=0.1)
+    plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
+
+
+class PropertyAccessor(object):
+    """
+    Generic descriptor class that allows handy access of properties without long
+    boilerplate code. The properties of Interferometer are defined as instances
+    of this class.
+
+    This avoids lengthy code like
+    ```
+    @property
+    def length(self):
+        return self.geometry.length
+
+    @length_setter
+    def length(self, length)
+        self.geometry.length = length
+
+    in the Interferometer class
+    ```
+    """
+
+    def __init__(self, container_instance_name, property_name):
+        self.property_name = property_name
+        self.container_instance_name = container_instance_name
+
+    def __get__(self, instance, owner):
+        return getattr(getattr(instance, self.container_instance_name), self.property_name)
+
+    def __set__(self, instance, value):
+        setattr(getattr(instance, self.container_instance_name), self.property_name, value)

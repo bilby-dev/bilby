@@ -1,0 +1,17 @@
+==================================================
+Transient gravitational wave reference information
+==================================================
+
+This page collects relevant reference material.
+
+Detector information
+--------------------
+The detectors, implemented in :code:`bilby.gw.detector.interferometer`, are
+defined with respect to https://dcc.ligo.org/LIGO-T980044/public.
+
+Constants
+---------
+All constants used in bilby are defined in :code:`bilby.core.utils` and are
+taken from the `astropy project <https://www.astropy.org/>`_.
+
+
