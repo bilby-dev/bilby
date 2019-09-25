@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
                           Interped, Constraint)
@@ -528,23 +528,23 @@ class CalibrationPriorDict(PriorDict):
             This includes the frequencies of the nodes which are _not_ sampled.
         """
         calibration_data = np.genfromtxt(envelope_file).T
-        frequency_array = calibration_data[0]
+        log_frequency_array = np.log(calibration_data[0])
         amplitude_median = calibration_data[1] - 1
         phase_median = calibration_data[2]
         amplitude_sigma = (calibration_data[5] - calibration_data[3]) / 2
         phase_sigma = (calibration_data[6] - calibration_data[4]) / 2
 
-        nodes = np.logspace(np.log10(minimum_frequency),
-                            np.log10(maximum_frequency), n_nodes)
+        log_nodes = np.linspace(np.log(minimum_frequency),
+                                np.log(maximum_frequency), n_nodes)
 
         amplitude_mean_nodes = \
-            UnivariateSpline(frequency_array, amplitude_median)(nodes)
+            InterpolatedUnivariateSpline(log_frequency_array, amplitude_median)(log_nodes)
         amplitude_sigma_nodes = \
-            UnivariateSpline(frequency_array, amplitude_sigma)(nodes)
+            InterpolatedUnivariateSpline(log_frequency_array, amplitude_sigma)(log_nodes)
         phase_mean_nodes = \
-            UnivariateSpline(frequency_array, phase_median)(nodes)
+            InterpolatedUnivariateSpline(log_frequency_array, phase_median)(log_nodes)
         phase_sigma_nodes = \
-            UnivariateSpline(frequency_array, phase_sigma)(nodes)
+            InterpolatedUnivariateSpline(log_frequency_array, phase_sigma)(log_nodes)
 
         prior = CalibrationPriorDict()
         for ii in range(n_nodes):
@@ -564,7 +564,7 @@ class CalibrationPriorDict(PriorDict):
         for ii in range(n_nodes):
             name = "recalib_{}_frequency_{}".format(label, ii)
             latex_label = "$f^{}_{}$".format(label, ii)
-            prior[name] = DeltaFunction(peak=nodes[ii], name=name,
+            prior[name] = DeltaFunction(peak=np.exp(log_nodes[ii]), name=name,
                                         latex_label=latex_label)
         prior.source = os.path.abspath(envelope_file)
         return prior
