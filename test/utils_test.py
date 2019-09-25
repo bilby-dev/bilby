@@ -3,6 +3,7 @@ from __future__ import absolute_import, division
 import unittest
 import numpy as np
 from astropy import constants
+import lal
 
 import bilby
 from bilby.core import utils
@@ -11,16 +12,28 @@ from bilby.core import utils
 class TestConstants(unittest.TestCase):
 
     def test_speed_of_light(self):
-        self.assertTrue(bilby.core.utils.speed_of_light, constants.c.value)
+        self.assertEqual(utils.speed_of_light, lal.C_SI)
+        self.assertLess(
+           abs(utils.speed_of_light - constants.c.value) / utils.speed_of_light,
+           1e-16)
 
     def test_parsec(self):
-        self.assertTrue(bilby.core.utils.parsec, constants.pc.value)
+        self.assertEqual(utils.parsec, lal.PC_SI)
+        self.assertLess(
+           abs(utils.parsec - constants.pc.value) / utils.parsec,
+           1e-11)
 
     def test_solar_mass(self):
-        self.assertTrue(bilby.core.utils.solar_mass, constants.M_sun.value)
+        self.assertEqual(utils.solar_mass, lal.MSUN_SI)
+        self.assertLess(
+            abs(utils.solar_mass - constants.M_sun.value) / utils.solar_mass,
+            1e-4)
 
     def test_radius_of_earth(self):
-        self.assertTrue(bilby.core.utils.radius_of_earth, constants.R_earth.value)
+        self.assertEqual(bilby.core.utils.radius_of_earth, lal.REARTH_SI)
+        self.assertLess(
+            abs(utils.radius_of_earth - constants.R_earth.value) / utils.radius_of_earth,
+            1e-5)
 
 
 class TestFFT(unittest.TestCase):
