@@ -1,6 +1,16 @@
 # All notable changes will be documented in this file
 
-## Unreleased
+## [0.5.8] 2019-09-26
+
+### Added
+- Progress bar in post-processing step
+
+### Changed
+- Fixed implementation of calibration !607
+- Fixed interaction with dynesty for reflective bounds !604
+- Fixed behaviour of n_effective with check pointing !603
+- Fixed testing of constants !605
+- Fixed bug in bilby_result with python2.7
 
 ## [0.5.7] 2019-09-19
 
