@@ -30,18 +30,37 @@ _TOL = 14
 
 def infer_parameters_from_function(func):
     """ Infers the arguments of a function
-        (except the first arg which is assumed to be the dep. variable).
+    (except the first arg which is assumed to be the dep. variable).
 
-        Throws out *args and **kwargs type arguments
+    Throws out *args and **kwargs type arguments
 
-        Can deal with type hinting!
+    Can deal with type hinting!
 
-        Returns
-        ---------
-        list: A list of strings with the parameters
+    Parameters
+    ----------
+    func: function or method
+       The function or method for which the parameters should be inferred.
+
+    Returns
+    ---------
+    list: A list of strings with the parameters
+
+    Notes
+    -----
+    In order to handle methods the ``type`` of the function is checked, and 
+    if a method has been passed the first *two* arguments are removed rather than just the first one. 
+    This allows the reference to the instance (conventionally named ``self``) 
+    to be removed.
     """
-    return _infer_args_from_function_except_for_first_arg(func=func)
-
+    if isinstance(func, types.MethodType):
+        # This is a method, remove the first two arguments
+        return _infer_args_from_function_except_n_args(func, n=2)
+    elif isinstance(func, types.FunctionType):
+        # It's a function, remove just the first argument
+        return _infer_args_from_function_except_for_first_arg(func=func)
+    else:
+        # Panic, I don't understand what I'm looking at
+        raise ValueError("This doesn't look like a function.")
 
 def infer_args_from_method(method):
     """ Infers all arguments of a method except for 'self'
@@ -59,8 +78,8 @@ def infer_args_from_method(method):
 
 def _infer_args_from_function_except_n_args(func, n=1):
     """ Inspects a function to find its arguments, and ignoring the 
-    first n of these, returns a list of arguments 
-    from the function's signature.
+    first n of these, returns a list of arguments from the function's 
+    signature.
     
     Parameters
     ----------
