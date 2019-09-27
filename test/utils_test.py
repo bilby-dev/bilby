@@ -80,6 +80,12 @@ class TestInferParameters(unittest.TestCase):
         del self.source1
         del self.source2
 
+    def test_args_inference_method(self):
+        """Test that inference of arguments from methods ignores ``self``"""
+        expected = ['a', 'b']
+        actual = utils.infer_parameters_from_function(self.source2)
+        self.assertListEqual(expected, actual)
+        
     def test_args_kwargs_handling(self):
         expected = ['a', 'b']
         actual = utils.infer_parameters_from_function(self.source1)
