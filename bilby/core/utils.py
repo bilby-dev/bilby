@@ -103,8 +103,8 @@ def _infer_args_from_function_except_n_args(func, n=1):
 
     Extended Summary
     ----------------
-    This function is intended to allow the handling of named arguments 
-    in both functions and methods; this is important, since the first 
+    This function is intended to allow the handling of named arguments
+    in both functions and methods; this is important, since the first
     argument of an instance method will be the instance.
 
     See Also
