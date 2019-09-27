@@ -60,7 +60,7 @@ def infer_parameters_from_function(func):
     """
     if isinstance(func, types.MethodType):
         # This is a method, remove the first two arguments
-        return infer_args_from_method(method=func)
+        return _infer_args_from_function_except_n_args(func=func, n=2)
     elif isinstance(func, types.FunctionType):
         # It's a function, remove just the first argument
         return _infer_args_from_function_except_for_first_arg(func=func)
@@ -81,7 +81,7 @@ def infer_args_from_method(method):
     list: A list of strings with the parameters
     """
     # This is a method, remove the first two arguments
-    return _infer_args_from_function_except_n_args(func=method, n=2)
+    return _infer_args_from_function_except_n_args(func=method, n=1)
 
 
 def _infer_args_from_function_except_n_args(func, n=1):
@@ -130,12 +130,13 @@ def _infer_args_from_function_except_n_args(func, n=1):
 
 
 def _infer_args_from_function_except_for_first_arg(func):
-    try:
-        parameters = inspect.getfullargspec(func).args
-    except AttributeError:
-        parameters = inspect.getargspec(func).args
-    parameters.pop(0)
-    return parameters
+    #try:
+    #    parameters = inspect.getfullargspec(func).args
+    #except AttributeError:
+    #    parameters = inspect.getargspec(func).args
+    #parameters.pop(0)
+    #return parameters
+    return _infer_args_from_function_except_n_args(func=func, n=1)
 
 
 def get_sampling_frequency(time_array):
