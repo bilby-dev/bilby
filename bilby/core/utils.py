@@ -130,12 +130,6 @@ def _infer_args_from_function_except_n_args(func, n=1):
 
 
 def _infer_args_from_function_except_for_first_arg(func):
-    #try:
-    #    parameters = inspect.getfullargspec(func).args
-    #except AttributeError:
-    #    parameters = inspect.getargspec(func).args
-    #parameters.pop(0)
-    #return parameters
     return _infer_args_from_function_except_n_args(func=func, n=1)
 
 
