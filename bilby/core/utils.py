@@ -6,6 +6,7 @@ from math import fmod
 import argparse
 import traceback
 import inspect
+import types
 import subprocess
 import multiprocessing
 from importlib import import_module
@@ -42,8 +43,13 @@ def infer_parameters_from_function(func):
        The function or method for which the parameters should be inferred.
 
     Returns
-    ---------
+    -------
     list: A list of strings with the parameters
+
+    Raises
+    ------
+    ValueError
+       If the object passed to the function is neither a function nor a method.
 
     Notes
     -----
@@ -54,7 +60,7 @@ def infer_parameters_from_function(func):
     """
     if isinstance(func, types.MethodType):
         # This is a method, remove the first two arguments
-        return _infer_args_from_function_except_n_args(func, n=2)
+        return infer_args_from_method(method=func)
     elif isinstance(func, types.FunctionType):
         # It's a function, remove just the first argument
         return _infer_args_from_function_except_for_first_arg(func=func)
@@ -62,6 +68,7 @@ def infer_parameters_from_function(func):
         # Panic, I don't understand what I'm looking at
         raise ValueError("This doesn't look like a function.")
 
+    
 def infer_args_from_method(method):
     """ Infers all arguments of a method except for 'self'
 
@@ -73,7 +80,8 @@ def infer_args_from_method(method):
     ---------
     list: A list of strings with the parameters
     """
-    return _infer_args_from_function_except_for_first_arg(func=method)
+    # This is a method, remove the first two arguments
+    return _infer_args_from_function_except_n_args(func=method, n=2)
 
 
 def _infer_args_from_function_except_n_args(func, n=1):
@@ -115,7 +123,7 @@ def _infer_args_from_function_except_n_args(func, n=1):
         parameters = inspect.getfullargspec(func).args
     except AttributeError:
         parameters = inspect.getargspec(func).args
-    del(parameters[:n])
+    del(parameters[:(n-1)])
     return parameters
     
 
