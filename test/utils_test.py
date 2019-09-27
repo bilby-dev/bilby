@@ -69,7 +69,7 @@ class TestInferParameters(unittest.TestCase):
             return None
 
         class TestClass:
-            def test_method(self, a, b, *args, **kwargs):
+            def test_method(self, freqs, a, b, *args, **kwargs):
                 pass
 
         self.source1 = source_function
