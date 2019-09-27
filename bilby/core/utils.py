@@ -57,6 +57,50 @@ def infer_args_from_method(method):
     return _infer_args_from_function_except_for_first_arg(func=method)
 
 
+def _infer_args_from_function_except_n_args(func, n=1):
+    """ Inspects a function to find its arguments, and ignoring the 
+    first n of these, returns a list of arguments 
+    from the function's signature.
+    
+    Parameters
+    ----------
+    func : function or method
+       The function from which the arguments should be inferred.
+    n : int
+       The number of arguments which should be ignored, staring at the beginning.
+
+    Returns
+    -------
+    parameters: list
+       A list of parameters of the function, omitting the first ``n``.
+
+    Extended Summary
+    ----------------
+    This function is intended to allow the handling of named arguments in both functions and methods; this is important, since the first argument of an instance method will be the instance.
+    
+    See Also
+    --------
+    infer_args_from_method: Provides the arguments for a method
+    infer_args_from_function: Provides the arguments for a function
+    infer_args_from_function_except_first_arg: Provides all but first argument of a function or method.
+
+    Examples
+    --------
+    >>> def hello(a, b, c, d):
+    >>>     pass
+    >>>
+    >>> _infer_args_from_function_except_n_args(hello, 2)
+    ['c', 'd']
+    """
+    try:
+        parameters = inspect.getfullargspec(func).args
+    except AttributeError:
+        parameters = inspect.getargspec(func).args
+    del(parameters[:n])
+    return parameters
+    
+
+
 def _infer_args_from_function_except_for_first_arg(func):
     try:
         parameters = inspect.getfullargspec(func).args
