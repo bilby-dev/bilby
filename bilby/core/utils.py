@@ -59,13 +59,10 @@ def infer_parameters_from_function(func):
     to be removed.
     """
     if isinstance(func, types.MethodType):
-        # This is a method, remove the first two arguments
         return _infer_args_from_function_except_n_args(func=func, n=2)
     elif isinstance(func, types.FunctionType):
-        # It's a function, remove just the first argument
         return _infer_args_from_function_except_for_first_arg(func=func)
     else:
-        # Panic, I don't understand what I'm looking at
         raise ValueError("This doesn't look like a function.")
 
 
@@ -80,7 +77,6 @@ def infer_args_from_method(method):
     ---------
     list: A list of strings with the parameters
     """
-    # This is a method, remove the first two arguments
     return _infer_args_from_function_except_n_args(func=method, n=1)
 
 
