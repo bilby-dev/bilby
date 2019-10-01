@@ -72,14 +72,21 @@ class TestInferParameters(unittest.TestCase):
             def test_method(self, a, b, *args, **kwargs):
                 pass
 
+        class TestClass2:
+            def test_method(self, freqs, a, b, *args, **kwargs):
+                pass
+
         self.source1 = source_function
         test_obj = TestClass()
         self.source2 = test_obj.test_method
+        test_obj2 = TestClass2()
+        self.source3 = test_obj2.test_method
 
     def tearDown(self):
         del self.source1
         del self.source2
 
+        
     def test_args_kwargs_handling(self):
         expected = ['a', 'b']
         actual = utils.infer_parameters_from_function(self.source1)
@@ -89,7 +96,11 @@ class TestInferParameters(unittest.TestCase):
         expected = ['a', 'b']
         actual = utils.infer_args_from_method(self.source2)
         self.assertListEqual(expected, actual)
-
+        
+    def test_self_handling_method_as_function(self):
+        expected = ['a', 'b']
+        actual = utils.infer_parameters_from_function(self.source3)
+        self.assertListEqual(expected, actual)
 
 class TestTimeAndFrequencyArrays(unittest.TestCase):
 
