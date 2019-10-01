@@ -25,13 +25,18 @@ import argparse
 import pandas as pd
 
 import bilby
+from bilby.core.utils import tcolors
 
 
 def setup_command_line_args():
     parser = argparse.ArgumentParser(
         description="Helper tool for bilby result files")
-    parser.add_argument("-r", "--results", nargs='+', required=True,
-                        help="List of results files.")
+    parser.add_argument(
+        "results", nargs='?',
+        help="List of results files.")
+    parser.add_argument(
+        "-r", "--results", nargs='+', dest="option_results", default=list(),
+        help="List of results files (alternative to passing results as a positional argument).")
     parser.add_argument("-c", "--convert", type=str, choices=['json', 'hdf5'],
                         help="Convert all results.", default=False)
     parser.add_argument("-m", "--merge", action='store_true',
@@ -42,14 +47,23 @@ def setup_command_line_args():
                         help="New label for output result object")
     parser.add_argument("-b", "--bayes", action='store_true',
                         help="Print all Bayes factors.")
-    parser.add_argument("-p", "--print", nargs='+', default=None,
+    parser.add_argument("-p", "--print", nargs='+', default=None, dest="keys",
                         help="Result dictionary keys to print.")
     parser.add_argument("--call", nargs='+', default=None,
                         help="Result dictionary methods to call (no argument passing available).")
     parser.add_argument("--ipython", action='store_true',
                         help=("For each result given, drops the user into an "
                               "IPython shell with the result loaded in"))
-    args, _ = parser.parse_known_args()
+    args = parser.parse_args()
+
+    if args.results is None:
+        args.results = []
+    if isinstance(args.results, str):
+        args.results = [args.results]
+    args.results += args.option_results
+
+    if len(args.results) == 0:
+        raise ValueError("You have not passed any results to bilby_result")
 
     return args
 
@@ -81,17 +95,26 @@ def drop_to_ipython(results_list):
         IPython.embed(header=message)
 
 
+def print_matches(results_list, args):
+    for r in results_list:
+        print("\nResult file: {}/{}".format(r.outdir, r.label))
+        for key in args.keys:
+            for attr in r.__dict__:
+                if key in attr:
+                    print_line = [
+                        "  ", tcolors.KEY, attr, ":", tcolors.VALUE,
+                        str(getattr(r, attr)), tcolors.END]
+                    print(" ".join(print_line))
+
+
 def main():
     args = setup_command_line_args()
     results_list = read_in_results(args.results)
     if args.convert:
         for r in results_list:
             r.save_to_file(extension=args.convert, outdir=args.outdir)
-    if args.print is not None:
-        for r in results_list:
-            print("\nResult file: {}/{}".format(r.outdir, r.label))
-            for key in args.print:
-                print("  {}: {}".format(key, getattr(r, key, 'None')))
+    if args.keys is not None:
+        print_matches(results_list, args)
     if args.call is not None:
         for r in results_list:
             for call in args.call:

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 
-from ..utils import logger, check_directory_exists_and_if_not_mkdir
+from ..utils import logger, check_directory_exists_and_if_not_mkdir, reflect
 from .base_sampler import Sampler, NestedSampler
 
 
@@ -75,7 +75,7 @@ class Dynesty(NestedSampler):
         If true, resume run from checkpoint (if available)
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
-                          verbose=True, periodic=None,
+                          verbose=True, periodic=None, reflective=None,
                           check_point_delta_t=600, nlive=1000,
                           first_update=None, walks=None,
                           npdim=None, rstate=None, queue_size=None, pool=None,
@@ -198,22 +198,25 @@ class Dynesty(NestedSampler):
         sys.stdout.flush()
 
     def _apply_dynesty_boundaries(self):
-        if self.kwargs['periodic'] is None:
-            logger.debug("Setting periodic boundaries for keys:")
-            self.kwargs['periodic'] = []
-            self._periodic = list()
-            self._reflective = list()
-            for ii, key in enumerate(self.search_parameter_keys):
-                if self.priors[key].boundary in ['periodic', 'reflective']:
-                    self.kwargs['periodic'].append(ii)
-                    logger.debug("  {}".format(key))
-                    if self.priors[key].boundary == 'periodic':
-                        self._periodic.append(ii)
-                    else:
-                        self._reflective.append(ii)
+        self._periodic = list()
+        self._reflective = list()
+        for ii, key in enumerate(self.search_parameter_keys):
+            if self.priors[key].boundary == 'periodic':
+                logger.debug("Setting periodic boundary for {}".format(key))
+                self._periodic.append(ii)
+            elif self.priors[key].boundary == 'reflective':
+                logger.debug("Setting reflective boundary for {}".format(key))
+                self._reflective.append(ii)
+
+        # The periodic kwargs passed into dynesty allows the parameters to
+        # wander out of the bounds, this includes both periodic and reflective.
+        # these are then handled in the prior_transform
+        self.kwargs["periodic"] = self._periodic
+        self.kwargs["reflective"] = self._reflective
 
     def run_sampler(self):
         import dynesty
+        logger.info("Using dynesty version {}".format(dynesty.__version__))
         if self.kwargs['live_points'] is None:
             self.kwargs['live_points'] = (
                 self.get_initial_points_from_prior(
@@ -293,7 +296,7 @@ class Dynesty(NestedSampler):
         old_ncall = self.sampler.ncall
         sampler_kwargs = self.sampler_function_kwargs.copy()
         sampler_kwargs['maxcall'] = self.n_check_point
-        sampler_kwargs['add_live'] = False
+        sampler_kwargs['add_live'] = True
         self.start_time = datetime.datetime.now()
         while True:
             sampler_kwargs['maxcall'] += self.n_check_point
@@ -302,6 +305,7 @@ class Dynesty(NestedSampler):
                 break
             old_ncall = self.sampler.ncall
 
+            self.sampler._remove_live_points()
             self.write_current_state()
 
         sampler_kwargs['add_live'] = True
@@ -436,6 +440,7 @@ class Dynesty(NestedSampler):
 
             current_state['posterior'] = resample_equal(
                 np.array(current_state['physical_samples']), weights)
+            current_state['search_parameter_keys'] = self.search_parameter_keys
         except ValueError:
             logger.debug("Unable to create posterior")
 
@@ -505,8 +510,5 @@ class Dynesty(NestedSampler):
         |theta| - 1 (i.e. wrap around).
 
         """
-        theta[self._periodic] = np.mod(theta[self._periodic], 1)
-        theta_ref = theta[self._reflective]
-        theta[self._reflective] = np.minimum(
-            np.maximum(theta_ref, abs(theta_ref)), 2 - theta_ref)
+        theta[self._reflective] = reflect(theta[self._reflective])
         return self.priors.rescale(self._search_parameter_keys, theta)

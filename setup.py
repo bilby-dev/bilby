@@ -57,7 +57,7 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '0.5.7'
+VERSION = '0.5.8'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
@@ -72,22 +72,24 @@ setup(name='bilby',
       packages=['bilby', 'bilby.core', 'bilby.core.sampler',
                 'bilby.gw', 'bilby.gw.detector', 'bilby.gw.sampler',
                 'bilby.hyper', 'cli_bilby'],
-      package_dir={'bilby': 'bilby'},
+      package_dir={'bilby': 'bilby', 'cli_bilby': 'cli_bilby'},
       package_data={'bilby.gw': ['prior_files/*'],
                     'bilby.gw.detector': ['noise_curves/*.txt', 'detectors/*'],
                     'bilby': [version_file]},
       install_requires=[
           'future',
-          'dynesty>=0.9.7',
+          'dynesty>=1.0.0',
           'corner',
           'dill',
           'numpy>=1.9',
           'matplotlib>=2.0',
           'pandas',
-          'scipy'],
+          'scipy',
+          'tqdm'],
       entry_points={'console_scripts':
                     ['bilby_plot=cli_bilby.plot_multiple_posteriors:main',
-                     'bilby_result=cli_bilby.bilby_result:main']
+                     'bilby_result=cli_bilby.bilby_result:main',
+                     'bilby_convert_resume=cli_bilby.resume:main']
                     },
       classifiers=[
           "Programming Language :: Python :: 2.7",

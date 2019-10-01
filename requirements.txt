@@ -7,3 +7,4 @@ scipy>=0.16
 pandas
 mock
 dill
+tqdm
