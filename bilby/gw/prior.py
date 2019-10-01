@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint)
+                          Interped, Constraint, CorrelatedUniform)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -631,18 +631,9 @@ class CalibrationPriorDict(PriorDict):
         return prior
 
 
-class CalibrationPriorSet(CalibrationPriorDict):
+class CorrelatedSecondaryMassPrior(CorrelatedUniform):
 
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE BNSPriorDict INSTEAD"""
-        super(CalibrationPriorSet, self).__init__(dictionary, filename)
-        logger.warning("The name 'CalibrationPriorSet' is deprecated use 'CalibrationPriorDict' instead")
-
-
-class CorrelatedSecondaryMassPrior(Uniform):
-
-    def __init__(self, name=None, latex_label=None, unit=None, minimum=-np.inf,
-                 maximum=np.inf):
+    def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
         """
 
         Parameters
@@ -653,44 +644,8 @@ class CorrelatedSecondaryMassPrior(Uniform):
         minimum
         maximum
         """
+        def cf(extrema_dict, mass_1):
+            return extrema_dict['minimum'], mass_1
         super(CorrelatedSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                            name=name, latex_label=latex_label,
-                                                           unit=unit)
-        self.correlated_variables = ['mass_1']
-
-    def sample(self, size=None, mass_1=None):
-        if mass_1 is None:
-            return super().sample(size)
-        maximum = self.maximum
-        self.maximum = mass_1
-        res = super().sample(size)
-        self.maximum = maximum
-        return res
-
-    def prob(self, val, mass_1=None):
-        if mass_1 is None:
-            return super().prob(val)
-        maximum = self.maximum
-        self.maximum = mass_1
-        res = super().prob(val)
-        self.maximum = maximum
-        return res
-
-    def ln_prob(self, val, mass_1=None):
-        if mass_1 is None:
-            return super().ln_prob(val)
-        maximum = self.maximum
-        self.maximum = mass_1
-        res = super().ln_prob(val)
-        self.maximum = maximum
-        return res
-
-    def rescale(self, val, mass_1=None):
-        Prior.test_valid_for_rescaling(val)
-        if mass_1 is None:
-            return super().rescale(val)
-        maximum = self.maximum
-        self.maximum = mass_1
-        res = super().rescale(val)
-        self.maximum = maximum
-        return res
+                                                           unit=unit, correlation_func=cf)
