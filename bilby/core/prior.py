@@ -16,7 +16,7 @@ from scipy.special import erf, erfinv
 from matplotlib.cbook import flatten
 
 # Keep import bilby statement, it is necessary for some eval() statements
-from .utils import BilbyJsonEncoder, decode_bilby_json
+from .utils import BilbyJsonEncoder, decode_bilby_json, infer_parameters_from_function
 from .utils import (
     check_directory_exists_and_if_not_mkdir,
     infer_args_from_method, logger
@@ -485,6 +485,15 @@ class PriorSet(PriorDict):
 class CorrelatedPriorDict(PriorDict):
 
     def __init__(self, dictionary=None, filename=None):
+        """
+
+        Parameters
+        ----------
+        dictionary: dict
+            See parent class
+        filename: str
+            See parent class
+        """
         super(CorrelatedPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self.correlated_keys = []
         self.uncorrelated_keys = []
@@ -676,7 +685,6 @@ class Prior(object):
         self.unit = unit
         self.minimum = minimum
         self.maximum = maximum
-        self.least_recently_sampled = None
         self._correlated_variables = []
         self.boundary = boundary
 
@@ -718,8 +726,7 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size))
-        return self.least_recently_sampled
+        return self.rescale(np.random.uniform(0, 1, size))
 
     def rescale(self, val):
         """
@@ -3486,7 +3493,7 @@ class CorrelatedGaussian(Prior):
         unit: str
             See superclass
         """
-        Prior.__init__(self, name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super(CorrelatedGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
         self.sigma = sigma
         if not correlation_func:
@@ -3496,7 +3503,6 @@ class CorrelatedGaussian(Prior):
 
     @property
     def correlated_variables(self):
-        from .utils import infer_parameters_from_function
         return infer_parameters_from_function(self.correlation_func)
 
     def sample(self, size=None, **cvars):
@@ -3512,8 +3518,7 @@ class CorrelatedGaussian(Prior):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **cvars)
-        return self.least_recently_sampled
+        return self.rescale(np.random.uniform(0, 1, size), **cvars)
 
     def mean(self, **correlated_variables):
         return self.correlation_func(self.mu, **correlated_variables)
@@ -3594,8 +3599,7 @@ class CorrelatedUniform(Prior):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **correlated_variables)
-        return self.least_recently_sampled
+        return self.rescale(np.random.uniform(0, 1, size), **correlated_variables)
 
     def rescale(self, val, **correlated_variables):
         Prior.test_valid_for_rescaling(val)
