@@ -685,6 +685,7 @@ class Prior(object):
         self.unit = unit
         self.minimum = minimum
         self.maximum = maximum
+        self.least_recently_sampled = None
         self._correlated_variables = []
         self.boundary = boundary
 
@@ -726,7 +727,8 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        return self.rescale(np.random.uniform(0, 1, size))
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size))
+        return self.least_recently_sampled
 
     def rescale(self, val):
         """
