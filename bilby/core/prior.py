@@ -3521,23 +3521,18 @@ class CorrelatedGaussian(Gaussian, CorrelatedPriorMixin):
         super(CorrelatedGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
         self.sigma = sigma
-        self._initial_mu = mu
-        self._initial_sigma = sigma
+        self._initial_params = dict(mu=mu, sigma=sigma)
         if not correlation_func:
             self.correlation_func = lambda x, **y: x
         else:
             self.correlation_func = correlation_func
 
     @property
-    def initial_mu(self):
-        return self._initial_mu
-
-    @property
-    def initial_sigma(self):
-        return self._initial_sigma
+    def initial_params(self):
+        return self._initial_params
 
     def update_mu_sigma(self, **correlated_variables):
-        return self.correlation_func(self.initial_mu, self.initial_sigma, **correlated_variables)
+        return self.correlation_func(self._initial_params['mu'], self._initial_params['sigma'], **correlated_variables)
 
     def rescale(self, val, **correlated_variables):
         """
