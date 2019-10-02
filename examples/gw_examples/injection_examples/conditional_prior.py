@@ -51,7 +51,7 @@ np.random.seed(88170235)
 
 injection_parameters = dict(
     mass_1=9., mass_2=9, a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=1800., theta_jn=0.4, psi=2.659,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=1500., theta_jn=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
@@ -83,7 +83,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=300,
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=600,
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # Make a corner plot.
