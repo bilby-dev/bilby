@@ -482,7 +482,7 @@ class PriorSet(PriorDict):
         super(PriorSet, self).__init__(dictionary, filename)
 
 
-class CorrelatedPriorDict(PriorDict):
+class ConditionalPriorDict(PriorDict):
 
     def __init__(self, dictionary=None, filename=None):
         """
@@ -494,63 +494,63 @@ class CorrelatedPriorDict(PriorDict):
         filename: str
             See parent class
         """
-        super(CorrelatedPriorDict, self).__init__(dictionary=dictionary, filename=filename)
-        self.correlated_keys = []
-        self.uncorrelated_keys = []
-        self._resolve_correlations()
+        super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
+        self.conditioned_keys = []
+        self.unconditioned_keys = []
+        self._resolve_conditions()
 
-    def _resolve_correlations(self):
+    def _resolve_conditions(self):
         self.convert_floats_to_delta_functions()
         for key in self.keys():
-            if self[key].has_correlated_variables():
-                self.correlated_keys.append(key)
+            if self[key].has_conditional_variables():
+                self.conditioned_keys.append(key)
             else:
-                self.uncorrelated_keys.append(key)
+                self.unconditioned_keys.append(key)
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
-        correlated_keys = []
-        uncorrelated_keys = []
+        conditional_keys = []
+        unconditional_keys = []
         sampled_keys = []
         for key in keys:
-            if key in self.uncorrelated_keys:
-                uncorrelated_keys.append(key)
-            elif key in self.correlated_keys:
-                correlated_keys.append(key)
+            if key in self.unconditioned_keys:
+                unconditional_keys.append(key)
+            elif key in self.conditioned_keys:
+                conditional_keys.append(key)
             else:
                 raise KeyError('Invalid key in keys argument')
 
         samples = dict()
-        for key in uncorrelated_keys:
+        for key in unconditional_keys:
             samples[key] = self[key].sample(size=size)
             sampled_keys.append(key)
 
         for i in range(0, 1000):
-            for key in correlated_keys:
-                if self._check_correlations_resolved(key, sampled_keys):
-                    cvars = self._get_correlated_variables(key)
+            for key in conditional_keys:
+                if self._check_conditions_resolved(key, sampled_keys):
+                    cvars = self._get_conditional_variables(key)
                     samples[key] = self[key].sample(size=size, **cvars)
-                    correlated_keys.remove(key)
+                    conditional_keys.remove(key)
                     sampled_keys.append(key)
-            if not correlated_keys:
+            if not conditional_keys:
                 break
             if i == 999:
                 raise Exception('This set contains unresolvable correlations')
 
         return samples
 
-    def _get_correlated_variables(self, key):
-        correlated_variables = dict()
-        for k in self[key].correlated_variables:
-            correlated_variables[k] = self[k].least_recently_sampled
-        return correlated_variables
+    def _get_conditional_variables(self, key):
+        conditional_variables = dict()
+        for k in self[key].conditional_variables:
+            conditional_variables[k] = self[k].least_recently_sampled
+        return conditional_variables
 
-    def _check_correlations_resolved(self, key, sampled_keys):
-        correlations_resolved = True
-        for k in self[key].correlated_variables:
+    def _check_conditions_resolved(self, key, sampled_keys):
+        conditions_resolved = True
+        for k in self[key].conditional_variables:
             if k not in sampled_keys:
-                correlations_resolved = False
-        return correlations_resolved
+                conditions_resolved = False
+        return conditions_resolved
 
     def prob(self, sample, **kwargs):
         """
@@ -569,9 +569,9 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            if key in self.correlated_keys:
-                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
-                ls.append(self[key].prob(sample[key], **correlated_variables))
+            if key in self.conditioned_keys:
+                conditional_variables = dict([(k, sample[k]) for k in self[key].conditional_variables])
+                ls.append(self[key].prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].prob(sample[key]))
         return np.product(ls, **kwargs)
@@ -591,9 +591,9 @@ class CorrelatedPriorDict(PriorDict):
         """
         ls = []
         for key in sample:
-            if key in self.correlated_keys:
-                correlated_variables = dict([(k, sample[k]) for k in self[key].correlated_variables])
-                ls.append(self[key].ln_prob(sample[key], **correlated_variables))
+            if key in self.conditioned_keys:
+                conditional_variables = dict([(k, sample[k]) for k in self[key].conditional_variables])
+                ls.append(self[key].ln_prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].ln_prob(sample[key]))
         return np.sum(ls, axis=axis)
@@ -614,13 +614,13 @@ class CorrelatedPriorDict(PriorDict):
         """
 
         rescale_dict = {}
-        correlated_keys, correlated_inds, _ = np.intersect1d(keys, self.correlated_keys, return_indices=True)
-        uncorrelated_keys, uncorrelated_inds, _ = np.intersect1d(keys, self.uncorrelated_keys, return_indices=True)
-        for key, ind in zip(uncorrelated_keys, uncorrelated_inds):
+        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditioned_keys, return_indices=True)
+        unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditioned_keys, return_indices=True)
+        for key, ind in zip(unconditional_keys, unconditional_idxs):
             rescale_dict[key] = self[key].rescale(theta[ind])
-        for key, ind in zip(correlated_keys, correlated_inds):
-            correlated_variables = dict([(k, rescale_dict[k]) for k in self[key].correlated_variables])
-            rescale_dict[key] = self[key].rescale(theta[ind], **correlated_variables)
+        for key, ind in zip(conditional_keys, conditional_idxs):
+            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].conditional_variables])
+            rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
         ls = [rescale_dict[key] for key in keys]
         return ls
 
@@ -686,7 +686,7 @@ class Prior(object):
         self.minimum = minimum
         self.maximum = maximum
         self.least_recently_sampled = None
-        self._correlated_variables = []
+        self._conditional_variables = []
         self.boundary = boundary
 
     def __call__(self):
@@ -948,18 +948,18 @@ class Prior(object):
             label = self.name
         return label
 
-    def has_correlated_variables(self):
-        if len(self.correlated_variables) > 0:
+    def has_conditional_variables(self):
+        if len(self.conditional_variables) > 0:
             return True
         return False
 
     @property
-    def correlated_variables(self):
-        return self._correlated_variables
+    def conditional_variables(self):
+        return self._conditional_variables
 
-    @correlated_variables.setter
-    def correlated_variables(self, correlated_variables):
-        self._correlated_variables = correlated_variables
+    @conditional_variables.setter
+    def conditional_variables(self, conditional_variables):
+        self._conditional_variables = conditional_variables
 
     def to_json(self):
         return json.dumps(self, cls=BilbyJsonEncoder)
@@ -3479,7 +3479,7 @@ class MultivariateNormal(MultivariateGaussian):
 
 class ConditionalPriorMixin(Prior):
 
-    def sample(self, size=None, **correlated_variables):
+    def sample(self, size=None, **conditional_variables):
         """Draw a sample from the prior
 
         Parameters
@@ -3492,7 +3492,7 @@ class ConditionalPriorMixin(Prior):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **correlated_variables)
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **conditional_variables)
         return self.least_recently_sampled
 
     def rescale(self, val, **conditional_variables):
@@ -3522,29 +3522,10 @@ class ConditionalPriorMixin(Prior):
         self.update_conditions(**conditional_variables)
         return super(ConditionalPriorMixin, self).ln_prob(val)
 
-    @property
-    def reference_params(self):
-        return self._reference_params
-
-    @property
-    def condition_func(self):
-        return self._condition_func
-
-    @condition_func.setter
-    def condition_func(self, condition_func):
-        if not condition_func:
-            self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
-        else:
-            self._condition_func = condition_func
-
     def update_conditions(self, **conditional_variables):
         conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
         for key, value in conditioned_params.items():
             setattr(self, key, value)
-
-    @property
-    def correlated_variables(self):
-        return infer_parameters_from_function(self.condition_func)
 
     def setup_conditional_prior(self, condition_func, **reference_params):
         self.condition_func = condition_func
@@ -3565,6 +3546,25 @@ class ConditionalPriorMixin(Prior):
                 continue
         vars = {key: all_vars[key] for key in vars}
         return vars
+
+    @property
+    def reference_params(self):
+        return self._reference_params
+
+    @property
+    def condition_func(self):
+        return self._condition_func
+
+    @condition_func.setter
+    def condition_func(self, condition_func):
+        if not condition_func:
+            self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
+        else:
+            self._condition_func = condition_func
+
+    @property
+    def conditionalble_variables(self):
+        return infer_parameters_from_function(self.condition_func)
 
 
 def conditional_prior_factory(prior_class):

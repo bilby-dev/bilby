@@ -5,7 +5,7 @@ import numpy as np
 from pandas import DataFrame
 
 from ..utils import logger, command_line_args, Counter
-from ..prior import Prior, PriorDict, CorrelatedPriorDict, DeltaFunction, Constraint
+from ..prior import Prior, PriorDict, ConditionalPriorDict, DeltaFunction, Constraint
 from ..result import Result, read_in_result
 
 
@@ -251,7 +251,7 @@ class Sampler(object):
         AttributeError
             prior can't be sampled.
         """
-        if isinstance(self.priors, CorrelatedPriorDict):
+        if isinstance(self.priors, ConditionalPriorDict):
             try:
                 self.likelihood.parameters = self.priors.sample()
             except AttributeError as e:
@@ -282,7 +282,7 @@ class Sampler(object):
                 "Your sampling set contains redundant parameters.")
 
         self._check_if_priors_can_be_sampled()
-        if isinstance(self.priors, CorrelatedPriorDict):
+        if isinstance(self.priors, ConditionalPriorDict):
             theta = self.priors.sample()
             theta = theta.values()
         else:
@@ -308,7 +308,7 @@ class Sampler(object):
 
         t1 = datetime.datetime.now()
         for _ in range(n_evaluations):
-            if isinstance(self.priors, CorrelatedPriorDict):
+            if isinstance(self.priors, ConditionalPriorDict):
                 theta = self.priors.sample()
                 theta = theta.values()
             else:
