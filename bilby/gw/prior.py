@@ -631,11 +631,6 @@ class CalibrationPriorDict(PriorDict):
         return prior
 
 
-ConditionalCosmological = conditional_prior_factory(Cosmological)
-ConditionalUniformComovingVolume = conditional_prior_factory(UniformComovingVolume)
-ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
-
-
 class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
@@ -644,3 +639,8 @@ class ConditionalSecondaryMassPrior(ConditionalUniform):
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                             name=name, latex_label=latex_label,
                                                             unit=unit, condition_func=cf)
+
+ConditionalCosmological = conditional_prior_factory(Cosmological)
+ConditionalUniformComovingVolume = conditional_prior_factory(UniformComovingVolume)
+ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
+
