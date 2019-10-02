@@ -276,7 +276,7 @@ class Sampler(object):
         self._check_if_priors_can_be_sampled()
         if isinstance(self.priors, ConditionalPriorDict):
             theta = self.priors.sample()
-            theta = theta.values()
+            theta = list(theta.values())
         else:
             theta = [self.priors[key].sample()
                      for key in self._search_parameter_keys]
@@ -302,7 +302,7 @@ class Sampler(object):
         for _ in range(n_evaluations):
             if isinstance(self.priors, ConditionalPriorDict):
                 theta = self.priors.sample()
-                theta = theta.values()
+                theta = list(theta.values())
             else:
                 theta = [self.priors[key].sample()
                          for key in self._search_parameter_keys]
