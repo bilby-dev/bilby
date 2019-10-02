@@ -1105,8 +1105,7 @@ class Uniform(Prior):
         -------
         float: Prior probability of val
         """
-        return scipy.stats.uniform.pdf(val, loc=self.minimum,
-                                       scale=self.maximum - self.minimum)
+        return ((val >= self.minimum) & (val <= self.maximum)) / (self.maximum - self.minimum)
 
     def ln_prob(self, val):
         """Return the log prior probability of val
@@ -1119,8 +1118,10 @@ class Uniform(Prior):
         -------
         float: log probability of val
         """
-        return scipy.stats.uniform.logpdf(val, loc=self.minimum,
-                                          scale=self.maximum - self.minimum)
+        with np.errstate(divide='ignore'):
+            _ln_prob = np.log((val >= self.minimum) & (val <= self.maximum), dtype=np.float64)\
+                - np.log(self.maximum - self.minimum)
+        return _ln_prob
 
     def cdf(self, val):
         _cdf = (val - self.minimum) / (self.maximum - self.minimum)
