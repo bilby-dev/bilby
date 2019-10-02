@@ -11,9 +11,10 @@ def condition_function(reference_params, mass_1):
 mass_1_min = 5
 mass_1_max = 50
 
-mass_1 = bilby.core.prior.PowerLaw(alpha=-2.5, minimum=mass_1_min, maximum=mass_1_max, name='mass_1')
+mass_1 = bilby.core.prior.PowerLaw(alpha=-2.5, minimum=mass_1_min, maximum=mass_1_max, name='mass_1',
+                                   latex_label='$m_1$')
 mass_2 = bilby.core.prior.ConditionalPowerLaw(alpha=-2.5, minimum=mass_1_min, maximum=mass_1_max, name='mass_2',
-                                              condition_func=condition_function)
+                                              latex_label='$m_2$', condition_func=condition_function)
 
 correlated_dict = bilby.core.prior.ConditionalPriorDict(dictionary=dict(mass_1=mass_1, mass_2=mass_2))
 
@@ -49,8 +50,8 @@ bilby.core.utils.setup_logger(outdir=outdir, label=label)
 np.random.seed(88170235)
 
 injection_parameters = dict(
-    mass_1=9., mass_2=7., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
-    phi_12=1.7, phi_jl=0.3, luminosity_distance=400., theta_jn=0.4, psi=2.659,
+    mass_1=9., mass_2=8.9, a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
+    phi_12=1.7, phi_jl=0.3, luminosity_distance=1200., theta_jn=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
@@ -87,62 +88,3 @@ result = bilby.run_sampler(
 
 # Make a corner plot.
 result.plot_corner()
-
-
-# mass_1 = bilby.core.prior.Uniform(5, 100)
-# mass_2 = bilby.gw.prior.CorrelatedSecondaryMassPrior(minimum=5, maximum=100)
-#
-# correlated_priors = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(mass_1=mass_1, mass_2=mass_2))
-#
-# samples = correlated_priors.sample(10)
-#
-# primary_masses = samples['mass_1']
-# secondary_masses = samples['mass_2']
-# for i in range(len(primary_masses)):
-#     if primary_masses[i] > secondary_masses[i]:
-#         print('True')
-#     else:
-#         print('False')
-#
-# sample = dict(mass_1=25, mass_2=20)
-# print(correlated_priors.prob(sample))
-
-
-# def correlation_func_a(mu, a=0):
-#     return mu + a**2 + 2 * a + 3
-#
-#
-# def correlation_func_b(mu, a=0, b=0):
-#     return mu + 0.01 * a**2 + 0.01 * b**2 + 0.01 * a * b + 0.1 * b + 3
-#
-#
-# a = bilby.core.prior.Gaussian(mu=0., sigma=1)
-# b = bilby.core.prior.CorrelatedGaussian(mu=0., sigma=1, correlation_func=correlation_func_a)
-# c = bilby.core.prior.CorrelatedGaussian(mu=0, sigma=1, correlation_func=correlation_func_b)
-#
-# correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
-#
-# samples = correlated_uniform.sample(1000000)
-#
-# samples = np.array([samples['a'], samples['b'], samples['c']]).T
-# corner.corner(np.array(samples))
-# plt.show()
-#
-#
-# def correlation_func_min_max(extrema_dict, a, b):
-#     maximum = extrema_dict['maximum'] + a**b
-#     minimum = np.log(b)
-#     return minimum, maximum
-#
-#
-# a = bilby.core.prior.Uniform(minimum=0, maximum=1)
-# b = bilby.core.prior.Uniform(minimum=1e-6, maximum=1e-1)
-# c = bilby.core.prior.CorrelatedUniform(minimum=0, maximum=1, correlation_func=correlation_func_min_max)
-#
-# correlated_uniform = bilby.core.prior.CorrelatedPriorDict(dictionary=dict(a=a, b=b, c=c))
-#
-# samples = correlated_uniform.sample(1000000)
-# samples = np.array([samples['a'], samples['b'], samples['c']]).T
-# corner.corner(np.array(samples))
-# plt.show()
-#
