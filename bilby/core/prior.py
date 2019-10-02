@@ -3326,51 +3326,19 @@ class ConditionalPriorMixin(object):
     def correlated_variables(self):
         return infer_parameters_from_function(self.correlation_func)
 
+    def update_conditions(self, **conditional_variables):
+        pass
 
-class ConditionalGaussian(Gaussian, ConditionalPriorMixin):
-
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None, correlation_func=None):
-        """Gaussian prior with mean mu and width sigma
-
-        Parameters
-        ----------
-        mu: float
-            Mean of the Gaussian prior
-        sigma:
-            Width/Standard deviation of the Gaussian prior
-        name: str
-            See superclass
-        latex_label: str
-            See superclass
-        unit: str
-            See superclass
-        """
-        super(ConditionalGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
-        self.mu = mu
-        self.sigma = sigma
-        self._initial_params = dict(mu=mu, sigma=sigma)
-        if not correlation_func:
-            self.correlation_func = lambda x, **y: x
-        else:
-            self.correlation_func = correlation_func
-
-    @property
-    def initial_params(self):
-        return self._initial_params
-
-    def update_mu_sigma(self, **correlated_variables):
-        return self.correlation_func(self._initial_params['mu'], self._initial_params['sigma'], **correlated_variables)
-
-    def rescale(self, val, **correlated_variables):
+    def rescale(self, val, **conditional_variables):
         """
         'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(ConditionalGaussian, self).rescale(val)
+        self.update_conditions(**conditional_variables)
+        return super(ConditionalPriorMixin, self).rescale(val)
 
-    def prob(self, val, **correlated_variables):
+    def prob(self, val, **conditional_variables):
         """Return the prior probability of val.
 
         Parameters
@@ -3381,74 +3349,84 @@ class ConditionalGaussian(Gaussian, ConditionalPriorMixin):
         -------
         float: Prior probability of val
         """
-        self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(ConditionalGaussian, self).prob(val)
+        self.update_conditions(**conditional_variables)
+        return super(ConditionalPriorMixin, self).prob(val)
 
-    def ln_prob(self, val, **correlated_variables):
-        self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(ConditionalGaussian, self).ln_prob(val)
+    def ln_prob(self, val, **conditional_variables):
+        self.update_conditions(**conditional_variables)
+        return super(ConditionalPriorMixin, self).ln_prob(val)
+
+    @property
+    def reference_params(self):
+        return self._reference_params
+
+    @property
+    def condition_func(self):
+        return self.condition_func
+
+    @condition_func.setter
+    def condition_func(self, condition_func):
+        if not condition_func:
+            self.condition_func = self.default_condition_func
+        else:
+            self.condition_func = condition_func
+
+    @staticmethod
+    def default_condition_func(reference_param_dict, **conditional_variables):
+        return reference_param_dict
+
+
+class ConditionalGaussian(ConditionalPriorMixin, Gaussian):
+
+    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None, condition_func=None):
+
+        super(ConditionalGaussian, self).__init__(mu=mu, sigma=sigma, name=name, latex_label=latex_label,
+                                                  unit=unit, boundary=boundary)
+        self._reference_params = OrderedDict()
+        self._reference_params['mu'] = mu
+        self._reference_params['sigma'] = sigma
+        self.condition_func = condition_func
+
+    def update_conditions(self, **conditional_variables):
+        conditioned_params = self.condition_func(self.reference_params['mu'],
+                                                 self.reference_params['sigma'],
+                                                 **conditional_variables)
+        self.mu, self.sigma = conditioned_params['mu'], conditioned_params['sigma']
 
 
 class ConditionalUniform(ConditionalPriorMixin, Uniform):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None, correlation_func=None):
-        """Uniform prior with bounds
+                 unit=None, boundary=None, condition_func=None):
 
-        Parameters
-        ----------
-        minimum: float
-            See superclass
-        maximum: float
-            See superclass
-        name: str
-            See superclass
-        latex_label: str
-            See superclass
-        unit: str
-            See superclass
-        """
         super(ConditionalUniform, self).__init__(name=name, latex_label=latex_label, minimum=minimum, maximum=maximum,
                                                  unit=unit, boundary=boundary)
-        self.extrema_dict = dict(minimum=minimum, maximum=maximum)
-        if not correlation_func:
-            def correlation_func(extrema_dict, **correlated_variables):
-                return extrema_dict['minimum'], extrema_dict['maximum']
-            self.correlation_func = correlation_func
-        else:
-            self.correlation_func = correlation_func
+        self._reference_params = OrderedDict()
+        self._reference_params['minimum'] = minimum
+        self._reference_params['maximum'] = maximum
+        self.condition_func = condition_func
 
-    def rescale(self, val, **correlated_variables):
-        self.update_boundaries(**correlated_variables)
-        return super(ConditionalUniform, self).rescale(val)
+    def update_conditions(self, **conditional_variables):
+        conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
+        self.minimum, self.maximum = conditioned_params['minimum'], conditioned_params['maximum']
 
-    def prob(self, val, **correlated_variables):
-        """Return the prior probability of val
 
-        Parameters
-        ----------
-        val: float
 
-        Returns
-        -------
-        float: Prior probability of val
-        """
-        self.update_boundaries(**correlated_variables)
-        return super(ConditionalUniform, self).prob(val)
+class ConditionalPowerLaw(ConditionalPriorMixin, PowerLaw):
 
-    def ln_prob(self, val, **correlated_variables):
-        """Return the log prior probability of val
+    def __init__(self, alpha, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None,
+                 condition_func=None):
+        super(ConditionalPowerLaw, self).__init__(alpha=alpha, minimum=minimum,
+                                                  maximum=maximum, name=name, latex_label=latex_label,
+                                                  unit=unit, boundary=boundary)
+        self._reference_params = OrderedDict()
+        self._reference_params['alpha'] = alpha
+        self._reference_params['minimum'] = minimum
+        self._reference_params['maximum'] = maximum
+        self.condition_func = condition_func
 
-        Parameters
-        ----------
-        val: float
-
-        Returns
-        -------
-        float: log probability of val
-        """
-        self.update_boundaries(**correlated_variables)
-        return super(ConditionalUniform, self).ln_prob(val)
-
-    def update_boundaries(self, **correlated_variables):
-        self.minimum, self.maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
+    def update_conditions(self, **conditional_variables):
+        conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
+        self.alpha, self.minimum, self.maximum = conditioned_params['alpha'], \
+                                                 conditioned_params['minimum'], \
+                                                 conditioned_params['maximum']
