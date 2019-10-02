@@ -3532,13 +3532,7 @@ class ConditionalPriorMixin(Prior):
         self._reference_params = reference_params
 
     def get_conditionable_variables(self, all_vars):
-        # import inspect
-        # try:
-        #     parameters = inspect.getfullargspec(self.__init__).args
-        # except AttributeError:
-        #     parameters = inspect.getargspec(self.__init__).args
-        import copy
-        vars = copy.copy(all_vars)
+        vars = all_vars.copy()
         for param in ['self', 'name', 'latex_label', 'unit', 'boundary', 'condition_func']:
             try:
                 del vars[param]
@@ -3563,7 +3557,7 @@ class ConditionalPriorMixin(Prior):
             self._condition_func = condition_func
 
     @property
-    def conditionalble_variables(self):
+    def conditional_variables(self):
         return infer_parameters_from_function(self.condition_func)
 
 
