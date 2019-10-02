@@ -494,9 +494,9 @@ class ConditionalPriorDict(PriorDict):
         filename: str
             See parent class
         """
-        super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self.conditioned_keys = []
         self.unconditioned_keys = []
+        super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self._resolve_conditions()
 
     def _resolve_conditions(self):
@@ -623,6 +623,10 @@ class ConditionalPriorDict(PriorDict):
             rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
         ls = [rescale_dict[key] for key in keys]
         return ls
+
+    def __setitem__(self, key, value):
+        super(ConditionalPriorDict, self).__setitem__(key, value)
+        self._resolve_conditions()
 
 
 def create_default_prior(name, default_priors_file=None):
