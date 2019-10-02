@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint, CorrelatedUniform)
+                          Interped, Constraint, ConditionalUniform)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -631,7 +631,7 @@ class CalibrationPriorDict(PriorDict):
         return prior
 
 
-class CorrelatedSecondaryMassPrior(CorrelatedUniform):
+class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
         """
@@ -646,6 +646,6 @@ class CorrelatedSecondaryMassPrior(CorrelatedUniform):
         """
         def cf(extrema_dict, mass_1):
             return extrema_dict['minimum'], mass_1
-        super(CorrelatedSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
-                                                           name=name, latex_label=latex_label,
-                                                           unit=unit, correlation_func=cf)
+        super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
+                                                            name=name, latex_label=latex_label,
+                                                            unit=unit, correlation_func=cf)
