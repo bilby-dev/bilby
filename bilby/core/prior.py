@@ -541,13 +541,13 @@ class ConditionalPriorDict(PriorDict):
 
     def _get_conditional_variables(self, key):
         conditional_variables = dict()
-        for k in self[key].conditional_variables:
+        for k in self[key].independent_variables:
             conditional_variables[k] = self[k].least_recently_sampled
         return conditional_variables
 
     def _check_conditions_resolved(self, key, sampled_keys):
         conditions_resolved = True
-        for k in self[key].conditional_variables:
+        for k in self[key].independent_variables:
             if k not in sampled_keys:
                 conditions_resolved = False
         return conditions_resolved
@@ -570,7 +570,7 @@ class ConditionalPriorDict(PriorDict):
         ls = []
         for key in sample:
             if key in self.conditioned_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].conditional_variables])
+                conditional_variables = dict([(k, sample[k]) for k in self[key].independent_variables])
                 ls.append(self[key].prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].prob(sample[key]))
@@ -592,7 +592,7 @@ class ConditionalPriorDict(PriorDict):
         ls = []
         for key in sample:
             if key in self.conditioned_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].conditional_variables])
+                conditional_variables = dict([(k, sample[k]) for k in self[key].independent_variables])
                 ls.append(self[key].ln_prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].ln_prob(sample[key]))
@@ -619,7 +619,7 @@ class ConditionalPriorDict(PriorDict):
         for key, ind in zip(unconditional_keys, unconditional_idxs):
             rescale_dict[key] = self[key].rescale(theta[ind])
         for key, ind in zip(conditional_keys, conditional_idxs):
-            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].conditional_variables])
+            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].independent_variables])
             rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
         ls = [rescale_dict[key] for key in keys]
         return ls
@@ -924,7 +924,7 @@ class Prior(object):
             dict_with_properties[key] = getattr(self, key)
         instantiation_dict = OrderedDict()
         for key in subclass_args:
-            if key == 'correlation_func':
+            if key == 'condition_func':
                 instantiation_dict[key] = str(dict_with_properties[key])
             else:
                 instantiation_dict[key] = dict_with_properties[key]
@@ -3477,98 +3477,93 @@ class MultivariateNormal(MultivariateGaussian):
                                       latex_label=latex_label, unit=unit)
 
 
-class ConditionalPriorMixin(object):
-
-    def sample(self, size=None, **conditional_variables):
-        """Draw a sample from the prior
-
-        Parameters
-        ----------
-        size: int or tuple of ints, optional
-            See numpy.random.uniform docs
-
-        Returns
-        -------
-        float: A random number between 0 and 1, rescaled to match the distribution of this Prior
-
-        """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **conditional_variables)
-        return self.least_recently_sampled
-
-    def rescale(self, val, **conditional_variables):
-        """
-        'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
-
-        This maps to the inverse CDF. This has been analytically solved for this case.
-        """
-        self.update_conditions(**conditional_variables)
-        return super(ConditionalPriorMixin, self).rescale(val)
-
-    def prob(self, val, **conditional_variables):
-        """Return the prior probability of val.
-
-        Parameters
-        ----------
-        val: Union[float, int, array_like]
-
-        Returns
-        -------
-        float: Prior probability of val
-        """
-        self.update_conditions(**conditional_variables)
-        return super(ConditionalPriorMixin, self).prob(val)
-
-    def ln_prob(self, val, **conditional_variables):
-        self.update_conditions(**conditional_variables)
-        return super(ConditionalPriorMixin, self).ln_prob(val)
-
-    def update_conditions(self, **conditional_variables):
-        conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
-        for key, value in conditioned_params.items():
-            setattr(self, key, value)
-
-    def setup_conditional_prior(self, condition_func, **reference_params):
-        self.condition_func = condition_func
-        self._reference_params = reference_params
-
-    def get_conditionable_variables(self, all_vars):
-        vars = all_vars.copy()
-        for param in ['self', 'name', 'latex_label', 'unit', 'boundary', 'condition_func']:
-            try:
-                del vars[param]
-            except KeyError:
-                continue
-        vars = {key: all_vars[key] for key in vars}
-        return vars
-
-    @property
-    def reference_params(self):
-        return self._reference_params
-
-    @property
-    def condition_func(self):
-        return self._condition_func
-
-    @condition_func.setter
-    def condition_func(self, condition_func):
-        if not condition_func:
-            self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
-        else:
-            self._condition_func = condition_func
-
-    @property
-    def conditional_variables(self):
-        return infer_parameters_from_function(self.condition_func)
-
-
 def conditional_prior_factory(prior_class):
-    class ConditionalPrior(ConditionalPriorMixin, prior_class):
-        def __init__(self, **params):
-            condition_func = params['condition_func']
-            del params['condition_func']
-            super(ConditionalPrior, self).__init__(**params)
-            self.setup_conditional_prior(condition_func=condition_func,
-                                         **self.get_conditionable_variables(params))
+    class ConditionalPrior(prior_class):
+        def __init__(self, name=None, latex_label=None, unit=None,
+                     condition_func=None, boundary=None, **conditional_params):
+            super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
+                                                   unit=unit, boundary=boundary, **conditional_params)
+            self.condition_func = condition_func
+            self._reference_params = conditional_params
+
+        def sample(self, size=None, **independent_variables):
+            """Draw a sample from the prior
+
+            Parameters
+            ----------
+            size: int or tuple of ints, optional
+                See numpy.random.uniform docs
+
+            Returns
+            -------
+            float: A random number between 0 and 1, rescaled to match the distribution of this Prior
+
+            """
+            self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **independent_variables)
+            return self.least_recently_sampled
+
+        def rescale(self, val, **independent_variables):
+            """
+            'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+
+            This maps to the inverse CDF. This has been analytically solved for this case.
+            """
+            self.update_conditions(**independent_variables)
+            return super(ConditionalPrior, self).rescale(val)
+
+        def prob(self, val, **independent_variables):
+            """Return the prior probability of val.
+
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+
+            Returns
+            -------
+            float: Prior probability of val
+            """
+            self.update_conditions(**independent_variables)
+            return super(ConditionalPrior, self).prob(val)
+
+        def ln_prob(self, val, **independent_variables):
+            self.update_conditions(**independent_variables)
+            return super(ConditionalPrior, self).ln_prob(val)
+
+        def update_conditions(self, **independent_variables):
+            conditioned_parameters = self.condition_func(self.reference_params, **independent_variables)
+            for key, value in conditioned_parameters.items():
+                setattr(self, key, value)
+
+        @property
+        def reference_params(self):
+            """
+
+            Returns
+            -------
+
+            """
+            return self._reference_params
+
+        @property
+        def condition_func(self):
+            """
+
+            Returns
+            -------
+
+            """
+            return self._condition_func
+
+        @condition_func.setter
+        def condition_func(self, condition_func):
+            if not condition_func:
+                self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
+            else:
+                self._condition_func = condition_func
+
+        @property
+        def independent_variables(self):
+            return infer_parameters_from_function(self.condition_func)
 
     return ConditionalPrior
 
