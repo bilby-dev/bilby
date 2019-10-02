@@ -535,7 +535,7 @@ class ConditionalPriorDict(PriorDict):
             if not conditional_keys:
                 break
             if i == 999:
-                raise Exception('This set contains unresolvable correlations')
+                raise Exception('This set contains unresolvable conditions')
 
         return samples
 
@@ -3304,7 +3304,7 @@ class MultivariateNormal(MultivariateGaussian):
         prior distribution."""
 
 
-class ConditionalPriorMixin(Prior):
+class ConditionalPriorMixin(object):
 
     def sample(self, size=None, **conditional_variables):
         """Draw a sample from the prior
@@ -3393,7 +3393,7 @@ def conditional_prior_factory(prior_class):
         def __init__(self, **params):
             condition_func = params['condition_func']
             del params['condition_func']
-            super(prior_class, self).__init__(**params)
+            super(ConditionalPrior, self).__init__(**params)
             self.setup_conditional_prior(condition_func=condition_func,
                                          **self.get_conditionable_variables(params))
 
