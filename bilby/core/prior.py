@@ -501,6 +501,8 @@ class ConditionalPriorDict(PriorDict):
 
     def _resolve_conditions(self):
         self.convert_floats_to_delta_functions()
+        self.conditioned_keys = []
+        self.unconditioned_keys = []
         for key in self.keys():
             if hasattr(self[key], 'condition_func'):
                 self.conditioned_keys.append(key)
@@ -3507,6 +3509,7 @@ def conditional_prior_factory(prior_class):
                                                    unit=unit, boundary=boundary, **reference_params)
             self.condition_func = condition_func
             self._reference_params = reference_params
+            self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
 
         def sample(self, size=None, **required_variables):
             """Draw a sample from the prior

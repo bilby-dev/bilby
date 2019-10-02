@@ -298,10 +298,11 @@ class Result(object):
 
     @priors.setter
     def priors(self, priors):
-        if isinstance(priors, ConditionalPriorDict):
-            self._priors = priors
-        elif isinstance(priors, dict):
-            self._priors = PriorDict(priors)
+        if isinstance(priors, dict):
+            if isinstance(priors, ConditionalPriorDict):
+                self._priors = priors
+            else:
+                self._priors = PriorDict(priors)
             if self.parameter_labels is None:
                 self.parameter_labels = [self.priors[k].latex_label for k in
                                          self.search_parameter_keys]
