@@ -3467,6 +3467,38 @@ def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
         def __init__(self, condition_func, name=None, latex_label=None, unit=None,
                      boundary=None, **reference_params):
+            """
+
+            Parameters
+            ----------
+            condition_func: func
+                Functional form of the condition for this prior. The first function argument
+                has to be a dictionary for the `reference_params` (see below). The following
+                arguments are the required variables that are required before we can draw this
+                prior.
+                It needs to return a dictionary with the modified values for the
+                `reference_params` that are being used in the next draw.
+                For example if we have a Uniform prior for `x` depending on a different variable `y`
+                `p(x|y)` with the boundaries linearly depending on y, then this
+                could have the following form:
+
+                ```
+                def condition_func(reference_params, y):
+                    return dict(minimum=reference_params['minimum'] + y, maximum=reference_params['maximum'] + y)
+                ```
+            name: str, optional
+               See superclass
+            latex_label: str, optional
+                See superclass
+            unit: str, optional
+                See superclass
+            boundary: str, optional
+                See superclass
+            reference_params:
+                Initial values for attributes such as `minimum`, `maximum`.
+                This differs on the `prior_class`, for example for the Gaussian
+                prior this is `mu` and `sigma`.
+            """
             super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
                                                    unit=unit, boundary=boundary, **reference_params)
             self.condition_func = condition_func
@@ -3478,11 +3510,13 @@ def conditional_prior_factory(prior_class):
             Parameters
             ----------
             size: int or tuple of ints, optional
-                See numpy.random.uniform docs
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
 
             Returns
             -------
-            float: A random number between 0 and 1, rescaled to match the distribution of this Prior
+            float: See superclass
 
             """
             self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **required_variables)
@@ -3503,6 +3537,10 @@ def conditional_prior_factory(prior_class):
             Parameters
             ----------
             val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
 
             Returns
             -------
@@ -3516,6 +3554,16 @@ def conditional_prior_factory(prior_class):
             return super(ConditionalPrior, self).ln_prob(val)
 
         def update_conditions(self, **required_variables):
+            """
+            This method updates the conditional parameters (depending on the parent class
+            this could be e.g. `minimum`, `maximum`, `mu`, `sigma`, etc.) of this prior
+            class depending on the required variables it depends on.
+            Parameters
+            ----------
+            required_variables:
+                Any required variables that this prior depends on
+
+            """
             conditioned_parameters = self.condition_func(self.reference_params, **required_variables)
             for key, value in conditioned_parameters.items():
                 setattr(self, key, value)
@@ -3523,15 +3571,19 @@ def conditional_prior_factory(prior_class):
         @property
         def reference_params(self):
             """
-
-            Returns
-            -------
-
+            Initial values for attributes such as `minimum`, `maximum`.
+            This differs on the `prior_class`, for example for the Gaussian
+            prior this is `mu` and `sigma`. This is read-only.
             """
             return self._reference_params
 
         @property
         def required_variables(self):
+            """
+            Infers the required variables from the condition function.
+            This works only correctly if the first argument of `condition_func` is
+            reserved for the reference parameters.
+            """
             return infer_parameters_from_function(self.condition_func)
 
     return ConditionalPrior
