@@ -3304,7 +3304,7 @@ class MultivariateNormal(MultivariateGaussian):
         prior distribution."""
 
 
-class ConditionalPriorMixin(object):
+class ConditionalPriorMixin(Prior):
 
     def sample(self, size=None, **correlated_variables):
         """Draw a sample from the prior
@@ -3321,13 +3321,6 @@ class ConditionalPriorMixin(object):
         """
         self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **correlated_variables)
         return self.least_recently_sampled
-
-    @property
-    def correlated_variables(self):
-        return infer_parameters_from_function(self.correlation_func)
-
-    def update_conditions(self, **conditional_variables):
-        pass
 
     def rescale(self, val, **conditional_variables):
         """
@@ -3362,71 +3355,73 @@ class ConditionalPriorMixin(object):
 
     @property
     def condition_func(self):
-        return self.condition_func
+        return self._condition_func
 
     @condition_func.setter
     def condition_func(self, condition_func):
         if not condition_func:
-            self.condition_func = self.default_condition_func
+            self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
         else:
-            self.condition_func = condition_func
-
-    @staticmethod
-    def default_condition_func(reference_param_dict, **conditional_variables):
-        return reference_param_dict
-
-
-class ConditionalGaussian(ConditionalPriorMixin, Gaussian):
-
-    def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None, condition_func=None):
-
-        super(ConditionalGaussian, self).__init__(mu=mu, sigma=sigma, name=name, latex_label=latex_label,
-                                                  unit=unit, boundary=boundary)
-        self._reference_params = OrderedDict()
-        self._reference_params['mu'] = mu
-        self._reference_params['sigma'] = sigma
-        self.condition_func = condition_func
-
-    def update_conditions(self, **conditional_variables):
-        conditioned_params = self.condition_func(self.reference_params['mu'],
-                                                 self.reference_params['sigma'],
-                                                 **conditional_variables)
-        self.mu, self.sigma = conditioned_params['mu'], conditioned_params['sigma']
-
-
-class ConditionalUniform(ConditionalPriorMixin, Uniform):
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None, condition_func=None):
-
-        super(ConditionalUniform, self).__init__(name=name, latex_label=latex_label, minimum=minimum, maximum=maximum,
-                                                 unit=unit, boundary=boundary)
-        self._reference_params = OrderedDict()
-        self._reference_params['minimum'] = minimum
-        self._reference_params['maximum'] = maximum
-        self.condition_func = condition_func
+            self._condition_func = condition_func
 
     def update_conditions(self, **conditional_variables):
         conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
-        self.minimum, self.maximum = conditioned_params['minimum'], conditioned_params['maximum']
+        for key, value in conditioned_params.items():
+            setattr(self, key, value)
 
+    @property
+    def correlated_variables(self):
+        return infer_parameters_from_function(self.condition_func)
 
-
-class ConditionalPowerLaw(ConditionalPriorMixin, PowerLaw):
-
-    def __init__(self, alpha, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None,
-                 condition_func=None):
-        super(ConditionalPowerLaw, self).__init__(alpha=alpha, minimum=minimum,
-                                                  maximum=maximum, name=name, latex_label=latex_label,
-                                                  unit=unit, boundary=boundary)
-        self._reference_params = OrderedDict()
-        self._reference_params['alpha'] = alpha
-        self._reference_params['minimum'] = minimum
-        self._reference_params['maximum'] = maximum
+    def setup_conditional_prior(self, condition_func, **reference_params):
         self.condition_func = condition_func
+        self._reference_params = reference_params
 
-    def update_conditions(self, **conditional_variables):
-        conditioned_params = self.condition_func(self.reference_params, **conditional_variables)
-        self.alpha, self.minimum, self.maximum = conditioned_params['alpha'], \
-                                                 conditioned_params['minimum'], \
-                                                 conditioned_params['maximum']
+    def get_conditionable_variables(self, all_vars):
+        # import inspect
+        # try:
+        #     parameters = inspect.getfullargspec(self.__init__).args
+        # except AttributeError:
+        #     parameters = inspect.getargspec(self.__init__).args
+        import copy
+        vars = copy.copy(all_vars)
+        for param in ['self', 'name', 'latex_label', 'unit', 'boundary', 'condition_func']:
+            try:
+                del vars[param]
+            except KeyError:
+                continue
+        vars = {key: all_vars[key] for key in vars}
+        return vars
+
+
+def conditional_prior_factory(prior_class):
+    class ConditionalPrior(ConditionalPriorMixin, prior_class):
+        def __init__(self, **params):
+            condition_func = params['condition_func']
+            del params['condition_func']
+            super(prior_class, self).__init__(**params)
+            self.setup_conditional_prior(condition_func=condition_func,
+                                         **self.get_conditionable_variables(params))
+
+    return ConditionalPrior
+
+
+ConditionalUniform = conditional_prior_factory(Uniform)
+ConditionalDeltaFunction = conditional_prior_factory(DeltaFunction)
+ConditionalPowerLaw = conditional_prior_factory(PowerLaw)
+ConditionalGaussian = conditional_prior_factory(Gaussian)
+ConditionalLogUniform = conditional_prior_factory(LogUniform)
+ConditionalSymmetricLogUniform = conditional_prior_factory(SymmetricLogUniform)
+ConditionalCosine = conditional_prior_factory(Cosine)
+ConditionalSine = conditional_prior_factory(Sine)
+ConditionalTruncatedGaussian = conditional_prior_factory(TruncatedGaussian)
+ConditionalHalfGaussian = conditional_prior_factory(HalfGaussian)
+ConditionalLogNormal = conditional_prior_factory(LogNormal)
+ConditionalExponential = conditional_prior_factory(Exponential)
+ConditionalStudentT = conditional_prior_factory(StudentT)
+ConditionalBeta = conditional_prior_factory(Beta)
+ConditionalLogistic = conditional_prior_factory(Logistic)
+ConditionalCauchy = conditional_prior_factory(Cauchy)
+ConditionalGamma = conditional_prior_factory(Gamma)
+ConditionalChiSquared = conditional_prior_factory(Gamma)
+ConditionalConditionalInterped = conditional_prior_factory(Interped)

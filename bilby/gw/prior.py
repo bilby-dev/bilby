@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint, ConditionalUniform)
+                          Interped, Constraint, ConditionalUniform, conditional_prior_factory)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -631,19 +631,14 @@ class CalibrationPriorDict(PriorDict):
         return prior
 
 
+ConditionalCosmological = conditional_prior_factory(Cosmological)
+ConditionalUniformComovingVolume = conditional_prior_factory(UniformComovingVolume)
+ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
+
+
 class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
-        """
-
-        Parameters
-        ----------
-        name
-        latex_label
-        unit
-        minimum
-        maximum
-        """
         def cf(extrema_dict, mass_1):
             return extrema_dict['minimum'], mass_1
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
