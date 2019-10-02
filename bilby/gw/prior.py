@@ -648,4 +648,4 @@ class ConditionalSecondaryMassPrior(ConditionalUniform):
             return extrema_dict['minimum'], mass_1
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                             name=name, latex_label=latex_label,
-                                                            unit=unit, correlation_func=cf)
+                                                            unit=unit, condition_func=cf)
