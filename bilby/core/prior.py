@@ -502,7 +502,7 @@ class ConditionalPriorDict(PriorDict):
     def _resolve_conditions(self):
         self.convert_floats_to_delta_functions()
         for key in self.keys():
-            if self[key].has_conditional_variables():
+            if hasattr(self[key], 'condition_func'):
                 self.conditioned_keys.append(key)
             else:
                 self.unconditioned_keys.append(key)
@@ -541,13 +541,13 @@ class ConditionalPriorDict(PriorDict):
 
     def _get_conditional_variables(self, key):
         conditional_variables = dict()
-        for k in self[key].independent_variables:
+        for k in self[key].required_variables:
             conditional_variables[k] = self[k].least_recently_sampled
         return conditional_variables
 
     def _check_conditions_resolved(self, key, sampled_keys):
         conditions_resolved = True
-        for k in self[key].independent_variables:
+        for k in self[key].required_variables:
             if k not in sampled_keys:
                 conditions_resolved = False
         return conditions_resolved
@@ -570,7 +570,7 @@ class ConditionalPriorDict(PriorDict):
         ls = []
         for key in sample:
             if key in self.conditioned_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].independent_variables])
+                conditional_variables = dict([(k, sample[k]) for k in self[key].required_variables])
                 ls.append(self[key].prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].prob(sample[key]))
@@ -592,7 +592,7 @@ class ConditionalPriorDict(PriorDict):
         ls = []
         for key in sample:
             if key in self.conditioned_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].independent_variables])
+                conditional_variables = dict([(k, sample[k]) for k in self[key].required_variables])
                 ls.append(self[key].ln_prob(sample[key], **conditional_variables))
             else:
                 ls.append(self[key].ln_prob(sample[key]))
@@ -619,7 +619,7 @@ class ConditionalPriorDict(PriorDict):
         for key, ind in zip(unconditional_keys, unconditional_idxs):
             rescale_dict[key] = self[key].rescale(theta[ind])
         for key, ind in zip(conditional_keys, conditional_idxs):
-            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].independent_variables])
+            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].required_variables])
             rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
         ls = [rescale_dict[key] for key in keys]
         return ls
@@ -686,7 +686,6 @@ class Prior(object):
         self.minimum = minimum
         self.maximum = maximum
         self.least_recently_sampled = None
-        self._conditional_variables = []
         self.boundary = boundary
 
     def __call__(self):
@@ -947,19 +946,6 @@ class Prior(object):
         else:
             label = self.name
         return label
-
-    def has_conditional_variables(self):
-        if len(self.conditional_variables) > 0:
-            return True
-        return False
-
-    @property
-    def conditional_variables(self):
-        return self._conditional_variables
-
-    @conditional_variables.setter
-    def conditional_variables(self, conditional_variables):
-        self._conditional_variables = conditional_variables
 
     def to_json(self):
         return json.dumps(self, cls=BilbyJsonEncoder)
@@ -3486,7 +3472,7 @@ def conditional_prior_factory(prior_class):
             self.condition_func = condition_func
             self._reference_params = conditional_params
 
-        def sample(self, size=None, **independent_variables):
+        def sample(self, size=None, **required_variables):
             """Draw a sample from the prior
 
             Parameters
@@ -3499,19 +3485,19 @@ def conditional_prior_factory(prior_class):
             float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
             """
-            self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **independent_variables)
+            self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **required_variables)
             return self.least_recently_sampled
 
-        def rescale(self, val, **independent_variables):
+        def rescale(self, val, **required_variables):
             """
             'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
 
             This maps to the inverse CDF. This has been analytically solved for this case.
             """
-            self.update_conditions(**independent_variables)
+            self.update_conditions(**required_variables)
             return super(ConditionalPrior, self).rescale(val)
 
-        def prob(self, val, **independent_variables):
+        def prob(self, val, **required_variables):
             """Return the prior probability of val.
 
             Parameters
@@ -3522,15 +3508,15 @@ def conditional_prior_factory(prior_class):
             -------
             float: Prior probability of val
             """
-            self.update_conditions(**independent_variables)
+            self.update_conditions(**required_variables)
             return super(ConditionalPrior, self).prob(val)
 
-        def ln_prob(self, val, **independent_variables):
-            self.update_conditions(**independent_variables)
+        def ln_prob(self, val, **required_variables):
+            self.update_conditions(**required_variables)
             return super(ConditionalPrior, self).ln_prob(val)
 
-        def update_conditions(self, **independent_variables):
-            conditioned_parameters = self.condition_func(self.reference_params, **independent_variables)
+        def update_conditions(self, **required_variables):
+            conditioned_parameters = self.condition_func(self.reference_params, **required_variables)
             for key, value in conditioned_parameters.items():
                 setattr(self, key, value)
 
@@ -3562,7 +3548,7 @@ def conditional_prior_factory(prior_class):
                 self._condition_func = condition_func
 
         @property
-        def independent_variables(self):
+        def required_variables(self):
             return infer_parameters_from_function(self.condition_func)
 
     return ConditionalPrior
