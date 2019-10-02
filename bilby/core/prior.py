@@ -3477,7 +3477,7 @@ class MultivariateNormal(MultivariateGaussian):
                                       latex_label=latex_label, unit=unit)
 
 
-class CorrelatedPriorMixin(object):
+class ConditionalPriorMixin(object):
 
     def sample(self, size=None, **correlated_variables):
         """Draw a sample from the prior
@@ -3500,7 +3500,7 @@ class CorrelatedPriorMixin(object):
         return infer_parameters_from_function(self.correlation_func)
 
 
-class CorrelatedGaussian(Gaussian, CorrelatedPriorMixin):
+class ConditionalGaussian(Gaussian, ConditionalPriorMixin):
 
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None, correlation_func=None):
         """Gaussian prior with mean mu and width sigma
@@ -3518,7 +3518,7 @@ class CorrelatedGaussian(Gaussian, CorrelatedPriorMixin):
         unit: str
             See superclass
         """
-        super(CorrelatedGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super(ConditionalGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
         self.sigma = sigma
         self._initial_params = dict(mu=mu, sigma=sigma)
@@ -3541,7 +3541,7 @@ class CorrelatedGaussian(Gaussian, CorrelatedPriorMixin):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(CorrelatedGaussian, self).rescale(val)
+        return super(ConditionalGaussian, self).rescale(val)
 
     def prob(self, val, **correlated_variables):
         """Return the prior probability of val.
@@ -3555,14 +3555,14 @@ class CorrelatedGaussian(Gaussian, CorrelatedPriorMixin):
         float: Prior probability of val
         """
         self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(CorrelatedGaussian, self).prob(val)
+        return super(ConditionalGaussian, self).prob(val)
 
     def ln_prob(self, val, **correlated_variables):
         self.mu, self.sigma = self.update_mu_sigma(**correlated_variables)
-        return super(CorrelatedGaussian, self).ln_prob(val)
+        return super(ConditionalGaussian, self).ln_prob(val)
 
 
-class CorrelatedUniform(CorrelatedPriorMixin, Uniform):
+class ConditionalUniform(ConditionalPriorMixin, Uniform):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
                  unit=None, boundary=None, correlation_func=None):
@@ -3581,8 +3581,8 @@ class CorrelatedUniform(CorrelatedPriorMixin, Uniform):
         unit: str
             See superclass
         """
-        super(CorrelatedUniform, self).__init__(name=name, latex_label=latex_label,  minimum=minimum, maximum=maximum,
-                                                unit=unit, boundary=boundary)
+        super(ConditionalUniform, self).__init__(name=name, latex_label=latex_label, minimum=minimum, maximum=maximum,
+                                                 unit=unit, boundary=boundary)
         self.extrema_dict = dict(minimum=minimum, maximum=maximum)
         if not correlation_func:
             def correlation_func(extrema_dict, **correlated_variables):
@@ -3593,7 +3593,7 @@ class CorrelatedUniform(CorrelatedPriorMixin, Uniform):
 
     def rescale(self, val, **correlated_variables):
         self.update_boundaries(**correlated_variables)
-        return super(CorrelatedUniform, self).rescale(val)
+        return super(ConditionalUniform, self).rescale(val)
 
     def prob(self, val, **correlated_variables):
         """Return the prior probability of val
@@ -3607,7 +3607,7 @@ class CorrelatedUniform(CorrelatedPriorMixin, Uniform):
         float: Prior probability of val
         """
         self.update_boundaries(**correlated_variables)
-        return super(CorrelatedUniform, self).prob(val)
+        return super(ConditionalUniform, self).prob(val)
 
     def ln_prob(self, val, **correlated_variables):
         """Return the log prior probability of val
@@ -3621,7 +3621,7 @@ class CorrelatedUniform(CorrelatedPriorMixin, Uniform):
         float: log probability of val
         """
         self.update_boundaries(**correlated_variables)
-        return super(CorrelatedUniform, self).ln_prob(val)
+        return super(ConditionalUniform, self).ln_prob(val)
 
     def update_boundaries(self, **correlated_variables):
         self.minimum, self.maximum = self.correlation_func(self.extrema_dict, **correlated_variables)
