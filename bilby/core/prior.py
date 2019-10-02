@@ -3292,12 +3292,12 @@ class MultivariateNormal(MultivariateGaussian):
 
 def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
-        def __init__(self, name=None, latex_label=None, unit=None,
-                     condition_func=None, boundary=None, **conditional_params):
+        def __init__(self, condition_func, name=None, latex_label=None, unit=None,
+                     boundary=None, **reference_params):
             super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                   unit=unit, boundary=boundary, **conditional_params)
+                                                   unit=unit, boundary=boundary, **reference_params)
             self.condition_func = condition_func
-            self._reference_params = conditional_params
+            self._reference_params = reference_params
 
         def sample(self, size=None, **required_variables):
             """Draw a sample from the prior
@@ -3356,23 +3356,6 @@ def conditional_prior_factory(prior_class):
 
             """
             return self._reference_params
-
-        @property
-        def condition_func(self):
-            """
-
-            Returns
-            -------
-
-            """
-            return self._condition_func
-
-        @condition_func.setter
-        def condition_func(self, condition_func):
-            if not condition_func:
-                self._condition_func = lambda reference_param_dict, conditional_variables: reference_param_dict
-            else:
-                self._condition_func = condition_func
 
         @property
         def required_variables(self):
