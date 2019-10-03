@@ -640,7 +640,7 @@ class ConditionalSecondaryMassPrior(ConditionalUniform):
                                                             name=name, latex_label=latex_label,
                                                             unit=unit, condition_func=cf)
 
+
 ConditionalCosmological = conditional_prior_factory(Cosmological)
 ConditionalUniformComovingVolume = conditional_prior_factory(UniformComovingVolume)
 ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
-
