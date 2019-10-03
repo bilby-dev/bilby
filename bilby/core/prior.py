@@ -3420,6 +3420,12 @@ def conditional_prior_factory(prior_class):
             """
             return infer_parameters_from_function(self.condition_func)
 
+        def _get_instantiation_dict(self):
+            instantiation_dict = super(ConditionalPrior, self)._get_instantiation_dict()
+            for key, value in self.reference_params.items():
+                instantiation_dict[key] = value
+            return instantiation_dict
+
     return ConditionalPrior
 
 
