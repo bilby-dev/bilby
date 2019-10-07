@@ -487,10 +487,14 @@ class Dynesty(NestedSampler):
         sampler_kwargs['maxiter'] = 2
 
         self.sampler.run_nested(**sampler_kwargs)
+        N = 100
         self.result.samples = pd.DataFrame(
-            self.priors.sample(100))[self.search_parameter_keys].values
-        self.result.log_evidence = np.nan
-        self.result.log_evidence_err = np.nan
+            self.priors.sample(N))[self.search_parameter_keys].values
+        self.result.nested_samples = self.result.samples
+        self.result.log_likelihood_evaluations = np.ones(N)
+        self.result.log_evidence = 1
+        self.result.log_evidence_err = 0.1
+
         return self.result
 
     def prior_transform(self, theta):
