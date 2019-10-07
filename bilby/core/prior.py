@@ -537,8 +537,7 @@ class ConditionalPriorDict(PriorDict):
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
-        subset_unconditional_keys = [key for key in keys if key in self.unconditional_keys]
-        subset_conditional_keys = [key for key in keys if key in self.conditional_keys]
+        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(keys)
         samples = {key: self[key].sample(size=size) for key in subset_unconditional_keys}
         for key in subset_conditional_keys:
             required_variables = self._get_required_variables(key)
@@ -565,8 +564,7 @@ class ConditionalPriorDict(PriorDict):
 
         """
         ls = []
-        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
-        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
+        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(sample)
         for key in subset_unconditional_keys:
             ls.append(self[key].prob(sample[key]))
         for key in subset_conditional_keys:
@@ -574,13 +572,15 @@ class ConditionalPriorDict(PriorDict):
             ls.append(self[key].prob(sample[key], **required_variables))
         return np.product(ls, **kwargs)
 
-    def ln_prob(self, sample):
+    def ln_prob(self, sample, axis=None):
         """
 
         Parameters
         ----------
         sample: dict
             Dictionary of the samples of which we want to have the log probability of
+        axis: Union[None, int]
+            Axis along which the summation is performed
 
         Returns
         -------
@@ -588,14 +588,13 @@ class ConditionalPriorDict(PriorDict):
 
         """
         ls = []
-        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
-        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
+        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(sample)
         for key in subset_unconditional_keys:
             ls.append(self[key].ln_prob(sample[key]))
         for key in subset_conditional_keys:
             required_variables = {k: sample[k] for k in self[key].required_variables}
             ls.append(self[key].ln_prob(sample[key], **required_variables))
-        return np.sum(ls)
+        return np.sum(ls, axis=axis)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -612,7 +611,7 @@ class ConditionalPriorDict(PriorDict):
         list: List of floats containing the rescaled sample
         """
 
-        res = [0 for _ in range(len(keys))]
+        res = [0 for _ in range(len(theta))]
         conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
         unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
         all_keys = np.concatenate((conditional_keys, unconditional_keys))
@@ -621,6 +620,11 @@ class ConditionalPriorDict(PriorDict):
             required_variables = self._get_required_variables(key)
             res[index] = self[key].rescale(theta[index], **required_variables)
         return res
+
+    def _get_subset_keys(self, sample):
+        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
+        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
+        return subset_conditional_keys, subset_unconditional_keys
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
