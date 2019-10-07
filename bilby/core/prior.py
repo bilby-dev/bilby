@@ -3392,21 +3392,33 @@ def conditional_prior_factory(prior_class):
             This method updates the conditional parameters (depending on the parent class
             this could be e.g. `minimum`, `maximum`, `mu`, `sigma`, etc.) of this prior
             class depending on the required variables it depends on.
+
+            If no variables are given, self.reference_params are used instead
+
             Parameters
             ----------
             required_variables:
-                Any required variables that this prior depends on
+                Any required variables that this prior depends on. If none are given,
+                self.reference_params will be used.
 
             """
-            conditioned_parameters = self.condition_func(self.reference_params, **required_variables)
-            for key, value in conditioned_parameters.items():
+            if sorted(list(required_variables)) == sorted(self.required_variables):
+                parameters = self.condition_func(self.reference_params, **required_variables)
+            elif len(required_variables) == 0:
+                parameters = self.reference_params.copy()
+            else:
+                raise IllegalRequiredVariablesException("Expected kwargs for {}. Got kwargs for {} instead."
+                                                        .format(self.required_variables,
+                                                                list(required_variables.keys())))
+
+            for key, value in parameters.items():
                 setattr(self, key, value)
 
         @property
         def reference_params(self):
             """
             Initial values for attributes such as `minimum`, `maximum`.
-            This differs on the `prior_class`, for example for the Gaussian
+            This depends on the `prior_class`, for example for the Gaussian
             prior this is `mu` and `sigma`. This is read-only.
             """
             return self._reference_params
@@ -3448,3 +3460,12 @@ ConditionalCauchy = conditional_prior_factory(Cauchy)
 ConditionalGamma = conditional_prior_factory(Gamma)
 ConditionalChiSquared = conditional_prior_factory(Gamma)
 ConditionalConditionalInterped = conditional_prior_factory(Interped)
+
+class PriorException(Exception):
+    """ General base class for all prior exceptions """
+
+class ConditionalPriorException(PriorException):
+    """ General base class for all conditional prior exceptions """
+
+class IllegalRequiredVariablesException(ConditionalPriorException):
+    """ Exception class for exceptions relating to handling the required variables. """
