@@ -7,21 +7,22 @@ import bilby.gw.prior
 def condition_function(reference_params, mass_1):
     return dict(minimum=reference_params['minimum'], maximum=mass_1)
 
-
 mass_1_min = 5
-mass_1_max = 50
+mass_1_max = 100
 
-mass_1 = bilby.core.prior.PowerLaw(alpha=-2.5, minimum=mass_1_min, maximum=mass_1_max, name='mass_1',
-                                   latex_label='$m_1$')
-mass_2 = bilby.core.prior.ConditionalPowerLaw(alpha=-2.5, minimum=mass_1_min, maximum=mass_1_max, name='mass_2',
-                                              latex_label='$m_2$', condition_func=condition_function)
+mass_1 = bilby.core.prior.Uniform(minimum=mass_1_min, maximum=mass_1_max, name='mass_1',
+                                  latex_label='$m_1$', boundary='reflective')
+mass_2 = bilby.core.prior.ConditionalUniform(minimum=mass_1_min, maximum=mass_1_max, name='mass_2',
+                                             latex_label='$m_2$', condition_func=condition_function,
+                                             boundary='reflective')
 
-correlated_dict = bilby.core.prior.ConditionalPriorDict(dictionary=dict(mass_1=mass_1, mass_2=mass_2))
+conditional_dict = bilby.core.prior.ConditionalPriorDict(dictionary=dict(mass_1=mass_1, mass_2=mass_2))
 
-res = correlated_dict.sample(100000)
+
+res = conditional_dict.sample(100000)
 
 plt.hist(res['mass_1'], bins='fd', alpha=0.6, density=True, label='Sampled')
-plt.plot(np.linspace(2, 50, 200), correlated_dict['mass_1'].prob(np.linspace(2, 50, 200)), label='Powerlaw prior')
+plt.plot(np.linspace(2, 50, 200), conditional_dict['mass_1'].prob(np.linspace(2, 50, 200)), label='Power law prior')
 plt.xlabel('$m_1$')
 plt.ylabel('$p(m_1)$')
 plt.loglog()
@@ -44,13 +45,13 @@ plt.clf()
 duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
-label = 'conditional_prior'
+label = 'conditional_prior_fast'
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 np.random.seed(88170235)
 
 injection_parameters = dict(
-    mass_1=9., mass_2=9, a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
+    mass_1=30., mass_2=30, a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
     phi_12=1.7, phi_jl=0.3, luminosity_distance=1500., theta_jn=0.4, psi=2.659,
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
@@ -71,11 +72,13 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 priors = bilby.core.prior.ConditionalPriorDict()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra',
-            'dec', 'geocent_time', 'phase', 'luminosity_distance', 'theta_jn']:
+            'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
 priors['mass_1'] = mass_1
 priors['mass_2'] = mass_2
-
+priors['luminosity_distance'] = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=10,
+                                                                     maximum=5000, latex_label='$L_D$')
+priors['theta_jn'] = bilby.core.prior.Sine(name='theta_jn', boundary='reflective')
 # Initialise the likelihood by passing in the interferometer data (ifos) and
 # the waveform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
@@ -83,7 +86,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=600,
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # Make a corner plot.
