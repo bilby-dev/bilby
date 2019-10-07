@@ -837,7 +837,7 @@ class Prior(object):
 
         """
         prior_name = self.__class__.__name__
-        instantiation_dict = self._get_instantiation_dict()
+        instantiation_dict = self.get_instantiation_dict()
         args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
                           for key in instantiation_dict])
         return "{}({})".format(prior_name, args)
@@ -920,7 +920,7 @@ class Prior(object):
     def maximum(self, maximum):
         self._maximum = maximum
 
-    def _get_instantiation_dict(self):
+    def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
         property_names = [p for p in dir(self.__class__)
                           if isinstance(getattr(self.__class__, p), property)]
@@ -3147,7 +3147,7 @@ class MultivariateGaussianDist(object):
 
         return np.exp(self.ln_prob(samp))
 
-    def _get_instantiation_dict(self):
+    def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
         property_names = [p for p in dir(self.__class__)
                           if isinstance(getattr(self.__class__, p), property)]
@@ -3178,7 +3178,7 @@ class MultivariateGaussianDist(object):
 
         """
         dist_name = self.__class__.__name__
-        instantiation_dict = self._get_instantiation_dict()
+        instantiation_dict = self.get_instantiation_dict()
         args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
                           for key in instantiation_dict])
         return "{}({})".format(dist_name, args)
@@ -3610,8 +3610,8 @@ def conditional_prior_factory(prior_class):
             """
             return infer_parameters_from_function(self.condition_func)
 
-        def _get_instantiation_dict(self):
-            instantiation_dict = super(ConditionalPrior, self)._get_instantiation_dict()
+        def get_instantiation_dict(self):
+            instantiation_dict = super(ConditionalPrior, self).get_instantiation_dict()
             for key, value in self.reference_params.items():
                 instantiation_dict[key] = value
             return instantiation_dict
