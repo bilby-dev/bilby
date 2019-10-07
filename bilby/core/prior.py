@@ -3332,8 +3332,13 @@ def conditional_prior_factory(prior_class):
                 This differs on the `prior_class`, for example for the Gaussian
                 prior this is `mu` and `sigma`.
             """
-            super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                   unit=unit, boundary=boundary, **reference_params)
+            if 'boundary' in infer_args_from_method(super(ConditionalPrior, self).__init__):
+                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
+                                                       unit=unit, boundary=boundary, **reference_params)
+            else:
+                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
+                                                       unit=unit, **reference_params)
+
             self.condition_func = condition_func
             self._reference_params = reference_params
             self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
@@ -3458,7 +3463,7 @@ ConditionalBeta = conditional_prior_factory(Beta)
 ConditionalLogistic = conditional_prior_factory(Logistic)
 ConditionalCauchy = conditional_prior_factory(Cauchy)
 ConditionalGamma = conditional_prior_factory(Gamma)
-ConditionalChiSquared = conditional_prior_factory(Gamma)
+ConditionalChiSquared = conditional_prior_factory(ChiSquared)
 ConditionalConditionalInterped = conditional_prior_factory(Interped)
 
 class PriorException(Exception):
