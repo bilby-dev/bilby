@@ -920,7 +920,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
         if isinstance(obj, (MultivariateGaussianDist, Prior)):
             return {'__prior__': True, '__module__': obj.__module__,
                     '__name__': obj.__class__.__name__,
-                    'kwargs': dict(obj._get_instantiation_dict())}
+                    'kwargs': dict(obj.get_instantiation_dict())}
         try:
             from astropy import cosmology as cosmo, units
             if isinstance(obj, cosmo.FLRW):
