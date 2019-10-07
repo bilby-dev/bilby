@@ -161,6 +161,9 @@ class TestPriorClasses(unittest.TestCase):
                                                         covs=np.array([[2., 0.5], [0.5, 2.]]),
                                                         weights=1.)
 
+        def condition_func(reference_params, test_param):
+            return reference_params.copy()
+
         self.priors = [
             bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
             bilby.core.prior.Gaussian(name='test', unit='unit', mu=0, sigma=1),
@@ -195,7 +198,28 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
             bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
             bilby.core.prior.MultivariateNormal(mvg=mvn, name='testa', unit='unit'),
-            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit')
+            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit'),
+            bilby.core.prior.ConditionalDeltaFunction(condition_func=condition_func, name='test', unit='unit', peak=1),
+            bilby.core.prior.ConditionalGaussian(condition_func=condition_func, name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.ConditionalPowerLaw(condition_func=condition_func, name='test', unit='unit', alpha=0, minimum=0, maximum=1),
+            bilby.core.prior.ConditionalPowerLaw(condition_func=condition_func, name='test', unit='unit', alpha=-1, minimum=0.5, maximum=1),
+            bilby.core.prior.ConditionalPowerLaw(condition_func=condition_func, name='test', unit='unit', alpha=2, minimum=1, maximum=1e2),
+            bilby.core.prior.ConditionalUniform(condition_func=condition_func, name='test', unit='unit', minimum=0, maximum=1),
+            bilby.core.prior.ConditionalLogUniform(condition_func=condition_func, name='test', unit='unit', minimum=5e0, maximum=1e2),
+            bilby.gw.prior.ConditionalUniformComovingVolume(condition_func=condition_func, name='redshift', minimum=0.1, maximum=1.0),
+            bilby.gw.prior.ConditionalUniformSourceFrame(condition_func=condition_func, name='redshift', minimum=0.1, maximum=1.0),
+            bilby.core.prior.ConditionalSine(condition_func=condition_func, name='test', unit='unit'),
+            bilby.core.prior.ConditionalCosine(condition_func=condition_func, name='test', unit='unit'),
+            bilby.core.prior.ConditionalTruncatedGaussian(condition_func=condition_func, name='test', unit='unit', mu=1, sigma=0.4, minimum=-1, maximum=1),
+            bilby.core.prior.ConditionalHalfGaussian(condition_func=condition_func, name='test', unit='unit', sigma=1),
+            bilby.core.prior.ConditionalLogNormal(condition_func=condition_func, name='test', unit='unit', mu=0, sigma=1),
+            bilby.core.prior.ConditionalExponential(condition_func=condition_func, name='test', unit='unit', mu=1),
+            bilby.core.prior.ConditionalStudentT(condition_func=condition_func, name='test', unit='unit', df=3, mu=0, scale=1),
+            bilby.core.prior.ConditionalBeta(condition_func=condition_func, name='test', unit='unit', alpha=2.0, beta=2.0),
+            bilby.core.prior.ConditionalLogistic(condition_func=condition_func, name='test', unit='unit', mu=0, scale=1),
+            bilby.core.prior.ConditionalCauchy(condition_func=condition_func, name='test', unit='unit', alpha=0, beta=1),
+            bilby.core.prior.ConditionalGamma(condition_func=condition_func, name='test', unit='unit', k=1, theta=1),
+            bilby.core.prior.ConditionalChiSquared(condition_func=condition_func, name='test', unit='unit', nu=2)
         ]
 
     def tearDown(self):
@@ -513,6 +537,8 @@ class TestPriorClasses(unittest.TestCase):
                 )
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)
+            elif 'Conditional' in prior.__class__.__name__:
+                continue # This feature does not exist because we cannot recreate the condition function
             else:
                 repr_prior_string = 'bilby.core.prior.' + repr(prior)
             repr_prior = eval(repr_prior_string, None, dict(inf=np.inf))
