@@ -494,8 +494,8 @@ class ConditionalPriorDict(PriorDict):
         filename: str
             See parent class
         """
-        self._conditioned_keys = []
-        self._unconditioned_keys = []
+        self._conditional_keys = []
+        self._unconditional_keys = []
         self._sorted_keys = []
         super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self._resolve_conditions()
@@ -503,17 +503,17 @@ class ConditionalPriorDict(PriorDict):
     def _resolve_conditions(self):
         """ Resolves how variables depend on each other and automatically sorts them into the right order """
         conditioned_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
-        self._unconditioned_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
-        self._conditioned_keys = []
-        checked_keys = self._unconditioned_keys.copy()
+        self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
+        self._conditional_keys = []
+        checked_keys = self._unconditional_keys.copy()
         for i in range(len(self)):
             for key in conditioned_keys_unsorted:
                 if self._check_conditions_resolved(key, checked_keys):
                     checked_keys.append(key)
-                    self._conditioned_keys.append(key)
+                    self._conditional_keys.append(key)
                     conditioned_keys_unsorted.remove(key)
 
-        self._sorted_keys = self._unconditioned_keys.copy()
+        self._sorted_keys = self._unconditional_keys.copy()
         self._sorted_keys.extend(self.conditional_keys)
 
         if len(conditioned_keys_unsorted) != 0:
@@ -529,20 +529,16 @@ class ConditionalPriorDict(PriorDict):
 
     @property
     def conditional_keys(self):
-        return self._conditioned_keys
+        return self._conditional_keys
 
     @property
     def unconditional_keys(self):
-        return self._unconditioned_keys
+        return self._unconditional_keys
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
-        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(keys)
-        samples = {key: self[key].sample(size=size) for key in subset_unconditional_keys}
-        for key in subset_conditional_keys:
-            required_variables = self._get_required_variables(key)
-            samples[key] = self[key].sample(size=size, **required_variables)
-        return samples
+        sorted_keys = self.get_subset_sorted_keys(keys)
+        return {self[key].sample(size=size, **self._get_required_variables(key)) for key in sorted_keys}
 
     def _get_required_variables(self, key):
         """ Returns the required variables to sample a given key """
@@ -563,14 +559,8 @@ class ConditionalPriorDict(PriorDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        ls = []
-        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(sample)
-        for key in subset_unconditional_keys:
-            ls.append(self[key].prob(sample[key]))
-        for key in subset_conditional_keys:
-            required_variables = {k: sample[k] for k in self[key].required_variables}
-            ls.append(self[key].prob(sample[key], **required_variables))
-        return np.product(ls, **kwargs)
+        res = [self[key].prob(sample[key], **self._get_required_variables(key)) for key in self.sorted_keys]
+        return np.product(res, **kwargs)
 
     def ln_prob(self, sample, axis=None):
         """
@@ -587,14 +577,8 @@ class ConditionalPriorDict(PriorDict):
         float: Joint log probability of all the individual sample probabilities
 
         """
-        ls = []
-        subset_conditional_keys, subset_unconditional_keys = self._get_subset_keys(sample)
-        for key in subset_unconditional_keys:
-            ls.append(self[key].ln_prob(sample[key]))
-        for key in subset_conditional_keys:
-            required_variables = {k: sample[k] for k in self[key].required_variables}
-            ls.append(self[key].ln_prob(sample[key], **required_variables))
-        return np.sum(ls, axis=axis)
+        res = [self[key].ln_prob(sample[key], **self._get_required_variables(key)) for key in self.sorted_keys]
+        return np.sum(res, axis=axis)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -611,7 +595,7 @@ class ConditionalPriorDict(PriorDict):
         list: List of floats containing the rescaled sample
         """
 
-        res = [0 for _ in range(len(theta))]
+        res = [_ for _ in range(len(theta))]
         conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
         unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
         all_keys = np.concatenate((conditional_keys, unconditional_keys))
@@ -621,10 +605,14 @@ class ConditionalPriorDict(PriorDict):
             res[index] = self[key].rescale(theta[index], **required_variables)
         return res
 
-    def _get_subset_keys(self, sample):
-        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
-        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
-        return subset_conditional_keys, subset_unconditional_keys
+    def get_subset_sorted_keys(self, subset_keys):
+        subset_unconditional_keys = [key for key in subset_keys if key in self.unconditional_keys]
+        subset_conditional_keys = [key for key in subset_keys if key in self.conditional_keys]
+        return subset_conditional_keys + subset_unconditional_keys
+
+    @property
+    def sorted_keys(self):
+        return self.unconditional_keys + self.conditional_keys
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
