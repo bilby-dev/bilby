@@ -146,7 +146,6 @@ class TestPriorBoundary(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.prior.boundary = 'else'
 
-
 class TestPriorClasses(unittest.TestCase):
 
     def setUp(self):
@@ -262,6 +261,11 @@ class TestPriorClasses(unittest.TestCase):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             self.assertRaises(ValueError, lambda: prior.rescale(-1))
+
+    def test_least_recently_sampled(self):
+        for prior in self.priors:
+            least_recently_sampled_expected = prior.sample()
+            self.assertEqual(least_recently_sampled_expected, prior.least_recently_sampled)
 
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -840,6 +844,10 @@ class TestCreateDefaultPrior(unittest.TestCase):
     def test_unknown_prior(self):
         prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prior_files/binary_black_holes.prior')
         self.assertIsNone(bilby.core.prior.create_default_prior(name='name', default_priors_file=prior_file))
+
+
+class TestConditionalPrior(unittest.TestCase):
+    pass
 
 
 class TestJsonIO(unittest.TestCase):
