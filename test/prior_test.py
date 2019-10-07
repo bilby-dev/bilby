@@ -2,6 +2,7 @@ from __future__ import absolute_import, division
 import bilby
 import unittest
 from mock import Mock
+import mock
 import numpy as np
 import os
 from collections import OrderedDict
@@ -847,7 +848,94 @@ class TestCreateDefaultPrior(unittest.TestCase):
 
 
 class TestConditionalPrior(unittest.TestCase):
-    pass
+
+    def setUp(self):
+        self.condition_func_call_counter = 0
+
+        def condition_func(reference_parameters, test_parameter_1, test_parameter_2):
+            self.condition_func_call_counter += 1
+            return {key: value + 1 for key, value in reference_parameters.items()}
+        self.condition_func = condition_func
+        self.minimum = 0
+        self.maximum = 5
+        self.test_parameter_1 = 0
+        self.test_parameter_2 = 1
+        self.prior = bilby.core.prior.ConditionalPrior(condition_func=condition_func,
+                                                       minimum=self.minimum,
+                                                       maximum=self.maximum)
+
+    def tearDown(self):
+        del self.condition_func
+        del self.minimum
+        del self.maximum
+        del self.prior
+
+    def test_reference_params(self):
+        self.assertDictEqual(dict(minimum=self.minimum, maximum=self.maximum), self.prior.reference_params)
+
+    def test_required_variables(self):
+        self.assertListEqual(['test_parameter_1', 'test_parameter_2'], sorted(self.prior.required_variables))
+
+    def test_get_instantiation_dict(self):
+        expected = dict(minimum=0, maximum=5, name=None, latex_label=None, unit=None,
+                        boundary=None, condition_func=self.condition_func)
+        actual = self.prior.get_instantiation_dict()
+        for key, value in expected.items():
+            if key == 'condition_func':
+                continue
+            self.assertEqual(value, actual[key])
+
+    def test_update_conditions_correct_variables(self):
+        self.prior.update_conditions(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+        self.assertEqual(1, self.condition_func_call_counter)
+        self.assertEqual(self.minimum + 1, self.prior.minimum)
+        self.assertEqual(self.maximum + 1, self.prior.maximum)
+
+    def test_update_conditions_no_variables(self):
+        self.prior.update_conditions(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+        self.prior.update_conditions()
+        self.assertEqual(1, self.condition_func_call_counter)
+        self.assertEqual(self.minimum + 1, self.prior.minimum)
+        self.assertEqual(self.maximum + 1, self.prior.maximum)
+
+    def test_update_conditions_illegal_variables(self):
+        with self.assertRaises(bilby.core.prior.IllegalRequiredVariablesException):
+            self.prior.update_conditions(test_parameter_1=self.test_parameter_1)
+
+    def test_sample_calls_update_conditions(self):
+        with mock.patch.object(self.prior, 'update_conditions') as m:
+            self.prior.sample(1,
+                              test_parameter_1=self.test_parameter_1,
+                              test_parameter_2=self.test_parameter_2)
+            m.assert_called_with(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+
+    def test_rescale_calls_update_conditions(self):
+        with mock.patch.object(self.prior, 'update_conditions') as m:
+            self.prior.rescale(1, test_parameter_1=self.test_parameter_1,
+                               test_parameter_2=self.test_parameter_2)
+            m.assert_called_with(test_parameter_1=self.test_parameter_1,
+                                 test_parameter_2=self.test_parameter_2)
+
+    def test_rescale_prob_update_conditions(self):
+        with mock.patch.object(self.prior, 'update_conditions') as m:
+            self.prior.prob(1, test_parameter_1=self.test_parameter_1,
+                            test_parameter_2=self.test_parameter_2)
+            m.assert_called_with(test_parameter_1=self.test_parameter_1,
+                                 test_parameter_2=self.test_parameter_2)
+
+    def test_rescale_ln_prob_update_conditions(self):
+        with mock.patch.object(self.prior, 'update_conditions') as m:
+            self.prior.ln_prob(1, test_parameter_1=self.test_parameter_1,
+                               test_parameter_2=self.test_parameter_2)
+            m.assert_called_with(test_parameter_1=self.test_parameter_1,
+                                 test_parameter_2=self.test_parameter_2)
+
+    def test_reset_to_reference_parameters(self):
+        self.prior.minimum = 10
+        self.prior.maximum = 20
+        self.prior.reset_to_reference_parameters()
+        self.assertEqual(self.prior.reference_params['minimum'], self.prior.minimum)
+        self.assertEqual(self.prior.reference_params['maximum'], self.prior.maximum)
 
 
 class TestJsonIO(unittest.TestCase):
