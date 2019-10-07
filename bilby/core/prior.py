@@ -538,7 +538,10 @@ class ConditionalPriorDict(PriorDict):
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
         sorted_keys = self.get_subset_sorted_keys(keys)
-        return {self[key].sample(size=size, **self._get_required_variables(key)) for key in sorted_keys}
+        res = dict()
+        for key in sorted_keys:
+            res[key] = self[key].sample(size=size, **self._get_required_variables(key))
+        return res
 
     def _get_required_variables(self, key):
         """ Returns the required variables to sample a given key """
@@ -559,7 +562,9 @@ class ConditionalPriorDict(PriorDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        res = [self[key].prob(sample[key], **self._get_required_variables(key)) for key in self.sorted_keys]
+        for key, value in sample.items():
+            self[key].least_recently_sampled = value
+        res = [self[key].prob(sample[key], **self._get_required_variables(key)) for key in sample]
         return np.product(res, **kwargs)
 
     def ln_prob(self, sample, axis=None):
@@ -577,7 +582,9 @@ class ConditionalPriorDict(PriorDict):
         float: Joint log probability of all the individual sample probabilities
 
         """
-        res = [self[key].ln_prob(sample[key], **self._get_required_variables(key)) for key in self.sorted_keys]
+        for key, value in sample.items():
+            self[key].least_recently_sampled = value
+        res = [self[key].ln_prob(sample[key], **self._get_required_variables(key)) for key in sample]
         return np.sum(res, axis=axis)
 
     def rescale(self, keys, theta):
@@ -606,9 +613,9 @@ class ConditionalPriorDict(PriorDict):
         return res
 
     def get_subset_sorted_keys(self, subset_keys):
-        subset_unconditional_keys = [key for key in subset_keys if key in self.unconditional_keys]
-        subset_conditional_keys = [key for key in subset_keys if key in self.conditional_keys]
-        return subset_conditional_keys + subset_unconditional_keys
+        subset_unconditional_keys = [key for key in self.unconditional_keys if key in subset_keys]
+        subset_conditional_keys = [key for key in self.conditional_keys if key in subset_keys]
+        return subset_unconditional_keys + subset_conditional_keys
 
     @property
     def sorted_keys(self):
