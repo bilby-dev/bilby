@@ -634,8 +634,8 @@ class CalibrationPriorDict(PriorDict):
 class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
-        def cf(extrema_dict, mass_1):
-            return extrema_dict['minimum'], mass_1
+        def cf(reference_parameters, mass_1):
+            return reference_parameters['minimum'], mass_1
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                             name=name, latex_label=latex_label,
                                                             unit=unit, condition_func=cf)
