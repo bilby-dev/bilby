@@ -547,7 +547,7 @@ class ConditionalPriorDict(PriorDict):
 
     def _get_required_variables(self, key):
         """ Returns the required variables to sample a given key """
-        return {k: self[k].least_recently_sampled for k in self[key].required_variables}
+        return {k: self[k].least_recently_sampled for k in getattr(self[key], 'required_variables', [])}
 
     def prob(self, sample, **kwargs):
         """
@@ -565,15 +565,16 @@ class ConditionalPriorDict(PriorDict):
 
         """
         ls = []
-        for key in sample:
-            if key in self.conditional_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].required_variables])
-                ls.append(self[key].prob(sample[key], **conditional_variables))
-            else:
-                ls.append(self[key].prob(sample[key]))
+        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
+        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
+        for key in subset_unconditional_keys:
+            ls.append(self[key].prob(sample[key]))
+        for key in subset_conditional_keys:
+            required_variables = {k: sample[k] for k in self[key].required_variables}
+            ls.append(self[key].prob(sample[key], **required_variables))
         return np.product(ls, **kwargs)
 
-    def ln_prob(self, sample, axis=None):
+    def ln_prob(self, sample):
         """
 
         Parameters
@@ -587,13 +588,14 @@ class ConditionalPriorDict(PriorDict):
 
         """
         ls = []
-        for key in sample:
-            if key in self.conditional_keys:
-                conditional_variables = dict([(k, sample[k]) for k in self[key].required_variables])
-                ls.append(self[key].ln_prob(sample[key], **conditional_variables))
-            else:
-                ls.append(self[key].ln_prob(sample[key]))
-        return np.sum(ls, axis=axis)
+        subset_unconditional_keys = [key for key in sample if key in self.unconditional_keys]
+        subset_conditional_keys = [key for key in sample if key in self.conditional_keys]
+        for key in subset_unconditional_keys:
+            ls.append(self[key].ln_prob(sample[key]))
+        for key in subset_conditional_keys:
+            required_variables = {k: sample[k] for k in self[key].required_variables}
+            ls.append(self[key].ln_prob(sample[key], **required_variables))
+        return np.sum(ls)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -610,16 +612,15 @@ class ConditionalPriorDict(PriorDict):
         list: List of floats containing the rescaled sample
         """
 
-        rescale_dict = {}
-        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditioned_keys, return_indices=True)
-        unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditioned_keys, return_indices=True)
-        for key, ind in zip(unconditional_keys, unconditional_idxs):
-            rescale_dict[key] = self[key].rescale(theta[ind])
-        for key, ind in zip(conditional_keys, conditional_idxs):
-            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].required_variables])
-            rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
-        ls = [rescale_dict[key] for key in keys]
-        return ls
+        res = [0 for _ in range(len(keys))]
+        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
+        unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
+        all_keys = np.concatenate((conditional_keys, unconditional_keys))
+        all_indexes = np.concatenate((conditional_idxs, unconditional_idxs))
+        for key, index in zip(all_keys, all_indexes):
+            required_variables = self._get_required_variables(key)
+            res[index] = self[key].rescale(theta[index], **required_variables)
+        return res
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
