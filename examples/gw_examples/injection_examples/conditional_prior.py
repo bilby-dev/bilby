@@ -33,7 +33,7 @@ plt.clf()
 
 
 plt.hist(res['mass_2'], bins='fd', alpha=0.6, density=True, label='Sampled')
-plt.xlabel('$q$')
+plt.xlabel('$m_2$')
 plt.ylabel('$p(m_2 | m_1)$')
 # plt.loglog()
 plt.legend()
@@ -86,8 +86,8 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=1000,
-    injection_parameters=injection_parameters, outdir=outdir, label=label)
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=10,
+    injection_parameters=injection_parameters, outdir=outdir, label=label, clean=True, resume=False)
 
 # Make a corner plot.
 result.plot_corner()
