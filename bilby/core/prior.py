@@ -3201,7 +3201,7 @@ class MultivariateGaussian(Prior):
         if len(self.mvg.sampled_parameters) == len(self.mvg):
             # reset samples
             self.mvg.reset_sampled()
-
+        self.least_recently_sampled = sample
         return sample
 
     def prob(self, val):
