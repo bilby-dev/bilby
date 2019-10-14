@@ -635,7 +635,7 @@ class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
         def cf(reference_parameters, mass_1):
-            return reference_parameters['minimum'], mass_1
+            return dict(minimum=reference_parameters['minimum'], maximum=mass_1)
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                             name=name, latex_label=latex_label,
                                                             unit=unit, condition_func=cf)
