@@ -539,7 +539,7 @@ class ConditionalPriorDict(PriorDict):
         return res
 
     def _get_required_variables(self, key):
-        """ Returns the required variables to sample a given key """
+        """ Returns the required variables to sample a given conditional key."""
         return {k: self[k].least_recently_sampled for k in getattr(self[key], 'required_variables', [])}
 
     def prob(self, sample, **kwargs):
@@ -3517,6 +3517,7 @@ def conditional_prior_factory(prior_class):
                 super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
                                                        unit=unit, **reference_params)
 
+            self._required_variables = None
             self.condition_func = condition_func
             self._reference_params = reference_params
             self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
@@ -3605,13 +3606,21 @@ def conditional_prior_factory(prior_class):
             return self._reference_params
 
         @property
+        def condition_func(self):
+            return self._condition_func
+
+        @condition_func.setter
+        def condition_func(self, condition_func):
+            if condition_func is None:
+                self._condition_func = lambda reference_params: reference_params
+            else:
+                self._condition_func = condition_func
+            self._required_variables = infer_parameters_from_function(self.condition_func)
+
+        @property
         def required_variables(self):
-            """
-            Infers the required variables from the condition function.
-            This works only correctly if the first argument of `condition_func` is
-            reserved for the reference parameters.
-            """
-            return infer_parameters_from_function(self.condition_func)
+            """ The required variables to pass into the condition function. """
+            return self._required_variables
 
         def get_instantiation_dict(self):
             instantiation_dict = super(ConditionalPrior, self).get_instantiation_dict()
