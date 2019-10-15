@@ -497,6 +497,9 @@ class ConditionalPriorDict(PriorDict):
         self._conditional_keys = []
         self._unconditional_keys = []
         self._sorted_keys = []
+        self._rescale_keys = []
+        self._rescale_indexes = []
+        self._least_recently_rescaled_keys = []
         super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self._resolve_conditions()
 
@@ -593,17 +596,23 @@ class ConditionalPriorDict(PriorDict):
         -------
         list: List of floats containing the rescaled sample
         """
+        result = OrderedDict(dict())
+        self._update_rescale_keys(keys)
+        for key, index in zip(self._rescale_keys, self._rescale_indexes):
+            required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
+            result[key] = self[key].rescale(theta[index], **required_variables)
+        return list(result.values())
 
-        rescale_dict = {}
-        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
+    def _update_rescale_keys(self, keys):
+        if not keys == self._least_recently_rescaled_keys:
+            self._set_rescale_keys_and_indexes(keys)
+            self._least_recently_rescaled_keys = keys
+
+    def _set_rescale_keys_and_indexes(self, keys):
         unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
-        for key, ind in zip(unconditional_keys, unconditional_idxs):
-            rescale_dict[key] = self[key].rescale(theta[ind])
-        for key, ind in zip(conditional_keys, conditional_idxs):
-            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].required_variables])
-            rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
-        ls = [rescale_dict[key] for key in keys]
-        return ls
+        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
+        self._rescale_keys = np.append(unconditional_keys, conditional_keys)
+        self._rescale_indexes = np.append(unconditional_idxs, conditional_idxs)
 
     def get_subset_sorted_keys(self, subset_keys):
         subset_unconditional_keys = [key for key in self.unconditional_keys if key in subset_keys]
