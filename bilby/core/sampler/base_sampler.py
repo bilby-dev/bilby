@@ -113,9 +113,9 @@ class Sampler(object):
         self._fixed_parameter_keys = list()
         self._constraint_parameter_keys = list()
         self._initialise_parameters()
-        self._verify_parameters()
 
         if not soft_init:
+            self._verify_parameters()
             self._time_likelihood()
             self._verify_use_ratio()
 
