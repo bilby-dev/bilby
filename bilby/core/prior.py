@@ -527,14 +527,6 @@ class ConditionalPriorDict(PriorDict):
                 conditions_resolved = False
         return conditions_resolved
 
-    @property
-    def conditional_keys(self):
-        return self._conditional_keys
-
-    @property
-    def unconditional_keys(self):
-        return self._unconditional_keys
-
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
         sorted_keys = self.get_subset_sorted_keys(keys)
@@ -617,6 +609,14 @@ class ConditionalPriorDict(PriorDict):
         subset_unconditional_keys = [key for key in self.unconditional_keys if key in subset_keys]
         subset_conditional_keys = [key for key in self.conditional_keys if key in subset_keys]
         return subset_unconditional_keys + subset_conditional_keys
+
+    @property
+    def conditional_keys(self):
+        return self._conditional_keys
+
+    @property
+    def unconditional_keys(self):
+        return self._unconditional_keys
 
     @property
     def sorted_keys(self):
