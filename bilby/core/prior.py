@@ -602,15 +602,16 @@ class ConditionalPriorDict(PriorDict):
         list: List of floats containing the rescaled sample
         """
 
-        res = [_ for _ in range(len(theta))]
+        rescale_dict = {}
         conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
         unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
-        all_keys = np.concatenate((conditional_keys, unconditional_keys))
-        all_indexes = np.concatenate((conditional_idxs, unconditional_idxs))
-        for key, index in zip(all_keys, all_indexes):
-            required_variables = self._get_required_variables(key)
-            res[index] = self[key].rescale(theta[index], **required_variables)
-        return res
+        for key, ind in zip(unconditional_keys, unconditional_idxs):
+            rescale_dict[key] = self[key].rescale(theta[ind])
+        for key, ind in zip(conditional_keys, conditional_idxs):
+            conditional_variables = dict([(k, rescale_dict[k]) for k in self[key].required_variables])
+            rescale_dict[key] = self[key].rescale(theta[ind], **conditional_variables)
+        ls = [rescale_dict[key] for key in keys]
+        return ls
 
     def get_subset_sorted_keys(self, subset_keys):
         subset_unconditional_keys = [key for key in self.unconditional_keys if key in subset_keys]
