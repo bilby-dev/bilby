@@ -39,6 +39,11 @@ class Sampler(object):
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
         additional methods.
+    soft_init: bool, optional
+        Switch to enable a soft initialization that prevents the likelihood
+        from being tested before running the sampler. This is relevant when
+        using custom likelihoods that must NOT be initialized on the main thread
+        when using multiprocessing, e.g. when using tensorflow in the likelihood.
     **kwargs: dict
         Additional keyword arguments
 
@@ -86,7 +91,7 @@ class Sampler(object):
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
             injection_parameters=None, meta_data=None, result_class=None,
-            likelihood_benchmark=False,
+            likelihood_benchmark=False, soft_init=False,
             **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
@@ -108,9 +113,12 @@ class Sampler(object):
         self._fixed_parameter_keys = list()
         self._constraint_parameter_keys = list()
         self._initialise_parameters()
-        self._verify_parameters()
-        self._time_likelihood()
-        self._verify_use_ratio()
+
+        if not soft_init:
+            self._verify_parameters()
+            self._time_likelihood()
+            self._verify_use_ratio()
+
         self.kwargs = kwargs
 
         self._check_cached_result()
