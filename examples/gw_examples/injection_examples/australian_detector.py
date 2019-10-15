@@ -27,9 +27,10 @@ np.random.seed(88170232)
 
 # create a new detector using a PyGwinc sensitivity curve
 frequencies = np.logspace(0, 3, 1000)
-gwinc_detector = gwinc.load_ifo('A+')
-gwinc_detector = gwinc.precompIFO(frequencies, gwinc_detector)
-gwinc_noises = gwinc.noise_calc(frequencies, gwinc_detector)
+budget, gwinc_ifo, _, _ = gwinc.load_ifo('Aplus')
+gwinc_ifo = gwinc.precompIFO(frequencies, gwinc_ifo)
+gwinc_traces = budget(frequencies, ifo=gwinc_ifo).calc_trace()
+gwinc_noises = {n: d[0] for n, d in gwinc_traces.items()}
 
 Aplus_psd = gwinc_noises['Total']
 
@@ -99,7 +100,7 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi',
 likelihood = bilby.gw.GravitationalWaveTransient(
     interferometers=interferometers, waveform_generator=waveform_generator,
     time_marginalization=False, phase_marginalization=False,
-    distance_marginalization=False, prior=priors)
+    distance_marginalization=False, priors=priors)
 
 
 result = bilby.run_sampler(
