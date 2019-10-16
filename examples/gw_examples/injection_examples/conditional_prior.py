@@ -23,7 +23,7 @@ conditional_dict = bilby.core.prior.ConditionalPriorDict(dictionary=dict(mass_1=
 res = conditional_dict.sample(100000)
 
 plt.hist(res['mass_1'], bins='fd', alpha=0.6, density=True, label='Sampled')
-plt.plot(np.linspace(2, 50, 200), conditional_dict['mass_1'].prob(np.linspace(2, 50, 200)), label='Power law prior')
+plt.plot(np.linspace(2, 100, 200), conditional_dict['mass_1'].prob(np.linspace(2, 100, 200)), label='Uniform prior')
 plt.xlabel('$m_1$')
 plt.ylabel('$p(m_1)$')
 plt.legend()
