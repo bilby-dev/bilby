@@ -7,6 +7,7 @@ import bilby.gw.prior
 def condition_function(reference_params, mass_1):
     return dict(minimum=reference_params['minimum'], maximum=mass_1)
 
+
 mass_1_min = 5
 mass_1_max = 100
 
@@ -25,7 +26,6 @@ plt.hist(res['mass_1'], bins='fd', alpha=0.6, density=True, label='Sampled')
 plt.plot(np.linspace(2, 50, 200), conditional_dict['mass_1'].prob(np.linspace(2, 50, 200)), label='Power law prior')
 plt.xlabel('$m_1$')
 plt.ylabel('$p(m_1)$')
-# plt.loglog()
 plt.legend()
 plt.tight_layout()
 plt.show()
@@ -35,7 +35,6 @@ plt.clf()
 plt.hist(res['mass_2'], bins='fd', alpha=0.6, density=True, label='Sampled')
 plt.xlabel('$m_2$')
 plt.ylabel('$p(m_2 | m_1)$')
-# plt.loglog()
 plt.legend()
 plt.tight_layout()
 plt.show()
@@ -45,7 +44,7 @@ plt.clf()
 duration = 4.
 sampling_frequency = 2048.
 outdir = 'outdir'
-label = 'conditional_prior_fast'
+label = 'conditional_prior'
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 np.random.seed(88170235)
@@ -72,13 +71,11 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 
 priors = bilby.core.prior.ConditionalPriorDict()
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra',
-            'dec', 'geocent_time', 'phase']:
+            'dec', 'geocent_time', 'phase', 'theta_jn', 'luminosity_distance']:
     priors[key] = injection_parameters[key]
 priors['mass_1'] = mass_1
 priors['mass_2'] = mass_2
-priors['luminosity_distance'] = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=10,
-                                                                     maximum=5000, latex_label='$L_D$')
-priors['theta_jn'] = bilby.core.prior.Sine(name='theta_jn', boundary='reflective')
+
 # Initialise the likelihood by passing in the interferometer data (ifos) and
 # the waveform generator
 likelihood = bilby.gw.GravitationalWaveTransient(
@@ -86,7 +83,7 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=10,
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=100,
     injection_parameters=injection_parameters, outdir=outdir, label=label, clean=True, resume=False)
 
 # Make a corner plot.
