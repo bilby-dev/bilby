@@ -44,7 +44,6 @@ class Test(unittest.TestCase):
     def test_examples(self):
         """ Loop over examples to check they run """
         examples = ['examples/gw_examples/injection_examples/fast_tutorial.py',
-                    'examples/gw_examples/injection_examples/marginalized_likelihood.py',
                     'examples/gw_examples/data_examples/GW150914.py',
                     ]
         for filename in examples:

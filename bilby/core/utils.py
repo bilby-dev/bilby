@@ -6,6 +6,7 @@ from math import fmod
 import argparse
 import traceback
 import inspect
+import types
 import subprocess
 import multiprocessing
 from importlib import import_module
@@ -30,17 +31,39 @@ _TOL = 14
 
 def infer_parameters_from_function(func):
     """ Infers the arguments of a function
-        (except the first arg which is assumed to be the dep. variable).
+    (except the first arg which is assumed to be the dep. variable).
 
-        Throws out *args and **kwargs type arguments
+    Throws out *args and **kwargs type arguments
 
-        Can deal with type hinting!
+    Can deal with type hinting!
 
-        Returns
-        ---------
-        list: A list of strings with the parameters
+    Parameters
+    ----------
+    func: function or method
+       The function or method for which the parameters should be inferred.
+
+    Returns
+    -------
+    list: A list of strings with the parameters
+
+    Raises
+    ------
+    ValueError
+       If the object passed to the function is neither a function nor a method.
+
+    Notes
+    -----
+    In order to handle methods the ``type`` of the function is checked, and
+    if a method has been passed the first *two* arguments are removed rather than just the first one.
+    This allows the reference to the instance (conventionally named ``self``)
+    to be removed.
     """
-    return _infer_args_from_function_except_for_first_arg(func=func)
+    if isinstance(func, types.MethodType):
+        return _infer_args_from_function_except_n_args(func=func, n=2)
+    elif isinstance(func, types.FunctionType):
+        return _infer_args_from_function_except_for_first_arg(func=func)
+    else:
+        raise ValueError("This doesn't look like a function.")
 
 
 def infer_args_from_method(method):
@@ -54,16 +77,56 @@ def infer_args_from_method(method):
     ---------
     list: A list of strings with the parameters
     """
-    return _infer_args_from_function_except_for_first_arg(func=method)
+    return _infer_args_from_function_except_n_args(func=method, n=1)
 
 
-def _infer_args_from_function_except_for_first_arg(func):
+def _infer_args_from_function_except_n_args(func, n=1):
+    """ Inspects a function to find its arguments, and ignoring the
+    first n of these, returns a list of arguments from the function's
+    signature.
+
+    Parameters
+    ----------
+    func : function or method
+       The function from which the arguments should be inferred.
+    n : int
+       The number of arguments which should be ignored, staring at the beginning.
+
+    Returns
+    -------
+    parameters: list
+       A list of parameters of the function, omitting the first ``n``.
+
+    Extended Summary
+    ----------------
+    This function is intended to allow the handling of named arguments
+    in both functions and methods; this is important, since the first
+    argument of an instance method will be the instance.
+
+    See Also
+    --------
+    infer_args_from_method: Provides the arguments for a method
+    infer_args_from_function: Provides the arguments for a function
+    infer_args_from_function_except_first_arg: Provides all but first argument of a function or method.
+
+    Examples
+    --------
+    >>> def hello(a, b, c, d):
+    >>>     pass
+    >>>
+    >>> _infer_args_from_function_except_n_args(hello, 2)
+    ['c', 'd']
+    """
     try:
         parameters = inspect.getfullargspec(func).args
     except AttributeError:
         parameters = inspect.getargspec(func).args
-    parameters.pop(0)
+    del(parameters[:n])
     return parameters
+
+
+def _infer_args_from_function_except_for_first_arg(func):
+    return _infer_args_from_function_except_n_args(func=func, n=1)
 
 
 def get_sampling_frequency(time_array):
@@ -889,7 +952,7 @@ class UnsortedInterp2d(interp2d):
 #  Instantiate the default argument parser at runtime
 command_line_args, command_line_parser = set_up_command_line_arguments()
 #  Instantiate the default logging
-setup_logger(print_version=True, log_level=command_line_args.log_level)
+setup_logger(print_version=False, log_level=command_line_args.log_level)
 
 if 'DISPLAY' in os.environ:
     logger.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))

@@ -28,7 +28,10 @@ simple example that sets a uniform prior for :code:`a`, and a fixed value for
    priors['b'] = 5
 
 Notice, that the :code:`latex_label` is optional, but if given will be used
-when generating plots.
+when generating plots. Latex label strings containing escape characters like :code:`\t`
+should either be preceded by :code:`r'` or include an extra backslash. As an example,
+either :code:`r'$\theta$'` or :code:`'$\\theta$'` is permissable. For a list of 
+recognized escape sequences, see the `python docs <https://docs.python.org/2.0/ref/strings.html>`_. 
 
 --------------
 Default priors

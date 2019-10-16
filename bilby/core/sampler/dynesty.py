@@ -6,6 +6,7 @@ import sys
 import pickle
 import signal
 
+import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
@@ -159,11 +160,12 @@ class Dynesty(NestedSampler):
             self.kwargs['walks'] = self.ndim * 10
         if not self.kwargs['update_interval']:
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
-        if not self.kwargs['print_func']:
+        if self.kwargs['print_func'] is None:
             self.kwargs['print_func'] = self._print_func
+            self.pbar = tqdm.tqdm(file=sys.stdout)
         Sampler._verify_kwargs_against_default_kwargs(self)
 
-    def _print_func(self, results, niter, ncall, dlogz, *args, **kwargs):
+    def _print_func(self, results, niter, ncall=None, dlogz=None, *args, **kwargs):
         """ Replacing status update for dynesty.result.print_func """
 
         # Extract results at the current iteration.
@@ -184,18 +186,20 @@ class Dynesty(NestedSampler):
             loglstar = -np.inf
 
         if self.use_ratio:
-            key = 'logz ratio'
+            key = 'logz-ratio'
         else:
             key = 'logz'
 
         # Constructing output.
-        raw_string = "\r {}| {}={:6.3f} +/- {:6.3f} | dlogz: {:6.3f} > {:6.3f}"
-        print_str = raw_string.format(
-            niter, key, logz, logzerr, delta_logz, dlogz)
+        string = []
+        string.append("bound:{:d}".format(bounditer))
+        string.append("ncall:{:d}".format(ncall))
+        string.append("eff:{:0.1f}%".format(eff))
+        string.append("{}={:0.2f}+/-{:0.2f}".format(key, logz, logzerr))
+        string.append("dlogz:{:0.3f}>{:0.2f}".format(delta_logz, dlogz))
 
-        # Printing.
-        sys.stdout.write(print_str)
-        sys.stdout.flush()
+        self.pbar.set_postfix_str(" ".join(string), refresh=False)
+        self.pbar.update(niter - self.pbar.n)
 
     def _apply_dynesty_boundaries(self):
         self._periodic = list()
@@ -233,6 +237,7 @@ class Dynesty(NestedSampler):
 
         # Flushes the output to force a line break
         if self.kwargs["verbose"]:
+            self.pbar.close()
             print("")
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
@@ -401,6 +406,7 @@ class Dynesty(NestedSampler):
             NestedSampler to write to disk.
         """
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        print("")
         logger.info("Writing checkpoint file {}".format(self.resume_file))
 
         end_time = datetime.datetime.now()
@@ -481,10 +487,14 @@ class Dynesty(NestedSampler):
         sampler_kwargs['maxiter'] = 2
 
         self.sampler.run_nested(**sampler_kwargs)
+        N = 100
         self.result.samples = pd.DataFrame(
-            self.priors.sample(100))[self.search_parameter_keys].values
-        self.result.log_evidence = np.nan
-        self.result.log_evidence_err = np.nan
+            self.priors.sample(N))[self.search_parameter_keys].values
+        self.result.nested_samples = self.result.samples
+        self.result.log_likelihood_evaluations = np.ones(N)
+        self.result.log_evidence = 1
+        self.result.log_evidence_err = 0.1
+
         return self.result
 
     def prior_transform(self, theta):

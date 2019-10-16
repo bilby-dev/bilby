@@ -1036,9 +1036,47 @@ class Prior(object):
 
     @classmethod
     def _parse_argument_string(cls, val):
-        if re.sub(r'\'.*\'', '', val) in ['r', 'u']:
-            # If the val is a latex label like "r"\log(x)"' then ignore it
-            pass
+        """
+        Parse a string into the appropriate type for prior reading.
+
+        Four tests are applied in the following order:
+
+        - If the string is 'None':
+            `None` is returned.
+        - Else If the string is a raw string, e.g., r'foo':
+            A stripped version of the string is returned, e.g., foo.
+        - Else If the string contains ', e.g., 'foo':
+            A stripped version of the string is returned, e.g., foo.
+        - Else If the string contains an open parenthesis, (:
+            The string is interpreted as a call to instantiate another prior
+            class, Bilby will attempt to recursively construct that prior,
+            e.g., Uniform(minimum=0, maximum=1), my.custom.PriorClass(**kwargs).
+        - Else:
+            Try to evaluate the string using `eval`. Only built-in functions
+            and numpy methods can be used, e.g., np.pi / 2, 1.57.
+
+
+        Parameters
+        ----------
+        val: str
+            The string version of the agument
+
+        Returns
+        -------
+        val: object
+            The parsed version of the argument.
+
+        Raises
+        ------
+        TypeError:
+            If val cannot be parsed as described above.
+        """
+        if val == 'None':
+            val = None
+        elif re.sub(r'\'.*\'', '', val) in ['r', 'u']:
+            val = val[2:-1]
+        elif "'" in val:
+            val = val.strip("'")
         elif '(' in val:
             other_cls = val.split('(')[0]
             vals = '('.join(val.split('(')[1:])[:-1]
@@ -1049,15 +1087,14 @@ class Prior(object):
                 module = __name__
             other_cls = getattr(import_module(module), other_cls)
             val = other_cls.from_repr(vals)
-        elif "'" in val:
-            val = val.strip("'")
-        elif val == 'None':
-            val = None
         else:
             try:
                 val = eval(val, dict(), dict(np=np))
             except NameError:
-                raise TypeError()
+                raise TypeError(
+                    "Cannot evaluate prior, "
+                    "failed to parse argument {}".format(val)
+                )
         return val
 
 
@@ -1284,8 +1321,7 @@ class Uniform(Prior):
         -------
         float: Prior probability of val
         """
-        return scipy.stats.uniform.pdf(val, loc=self.minimum,
-                                       scale=self.maximum - self.minimum)
+        return ((val >= self.minimum) & (val <= self.maximum)) / (self.maximum - self.minimum)
 
     def ln_prob(self, val):
         """Return the log prior probability of val
@@ -1298,8 +1334,10 @@ class Uniform(Prior):
         -------
         float: log probability of val
         """
-        return scipy.stats.uniform.logpdf(val, loc=self.minimum,
-                                          scale=self.maximum - self.minimum)
+        with np.errstate(divide='ignore'):
+            _ln_prob = np.log((val >= self.minimum) & (val <= self.maximum), dtype=np.float64)\
+                - np.log(self.maximum - self.minimum)
+        return _ln_prob
 
     def cdf(self, val):
         _cdf = (val - self.minimum) / (self.maximum - self.minimum)
