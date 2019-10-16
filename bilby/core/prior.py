@@ -3568,4 +3568,3 @@ class ConditionalPriorDictException(PriorDictException):
 
 class IllegalConditionsException(ConditionalPriorDictException):
     """ Exception class to handle prior dicts that contain unresolvable conditions. """
-
