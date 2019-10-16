@@ -501,10 +501,10 @@ class ConditionalPriorDict(PriorDict):
         self._rescale_indexes = []
         self._least_recently_rescaled_keys = []
         super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
-        self.resolved = False
+        self._resolved = False
         self._resolve_conditions()
 
-    def _resolve_conditions(self, disable_log=False):
+    def _resolve_conditions(self):
         """ Resolves how variables depend on each other and automatically sorts them into the right order """
         conditioned_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
         self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
@@ -519,12 +519,10 @@ class ConditionalPriorDict(PriorDict):
 
         self._sorted_keys = self._unconditional_keys.copy()
         self._sorted_keys.extend(self.conditional_keys)
-        self.resolved = True
+        self._resolved = True
 
         if len(conditioned_keys_unsorted) != 0:
-            self.resolved = False
-            if not disable_log:
-                logger.warning('This set contains unresolvable conditions')
+            self._resolved = False
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """ Checks if all required variables have already been sampled so we can sample this key """
@@ -537,7 +535,7 @@ class ConditionalPriorDict(PriorDict):
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
         subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
-        if not subset_dict.resolved:
+        if not subset_dict._resolved:
             raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
         res = dict()
         for key in subset_dict.sorted_keys:
@@ -634,7 +632,7 @@ class ConditionalPriorDict(PriorDict):
         self._rescale_indexes = np.append(unconditional_idxs, conditional_idxs)
 
     def _check_resolved(self):
-        if not self.resolved:
+        if not self._resolved:
             raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
 
     @property
@@ -651,7 +649,11 @@ class ConditionalPriorDict(PriorDict):
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
-        self._resolve_conditions(disable_log=True)
+        self._resolve_conditions()
+
+    def __delitem__(self, key):
+        super(ConditionalPriorDict, self).__delitem__(key)
+        self._resolve_conditions()
 
 
 def create_default_prior(name, default_priors_file=None):
