@@ -3355,7 +3355,8 @@ class MultivariateGaussian(Prior):
 
 
 class MultivariateNormal(MultivariateGaussian):
-"""A synonym for the :class:`bilby.core.prior.MultivariateGaussian` prior distribution."""
+    """A synonym for the :class:`bilby.core.prior.MultivariateGaussian`
+     prior distribution."""
 
 
 def conditional_prior_factory(prior_class):
