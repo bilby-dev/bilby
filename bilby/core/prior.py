@@ -496,7 +496,6 @@ class ConditionalPriorDict(PriorDict):
         """
         self._conditional_keys = []
         self._unconditional_keys = []
-        self._sorted_keys = []
         self._rescale_keys = []
         self._rescale_indexes = []
         self._least_recently_rescaled_keys = []
@@ -505,23 +504,28 @@ class ConditionalPriorDict(PriorDict):
         self._resolve_conditions()
 
     def _resolve_conditions(self):
-        """ Resolves how variables depend on each other and automatically sorts them into the right order """
-        conditioned_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
+        """
+        Resolves how priors depend on each other and automatically
+        sorts them into the right order.
+        1. All unconditional priors are put in front in arbitrary order
+        2. We loop through all the unsorted conditional priors to find
+        which one can go next
+        3. We repeat step 2 len(self) number of times to make sure that
+        all conditional priors will be sorted in order
+        4. We set the `self._resolved` flag to True if all conditional
+        priors were added in the right order
+         """
         self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
+        conditional_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
         self._conditional_keys = []
-        checked_keys = self._unconditional_keys.copy()
-        for i in range(len(self)):
-            for key in conditioned_keys_unsorted:
-                if self._check_conditions_resolved(key, checked_keys):
-                    checked_keys.append(key)
+        for _ in range(len(self)):
+            for key in conditional_keys_unsorted:
+                if self._check_conditions_resolved(key, self.sorted_keys):
                     self._conditional_keys.append(key)
-                    conditioned_keys_unsorted.remove(key)
+                    conditional_keys_unsorted.remove(key)
 
-        self._sorted_keys = self._unconditional_keys.copy()
-        self._sorted_keys.extend(self.conditional_keys)
         self._resolved = True
-
-        if len(conditioned_keys_unsorted) != 0:
+        if len(conditional_keys_unsorted) != 0:
             self._resolved = False
 
     def _check_conditions_resolved(self, key, sampled_keys):
@@ -3427,9 +3431,16 @@ def conditional_prior_factory(prior_class):
 
         def rescale(self, val, **required_variables):
             """
-            'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
+            'Rescale' a sample from the unit line element to the prior.
 
-            This maps to the inverse CDF. This has been analytically solved for this case.
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+
             """
             self.update_conditions(**required_variables)
             return super(ConditionalPrior, self).rescale(val)
