@@ -863,8 +863,8 @@ class TestConditionalPrior(unittest.TestCase):
         self.condition_func = condition_func
         self.minimum = 0
         self.maximum = 5
-        self.test_parameter_1 = 0
-        self.test_parameter_2 = 1
+        self.test_variable_1 = 0
+        self.test_variable_2 = 1
         self.prior = bilby.core.prior.ConditionalBasePrior(condition_func=condition_func,
                                                            minimum=self.minimum,
                                                            maximum=self.maximum)
@@ -874,18 +874,19 @@ class TestConditionalPrior(unittest.TestCase):
         del self.condition_func_call_counter
         del self.minimum
         del self.maximum
-        del self.test_parameter_1
-        del self.test_parameter_2
+        del self.test_variable_1
+        del self.test_variable_2
         del self.prior
 
     def test_reference_params(self):
         self.assertDictEqual(dict(minimum=self.minimum, maximum=self.maximum), self.prior.reference_params)
 
     def test_required_variables(self):
-        self.assertListEqual(['test_parameter_1', 'test_parameter_2'], sorted(self.prior.required_variables))
+        self.assertListEqual(['test_variable_1', 'test_variable_2'], sorted(self.prior.required_variables))
 
     def test_required_variables_no_condition_func(self):
-        self.prior = bilby.core.prior.ConditionalBasePrior(minimum=self.minimum,
+        self.prior = bilby.core.prior.ConditionalBasePrior(condition_func=None,
+                                                           minimum=self.minimum,
                                                            maximum=self.maximum)
         self.assertListEqual([], self.prior.required_variables)
 
@@ -899,13 +900,13 @@ class TestConditionalPrior(unittest.TestCase):
             self.assertEqual(value, actual[key])
 
     def test_update_conditions_correct_variables(self):
-        self.prior.update_conditions(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+        self.prior.update_conditions(test_variable_1=self.test_variable_1, test_variable_2=self.test_variable_2)
         self.assertEqual(1, self.condition_func_call_counter)
         self.assertEqual(self.minimum + 1, self.prior.minimum)
         self.assertEqual(self.maximum + 1, self.prior.maximum)
 
     def test_update_conditions_no_variables(self):
-        self.prior.update_conditions(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+        self.prior.update_conditions(test_variable_1=self.test_variable_1, test_variable_2=self.test_variable_2)
         self.prior.update_conditions()
         self.assertEqual(1, self.condition_func_call_counter)
         self.assertEqual(self.minimum + 1, self.prior.minimum)
@@ -913,35 +914,35 @@ class TestConditionalPrior(unittest.TestCase):
 
     def test_update_conditions_illegal_variables(self):
         with self.assertRaises(bilby.core.prior.IllegalRequiredVariablesException):
-            self.prior.update_conditions(test_parameter_1=self.test_parameter_1)
+            self.prior.update_conditions(test_parameter_1=self.test_variable_1)
 
     def test_sample_calls_update_conditions(self):
         with mock.patch.object(self.prior, 'update_conditions') as m:
             self.prior.sample(1,
-                              test_parameter_1=self.test_parameter_1,
-                              test_parameter_2=self.test_parameter_2)
-            m.assert_called_with(test_parameter_1=self.test_parameter_1, test_parameter_2=self.test_parameter_2)
+                              test_parameter_1=self.test_variable_1,
+                              test_parameter_2=self.test_variable_2)
+            m.assert_called_with(test_parameter_1=self.test_variable_1, test_parameter_2=self.test_variable_2)
 
     def test_rescale_calls_update_conditions(self):
         with mock.patch.object(self.prior, 'update_conditions') as m:
-            self.prior.rescale(1, test_parameter_1=self.test_parameter_1,
-                               test_parameter_2=self.test_parameter_2)
-            m.assert_called_with(test_parameter_1=self.test_parameter_1,
-                                 test_parameter_2=self.test_parameter_2)
+            self.prior.rescale(1, test_parameter_1=self.test_variable_1,
+                               test_parameter_2=self.test_variable_2)
+            m.assert_called_with(test_parameter_1=self.test_variable_1,
+                                 test_parameter_2=self.test_variable_2)
 
     def test_rescale_prob_update_conditions(self):
         with mock.patch.object(self.prior, 'update_conditions') as m:
-            self.prior.prob(1, test_parameter_1=self.test_parameter_1,
-                            test_parameter_2=self.test_parameter_2)
-            m.assert_called_with(test_parameter_1=self.test_parameter_1,
-                                 test_parameter_2=self.test_parameter_2)
+            self.prior.prob(1, test_parameter_1=self.test_variable_1,
+                            test_parameter_2=self.test_variable_2)
+            m.assert_called_with(test_parameter_1=self.test_variable_1,
+                                 test_parameter_2=self.test_variable_2)
 
     def test_rescale_ln_prob_update_conditions(self):
         with mock.patch.object(self.prior, 'update_conditions') as m:
-            self.prior.ln_prob(1, test_parameter_1=self.test_parameter_1,
-                               test_parameter_2=self.test_parameter_2)
-            m.assert_called_with(test_parameter_1=self.test_parameter_1,
-                                 test_parameter_2=self.test_parameter_2)
+            self.prior.ln_prob(1, test_parameter_1=self.test_variable_1,
+                               test_parameter_2=self.test_variable_2)
+            m.assert_called_with(test_parameter_1=self.test_variable_1,
+                                 test_parameter_2=self.test_variable_2)
 
     def test_reset_to_reference_parameters(self):
         self.prior.minimum = 10
@@ -951,7 +952,7 @@ class TestConditionalPrior(unittest.TestCase):
         self.assertEqual(self.prior.reference_params['maximum'], self.prior.maximum)
 
     def test_cond_prior_instantiation_no_boundary_prior(self):
-        prior = bilby.core.prior.ConditionalFermiDirac(sigma=1)
+        prior = bilby.core.prior.ConditionalFermiDirac(condition_func=None, sigma=1)
         self.assertIsNone(prior.boundary)
 
 
