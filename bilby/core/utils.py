@@ -926,10 +926,6 @@ class UnsortedInterp2d(interp2d):
     def __call__(self, x, y, dx=0, dy=0, assume_sorted=False):
         """  Wrapper to scipy.interpolate.interp2d which preserves the input ordering.
 
-        See https://stackoverflow.com/questions/44941271/scipy-interp2d-returned-function-sorts-input-argument-automatically-and-undesira
-        for the implementation details.
-
-
         Parameters
         ----------
         x: See superclass
@@ -1071,7 +1067,8 @@ def reflect(u):
     """
     Iteratively reflect a number until it is contained in [0, 1].
 
-    This is for priors with a reflective boundary condition, all numbers in the set `u = 2n +/- x` should be mapped to x.
+    This is for priors with a reflective boundary condition, all numbers in the
+    set `u = 2n +/- x` should be mapped to x.
 
     For the `+` case we just take `u % 1`.
     For the `-` case we take `1 - (u % 1)`.
