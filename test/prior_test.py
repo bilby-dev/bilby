@@ -952,7 +952,7 @@ class TestConditionalPrior(unittest.TestCase):
         self.assertEqual(self.prior.reference_params['maximum'], self.prior.maximum)
 
     def test_cond_prior_instantiation_no_boundary_prior(self):
-        prior = bilby.core.prior.ConditionalFermiDirac(condition_func=None, sigma=1)
+        prior = bilby.core.prior.ConditionalFermiDirac(condition_func=None, sigma=1, mu=1)
         self.assertIsNone(prior.boundary)
 
 
