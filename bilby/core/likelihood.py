@@ -19,6 +19,7 @@ class Likelihood(object):
         """
         self.parameters = parameters
         self._meta_data = None
+        self._marginalized_parameters = []
 
     def __repr__(self):
         return self.__class__.__name__ + '(parameters={})'.format(self.parameters)
@@ -60,6 +61,10 @@ class Likelihood(object):
             self._meta_data = meta_data
         else:
             raise ValueError("The meta_data must be an instance of dict")
+
+    @property
+    def marginalized_parameters(self):
+        return self._marginalized_parameters
 
 
 class ZeroLikelihood(Likelihood):
