@@ -118,6 +118,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
                 priors['time_jitter'] = Uniform(
                     minimum=- self._delta_tc / 2, maximum=self._delta_tc / 2,
                     boundary='periodic')
+            self._marginalized_parameters.append('geocent_time')
         elif self.jitter_time:
             logger.debug(
                 "Time jittering requested with non-time-marginalised "
@@ -129,6 +130,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._bessel_function_interped = None
             self._setup_phase_marginalization()
             priors['phase'] = float(0)
+            self._marginalized_parameters.append('phase')
 
         if self.distance_marginalization:
             self._lookup_table_filename = None
@@ -142,6 +144,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
             priors['luminosity_distance'] = float(self._ref_dist)
+            self._marginalized_parameters.append('luminosity_distance')
 
     def __repr__(self):
         return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\ttime_marginalization={}, ' \

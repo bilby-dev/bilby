@@ -327,6 +327,36 @@ class TestMarginalizedLikelihood(unittest.TestCase):
         self.assertTrue(same)
         self.prior['phase'] = temp
 
+    def test_run_sampler_flags_if_marginalized_phase_is_sampled(self):
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator, priors=self.prior,
+            phase_marginalization=True
+        )
+        new_prior = self.prior.copy()
+        new_prior['phase'] = bilby.prior.Uniform(minimum=0, maximum=2*np.pi)
+        for key, param in dict(
+            mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
+            phi_12=1.7, phi_jl=0.3, theta_jn=0.4, psi=2.659, ra=1.375, dec=-1.2108).items():
+            new_prior[key] = param
+        with self.assertRaises(bilby.core.sampler.SamplingMarginalisedParameterError):
+            bilby.run_sampler(like, new_prior)
+
+    def test_run_sampler_flags_if_marginalized_time_is_sampled(self):
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator, priors=self.prior,
+            time_marginalization=True
+        )
+        new_prior = self.prior.copy()
+        new_prior['geocent_time'] = bilby.prior.Uniform(minimum=0, maximum=1)
+        for key, param in dict(
+            mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
+            phi_12=1.7, phi_jl=0.3, theta_jn=0.4, psi=2.659, ra=1.375, dec=-1.2108).items():
+            new_prior[key] = param
+        with self.assertRaises(bilby.core.sampler.SamplingMarginalisedParameterError):
+            bilby.run_sampler(like, new_prior)
+
 
 class TestPhaseMarginalization(unittest.TestCase):
 
