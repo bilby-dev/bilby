@@ -996,6 +996,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {'__complex__': True, 'real': obj.real, 'imag': obj.imag}
         if isinstance(obj, pd.DataFrame):
             return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
+        if inspect.isfunction(obj):
+            return {"__function__": True, "__module__": obj.__module__, "__name__": obj.__name__}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -1034,6 +1036,9 @@ def decode_bilby_json(dct):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
         return pd.DataFrame(dct['content'])
+    if dct.get("__function__", False):
+        default = ".".join([dct["__module__"], dct["__name__"]])
+        return getattr(import_module(dct["__module__"]), dct["__name__"], default)
     return dct
 
 

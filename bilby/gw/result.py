@@ -13,8 +13,6 @@ from ..core.utils import infft, logger, check_directory_exists_and_if_not_mkdir
 from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
 from .waveform_generator import WaveformGenerator
 from .detector import get_empty_interferometer, Interferometer
-from .source import lal_binary_black_hole
-from .conversion import convert_to_lal_binary_black_hole_parameters
 
 
 class CompactBinaryCoalescenceResult(CoreResult):
@@ -98,6 +96,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ The frequency domain source model (function)"""
         return self.__get_from_nested_meta_data(
             'likelihood', 'frequency_domain_source_model')
+
+    @property
+    def parameter_conversion(self):
+        """ The frequency domain source model (function)"""
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'parameter_conversion')
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
@@ -331,8 +335,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
         waveform_generator = WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             start_time=self.start_time,
-            frequency_domain_source_model=lal_binary_black_hole,
-            parameter_conversion=convert_to_lal_binary_black_hole_parameters,
+            frequency_domain_source_model=self.frequency_domain_source_model,
+            parameter_conversion=self.parameter_conversion,
             waveform_arguments=self.waveform_arguments)
         fig, axs = plt.subplots(2, 1)
         if self.injection_parameters is not None:
