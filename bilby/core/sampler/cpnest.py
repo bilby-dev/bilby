@@ -40,7 +40,7 @@ class Cpnest(NestedSampler):
     """
     default_kwargs = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
                           seed=None, poolsize=100, nhamiltonian=0, resume=True,
-                          output=None, proposals=None, n_periodic_checkpoint=None)
+                          output=None, proposals=None, n_periodic_checkpoint=8000)
 
     def _translate_kwargs(self, kwargs):
         if 'nlive' not in kwargs:
@@ -120,7 +120,8 @@ class Cpnest(NestedSampler):
 
     def _verify_kwargs_against_default_kwargs(self):
         """
-        Set the directory where the output will be written.
+        Set the directory where the output will be written
+        and check resume and checkpoint status.
         """
         if not self.kwargs['output']:
             self.kwargs['output'] = \
@@ -128,6 +129,8 @@ class Cpnest(NestedSampler):
         if self.kwargs['output'].endswith('/') is False:
             self.kwargs['output'] = '{}/'.format(self.kwargs['output'])
         check_directory_exists_and_if_not_mkdir(self.kwargs['output'])
+        if self.kwargs['n_periodic_checkpoint'] and not self.kwargs['resume']:
+            self.kwargs['n_periodic_checkpoint'] = None
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
     def _resolve_proposal_functions(self):

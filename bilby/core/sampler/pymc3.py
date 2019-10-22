@@ -484,7 +484,8 @@ class Pymc3(MCMCSampler):
                                     args = step_kwargs.get(curmethod, {})
                                 else:
                                     args = {}
-                            self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+                            self.kwargs['step'].append(
+                                pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
                     else:
                         curmethod = self.step_method[key].lower()
                         methodslist.append(curmethod)
@@ -503,7 +504,8 @@ class Pymc3(MCMCSampler):
                                 args = step_kwargs.get(curmethod, {})
                             else:
                                 args = {}
-                        self.kwargs['step'].append(pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+                        self.kwargs['step'].append(
+                            pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
         else:
             with self.pymc3_model:
                 # check for a compound step list

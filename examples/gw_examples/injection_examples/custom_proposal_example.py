@@ -51,10 +51,14 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 # proposal.
 
 jump_proposals = proposal.JumpProposalCycle(
-    [proposal.EnsembleWalk(priors=priors), proposal.EnsembleStretch(priors=priors),
-     proposal.DifferentialEvolution(priors=priors), proposal.EnsembleEigenVector(priors=priors),
-     bilby.gw.sampler.proposal.SkyLocationWanderJump(priors=priors), bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(priors=priors),
-     bilby.gw.sampler.proposal.PolarisationPhaseJump(priors=priors), proposal.DrawFlatPrior(priors=priors)],
+    [proposal.EnsembleWalk(priors=priors),
+     proposal.EnsembleStretch(priors=priors),
+     proposal.DifferentialEvolution(priors=priors),
+     proposal.EnsembleEigenVector(priors=priors),
+     bilby.gw.sampler.proposal.SkyLocationWanderJump(priors=priors),
+     bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(priors=priors),
+     bilby.gw.sampler.proposal.PolarisationPhaseJump(priors=priors),
+     proposal.DrawFlatPrior(priors=priors)],
     weights=[2, 2, 5, 1, 1, 1, 1, 1])
 
 # Run cpnest with the proposals kwarg specified.

@@ -57,7 +57,7 @@ class WaveformGenerator(object):
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self.__parameters_from_source_model()
         if parameter_conversion is None:
-            self.parameter_conversion = self._default_parameter_conversion
+            self.parameter_conversion = _default_parameter_conversion
         else:
             self.parameter_conversion = parameter_conversion
         if waveform_arguments is not None:
@@ -236,6 +236,6 @@ class WaveformGenerator(object):
                                  'model must be provided.')
         return set(utils.infer_parameters_from_function(model))
 
-    @staticmethod
-    def _default_parameter_conversion(params):
-        return params, []
+
+def _default_parameter_conversion(parmeters):
+    return parmeters, list()

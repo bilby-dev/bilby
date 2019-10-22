@@ -658,3 +658,7 @@ class SamplerNotInstalledError(SamplerError):
 
 class IllegalSamplingSetError(Error):
     """ Class for illegal sets of sampling parameters """
+
+
+class SamplingMarginalisedParameterError(IllegalSamplingSetError):
+    """ Class for errors that occur when sampling over marginalized parameters """

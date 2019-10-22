@@ -926,10 +926,6 @@ class UnsortedInterp2d(interp2d):
     def __call__(self, x, y, dx=0, dy=0, assume_sorted=False):
         """  Wrapper to scipy.interpolate.interp2d which preserves the input ordering.
 
-        See https://stackoverflow.com/questions/44941271/scipy-interp2d-returned-function-sorts-input-argument-automatically-and-undesira
-        for the implementation details.
-
-
         Parameters
         ----------
         x: See superclass
@@ -1000,6 +996,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {'__complex__': True, 'real': obj.real, 'imag': obj.imag}
         if isinstance(obj, pd.DataFrame):
             return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
+        if inspect.isfunction(obj):
+            return {"__function__": True, "__module__": obj.__module__, "__name__": obj.__name__}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -1038,6 +1036,9 @@ def decode_bilby_json(dct):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
         return pd.DataFrame(dct['content'])
+    if dct.get("__function__", False):
+        default = ".".join([dct["__module__"], dct["__name__"]])
+        return getattr(import_module(dct["__module__"]), dct["__name__"], default)
     return dct
 
 
@@ -1071,7 +1072,8 @@ def reflect(u):
     """
     Iteratively reflect a number until it is contained in [0, 1].
 
-    This is for priors with a reflective boundary condition, all numbers in the set `u = 2n +/- x` should be mapped to x.
+    This is for priors with a reflective boundary condition, all numbers in the
+    set `u = 2n +/- x` should be mapped to x.
 
     For the `+` case we just take `u % 1`.
     For the `-` case we take `1 - (u % 1)`.
