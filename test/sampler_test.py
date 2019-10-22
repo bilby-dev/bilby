@@ -113,14 +113,14 @@ class TestCPNest(unittest.TestCase):
         expected = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
                         output='outdir/cpnest_label/', proposals=None,
-                        n_periodic_checkpoint=None)
+                        n_periodic_checkpoint=8000)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
         expected = dict(verbose=1, nthreads=1, nlive=250, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
                         output='outdir/cpnest_label/', proposals=None,
-                        n_periodic_checkpoint=None)
+                        n_periodic_checkpoint=8000)
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nlive']

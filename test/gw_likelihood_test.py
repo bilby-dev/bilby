@@ -154,8 +154,8 @@ class TestGWTransient(unittest.TestCase):
             phase_marginalization=False,
             distance_marginalization=False,
             waveform_arguments=self.waveform_generator.waveform_arguments,
-            frequency_domain_source_model=str(
-                self.waveform_generator.frequency_domain_source_model),
+            frequency_domain_source_model=self.waveform_generator.frequency_domain_source_model,
+            parameter_conversion=self.waveform_generator.parameter_conversion,
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
             start_time=self.waveform_generator.start_time,
@@ -326,6 +326,36 @@ class TestMarginalizedLikelihood(unittest.TestCase):
                     new_prior['phase'] == float(0)])
         self.assertTrue(same)
         self.prior['phase'] = temp
+
+    def test_run_sampler_flags_if_marginalized_phase_is_sampled(self):
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator, priors=self.prior,
+            phase_marginalization=True
+        )
+        new_prior = self.prior.copy()
+        new_prior['phase'] = bilby.prior.Uniform(minimum=0, maximum=2*np.pi)
+        for key, param in dict(
+            mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
+            phi_12=1.7, phi_jl=0.3, theta_jn=0.4, psi=2.659, ra=1.375, dec=-1.2108).items():
+            new_prior[key] = param
+        with self.assertRaises(bilby.core.sampler.SamplingMarginalisedParameterError):
+            bilby.run_sampler(like, new_prior)
+
+    def test_run_sampler_flags_if_marginalized_time_is_sampled(self):
+        like = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator, priors=self.prior,
+            time_marginalization=True
+        )
+        new_prior = self.prior.copy()
+        new_prior['geocent_time'] = bilby.prior.Uniform(minimum=0, maximum=1)
+        for key, param in dict(
+            mass_1=31., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.0, tilt_2=0.0,
+            phi_12=1.7, phi_jl=0.3, theta_jn=0.4, psi=2.659, ra=1.375, dec=-1.2108).items():
+            new_prior[key] = param
+        with self.assertRaises(bilby.core.sampler.SamplingMarginalisedParameterError):
+            bilby.run_sampler(like, new_prior)
 
 
 class TestPhaseMarginalization(unittest.TestCase):
