@@ -3,7 +3,7 @@ import os
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
-from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
+from ..core.prior import (ConditionalPriorDict, PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
                           Interped, Constraint, ConditionalUniform, conditional_prior_factory)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
@@ -17,6 +17,10 @@ try:
 except ImportError:
     logger.debug("You do not have astropy installed currently. You will"
                  " not be able to use some of the prebuilt functions.")
+
+
+def condition_function(reference_params, mass_1):
+    return dict(minimum=reference_params['minimum'], maximum=mass_1)
 
 
 class Cosmological(Interped):
@@ -237,7 +241,7 @@ class AlignedSpin(Interped):
                                           boundary=boundary)
 
 
-class BBHPriorDict(PriorDict):
+class BBHPriorDict(ConditionalPriorDict):
     def __init__(self, dictionary=None, filename=None, aligned_spin=False,
                  conversion_function=None):
         """ Initialises a Prior set for Binary Black holes
