@@ -1361,7 +1361,7 @@ class ResultList(list):
         self.check_consistent_priors()
 
         # check which kind of sampler was used: MCMC or Nested Sampling
-        if result.nested_samples is not None:
+        if result._nested_samples is not None:
             posteriors, result = self._combine_nested_sampled_runs(result)
         else:
             posteriors = [res.posterior for res in self]
