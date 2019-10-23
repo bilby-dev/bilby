@@ -19,10 +19,6 @@ except ImportError:
                  " not be able to use some of the prebuilt functions.")
 
 
-def condition_function(reference_params, mass_1):
-    return dict(minimum=reference_params['minimum'], maximum=mass_1)
-
-
 class Cosmological(Interped):
 
     @property
@@ -635,14 +631,17 @@ class CalibrationPriorDict(PriorDict):
         return prior
 
 
+def secondary_mass_condition_function(reference_params, mass_1):
+    return dict(minimum=reference_params['minimum'], maximum=mass_1)
+
+
 class ConditionalSecondaryMassPrior(ConditionalUniform):
 
     def __init__(self, name=None, latex_label=None, unit=None, minimum=0, maximum=np.inf):
-        def cf(reference_parameters, mass_1):
-            return dict(minimum=reference_parameters['minimum'], maximum=mass_1)
         super(ConditionalSecondaryMassPrior, self).__init__(minimum=minimum, maximum=maximum,
                                                             name=name, latex_label=latex_label,
-                                                            unit=unit, condition_func=cf)
+                                                            unit=unit,
+                                                            condition_func=secondary_mass_condition_function)
 
 
 ConditionalCosmological = conditional_prior_factory(Cosmological)
