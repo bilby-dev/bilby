@@ -173,7 +173,7 @@ class PriorDict(OrderedDict):
                 else:
                     module = __name__
                 cls = getattr(import_module(module), cls, cls)
-                if key.lower() == "conversion_function":
+                if key.lower() in ["conversion_function", "condition_func"]:
                     setattr(self, key, cls)
                 elif (cls.__name__ in ['MultivariateGaussianDist',
                                        'MultivariateNormalDist']):
@@ -484,7 +484,7 @@ class PriorSet(PriorDict):
 
 class ConditionalPriorDict(PriorDict):
 
-    def __init__(self, dictionary=None, filename=None):
+    def __init__(self, dictionary=None, filename=None, conversion_function=None):
         """
 
         Parameters
@@ -499,7 +499,10 @@ class ConditionalPriorDict(PriorDict):
         self._rescale_keys = []
         self._rescale_indexes = []
         self._least_recently_rescaled_keys = []
-        super(ConditionalPriorDict, self).__init__(dictionary=dictionary, filename=filename)
+        super(ConditionalPriorDict, self).__init__(
+            dictionary=dictionary, filename=filename,
+            conversion_function=conversion_function
+        )
         self._resolved = False
         self._resolve_conditions()
 
@@ -958,10 +961,7 @@ class Prior(object):
             dict_with_properties[key] = getattr(self, key)
         instantiation_dict = OrderedDict()
         for key in subclass_args:
-            if key == 'condition_func':
-                instantiation_dict[key] = str(dict_with_properties[key])
-            else:
-                instantiation_dict[key] = dict_with_properties[key]
+            instantiation_dict[key] = dict_with_properties[key]
         return instantiation_dict
 
     @property
@@ -1002,11 +1002,19 @@ class Prior(object):
         kwargs = cls._split_repr(string)
         for key in kwargs:
             val = kwargs[key]
-            if key not in subclass_args:
+            if key not in subclass_args and not hasattr(cls, "reference_params"):
                 raise AttributeError('Unknown argument {} for class {}'.format(
                     key, cls.__name__))
             else:
                 kwargs[key] = cls._parse_argument_string(val)
+            if key in ["condition_func", "conversion_function"] and isinstance(kwargs[key], str):
+                if "." in kwargs[key]:
+                    module = '.'.join(kwargs[key].split('.')[:-1])
+                    name = kwargs[key].split('.')[-1]
+                else:
+                    module = __name__
+                    name = kwargs[key]
+                kwargs[key] = getattr(import_module(module), name)
         return cls(**kwargs)
 
     @classmethod
@@ -3530,6 +3538,27 @@ def conditional_prior_factory(prior_class):
             """
             for key, value in self.reference_params.items():
                 setattr(self, key, value)
+
+        def __repr__(self):
+            """Overrides the special method __repr__.
+
+            Returns a representation of this instance that resembles how it is instantiated.
+            Works correctly for all child classes
+
+            Returns
+            -------
+            str: A string representation of this instance
+
+            """
+            prior_name = self.__class__.__name__
+            instantiation_dict = self.get_instantiation_dict()
+            instantiation_dict["condition_func"] = ".".join([
+                instantiation_dict["condition_func"].__module__,
+                instantiation_dict["condition_func"].__name__
+            ])
+            args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
+                              for key in instantiation_dict])
+            return "{}({})".format(prior_name, args)
 
     return ConditionalPrior
 
