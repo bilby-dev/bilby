@@ -5,6 +5,7 @@ from mock import Mock
 import numpy as np
 import os
 from collections import OrderedDict
+import scipy.stats as ss
 
 
 class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
@@ -467,6 +468,85 @@ class TestPriorClasses(unittest.TestCase):
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+
+    def test_accuracy(self):
+        """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
+        for prior in self.priors:
+            rescale_domain = np.linspace(0, 1, 1000)
+            if isinstance(prior, bilby.core.prior.Uniform):
+                domain = np.linspace(-5, 5, 100)
+                scipy_prob = ss.uniform.pdf(domain, loc=0, scale=1)
+                scipy_lnprob = ss.uniform.logpdf(domain, loc=0, scale=1)
+                scipy_cdf = ss.uniform.cdf(domain, loc=0, scale=1)
+                scipy_rescale = ss.uniform.ppf(rescale_domain, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.Gaussian):
+                domain = np.linspace(-1e2, 1e2, 1000)
+                scipy_prob = ss.norm.pdf(domain, loc=0, scale=1)
+                scipy_lnprob = ss.norm.logpdf(domain, loc=0, scale=1)
+                scipy_cdf = ss.norm.cdf(domain, loc=0, scale=1)
+                scipy_rescale = ss.norm.ppf(rescale_domain, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.Cauchy):
+                domain = np.linspace(-1e2, 1e2, 1000)
+                scipy_prob = ss.cauchy.pdf(domain, loc=0, scale=1)
+                scipy_lnprob = ss.cauchy.logpdf(domain, loc=0, scale=1)
+                scipy_cdf = ss.cauchy.cdf(domain, loc=0, scale=1)
+                scipy_rescale = ss.cauchy.ppf(rescale_domain, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.StudentT):
+                domain = np.linspace(-1e2, 1e2, 1000)
+                scipy_prob = ss.t.pdf(domain, 3, loc=0, scale=1)
+                scipy_lnprob = ss.t.logpdf(domain, 3, loc=0, scale=1)
+                scipy_cdf = ss.t.cdf(domain, 3, loc=0, scale=1)
+                scipy_rescale = ss.t.ppf(rescale_domain, 3, loc=0, scale=1)
+            elif (isinstance(prior, bilby.core.prior.Gamma) and
+                    not isinstance(prior, bilby.core.prior.ChiSquared)):
+                domain = np.linspace(0., 1e2, 5000)
+                scipy_prob = ss.gamma.pdf(domain, 1, loc=0, scale=1)
+                scipy_lnprob = ss.gamma.logpdf(domain, 1, loc=0, scale=1)
+                scipy_cdf = ss.gamma.cdf(domain, 1, loc=0, scale=1)
+                scipy_rescale = ss.gamma.ppf(rescale_domain, 1, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.LogNormal):
+                domain = np.linspace(0., 1e2, 1000)
+                scipy_prob = ss.lognorm.pdf(domain, 1, scale=1)
+                scipy_lnprob = ss.lognorm.logpdf(domain, 1, scale=1)
+                scipy_cdf = ss.lognorm.cdf(domain, 1, scale=1)
+                scipy_rescale = ss.lognorm.ppf(rescale_domain, 1, scale=1)
+            elif isinstance(prior, bilby.core.prior.Exponential):
+                domain = np.linspace(0., 1e2, 5000)
+                scipy_prob = ss.expon.pdf(domain, scale=1)
+                scipy_lnprob = ss.expon.logpdf(domain, scale=1)
+                scipy_cdf = ss.expon.cdf(domain, scale=1)
+                scipy_rescale = ss.expon.ppf(rescale_domain, scale=1)
+            elif isinstance(prior, bilby.core.prior.Logistic):
+                domain = np.linspace(-1e2, 1e2, 1000)
+                scipy_prob = ss.logistic.pdf(domain, loc=0, scale=1)
+                scipy_lnprob = ss.logistic.logpdf(domain, loc=0, scale=1)
+                scipy_cdf = ss.logistic.cdf(domain, loc=0, scale=1)
+                scipy_rescale = ss.logistic.ppf(rescale_domain, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.ChiSquared):
+                domain = np.linspace(0., 1e2, 5000)
+                scipy_prob = ss.gamma.pdf(domain, 1, loc=0, scale=2)
+                scipy_lnprob = ss.gamma.logpdf(domain, 1, loc=0, scale=2)
+                scipy_cdf = ss.gamma.cdf(domain, 1, loc=0, scale=2)
+                scipy_rescale = ss.gamma.ppf(rescale_domain, 1, loc=0, scale=2)
+            elif isinstance(prior, bilby.core.prior.Beta):
+                domain = np.linspace(-5, 5, 5000)
+                scipy_prob = ss.beta.pdf(domain, 2, 2, loc=0, scale=1)
+                scipy_lnprob = ss.beta.logpdf(domain, 2, 2, loc=0, scale=1)
+                scipy_cdf = ss.beta.cdf(domain, 2, 2, loc=0, scale=1)
+                scipy_rescale = ss.beta.ppf(rescale_domain, 2, 2, loc=0, scale=1)
+            else:
+                continue
+            testTuple = (
+                bilby.core.prior.Uniform, bilby.core.prior.Gaussian,
+                bilby.core.prior.Cauchy, bilby.core.prior.StudentT,
+                bilby.core.prior.Exponential, bilby.core.prior.Logistic,
+                bilby.core.prior.LogNormal, bilby.core.prior.Gamma,
+                bilby.core.prior.Beta)
+            if isinstance(prior, (testTuple)):
+                np.testing.assert_almost_equal(prior.prob(domain), scipy_prob)
+                np.testing.assert_almost_equal(prior.ln_prob(domain), scipy_lnprob)
+                np.testing.assert_almost_equal(prior.cdf(domain), scipy_cdf)
+                np.testing.assert_almost_equal(prior.rescale(rescale_domain), scipy_rescale)
 
     def test_unit_setting(self):
         for prior in self.priors:
