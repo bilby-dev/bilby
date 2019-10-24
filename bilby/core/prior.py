@@ -549,7 +549,7 @@ class ConditionalPriorDict(PriorDict):
             try:
                 res[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
             except ValueError:
-                # Some prior classes can not handle an array of reference parameters (e.g. alpha for PowerLaw
+                # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
                 # If that is the case, we sample each sample individually.
                 required_variables = subset_dict.get_required_variables(key)
                 res[key] = np.zeros(size)
