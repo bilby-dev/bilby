@@ -147,6 +147,7 @@ class TestPriorBoundary(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.prior.boundary = 'else'
 
+
 class TestPriorClasses(unittest.TestCase):
 
     def setUp(self):
@@ -1041,6 +1042,17 @@ class TestConditionalPriorDict(unittest.TestCase):
             m.return_value = 0.5
             with self.assertRaises(bilby.core.prior.IllegalConditionsException):
                 self.conditional_priors.sample_subset(keys=['var_1'])
+
+    def test_sample_multiple(self):
+        def condition_func(reference_params, a):
+            return dict(minimum=reference_params['minimum'],
+                        maximum=reference_params['maximum'],
+                        alpha=reference_params['alpha'] * a)
+        priors = bilby.core.prior.ConditionalPriorDict()
+        priors['a'] = bilby.core.prior.Uniform(minimum=0, maximum=1)
+        priors['b'] = bilby.core.prior.ConditionalPowerLaw(condition_func=condition_func, minimum=1, maximum=2,
+                                                           alpha=-2)
+        print(priors.sample(2))
 
     def test_rescale(self):
 

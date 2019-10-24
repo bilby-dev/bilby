@@ -546,7 +546,16 @@ class ConditionalPriorDict(PriorDict):
             raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
         res = dict()
         for key in subset_dict.sorted_keys:
-            res[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
+            try:
+                res[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
+            except ValueError:
+                # Some prior classes can not handle an array of reference parameters (e.g. alpha for PowerLaw
+                # If that is the case, we sample each sample individually.
+                required_variables = subset_dict.get_required_variables(key)
+                res[key] = np.zeros(size)
+                for i in range(size):
+                    rvars = {key: value[i] for key, value in required_variables.items()}
+                    res[key][i] = subset_dict[key].sample(**rvars)
         return res
 
     def get_required_variables(self, key):
