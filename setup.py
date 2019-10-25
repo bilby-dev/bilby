@@ -47,7 +47,6 @@ def get_long_description():
     here = os.path.abspath(os.path.dirname(__file__))
     with open(os.path.join(here, 'README.rst')) as f:
         long_description = f.read()
-    print(long_description)
     return long_description
 
 
