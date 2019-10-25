@@ -47,6 +47,7 @@ def get_long_description():
     here = os.path.abspath(os.path.dirname(__file__))
     with open(os.path.join(here, 'README.rst')) as f:
         long_description = f.read()
+    print(long_description)
     return long_description
 
 
@@ -64,6 +65,7 @@ long_description = get_long_description()
 setup(name='bilby',
       description='A user-friendly Bayesian inference library',
       long_description=long_description,
+      long_description_content_type="text/x-rst",
       url='https://git.ligo.org/lscsoft/bilby',
       author='Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot',
       author_email='paul.lasky@monash.edu',
