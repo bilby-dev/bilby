@@ -332,9 +332,7 @@ class PriorDict(OrderedDict):
         samples = dict()
         for key in keys:
             if isinstance(self[key], Prior):
-                if isinstance(self[key], Constraint):
-                    continue
-                else:
+                if not isinstance(self[key], Constraint):
                     samples[key] = self[key].sample(size=size)
             else:
                 logger.debug('{} not a known prior.'.format(key))
