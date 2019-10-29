@@ -331,9 +331,10 @@ class PriorDict(OrderedDict):
         self.convert_floats_to_delta_functions()
         samples = dict()
         for key in keys:
-            if isinstance(self[key], Prior):
-                if not isinstance(self[key], Constraint):
-                    samples[key] = self[key].sample(size=size)
+            if isinstance(self[key], Constraint):
+                continue
+            elif isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
             else:
                 logger.debug('{} not a known prior.'.format(key))
         return samples
@@ -541,20 +542,25 @@ class ConditionalPriorDict(PriorDict):
         self.convert_floats_to_delta_functions()
         subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
         if not subset_dict._resolved:
-            raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
-        res = dict()
+            raise IllegalConditionsException("The current set of priors contains unresolvable conditions.")
+        samples = dict()
         for key in subset_dict.sorted_keys:
-            try:
-                res[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
-            except ValueError:
-                # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
-                # If that is the case, we sample each sample individually.
-                required_variables = subset_dict.get_required_variables(key)
-                res[key] = np.zeros(size)
-                for i in range(size):
-                    rvars = {key: value[i] for key, value in required_variables.items()}
-                    res[key][i] = subset_dict[key].sample(**rvars)
-        return res
+            if isinstance(self[key], Constraint):
+                continue
+            if isinstance(self[key], Prior):
+                try:
+                    samples[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
+                except ValueError:
+                    # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
+                    # If that is the case, we sample each sample individually.
+                    required_variables = subset_dict.get_required_variables(key)
+                    samples[key] = np.zeros(size)
+                    for i in range(size):
+                        rvars = {key: value[i] for key, value in required_variables.items()}
+                        samples[key][i] = subset_dict[key].sample(**rvars)
+            else:
+                logger.debug('{} not a known prior.'.format(key))
+        return samples
 
     def get_required_variables(self, key):
         """ Returns the required variables to sample a given conditional key.
