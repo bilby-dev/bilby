@@ -638,7 +638,7 @@ class ConditionalPriorDict(PriorDict):
         for key, index in zip(self._rescale_keys, self._rescale_indexes):
             required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
             result[key] = self[key].rescale(theta[index], **required_variables)
-        return list(result.values())
+        return [result[key] for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
@@ -3485,7 +3485,8 @@ def conditional_prior_factory(prior_class):
             return super(ConditionalPrior, self).prob(val)
 
         def ln_prob(self, val, **required_variables):
-            return np.log(self.prob(val, **required_variables))
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).ln_prob(val)
 
         def update_conditions(self, **required_variables):
             """
