@@ -547,7 +547,7 @@ class ConditionalPriorDict(PriorDict):
         for key in subset_dict.sorted_keys:
             if isinstance(self[key], Constraint):
                 continue
-            if isinstance(self[key], Prior):
+            elif isinstance(self[key], Prior):
                 try:
                     samples[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
                 except ValueError:
