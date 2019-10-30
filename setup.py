@@ -57,13 +57,14 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '0.5.8'
+VERSION = '0.5.9'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
 setup(name='bilby',
       description='A user-friendly Bayesian inference library',
       long_description=long_description,
+      long_description_content_type="text/x-rst",
       url='https://git.ligo.org/lscsoft/bilby',
       author='Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot',
       author_email='paul.lasky@monash.edu',

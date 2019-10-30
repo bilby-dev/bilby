@@ -22,7 +22,7 @@ If you need help, find an issue, or just have a question/suggestion you can
 We encourage you to contribute to the development of bilby. This is done via a merge request.  For
 help in creating a merge request, see `this page
 <https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html>`__ or contact
-us directly. For advice on contributing, see `the contributing guide<https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
+us directly. For advice on contributing, see `the contributing guide <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
 
 
 --------------

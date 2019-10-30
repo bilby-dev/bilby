@@ -1,5 +1,24 @@
 # All notable changes will be documented in this file
 
+## [0.5.9] 2019-10-25
+
+### Added
+- Default reflective boundaries for calibration parameters !623
+- Support for inferring method arguments !608
+
+## Changes
+- Speed up the prior evaluations by implementing directly with checks to scipy !627
+- Soft initalisation option for the Sampler class !620
+- Improvements to JSON reading and writing for functions !621
+- Fixed bug in prior reading !618 !617
+- Fixes to the examples !619 !614 !626 !616
+- Update to the test mode storing extra information !613
+- Minor improvements to the ptemcee sampler
+- Improved contributing guidelines !610
+
+## Removed
+- Default printing of bilby version at import !608
+
 ## [0.5.8] 2019-09-26
 
 ### Added
