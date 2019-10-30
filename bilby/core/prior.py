@@ -3534,7 +3534,8 @@ def conditional_prior_factory(prior_class):
             return super(ConditionalPrior, self).prob(val)
 
         def ln_prob(self, val, **required_variables):
-            return np.log(self.prob(val, **required_variables))
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).ln_prob(val)
 
         def update_conditions(self, **required_variables):
             """

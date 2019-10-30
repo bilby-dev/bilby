@@ -1022,8 +1022,10 @@ class TestConditionalPrior(unittest.TestCase):
         with mock.patch.object(self.prior, 'update_conditions') as m:
             self.prior.ln_prob(1, test_parameter_1=self.test_variable_1,
                                test_parameter_2=self.test_variable_2)
-            m.assert_called_with(test_parameter_1=self.test_variable_1,
-                                 test_parameter_2=self.test_variable_2)
+            calls = [mock.call(test_parameter_1=self.test_variable_1,
+                               test_parameter_2=self.test_variable_2),
+                     mock.call()]
+            m.assert_has_calls(calls)
 
     def test_reset_to_reference_parameters(self):
         self.prior.minimum = 10
