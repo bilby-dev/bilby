@@ -229,7 +229,10 @@ class AlignedSpin(Interped):
                       a_prior.minimum * z_prior.maximum)
         chi_max = a_prior.maximum * z_prior.maximum
         xx = np.linspace(chi_min, chi_max, 800)
-        aas = np.linspace(a_prior.minimum, a_prior.maximum, 1000)
+        a_prior_minimum = a_prior.minimum
+        if a_prior_minimum == 0:
+            a_prior_minimum += 1e-32
+        aas = np.linspace(a_prior_minimum, a_prior.maximum, 1000)
         yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
                                      z_prior.prob(x / aas)), aas) for x in xx]
         super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
