@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 from ..core.prior import (ConditionalPriorDict, PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint, ConditionalUniform, conditional_prior_factory)
+                          Interped, Constraint, conditional_prior_factory)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
