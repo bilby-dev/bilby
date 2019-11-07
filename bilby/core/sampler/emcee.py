@@ -57,6 +57,8 @@ class Emcee(MCMCSampler):
                  pos0=None, nburn=None, burn_in_fraction=0.25, resume=True,
                  burn_in_act=3, **kwargs):
         import emcee
+        self.emcee = emcee
+
         if LooseVersion(emcee.__version__) > LooseVersion('2.2.1'):
             self.prerelease = True
         else:
@@ -93,8 +95,8 @@ class Emcee(MCMCSampler):
 
     @property
     def sampler_function_kwargs(self):
-        import emcee
-        keys = ['lnprob0', 'rstate0', 'blobs0', 'iterations', 'thin', 'storechain', 'mh_proposal']
+        keys = ['lnprob0', 'rstate0', 'blobs0', 'iterations', 'thin',
+                'storechain', 'mh_proposal']
 
         # updated function keywords for emcee > v2.2.1
         updatekeys = {'p0': 'initial_state',
@@ -107,7 +109,8 @@ class Emcee(MCMCSampler):
         if self.prerelease:
             if function_kwargs['mh_proposal'] is not None:
                 logger.warning("The 'mh_proposal' option is no longer used "
-                               "in emcee v{}, and will be ignored.".format(emcee.__version__))
+                               "in emcee v{}, and will be ignored.".format(
+                                   self.emcee.__version__))
             del function_kwargs['mh_proposal']
 
             for key in updatekeys:
@@ -259,8 +262,7 @@ class Emcee(MCMCSampler):
         sys.exit()
 
     def _initialise_sampler(self):
-        import emcee
-        self._sampler = emcee.EnsembleSampler(**self.sampler_init_kwargs)
+        self._sampler = self.emcee.EnsembleSampler(**self.sampler_init_kwargs)
         self._init_chain_file()
 
     @property
@@ -307,7 +309,10 @@ class Emcee(MCMCSampler):
         This is used when loading in a sampler from a pickle file to figure out
         how much of the run has already been completed
         """
-        return len(self.sampler.blobs)
+        try:
+            return len(self.sampler.blobs)
+        except AttributeError:
+            return 0
 
     def _draw_pos0_from_prior(self):
         return np.array(
@@ -344,7 +349,10 @@ class Emcee(MCMCSampler):
         iterations = sampler_function_kwargs.pop('iterations')
         iterations -= self._previous_iterations
 
-        sampler_function_kwargs['p0'] = self.pos0
+        if self.prerelease:
+            sampler_function_kwargs['initial_state'] = self.pos0
+        else:
+            sampler_function_kwargs['p0'] = self.pos0
 
         # main iteration loop
         for sample in tqdm(
