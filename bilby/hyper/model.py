@@ -1,4 +1,4 @@
-from ..core.utils import infer_parameters_from_function
+from ..core.utils import infer_args_from_function_except_n_args
 
 
 class Model(object):
@@ -18,10 +18,6 @@ class Model(object):
         self.models = model_functions
 
         self.parameters = dict()
-        for func in self.models:
-            param_keys = infer_parameters_from_function(func)
-            for key in param_keys:
-                self.parameters[key] = None
 
     def prob(self, data, **kwargs):
         probability = 1.0
@@ -31,7 +27,7 @@ class Model(object):
 
     def _get_function_parameters(self, func):
         """If the function is a class method we need to remove more arguments"""
-        param_keys = infer_parameters_from_function(func)
+        param_keys = infer_args_from_function_except_n_args(func, n=0)
         ignore = ['dataset', 'self', 'cls']
         for key in ignore:
             if key in param_keys:
