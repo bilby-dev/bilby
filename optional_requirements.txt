@@ -2,3 +2,4 @@ astropy
 lalsuite
 gwpy
 theano
+plotly
