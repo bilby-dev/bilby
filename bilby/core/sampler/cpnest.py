@@ -113,7 +113,7 @@ class Cpnest(NestedSampler):
                                      inplace=True)
         _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
                                          np.array(out.NS.state.nlive))
-        self.result.nested_samples.weights = np.exp(log_weights)
+        self.result.nested_samples['weights'] = np.exp(log_weights)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
         return self.result
