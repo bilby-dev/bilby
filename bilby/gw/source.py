@@ -264,12 +264,31 @@ def _base_lal_cbc_fd_waveform(
         wf_func = lalsim_SimInspiralChooseFDWaveform
     else:
         wf_func = lalsim_SimInspiralFD
-    hplus, hcross = wf_func(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
-        start_frequency, maximum_frequency, reference_frequency,
-        waveform_dictionary, approximant)
+    try:
+        hplus, hcross = wf_func(
+            mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+            spin_2z, luminosity_distance, iota, phase,
+            longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+            start_frequency, maximum_frequency, reference_frequency,
+            waveform_dictionary, approximant)
+    except Exception as e:
+        EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
+        EINVAL = (e.args[0] == 'Internal function call failed: Invalid argument')
+        ERANGE = (e.args[0] == 'Internal function call failed: Output range error')
+        if EDOM or EINVAL or ERANGE:
+            failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
+                                     spin_1=(spin_1x, spin_2y, spin_1z),
+                                     spin_2=(spin_2x, spin_2y, spin_2z),
+                                     luminosity_distance=luminosity_distance,
+                                     iota=iota, phase=phase,
+                                     eccentricity=eccentricity,
+                                     start_frequency=start_frequency)
+            logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                           "The parameters were {}\n".format(failed_parameters) +
+                           "Likelihood will be set to -inf.")
+            return None
+        else:
+            raise
 
     h_plus = np.zeros_like(frequency_array, dtype=np.complex)
     h_cross = np.zeros_like(frequency_array, dtype=np.complex)
