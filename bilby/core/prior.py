@@ -1237,12 +1237,19 @@ class SymmetricLogUniform(Prior):
         Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
-        if val < 0.5:
-            return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
-        elif val > 0.5:
-            return self.minimum * np.exp(np.log(self.maximum / self.minimum) * (2 * val - 1))
+        if isinstance(val, (float, int)):
+            if val < 0.5:
+                return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
+            else:
+                return self.minimum * np.exp(np.log(self.maximum / self.minimum) * (2 * val - 1))
         else:
-            raise ValueError("Rescale not valid for val=0.5")
+            vals_less_than_5 = val < 0.5
+            rescaled = np.empty_like(val)
+            rescaled[vals_less_than_5] = -self.maximum * np.exp(-2 * val[vals_less_than_5] *
+                                                                np.log(self.maximum / self.minimum))
+            rescaled[~vals_less_than_5] = self.minimum * np.exp(np.log(self.maximum / self.minimum) *
+                                                                (2 * val[~vals_less_than_5] - 1))
+            return rescaled
 
     def prob(self, val):
         """Return the prior probability of val

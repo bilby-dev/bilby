@@ -274,6 +274,16 @@ class TestPriorClasses(unittest.TestCase):
                 # the prob and ln_prob functions, it must be ignored in this test.
                 self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
 
+    def test_many_prob_and_many_ln_prob(self):
+        for prior in self.priors:
+            samples = prior.sample(10)
+            if not isinstance(prior, bilby.core.prior.MultivariateGaussian):
+                ln_probs = prior.ln_prob(samples)
+                probs = prior.prob(samples)
+                for sample, logp, p in zip(samples, ln_probs, probs):
+                    self.assertAlmostEqual(prior.ln_prob(sample), logp)
+                    self.assertAlmostEqual(prior.prob(sample), p)
+
     def test_cdf_is_inverse_of_rescaling(self):
         domain = np.linspace(0, 1, 100)
         threshold = 1e-9
