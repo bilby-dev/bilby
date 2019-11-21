@@ -634,7 +634,7 @@ class ConditionalPriorDict(PriorDict):
         """
         self._check_resolved()
         self._update_rescale_keys(keys)
-        result = OrderedDict(dict())
+        result = dict()
         for key, index in zip(self._rescale_keys, self._rescale_indexes):
             required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
             result[key] = self[key].rescale(theta[index], **required_variables)
