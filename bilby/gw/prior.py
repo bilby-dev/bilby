@@ -10,7 +10,9 @@ from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
     convert_to_lal_binary_neutron_star_parameters, generate_mass_parameters,
-    generate_tidal_parameters, fill_from_fixed_priors)
+    generate_tidal_parameters, fill_from_fixed_priors,
+    chirp_mass_and_mass_ratio_to_total_mass,
+    total_mass_and_mass_ratio_to_component_masses)
 from .cosmology import get_cosmology
 
 try:
@@ -305,7 +307,61 @@ class AlignedSpin(Interped):
                                           boundary=boundary)
 
 
-class BBHPriorDict(PriorDict):
+class CBCPriorDict(PriorDict):
+    @property
+    def minimum_chirp_mass(self):
+        mass_1 = None
+        mass_2 = None
+        if "chirp_mass" in self:
+            return self["chirp_mass"].minimum
+        elif "mass_1" in self:
+            mass_1 = self['mass_1'].minimum
+            if "mass_2" in self:
+                mass_2 = self['mass_2'].minimum
+            elif "mass_ratio" in self:
+                mass_2 = mass_1 * self["mass_ratio"].minimum
+        if mass_1 is not None and mass_2 is not None:
+            s = generate_mass_parameters(dict(mass_1=mass_1, mass_2=mass_2))
+            return s["chirp_mass"]
+        else:
+            logger.warning("Unable to determine minimum chirp mass")
+            return None
+
+    @property
+    def maximum_chirp_mass(self):
+        mass_1 = None
+        mass_2 = None
+        if "chirp_mass" in self:
+            return self["chirp_mass"].maximum
+        elif "mass_1" in self:
+            mass_1 = self['mass_1'].maximum
+            if "mass_2" in self:
+                mass_2 = self['mass_2'].maximum
+            elif "mass_ratio" in self:
+                mass_2 = mass_1 * self["mass_ratio"].maximum
+        if mass_1 is not None and mass_2 is not None:
+            s = generate_mass_parameters(dict(mass_1=mass_1, mass_2=mass_2))
+            return s["chirp_mass"]
+        else:
+            logger.warning("Unable to determine maximum chirp mass")
+            return None
+
+    @property
+    def minimum_component_mass(self):
+        if "mass_2" in self:
+            return self["mass_2"].minimum
+        if "chirp_mass" in self and "mass_ratio" in self:
+            total_mass = chirp_mass_and_mass_ratio_to_total_mass(
+                self["chirp_mass"].minimum, self["mass_ratio"].minimum)
+            _, mass_2 = total_mass_and_mass_ratio_to_component_masses(
+                self["mass_ratio"].minimum, total_mass)
+            return mass_2
+        else:
+            logger.warning("Unable to determine minimum component mass")
+            return None
+
+
+class BBHPriorDict(CBCPriorDict):
     def __init__(self, dictionary=None, filename=None, aligned_spin=False,
                  conversion_function=None):
         """ Initialises a Prior set for Binary Black holes
@@ -411,7 +467,7 @@ class BBHPriorDict(PriorDict):
         return False
 
 
-class BNSPriorDict(PriorDict):
+class BNSPriorDict(CBCPriorDict):
 
     def __init__(self, dictionary=None, filename=None, aligned_spin=True,
                  conversion_function=None):
