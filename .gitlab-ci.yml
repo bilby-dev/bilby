@@ -44,15 +44,6 @@ basic-3.7:
   <<: *test-python
   image: python:3.7
 
-# test example on python 2
-python-2.7:
-  stage: test
-  image: bilbydev/bilby-test-suite-python27
-  script:
-    - python -m pip install .
-    # Run tests without finding coverage
-    - pytest --ignore=test/utils_py3_test.py
-
 # test example on python 3
 python-3.7:
   stage: test
@@ -97,7 +88,6 @@ pages:
   stage: deploy
   dependencies:
     - python-3.7
-    - python-2.7
   script:
     - mkdir public/
     - mv htmlcov/ public/

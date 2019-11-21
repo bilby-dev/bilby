@@ -48,7 +48,7 @@ RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs
 RUN pip install corner lalsuite astropy gwpy theano
 
 # Install samplers
-RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest
+RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine
 
 # Install pymultinest requirements
 RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \

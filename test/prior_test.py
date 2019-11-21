@@ -309,6 +309,16 @@ class TestPriorClasses(unittest.TestCase):
                 # the prob and ln_prob functions, it must be ignored in this test.
                 self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
 
+    def test_many_prob_and_many_ln_prob(self):
+        for prior in self.priors:
+            samples = prior.sample(10)
+            if not isinstance(prior, bilby.core.prior.MultivariateGaussian):
+                ln_probs = prior.ln_prob(samples)
+                probs = prior.prob(samples)
+                for sample, logp, p in zip(samples, ln_probs, probs):
+                    self.assertAlmostEqual(prior.ln_prob(sample), logp)
+                    self.assertAlmostEqual(prior.prob(sample), p)
+
     def test_cdf_is_inverse_of_rescaling(self):
         domain = np.linspace(0, 1, 100)
         threshold = 1e-9
@@ -695,8 +705,8 @@ class TestPriorDict(unittest.TestCase):
         priors_set = bilby.core.prior.PriorSet(self.priors)
         self.assertEqual(priors_dict, priors_set)
 
-    def test_prior_set_is_ordered_dict(self):
-        self.assertIsInstance(self.prior_set_from_dict, OrderedDict)
+    def test_prior_set_is_dict(self):
+        self.assertIsInstance(self.prior_set_from_dict, dict)
 
     def test_prior_set_has_correct_length(self):
         self.assertEqual(3, len(self.prior_set_from_dict))

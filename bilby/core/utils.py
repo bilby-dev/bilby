@@ -59,7 +59,7 @@ def infer_parameters_from_function(func):
     to be removed.
     """
     if isinstance(func, types.MethodType):
-        return _infer_args_from_function_except_n_args(func=func, n=2)
+        return infer_args_from_function_except_n_args(func=func, n=2)
     elif isinstance(func, types.FunctionType):
         return _infer_args_from_function_except_for_first_arg(func=func)
     else:
@@ -77,10 +77,10 @@ def infer_args_from_method(method):
     ---------
     list: A list of strings with the parameters
     """
-    return _infer_args_from_function_except_n_args(func=method, n=1)
+    return infer_args_from_function_except_n_args(func=method, n=1)
 
 
-def _infer_args_from_function_except_n_args(func, n=1):
+def infer_args_from_function_except_n_args(func, n=1):
     """ Inspects a function to find its arguments, and ignoring the
     first n of these, returns a list of arguments from the function's
     signature.
@@ -114,7 +114,7 @@ def _infer_args_from_function_except_n_args(func, n=1):
     >>> def hello(a, b, c, d):
     >>>     pass
     >>>
-    >>> _infer_args_from_function_except_n_args(hello, 2)
+    >>> infer_args_from_function_except_n_args(hello, 2)
     ['c', 'd']
     """
     try:
@@ -126,7 +126,7 @@ def _infer_args_from_function_except_n_args(func, n=1):
 
 
 def _infer_args_from_function_except_for_first_arg(func):
-    return _infer_args_from_function_except_n_args(func=func, n=1)
+    return infer_args_from_function_except_n_args(func=func, n=1)
 
 
 def get_sampling_frequency(time_array):

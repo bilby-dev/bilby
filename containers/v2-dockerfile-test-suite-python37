@@ -1,46 +1,35 @@
-FROM ubuntu:18.04
-
-LABEL name="bilby Base Enterprise Linux 7" \
+FROM continuumio/miniconda3
+LABEL name="bilby Base miniconda3" \
 maintainer="Gregory Ashton <gregory.ashton@ligo.org>" \
-date="20190104"
+date="20191114"
 
-ENV PATH /opt/conda/bin:$PATH
+RUN conda update -n base -c defaults conda
 
-# Install backend
-RUN apt-get update --fix-missing \
-&& apt-get install -y libglib2.0-0 libxext6 libsm6 libxrender1 libgl1-mesa-glx \
-dh-autoreconf build-essential libarchive-dev wget curl git libhdf5-serial-dev
+ENV conda_env python37
 
-# Install python2.7
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda2-4.5.11-Linux-x86_64.sh -O ~/miniconda.sh && \
-/bin/bash ~/miniconda.sh -b -p /opt/conda && \
-rm ~/miniconda.sh && \
-ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-echo "conda activate base" >> ~/.bashrc
+RUN conda create -n ${conda_env} python=3.7
+RUN echo "source activate ${conda_env}" > ~/.bashrc
+ENV PATH /opt/conda/envs/${conda_env}/bin:$PATH
+RUN /bin/bash -c "source activate ${conda_env}"
+RUN conda info
+RUN python --version
 
 # Install conda-installable programs
-RUN conda install -y numpy scipy matplotlib pandas==0.23
+RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8
+RUN conda install -n ${conda_env} -c anaconda coverage configargparse future
 
-RUN conda install -c conda-forge deepdish
+# Install conda-forge-installable programs
+RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov
 
-# Install requirements
-RUN pip install --upgrade pip \
-&& pip install --upgrade setuptools \
-&& pip install future \
-pycondor>=0.5 \
-configargparse \
-flake8 \
-mock \
-pipenv \
-coverage \
-pytest-cov \
-coverage-badge
+# Install pip-requirements
+RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools coverage-badge
 
-# Install additional bilby requirements
-RUN pip install corner lalsuite astropy gwpy theano
+# Install documentation requirements
+RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 
-# Install samplers
+RUN pip install corner lalsuite theano
+
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine
 
 # Install pymultinest requirements

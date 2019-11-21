@@ -3,11 +3,18 @@ from collections import OrderedDict
 import unittest
 import os
 import sys
+import pickle
 
 import numpy as np
 from astropy import cosmology
+from scipy.stats import ks_2samp
+import matplotlib.pyplot as plt
+import pandas as pd
 
 import bilby
+from bilby.core.prior import Uniform, Constraint
+from bilby.gw.prior import BBHPriorDict
+from bilby.gw import conversion
 
 
 class TestBBHPriorDict(unittest.TestCase):
@@ -109,6 +116,77 @@ class TestBBHPriorDict(unittest.TestCase):
         self.bbh_prior_dict['chirp_mass'] = bilby.prior.Constraint(
             minimum=20, maximum=40, name='chirp_mass')
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
+
+    def test_pickle_prior(self):
+        priors = dict(chirp_mass=bilby.core.prior.Uniform(10, 20),
+                      mass_ratio=bilby.core.prior.Uniform(0.125, 1))
+        priors = bilby.gw.prior.BBHPriorDict(priors)
+        with open("test.pickle", "wb") as file:
+            pickle.dump(priors, file)
+        with open("test.pickle", "rb") as file:
+            priors_loaded = pickle.load(file)
+        self.assertEqual(priors, priors_loaded)
+
+
+class TestPriorConversion(unittest.TestCase):
+
+    def test_bilby_to_lalinference(self):
+        mass_1 = [1, 20]
+        mass_2 = [1, 20]
+        chirp_mass = [1, 5]
+        mass_ratio = [0.125, 1]
+
+        bilby_prior = BBHPriorDict(dictionary=dict(
+            chirp_mass=Uniform(name='chirp_mass', minimum=chirp_mass[0], maximum=chirp_mass[1]),
+            mass_ratio=Uniform(name='mass_ratio', minimum=mass_ratio[0], maximum=mass_ratio[1]),
+            mass_2=Constraint(name='mass_2', minimum=mass_1[0], maximum=mass_1[1]),
+            mass_1=Constraint(name='mass_1', minimum=mass_2[0], maximum=mass_2[1])))
+
+        lalinf_prior = BBHPriorDict(dictionary=dict(
+            chirp_mass=Constraint(name='chirp_mass', minimum=chirp_mass[0], maximum=chirp_mass[1]),
+            mass_2=Uniform(name='mass_2', minimum=mass_1[0], maximum=mass_1[1]),
+            mass_1=Uniform(name='mass_1', minimum=mass_2[0], maximum=mass_2[1])))
+
+        nsamples = 5000
+        bilby_samples = bilby_prior.sample(nsamples)
+        bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
+            bilby_samples)
+
+        # Quicker way to generate LA prior samples (rather than specifying Constraint)
+        lalinf_samples = []
+        while len(lalinf_samples) < nsamples:
+            s = lalinf_prior.sample()
+            if s["mass_1"] < s["mass_2"]:
+                s["mass_1"], s["mass_2"] = s["mass_2"], s["mass_1"]
+            if s["mass_2"] / s["mass_1"] > 0.125:
+                lalinf_samples.append(s)
+        lalinf_samples = pd.DataFrame(lalinf_samples)
+        lalinf_samples["mass_ratio"] = lalinf_samples["mass_2"] / lalinf_samples["mass_1"]
+
+        # Construct fake result object
+        result = bilby.core.result.Result()
+        result.search_parameter_keys = ["mass_ratio", "chirp_mass"]
+        result.meta_data = dict()
+        result.priors = bilby_prior
+        result.posterior = pd.DataFrame(bilby_samples)
+        result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(result)
+
+        if "plot" in sys.argv:
+            # Useful for debugging
+            plt.hist(bilby_samples["mass_ratio"], bins=50, density=True, alpha=0.5)
+            plt.hist(result_converted.posterior["mass_ratio"], bins=50, density=True, alpha=0.5)
+            plt.hist(lalinf_samples["mass_ratio"], bins=50, alpha=0.5, density=True)
+            plt.show()
+
+        # Check that the non-reweighted posteriors fail a KS test
+        ks = ks_2samp(bilby_samples["mass_ratio"], lalinf_samples["mass_ratio"])
+        print("Non-reweighted KS test = ", ks)
+        self.assertFalse(ks.pvalue > 0.05)
+
+        # Check that the non-reweighted posteriors pass a KS test
+        ks = ks_2samp(result_converted.posterior["mass_ratio"], lalinf_samples["mass_ratio"])
+        print("Reweighted KS test = ", ks)
+        self.assertTrue(ks.pvalue > 0.001)
 
 
 class TestPackagedPriors(unittest.TestCase):
