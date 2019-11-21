@@ -658,8 +658,8 @@ class TestPriorDict(unittest.TestCase):
         priors_set = bilby.core.prior.PriorSet(self.priors)
         self.assertEqual(priors_dict, priors_set)
 
-    def test_prior_set_is_ordered_dict(self):
-        self.assertIsInstance(self.prior_set_from_dict, OrderedDict)
+    def test_prior_set_is_dict(self):
+        self.assertIsInstance(self.prior_set_from_dict, dict)
 
     def test_prior_set_has_correct_length(self):
         self.assertEqual(3, len(self.prior_set_from_dict))

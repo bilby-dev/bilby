@@ -3,7 +3,6 @@ from __future__ import division
 import re
 from importlib import import_module
 import os
-from collections import OrderedDict
 from future.utils import iteritems
 import json
 from io import open as ioopen
@@ -24,7 +23,7 @@ from .utils import (
 )
 
 
-class PriorDict(OrderedDict):
+class PriorDict(dict):
     def __init__(self, dictionary=None, filename=None,
                  conversion_function=None):
         """ A set of priors
@@ -472,7 +471,7 @@ class PriorDict(OrderedDict):
         We have to overwrite the copy method as it fails due to the presence of
         defaults.
         """
-        return self.__class__(dictionary=OrderedDict(self))
+        return self.__class__(dictionary=dict(self))
 
 
 class PriorSet(PriorDict):
@@ -777,7 +776,7 @@ class Prior(object):
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
-        instantiation_dict = OrderedDict()
+        instantiation_dict = dict()
         for key in subclass_args:
             instantiation_dict[key] = dict_with_properties[key]
         return instantiation_dict
@@ -2677,11 +2676,11 @@ class MultivariateGaussianDist(object):
             self.add_mode(mu, sigma, corrcoef, cov, weight)
 
         # a dictionary of the parameters as requested by the prior
-        self.requested_parameters = OrderedDict()
+        self.requested_parameters = dict()
         self.reset_request()
 
         # a dictionary of the rescaled parameters
-        self.rescale_parameters = OrderedDict()
+        self.rescale_parameters = dict()
         self.reset_rescale()
 
         # a list of sampled parameters
@@ -2977,7 +2976,7 @@ class MultivariateGaussianDist(object):
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
-        instantiation_dict = OrderedDict()
+        instantiation_dict = dict()
         for key in subclass_args:
             if isinstance(dict_with_properties[key], list):
                 value = np.asarray(dict_with_properties[key]).tolist()
