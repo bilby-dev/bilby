@@ -1,4 +1,5 @@
 import os
+import copy
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -17,6 +18,70 @@ try:
 except ImportError:
     logger.debug("You do not have astropy installed currently. You will"
                  " not be able to use some of the prebuilt functions.")
+
+
+class BilbyPriorConversionError(Exception):
+    pass
+
+
+def convert_to_flat_in_component_mass_prior(result, fraction=0.25):
+    """ Converts samples flat in chirp-mass and mass-ratio to flat in component mass
+
+    Parameters
+    ----------
+    result: bilby.core.result.Result
+        The output result complete with priors and posteriors
+    fraction: float [0, 1]
+        The fraction of samples to draw (default=0.25). Note, if too high a
+        fraction of samples are draw, the reweighting will not be applied in
+        effect.
+
+    """
+    if getattr(result, "priors") is not None:
+        if isinstance(getattr(result.priors, "chirp_mass", None), Uniform) is False:
+            BilbyPriorConversionError("chirp mass prior should be Uniform")
+        if isinstance(getattr(result.priors, "mass_ratio", None), Uniform) is False:
+            BilbyPriorConversionError("mass_ratio prior should be Uniform")
+        if isinstance(getattr(result.priors, "mass_1", None), Constraint):
+            BilbyPriorConversionError("mass_1 prior should be a Constraint")
+        if isinstance(getattr(result.priors, "mass_2", None), Constraint):
+            BilbyPriorConversionError("mass_2 prior should be a Constraint")
+    else:
+        BilbyPriorConversionError("No prior in the result: unable to convert")
+
+    result = copy.copy(result)
+    priors = result.priors
+    posterior = result.posterior
+
+    priors["chirp_mass"] = Constraint(
+        priors["chirp_mass"].minimum, priors["chirp_mass"].maximum,
+        "chirp_mass", latex_label=priors["chirp_mass"].latex_label)
+    priors["mass_ratio"] = Constraint(
+        priors["mass_ratio"].minimum, priors["mass_ratio"].maximum,
+        "mass_ratio", latex_label=priors["mass_ratio"].latex_label)
+    priors["mass_1"] = Uniform(
+        priors["mass_1"].minimum, priors["mass_1"].maximum, "mass_1",
+        latex_label=priors["mass_1"].latex_label)
+    priors["mass_1"] = Uniform(
+        priors["mass_2"].minimum, priors["mass_2"].maximum, "mass_2",
+        latex_label=priors["mass_2"].latex_label)
+
+    weights = posterior["mass_1"] ** 2 / posterior["chirp_mass"]
+    result.posterior = posterior.sample(frac=fraction, weights=weights)
+
+    logger.info("Resampling posterior to flat-in-component mass")
+    effective_sample_size = sum(weights)**2 / sum(weights**2)
+    n_posterior = len(posterior)
+    if fraction > effective_sample_size / n_posterior:
+        logger.warning(
+            "Sampling posterior of length {} with fraction {}, but "
+            "effective_sample_size / len(posterior) = {}. This may produce "
+            "biased results"
+            .format(n_posterior, fraction, effective_sample_size / n_posterior)
+        )
+    result.posterior = posterior.sample(frac=fraction, weights=weights, replace=True)
+    result.meta_data["reweighted_to_flat_in_component_mass"] = True
+    return result
 
 
 class Cosmological(Interped):
