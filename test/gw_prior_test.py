@@ -3,6 +3,7 @@ from collections import OrderedDict
 import unittest
 import os
 import sys
+import pickle
 
 import numpy as np
 from astropy import cosmology
@@ -109,6 +110,16 @@ class TestBBHPriorDict(unittest.TestCase):
         self.bbh_prior_dict['chirp_mass'] = bilby.prior.Constraint(
             minimum=20, maximum=40, name='chirp_mass')
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
+
+    def test_pickle_prior(self):
+        priors = dict(chirp_mass=bilby.core.prior.Uniform(10, 20),
+                      mass_ratio=bilby.core.prior.Uniform(0.125, 1))
+        priors = bilby.gw.prior.BBHPriorDict(priors)
+        with open("test.pickle", "wb") as file:
+            pickle.dump(priors, file)
+        with open("test.pickle", "rb") as file:
+            priors_loaded = pickle.load(file)
+        self.assertEqual(priors, priors_loaded)
 
 
 class TestPackagedPriors(unittest.TestCase):
