@@ -50,8 +50,7 @@ injection_parameters = dict(
     phase=1.3, geocent_time=1126259642.413, ra=1.375, dec=-1.2108)
 
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
-                          reference_frequency=20. * scale_factor,
-                          minimum_frequency=20. * scale_factor)
+                          reference_frequency=20. * scale_factor)
 
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
@@ -65,6 +64,8 @@ ifos.set_strain_data_from_power_spectral_densities(
     start_time=injection_parameters['geocent_time'] - 3)
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
+for ifo in ifos:
+    ifo.minimum_frequency = 20 * scale_factor
 
 # make ROQ waveform generator
 search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -98,7 +99,7 @@ likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
     priors=priors, roq_params=params)
 
 # write the weights to file so they can be loaded multiple times
-likelihood.save_weights('weights.json')
+likelihood.save_weights('weights.npz')
 
 # remove the basis matrices as these are big for longer bases
 del basis_matrix_linear, basis_matrix_quadratic
@@ -106,10 +107,10 @@ del basis_matrix_linear, basis_matrix_quadratic
 # load the weights from the file
 likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
     interferometers=ifos, waveform_generator=search_waveform_generator,
-    weights='weights.json', priors=priors)
+    weights='weights.npz', priors=priors)
 
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='pymultinest', npoints=500,
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
     injection_parameters=injection_parameters, outdir=outdir, label=label)
 
 # Make a corner plot.
