@@ -310,7 +310,7 @@ class Sampler(object):
         for _ in range(n_evaluations):
             if isinstance(self.priors, ConditionalPriorDict):
                 theta = self.priors.sample()
-                theta = list(theta.values())
+                theta = [theta[key] for key in self._search_parameter_keys]
             else:
                 theta = [self.priors[key].sample()
                          for key in self._search_parameter_keys]
