@@ -676,10 +676,17 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     ['luminosity_distance', 'phase', 'geocent_time']):
                 if getattr(likelihood, '{}_marginalization'.format(par), False):
                     priors[name] = likelihood.priors[name]
-    output_sample = generate_mass_parameters(output_sample)
-    output_sample = generate_spin_parameters(output_sample)
-    output_sample = generate_source_frame_parameters(output_sample)
-    compute_snrs(output_sample, likelihood)
+    for key, func in zip(["mass", "spin", "source frame"], [
+            generate_mass_parameters, generate_spin_parameters,
+            generate_source_frame_parameters]):
+        try:
+            output_sample = func(output_sample)
+        except KeyError as e:
+            logger.debug(
+                "Generation of {} parameters failed with message {}".format(
+                    key, e))
+    if likelihood is not None:
+        compute_snrs(output_sample, likelihood)
     return output_sample
 
 
@@ -735,7 +742,22 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
         likelihood=likelihood, priors=priors)
-    output_sample = generate_tidal_parameters(output_sample)
+    try:
+        output_sample = generate_tidal_parameters(output_sample)
+    except KeyError as e:
+        logger.debug(
+            "Generation of tidal parameters failed with message {}".format(e))
+    return output_sample
+
+
+def generate_specific_parameters(sample, parameters):
+    updated_sample = generate_all_bns_parameters(sample=sample.copy())
+    output_sample = sample.__class__()
+    for key in parameters:
+        if key in updated_sample:
+            output_sample[key] = updated_sample[key]
+        else:
+            raise KeyError("{} not in converted sample.".format(key))
     return output_sample
 
 
@@ -883,7 +905,7 @@ def generate_component_spins(sample):
         output_sample['spin_2y'] = 0
         output_sample['spin_2z'] = output_sample['chi_2']
     else:
-        logger.warning("Component spin extraction failed.")
+        logger.debug("Component spin extraction failed.")
 
     return output_sample
 
