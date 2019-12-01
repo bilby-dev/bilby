@@ -67,6 +67,7 @@ class Emcee(MCMCSampler):
             likelihood=likelihood, priors=priors, outdir=outdir,
             label=label, use_ratio=use_ratio, plot=plot,
             skip_import_verification=skip_import_verification, **kwargs)
+        self.emcee = self._check_version()
         self.resume = resume
         self.pos0 = pos0
         self.nburn = nburn
@@ -75,6 +76,14 @@ class Emcee(MCMCSampler):
 
         signal.signal(signal.SIGTERM, self.checkpoint_and_exit)
         signal.signal(signal.SIGINT, self.checkpoint_and_exit)
+
+    def _check_version(self):
+        import emcee
+        if LooseVersion(emcee.__version__) > LooseVersion('2.2.1'):
+            self.prerelease = True
+        else:
+            self.prerelease = False
+        return emcee
 
     def _translate_kwargs(self, kwargs):
         if 'nwalkers' not in kwargs:
@@ -292,7 +301,6 @@ class Emcee(MCMCSampler):
         temp_chain_file = chain_file + '.temp'
         if os.path.isfile(chain_file):
             copyfile(chain_file, temp_chain_file)
-
         if self.prerelease:
             points = np.hstack([sample.coords, sample.blobs])
         else:
@@ -362,7 +370,6 @@ class Emcee(MCMCSampler):
         self.checkpoint()
 
         self.result.sampler_output = np.nan
-
         self.calculate_autocorrelation(
             self.sampler.chain.reshape((-1, self.ndim)))
         self.print_nburn_logging_info()
