@@ -28,7 +28,7 @@ RUN pip install --upgrade setuptools coverage-badge
 # Install documentation requirements
 RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 
-RUN pip install corner lalsuite theano
+RUN pip install corner lalsuite theano healpy
 
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine
 
