@@ -840,11 +840,18 @@ def generate_spin_parameters(sample):
                                 output_sample['mass_ratio']) /\
                                (1 + output_sample['mass_ratio'])
 
+    output_sample['chi_1_perp'] = np.sqrt(
+        output_sample['spin_1x'] ** 2 + output_sample['spin_1y'] ** 2
+    )
+    output_sample['chi_2_perp'] = np.sqrt(
+        output_sample['spin_2x'] ** 2 + output_sample['spin_2y'] ** 2
+    )
+
     output_sample['chi_p'] = np.maximum(
-        (output_sample['spin_1x'] ** 2 + output_sample['spin_1y']**2)**0.5,
+        output_sample['chi_1_in_plane'],
         (4 * output_sample['mass_ratio'] + 3) /
         (3 * output_sample['mass_ratio'] + 4) * output_sample['mass_ratio'] *
-        (output_sample['spin_2x'] ** 2 + output_sample['spin_2y']**2)**0.5)
+        output_sample['chi_2_in_plane'])
 
     try:
         output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
