@@ -455,3 +455,7 @@ class JointLikelihood(Likelihood):
     def noise_log_likelihood(self):
         """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
         return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
+
+
+class MarginalizedLikelihoodReconstructionError(Exception):
+    pass
