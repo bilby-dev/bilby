@@ -1,0 +1,121 @@
+.. _dynesty-guide:
+
+=============
+Dynesty Guide
+=============
+
+The Dynesty sampler is just one of the samplers available in bilby, but it is
+well-used and found to be fast and accurate. Here, we provide a short guide to
+its implementation. This will not be a complete guide, additional help can be
+found in the `Dynesty documentation <https://dynesty.readthedocs.io/en/latest/>`_.
+
+All of the options discussed herein can be set in the :code:`bilby.run_sampler()`
+call. For example, to set the number of live points to 1000
+
+.. code-block:: python
+
+   >>> bilby.run_sampler(likelihood, priors, sampler="dynesty", nlive=1000)
+
+.. note::
+   Bilby checks the kwargs input through run_sampler. If you miss-spell a word,
+   you will see a warning "Supplied argument X not an argument of dynesty, removing."
+
+Overview of dynesty
+-------------------
+
+Like many nested samplers, dynesty operates on the unit cube with a
+prior_tranform function to transform a point in the unit cube to the target
+space. When it begins sampling, it draws samples from the unit cube (uniform
+sampling) until reaching the :code:`first_update` criteria. As of v1.0.0, this
+defaults to
+
+.. code-block:: python
+
+   first_update = dict(min_ncall=2*nlive, min_eff=10)
+
+That is, the first update happens when either it has called the likelihood
+function twice as many times as there are live points or the sampling
+efficiency hits 10%. You can change any of these by passing
+:code:`first_update` as a dictionary to :code:`run_sampler`.
+
+Once the first update occurs, dynesty switches to the bounding method given by
+the keyword :code:`bound`. After this, new points are proposed by taking an
+existing live point and sampling using the `sample` keyword. This continues
+until one of the stopping criteria are reached:
+
+1. The estimated remaining evidence is below the kwarg :code:`dlogz` (default is 0.1)
+2. The effective number of samples exceeds the kwarg :code:`n_effective` (default is 5000)
+
+Bilby-specific implementation details
+-------------------------------------
+
+In Bilby, we have re-implemented the :code:`sample="rwalk"` sample method. In
+dynesty, this method took an argument :code:`walks` which was the fixed number
+of walks to take each time a new point was proposed. In the bilby implementation,
+we still take an argument :code:`walks` which has the new meaning: the minimum
+number of walks to take (this ensures backward compatibility). Meanwhile, we
+add two new arguments
+1. :code:`maxmcmc`: the maximum number of walks to use. This naming is chosen for consistency with other codes. Default is 5000. If this limit is reached, a warning will be printed during sampling.
+2. :code:`nact`: the number of auto-correlation times to use before accepting a point. Default is 5.
+
+The autocorrelation time calculation uses the `emcee
+<https://emcee.readthedocs.io/en/stable/>`_ autocorr methods. For a detailed
+discussion on the topics, see `this post by Dan Foreman-Mackey
+<https://dfm.io/posts/autocorr/>`_.
+
+You can revert to the original dynesty implementation by specifying
+:code:`sample="rwalk_dynesty"`.
+
+In addition, we also set several kwargs by default
+
+1. :code:`nwalk` (alias of :code:`nlive`), the number of live poinst. This defaults to 1000.
+2. :code:`facc`: The target acceptance fraction for the 'rwalk'. In dynesty, this defaults 0.5, but in testing we found that a value of 0.2 produced better behaviour at boundaries.
+
+Understanding the output
+------------------------
+
+Before sampling begins, you will see a message like this
+
+
+.. code-block:: console
+
+   10:42 bilby INFO    : Single likelihood evaluation took 2.977e-03 s
+   10:42 bilby INFO    : Using sampler Dynesty with kwargs {'bound': 'multi', 'sample': 'rwalk', 'verbose': True, 'periodic': None, 'reflective': None, 'check_point_delta_t': 600, 'nlive': 1000, 'first_update': {'min_eff': 20}, 'walks': 10, 'npdim': None, 'rstate': None, 'queue_size': None, 'pool': None, 'use_pool': None, 'live_points': None, 'logl_args': None, 'logl_kwargs': None, 'ptform_args': None, 'ptform_kwargs': None, 'enlarge': 1.25, 'bootstrap': None, 'vol_dec': 0.5, 'vol_check': 2.0, 'facc': 0.2, 'slices': 5, 'update_interval': 600, 'print_func': <bound method Dynesty._print_func of <bilby.core.sampler.dynesty.Dynesty object at 0x7f29e1c47e10>>, 'dlogz': 0.1, 'maxiter': None, 'maxcall': None, 'logl_max': inf, 'add_live': True, 'print_progress': True, 'save_bounds': False, 'n_effective': None, 'maxmcmc': 2000, 'nact': 10, 'jacobian': <function jacobian at 0x7f29ba0411e0>}
+   10:42 bilby INFO    : Checkpoint every n_check_point = 200000
+   10:42 bilby INFO    : Using dynesty version 1.0.0
+   10:42 bilby INFO    : Using the bilby-implemented rwalk sample method with ACT estimated walks
+
+
+This tells you that a typical likelihood evaluation takes a few milliseconds.
+You can use this to gauge how long the run might take: if a typical likelihood
+evaluation takes more than a fraction of a second, it is unlikely your run will
+complete in a reasonable amount of time using serial bilby. After this, is a list
+of all the kwargs passed in to dynesty. Note, where a :code:`None` is given,
+dynesty will fill in its own defaults. Then, we get a message about how often
+checkpointing will be done, the version of dynesty, and which sample method
+will be used.
+
+During the sampling, dynesty writes an update of its progress to the terminal
+(specifally, this is writtent to STDOUT). Here is an example:
+
+
+.. code-block:: console
+
+   1015it [00:08, 138.49it/s, bound:0 nc:2 ncall:2714 eff:37.4% logz-ratio=-67.89+/-0.09 dlogz:181.166>0.10]
+
+From left to right, this gives the number of iterations, the sampling time,
+the iterations per second, the bound (while :code:`bound=0` dynesty samples
+from the unit cube), the number of likelihood calls per sample :code:`nc`, the
+total number of likelihood calls :code:`ncall`, the sampling efficiency, the
+current estimate of the logz-ratio (monotonically increases) and the estimated
+remaining log evidence.
+
+If the likelihood calculates the :code:`log_noise_evidence`, then this output
+will give the :code:`logz-ratio`. If it doesn't it instead uses just the
+unnormalised evidence :code:`logz`.
+
+The :code:`logz-ratio` and :code:`dlogz` gives an estimate of the final
+expected evidence. You can compare this to your expectations to help diagnose
+problems before completing a run. However, be aware the `dlogz` does not
+monotonically decrease: if a region of large likelihood is subsequently found,
+the :code:`dlogz` will increase.

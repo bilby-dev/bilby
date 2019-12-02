@@ -1,5 +1,6 @@
 future
 dynesty
+emcee
 corner
 numpy>=1.9
 matplotlib>=2.0

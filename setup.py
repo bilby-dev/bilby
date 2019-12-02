@@ -80,6 +80,7 @@ setup(name='bilby',
       install_requires=[
           'future',
           'dynesty>=1.0.0',
+          'emcee',
           'corner',
           'dill',
           'numpy>=1.9',

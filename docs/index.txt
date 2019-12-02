@@ -15,6 +15,7 @@ Welcome to bilby's documentation!
    prior
    likelihood
    samplers
+   dynesty-guide
    bilby-output
    compact-binary-coalescence-parameter-estimation
    transient-gw-data
