@@ -1,5 +1,10 @@
 # All notable changes will be documented in this file
 
+## [0.6.1] 2019-12-02
+
+HotFix release following 0.6.0 fixing a minor bug in the generation of derived
+parameters.
+
 ## [0.6.0] 2019-12-02
 ### Added
 - A bilby-implemenatation of the dynesty rwalk proposal method (!640)
