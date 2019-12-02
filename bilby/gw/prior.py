@@ -63,10 +63,10 @@ def convert_to_flat_in_component_mass_prior(result, fraction=0.25):
         "mass_ratio", latex_label=priors["mass_ratio"].latex_label)
     priors["mass_1"] = Uniform(
         priors["mass_1"].minimum, priors["mass_1"].maximum, "mass_1",
-        latex_label=priors["mass_1"].latex_label)
-    priors["mass_1"] = Uniform(
+        latex_label=priors["mass_1"].latex_label, unit="$M_{\odot}$")
+    priors["mass_2"] = Uniform(
         priors["mass_2"].minimum, priors["mass_2"].maximum, "mass_2",
-        latex_label=priors["mass_2"].latex_label)
+        latex_label=priors["mass_2"].latex_label, unit="$M_{\odot}$")
 
     weights = posterior["mass_1"] ** 2 / posterior["chirp_mass"]
     result.posterior = posterior.sample(frac=fraction, weights=weights)
