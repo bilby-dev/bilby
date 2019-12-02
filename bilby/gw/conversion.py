@@ -692,7 +692,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
         try:
             output_sample = func(output_sample)
         except KeyError as e:
-            logger.debug(
+            logger.info(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
     if likelihood is not None:
@@ -850,10 +850,10 @@ def generate_spin_parameters(sample):
                                 output_sample['mass_ratio']) /\
                                (1 + output_sample['mass_ratio'])
 
-    output_sample['chi_1_perp'] = np.sqrt(
+    output_sample['chi_1_in_plane'] = np.sqrt(
         output_sample['spin_1x'] ** 2 + output_sample['spin_1y'] ** 2
     )
-    output_sample['chi_2_perp'] = np.sqrt(
+    output_sample['chi_2_in_plane'] = np.sqrt(
         output_sample['spin_2x'] ** 2 + output_sample['spin_2y'] ** 2
     )
 
