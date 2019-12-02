@@ -516,12 +516,12 @@ class ConditionalPriorDict(PriorDict):
         all conditional priors will be sorted in order
         4. We set the `self._resolved` flag to True if all conditional
         priors were added in the right order
-         """
+        """
         self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
         conditional_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
         self._conditional_keys = []
         for _ in range(len(self)):
-            for key in conditional_keys_unsorted:
+            for key in conditional_keys_unsorted[:]:
                 if self._check_conditions_resolved(key, self.sorted_keys):
                     self._conditional_keys.append(key)
                     conditional_keys_unsorted.remove(key)
