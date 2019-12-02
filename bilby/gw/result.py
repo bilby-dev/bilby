@@ -11,7 +11,6 @@ import numpy as np
 from ..core.result import Result as CoreResult
 from ..core.utils import infft, logger, check_directory_exists_and_if_not_mkdir
 from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
-from .waveform_generator import WaveformGenerator
 from .detector import get_empty_interferometer, Interferometer
 
 
@@ -78,6 +77,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ String of the waveform approximant """
         return self.__get_from_nested_meta_data(
             'likelihood', 'waveform_arguments', 'waveform_approximant')
+
+    @property
+    def waveform_generator_class(self):
+        """ Dict of waveform arguments """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'waveform_generator_class')
 
     @property
     def waveform_arguments(self):
@@ -347,7 +352,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         plot_times = interferometer.time_array[time_idxs] - interferometer.strain_data.start_time
         plot_frequencies = interferometer.frequency_array[frequency_idxs]
 
-        waveform_generator = WaveformGenerator(
+        waveform_generator = self.waveform_generator_class(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             start_time=self.start_time,
             frequency_domain_source_model=self.frequency_domain_source_model,
