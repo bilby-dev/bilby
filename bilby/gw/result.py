@@ -133,19 +133,28 @@ class CompactBinaryCoalescenceResult(CoreResult):
             logger.info("No injection for detector {}".format(detector))
             return None
 
-    def plot_calibration_posterior(self, level=.9):
+    def plot_calibration_posterior(self, level=.9, format="png"):
         """ Plots the calibration amplitude and phase uncertainty.
         Adapted from the LALInference version in bayespputils
 
+        Plot is saved to {self.outdir}/{self.label}_calibration.{format}
+
         Parameters
         ----------
-        level: float,  percentage for confidence levels
-
-        Returns
-        -------
-        saves a plot to outdir+label+calibration.png
-
+        level: float
+            Quantile for confidence levels, default=0.9, i.e., 90% interval
+        format: str
+            Format to save the plot, default=png, options are png/pdf
         """
+        if format not in ["png", "pdf"]:
+            raise ValueError("Format should be one of png or pdf")
+        _old_tex = rcParams["text.usetex"]
+        _old_serif = rcParams["font.serif"]
+        _old_family = rcParams["font.family"]
+        rcParams["text.usetex"] = True
+        rcParams["font.serif"] = "Computer Modern Roman"
+        rcParams["font.family"] = "Serif"
+
         fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(15, 15), dpi=500)
         posterior = self.posterior
 
@@ -181,7 +190,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             if len(amp_params) > 0:
                 amplitude = 100 * np.column_stack([posterior[param] for param in amp_params])
                 plot_spline_pos(logfreqs, amplitude, color=color, level=level,
-                                label="{0} (mean, {1}%)".format(ifo.upper(), int(level * 100)))
+                                label="{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)))
 
             # Phase calibration model
             plt.sca(ax2)
@@ -190,7 +199,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             if len(phase_params) > 0:
                 phase = np.column_stack([posterior[param] for param in phase_params])
                 plot_spline_pos(logfreqs, phase, color=color, level=level,
-                                label="{0} (mean, {1}%)".format(ifo.upper(), int(level * 100)),
+                                label="{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)),
                                 xform=spline_angle_xform)
 
         ax1.tick_params(labelsize=.75 * font_size)
@@ -199,14 +208,24 @@ class CompactBinaryCoalescenceResult(CoreResult):
         ax1.set_xscale('log')
         ax2.set_xscale('log')
 
-        ax2.set_xlabel('Frequency (Hz)', fontsize=font_size)
-        ax1.set_ylabel('Amplitude (%)', fontsize=font_size)
-        ax2.set_ylabel('Phase (deg)', fontsize=font_size)
+        ax2.set_xlabel('Frequency [Hz]', fontsize=font_size)
+        ax1.set_ylabel('Amplitude [$\%$]', fontsize=font_size)
+        ax2.set_ylabel('Phase [deg]', fontsize=font_size)
 
-        filename = os.path.join(outdir, self.label + '_calibration.png')
+        filename = os.path.join(outdir, self.label + '_calibration.' + format)
         fig.tight_layout()
-        fig.savefig(filename, bbox_inches='tight')
-        plt.close(fig)
+        try:
+            plt.savefig(filename, format=format, dpi=600, bbox_inches='tight')
+        except RuntimeError:
+            logger.debug(
+                "Failed to save waveform with tex labels turning off tex."
+            )
+            rcParams["text.usetex"] = False
+            plt.savefig(filename, format=format, dpi=600, bbox_inches='tight')
+        rcParams["text.usetex"] = _old_tex
+        rcParams["font.serif"] = _old_serif
+        rcParams["font.family"] = _old_family
+        plt.close()
 
     def plot_waveform_posterior(
             self, interferometers=None, level=0.9, n_samples=None,
