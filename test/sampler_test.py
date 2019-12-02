@@ -152,10 +152,11 @@ class TestDynesty(unittest.TestCase):
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
-                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
-                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
+                        facc=0.2, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func', n_effective=None)
+                        walks=100, update_interval=600, print_func='func', n_effective=None,
+                        maxmcmc=5000, nact=5)
         self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
         # DictEqual can't handle lists so we check these separately
         self.assertEqual([], self.sampler.kwargs['periodic'])
@@ -173,10 +174,11 @@ class TestDynesty(unittest.TestCase):
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
-                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
-                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
+                        facc=0.2, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func', n_effective=None)
+                        walks=100, update_interval=600, print_func='func', n_effective=None,
+                        maxmcmc=5000, nact=5)
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
