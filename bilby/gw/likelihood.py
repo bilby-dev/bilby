@@ -15,7 +15,7 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 
-from ..core import likelihood
+from ..core.likelihood import Likelihood, MarginalizedLikelihoodReconstructionError
 from ..core.utils import BilbyJsonEncoder, decode_bilby_json
 from ..core.utils import (
     logger, UnsortedInterp2d, create_frequency_series, create_time_series,
@@ -29,7 +29,7 @@ from .waveform_generator import WaveformGenerator
 from collections import namedtuple
 
 
-class GravitationalWaveTransient(likelihood.Likelihood):
+class GravitationalWaveTransient(Likelihood):
     """ A gravitational-wave transient likelihood object
 
     This is the usual likelihood object to use for transient gravitational
@@ -395,8 +395,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         time_post = time_post[keep]
         times = times[keep]
 
-        new_time = Interped(times, time_post).sample()
-        return new_time
+        if len(times) > 1:
+            new_time = Interped(times, time_post).sample()
+            return new_time
+        else:
+            raise MarginalizedLikelihoodReconstructionError(
+                "Time posterior reconstruction failed, at least two samples "
+                "are required."
+            )
 
     def generate_distance_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
@@ -712,7 +718,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             lal_version=self.lal_version)
 
 
-class BasicGravitationalWaveTransient(likelihood.Likelihood):
+class BasicGravitationalWaveTransient(Likelihood):
 
     def __init__(self, interferometers, waveform_generator):
         """
