@@ -8,8 +8,8 @@ from ..prior import PriorDict, DeltaFunction
 
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 from .cpnest import Cpnest
-from .dynesty import Dynesty
 from .dynamic_dynesty import DynamicDynesty
+from .dynesty import Dynesty
 from .emcee import Emcee
 from .kombine import Kombine
 from .nestle import Nestle
@@ -22,10 +22,10 @@ from .fake_sampler import FakeSampler
 from . import proposal
 
 IMPLEMENTED_SAMPLERS = {
-    'cpnest': Cpnest, 'dynesty': Dynesty, 'emcee': Emcee, 'kombine': Kombine,
-    'nestle': Nestle, 'ptemcee': Ptemcee, 'ptmcmcsampler': PTMCMCSampler,
-    'pymc3': Pymc3, 'pymultinest': Pymultinest, 'pypolychord': PyPolyChord,
-    'fake_sampler': FakeSampler}
+    'cpnest': Cpnest, 'dynamic_dynesty': DynamicDynesty, 'dynesty': Dynesty,
+    'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle, 'ptemcee': Ptemcee,
+    'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3, 'pymultinest': Pymultinest,
+    'pypolychord': PyPolyChord, 'fake_sampler': FakeSampler}
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
