@@ -61,9 +61,7 @@ class Cpnest(NestedSampler):
             def __init__(self, names, priors):
                 self.names = names
                 self.priors = priors
-                self.bounds = [
-                    [self.priors[key].minimum, self.priors[key].maximum]
-                    for key in self.names]
+                self._update_bounds()
 
             @staticmethod
             def log_likelihood(x, **kwargs):
@@ -75,10 +73,17 @@ class Cpnest(NestedSampler):
                 theta = [x[n] for n in self.search_parameter_keys]
                 return self.log_prior(theta)
 
+            def _update_bounds(self):
+                self.bounds = [
+                    [self.priors[key].minimum, self.priors[key].maximum]
+                    for key in self.names]
+
             def new_point(self):
                 """Draw a point from the prior"""
+                prior_samples = self.priors.sample()
+                self._update_bounds()
                 point = LivePoint(
-                    self.names, [self.priors[name].sample()
+                    self.names, [prior_samples[name]
                                  for name in self.names])
                 return point
 
