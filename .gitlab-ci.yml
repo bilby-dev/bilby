@@ -44,10 +44,10 @@ basic-3.7:
   <<: *test-python
   image: python:3.7
 
-# test example on python 3
+# test example on python 3.7
 python-3.7:
   stage: test
-  image: bilbydev/bilby-test-suite-python37
+  image: bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python -m pip install .
 
@@ -69,6 +69,15 @@ python-3.7:
       - htmlcov/
       - coverage_badge.svg
       - docs/_build/html/
+
+# test example on python 3.6
+python-3.6:
+  stage: test
+  image: bilbydev/v2-dockerfile-test-suite-python36
+  script:
+    - python -m pip install .
+
+    - pytest
 
 # Tests run at a fixed schedule rather than on push
 scheduled-python-3.7:
