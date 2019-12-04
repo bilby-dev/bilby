@@ -670,7 +670,7 @@ class Interferometer(object):
                     line, self.strain_data.sampling_frequency))
         if len(zpks) > 0:
             zpk = gwpy.signal.filter_design.concatenate_zpks(*zpks)
-            strain = timeseries.filter(zpk, filtfilt=True)
+            strain = timeseries.filter(zpk, filtfilt=False)
         else:
             strain = timeseries
 
