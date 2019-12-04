@@ -20,11 +20,11 @@ RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
 libatlas3-base libatlas-base-dev cmake build-essential gfortran
 
 # Install conda-installable programs
-RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8
+RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8 mock
 RUN conda install -n ${conda_env} -c anaconda coverage configargparse future
 
 # Install conda-forge-installable programs
-RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov
+RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov deepdish
 
 # Install pip-requirements
 RUN pip install --upgrade pip
@@ -58,4 +58,4 @@ RUN mkdir roq_basis \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
-    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat
