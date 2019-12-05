@@ -436,8 +436,9 @@ class Dynesty(NestedSampler):
         logger.info("Writing checkpoint file {}".format(self.resume_file))
 
         end_time = datetime.datetime.now()
-        self.sampling_time += end_time - self.start_time
-        self.start_time = end_time
+        if hasattr(self, 'start_time'):
+            self.sampling_time += end_time - self.start_time
+            self.start_time = end_time
 
         current_state = dict(
             unit_cube_samples=self.sampler.saved_u,
