@@ -90,6 +90,8 @@ def print_bayes_factors(results_list):
 def drop_to_ipython(results_list):
     for result in results_list:
         message = "Opened IPython terminal for result {}".format(result.label)
+        message += ("\nRunning with bilby={},\nResult generated with bilby={}"
+                    .format(bilby.__version__, result.version))
         message += "\nBilby result loaded as `result`"
         import IPython
         IPython.embed(header=message)
