@@ -54,6 +54,11 @@ class TestBasicConversions(unittest.TestCase):
         self.assertTrue(all([abs(mass_1 - self.mass_1) < 1e-5,
                              abs(mass_2 - self.mass_2) < 1e-5]))
 
+    def test_chirp_mass_and_primary_mass_to_mass_ratio(self):
+        mass_ratio = conversion.chirp_mass_and_primary_mass_to_mass_ratio(
+            self.chirp_mass, self.mass_1)
+        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+
     def test_symmetric_mass_ratio_to_mass_ratio(self):
         mass_ratio = conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
