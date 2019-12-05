@@ -169,6 +169,9 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 1 + converted_parameters['redshift'])
 
     if 'chirp_mass' in converted_parameters.keys():
+        if "mass_1" in converted_parameters.keys():
+            converted_parameters["mass_ratio"] = chirp_mass_and_primary_mass_to_mass_ratio(
+                converted_parameters["chirp_mass"], converted_parameters["mass_1"])
         if 'total_mass' in converted_parameters.keys():
             converted_parameters['symmetric_mass_ratio'] =\
                 chirp_mass_and_total_mass_to_symmetric_mass_ratio(
@@ -376,6 +379,36 @@ def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
     """
 
     return (chirp_mass / total_mass) ** (5 / 3)
+
+
+def chirp_mass_and_primary_mass_to_mass_ratio(chirp_mass, mass_1):
+    """
+    Convert chirp mass and mass ratio of a binary to its total mass.
+
+    Rearranging the relation for chirp mass (as a function of mass_1 and
+    mass_2) and q = mass_2 / mass_1, it can be shown that
+
+        (chirp_mass/mass_1)^5 = q^3 / (1 + q)
+
+    Solving for q, we find the releation expressed in python below for q.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    mass_1: float
+        The primary mass
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+    """
+    a = (chirp_mass / mass_1) ** 5
+    t0 = np.cbrt(9 * a + np.sqrt(3) * np.sqrt(27 * a ** 2 - 4 * a ** 3))
+    t1 = np.cbrt(2) * 3 ** (2 / 3)
+    t2 = np.cbrt(2 / 3) * a
+    return t2 / t0 + t0 / t1
 
 
 def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
