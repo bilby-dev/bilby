@@ -16,6 +16,10 @@ def dummy_func_dict_return_value(frequency_array, amplitude, mu, sigma, ra, dec,
     return ht
 
 
+def dummy_func_array_return_value_2(array, amplitude, mu, sigma, ra, dec, geocent_time, psi):
+    return dict(plus=np.array(array), cross=np.array(array))
+
+
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
 
     def setUp(self):
@@ -301,6 +305,25 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         new_waveform = self.waveform_generator.frequency_domain_strain(
             parameters=self.simulation_parameters)
         self.assertNotEqual(original_waveform, new_waveform)
+
+    def test_frequency_domain_caching_changing_model(self):
+        original_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        self.waveform_generator.frequency_domain_source_model = dummy_func_array_return_value_2
+        new_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        self.assertFalse(np.array_equal(original_waveform['plus'], new_waveform['plus']))
+
+    def test_time_domain_caching_changing_model(self):
+        self.waveform_generator = \
+            bilby.gw.waveform_generator.WaveformGenerator(duration=1, sampling_frequency=4096,
+                                                          time_domain_source_model=dummy_func_dict_return_value)
+        original_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        self.waveform_generator.time_domain_source_model = dummy_func_array_return_value_2
+        new_waveform = self.waveform_generator.frequency_domain_strain(
+            parameters=self.simulation_parameters)
+        self.assertFalse(np.array_equal(original_waveform['plus'], new_waveform['plus']))
 
 
 class TestTimeDomainStrainMethod(unittest.TestCase):
