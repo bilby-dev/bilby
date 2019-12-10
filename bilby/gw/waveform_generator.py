@@ -152,7 +152,8 @@ class WaveformGenerator(object):
                           transformed_model_data_points, parameters):
         if parameters is not None:
             self.parameters = parameters
-        if self.parameters == self._cache['parameters'] and self._cache['model'] == model:
+        if self.parameters == self._cache['parameters'] and self._cache['model'] == model and \
+                self._cache['transformed_model'] == transformed_model:
             return self._cache['waveform']
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
@@ -164,6 +165,7 @@ class WaveformGenerator(object):
         self._cache['waveform'] = model_strain
         self._cache['parameters'] = self.parameters.copy()
         self._cache['model'] = model
+        self._cache['transformed_model'] = transformed_model
         return model_strain
 
     def _strain_from_model(self, model_data_points, model):
