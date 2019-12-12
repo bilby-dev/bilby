@@ -1182,28 +1182,6 @@ class TestConditionalPriorDict(unittest.TestCase):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.rescale(keys=list(self.test_sample.keys()), theta=list(self.test_sample.values()))
 
-    def test_what_broke(self):
-        def d_condition_func(reference_params, a, b, c):
-            return dict(minimum=reference_params['minimum'], maximum=reference_params['maximum'])
-
-        def a_condition_func(reference_params, b, c):
-            return dict(minimum=reference_params['minimum'], maximum=reference_params['maximum'])
-
-        priors = bilby.core.prior.ConditionalPriorDict()
-
-        priors['a'] = bilby.core.prior.ConditionalUniform(condition_func=a_condition_func,
-                                                          minimum=0, maximum=1)
-
-        priors['b'] = bilby.core.prior.LogUniform(minimum=1, maximum=10)
-
-        priors['d'] = bilby.core.prior.ConditionalUniform(condition_func=d_condition_func,
-                                                          minimum=0.0, maximum=1.0)
-
-        priors['c'] = bilby.core.prior.LogUniform(minimum=1, maximum=10)
-        sample = priors.sample()
-        res = priors.rescale(['a', 'b', 'd', 'c'], [0.5, 0.5, 0.5, 0.5])
-        print(res)
-
 
 class TestJsonIO(unittest.TestCase):
 
