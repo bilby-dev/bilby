@@ -641,21 +641,15 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
-        for key, index in zip(self._rescale_keys, self._rescale_indexes):
+        for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
             required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
             result[key] = self[key].rescale(theta[index], **required_variables)
         return [result[key] for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
-            self._set_rescale_keys_and_indexes(keys)
+            self._rescale_indexes = [keys.index(element) for element in self.sorted_keys_without_fixed_parameters]
             self._least_recently_rescaled_keys = keys
-
-    def _set_rescale_keys_and_indexes(self, keys):
-        unconditional_keys, unconditional_idxs, _ = np.intersect1d(keys, self.unconditional_keys, return_indices=True)
-        conditional_keys, conditional_idxs, _ = np.intersect1d(keys, self.conditional_keys, return_indices=True)
-        self._rescale_keys = np.append(unconditional_keys, conditional_keys)
-        self._rescale_indexes = np.append(unconditional_idxs, conditional_idxs)
 
     def _check_resolved(self):
         if not self._resolved:
@@ -672,6 +666,10 @@ class ConditionalPriorDict(PriorDict):
     @property
     def sorted_keys(self):
         return self.unconditional_keys + self.conditional_keys
+
+    @property
+    def sorted_keys_without_fixed_parameters(self):
+        return [key for key in self.sorted_keys if not isinstance(self[key], (DeltaFunction, Constraint))]
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
