@@ -835,8 +835,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         If true, run tests using the roq_params to check the prior and data are
         valid for the ROQ
     roq_scale_factor: float
-        The ROQ scale factor used. WARNING: this does not apply the scaling,
-        but is only used for checking that the ROQ basis is appropriate.
+        The ROQ scale factor used.
     priors: dict, bilby.prior.PriorDict
         A dictionary of priors containing at least the geocent_time prior
     distance_marginalization_lookup_table: (dict, str), optional
@@ -1077,11 +1076,15 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         for ifo in self.interferometers:
             if self.roq_params is not None:
                 self.perform_roq_params_check(ifo)
+                # Get scaled ROQ quantities
+                roq_scaled_fhigh = self.roq_params['fhigh'] * self.roq_scale_factor
+                roq_scaled_seglen = self.roq_params['seglen'] * self.roq_scale_factor
+                roq_scaled_flow = self.roq_params['flow'] * self.roq_scale_factor
                 # Generate frequencies for the ROQ
                 roq_frequencies = create_frequency_series(
-                    sampling_frequency=self.roq_params['fhigh'] * 2,
-                    duration=self.roq_params['seglen'])
-                roq_mask = roq_frequencies >= self.roq_params['flow']
+                    sampling_frequency=roq_scaled_fhigh * 2,
+                    duration=roq_scaled_seglen)
+                roq_mask = roq_frequencies >= roq_scaled_flow
                 roq_frequencies = roq_frequencies[roq_mask]
                 overlap_frequencies, ifo_idxs, roq_idxs = np.intersect1d(
                     ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
