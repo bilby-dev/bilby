@@ -32,12 +32,12 @@ freq_nodes_quadratic = np.load("fnodes_quadratic.npy") * scale_factor
 
 # Load the parameters describing the valid parameters for the basis.
 params = np.genfromtxt("params.dat", names=True)
-params['flow'] *= scale_factor
-params['fhigh'] *= scale_factor
-params['seglen'] /= scale_factor
-params['chirpmassmin'] /= scale_factor
-params['chirpmassmax'] /= scale_factor
-params['compmin'] /= scale_factor
+params_flow = params['flow'] * scale_factor
+params_fhigh = params['fhigh'] * scale_factor
+params_seglen = params['seglen'] / scale_factor
+params_chirpmassmin = params['chirpmassmin'] / scale_factor
+params_chirpmassmax = params['chirpmassmax'] / scale_factor
+params_compmin = params['compmin'] / scale_factor
 
 np.random.seed(170808)
 
@@ -84,10 +84,10 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn', 'phase', 'psi', 'ra',
             'dec', 'phi_12', 'phi_jl', 'luminosity_distance']:
     priors[key] = injection_parameters[key]
 for key in ['mass_1', 'mass_2']:
-    priors[key].minimum = max(priors[key].minimum, params['compmin'])
+    priors[key].minimum = max(priors[key].minimum, params_compmin)
 priors['chirp_mass'] = bilby.core.prior.Constraint(
-    name='chirp_mass', minimum=float(params['chirpmassmin']),
-    maximum=float(params['chirpmassmax']))
+    name='chirp_mass', minimum=float(params_chirpmassmin),
+    maximum=float(params_chirpmassmax))
 priors['mass_ratio'] = bilby.core.prior.Constraint(0.125, 1, name='mass_ratio')
 priors['geocent_time'] = bilby.core.prior.Uniform(
     injection_parameters['geocent_time'] - 0.1,
