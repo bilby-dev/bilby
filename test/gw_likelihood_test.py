@@ -772,12 +772,6 @@ class TestRescaledROQLikelihood(unittest.TestCase):
 
         scale_factor = 0.5
         params = np.genfromtxt(self.params_file, names=True)
-        params['flow'] *= scale_factor
-        params['fhigh'] *= scale_factor
-        params['seglen'] /= scale_factor
-        params['chirpmassmin'] /= scale_factor
-        params['chirpmassmax'] /= scale_factor
-        params['compmin'] /= scale_factor
 
         self.duration = 4 / scale_factor
         self.sampling_frequency = 2048 * scale_factor
