@@ -801,8 +801,9 @@ class TestRescaledROQLikelihood(unittest.TestCase):
 
         self.roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=ifos, waveform_generator=self.roq_wfg,
-            linear_matrix=linear_matrix_file, roq_params=params,
-            quadratic_matrix=quadratic_matrix_file, priors=self.priors)
+            linear_matrix=linear_matrix_file, roq_params=params, 
+            roq_scale_factor=scale_factor, quadratic_matrix=quadratic_matrix_file,
+            priors=self.priors)
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):

@@ -32,9 +32,8 @@ freq_nodes_quadratic = np.load("fnodes_quadratic.npy") * scale_factor
 
 # Load the parameters describing the valid parameters for the basis.
 params = np.genfromtxt("params.dat", names=True)
-params_flow = params['flow'] * scale_factor
-params_fhigh = params['fhigh'] * scale_factor
-params_seglen = params['seglen'] / scale_factor
+
+# Get scaled ROQ quantities
 params_chirpmassmin = params['chirpmassmin'] / scale_factor
 params_chirpmassmax = params['chirpmassmax'] / scale_factor
 params_compmin = params['compmin'] / scale_factor
@@ -96,7 +95,7 @@ priors['geocent_time'] = bilby.core.prior.Uniform(
 likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
     interferometers=ifos, waveform_generator=search_waveform_generator,
     linear_matrix=basis_matrix_linear, quadratic_matrix=basis_matrix_quadratic,
-    priors=priors, roq_params=params)
+    priors=priors, roq_params=params, roq_scale_factor=scale_factor)
 
 # write the weights to file so they can be loaded multiple times
 likelihood.save_weights('weights.npz')
