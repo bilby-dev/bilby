@@ -1005,22 +1005,22 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             logger.info(msg)
 
         roq_params = self.roq_params
-        roq_params['flow'] *= self.roq_scale_factor
-        roq_params['fhigh'] *= self.roq_scale_factor
-        roq_params['seglen'] /= self.roq_scale_factor
-        roq_params['chirpmassmin'] /= self.roq_scale_factor
-        roq_params['chirpmassmax'] /= self.roq_scale_factor
-        roq_params['compmin'] /= self.roq_scale_factor
+        roq_params_flow = roq_params['flow'] * self.roq_scale_factor
+        roq_params_fhigh = roq_params['fhigh'] * self.roq_scale_factor
+        roq_params_seglen = roq_params['seglen'] / self.roq_scale_factor
+        roq_params_chirpmassmin = roq_params['chirpmassmin'] / self.roq_scale_factor
+        roq_params_chirpmassmax = roq_params['chirpmassmax'] / self.roq_scale_factor
+        roq_params_compmin = roq_params['compmin'] / self.roq_scale_factor
 
-        if ifo.maximum_frequency > roq_params['fhigh']:
+        if ifo.maximum_frequency > roq_params_fhigh:
             raise BilbyROQParamsRangeError(
                 "Requested maximum frequency {} larger than ROQ basis fhigh {}"
-                .format(ifo.maximum_frequency, roq_params['fhigh']))
-        if ifo.minimum_frequency < roq_params['flow']:
+                .format(ifo.maximum_frequency, roq_params_fhigh))
+        if ifo.minimum_frequency < roq_params_flow:
             raise BilbyROQParamsRangeError(
                 "Requested minimum frequency {} lower than ROQ basis flow {}"
-                .format(ifo.minimum_frequency, roq_params['flow']))
-        if ifo.strain_data.duration != roq_params['seglen']:
+                .format(ifo.minimum_frequency, roq_params_flow))
+        if ifo.strain_data.duration != roq_params_seglen:
             raise BilbyROQParamsRangeError(
                 "Requested duration differs from ROQ basis seglen")
 
@@ -1031,27 +1031,27 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         if priors.minimum_chirp_mass is None:
             logger.warning("Unable to check minimum chirp mass ROQ bounds")
-        elif priors.minimum_chirp_mass < roq_params["chirpmassmin"]:
+        elif priors.minimum_chirp_mass < roq_params_chirpmassmin:
             raise BilbyROQParamsRangeError(
                 "Prior minimum chirp mass {} less than ROQ basis bound {}"
                 .format(priors.minimum_chirp_mass,
-                        roq_params["chirpmassmin"]))
+                        roq_params_chirpmassmin))
 
         if priors.maximum_chirp_mass is None:
             logger.warning("Unable to check maximum_chirp mass ROQ bounds")
-        elif priors.maximum_chirp_mass > roq_params["chirpmassmax"]:
+        elif priors.maximum_chirp_mass > roq_params_chirpmassmax:
             raise BilbyROQParamsRangeError(
                 "Prior maximum chirp mass {} greater than ROQ basis bound {}"
                 .format(priors.maximum_chirp_mass,
-                        roq_params["chirpmassmax"]))
+                        roq_params_chirpmassmax))
 
         if priors.minimum_component_mass is None:
             logger.warning("Unable to check minimum component mass ROQ bounds")
-        elif priors.minimum_component_mass < roq_params["compmin"]:
+        elif priors.minimum_component_mass < roq_params_compmin:
             raise BilbyROQParamsRangeError(
                 "Prior minimum component mass {} less than ROQ basis bound {}"
                 .format(priors.minimum_component_mass,
-                        roq_params["compmin"]))
+                        roq_params_compmin))
 
     def _set_weights(self, linear_matrix, quadratic_matrix):
         """ Setup the time-dependent ROQ weights.
