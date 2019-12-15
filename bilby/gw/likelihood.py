@@ -1077,14 +1077,14 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             if self.roq_params is not None:
                 self.perform_roq_params_check(ifo)
                 # Get scaled ROQ quantities
-                roq_scaled_fhigh = self.roq_params['fhigh'] * self.roq_scale_factor
-                roq_scaled_seglen = self.roq_params['seglen'] * self.roq_scale_factor
-                roq_scaled_flow = self.roq_params['flow'] * self.roq_scale_factor
+                roq_scaled_minimum_frequency = self.roq_params['flow'] * self.roq_scale_factor
+                roq_scaled_maximum_frequency = self.roq_params['fhigh'] * self.roq_scale_factor
+                roq_scaled_segment_length = self.roq_params['seglen'] * self.roq_scale_factor
                 # Generate frequencies for the ROQ
                 roq_frequencies = create_frequency_series(
-                    sampling_frequency=roq_scaled_fhigh * 2,
-                    duration=roq_scaled_seglen)
-                roq_mask = roq_frequencies >= roq_scaled_flow
+                    sampling_frequency=roq_scaled_maximum_frequency * 2,
+                    duration=roq_scaled_segment_length)
+                roq_mask = roq_frequencies >= roq_scaled_minimum_frequency
                 roq_frequencies = roq_frequencies[roq_mask]
                 overlap_frequencies, ifo_idxs, roq_idxs = np.intersect1d(
                     ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
