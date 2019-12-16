@@ -5,7 +5,6 @@ from mock import Mock
 import mock
 import numpy as np
 import os
-from collections import OrderedDict
 import scipy.stats as ss
 
 
@@ -197,10 +196,10 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
             bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
-            bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
-            bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
-            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testa', unit='unit'),
-            bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit'),
+            bilby.core.prior.MultivariateGaussian(dist=mvg, name='testa', unit='unit'),
+            bilby.core.prior.MultivariateGaussian(dist=mvg, name='testb', unit='unit'),
+            bilby.core.prior.MultivariateNormal(dist=mvn, name='testa', unit='unit'),
+            bilby.core.prior.MultivariateNormal(dist=mvn, name='testb', unit='unit'),
             bilby.core.prior.ConditionalDeltaFunction(condition_func=condition_func, name='test', unit='unit', peak=1),
             bilby.core.prior.ConditionalGaussian(condition_func=condition_func, name='test', unit='unit', mu=0, sigma=1),
             bilby.core.prior.ConditionalPowerLaw(condition_func=condition_func, name='test', unit='unit', alpha=0, minimum=0, maximum=1),
@@ -230,9 +229,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 minimum_sample = prior.rescale(0)
-                if prior.mvg.filled_rescale():
+                if prior.dist.filled_rescale():
                     self.assertAlmostEqual(minimum_sample[0], prior.minimum)
                     self.assertAlmostEqual(minimum_sample[1], prior.minimum)
             else:
@@ -242,9 +241,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_maximum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 maximum_sample = prior.rescale(0)
-                if prior.mvg.filled_rescale():
+                if prior.dist.filled_rescale():
                     self.assertAlmostEqual(maximum_sample[0], prior.maximum)
                     self.assertAlmostEqual(maximum_sample[1], prior.maximum)
             else:
@@ -255,8 +254,8 @@ class TestPriorClasses(unittest.TestCase):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             many_samples = prior.rescale(np.random.uniform(0, 1, 1000))
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
-                if not prior.mvg.filled_rescale():
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                if not prior.dist.filled_rescale():
                     continue
             self.assertTrue(all((many_samples >= prior.minimum) & (many_samples <= prior.maximum)))
 
@@ -304,7 +303,7 @@ class TestPriorClasses(unittest.TestCase):
     def test_prob_and_ln_prob(self):
         for prior in self.priors:
             sample = prior.sample()
-            if not isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if not bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 # due to the way that the Multivariate Gaussian prior must sequentially call
                 # the prob and ln_prob functions, it must be ignored in this test.
                 self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
@@ -312,7 +311,7 @@ class TestPriorClasses(unittest.TestCase):
     def test_many_prob_and_many_ln_prob(self):
         for prior in self.priors:
             samples = prior.sample(10)
-            if not isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if not bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 ln_probs = prior.ln_prob(samples)
                 probs = prior.prob(samples)
                 for sample, logp, p in zip(samples, ln_probs, probs):
@@ -323,9 +322,8 @@ class TestPriorClasses(unittest.TestCase):
         domain = np.linspace(0, 1, 100)
         threshold = 1e-9
         for prior in self.priors:
-            if isinstance(prior, (
-                    bilby.core.prior.DeltaFunction,
-                    bilby.core.prior.MultivariateGaussian)):
+            if isinstance(prior, bilby.core.prior.DeltaFunction) or \
+                    bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
             rescaled = prior.rescale(domain)
             max_difference = max(np.abs(domain - prior.cdf(rescaled)))
@@ -490,7 +488,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             if isinstance(prior, bilby.core.prior.Cauchy):
                 continue
-            if isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
             elif isinstance(prior, bilby.core.prior.Gaussian):
                 domain = np.linspace(-1e2, 1e2, 1000)
@@ -1248,10 +1246,10 @@ class TestJsonIO(unittest.TestCase):
             aa=bilby.core.prior.Gamma(name='test', unit='unit', k=1, theta=1),
             ab=bilby.core.prior.ChiSquared(name='test', unit='unit', nu=2),
             ac=bilby.gw.prior.AlignedSpin(name='test', unit='unit'),
-            ad=bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testa', unit='unit'),
-            ae=bilby.core.prior.MultivariateGaussian(mvg=mvg, name='testb', unit='unit'),
-            af=bilby.core.prior.MultivariateNormal(mvg=mvn, name='testa', unit='unit'),
-            ag=bilby.core.prior.MultivariateNormal(mvg=mvn, name='testb', unit='unit')
+            ad=bilby.core.prior.MultivariateGaussian(dist=mvg, name='testa', unit='unit'),
+            ae=bilby.core.prior.MultivariateGaussian(dist=mvg, name='testb', unit='unit'),
+            af=bilby.core.prior.MultivariateNormal(dist=mvn, name='testa', unit='unit'),
+            ag=bilby.core.prior.MultivariateNormal(dist=mvn, name='testb', unit='unit')
         ))
 
     def test_read_write_to_json(self):
