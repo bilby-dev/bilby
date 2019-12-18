@@ -355,9 +355,7 @@ def _base_lal_cbc_fd_waveform(
             waveform_dictionary, approximant)
     except Exception as e:
         EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
-        EINVAL = (e.args[0] == 'Internal function call failed: Invalid argument')
-        ERANGE = (e.args[0] == 'Internal function call failed: Output range error')
-        if EDOM or EINVAL or ERANGE:
+        if EDOM:
             failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
                                      spin_1=(spin_1x, spin_2y, spin_1z),
                                      spin_2=(spin_2x, spin_2y, spin_2z),
