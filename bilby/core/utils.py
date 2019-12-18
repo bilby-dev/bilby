@@ -979,7 +979,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
         if isinstance(obj, (MultivariateGaussianDist, Prior)):
             return {'__prior__': True, '__module__': obj.__module__,
                     '__name__': obj.__class__.__name__,
-                    'kwargs': dict(obj._get_instantiation_dict())}
+                    'kwargs': dict(obj.get_instantiation_dict())}
         try:
             from astropy import cosmology as cosmo, units
             if isinstance(obj, cosmo.FLRW):
@@ -998,6 +998,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {'__dataframe__': True, 'content': obj.to_dict(orient='list')}
         if inspect.isfunction(obj):
             return {"__function__": True, "__module__": obj.__module__, "__name__": obj.__name__}
+        if inspect.isclass(obj):
+            return {"__class__": True, "__module__": obj.__module__, "__name__": obj.__name__}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -1036,7 +1038,7 @@ def decode_bilby_json(dct):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
         return pd.DataFrame(dct['content'])
-    if dct.get("__function__", False):
+    if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
         return getattr(import_module(dct["__module__"]), dct["__name__"], default)
     return dct

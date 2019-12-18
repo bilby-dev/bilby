@@ -3,7 +3,6 @@ from __future__ import division
 import re
 from importlib import import_module
 import os
-from collections import OrderedDict
 from future.utils import iteritems
 import json
 from io import open as ioopen
@@ -17,14 +16,14 @@ from scipy.special import erf, erfinv, xlogy, log1p,\
 from matplotlib.cbook import flatten
 
 # Keep import bilby statement, it is necessary for some eval() statements
-from .utils import BilbyJsonEncoder, decode_bilby_json
+from .utils import BilbyJsonEncoder, decode_bilby_json, infer_parameters_from_function
 from .utils import (
     check_directory_exists_and_if_not_mkdir,
     infer_args_from_method, logger
 )
 
 
-class PriorDict(OrderedDict):
+class PriorDict(dict):
     def __init__(self, dictionary=None, filename=None,
                  conversion_function=None):
         """ A set of priors
@@ -96,20 +95,20 @@ class PriorDict(OrderedDict):
         check_directory_exists_and_if_not_mkdir(outdir)
         prior_file = os.path.join(outdir, "{}.prior".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
-        mvgs = []
+        joint_dists = []
         with open(prior_file, "w") as outfile:
             for key in self.keys():
-                if isinstance(self[key], MultivariateGaussian):
-                    mvgname = '_'.join(self[key].mvg.names) + '_mvg'
-                    if mvgname not in mvgs:
-                        mvgs.append(mvgname)
+                if JointPrior in self[key].__class__.__mro__:
+                    distname = '_'.join(self[key].dist.names) + '_{}'.format(self[key].dist.distname)
+                    if distname not in joint_dists:
+                        joint_dists.append(distname)
                         outfile.write(
-                            "{} = {}\n".format(mvgname, self[key].mvg))
-                    mvgstr = repr(self[key].mvg)
+                            "{} = {}\n".format(distname, self[key].dist))
+                    diststr = repr(self[key].dist)
                     priorstr = repr(self[key])
                     outfile.write(
-                        "{} = {}\n".format(key, priorstr.replace(mvgstr,
-                                                                 mvgname)))
+                        "{} = {}\n".format(key, priorstr.replace(diststr,
+                                                                 distname)))
                 else:
                     outfile.write(
                         "{} = {}\n".format(key, self[key]))
@@ -174,7 +173,7 @@ class PriorDict(OrderedDict):
                 else:
                     module = __name__
                 cls = getattr(import_module(module), cls, cls)
-                if key.lower() == "conversion_function":
+                if key.lower() in ["conversion_function", "condition_func"]:
                     setattr(self, key, cls)
                 elif (cls.__name__ in ['MultivariateGaussianDist',
                                        'MultivariateNormalDist']):
@@ -332,11 +331,10 @@ class PriorDict(OrderedDict):
         self.convert_floats_to_delta_functions()
         samples = dict()
         for key in keys:
-            if isinstance(self[key], Prior):
-                if isinstance(self[key], Constraint):
-                    continue
-                else:
-                    samples[key] = self[key].sample(size=size)
+            if isinstance(self[key], Constraint):
+                continue
+            elif isinstance(self[key], Prior):
+                samples[key] = self[key].sample(size=size)
             else:
                 logger.debug('{} not a known prior.'.format(key))
         return samples
@@ -349,9 +347,15 @@ class PriorDict(OrderedDict):
                     return sample
         else:
             needed = np.prod(size)
+            constraint_keys = list()
+            for ii, key in enumerate(keys[-1::-1]):
+                if isinstance(self[key], Constraint):
+                    constraint_keys.append(-ii - 1)
+            for ii in constraint_keys[-1::-1]:
+                del keys[ii]
             all_samples = {key: np.array([]) for key in keys}
             _first_key = list(all_samples.keys())[0]
-            while len(all_samples[_first_key]) <= needed:
+            while len(all_samples[_first_key]) < needed:
                 samples = self.sample_subset(keys=keys, size=needed)
                 keep = np.array(self.evaluate_constraints(samples), dtype=bool)
                 for key in samples:
@@ -472,7 +476,7 @@ class PriorDict(OrderedDict):
         We have to overwrite the copy method as it fails due to the presence of
         defaults.
         """
-        return self.__class__(dictionary=OrderedDict(self))
+        return self.__class__(dictionary=dict(self))
 
 
 class PriorSet(PriorDict):
@@ -481,6 +485,199 @@ class PriorSet(PriorDict):
         """ DEPRECATED: USE PriorDict INSTEAD"""
         logger.warning("The name 'PriorSet' is deprecated use 'PriorDict' instead")
         super(PriorSet, self).__init__(dictionary, filename)
+
+
+class ConditionalPriorDict(PriorDict):
+
+    def __init__(self, dictionary=None, filename=None, conversion_function=None):
+        """
+
+        Parameters
+        ----------
+        dictionary: dict
+            See parent class
+        filename: str
+            See parent class
+        """
+        self._conditional_keys = []
+        self._unconditional_keys = []
+        self._rescale_keys = []
+        self._rescale_indexes = []
+        self._least_recently_rescaled_keys = []
+        super(ConditionalPriorDict, self).__init__(
+            dictionary=dictionary, filename=filename,
+            conversion_function=conversion_function
+        )
+        self._resolved = False
+        self._resolve_conditions()
+
+    def _resolve_conditions(self):
+        """
+        Resolves how priors depend on each other and automatically
+        sorts them into the right order.
+        1. All unconditional priors are put in front in arbitrary order
+        2. We loop through all the unsorted conditional priors to find
+        which one can go next
+        3. We repeat step 2 len(self) number of times to make sure that
+        all conditional priors will be sorted in order
+        4. We set the `self._resolved` flag to True if all conditional
+        priors were added in the right order
+        """
+        self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
+        conditional_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
+        self._conditional_keys = []
+        for _ in range(len(self)):
+            for key in conditional_keys_unsorted[:]:
+                if self._check_conditions_resolved(key, self.sorted_keys):
+                    self._conditional_keys.append(key)
+                    conditional_keys_unsorted.remove(key)
+
+        self._resolved = True
+        if len(conditional_keys_unsorted) != 0:
+            self._resolved = False
+
+    def _check_conditions_resolved(self, key, sampled_keys):
+        """ Checks if all required variables have already been sampled so we can sample this key """
+        conditions_resolved = True
+        for k in self[key].required_variables:
+            if k not in sampled_keys:
+                conditions_resolved = False
+        return conditions_resolved
+
+    def sample_subset(self, keys=iter([]), size=None):
+        self.convert_floats_to_delta_functions()
+        subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
+        if not subset_dict._resolved:
+            raise IllegalConditionsException("The current set of priors contains unresolvable conditions.")
+        samples = dict()
+        for key in subset_dict.sorted_keys:
+            if isinstance(self[key], Constraint):
+                continue
+            elif isinstance(self[key], Prior):
+                try:
+                    samples[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
+                except ValueError:
+                    # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
+                    # If that is the case, we sample each sample individually.
+                    required_variables = subset_dict.get_required_variables(key)
+                    samples[key] = np.zeros(size)
+                    for i in range(size):
+                        rvars = {key: value[i] for key, value in required_variables.items()}
+                        samples[key][i] = subset_dict[key].sample(**rvars)
+            else:
+                logger.debug('{} not a known prior.'.format(key))
+        return samples
+
+    def get_required_variables(self, key):
+        """ Returns the required variables to sample a given conditional key.
+
+        Parameters
+        ----------
+        key : str
+            Name of the key that we want to know the required variables for
+
+        Returns
+        ----------
+        dict: key/value pairs of the required variables
+        """
+        return {k: self[k].least_recently_sampled for k in getattr(self[key], 'required_variables', [])}
+
+    def prob(self, sample, **kwargs):
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the probability of
+        kwargs:
+            The keyword arguments are passed directly to `np.product`
+
+        Returns
+        -------
+        float: Joint probability of all individual sample probabilities
+
+        """
+        self._check_resolved()
+        for key, value in sample.items():
+            self[key].least_recently_sampled = value
+        res = [self[key].prob(sample[key], **self.get_required_variables(key)) for key in sample]
+        return np.product(res, **kwargs)
+
+    def ln_prob(self, sample, axis=None):
+        """
+
+        Parameters
+        ----------
+        sample: dict
+            Dictionary of the samples of which we want to have the log probability of
+        axis: Union[None, int]
+            Axis along which the summation is performed
+
+        Returns
+        -------
+        float: Joint log probability of all the individual sample probabilities
+
+        """
+        self._check_resolved()
+        for key, value in sample.items():
+            self[key].least_recently_sampled = value
+        res = [self[key].ln_prob(sample[key], **self.get_required_variables(key)) for key in sample]
+        return np.sum(res, axis=axis)
+
+    def rescale(self, keys, theta):
+        """Rescale samples from unit cube to prior
+
+        Parameters
+        ----------
+        keys: list
+            List of prior keys to be rescaled
+        theta: list
+            List of randomly drawn values on a unit cube associated with the prior keys
+
+        Returns
+        -------
+        list: List of floats containing the rescaled sample
+        """
+        self._check_resolved()
+        self._update_rescale_keys(keys)
+        result = dict()
+        for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
+            required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
+            result[key] = self[key].rescale(theta[index], **required_variables)
+        return [result[key] for key in keys]
+
+    def _update_rescale_keys(self, keys):
+        if not keys == self._least_recently_rescaled_keys:
+            self._rescale_indexes = [keys.index(element) for element in self.sorted_keys_without_fixed_parameters]
+            self._least_recently_rescaled_keys = keys
+
+    def _check_resolved(self):
+        if not self._resolved:
+            raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
+
+    @property
+    def conditional_keys(self):
+        return self._conditional_keys
+
+    @property
+    def unconditional_keys(self):
+        return self._unconditional_keys
+
+    @property
+    def sorted_keys(self):
+        return self.unconditional_keys + self.conditional_keys
+
+    @property
+    def sorted_keys_without_fixed_parameters(self):
+        return [key for key in self.sorted_keys if not isinstance(self[key], (DeltaFunction, Constraint))]
+
+    def __setitem__(self, key, value):
+        super(ConditionalPriorDict, self).__setitem__(key, value)
+        self._resolve_conditions()
+
+    def __delitem__(self, key):
+        super(ConditionalPriorDict, self).__delitem__(key)
+        self._resolve_conditions()
 
 
 def create_default_prior(name, default_priors_file=None):
@@ -543,6 +740,7 @@ class Prior(object):
         self.unit = unit
         self.minimum = minimum
         self.maximum = maximum
+        self.least_recently_sampled = None
         self.boundary = boundary
 
     def __call__(self):
@@ -583,7 +781,8 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        return self.rescale(np.random.uniform(0, 1, size))
+        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size))
+        return self.least_recently_sampled
 
     def rescale(self, val):
         """
@@ -687,7 +886,7 @@ class Prior(object):
 
         """
         prior_name = self.__class__.__name__
-        instantiation_dict = self._get_instantiation_dict()
+        instantiation_dict = self.get_instantiation_dict()
         args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
                           for key in instantiation_dict])
         return "{}({})".format(prior_name, args)
@@ -770,14 +969,14 @@ class Prior(object):
     def maximum(self, maximum):
         self._maximum = maximum
 
-    def _get_instantiation_dict(self):
+    def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
         property_names = [p for p in dir(self.__class__)
                           if isinstance(getattr(self.__class__, p), property)]
         dict_with_properties = self.__dict__.copy()
         for key in property_names:
             dict_with_properties[key] = getattr(self, key)
-        instantiation_dict = OrderedDict()
+        instantiation_dict = dict()
         for key in subclass_args:
             instantiation_dict[key] = dict_with_properties[key]
         return instantiation_dict
@@ -820,11 +1019,19 @@ class Prior(object):
         kwargs = cls._split_repr(string)
         for key in kwargs:
             val = kwargs[key]
-            if key not in subclass_args:
+            if key not in subclass_args and not hasattr(cls, "reference_params"):
                 raise AttributeError('Unknown argument {} for class {}'.format(
                     key, cls.__name__))
             else:
                 kwargs[key] = cls._parse_argument_string(val)
+            if key in ["condition_func", "conversion_function"] and isinstance(kwargs[key], str):
+                if "." in kwargs[key]:
+                    module = '.'.join(kwargs[key].split('.')[:-1])
+                    name = kwargs[key].split('.')[-1]
+                else:
+                    module = __name__
+                    name = kwargs[key]
+                kwargs[key] = getattr(import_module(module), name)
         return cls(**kwargs)
 
     @classmethod
@@ -1238,12 +1445,19 @@ class SymmetricLogUniform(Prior):
         Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
-        if val < 0.5:
-            return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
-        elif val > 0.5:
-            return self.minimum * np.exp(np.log(self.maximum / self.minimum) * (2 * val - 1))
+        if isinstance(val, (float, int)):
+            if val < 0.5:
+                return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
+            else:
+                return self.minimum * np.exp(np.log(self.maximum / self.minimum) * (2 * val - 1))
         else:
-            raise ValueError("Rescale not valid for val=0.5")
+            vals_less_than_5 = val < 0.5
+            rescaled = np.empty_like(val)
+            rescaled[vals_less_than_5] = -self.maximum * np.exp(-2 * val[vals_less_than_5] *
+                                                                np.log(self.maximum / self.minimum))
+            rescaled[~vals_less_than_5] = self.minimum * np.exp(np.log(self.maximum / self.minimum) *
+                                                                (2 * val[~vals_less_than_5] - 1))
+            return rescaled
 
     def prob(self, val):
         """Return the prior probability of val
@@ -2520,7 +2734,317 @@ class FermiDirac(Prior):
             return lnp
 
 
-class MultivariateGaussianDist(object):
+class BaseJointPriorDist(object):
+
+    def __init__(self, names, bounds=None):
+        """
+        A class defining JointPriorDist that will be overwritten with child
+        classes defining the joint prior distribtuions between given parameters,
+
+
+        Parameters
+        ----------
+        names: list (required)
+            A list of the parameter names in the JointPriorDist. The
+            listed parameters must have the same order that they appear in
+            the lists of statistical parameters that may be passed in child class
+        bounds: list (optional)
+            A list of bounds on each parameter. The defaults are for bounds at
+            +/- infinity.
+        """
+        self.distname = 'joint_dist'
+        if not isinstance(names, list):
+            self.names = [names]
+        else:
+            self.names = names
+
+        self.num_vars = len(self.names)
+
+        # set the bounds for each parameter
+        if isinstance(bounds, list):
+            if len(bounds) != len(self):
+                raise ValueError("Wrong number of parameter bounds")
+
+            # check bounds
+            for bound in bounds:
+                if isinstance(bounds, (list, tuple, np.ndarray)):
+                    if len(bound) != 2:
+                        raise ValueError("Bounds must contain an upper and "
+                                         "lower value.")
+                    else:
+                        if bound[1] <= bound[0]:
+                            raise ValueError("Bounds are not properly set")
+                else:
+                    raise TypeError("Bound must be a list")
+
+                logger.warning("If using bounded ranges on the multivariate "
+                               "Gaussian this will lead to biased posteriors "
+                               "for nested sampling routines that require "
+                               "a prior transform.")
+        else:
+            bounds = [(-np.inf, np.inf) for _ in self.names]
+        self.bounds = {name: val for name, val in zip(self.names, bounds)}
+
+        self._current_sample = {}  # initialise empty sample
+        self._uncorrelated = None
+        self._current_lnprob = None
+
+        # a dictionary of the parameters as requested by the prior
+        self.requested_parameters = dict()
+        self.reset_request()
+
+        # a dictionary of the rescaled parameters
+        self.rescale_parameters = dict()
+        self.reset_rescale()
+
+        # a list of sampled parameters
+        self.reset_sampled()
+
+    def reset_sampled(self):
+        self.sampled_parameters = []
+        self.current_sample = {}
+
+    def filled_request(self):
+        """
+        Check if all requested parameters have been filled.
+        """
+
+        return not np.any([val is None for val in
+                           self.requested_parameters.values()])
+
+    def reset_request(self):
+        """
+        Reset the requested parameters to None.
+        """
+
+        for name in self.names:
+            self.requested_parameters[name] = None
+
+    def filled_rescale(self):
+        """
+        Check if all the rescaled parameters have been filled.
+        """
+
+        return not np.any([val is None for val in
+                           self.rescale_parameters.values()])
+
+    def reset_rescale(self):
+        """
+        Reset the rescaled parameters to None.
+        """
+
+        for name in self.names:
+            self.rescale_parameters[name] = None
+
+    def get_instantiation_dict(self):
+        subclass_args = infer_args_from_method(self.__init__)
+        property_names = [p for p in dir(self.__class__)
+                          if isinstance(getattr(self.__class__, p), property)]
+        dict_with_properties = self.__dict__.copy()
+        for key in property_names:
+            dict_with_properties[key] = getattr(self, key)
+        instantiation_dict = dict()
+        for key in subclass_args:
+            if isinstance(dict_with_properties[key], list):
+                value = np.asarray(dict_with_properties[key]).tolist()
+            else:
+                value = dict_with_properties[key]
+            instantiation_dict[key] = value
+        return instantiation_dict
+
+    def __len__(self):
+        return len(self.names)
+
+    def __repr__(self):
+        """Overrides the special method __repr__.
+
+        Returns a representation of this instance that resembles how it is instantiated.
+        Works correctly for all child classes
+
+        Returns
+        -------
+        str: A string representation of this instance
+
+        """
+        dist_name = self.__class__.__name__
+        instantiation_dict = self.get_instantiation_dict()
+        args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
+                          for key in instantiation_dict])
+        return "{}({})".format(dist_name, args)
+
+    def prob(self, samp):
+        """
+        Get the probability of a sample. For bounded priors the
+        probability will not be properly normalised.
+        """
+
+        return np.exp(self.ln_prob(samp))
+
+    def _check_samp(self, value):
+        """
+        Get the log-probability of a sample. For bounded priors the
+        probability will not be properly normalised.
+
+        Parameters
+        ----------
+        value: array_like
+            A 1d vector of the sample, or 2d array of sample values with shape
+            NxM, where N is the number of samples and M is the number of
+            parameters.
+
+        Returns
+        -------
+        samp: array_like
+            returns the input value as a sample array
+        outbounds: array_like
+            Boolean Array that selects samples in samp that are out of given bounds
+        """
+        samp = np.array(value)
+        if len(samp.shape) == 1:
+            samp = samp.reshape(1, self.num_vars)
+
+        if len(samp.shape) != 2:
+            raise ValueError("Array is the wrong shape")
+        elif samp.shape[1] != self.num_vars:
+            raise ValueError("Array is the wrong shape")
+
+        # check sample(s) is within bounds
+        outbounds = np.ones(samp.shape[0], dtype=np.bool)
+        for s, bound in zip(samp.T, self.bounds.values()):
+            outbounds = (s < bound[0]) | (s > bound[1])
+            if np.any(outbounds):
+                break
+        return samp, outbounds
+
+    def ln_prob(self, value):
+        """
+        Get the log-probability of a sample. For bounded priors the
+        probability will not be properly normalised.
+
+        Parameters
+        ----------
+        value: array_like
+            A 1d vector of the sample, or 2d array of sample values with shape
+            NxM, where N is the number of samples and M is the number of
+            parameters.
+        """
+
+        samp, outbounds = self._check_samp(value)
+        lnprob = -np.inf * np.ones(samp.shape[0])
+        lnprob = self._ln_prob(samp, lnprob, outbounds)
+        if samp.shape[0] == 1:
+            return lnprob[0]
+        else:
+            return lnprob
+
+    def _ln_prob(self, samp, lnprob, outbounds):
+        """
+        Get the log-probability of a sample. For bounded priors the
+        probability will not be properly normalised. **this method needs overwritten by child class**
+
+        Parameters
+        ----------
+        samp: vector
+            sample to evaluate the ln_prob at
+        lnprob: vector
+            of -inf pased in with the same shape as the number of samples
+        outbounds: array_like
+            boolean array showing which samples in lnprob vector are out of the given bounds
+
+        Returns
+        -------
+        lnprob: vector
+            array of lnprob values for each sample given
+        """
+        """
+        Here is where the subclass where overwrite ln_prob method
+        """
+        return lnprob
+
+    def sample(self, size=1, **kwargs):
+        """
+        Draw, and set, a sample from the Dist, accompanying method _sample needs to overwritten
+
+        Parameters
+        ----------
+        size: int
+            number of samples to generate, defualts to 1
+        """
+
+        if size is None:
+            size = 1
+        samps = self._sample(size=size, **kwargs)
+        for i, name in enumerate(self.names):
+            if size == 1:
+                self.current_sample[name] = samps[:, i].flatten()[0]
+            else:
+                self.current_sample[name] = samps[:, i].flatten()
+
+    def _sample(self, size, **kwargs):
+        """
+        Draw, and set, a sample from the joint dist (**needs to be ovewritten by child class**)
+
+        Parameters
+        ----------
+        size: int
+            number of samples to generate, defualts to 1
+        """
+        samps = np.zeros((size, len(self)))
+        """
+        Here is where the subclass where overwrite sampling method
+        """
+        return samps
+
+    def rescale(self, value, **kwargs):
+        """
+        Rescale from a unit hypercube to JointPriorDist. Note that no
+        bounds are applied in the rescale function. (child classes need to
+        overwrite accompanying method _rescale().
+
+        Parameters
+        ----------
+        value: array
+            A 1d vector sample (one for each parameter) drawn from a uniform
+            distribution between 0 and 1, or a 2d NxM array of samples where
+            N is the number of samples and M is the number of parameters.
+        kwargs: dict
+            All keyword args that need to be passed to _rescale method, these keyword
+            args are called in the JointPrior rescale methods for each parameter
+
+        Returns
+        -------
+        array:
+            An vector sample drawn from the multivariate Gaussian
+            distribution.
+        """
+        samp = np.asarray(value)
+        if len(samp.shape) == 1:
+            samp = samp.reshape(1, self.num_vars)
+
+        if len(samp.shape) != 2:
+            raise ValueError("Array is the wrong shape")
+        elif samp.shape[1] != self.num_vars:
+            raise ValueError("Array is the wrong shape")
+
+        samp = self._rescale(samp, **kwargs)
+        return np.squeeze(samp)
+
+    def _rescale(self, samp, **kwargs):
+        """
+        rescale a sample from a unit hypercybe to the joint dist (**needs to be ovewritten by child class**)
+
+        Parameters
+        ----------
+        samp: numpy array
+            this is a vector sample drawn from a uniform distribtuion to be rescaled to the distribution
+        """
+        """
+        Here is where the subclass where overwrite rescale method
+        """
+        return samp
+
+
+class MultivariateGaussianDist(BaseJointPriorDist):
 
     def __init__(self, names, nmodes=1, mus=None, sigmas=None, corrcoefs=None,
                  covs=None, weights=None, bounds=None):
@@ -2568,41 +3092,8 @@ class MultivariateGaussianDist(object):
             A list of bounds on each parameter. The defaults are for bounds at
             +/- infinity.
         """
-
-        if not isinstance(names, list):
-            self.names = [names]
-        else:
-            self.names = names
-
-        self.num_vars = len(self.names)  # the number of parameters
-
-        # set the bounds for each parameter
-        if isinstance(bounds, list):
-            if len(bounds) != len(self):
-                raise ValueError("Wrong number of parameter bounds")
-
-            # check bounds
-            for bound in bounds:
-                if isinstance(bounds, (list, tuple, np.ndarray)):
-                    if len(bound) != 2:
-                        raise ValueError("Bounds must contain an upper and "
-                                         "lower value.")
-                    else:
-                        if bound[1] <= bound[0]:
-                            raise ValueError("Bounds are not properly set")
-                else:
-                    raise TypeError("Bound must be a list")
-
-                logger.warning("If using bounded ranges on the multivariate "
-                               "Gaussian this will lead to biased posteriors "
-                               "for nested sampling routines that require "
-                               "a prior transform.")
-        else:
-            bounds = [(-np.inf, np.inf) for _ in self.names]
-
-        # set bounds as dictionary
-        self.bounds = {name: val for name, val in zip(self.names, bounds)}
-
+        super(MultivariateGaussianDist, self).__init__(names=names, bounds=bounds)
+        self.distname = 'mvg'
         self.mus = []
         self.covs = []
         self.corrcoefs = []
@@ -2675,53 +3166,6 @@ class MultivariateGaussianDist(object):
             weight = weights[i] if weights is not None else 1.
 
             self.add_mode(mu, sigma, corrcoef, cov, weight)
-
-        # a dictionary of the parameters as requested by the prior
-        self.requested_parameters = OrderedDict()
-        self.reset_request()
-
-        # a dictionary of the rescaled parameters
-        self.rescale_parameters = OrderedDict()
-        self.reset_rescale()
-
-        # a list of sampled parameters
-        self.reset_sampled()
-
-    def reset_sampled(self):
-        self.sampled_parameters = []
-        self.current_sample = {}
-
-    def filled_request(self):
-        """
-        Check if all requested parameters have been filled.
-        """
-
-        return not np.any([val is None for val in
-                           self.requested_parameters.values()])
-
-    def reset_request(self):
-        """
-        Reset the requested parameters to None.
-        """
-
-        for name in self.names:
-            self.requested_parameters[name] = None
-
-    def filled_rescale(self):
-        """
-        Check is all the rescaled parameters have been filled.
-        """
-
-        return not np.any([val is None for val in
-                           self.rescale_parameters.values()])
-
-    def reset_rescale(self):
-        """
-        Reset the rescaled parameters to None.
-        """
-
-        for name in self.names:
-            self.rescale_parameters[name] = None
 
     def add_mode(self, mus=None, sigmas=None, corrcoef=None, cov=None,
                  weight=1.):
@@ -2830,69 +3274,37 @@ class MultivariateGaussianDist(object):
         self.mvn.append(scipy.stats.multivariate_normal(mean=self.mus[-1],
                                                         cov=self.covs[-1]))
 
-    def rescale(self, value, mode=None):
-        """
-        Rescale from a unit hypercube to multivariate Gaussian. Note that no
-        bounds are applied in the rescale function.
+    def _rescale(self, samp, **kwargs):
+        try:
+            mode = kwargs['mode']
+        except KeyError:
+            mode = None
 
-        Parameters
-        ----------
-        value: array
-            A 1d vector sample (one for each parameter) drawn from a uniform
-            distribution between 0 and 1, or a 2d NxM array of samples where
-            N is the number of samples and M is the number of parameters.
-        mode: int
-            Specify which mode to sample from. If not set then a mode is
-            chosen randomly based on its weight.
-
-        Returns
-        -------
-        array:
-            An vector sample drawn from the multivariate Gaussian
-            distribution.
-        """
-
-        # pick a mode (with a probability given by their weights)
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
             else:
                 mode = np.argwhere(self.cumweights - np.random.rand() > 0)[0][0]
 
-        samp = np.asarray(value)
-        if len(samp.shape) == 1:
-            samp = samp.reshape(1, self.num_vars)
-
-        if len(samp.shape) != 2:
-            raise ValueError("Array is the wrong shape")
-        elif samp.shape[1] != self.num_vars:
-            raise ValueError("Array is the wrong shape")
-
-        # draw points from unit variance, uncorrelated Gaussian
         samp = erfinv(2. * samp - 1) * 2. ** 0.5
 
         # rotate and scale to the multivariate normal shape
         samp = self.mus[mode] + self.sigmas[mode] * np.einsum('ij,kj->ik',
                                                               samp * self.sqeigvalues[mode],
                                                               self.eigvectors[mode])
+        return samp
 
-        return np.squeeze(samp)
+    def _sample(self, size, **kwargs):
+        try:
+            mode = kwargs['mode']
+        except KeyError:
+            mode = None
 
-    def sample(self, size=1, mode=None):
-        """
-        Draw, and set, a sample from the multivariate Gaussian.
-
-        Parameters
-        ----------
-        mode: int
-            Specify which mode to sample from. If not set then a mode is
-            chosen randomly based on its weight.
-        """
-
-        if size is None:
-            size = 1
-
-        # samples drawn from unit variance uncorrelated multivariate Gaussian
+        if mode is None:
+            if self.nmodes == 1:
+                mode = 0
+            else:
+                mode = np.argwhere(self.cumweights - np.random.rand() > 0)[0][0]
         samps = np.zeros((size, len(self)))
         for i in range(size):
             inbound = False
@@ -2913,42 +3325,9 @@ class MultivariateGaussianDist(object):
                 if not outbound:
                     inbound = True
 
-        for i, name in enumerate(self.names):
-            if size == 1:
-                self.current_sample[name] = samps[:, i].flatten()[0]
-            else:
-                self.current_sample[name] = samps[:, i].flatten()
+        return samps
 
-    def ln_prob(self, value):
-        """
-        Get the log-probability of a sample. For bounded priors the
-        probability will not be properly normalised.
-
-        Parameters
-        ----------
-        value: array_like
-            A 1d vector of the sample, or 2d array of sample values with shape
-            NxM, where N is the number of samples and M is the number of
-            parameters.
-        """
-
-        samp = np.asarray(value)
-        if len(samp.shape) == 1:
-            samp = samp.reshape(1, self.num_vars)
-
-        if len(samp.shape) != 2:
-            raise ValueError("Array is the wrong shape")
-        elif samp.shape[1] != self.num_vars:
-            raise ValueError("Array is the wrong shape")
-
-        # check sample(s) is within bounds
-        outbounds = np.ones(samp.shape[0], dtype=np.bool)
-        for s, bound in zip(samp.T, self.bounds.values()):
-            outbounds = (s < bound[0]) | (s > bound[1])
-            if np.any(outbounds):
-                break
-
-        lnprob = -np.inf * np.ones(samp.shape[0])
+    def _ln_prob(self, samp, lnprob, outbounds):
         for j in range(samp.shape[0]):
             # loop over the modes and sum the probabilities
             for i in range(self.nmodes):
@@ -2956,55 +3335,7 @@ class MultivariateGaussianDist(object):
 
         # set out-of-bounds values to -inf
         lnprob[outbounds] = -np.inf
-
-        if samp.shape[0] == 1:
-            return lnprob[0]
-        else:
-            return lnprob
-
-    def prob(self, samp):
-        """
-        Get the probability of a sample. For bounded priors the
-        probability will not be properly normalised.
-        """
-
-        return np.exp(self.ln_prob(samp))
-
-    def _get_instantiation_dict(self):
-        subclass_args = infer_args_from_method(self.__init__)
-        property_names = [p for p in dir(self.__class__)
-                          if isinstance(getattr(self.__class__, p), property)]
-        dict_with_properties = self.__dict__.copy()
-        for key in property_names:
-            dict_with_properties[key] = getattr(self, key)
-        instantiation_dict = OrderedDict()
-        for key in subclass_args:
-            if isinstance(dict_with_properties[key], list):
-                value = np.asarray(dict_with_properties[key]).tolist()
-            else:
-                value = dict_with_properties[key]
-            instantiation_dict[key] = value
-        return instantiation_dict
-
-    def __len__(self):
-        return len(self.names)
-
-    def __repr__(self):
-        """Overrides the special method __repr__.
-
-        Returns a representation of this instance that resembles how it is instantiated.
-        Works correctly for all child classes
-
-        Returns
-        -------
-        str: A string representation of this instance
-
-        """
-        dist_name = self.__class__.__name__
-        instantiation_dict = self._get_instantiation_dict()
-        args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
-                          for key in instantiation_dict])
-        return "{}({})".format(dist_name, args)
+        return lnprob
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -3042,132 +3373,136 @@ class MultivariateNormalDist(MultivariateGaussianDist):
     """ A synonym for the :class:`~bilby.core.prior.MultivariateGaussianDist` distribution."""
 
 
-class MultivariateGaussian(Prior):
+class JointPrior(Prior):
 
-    def __init__(self, mvg, name=None, latex_label=None, unit=None):
-        """
-        A prior class for a multivariate Gaussian (mixture model) prior.
+    def __init__(self, dist, name=None, latex_label=None, unit=None):
+        """This defines the single parameter Prior object for parameters that belong to a JointPriorDist
 
         Parameters
         ----------
-        mvg: MultivariateGaussianDist
-            A :class:`bilby.core.prior.MultivariateGaussianDist` object defining
-            the multivariate Gaussian distribution. This object is not copied,
-            as it needs to be shared across multiple priors, and as such its
-            contents will be altered by the prior.
+        dist: ChildClass of BaseJointPriorDist
+            The shared JointPriorDistribution that this parameter belongs to
         name: str
-            See superclass
+            Name of this parameter. Must be contained in dist.names
         latex_label: str
             See superclass
         unit: str
             See superclass
-
         """
+        if BaseJointPriorDist not in dist.__class__.__bases__:
+            raise TypeError("Must supply a JointPriorDist object instance to be shared by all joint params")
 
-        if not isinstance(mvg, MultivariateGaussianDist):
-            raise TypeError("Must supply a multivariate Gaussian object")
+        if name not in dist.names:
+            raise ValueError("'{}' is not a parameter in the JointPriorDist")
 
-        # check name is in the MultivariateGaussianDist class
-        if name not in mvg.names:
-            raise ValueError("'{}' is not a parameter in the multivariate "
-                             "Gaussian")
-        self.mvg = mvg
+        self.dist = dist
+        super(JointPrior, self).__init__(name=name, latex_label=latex_label, unit=unit, minimum=dist.bounds[name][0],
+                                         maximum=dist.bounds[name][1])
 
-        super(MultivariateGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                                   minimum=mvg.bounds[name][0],
-                                                   maximum=mvg.bounds[name][1])
+    @property
+    def minimum(self):
+        return self._minimum
 
-    def rescale(self, val, mode=None):
+    @minimum.setter
+    def minimum(self, minimum):
+        self._minimum = minimum
+        self.dist.bounds[self.name] = (minimum, self.dist.bounds[self.name][1])
+
+    @property
+    def maximum(self):
+        return self._maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self._maximum = maximum
+        self.dist.bounds[self.name] = (self.dist.bounds[self.name][0], maximum)
+
+    def rescale(self, val, **kwargs):
         """
         Scale a unit hypercube sample to the prior.
 
         Parameters
         ----------
-        mode: int
-            Specify which mode to sample from. If not set then a mode is
-            chosen randomly based on its weight.
-        """
-
-        Prior.test_valid_for_rescaling(val)
-
-        # add parameter value to multivariate Gaussian
-        self.mvg.rescale_parameters[self.name] = val
-
-        if self.mvg.filled_rescale():
-            values = np.array(list(self.mvg.rescale_parameters.values())).T
-            samples = self.mvg.rescale(values, mode=mode)
-            self.mvg.reset_rescale()
-            return samples
-        else:
-            return []  # return empty list
-
-    def sample(self, size=1, mode=None):
-        """
-        Draw a sample from the prior.
-
-        Parameters
-        ----------
-        mode: int
-            Specify which mode to sample from. If not set then a mode is
-            chosen randomly based on its weight.
-
+        val: array_like
+            value drawn from unit hypercube to be rescaled onto the prior
+        kwargs: dict
+            all kwargs passed to the dist.rescale method
         Returns
         -------
         float:
             A sample from the prior paramter.
         """
 
-        if self.name in self.mvg.sampled_parameters:
+        self.test_valid_for_rescaling(val)
+        self.dist.rescale_parameters[self.name] = val
+
+        if self.dist.filled_rescale():
+            values = np.array(list(self.dist.rescale_parameters.values())).T
+            samples = self.dist.rescale(values, **kwargs)
+            self.dist.reset_rescale()
+            return samples
+        else:
+            return []  # return empty list
+
+    def sample(self, size=1, **kwargs):
+        """
+        Draw a sample from the prior.
+
+        Parameters
+        ----------
+        size: int, float (defaults to 1)
+            number of samples to draw
+        kwargs: dict
+            kwargs passed to the dist.sample method
+        Returns
+        -------
+        float:
+            A sample from the prior paramter.
+        """
+
+        if self.name in self.dist.sampled_parameters:
             logger.warning("You have already drawn a sample from parameter "
                            "'{}'. The same sample will be "
                            "returned".format(self.name))
 
-        if len(self.mvg.current_sample) == 0:
+        if len(self.dist.current_sample) == 0:
             # generate a sample
-            self.mvg.sample(size=size, mode=mode)
+            self.dist.sample(size=size, **kwargs)
 
-        sample = self.mvg.current_sample[self.name]
+        sample = self.dist.current_sample[self.name]
 
-        if self.name not in self.mvg.sampled_parameters:
-            self.mvg.sampled_parameters.append(self.name)
+        if self.name not in self.dist.sampled_parameters:
+            self.dist.sampled_parameters.append(self.name)
 
-        if len(self.mvg.sampled_parameters) == len(self.mvg):
+        if len(self.dist.sampled_parameters) == len(self.dist):
             # reset samples
-            self.mvg.reset_sampled()
-
+            self.dist.reset_sampled()
+        self.least_recently_sampled = sample
         return sample
-
-    def prob(self, val):
-        """Return the prior probability of val
-
-        Parameters
-        ----------
-        val: float
-
-        Returns
-        -------
-        float:
-
-        """
-
-        return np.exp(self.ln_prob(val))
 
     def ln_prob(self, val):
         """
         Return the natural logarithm of the prior probability. Note that this
         will not be correctly normalised if there are bounds on the
         distribution.
+
+        Parameters
+        ----------
+        val: array_like
+            value to evaluate the prior log-prob at
+        Returns
+        -------
+        float:
+            the logp value for the prior at given sample
         """
+        self.dist.requested_parameters[self.name] = val
 
-        # add parameter value to multivariate Gaussian
-        self.mvg.requested_parameters[self.name] = val
-
-        if self.mvg.filled_request():
+        if self.dist.filled_request():
             # all required parameters have been set
-            values = list(self.mvg.requested_parameters.values())
+            values = list(self.dist.requested_parameters.values())
 
             # check for the same number of values for each parameter
-            for i in range(len(self.mvg) - 1):
+            for i in range(len(self.dist) - 1):
                 if (isinstance(values[i], (list, np.ndarray)) or
                         isinstance(values[i + 1], (list, np.ndarray))):
                     if (isinstance(values[i], (list, np.ndarray)) and
@@ -3179,11 +3514,10 @@ class MultivariateGaussian(Prior):
                         raise ValueError("Each parameter must have the same "
                                          "number of requested values.")
 
-            lnp = self.mvg.ln_prob(np.asarray(values).T)
+            lnp = self.dist.ln_prob(np.asarray(values).T)
 
             # reset the requested parameters
-            self.mvg.reset_request()
-
+            self.dist.reset_request()
             return lnp
         else:
             # if not all parameters have been requested yet, just return 0
@@ -3201,29 +3535,275 @@ class MultivariateGaussian(Prior):
                 else:
                     return np.zeros_like(val)
 
-    @property
-    def minimum(self):
-        return self._minimum
+    def prob(self, val):
+        """Return the prior probability of val
 
-    @minimum.setter
-    def minimum(self, minimum):
-        self._minimum = minimum
+        Parameters
+        ----------
+        val: array_like
+            value to evaluate the prior prob at
 
-        # update the bounds in the MultivariateGaussianDist
-        self.mvg.bounds[self.name] = (minimum, self.mvg.bounds[self.name][1])
+        Returns
+        -------
+        float:
+            the p value for the prior at given sample
+        """
 
-    @property
-    def maximum(self):
-        return self._maximum
+        return np.exp(self.ln_prob(val))
 
-    @maximum.setter
-    def maximum(self, maximum):
-        self._maximum = maximum
 
-        # update the bounds in the MultivariateGaussianDist
-        self.mvg.bounds[self.name] = (self.mvg.bounds[self.name][0], maximum)
+class MultivariateGaussian(JointPrior):
+    def __init__(self, dist, name=None, latex_label=None, unit=None):
+        if not isinstance(dist, MultivariateGaussianDist):
+            raise JointPriorDistError("dist object must be instance of MultivariateGaussianDist")
+        super(MultivariateGaussian, self).__init__(dist=dist, name=name, latex_label=latex_label, unit=unit)
 
 
 class MultivariateNormal(MultivariateGaussian):
     """ A synonym for the :class:`bilby.core.prior.MultivariateGaussian`
         prior distribution."""
+
+
+def conditional_prior_factory(prior_class):
+    class ConditionalPrior(prior_class):
+        def __init__(self, condition_func, name=None, latex_label=None, unit=None,
+                     boundary=None, **reference_params):
+            """
+
+            Parameters
+            ----------
+            condition_func: func
+                Functional form of the condition for this prior. The first function argument
+                has to be a dictionary for the `reference_params` (see below). The following
+                arguments are the required variables that are required before we can draw this
+                prior.
+                It needs to return a dictionary with the modified values for the
+                `reference_params` that are being used in the next draw.
+                For example if we have a Uniform prior for `x` depending on a different variable `y`
+                `p(x|y)` with the boundaries linearly depending on y, then this
+                could have the following form:
+
+                ```
+                def condition_func(reference_params, y):
+                    return dict(minimum=reference_params['minimum'] + y, maximum=reference_params['maximum'] + y)
+                ```
+            name: str, optional
+               See superclass
+            latex_label: str, optional
+                See superclass
+            unit: str, optional
+                See superclass
+            boundary: str, optional
+                See superclass
+            reference_params:
+                Initial values for attributes such as `minimum`, `maximum`.
+                This differs on the `prior_class`, for example for the Gaussian
+                prior this is `mu` and `sigma`.
+            """
+            if 'boundary' in infer_args_from_method(super(ConditionalPrior, self).__init__):
+                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
+                                                       unit=unit, boundary=boundary, **reference_params)
+            else:
+                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
+                                                       unit=unit, **reference_params)
+
+            self._required_variables = None
+            self.condition_func = condition_func
+            self._reference_params = reference_params
+            self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
+            self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
+
+        def sample(self, size=None, **required_variables):
+            """Draw a sample from the prior
+
+            Parameters
+            ----------
+            size: int or tuple of ints, optional
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+            Returns
+            -------
+            float: See superclass
+
+            """
+            self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **required_variables)
+            return self.least_recently_sampled
+
+        def rescale(self, val, **required_variables):
+            """
+            'Rescale' a sample from the unit line element to the prior.
+
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+
+            """
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).rescale(val)
+
+        def prob(self, val, **required_variables):
+            """Return the prior probability of val.
+
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+
+            Returns
+            -------
+            float: Prior probability of val
+            """
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).prob(val)
+
+        def ln_prob(self, val, **required_variables):
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).ln_prob(val)
+
+        def update_conditions(self, **required_variables):
+            """
+            This method updates the conditional parameters (depending on the parent class
+            this could be e.g. `minimum`, `maximum`, `mu`, `sigma`, etc.) of this prior
+            class depending on the required variables it depends on.
+
+            If no variables are given, the most recently used conditional parameters are kept
+
+            Parameters
+            ----------
+            required_variables:
+                Any required variables that this prior depends on. If none are given,
+                self.reference_params will be used.
+
+            """
+            if sorted(list(required_variables)) == sorted(self.required_variables):
+                parameters = self.condition_func(self.reference_params, **required_variables)
+                for key, value in parameters.items():
+                    setattr(self, key, value)
+            elif len(required_variables) == 0:
+                return
+            else:
+                raise IllegalRequiredVariablesException("Expected kwargs for {}. Got kwargs for {} instead."
+                                                        .format(self.required_variables,
+                                                                list(required_variables.keys())))
+
+        @property
+        def reference_params(self):
+            """
+            Initial values for attributes such as `minimum`, `maximum`.
+            This depends on the `prior_class`, for example for the Gaussian
+            prior this is `mu` and `sigma`. This is read-only.
+            """
+            return self._reference_params
+
+        @property
+        def condition_func(self):
+            return self._condition_func
+
+        @condition_func.setter
+        def condition_func(self, condition_func):
+            if condition_func is None:
+                self._condition_func = lambda reference_params: reference_params
+            else:
+                self._condition_func = condition_func
+            self._required_variables = infer_parameters_from_function(self.condition_func)
+
+        @property
+        def required_variables(self):
+            """ The required variables to pass into the condition function. """
+            return self._required_variables
+
+        def get_instantiation_dict(self):
+            instantiation_dict = super(ConditionalPrior, self).get_instantiation_dict()
+            for key, value in self.reference_params.items():
+                instantiation_dict[key] = value
+            return instantiation_dict
+
+        def reset_to_reference_parameters(self):
+            """
+            Reset the object attributes to match the original reference parameters
+            """
+            for key, value in self.reference_params.items():
+                setattr(self, key, value)
+
+        def __repr__(self):
+            """Overrides the special method __repr__.
+
+            Returns a representation of this instance that resembles how it is instantiated.
+            Works correctly for all child classes
+
+            Returns
+            -------
+            str: A string representation of this instance
+
+            """
+            prior_name = self.__class__.__name__
+            instantiation_dict = self.get_instantiation_dict()
+            instantiation_dict["condition_func"] = ".".join([
+                instantiation_dict["condition_func"].__module__,
+                instantiation_dict["condition_func"].__name__
+            ])
+            args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
+                              for key in instantiation_dict])
+            return "{}({})".format(prior_name, args)
+
+    return ConditionalPrior
+
+
+ConditionalBasePrior = conditional_prior_factory(Prior)  # Only for testing purposes
+ConditionalUniform = conditional_prior_factory(Uniform)
+ConditionalDeltaFunction = conditional_prior_factory(DeltaFunction)
+ConditionalPowerLaw = conditional_prior_factory(PowerLaw)
+ConditionalGaussian = conditional_prior_factory(Gaussian)
+ConditionalLogUniform = conditional_prior_factory(LogUniform)
+ConditionalSymmetricLogUniform = conditional_prior_factory(SymmetricLogUniform)
+ConditionalCosine = conditional_prior_factory(Cosine)
+ConditionalSine = conditional_prior_factory(Sine)
+ConditionalTruncatedGaussian = conditional_prior_factory(TruncatedGaussian)
+ConditionalHalfGaussian = conditional_prior_factory(HalfGaussian)
+ConditionalLogNormal = conditional_prior_factory(LogNormal)
+ConditionalExponential = conditional_prior_factory(Exponential)
+ConditionalStudentT = conditional_prior_factory(StudentT)
+ConditionalBeta = conditional_prior_factory(Beta)
+ConditionalLogistic = conditional_prior_factory(Logistic)
+ConditionalCauchy = conditional_prior_factory(Cauchy)
+ConditionalGamma = conditional_prior_factory(Gamma)
+ConditionalChiSquared = conditional_prior_factory(ChiSquared)
+ConditionalFermiDirac = conditional_prior_factory(FermiDirac)
+ConditionalInterped = conditional_prior_factory(Interped)
+
+
+class PriorException(Exception):
+    """ General base class for all prior exceptions """
+
+
+class ConditionalPriorException(PriorException):
+    """ General base class for all conditional prior exceptions """
+
+
+class IllegalRequiredVariablesException(ConditionalPriorException):
+    """ Exception class for exceptions relating to handling the required variables. """
+
+
+class PriorDictException(Exception):
+    """ General base class for all prior dict exceptions """
+
+
+class ConditionalPriorDictException(PriorDictException):
+    """ General base class for all conditional prior dict exceptions """
+
+
+class IllegalConditionsException(ConditionalPriorDictException):
+    """ Exception class to handle prior dicts that contain unresolvable conditions. """
+
+
+class JointPriorDistError(PriorException):
+    """ Class for Error handling of JointPriorDists for JointPriors """

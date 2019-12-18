@@ -54,6 +54,31 @@ def lal_binary_black_hole(
         The phase at coalescence
     kwargs: dict
         Optional keyword arguments
+        Supported arguments:
+            waveform_approximant
+            reference_frequency
+            minimum_frequency
+            maximum_frequency
+            pn_spin_order
+            pn_tidal_order
+            pn_phase_order
+            pn_amplitude_order
+            mode_array:
+                Activate a specific mode array and evaluate the model using those
+                modes only.  e.g. waveform_arguments =
+                dict(waveform_approximant='IMRPhenomHM', modearray=[[2,2],[2,-2])
+                returns the 22 and 2-2 modes only of IMRPhenomHM.  You can only
+                specify modes that are included in that particular model.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[2,-2],[5,5],[5,-5]]) is not allowed because the
+                55 modes are not included in this model.  Be aware that some models
+                only take positive modes and return the positive and the negative
+                mode together, while others need to call both.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[4,-4]]) returns the 22 and 2-2 of IMRPhenomHM.
+                However, waveform_arguments =
+                dict(waveform_approximant='IMRPhenomXHM', modearray=[[2,2],[4,-4]])
+                returns the 22 and 4-4 of IMRPhenomXHM.
 
     Returns
     -------
@@ -110,6 +135,31 @@ def lal_binary_neutron_star(
         Dimensionless tidal deformability of mass_2
     kwargs: dict
         Optional keyword arguments
+        Supported arguments:
+            waveform_approximant
+            reference_frequency
+            minimum_frequency
+            maximum_frequency
+            pn_spin_order
+            pn_tidal_order
+            pn_phase_order
+            pn_amplitude_order
+            mode_array:
+                Activate a specific mode array and evaluate the model using those
+                modes only.  e.g. waveform_arguments =
+                dict(waveform_approximant='IMRPhenomHM', modearray=[[2,2],[2,-2])
+                returns the 22 and 2-2 modes only of IMRPhenomHM.  You can only
+                specify modes that are included in that particular model.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[2,-2],[5,5],[5,-5]]) is not allowed because the
+                55 modes are not included in this model.  Be aware that some models
+                only take positive modes and return the positive and the negative
+                mode together, while others need to call both.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[4,-4]]) returns the 22 a\nd 2-2 of IMRPhenomHM.
+                However, waveform_arguments =
+                dict(waveform_approximant='IMRPhenomXHM', modearray=[[2,2],[4,-4]])
+                returns the 22 and 4-4 of IMRPhenomXHM.
 
     Returns
     -------
@@ -151,6 +201,31 @@ def lal_eccentric_binary_black_hole_no_spins(
         The phase at coalescence
     kwargs: dict
         Optional keyword arguments
+        Supported arguments:
+            waveform_approximant
+            reference_frequency
+            minimum_frequency
+            maximum_frequency
+            pn_spin_order
+            pn_tidal_order
+            pn_phase_order
+            pn_amplitude_order
+            mode_array:
+                Activate a specific mode array and evaluate the model using those
+                modes only.  e.g. waveform_arguments =
+                dict(waveform_approximant='IMRPhenomHM', modearray=[[2,2],[2,-2])
+                returns the 22 and 2-2 modes only of IMRPhenomHM.  You can only
+                specify modes that are included in that particular model.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[2,-2],[5,5],[5,-5]]) is not allowed because the
+                55 modes are not included in this model.  Be aware that some models
+                only take positive modes and return the positive and the negative
+                mode together, while others need to call both.  e.g.
+                waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+                modearray=[[2,2],[4,-4]]) returns the 22 and 2-2 of IMRPhenomHM.
+                However, waveform_arguments =
+                dict(waveform_approximant='IMRPhenomXHM', modearray=[[2,2],[4,-4]])
+                returns the 22 and 4-4 of IMRPhenomXHM.
 
     Returns
     -------
@@ -259,6 +334,13 @@ def _base_lal_cbc_fd_waveform(
         waveform_dictionary, lambda_1)
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
+
+    if 'modearray' in waveform_kwargs:
+        modearray = waveform_kwargs['modearray']
+        mode_array = lalsim.SimInspiralCreateModeArray()
+        for mode in modearray:
+            lalsim.SimInspiralModeArrayActivateMode(mode_array, mode[0], mode[1])
+        lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array)
 
     if lalsim.SimInspiralImplementedFDApproximants(approximant):
         wf_func = lalsim_SimInspiralChooseFDWaveform

@@ -14,12 +14,17 @@ RUN /bin/bash -c "source activate ${conda_env}"
 RUN conda info
 RUN python --version
 
+# Install pymultinest requirements
+RUN apt-get update
+RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
+libatlas3-base libatlas-base-dev cmake build-essential gfortran
+
 # Install conda-installable programs
-RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8
+RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8 mock
 RUN conda install -n ${conda_env} -c anaconda coverage configargparse future
 
 # Install conda-forge-installable programs
-RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov
+RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov deepdish
 
 # Install pip-requirements
 RUN pip install --upgrade pip
@@ -28,19 +33,15 @@ RUN pip install --upgrade setuptools coverage-badge
 # Install documentation requirements
 RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 
-RUN pip install corner lalsuite theano
-
+# Install dependencies and samplers
+RUN pip install corner lalsuite theano healpy
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine
 
-# Install pymultinest requirements
-RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
-libatlas3-base libatlas-base-dev cmake build-essential gfortran
-
-# Install pymultinest
+# Install multinest
 RUN git clone https://github.com/farhanferoz/MultiNest.git \
-&& (cd MultiNest/MultiNest_v3.11_CMake/multinest && mkdir build && cd build && cmake .. && make)
+&& (cd MultiNest/MultiNest_v3.12_CMake/multinest && mkdir build && cd build && cmake .. && make)
 
-ENV LD_LIBRARY_PATH $HOME/MultiNest/MultiNest_v3.11_CMake/multinest/lib:
+ENV LD_LIBRARY_PATH $HOME/MultiNest/MultiNest_v3.12_CMake/multinest/lib:
 
 # Install Polychord
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
@@ -57,4 +58,4 @@ RUN mkdir roq_basis \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
-    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat

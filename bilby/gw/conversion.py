@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from pandas import DataFrame
 
+from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
@@ -168,6 +169,9 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 1 + converted_parameters['redshift'])
 
     if 'chirp_mass' in converted_parameters.keys():
+        if "mass_1" in converted_parameters.keys():
+            converted_parameters["mass_ratio"] = chirp_mass_and_primary_mass_to_mass_ratio(
+                converted_parameters["chirp_mass"], converted_parameters["mass_1"])
         if 'total_mass' in converted_parameters.keys():
             converted_parameters['symmetric_mass_ratio'] =\
                 chirp_mass_and_total_mass_to_symmetric_mass_ratio(
@@ -375,6 +379,36 @@ def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
     """
 
     return (chirp_mass / total_mass) ** (5 / 3)
+
+
+def chirp_mass_and_primary_mass_to_mass_ratio(chirp_mass, mass_1):
+    """
+    Convert chirp mass and mass ratio of a binary to its total mass.
+
+    Rearranging the relation for chirp mass (as a function of mass_1 and
+    mass_2) and q = mass_2 / mass_1, it can be shown that
+
+        (chirp_mass/mass_1)^5 = q^3 / (1 + q)
+
+    Solving for q, we find the releation expressed in python below for q.
+
+    Parameters
+    ----------
+    chirp_mass: float
+        Chirp mass of the binary
+    mass_1: float
+        The primary mass
+
+    Return
+    ------
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1) of the binary
+    """
+    a = (chirp_mass / mass_1) ** 5
+    t0 = np.cbrt(9 * a + np.sqrt(3) * np.sqrt(27 * a ** 2 - 4 * a ** 3))
+    t1 = np.cbrt(2) * 3 ** (2 / 3)
+    t2 = np.cbrt(2 / 3) * a
+    return t2 / t0 + t0 / t1
 
 
 def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
@@ -665,21 +699,37 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
-        if (hasattr(likelihood, 'phase_marginalization') or
-            hasattr(likelihood, 'time_marginalization') or
-            hasattr(likelihood, 'distance_marginalization')):
-            generate_posterior_samples_from_marginalized_likelihood(
-                samples=output_sample, likelihood=likelihood)
+        if (
+                hasattr(likelihood, 'phase_marginalization') or
+                hasattr(likelihood, 'time_marginalization') or
+                hasattr(likelihood, 'distance_marginalization')
+        ):
+            try:
+                generate_posterior_samples_from_marginalized_likelihood(
+                    samples=output_sample, likelihood=likelihood)
+            except MarginalizedLikelihoodReconstructionError as e:
+                logger.warning(
+                    "Marginalised parameter reconstruction failed with message "
+                    "{}. Some parameters may not have the intended "
+                    "interpretation.".format(e)
+                )
         if priors is not None:
             for par, name in zip(
                     ['distance', 'phase', 'time'],
                     ['luminosity_distance', 'phase', 'geocent_time']):
                 if getattr(likelihood, '{}_marginalization'.format(par), False):
                     priors[name] = likelihood.priors[name]
-    output_sample = generate_mass_parameters(output_sample)
-    output_sample = generate_spin_parameters(output_sample)
-    output_sample = generate_source_frame_parameters(output_sample)
-    compute_snrs(output_sample, likelihood)
+    for key, func in zip(["mass", "spin", "source frame"], [
+            generate_mass_parameters, generate_spin_parameters,
+            generate_source_frame_parameters]):
+        try:
+            output_sample = func(output_sample)
+        except KeyError as e:
+            logger.info(
+                "Generation of {} parameters failed with message {}".format(
+                    key, e))
+    if likelihood is not None:
+        compute_snrs(output_sample, likelihood)
     return output_sample
 
 
@@ -735,7 +785,22 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
         likelihood=likelihood, priors=priors)
-    output_sample = generate_tidal_parameters(output_sample)
+    try:
+        output_sample = generate_tidal_parameters(output_sample)
+    except KeyError as e:
+        logger.debug(
+            "Generation of tidal parameters failed with message {}".format(e))
+    return output_sample
+
+
+def generate_specific_parameters(sample, parameters):
+    updated_sample = generate_all_bns_parameters(sample=sample.copy())
+    output_sample = sample.__class__()
+    for key in parameters:
+        if key in updated_sample:
+            output_sample[key] = updated_sample[key]
+        else:
+            raise KeyError("{} not in converted sample.".format(key))
     return output_sample
 
 
@@ -818,11 +883,18 @@ def generate_spin_parameters(sample):
                                 output_sample['mass_ratio']) /\
                                (1 + output_sample['mass_ratio'])
 
+    output_sample['chi_1_in_plane'] = np.sqrt(
+        output_sample['spin_1x'] ** 2 + output_sample['spin_1y'] ** 2
+    )
+    output_sample['chi_2_in_plane'] = np.sqrt(
+        output_sample['spin_2x'] ** 2 + output_sample['spin_2y'] ** 2
+    )
+
     output_sample['chi_p'] = np.maximum(
-        (output_sample['spin_1x'] ** 2 + output_sample['spin_1y']**2)**0.5,
+        output_sample['chi_1_in_plane'],
         (4 * output_sample['mass_ratio'] + 3) /
         (3 * output_sample['mass_ratio'] + 4) * output_sample['mass_ratio'] *
-        (output_sample['spin_2x'] ** 2 + output_sample['spin_2y']**2)**0.5)
+        output_sample['chi_2_in_plane'])
 
     try:
         output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
@@ -883,7 +955,7 @@ def generate_component_spins(sample):
         output_sample['spin_2y'] = 0
         output_sample['spin_2z'] = output_sample['chi_2']
     else:
-        logger.warning("Component spin extraction failed.")
+        logger.debug("Component spin extraction failed.")
 
     return output_sample
 

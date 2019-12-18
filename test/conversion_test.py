@@ -54,6 +54,11 @@ class TestBasicConversions(unittest.TestCase):
         self.assertTrue(all([abs(mass_1 - self.mass_1) < 1e-5,
                              abs(mass_2 - self.mass_2) < 1e-5]))
 
+    def test_chirp_mass_and_primary_mass_to_mass_ratio(self):
+        mass_ratio = conversion.chirp_mass_and_primary_mass_to_mass_ratio(
+            self.chirp_mass, self.mass_1)
+        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+
     def test_symmetric_mass_ratio_to_mass_ratio(self):
         mass_ratio = conversion.symmetric_mass_ratio_to_mass_ratio(self.symmetric_mass_ratio)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
@@ -249,6 +254,45 @@ class TestConvertToLALParams(unittest.TestCase):
 
     def test_lambda_1(self):
         self._conversion_to_component_tidal(['lambda_1'])
+
+
+class TestGenerateAllParameters(unittest.TestCase):
+
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=36., mass_2=29., a_1=0.4, a_2=0.3, tilt_1=0.5, tilt_2=1.0,
+            phi_12=1.7, phi_jl=0.3, luminosity_distance=2000., theta_jn=0.4,
+            psi=2.659, phase=1.3, geocent_time=1126259642.413, ra=1.375,
+            dec=-1.2108, lambda_tilde=1000, delta_lambda_tilde=0)
+        self.expected_bbh_keys = [
+            'mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12',
+            'phi_jl', 'luminosity_distance', 'theta_jn', 'psi', 'phase',
+            'geocent_time', 'ra', 'dec', 'reference_frequency',
+            'waveform_approximant', 'minimum_frequency', 'chirp_mass',
+            'total_mass', 'symmetric_mass_ratio', 'mass_ratio', 'iota',
+            'spin_1x', 'spin_1y', 'spin_1z', 'spin_2x', 'spin_2y', 'spin_2z',
+            'phi_1', 'phi_2', 'chi_eff', 'chi_1_in_plane', 'chi_2_in_plane',
+            'chi_p', 'cos_tilt_1', 'cos_tilt_2', 'redshift',
+            'comoving_distance', 'mass_1_source', 'mass_2_source',
+            'chirp_mass_source', 'total_mass_source'
+        ]
+        self.expected_tidal_keys = [
+            'lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde'
+        ]
+
+    def test_generate_all_bbh_parameters(self):
+        new_parameters = bilby.gw.conversion.generate_all_bbh_parameters(
+            self.parameters
+        )
+        for key in self.expected_bbh_keys:
+            self.assertIn(key, new_parameters)
+
+    def test_generate_all_bns_parameters(self):
+        new_parameters = bilby.gw.conversion.generate_all_bns_parameters(
+            self.parameters
+        )
+        for key in self.expected_bbh_keys + self.expected_tidal_keys:
+            self.assertIn(key, new_parameters)
 
 
 class TestDistanceTransformations(unittest.TestCase):

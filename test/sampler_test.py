@@ -152,10 +152,11 @@ class TestDynesty(unittest.TestCase):
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
-                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
-                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
+                        facc=0.2, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func', n_effective=None)
+                        walks=100, update_interval=600, print_func='func', n_effective=None,
+                        maxmcmc=5000, nact=5)
         self.sampler.kwargs['print_func'] = 'func'  # set this manually as this is not testable otherwise
         # DictEqual can't handle lists so we check these separately
         self.assertEqual([], self.sampler.kwargs['periodic'])
@@ -173,10 +174,11 @@ class TestDynesty(unittest.TestCase):
                         npdim=None, rstate=None, queue_size=None, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
-                        enlarge=None, bootstrap=None, vol_dec=0.5, vol_check=2.0,
-                        facc=0.5, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
+                        enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
+                        facc=0.2, slices=5, dlogz=0.1, maxiter=None, maxcall=None,
                         logl_max=np.inf, add_live=True, print_progress=True, save_bounds=False,
-                        walks=20, update_interval=600, print_func='func', n_effective=None)
+                        walks=100, update_interval=600, print_func='func', n_effective=None,
+                        maxmcmc=5000, nact=5)
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
@@ -234,6 +236,41 @@ class TestEmcee(unittest.TestCase):
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nwalkers']
             new_kwargs[equiv] = 100
+            self.sampler.kwargs = new_kwargs
+            self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+class TestKombine(unittest.TestCase):
+
+    def setUp(self):
+        self.likelihood = MagicMock()
+        self.priors = dict()
+        self.sampler = bilby.core.sampler.Kombine(self.likelihood, self.priors,
+                                                outdir='outdir', label='label',
+                                                use_ratio=False, plot=False,
+                                                skip_import_verification=True)
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        del self.sampler
+
+    def test_default_kwargs(self):
+        expected = dict(nwalkers=500, args=[], pool=None, transd=False,
+                        lnpost0=None, blob0=None, iterations=500, storechain=True, processes=1, update_interval=None,
+                        kde=None, kde_size=None, spaces=None, freeze_transd=False, test_steps=16, critical_pval=0.05,
+                        max_steps=None, burnin_verbose=False)
+        self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs(self):
+        expected = dict(nwalkers=400, args=[], pool=None, transd=False,
+                        lnpost0=None, blob0=None, iterations=500, storechain=True, processes=1, update_interval=None,
+                        kde=None, kde_size=None, spaces=None, freeze_transd=False, test_steps=16, critical_pval=0.05,
+                        max_steps=None, burnin_verbose=False)
+        for equiv in bilby.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
+            new_kwargs = self.sampler.kwargs.copy()
+            del new_kwargs['nwalkers']
+            new_kwargs[equiv] = 400
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
 
@@ -496,10 +533,20 @@ class TestRunningSamplers(unittest.TestCase):
             likelihood=self.likelihood, priors=self.priors, sampler='dynesty',
             nlive=100, save=False)
 
+    def test_run_dynamic_dynesty(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='dynamic_dynesty',
+            nlive=100, save=False)
+
     def test_run_emcee(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors, sampler='emcee',
-            nsteps=1000, nwalkers=10, save=False)
+            iterations=1000, nwalkers=10, save=False)
+
+    def test_run_kombine(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors, sampler='kombine',
+            iterations=2500, nwalkers=100, save=False)
 
     def test_run_nestle(self):
         _ = bilby.run_sampler(

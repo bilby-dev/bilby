@@ -91,9 +91,10 @@ class DynamicDynesty(Dynesty):
     def __init__(self, likelihood, priors, outdir='outdir', label='label', use_ratio=False, plot=False,
                  skip_import_verification=False, check_point=True, n_check_point=None, check_point_delta_t=600,
                  resume=True, **kwargs):
-        super(DynamicDynesty, self).__init__(self, likelihood=likelihood, priors=priors, outdir=outdir, label=label,
-                                             use_ratio=use_ratio, plot=plot,
-                                             skip_import_verification=skip_import_verification, **kwargs)
+        super(DynamicDynesty, self).__init__(likelihood=likelihood, priors=priors,
+                                             outdir=outdir, label=label, use_ratio=use_ratio,
+                                             plot=plot, skip_import_verification=skip_import_verification,
+                                             **kwargs)
         self.n_check_point = n_check_point
         self.check_point = check_point
         self.resume = resume

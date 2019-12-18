@@ -1,7 +1,10 @@
 from __future__ import division, absolute_import
 import unittest
-import bilby
+import os
+
 import numpy as np
+import bilby
+from bilby.gw.likelihood import BilbyROQParamsRangeError
 
 
 class TestBasicGWTransient(unittest.TestCase):
@@ -153,6 +156,7 @@ class TestGWTransient(unittest.TestCase):
             time_marginalization=False,
             phase_marginalization=False,
             distance_marginalization=False,
+            waveform_generator_class=self.waveform_generator.__class__,
             waveform_arguments=self.waveform_generator.waveform_arguments,
             frequency_domain_source_model=self.waveform_generator.frequency_domain_source_model,
             parameter_conversion=self.waveform_generator.parameter_conversion,
@@ -533,7 +537,18 @@ class TestROQLikelihood(unittest.TestCase):
         self.duration = 4
         self.sampling_frequency = 2048
 
-        roq_dir = '/roq_basis'
+        # Possible locations for the ROQ: in the docker image, local, or on CIT
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), 'ROQ_data/IMRPhenomPv2/4s'),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s"]
+        roq_dir = None
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                roq_dir = path
+                break
+        if roq_dir is None:
+            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
 
         linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
         quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
@@ -556,6 +571,11 @@ class TestROQLikelihood(unittest.TestCase):
             sampling_frequency=self.sampling_frequency, duration=self.duration)
 
         self.priors = bilby.gw.prior.BBHPriorDict()
+        self.priors.pop("mass_1")
+        self.priors.pop("mass_2")
+        # Testing is done with the 4s IMRPhenomPV2 ROQ basis
+        self.priors["chirp_mass"] = bilby.core.prior.Uniform(12.299703, 45)
+        self.priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
         self.priors['geocent_time'] = bilby.core.prior.Uniform(1.19, 1.21)
 
         non_roq_wfg = bilby.gw.WaveformGenerator(
@@ -637,8 +657,9 @@ class TestROQLikelihood(unittest.TestCase):
             roq.log_likelihood_ratio(), self.roq.log_likelihood_ratio())
 
     def test_create_roq_weights_frequency_mismatch_works_with_params(self):
+
         self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
-        _ = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+        bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=self.roq_wfg,
             linear_matrix=self.linear_matrix_file, roq_params=self.params_file,
             quadratic_matrix=self.quadratic_matrix_file, priors=self.priors)
@@ -646,10 +667,143 @@ class TestROQLikelihood(unittest.TestCase):
     def test_create_roq_weights_frequency_mismatch_fails_without_params(self):
         self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
         with self.assertRaises(ValueError):
-            _ = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
                 interferometers=self.ifos, waveform_generator=self.roq_wfg,
                 linear_matrix=self.linear_matrix_file,
                 quadratic_matrix=self.quadratic_matrix_file, priors=self.priors)
+
+    def test_create_roq_weights_fails_with_min_chirp_mass_outside_bounds(self):
+        self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
+        self.priors["chirp_mass"] = bilby.core.prior.Uniform(10, 45)
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+    def test_create_roq_weights_fails_with_max_chirp_mass_outside_bounds(self):
+        self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
+        self.priors["chirp_mass"] = bilby.core.prior.Uniform(12.299703, 50)
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+    def test_create_roq_weights_fails_with_min_component_mass_outside_bounds(self):
+        self.ifos[0].maximum_frequency = self.ifos[0].maximum_frequency / 2
+        self.priors["chirp_mass"] = bilby.core.prior.Uniform(12.299703, 45)
+        self.priors["mass_ratio"] = bilby.core.prior.Uniform(1e-5, 1)
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+    def test_create_roq_weights_fails_with_max_frequency(self):
+        ifos = bilby.gw.detector.InterferometerList(['H1'])
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=2**14, duration=4)
+        ifos[0].maximum_frequency = 2**13
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+    def test_create_roq_weights_fails_due_to_min_frequency(self):
+        self.ifos[0].minimum_frequency = 15
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+    def test_create_roq_weights_fails_due_to_duration(self):
+        ifos = bilby.gw.detector.InterferometerList(['H1'])
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency, duration=16)
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=ifos, waveform_generator=self.roq_wfg,
+                linear_matrix=self.linear_matrix_file,
+                roq_params=self.params_file,
+                quadratic_matrix=self.quadratic_matrix_file,
+                priors=self.priors)
+
+
+class TestRescaledROQLikelihood(unittest.TestCase):
+
+    def test_rescaling(self):
+
+        # Possible locations for the ROQ: in the docker image, local, or on CIT
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), 'ROQ_data/IMRPhenomPv2/4s'),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s"]
+        roq_dir = None
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                roq_dir = path
+                break
+        if roq_dir is None:
+            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
+        linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
+        quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
+
+        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear = np.load(fnodes_linear_file).T
+        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic = np.load(fnodes_quadratic_file).T
+        self.linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
+        self.quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
+        self.params_file = "{}/params.dat".format(roq_dir)
+
+        scale_factor = 0.5
+        params = np.genfromtxt(self.params_file, names=True)
+
+        self.duration = 4 / scale_factor
+        self.sampling_frequency = 2048 * scale_factor
+
+        ifos = bilby.gw.detector.InterferometerList(['H1'])
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency, duration=self.duration)
+        self.ifos = ifos
+
+        self.priors = bilby.gw.prior.BBHPriorDict()
+        self.priors.pop("mass_1")
+        self.priors.pop("mass_2")
+        # Testing is done with the 4s IMRPhenomPV2 ROQ basis
+        self.priors["chirp_mass"] = bilby.core.prior.Uniform(
+            12.299703 / scale_factor, 45 / scale_factor)
+        self.priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
+        self.priors['geocent_time'] = bilby.core.prior.Uniform(1.19, 1.21)
+
+        self.roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.roq,
+            waveform_arguments=dict(
+                frequency_nodes_linear=fnodes_linear,
+                frequency_nodes_quadratic=fnodes_quadratic,
+                reference_frequency=20., minimum_frequency=20.,
+                approximant='IMRPhenomPv2'))
+
+        self.roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=ifos, waveform_generator=self.roq_wfg,
+            linear_matrix=linear_matrix_file, roq_params=params, 
+            roq_scale_factor=scale_factor, quadratic_matrix=quadratic_matrix_file,
+            priors=self.priors)
 
 
 class TestBBHLikelihoodSetUp(unittest.TestCase):

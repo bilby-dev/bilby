@@ -15,21 +15,21 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 
-from ..core import likelihood
+from ..core.likelihood import Likelihood, MarginalizedLikelihoodReconstructionError
 from ..core.utils import BilbyJsonEncoder, decode_bilby_json
 from ..core.utils import (
     logger, UnsortedInterp2d, create_frequency_series, create_time_series,
     speed_of_light, radius_of_earth)
 from ..core.prior import Interped, Prior, Uniform
 from .detector import InterferometerList
-from .prior import BBHPriorDict
+from .prior import BBHPriorDict, CBCPriorDict
 from .source import lal_binary_black_hole
 from .utils import noise_weighted_inner_product, build_roq_weights, blockwise_dot_product
 from .waveform_generator import WaveformGenerator
 from collections import namedtuple
 
 
-class GravitationalWaveTransient(likelihood.Likelihood):
+class GravitationalWaveTransient(Likelihood):
     """ A gravitational-wave transient likelihood object
 
     This is the usual likelihood object to use for transient gravitational
@@ -395,8 +395,14 @@ class GravitationalWaveTransient(likelihood.Likelihood):
         time_post = time_post[keep]
         times = times[keep]
 
-        new_time = Interped(times, time_post).sample()
-        return new_time
+        if len(times) > 1:
+            new_time = Interped(times, time_post).sample()
+            return new_time
+        else:
+            raise MarginalizedLikelihoodReconstructionError(
+                "Time posterior reconstruction failed, at least two samples "
+                "are required."
+            )
 
     def generate_distance_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
@@ -702,6 +708,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             time_marginalization=self.time_marginalization,
             phase_marginalization=self.phase_marginalization,
             distance_marginalization=self.distance_marginalization,
+            waveform_generator_class=self.waveform_generator.__class__,
             waveform_arguments=self.waveform_generator.waveform_arguments,
             frequency_domain_source_model=self.waveform_generator.frequency_domain_source_model,
             parameter_conversion=self.waveform_generator.parameter_conversion,
@@ -711,7 +718,7 @@ class GravitationalWaveTransient(likelihood.Likelihood):
             lal_version=self.lal_version)
 
 
-class BasicGravitationalWaveTransient(likelihood.Likelihood):
+class BasicGravitationalWaveTransient(Likelihood):
 
     def __init__(self, interferometers, waveform_generator):
         """
@@ -824,6 +831,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         quadratic_matrix array, or the array itself.
     roq_params: str, array_like
         Parameters describing the domain of validity of the ROQ basis.
+    roq_params_check: bool
+        If true, run tests using the roq_params to check the prior and data are
+        valid for the ROQ
+    roq_scale_factor: float
+        The ROQ scale factor used.
     priors: dict, bilby.prior.PriorDict
         A dictionary of priors containing at least the geocent_time prior
     distance_marginalization_lookup_table: (dict, str), optional
@@ -838,7 +850,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     """
     def __init__(self, interferometers, waveform_generator, priors,
                  weights=None, linear_matrix=None, quadratic_matrix=None,
-                 roq_params=None,
+                 roq_params=None, roq_params_check=True, roq_scale_factor=1,
                  distance_marginalization=False, phase_marginalization=False,
                  distance_marginalization_lookup_table=None):
         super(ROQGravitationalWaveTransient, self).__init__(
@@ -850,9 +862,12 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             distance_marginalization_lookup_table=distance_marginalization_lookup_table,
             jitter_time=False)
 
+        self.roq_params_check = roq_params_check
+        self.roq_scale_factor = roq_scale_factor
         if isinstance(roq_params, np.ndarray) or roq_params is None:
             self.roq_params = roq_params
         elif isinstance(roq_params, str):
+            self.roq_params_file = roq_params
             self.roq_params = np.genfromtxt(roq_params, names=True)
         else:
             raise TypeError("roq_params should be array or str")
@@ -968,6 +983,75 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
         return indices, in_bounds
 
+    def perform_roq_params_check(self, ifo=None):
+        """ Perform checking that the prior and data are valid for the ROQ
+
+        Parameters
+        ----------
+        ifo: bilby.gw.detector.Interferometer
+            The interferometer
+        """
+        if self.roq_params_check is False:
+            logger.warning("No ROQ params checking performed")
+            return
+        else:
+            if getattr(self, "roq_params_file", None) is not None:
+                msg = ("Check ROQ params {} with roq_scale_factor={}"
+                       .format(self.roq_params_file, self.roq_scale_factor))
+            else:
+                msg = ("Check ROQ params with roq_scale_factor={}"
+                       .format(self.roq_scale_factor))
+            logger.info(msg)
+
+        roq_params = self.roq_params
+        roq_minimum_frequency = roq_params['flow'] * self.roq_scale_factor
+        roq_maximum_frequency = roq_params['fhigh'] * self.roq_scale_factor
+        roq_segment_length = roq_params['seglen'] / self.roq_scale_factor
+        roq_minimum_chirp_mass = roq_params['chirpmassmin'] / self.roq_scale_factor
+        roq_maximum_chirp_mass = roq_params['chirpmassmax'] / self.roq_scale_factor
+        roq_minimum_component_mass = roq_params['compmin'] / self.roq_scale_factor
+
+        if ifo.maximum_frequency > roq_maximum_frequency:
+            raise BilbyROQParamsRangeError(
+                "Requested maximum frequency {} larger than ROQ basis fhigh {}"
+                .format(ifo.maximum_frequency, roq_maximum_frequency))
+        if ifo.minimum_frequency < roq_minimum_frequency:
+            raise BilbyROQParamsRangeError(
+                "Requested minimum frequency {} lower than ROQ basis flow {}"
+                .format(ifo.minimum_frequency, roq_minimum_frequency))
+        if ifo.strain_data.duration != roq_segment_length:
+            raise BilbyROQParamsRangeError(
+                "Requested duration differs from ROQ basis seglen")
+
+        priors = self.priors
+        if isinstance(priors, CBCPriorDict) is False:
+            logger.warning("Unable to check ROQ parameter bounds: priors not understood")
+            return
+
+        if priors.minimum_chirp_mass is None:
+            logger.warning("Unable to check minimum chirp mass ROQ bounds")
+        elif priors.minimum_chirp_mass < roq_minimum_chirp_mass:
+            raise BilbyROQParamsRangeError(
+                "Prior minimum chirp mass {} less than ROQ basis bound {}"
+                .format(priors.minimum_chirp_mass,
+                        roq_minimum_chirp_mass))
+
+        if priors.maximum_chirp_mass is None:
+            logger.warning("Unable to check maximum_chirp mass ROQ bounds")
+        elif priors.maximum_chirp_mass > roq_maximum_chirp_mass:
+            raise BilbyROQParamsRangeError(
+                "Prior maximum chirp mass {} greater than ROQ basis bound {}"
+                .format(priors.maximum_chirp_mass,
+                        roq_maximum_chirp_mass))
+
+        if priors.minimum_component_mass is None:
+            logger.warning("Unable to check minimum component mass ROQ bounds")
+        elif priors.minimum_component_mass < roq_minimum_component_mass:
+            raise BilbyROQParamsRangeError(
+                "Prior minimum component mass {} less than ROQ basis bound {}"
+                .format(priors.minimum_component_mass,
+                        roq_minimum_component_mass))
+
     def _set_weights(self, linear_matrix, quadratic_matrix):
         """ Setup the time-dependent ROQ weights.
 
@@ -991,13 +1075,16 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         for ifo in self.interferometers:
             if self.roq_params is not None:
-                if ifo.maximum_frequency > self.roq_params['fhigh']:
-                    raise ValueError("Requested maximum frequency larger than ROQ basis fhigh")
+                self.perform_roq_params_check(ifo)
+                # Get scaled ROQ quantities
+                roq_scaled_minimum_frequency = self.roq_params['flow'] * self.roq_scale_factor
+                roq_scaled_maximum_frequency = self.roq_params['fhigh'] * self.roq_scale_factor
+                roq_scaled_segment_length = self.roq_params['seglen'] * self.roq_scale_factor
                 # Generate frequencies for the ROQ
                 roq_frequencies = create_frequency_series(
-                    sampling_frequency=self.roq_params['fhigh'] * 2,
-                    duration=self.roq_params['seglen'])
-                roq_mask = roq_frequencies >= self.roq_params['flow']
+                    sampling_frequency=roq_scaled_maximum_frequency * 2,
+                    duration=roq_scaled_segment_length)
+                roq_mask = roq_frequencies >= roq_scaled_minimum_frequency
                 roq_frequencies = roq_frequencies[roq_mask]
                 overlap_frequencies, ifo_idxs, roq_idxs = np.intersect1d(
                     ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
@@ -1167,3 +1254,7 @@ def get_binary_black_hole_likelihood(interferometers):
         waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
                             'reference_frequency': 50})
     return GravitationalWaveTransient(interferometers, waveform_generator)
+
+
+class BilbyROQParamsRangeError(Exception):
+    pass

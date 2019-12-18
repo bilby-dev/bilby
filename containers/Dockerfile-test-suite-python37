@@ -45,7 +45,7 @@ coverage-badge
 RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs
 
 # Install additional bilby requirements
-RUN pip install corner lalsuite astropy gwpy theano
+RUN pip install corner lalsuite astropy gwpy theano healpy
 
 # Install samplers
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine
