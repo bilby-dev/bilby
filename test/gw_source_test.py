@@ -2,6 +2,7 @@ from __future__ import division, absolute_import
 import unittest
 
 import numpy as np
+from copy import copy
 
 import bilby
 
@@ -28,6 +29,12 @@ class TestLalBBH(unittest.TestCase):
         self.assertIsInstance(
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters), dict)
+
+    def test_waveform_error_catching(self):
+        bad_parameters = copy(self.parameters)
+        bad_parameters['mass_1'] = -30.
+        bad_parameters.update(self.waveform_kwargs)
+        self.assertFalse(bilby.gw.source.lal_binary_black_hole(self.frequency_array, **bad_parameters))
 
     def test_lal_bbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
