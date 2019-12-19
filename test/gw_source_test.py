@@ -16,7 +16,7 @@ class TestLalBBH(unittest.TestCase):
             theta_jn=0.3, phase=0.0)
         self.waveform_kwargs = dict(
             waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
-            minimum_frequency=20.0)
+            minimum_frequency=20.0, catch_waveform_errors=True)
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
 
     def tearDown(self):
