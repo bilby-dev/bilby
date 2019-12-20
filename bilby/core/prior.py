@@ -2473,7 +2473,7 @@ class Interped(Prior):
 
         """
         self.xx = xx
-        self.yy = yy
+        self._yy = yy
         self.YY = None
         self.probability_density = None
         self.cumulative_distribution = None
@@ -2558,19 +2558,38 @@ class Interped(Prior):
         if '_minimum' in self.__dict__ and self._minimum < np.inf:
             self._update_instance()
 
+    @property
+    def yy(self):
+        """Return p(xx) values of the interpolated prior function.
+
+        Updates the prior distribution if it is changed
+
+        Returns
+        -------
+        array_like: p(xx) values
+
+        """
+        return self._yy
+
+    @yy.setter
+    def yy(self, yy):
+        self._yy = yy
+        self.__all_interpolated = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
+        self._update_instance()
+
     def _update_instance(self):
         self.xx = np.linspace(self.minimum, self.maximum, len(self.xx))
-        self.yy = self.__all_interpolated(self.xx)
+        self._yy = self.__all_interpolated(self.xx)
         self._initialize_attributes()
 
     def _initialize_attributes(self):
-        if np.trapz(self.yy, self.xx) != 1:
+        if np.trapz(self._yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
-        self.yy /= np.trapz(self.yy, self.xx)
-        self.YY = cumtrapz(self.yy, self.xx, initial=0)
+        self._yy /= np.trapz(self._yy, self.xx)
+        self.YY = cumtrapz(self._yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
         self.YY[-1] = 1
-        self.probability_density = interp1d(x=self.xx, y=self.yy, bounds_error=False, fill_value=0)
+        self.probability_density = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=(0, 1))
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
 
