@@ -20,10 +20,10 @@ import pandas as pd
 
 logger = logging.getLogger('bilby')
 
-# Constants: values taken from LAL cd65f38ce43cef3a1dec217c060de25caf99bf14
+# Constants: values taken from LAL 505df9dd2e69b4812f1e8eee3a6d468ba7f80674
 speed_of_light = 299792458.0  # m/s
 parsec = 3.085677581491367e+16  # m
-solar_mass = 1.9885469549614615e+30  # Kg
+solar_mass = 1.9884099021470415e+30  # Kg
 radius_of_earth = 6378136.6  # m
 
 _TOL = 14
