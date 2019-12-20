@@ -1,5 +1,18 @@
 # All notable changes will be documented in this file
 
+## [0.6.2] 2019-12-20
+### Added
+- Introduced conditional prior sets (!332)(!673)(!674)
+- Introduced joint priors (!668)
+- Added a check to make sure sampling time exists before trying to update (!672)
+### Changed
+- Fixed a caching issue with the waveform generators (!630)
+- Fixed an issue that made the dynamic dynesty sampler not work (!667)
+- Changed the backend docker files (!669)
+- Fixed an error when plotting time domain data when using `filtfilt=True`
+- `Interped` priors now dynamically update when new `yy` values are set (!675)
+- Fixed the ROQ scaling checks (!678)
+
 ## [0.6.1] 2019-12-02
 
 HotFix release following 0.6.0 fixing a minor bug in the generation of derived

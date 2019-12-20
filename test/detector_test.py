@@ -366,6 +366,13 @@ class TestInterferometer(unittest.TestCase):
         expected = self.injection_polarizations['plus'] + self.injection_polarizations['cross'] + original_strain
         self.assertTrue(np.array_equal(expected, self.ifo.strain_data._frequency_domain_strain))
 
+    def test_inject_signal_from_waveform_polarizations_update_time_domain_strain(self):
+        original_td_strain = self.ifo.strain_data.time_domain_strain
+        self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
+        self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,
+                                                           injection_polarizations=self.injection_polarizations)
+        self.assertFalse(np.array_equal(original_td_strain, self.ifo.strain_data.time_domain_strain))
+
     def test_inject_signal_from_waveform_polarizations_meta_data(self):
         self.ifo.get_detector_response = lambda x, params: x['plus'] + x['cross']
         self.ifo.inject_signal_from_waveform_polarizations(parameters=self.parameters,

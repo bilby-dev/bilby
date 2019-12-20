@@ -4,7 +4,7 @@ import copy
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
-from ..core.prior import (ConditionalPriorDict, PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
+from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
                           Interped, Constraint, conditional_prior_factory)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
@@ -307,7 +307,7 @@ class AlignedSpin(Interped):
                                           boundary=boundary)
 
 
-class CBCPriorDict(ConditionalPriorDict):
+class CBCPriorDict(PriorDict):
     @property
     def minimum_chirp_mass(self):
         mass_1 = None
