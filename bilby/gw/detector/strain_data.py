@@ -216,6 +216,7 @@ class InterferometerStrainData(object):
         if not len(self.frequency_array) == len(frequency_domain_strain):
             raise ValueError("The frequency_array and the set strain have different lengths")
         self._frequency_domain_strain = frequency_domain_strain
+        self._time_domain_strain = None
 
     def to_gwpy_timeseries(self):
         """
