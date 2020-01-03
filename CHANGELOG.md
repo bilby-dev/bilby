@@ -1,5 +1,9 @@
 # All notable changes will be documented in this file
 
+## [0.6.3] 2020-01-03
+### Changed
+- Fixed an issue with the ROQ segment scaling (!690)
+
 ## [0.6.2] 2019-12-20
 ### Added
 - Introduced conditional prior sets (!332)(!673)(!674)
