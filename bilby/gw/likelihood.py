@@ -1079,7 +1079,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 # Get scaled ROQ quantities
                 roq_scaled_minimum_frequency = self.roq_params['flow'] * self.roq_scale_factor
                 roq_scaled_maximum_frequency = self.roq_params['fhigh'] * self.roq_scale_factor
-                roq_scaled_segment_length = self.roq_params['seglen'] * self.roq_scale_factor
+                roq_scaled_segment_length = self.roq_params['seglen'] / self.roq_scale_factor
                 # Generate frequencies for the ROQ
                 roq_frequencies = create_frequency_series(
                     sampling_frequency=roq_scaled_maximum_frequency * 2,
