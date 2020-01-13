@@ -59,6 +59,7 @@ def lal_binary_black_hole(
             reference_frequency
             minimum_frequency
             maximum_frequency
+            catch_waveform_errors
             pn_spin_order
             pn_tidal_order
             pn_phase_order
@@ -87,7 +88,8 @@ def lal_binary_black_hole(
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1],
-        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1, pn_amplitude_order=0)
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -140,6 +142,7 @@ def lal_binary_neutron_star(
             reference_frequency
             minimum_frequency
             maximum_frequency
+            catch_waveform_errors
             pn_spin_order
             pn_tidal_order
             pn_phase_order
@@ -168,8 +171,8 @@ def lal_binary_neutron_star(
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1],
-        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
-        pn_amplitude_order=0)
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -206,6 +209,7 @@ def lal_eccentric_binary_black_hole_no_spins(
             reference_frequency
             minimum_frequency
             maximum_frequency
+            catch_waveform_errors
             pn_spin_order
             pn_tidal_order
             pn_phase_order
@@ -234,7 +238,8 @@ def lal_eccentric_binary_black_hole_no_spins(
     waveform_kwargs = dict(
         waveform_approximant='EccentricFD', reference_frequency=10.0,
         minimum_frequency=10.0, maximum_frequency=frequency_array[-1],
-        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1, pn_amplitude_order=0)
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_fd_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -291,6 +296,7 @@ def _base_lal_cbc_fd_waveform(
     reference_frequency = waveform_kwargs['reference_frequency']
     minimum_frequency = waveform_kwargs['minimum_frequency']
     maximum_frequency = waveform_kwargs['maximum_frequency']
+    catch_waveform_errors = waveform_kwargs['catch_waveform_errors']
     pn_spin_order = waveform_kwargs['pn_spin_order']
     pn_tidal_order = waveform_kwargs['pn_tidal_order']
     pn_phase_order = waveform_kwargs['pn_phase_order']
@@ -346,12 +352,32 @@ def _base_lal_cbc_fd_waveform(
         wf_func = lalsim_SimInspiralChooseFDWaveform
     else:
         wf_func = lalsim_SimInspiralFD
-    hplus, hcross = wf_func(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
-        start_frequency, maximum_frequency, reference_frequency,
-        waveform_dictionary, approximant)
+    try:
+        hplus, hcross = wf_func(
+            mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+            spin_2z, luminosity_distance, iota, phase,
+            longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
+            start_frequency, maximum_frequency, reference_frequency,
+            waveform_dictionary, approximant)
+    except Exception as e:
+        if not catch_waveform_errors:
+            raise
+        else:
+            EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
+            if EDOM:
+                failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
+                                         spin_1=(spin_1x, spin_2y, spin_1z),
+                                         spin_2=(spin_2x, spin_2y, spin_2z),
+                                         luminosity_distance=luminosity_distance,
+                                         iota=iota, phase=phase,
+                                         eccentricity=eccentricity,
+                                         start_frequency=start_frequency)
+                logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                               "The parameters were {}\n".format(failed_parameters) +
+                               "Likelihood will be set to -inf.")
+                return None
+            else:
+                raise
 
     h_plus = np.zeros_like(frequency_array, dtype=np.complex)
     h_cross = np.zeros_like(frequency_array, dtype=np.complex)

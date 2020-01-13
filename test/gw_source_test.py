@@ -2,6 +2,7 @@ from __future__ import division, absolute_import
 import unittest
 
 import numpy as np
+from copy import copy
 
 import bilby
 
@@ -15,19 +16,35 @@ class TestLalBBH(unittest.TestCase):
             theta_jn=0.3, phase=0.0)
         self.waveform_kwargs = dict(
             waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
-            minimum_frequency=20.0)
+            minimum_frequency=20.0, catch_waveform_errors=True)
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
-
+        self.bad_parameters = copy(self.parameters)
+        self.bad_parameters['mass_1'] = -30.
+    
     def tearDown(self):
         del self.parameters
         del self.waveform_kwargs
         del self.frequency_array
+        del self.bad_parameters
 
     def test_lal_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters), dict)
+
+    def test_waveform_error_catching(self):
+        self.bad_parameters.update(self.waveform_kwargs)
+        self.assertIsNone(bilby.gw.source.lal_binary_black_hole(
+            self.frequency_array, **self.bad_parameters))
+
+    def test_waveform_error_raising(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs)
+        raise_error_parameters['catch_waveform_errors']=False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole(
+                self.frequency_array, **raise_error_parameters)
 
     def test_lal_bbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
