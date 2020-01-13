@@ -526,7 +526,7 @@ class TestRunningSamplers(unittest.TestCase):
     def test_run_cpnest(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors, sampler='cpnest',
-            nlive=100, save=False)
+            nlive=100, save=False, resume=False)
 
     def test_run_dynesty(self):
         _ = bilby.run_sampler(
