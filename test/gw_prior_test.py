@@ -143,6 +143,7 @@ class TestPriorConversion(unittest.TestCase):
             mass_1=Constraint(name='mass_1', minimum=mass_2[0], maximum=mass_2[1])))
 
         lalinf_prior = BBHPriorDict(dictionary=dict(
+            mass_ratio=Constraint(name='mass_ratio', minimum=mass_ratio[0], maximum=mass_ratio[1]),
             chirp_mass=Constraint(name='chirp_mass', minimum=chirp_mass[0], maximum=chirp_mass[1]),
             mass_2=Uniform(name='mass_2', minimum=mass_1[0], maximum=mass_1[1]),
             mass_1=Uniform(name='mass_1', minimum=mass_2[0], maximum=mass_2[1])))
