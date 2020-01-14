@@ -649,7 +649,7 @@ def sample_rwalk_bilby(args):
         # If we've taken the minimum number of steps, calculate the ACT
         if accept + reject > walks:
             act = estimate_nmcmc(
-                accept / (accept + reject + nfail), walks, maxmcmc)
+                accept_ratio=accept / (accept + reject + nfail), maxmcmc=maxmcmc)
 
         # If we've taken too many likelihood evaluations then break
         if accept + reject > maxmcmc and accept > 0:
@@ -694,7 +694,7 @@ def sample_rwalk_bilby(args):
     return u, v, logl, ncall, blob
 
 
-def estimate_nmcmc(accept_ratio, minmcmc, maxmcmc, safety=5, tau=None):
+def estimate_nmcmc(accept_ratio, maxmcmc, safety=5, tau=None):
     """ Estimate autocorrelation length of chain using acceptance fraction
 
     Using ACL = (2/acc) - 1 multiplied by a safety margin. Code adapated from
@@ -720,17 +720,12 @@ def estimate_nmcmc(accept_ratio, minmcmc, maxmcmc, safety=5, tau=None):
         tau = maxmcmc / safety
 
     if accept_ratio == 0.0:
-        Nmcmc_exact = (1. + 1. / tau) * minmcmc
+        return np.inf
     else:
-        Nmcmc_exact = (
-            (1. - 1. / tau) * minmcmc +
-            (safety / tau) * (2. / accept_ratio - 1.)
-        )
-
-    Nmcmc_exact = float(min(Nmcmc_exact, maxmcmc))
-    Nmcmc = max(safety, int(Nmcmc_exact))
-
-    return Nmcmc
+        Nmcmc_exact = (safety / tau) * (2. / accept_ratio - 1.)
+        Nmcmc_exact = float(min(Nmcmc_exact, maxmcmc))
+        Nmcmc = max(safety, int(Nmcmc_exact))
+        return Nmcmc
 
 
 class DynestySetupError(Exception):
