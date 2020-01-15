@@ -24,6 +24,7 @@ stages:
     - python -m pip install .
     - python -c "import bilby"
     - python -c "import bilby.core"
+    - python -c "import bilby.core.prior"
     - python -c "import bilby.core.sampler"
     - python -c "import bilby.gw"
     - python -c "import bilby.gw.detector"
