@@ -10,7 +10,7 @@ Installation
 
           $ conda install -c conda-forge bilby
 
-      Supported python versions: 2.7, 3.5+.
+      Supported python versions: 3.5+.
 
    .. tab:: Pip
 
@@ -18,7 +18,7 @@ Installation
 
           $ pip install bilby
 
-      Supported python versions: 2.7, 3.5+.
+      Supported python versions: 3.5+.
 
 
 This will install all requirements for running :code:`bilby` for general
@@ -47,7 +47,7 @@ wave inference, please additionally run the following commands.
 Install bilby from source
 -------------------------
 
-:code:`bilby` is developed and tested with both Python 2.7+ and Python 3.7+. In the
+:code:`bilby` is developed and tested with Python 3.6+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our
@@ -60,7 +60,7 @@ Clone the repository, install the requirements, and then install the software:
    $ git clone git@git.ligo.org:lscsoft/bilby.git
    $ cd bilby/
    $ pip install -r requirements.txt
-   $ python setup.py install
+   $ pip install .
 
 Once you have run these steps, you have :code:`bilby` installed. You can now
 try to run the examples.
@@ -78,6 +78,13 @@ try to run the examples.
    .. code-block:: console
 
       $ git clone https://git.ligo.org/lscsoft/bilby.git
+
+.. note::
+   You may be use to using :code:`$ python setup.py install` to install software
+   from source. While it is possible to do this, current recommentations from
+   the python community (see, e.g. `this site <https://python3statement.org/practicalities/>`_
+   are to use :code:`pip`. For development install, the :code:`-e` flag can be
+   used.
 
 Installing optional requirements
 ================================
