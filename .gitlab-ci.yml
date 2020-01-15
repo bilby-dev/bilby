@@ -35,11 +35,6 @@ stages:
           ${script} --help;
       done
 
-# test basic setup on python2
-basic-2.7:
-  <<: *test-python
-  image: python:2.7
-
 # test basic setup on python3
 basic-3.7:
   <<: *test-python
