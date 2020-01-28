@@ -44,9 +44,9 @@ errors. To code this up in :code:`bilby`, we would write a class like this::
            data: array_like
                The data to analyse
            """
+           super().__init__(parameters={'mu': None, 'sigma': None})
            self.data = data
            self.N = len(data)
-           self.parameters = {'mu': None, 'sigma': None}
 
        def log_likelihood(self):
            mu = self.parameters['mu']
@@ -130,7 +130,8 @@ In :code:`bilby`, we can code this up as a likelihood in the following way::
            # These lines of code infer the parameters from the provided function
            parameters = inspect.getargspec(function).args
            parameters.pop(0)
-           self.parameters = dict.fromkeys(parameters)
+           super().__init__(parameters=dict.fromkeys(parameters))
+
 
        def log_likelihood(self):
            res = self.y - self.function(self.x, **self.parameters)
@@ -198,7 +199,9 @@ instantiating the likelihood::
           # These lines of code infer the parameters from the provided function
           parameters = inspect.getargspec(function).args
           parameters.pop(0)
-          self.parameters = dict.fromkeys(parameters)
+          super().__init__(parameters=dict.fromkeys(parameters))
+                    self.parameters = dict.fromkeys(parameters)
+
           self.function_keys = self.parameters.keys()
           if self.sigma is None:
               self.parameters['sigma'] = None
