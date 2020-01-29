@@ -991,15 +991,15 @@ class Beta(Prior):
             - betaln(self.alpha, self.beta) - xlogy(self.alpha + self.beta - 1, self.maximum - self.minimum)
 
         # deal with the fact that if alpha or beta are < 1 you get infinities at 0 and 1
-        if isinstance(val, np.ndarray):
+        if isinstance(val, (float, int)):
+            if np.isfinite(_ln_prob) and self.minimum <= val <= self.maximum:
+                return _ln_prob
+            return -np.inf
+        else:
             _ln_prob_sub = -np.inf * np.ones(len(val))
             idx = np.isfinite(_ln_prob) & (val >= self.minimum) & (val <= self.maximum)
             _ln_prob_sub[idx] = _ln_prob[idx]
             return _ln_prob_sub
-        else:
-            if np.isfinite(_ln_prob) and val >= self.minimum and val <= self.maximum:
-                return _ln_prob
-            return -np.inf
 
     def cdf(self, val):
         if isinstance(val, (float, int)):
