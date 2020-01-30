@@ -14,10 +14,11 @@ Online material to help you get started:
 
 If you need help, find an issue, or just have a question/suggestion you can
 
+- Join our `Slack workspace <https://bilby-code.slack.com/>`__ (you may need to email the support desk to request an invite)
 - Email our support desk: contact+lscsoft-bilby-1846-issue-@support.ligo.org
-- Join our `Slack workspace <https://bilby-code.slack.com/>`__
 - Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
 - For www.git.ligo.org users, submit issues directly through `the issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
+- For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
 
 We encourage you to contribute to the development of bilby. This is done via a merge request.  For
 help in creating a merge request, see `this page
