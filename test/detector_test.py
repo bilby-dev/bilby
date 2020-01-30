@@ -1031,6 +1031,23 @@ class TestInterferometerList(unittest.TestCase):
         with self.assertRaises(ValueError):
             bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
+    @patch.object(bilby.gw.detector.networks.logger, 'warning')
+    def test_check_interferometers_relative_tolerance(self, mock_warning):
+        # Value larger than relative tolerance -- not tolerated
+        self.ifo2.strain_data.start_time = self.ifo1.strain_data.start_time + 1e-4
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+
+        # Value smaller than relative tolerance -- tolerated with warning
+        self.ifo2.strain_data.start_time = self.ifo1.strain_data.start_time + 1e-6
+        ifo_list = bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
+        self.assertIsNotNone(ifo_list)
+        self.assertTrue(mock_warning.called)
+        warning_log_str = mock_warning.call_args.args[0].args[0]
+        self.assertIsInstance(warning_log_str, str)
+        self.assertTrue("The start_time of all interferometers are not the same:" in
+                        warning_log_str)
+
     @patch.object(bilby.gw.detector.Interferometer, 'set_strain_data_from_power_spectral_density')
     def test_set_strain_data_from_power_spectral_density(self, m):
         self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
