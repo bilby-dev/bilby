@@ -563,8 +563,11 @@ class GravitationalWaveTransient(Likelihood):
         if self.phase_marginalization:
             return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[1])
         else:
-            return np.hstack((-np.logspace(3, -3, self._dist_margd_loglikelihood_array.shape[1] / 2),
-                              np.logspace(-3, 10, self._dist_margd_loglikelihood_array.shape[1] / 2)))
+            n_negative = self._dist_margd_loglikelihood_array.shape[1] // 2
+            n_positive = self._dist_margd_loglikelihood_array.shape[1] - n_negative
+            return np.hstack((
+                -np.logspace(3, -3, n_negative), np.logspace(-3, 10, n_positive)
+            ))
 
     def _setup_distance_marginalization(self, lookup_table=None):
         if isinstance(lookup_table, str) or lookup_table is None:
