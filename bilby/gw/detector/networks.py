@@ -3,6 +3,7 @@ import sys
 import warnings
 
 import numpy as np
+import math
 
 from ...core import utils
 from ...core.utils import logger
@@ -40,13 +41,32 @@ class InterferometerList(list):
         self._check_interferometers()
 
     def _check_interferometers(self):
-        """ Check certain aspects of the set are the same """
+        """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
+
+        If the above attributes are not the same, then the attributes are checked to
+        see if they are the same up to 5 decimal places.
+
+        If both checks fail, then a ValueError is raised.
+        """
         consistent_attributes = ['duration', 'start_time', 'sampling_frequency']
         for attribute in consistent_attributes:
             x = [getattr(interferometer.strain_data, attribute)
                  for interferometer in self]
-            if not all(y == x[0] for y in x):
-                raise ValueError("The {} of all interferometers are not the same".format(attribute))
+            try:
+                if not all(y == x[0] for y in x):
+                    ifo_strs = ["{ifo}[{attribute}]={value}".format(
+                        ifo=ifo.name,
+                        attribute=attribute,
+                        value=getattr(ifo.strain_data, attribute))
+                        for ifo in self]
+                    raise ValueError(
+                        "The {} of all interferometers are not the same: {}".format(
+                            attribute, ', '.join(ifo_strs)))
+            except ValueError as e:
+                if not all(math.isclose(y, x[0], abs_tol=1e-5) for y in x):
+                    raise ValueError(e)
+                else:
+                    logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(self, sampling_frequency, duration, start_time=0):
         """ Set the `Interferometer.strain_data` from the power spectral densities of the detectors
