@@ -1,5 +1,17 @@
 # All notable changes will be documented in this file
 
+## [0.6.4] 2020-01-30
+### Changes
+- Discontinue python2.7 support (!697)
+- Minor adjustments to the act calculation method (!679, !707)
+- Restructure of the prior module (!688)
+- Improvements to the documentation (!708, !700)
+- Bug fix when maximum < minimum (!696)
+
+### Added
+- Improved waveform error handling (!653)
+- Waveform check to the CI (!698)
+
 ## [0.6.3] 2020-01-03
 ### Changed
 - Fixed an issue with the ROQ segment scaling (!690)
