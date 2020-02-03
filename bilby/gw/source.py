@@ -389,9 +389,9 @@ def _base_lal_cbc_fd_waveform(
                      " Truncating lalsim array.")
         h_plus = hplus.data.data[:len(h_plus)]
         h_cross = hcross.data.data[:len(h_cross)]
-
-    h_plus[:len(hplus.data.data)] = hplus.data.data
-    h_cross[:len(hcross.data.data)] = hcross.data.data
+    else:
+        h_plus[:len(hplus.data.data)] = hplus.data.data
+        h_cross[:len(hcross.data.data)] = hcross.data.data
 
     h_plus *= frequency_bounds
     h_cross *= frequency_bounds
