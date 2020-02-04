@@ -401,6 +401,8 @@ class Dynesty(NestedSampler):
             self.sampler.live_bound = saved['live_bound']
             self.sampler.live_it = saved['live_it']
             self.sampler.added_live = saved['added_live']
+            self.sampler.bound = saved['bound']
+            self.sampler.nbound = saved['nbound']
             self.sampling_time += datetime.timedelta(seconds=saved['sampling_time'])
             return True
 
@@ -451,6 +453,8 @@ class Dynesty(NestedSampler):
             id=self.sampler.saved_id,
             it=self.sampler.saved_it,
             nc=self.sampler.saved_nc,
+            bound=self.sampler.bound,
+            nbound=self.sampler.nbound,
             boundidx=self.sampler.saved_boundidx,
             bounditer=self.sampler.saved_bounditer,
             scale=self.sampler.saved_scale,
