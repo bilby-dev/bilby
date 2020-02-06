@@ -2,10 +2,13 @@ import os
 import copy
 
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.integrate import cumtrapz
+from scipy.stats import norm
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint, conditional_prior_factory)
+                          Interped, Constraint, conditional_prior_factory,
+                          BaseJointPriorDist, JointPrior, JointPriorDistError)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -761,3 +764,344 @@ def secondary_mass_condition_function(reference_params, mass_1):
 ConditionalCosmological = conditional_prior_factory(Cosmological)
 ConditionalUniformComovingVolume = conditional_prior_factory(UniformComovingVolume)
 ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
+
+
+class HealPixMapPriorDist(BaseJointPriorDist):
+    def __init__(self, hp_file, names=None, bounds=None, distance=False):
+        """
+        Class defining prior according to given HealPix Map, defaults to 2D in ra and dec but can be set to include
+        Distance as well. This only works with skymaps that include the 2D joint probability in ra/dec and that use the
+        normal LALInference type skymaps where each pixel has a DISTMU, DISTSIGMA, and DISTNORM defining the conditional
+        distance distribution along a given line of sight.
+
+        hp_file: file path to .fits file
+            .fits file that containes the 2D or 3D Healpix Map
+        names: list (optional)
+            list of names of parameters included in the JointPriorDist, defaults to ['ra', 'dec']
+        bounds: dict or list (optional)
+            dictionary or list with given prior bounds. defaults to normal bounds on ra, dev and 0, inf for distance
+            if this is for a 3D map
+        """
+
+        self.hp = self._check_imports()
+        self.hp_file = hp_file
+        if names is None:
+            names = ["ra", "dec"]
+        if bounds is None:
+            bounds = [[0, 2 * np.pi], [-np.pi / 2.0, np.pi / 2.0]]
+        elif isinstance(bounds, dict):
+            bs = [[] for _ in bounds.keys()]
+            for i, key in enumerate(bounds.keys()):
+                bs[i] = (bounds[key][0], bounds[key][1])
+            bounds = bs
+        if distance:
+            if len(names) == 2:
+                names.append("distance")
+            if len(bounds) == 2:
+                bounds.append([0, np.inf])
+            self.distance = True
+            self.prob, self.distmu, self.distsigma, self.distnorm = self.hp.read_map(
+                hp_file, verbose=False, field=range(4)
+            )
+        else:
+            self.distance = False
+            self.prob = self.hp.read_map(hp_file, verbose=False)
+
+        super(HealPixMapPriorDist, self).__init__(names=names, bounds=bounds)
+        self.distname = "hpmap"
+        self.npix = len(self.prob)
+        self.nside = self.hp.npix2nside(self.npix)
+        self.pixel_area = self.hp.nside2pixarea(self.nside)
+        self.pixel_length = self.pixel_area ** (1 / 2.0)
+        self.pix_xx = np.arange(self.npix)
+        self._all_interped = interp1d(x=self.pix_xx, y=self.prob, bounds_error=False, fill_value=0)
+        self.inverse_cdf = None
+        self.distance_pdf = None
+        self.distance_dist = None
+        self.distance_icdf = None
+        self._build_attributes()
+        name = self.names[-1]
+        if self.bounds[name][1] != np.inf and self.bounds[name][0] != -np.inf:
+            self.rs = np.linspace(self.bounds[name][0], self.bounds[name][1], 1000)
+        else:
+            self.rs = np.linspace(0, 5000, 1000)
+
+    def _build_attributes(self):
+        """
+        Method that builds the inverse cdf of the P(pixel) distribution for rescaling
+        """
+        yy = self._all_interped(self.pix_xx)
+        yy /= np.trapz(yy, self.pix_xx)
+        YY = cumtrapz(yy, self.pix_xx, initial=0)
+        YY[-1] = 1
+        self.inverse_cdf = interp1d(x=YY, y=self.pix_xx, bounds_error=True)
+
+    @staticmethod
+    def _check_imports():
+        """
+        Static method to check that healpy is installed on the machine running bibly
+        """
+        try:
+            import healpy
+        except Exception:
+            raise ImportError("Must have healpy installed on this machine to use HealPixMapPrior")
+        return healpy
+
+    def _rescale(self, samp, **kwargs):
+        """
+        Overwrites the _rescale method of BaseJoint Prior to rescale a single value from the unitcube onto
+        two values (ra, dec) or 3 (ra, dec, dist) if distance is included
+
+        Parameters
+        ----------
+        samp: float, int
+            must take in single value for pixel on unitcube to recale onto ra, dec (distance), for the map Prior
+        kwargs: dict
+            kwargs are all passed to _rescale() method
+
+        Returns
+        ----------
+        array_like
+            sample to rescale onto the prior
+        """
+        if self.distance:
+            dist_samp = samp[:, -1]
+            samp = samp[:, 0]
+        else:
+            samp = samp[:, 0]
+        pix_rescale = self.inverse_cdf(samp)
+        sample = np.empty((len(pix_rescale), 2))
+        dist_samples = np.empty((len(pix_rescale)))
+        for i, val in enumerate(pix_rescale):
+            theta, ra = self.hp.pix2ang(self.nside, int(round(val)))
+            dec = 0.5 * np.pi - theta
+            sample[i, :] = self.draw_from_pixel(ra, dec, int(round(val)))
+            if self.distance:
+                self.update_distance(int(round(val)))
+                dist_samples[i] = self.distance_icdf(dist_samp[i])
+        if self.distance:
+            sample = np.row_stack([sample[:, 0], sample[:, 1], dist_samples])
+        return sample.reshape((-1, self.num_vars))
+
+    def update_distance(self, pix_idx):
+        """
+        Method to update the conditional distance distributions at given pixel used for distance handling in the
+        JointPrior Parameters. This function updates the current distance pdf, inverse_cdf, and sampler according to
+        given pixel or line of sight.
+
+        ----------
+        pix_idx: int
+            pixel index value to create the distribtuion for
+        Returns
+        ----------
+        None - just updates these functions at new pixel values
+        """
+        self.distance_pdf = lambda r: self.distnorm[pix_idx] * norm(
+            loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]
+        ).pdf(r)
+        pdfs = self.rs ** 2 * norm(loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]).pdf(self.rs)
+        cdfs = np.cumsum(pdfs) / np.sum(pdfs)
+
+        def sample_distance(n):
+            gaussian = norm(loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]).rvs(size=100 * n)
+            probs = self._check_norm(gaussian[gaussian > 0] ** 2)
+            ds = np.random.choice(gaussian[gaussian > 0], p=probs, size=n, replace=True)
+            return ds
+
+        self.distance_dist = sample_distance
+        self.distance_icdf = interp1d(cdfs, self.rs)
+
+    @staticmethod
+    def _check_norm(array):
+        """
+        static method to check if array is properlly normalized and if not to normalize it.
+
+        Parameters
+        ----------
+        array: array_like
+            input array we want to renormalize if not already normalized
+
+        Returns
+        ---------
+        array_like:
+            returns input array normalized
+        """
+        norm = np.linalg.norm(array, ord=1)
+        if norm == 0:
+            norm = np.finfo(array.dtype).eps
+        return array / norm
+
+    def _sample(self, size, **kwargs):
+        """
+        Overwrites the _sample method of BaseJoint Prior. Picks a pixel value according to their probabilities, then
+        uniformly samples ra, and decs that are contained in chosen pixel. If the PriorDist includes distance it then
+        updates the distance distributions and will sample according to the conditional distance distribution along a
+        given line of sight
+
+        Parameters
+        ----------
+        size: int
+            number of samples we want to draw
+        kwargs: dict
+            kwargs are all passed to be used
+
+        Returns
+        ----------
+        array_like
+            sample of ra, and dec (and distance if 3D=True)
+        """
+        pixel_choices = np.arange(self.npix)
+        pixel_probs = self._check_norm(self.prob)
+        sample_pix = np.random.choice(pixel_choices, size=size, p=pixel_probs, replace=True)
+        sample = np.empty((size, self.num_vars))
+        for samp in range(size):
+            theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])
+            dec = 0.5 * np.pi - theta
+            if self.distance:
+                self.update_distance(sample_pix[samp])
+                dist = self.draw_distance(sample_pix[samp])
+                ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp])
+                sample[samp, :] = [ra_dec[0], ra_dec[1], dist]
+            else:
+                sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp])
+        return sample.reshape((-1, self.num_vars))
+
+    def draw_distance(self, pix):
+        """
+        Method to recursively draw a distance value from the given set distance distribution and check that it is in
+        the bounds
+
+        Returns
+        ----------
+        dist: sample drawn from the distance distribution at set pixel index
+        """
+        if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
+            return 0
+        dist = self.distance_dist(1)
+        name = self.names[-1]
+        if (dist > self.bounds[name][1]) | (dist < self.bounds[name][0]):
+            self.draw_distance(pix)
+        else:
+            return dist
+
+    def draw_from_pixel(self, ra, dec, pix):
+        """
+        Recursive function to uniformly draw ra, and dec values that are located in the given pixel
+
+        Parameters
+        ----------
+        ra: float, int
+            value drawn for rightascension
+        dec: float, int
+            value drawn for declination
+        pix: int
+            pixel index for given pixel we want to get ra, and dec from
+
+        Returns
+        ---------
+        tuple:
+            this returns a tuple of ra, and dec sampled uniformly that are in the pixel given
+        """
+        if not self.check_in_pixel(ra, dec, pix):
+            self.draw_from_pixel(ra, dec, pix)
+        return np.array(
+            [
+                np.random.uniform(ra - self.pixel_length, ra + self.pixel_length),
+                np.random.uniform(dec - self.pixel_length, dec + self.pixel_length),
+            ]
+        )
+
+    def check_in_pixel(self, ra, dec, pix):
+        """
+        Method that checks if given rightacension and declination values are within the given pixel index and the bounds
+
+        Parameters
+        ----------
+        ra: float, int
+            rightascension value to check
+        dec: float, int
+            declination value to check
+        pix: int
+            index for pixel we want to check in
+
+        Returns
+        --------
+        bool:
+            returns True if values inside pixel, False if not
+        """
+        for val, name in zip([ra, dec], self.names):
+            if (val < self.bounds[name][0]) or (val > self.bounds[name][1]):
+                return False
+        phi, theta = ra, 0.5 * np.pi - dec
+        pixel = self.hp.ang2pix(self.nside, theta, phi)
+        return pix == pixel
+
+    def _ln_prob(self, samp, lnprob, outbounds):
+        """
+        Overwrites the _lnprob method of BaseJoint Prior
+
+        Parameters
+        ----------
+        samp: array_like
+            samples of ra, dec to evaluate the lnprob at
+        lnprob: array_like
+            array of correct length we want to populate with lnprob values
+        outbounds: boolean array
+            boolean array that flags samples that are out of the given bounds
+
+        Returns
+        ----------
+        array_like
+            lnprob values at each sample
+        """
+        for i in range(samp.shape[0]):
+            if not outbounds[i]:
+                if self.distance:
+                    phi, dec, dist = samp[0]
+                else:
+                    phi, dec = samp[0]
+                theta = 0.5 * np.pi - dec
+                pixel = self.hp.ang2pix(self.nside, theta, phi)
+                lnprob[i] = np.log(self.prob[pixel] / self.pixel_area)
+                if self.distance:
+                    self.update_distance(pixel)
+                    lnprob[i] += np.log(self.distance_pdf(dist) * dist ** 2)
+        lnprob[outbounds] = -np.inf
+        return lnprob
+
+    def __eq__(self, other):
+        skip_keys = ["_all_interped", "inverse_cdf", "distance_pdf", "distance_dist", "distance_icdf"]
+        if self.__class__ != other.__class__:
+            return False
+        if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
+            return False
+        for key in self.__dict__:
+            if key in skip_keys:
+                continue
+            if key == "hp_file":
+                if self.__dict__[key] != other.__dict__[key]:
+                    return False
+            elif isinstance(self.__dict__[key], (np.ndarray, list)):
+                thisarr = np.asarray(self.__dict__[key])
+                otherarr = np.asarray(other.__dict__[key])
+                if thisarr.dtype == np.float and otherarr.dtype == np.float:
+                    fin1 = np.isfinite(np.asarray(self.__dict__[key]))
+                    fin2 = np.isfinite(np.asarray(other.__dict__[key]))
+                    if not np.array_equal(fin1, fin2):
+                        return False
+                    if not np.allclose(thisarr[fin1], otherarr[fin2], atol=1e-15):
+                        return False
+                else:
+                    if not np.array_equal(thisarr, otherarr):
+                        return False
+            else:
+                if not self.__dict__[key] == other.__dict__[key]:
+                    return False
+        return True
+
+
+class HealPixPrior(JointPrior):
+    def __init__(self, dist, name=None, latex_label=None, unit=None):
+        if not isinstance(dist, HealPixMapPriorDist):
+            raise JointPriorDistError("dist object must be instance of HealPixMapPriorDist")
+        super(HealPixPrior, self).__init__(dist=dist, name=name, latex_label=latex_label, unit=unit)

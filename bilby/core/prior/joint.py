@@ -48,11 +48,6 @@ class BaseJointPriorDist(object):
                             raise ValueError("Bounds are not properly set")
                 else:
                     raise TypeError("Bound must be a list")
-
-                logger.warning("If using bounded ranges on the multivariate "
-                               "Gaussian this will lead to biased posteriors "
-                               "for nested sampling routines that require "
-                               "a prior transform.")
         else:
             bounds = [(-np.inf, np.inf) for _ in self.names]
         self.bounds = {name: val for name, val in zip(self.names, bounds)}
@@ -289,7 +284,7 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = np.asarray(value)
+        samp = np.array(value)
         if len(samp.shape) == 1:
             samp = samp.reshape(1, self.num_vars)
 
@@ -365,6 +360,13 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             +/- infinity.
         """
         super(MultivariateGaussianDist, self).__init__(names=names, bounds=bounds)
+        for name in self.names:
+            bound = self.bounds[name]
+            if bound[0] != -np.inf or bound[1] != np.inf:
+                logger.warning("If using bounded ranges on the multivariate "
+                               "Gaussian this will lead to biased posteriors "
+                               "for nested sampling routines that require "
+                               "a prior transform.")
         self.distname = 'mvg'
         self.mus = []
         self.covs = []
@@ -375,10 +377,6 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         self.eigvectors = []
         self.sqeigvalues = []  # square root of the eigenvalues
         self.mvn = []  # list of multivariate normal distributions
-
-        self._current_sample = {}  # initialise empty sample
-        self._uncorrelated = None
-        self._current_lnprob = None
 
         # put values in lists if required
         if nmodes == 1:

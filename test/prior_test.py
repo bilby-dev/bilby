@@ -161,6 +161,12 @@ class TestPriorClasses(unittest.TestCase):
                                                         mus=[1, 1],
                                                         covs=np.array([[2., 0.5], [0.5, 2.]]),
                                                         weights=1.)
+        hp_map_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   'prior_files/GW150914_testing_skymap.fits')
+        hp_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file,
+                                                 names=['testra', 'testdec'])
+        hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file,
+                                                        names=['testra', 'testdec', 'testdistance'], distance=True)
 
         def condition_func(reference_params, test_param):
             return reference_params.copy()
@@ -220,7 +226,12 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.ConditionalLogistic(condition_func=condition_func, name='test', unit='unit', mu=0, scale=1),
             bilby.core.prior.ConditionalCauchy(condition_func=condition_func, name='test', unit='unit', alpha=0, beta=1),
             bilby.core.prior.ConditionalGamma(condition_func=condition_func, name='test', unit='unit', k=1, theta=1),
-            bilby.core.prior.ConditionalChiSquared(condition_func=condition_func, name='test', unit='unit', nu=2)
+            bilby.core.prior.ConditionalChiSquared(condition_func=condition_func, name='test', unit='unit', nu=2),
+            bilby.gw.prior.HealPixPrior(dist=hp_dist, name='testra', unit='unit'),
+            bilby.gw.prior.HealPixPrior(dist=hp_dist, name='testdec', unit='unit'),
+            bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testra', unit='unit'),
+            bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testdec', unit='unit'),
+            bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testdistance', unit='unit')
         ]
 
     def tearDown(self):
@@ -278,14 +289,18 @@ class TestPriorClasses(unittest.TestCase):
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
         for prior in self.priors:
-            many_samples = prior.sample(1000)
-            self.assertTrue(all((many_samples >= prior.minimum) & (many_samples <= prior.maximum)))
+            many_samples = prior.sample(5000)
+            self.assertTrue((all(many_samples >= prior.minimum)) & (all(many_samples <= prior.maximum)))
 
     def test_probability_above_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
             if prior.maximum != np.inf:
                 outside_domain = np.linspace(prior.maximum + 1, prior.maximum + 1e4, 1000)
+                if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                    if not prior.dist.filled_request():
+                        prior.dist.requested_parameters[prior.name] = outside_domain
+                        continue
                 self.assertTrue(all(prior.prob(outside_domain) == 0))
 
     def test_probability_below_domain(self):
@@ -293,6 +308,10 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             if prior.minimum != -np.inf:
                 outside_domain = np.linspace(prior.minimum - 1e4, prior.minimum - 1, 1000)
+                if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                    if not prior.dist.filled_request():
+                        prior.dist.requested_parameters[prior.name] = outside_domain
+                        continue
                 self.assertTrue(all(prior.prob(outside_domain) == 0))
 
     def test_least_recently_sampled(self):
@@ -338,6 +357,8 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_cdf_zero_below_domain(self):
         for prior in self.priors:
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__ and prior.maximum == np.inf:
+                continue
             if prior.minimum != -np.inf:
                 outside_domain = np.linspace(
                     prior.minimum - 1e4, prior.minimum - 1, 1000)
@@ -479,7 +500,13 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
-            prior.prob(surround_domain)
+            indomain = (surround_domain >= prior.minimum) | (surround_domain <= prior.maximum)
+            outdomain = (surround_domain < prior.minimum) | (surround_domain > prior.maximum)
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                if not prior.dist.filled_request():
+                    continue
+            self.assertTrue(all(prior.prob(surround_domain[indomain]) >= 0))
+            self.assertTrue(all(prior.prob(surround_domain[outdomain]) == 0))
 
     def test_normalized(self):
         """Test that each of the priors are normalised, this needs care for delta function and Gaussian priors"""
@@ -634,6 +661,10 @@ class TestPriorClasses(unittest.TestCase):
                     'MultivariateGaussianDist',
                     'bilby.core.prior.MultivariateGaussianDist'
                 )
+            elif isinstance(prior, bilby.gw.prior.HealPixPrior):
+                repr_prior_string = 'bilby.gw.prior.'+repr(prior)
+                repr_prior_string = repr_prior_string.replace('HealPixMapPriorDist',
+                                                              'bilby.gw.prior.HealPixMapPriorDist')
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = 'bilby.gw.prior.' + repr(prior)
             elif 'Conditional' in prior.__class__.__name__:
@@ -651,7 +682,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
                     bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian,
-                    bilby.core.prior.FermiDirac)):
+                    bilby.core.prior.FermiDirac, bilby.gw.prior.HealPixPrior)):
                 continue
             prior.maximum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(max(prior.sample(10000)) < prior.maximum)
@@ -664,7 +695,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Exponential, bilby.core.prior.StudentT,
                     bilby.core.prior.Logistic, bilby.core.prior.Cauchy,
                     bilby.core.prior.Gamma, bilby.core.prior.MultivariateGaussian,
-                    bilby.core.prior.FermiDirac)):
+                    bilby.core.prior.FermiDirac, bilby.gw.prior.HealPixPrior)):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
@@ -1214,6 +1245,12 @@ class TestJsonIO(unittest.TestCase):
                                                         mus=[1, 1],
                                                         covs=np.array([[2., 0.5], [0.5, 2.]]),
                                                         weights=1.)
+        hp_map_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   'prior_files/GW150914_testing_skymap.fits')
+        hp_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file,
+                                                 names=['testra', 'testdec'])
+        hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file,
+                                                        names=['testra', 'testdec', 'testdistance'], distance=True)
 
         self.priors = bilby.core.prior.PriorDict(dict(
             a=bilby.core.prior.DeltaFunction(name='test', unit='unit', peak=1),
@@ -1249,7 +1286,12 @@ class TestJsonIO(unittest.TestCase):
             ad=bilby.core.prior.MultivariateGaussian(dist=mvg, name='testa', unit='unit'),
             ae=bilby.core.prior.MultivariateGaussian(dist=mvg, name='testb', unit='unit'),
             af=bilby.core.prior.MultivariateNormal(dist=mvn, name='testa', unit='unit'),
-            ag=bilby.core.prior.MultivariateNormal(dist=mvn, name='testb', unit='unit')
+            ag=bilby.core.prior.MultivariateNormal(dist=mvn, name='testb', unit='unit'),
+            ah=bilby.gw.prior.HealPixPrior(dist=hp_dist, name='testra', unit='unit'),
+            ai=bilby.gw.prior.HealPixPrior(dist=hp_dist, name='testdec', unit='unit'),
+            aj=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testra', unit='unit'),
+            ak=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testdec', unit='unit'),
+            al=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name='testdistance', unit='unit')
         ))
 
     def test_read_write_to_json(self):
