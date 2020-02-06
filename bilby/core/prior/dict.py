@@ -306,6 +306,26 @@ class PriorDict(dict):
         """
         return self.sample_subset_constrained(keys=list(self.keys()), size=size)
 
+    def sample_subset_constrained_as_array(self, keys=iter([]), size=None):
+        """ Return an array of samples
+
+        Parameters
+        ----------
+        keys: list
+            A list of keys to sample in
+        size: int
+            The number of samples to draw
+
+        Returns
+        -------
+        array: array_like
+            An array of shape (len(key), size) of the samples (ordered by keys)
+        """
+        samples_dict = self.sample_subset_constrained(keys=keys, size=size)
+        samples_dict = {key: np.atleast_1d(val) for key, val in samples_dict.items()}
+        samples_list = [samples_dict[key] for key in keys]
+        return np.array(samples_list)
+
     def sample_subset(self, keys=iter([]), size=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
