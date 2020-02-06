@@ -383,10 +383,15 @@ def _base_lal_cbc_fd_waveform(
     h_cross = np.zeros_like(frequency_array, dtype=np.complex)
 
     if len(hplus.data.data) > len(frequency_array):
-        raise ValueError("Waveform longer than frequency array")
-
-    h_plus[:len(hplus.data.data)] = hplus.data.data
-    h_cross[:len(hcross.data.data)] = hcross.data.data
+        logger.debug("LALsim waveform longer than bilby's `frequency_array`" +
+                     "({} vs {}), ".format(len(hplus.data.data), len(frequency_array)) +
+                     "probably because padded with zeros up to the next power of two length." +
+                     " Truncating lalsim array.")
+        h_plus = hplus.data.data[:len(h_plus)]
+        h_cross = hcross.data.data[:len(h_cross)]
+    else:
+        h_plus[:len(hplus.data.data)] = hplus.data.data
+        h_cross[:len(hcross.data.data)] = hcross.data.data
 
     h_plus *= frequency_bounds
     h_cross *= frequency_bounds
