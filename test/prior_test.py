@@ -867,6 +867,13 @@ class TestPriorDict(unittest.TestCase):
         expected = dict(length=np.array([42., 42., 42.]))
         self.assertTrue(np.array_equal(expected['length'], samples['length']))
 
+    def test_sample_subset_constrained_as_array(self):
+        size = 3
+        keys = ["mass", "speed"]
+        out = self.prior_set_from_dict.sample_subset_constrained_as_array(keys, size)
+        self.assertTrue(isinstance(out, np.ndarray))
+        self.assertTrue(out.shape == (len(keys), size))
+
     def test_sample(self):
         size = 7
         np.random.seed(42)

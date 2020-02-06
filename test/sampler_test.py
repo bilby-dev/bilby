@@ -98,7 +98,9 @@ class TestCPNest(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Cpnest(self.likelihood, self.priors,
                                                  outdir='outdir', label='label',
                                                  use_ratio=False, plot=False,
@@ -133,9 +135,9 @@ class TestDynesty(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = bilby.core.prior.PriorDict()
-        self.priors['a'] = bilby.core.prior.Prior()
-        self.priors['b'] = bilby.core.prior.Prior()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Dynesty(self.likelihood, self.priors,
                                                   outdir='outdir', label='label',
                                                   use_ratio=False, plot=False,
@@ -208,7 +210,9 @@ class TestEmcee(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Emcee(self.likelihood, self.priors,
                                                 outdir='outdir', label='label',
                                                 use_ratio=False, plot=False,
@@ -244,11 +248,13 @@ class TestKombine(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Kombine(self.likelihood, self.priors,
-                                                outdir='outdir', label='label',
-                                                use_ratio=False, plot=False,
-                                                skip_import_verification=True)
+                                                  outdir='outdir', label='label',
+                                                  use_ratio=False, plot=False,
+                                                  skip_import_verification=True)
 
     def tearDown(self):
         del self.likelihood
@@ -279,7 +285,9 @@ class TestNestle(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Nestle(self.likelihood, self.priors,
                                                  outdir='outdir', label='label',
                                                  use_ratio=False, plot=False,
@@ -316,7 +324,9 @@ class TestPolyChord(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict(a=bilby.prior.Uniform(0, 1))
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.PyPolyChord(self.likelihood, self.priors,
                                                       outdir='outdir', label='polychord',
                                                       use_ratio=False, plot=False,
@@ -363,7 +373,9 @@ class TestPTEmcee(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Ptemcee(self.likelihood, self.priors,
                                                   outdir='outdir', label='label',
                                                   use_ratio=False, plot=False,
@@ -410,7 +422,9 @@ class TestPyMC3(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = dict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.sampler = bilby.core.sampler.Pymc3(self.likelihood, self.priors,
                                                 outdir='outdir', label='label',
                                                 use_ratio=False, plot=False,
@@ -448,7 +462,9 @@ class TestPymultinest(unittest.TestCase):
 
     def setUp(self):
         self.likelihood = MagicMock()
-        self.priors = bilby.core.prior.PriorDict()
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1),
+                 b=bilby.core.prior.Uniform(0, 1)))
         self.priors['a'] = bilby.core.prior.Prior(boundary='periodic')
         self.priors['b'] = bilby.core.prior.Prior(boundary='reflective')
         self.sampler = bilby.core.sampler.Pymultinest(self.likelihood, self.priors,
