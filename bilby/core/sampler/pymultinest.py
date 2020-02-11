@@ -83,7 +83,7 @@ class Pymultinest(NestedSampler):
             self.kwargs['outputfiles_basename'])
 
         # for PyMultiNest >=2.9 the n_params kwarg cannot be None
-        if self.kwargs["n_params"] == None:
+        if self.kwargs["n_params"] is None:
             self.kwargs["n_params"] = self.ndim
         NestedSampler._verify_kwargs_against_default_kwargs(self)
 
