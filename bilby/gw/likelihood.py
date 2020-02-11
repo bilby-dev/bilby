@@ -15,7 +15,7 @@ except ImportError:
     from scipy.misc import logsumexp
 from scipy.special import i0e
 
-from ..core.likelihood import Likelihood, MarginalizedLikelihoodReconstructionError
+from ..core.likelihood import Likelihood
 from ..core.utils import BilbyJsonEncoder, decode_bilby_json
 from ..core.utils import (
     logger, UnsortedInterp2d, create_frequency_series, create_time_series,
@@ -392,17 +392,13 @@ class GravitationalWaveTransient(Likelihood):
             np.exp(time_log_like - max(time_log_like)) * time_prior_array)
 
         keep = (time_post > max(time_post) / 1000)
+        if sum(keep) < 3:
+            keep[1:-1] = keep[1:-1] | keep[2:] | keep[:-2]
         time_post = time_post[keep]
         times = times[keep]
 
-        if len(times) > 1:
-            new_time = Interped(times, time_post).sample()
-            return new_time
-        else:
-            raise MarginalizedLikelihoodReconstructionError(
-                "Time posterior reconstruction failed, at least two samples "
-                "are required."
-            )
+        new_time = Interped(times, time_post).sample()
+        return new_time
 
     def generate_distance_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
