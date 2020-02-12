@@ -44,9 +44,6 @@ class DynamicDynesty(Dynesty):
 
     Other Parameters
     ----------------
-    npoints: int, (250)
-        The number of live points, note this can also equivalently be given as
-        one of [nlive, nlives, n_live_points]
     bound: {'none', 'single', 'multi', 'balls', 'cubes'}, ('multi')
         Method used to select new points
     sample: {'unif', 'rwalk', 'slice', 'rslice', 'hslice'}, ('rwalk')
