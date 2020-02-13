@@ -929,7 +929,7 @@ class TestFillPrior(unittest.TestCase):
         self.likelihood = Mock()
         self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
-        self.priors = dict(a=1, b=1.1, c='string', d=bilby.core.prior.Uniform(0, 1))
+        self.priors = dict(a=1, b=1.1, c="string", d=bilby.core.prior.Uniform(0, 1))
         self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                'prior_files/binary_black_holes.prior')
