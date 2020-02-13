@@ -1,0 +1,32 @@
+.. gw_prior:
+
+===================================
+Transient Graviatiaonal wave priors
+===================================
+
+A Cosmological GW prior, :code:`Cosmological`:
+
+.. autoclass:: bilby.gw.prior.Cosmological
+   :members:
+
+Uniform in Comoving Volume GW Prior (inherited from Cosmological) :code:`UniformComovingVolume`:
+
+.. autoclass:: bilby.gw.prior.UniformComovingVolume
+   :members:
+
+Uniform in Source Frame GW Prior :code:`UniformSourceFrame`:
+
+.. autoclass:: bilby.gw.prior.UniformSourceFrame
+   :members:
+
+Aligned Spine GW Prior :code:`AlignedSpin`:
+
+.. autoclass:: bilby.gw.prior.AlignedSpin
+   :members:
+
+HealPixMap JointPriorDist (See JointPriors in bilby.core.prior.joint) :code:`HealPixMapPriorDist`:
+
+.. autoclass:: bilby.gw.prior.HealPixMapPriorDist
+   :members:
+
+
