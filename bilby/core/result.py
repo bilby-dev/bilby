@@ -1528,6 +1528,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
 def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
                  lines=None, legend_fontsize='x-small', keys=None, title=True,
+                 confidence_interval_alpha=0.1,
                  **kwargs):
     """
     Make a P-P plot for a set of runs with injected signals.
@@ -1549,6 +1550,8 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
         The font size for the legend
     keys: list
         A list of keys to use, if None defaults to search_parameter_keys
+    confidence_interval_alpha: float, list, optional
+        The transparency for the background condifence interval
     kwargs:
         Additional kwargs to pass to matplotlib.pyplot.plot
 
@@ -1576,18 +1579,26 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
 
     x_values = np.linspace(0, 1, 1001)
 
-    # Putting in the confidence bands
     N = len(credible_levels)
-    edge_of_bound = (1. - confidence_interval) / 2.
-    lower = scipy.stats.binom.ppf(1 - edge_of_bound, N, x_values) / N
-    upper = scipy.stats.binom.ppf(edge_of_bound, N, x_values) / N
-    # The binomial point percent function doesn't always return 0 @ 0,
-    # so set those bounds explicitly to be sure
-    lower[0] = 0
-    upper[0] = 0
     fig, ax = plt.subplots()
 
-    ax.fill_between(x_values, lower, upper, alpha=0.2, color='k')
+    if isinstance(confidence_interval, float):
+        confidence_interval = [confidence_interval]
+    if isinstance(confidence_interval_alpha, float):
+        confidence_interval_alpha = [confidence_interval_alpha] * len(confidence_interval)
+    elif len(confidence_interval_alpha) != len(confidence_interval):
+        raise ValueError(
+            "confidence_interval_alpha must have the same length as confidence_interval")
+
+    for ci, alpha in zip(confidence_interval, confidence_interval_alpha):
+        edge_of_bound = (1. - ci) / 2.
+        lower = scipy.stats.binom.ppf(1 - edge_of_bound, N, x_values) / N
+        upper = scipy.stats.binom.ppf(edge_of_bound, N, x_values) / N
+        # The binomial point percent function doesn't always return 0 @ 0,
+        # so set those bounds explicitly to be sure
+        lower[0] = 0
+        upper[0] = 0
+        ax.fill_between(x_values, lower, upper, alpha=alpha, color='k')
 
     pvalues = []
     logger.info("Key: KS-test p-value")
