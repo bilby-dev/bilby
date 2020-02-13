@@ -1526,7 +1526,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     return fig
 
 
-def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
+def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0.95, 0.997],
                  lines=None, legend_fontsize='x-small', keys=None, title=True,
                  confidence_interval_alpha=0.1,
                  **kwargs):
@@ -1541,8 +1541,8 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
         The name of the file to save, the default is "outdir/pp.png"
     save: bool, optional
         Whether to save the file, default=True
-    confidence_interval: float, optional
-        The confidence interval to be plotted, defaulting to 0.9 (90%)
+    confidence_interval: (float, list), optional
+        The confidence interval to be plotted, defaulting to 1-2-3 sigma
     lines: list
         If given, a list of matplotlib line formats to use, must be greater
         than the number of parameters.
@@ -1628,7 +1628,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=0.9,
             len(results), pvals.combined_pvalue))
     ax.set_xlabel("C.I.")
     ax.set_ylabel("Fraction of events in C.I.")
-    ax.legend(linewidth=1, labelspacing=0.25, fontsize=legend_fontsize)
+    ax.legend(linewidth=1, handlelength=2, labelspacing=0.25, fontsize=legend_fontsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     fig.tight_layout()
