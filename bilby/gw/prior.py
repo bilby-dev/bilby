@@ -767,22 +767,30 @@ ConditionalUniformSourceFrame = conditional_prior_factory(UniformSourceFrame)
 
 
 class HealPixMapPriorDist(BaseJointPriorDist):
+    """
+    Class defining prior according to given HealPix Map, defaults to 2D in ra and dec but can be set to include
+    Distance as well. This only works with skymaps that include the 2D joint probability in ra/dec and that use the
+    normal LALInference type skymaps where each pixel has a DISTMU, DISTSIGMA, and DISTNORM defining the conditional
+    distance distribution along a given line of sight.
+
+    Parameters
+    ----------
+
+    hp_file : file path to .fits file
+        .fits file that containes the 2D or 3D Healpix Map
+    names : list (optional)
+        list of names of parameters included in the JointPriorDist, defaults to ['ra', 'dec']
+    bounds : dict or list (optional)
+        dictionary or list with given prior bounds. defaults to normal bounds on ra, dev and 0, inf for distance
+        if this is for a 3D map
+
+    Returns
+    -------
+
+    PriorDist : `bilby.gw.prior.HealPixMapPriorDist`
+        A JointPriorDist object to store the joint prior distribution according to passed healpix map
+    """
     def __init__(self, hp_file, names=None, bounds=None, distance=False):
-        """
-        Class defining prior according to given HealPix Map, defaults to 2D in ra and dec but can be set to include
-        Distance as well. This only works with skymaps that include the 2D joint probability in ra/dec and that use the
-        normal LALInference type skymaps where each pixel has a DISTMU, DISTSIGMA, and DISTNORM defining the conditional
-        distance distribution along a given line of sight.
-
-        hp_file: file path to .fits file
-            .fits file that containes the 2D or 3D Healpix Map
-        names: list (optional)
-            list of names of parameters included in the JointPriorDist, defaults to ['ra', 'dec']
-        bounds: dict or list (optional)
-            dictionary or list with given prior bounds. defaults to normal bounds on ra, dev and 0, inf for distance
-            if this is for a 3D map
-        """
-
         self.hp = self._check_imports()
         self.hp_file = hp_file
         if names is None:
@@ -854,14 +862,14 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        samp: float, int
+        samp : float, int
             must take in single value for pixel on unitcube to recale onto ra, dec (distance), for the map Prior
-        kwargs: dict
+        kwargs : dict
             kwargs are all passed to _rescale() method
 
         Returns
-        ----------
-        array_like
+        -------
+        rescaled_sample : array_like
             sample to rescale onto the prior
         """
         if self.distance:
@@ -889,12 +897,15 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         JointPrior Parameters. This function updates the current distance pdf, inverse_cdf, and sampler according to
         given pixel or line of sight.
 
+        Parameters
         ----------
-        pix_idx: int
+        pix_idx : int
             pixel index value to create the distribtuion for
+
         Returns
-        ----------
-        None - just updates these functions at new pixel values
+        -------
+        None : None
+            just updates these functions at new pixel values
         """
         self.distance_pdf = lambda r: self.distnorm[pix_idx] * norm(
             loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]
@@ -918,12 +929,12 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        array: array_like
+        array : array_like
             input array we want to renormalize if not already normalized
 
         Returns
-        ---------
-        array_like:
+        -------
+        normed_array : array_like
             returns input array normalized
         """
         norm = np.linalg.norm(array, ord=1)
@@ -940,14 +951,14 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        size: int
+        size : int
             number of samples we want to draw
-        kwargs: dict
+        kwargs : dict
             kwargs are all passed to be used
 
         Returns
-        ----------
-        array_like
+        -------
+        sample : array_like
             sample of ra, and dec (and distance if 3D=True)
         """
         pixel_choices = np.arange(self.npix)
@@ -971,9 +982,16 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         Method to recursively draw a distance value from the given set distance distribution and check that it is in
         the bounds
 
-        Returns
+        Parameters
         ----------
-        dist: sample drawn from the distance distribution at set pixel index
+
+        pix : int
+            integer for pixel to draw a distance from
+
+        Returns
+        -------
+        dist : float
+            sample drawn from the distance distribution at set pixel index
         """
         if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
             return 0
@@ -990,16 +1008,16 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        ra: float, int
+        ra : float, int
             value drawn for rightascension
-        dec: float, int
+        dec : float, int
             value drawn for declination
-        pix: int
+        pix : int
             pixel index for given pixel we want to get ra, and dec from
 
         Returns
-        ---------
-        tuple:
+        -------
+        ra_dec : tuple
             this returns a tuple of ra, and dec sampled uniformly that are in the pixel given
         """
         if not self.check_in_pixel(ra, dec, pix):
@@ -1017,16 +1035,16 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        ra: float, int
+        ra : float, int
             rightascension value to check
-        dec: float, int
+        dec : float, int
             declination value to check
-        pix: int
+        pix : int
             index for pixel we want to check in
 
         Returns
-        --------
-        bool:
+        -------
+        bool :
             returns True if values inside pixel, False if not
         """
         for val, name in zip([ra, dec], self.names):
@@ -1042,16 +1060,16 @@ class HealPixMapPriorDist(BaseJointPriorDist):
 
         Parameters
         ----------
-        samp: array_like
+        samp : array_like
             samples of ra, dec to evaluate the lnprob at
-        lnprob: array_like
+        lnprob : array_like
             array of correct length we want to populate with lnprob values
-        outbounds: boolean array
+        outbounds : boolean array
             boolean array that flags samples that are out of the given bounds
 
         Returns
-        ----------
-        array_like
+        -------
+        lnprob : array_like
             lnprob values at each sample
         """
         for i in range(samp.shape[0]):
