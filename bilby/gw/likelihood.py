@@ -22,7 +22,7 @@ from ..core.utils import (
     speed_of_light, radius_of_earth)
 from ..core.prior import Interped, Prior, Uniform
 from .detector import InterferometerList
-from .prior import BBHPriorDict, CBCPriorDict
+from .prior import BBHPriorDict, CBCPriorDict, Cosmological
 from .source import lal_binary_black_hole
 from .utils import noise_weighted_inner_product, build_roq_weights, blockwise_dot_product
 from .waveform_generator import WaveformGenerator
@@ -143,6 +143,9 @@ class GravitationalWaveTransient(Likelihood):
                  for distance in self._distance_array])
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
+            for key in ['redshift', 'comoving_distance']:
+                if key in priors:
+                    del priors[key]
             priors['luminosity_distance'] = float(self._ref_dist)
             self._marginalized_parameters.append('luminosity_distance')
 
@@ -214,6 +217,18 @@ class GravitationalWaveTransient(Likelihood):
                 self.priors[key] = Uniform(
                     self.interferometers.start_time,
                     self.interferometers.start_time + self.interferometers.duration)
+            elif key == 'luminosity_distance':
+                for key in ['redshift', 'comoving_distance']:
+                    if key in self.priors:
+                        if not isinstance(self.priors[key], Cosmological):
+                            raise TypeError(
+                                "To marginalize over {}, the prior must be specified as a "
+                                "subclass of bilby.gw.prior.Cosmological.".format(key)
+                            )
+                        self.priors['luminosity_distance'] = self.priors[key].get_corresponding_prior(
+                            'luminosity_distance'
+                        )
+                        del self.priors[key]
             else:
                 self.priors[key] = BBHPriorDict()[key]
 
