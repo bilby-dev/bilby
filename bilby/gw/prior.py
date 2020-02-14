@@ -136,31 +136,7 @@ class Cosmological(Interped):
 
     @minimum.setter
     def minimum(self, minimum):
-        cosmology = get_cosmology(self.cosmology)
-        self._minimum[self.name] = minimum
-        if self.name == 'redshift':
-            self._minimum['luminosity_distance'] =\
-                cosmology.luminosity_distance(minimum).value
-            self._minimum['comoving_distance'] =\
-                cosmology.comoving_distance(minimum).value
-        elif self.name == 'luminosity_distance':
-            if minimum == 0:
-                self._minimum['redshift'] = 0
-            else:
-                self._minimum['redshift'] = cosmo.z_at_value(
-                    cosmology.luminosity_distance, minimum * self.unit)
-            self._minimum['comoving_distance'] = self._minimum['redshift']
-        elif self.name == 'comoving_distance':
-            if minimum == 0:
-                self._minimum['redshift'] = 0
-            else:
-                self._minimum['redshift'] = cosmo.z_at_value(
-                    cosmology.comoving_distance, minimum * self.unit)
-            self._minimum['luminosity_distance'] = self._minimum['redshift']
-        try:
-            self._update_instance()
-        except (AttributeError, KeyError):
-            pass
+        self._set_limit(value=minimum, limit_dict=self._minimum)
 
     @property
     def maximum(self):
@@ -168,21 +144,44 @@ class Cosmological(Interped):
 
     @maximum.setter
     def maximum(self, maximum):
+        self._set_limit(value=maximum, limit_dict=self._maximum)
+
+    def _set_limit(self, value, limit_dict):
+        """
+        Set either the limits for redshift luminosity and comoving distances
+
+        Parameters
+        ----------
+        value: float
+            Limit value in current class' parameter
+        limit_dict: dict
+            The limit dictionary to modify in place
+        """
         cosmology = get_cosmology(self.cosmology)
-        self._maximum[self.name] = maximum
+        limit_dict[self.name] = value
         if self.name == 'redshift':
-            self._maximum['luminosity_distance'] = \
-                cosmology.luminosity_distance(maximum).value
-            self._maximum['comoving_distance'] = \
-                cosmology.comoving_distance(maximum).value
+            limit_dict['luminosity_distance'] = \
+                cosmology.luminosity_distance(value).value
+            limit_dict['comoving_distance'] = \
+                cosmology.comoving_distance(value).value
         elif self.name == 'luminosity_distance':
-            self._maximum['redshift'] = cosmo.z_at_value(
-                cosmology.luminosity_distance, maximum * self.unit)
-            self._maximum['comoving_distance'] = self._maximum['redshift']
+            if value == 0:
+                limit_dict['redshift'] = 0
+            else:
+                limit_dict['redshift'] = cosmo.z_at_value(
+                    cosmology.luminosity_distance, value * self.unit)
+            limit_dict['comoving_distance'] = (
+                cosmology.comoving_distance(limit_dict['redshift']).value
+            )
         elif self.name == 'comoving_distance':
-            self._maximum['redshift'] = cosmo.z_at_value(
-                cosmology.comoving_distance, maximum * self.unit)
-            self._maximum['luminosity_distance'] = self._maximum['redshift']
+            if value == 0:
+                limit_dict['redshift'] = 0
+            else:
+                limit_dict['redshift'] = cosmo.z_at_value(
+                    cosmology.comoving_distance, value * self.unit)
+            limit_dict['luminosity_distance'] = (
+                cosmology.luminosity_distance(limit_dict['redshift']).value
+            )
         try:
             self._update_instance()
         except (AttributeError, KeyError):
