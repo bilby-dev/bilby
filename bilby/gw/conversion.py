@@ -56,7 +56,7 @@ def luminosity_distance_to_comoving_distance(distance, cosmology=None):
 def bilby_to_lalsimulation_spins(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
         reference_frequency, phase):
-    if tilt_1 in [0, np.pi] and tilt_2 in [0, np.pi]:
+    if (a_1 == 0 or tilt_1 in [0, np.pi]) and (a_2 == 0 or tilt_2 in [0, np.pi]):
         spin_1x = 0
         spin_1y = 0
         spin_1z = a_1 * np.cos(tilt_1)
