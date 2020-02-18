@@ -276,15 +276,15 @@ class Result(object):
         if getattr(self, 'posterior', None) is not None:
             if getattr(self, 'log_noise_evidence', None) is not None:
                 return ("nsamples: {:d}\n"
-                        "log_noise_evidence: {:6.3f}\n"
-                        "log_evidence: {:6.3f} +/- {:6.3f}\n"
-                        "log_bayes_factor: {:6.3f} +/- {:6.3f}\n"
+                        "ln_noise_evidence: {:6.3f}\n"
+                        "ln_evidence: {:6.3f} +/- {:6.3f}\n"
+                        "ln_bayes_factor: {:6.3f} +/- {:6.3f}\n"
                         .format(len(self.posterior), self.log_noise_evidence, self.log_evidence,
                                 self.log_evidence_err, self.log_bayes_factor,
                                 self.log_evidence_err))
             else:
                 return ("nsamples: {:d}\n"
-                        "log_evidence: {:6.3f} +/- {:6.3f}\n"
+                        "ln_evidence: {:6.3f} +/- {:6.3f}\n"
                         .format(len(self.posterior), self.log_evidence, self.log_evidence_err))
         else:
             return ''
@@ -388,6 +388,22 @@ class Result(object):
     @posterior.setter
     def posterior(self, posterior):
         self._posterior = posterior
+
+    @property
+    def log_10_bayes_factor(self):
+        return self.log_bayes_factor / np.log(10)
+
+    @property
+    def log_10_evidence(self):
+        return self.log_evidence / np.log(10)
+
+    @property
+    def log_10_evidence_err(self):
+        return self.log_evidence_err / np.log(10)
+
+    @property
+    def log_10_noise_evidence(self):
+        return self.log_noise_evidence / np.log(10)
 
     @property
     def version(self):
