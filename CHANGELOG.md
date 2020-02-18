@@ -1,5 +1,23 @@
 # All notable changes will be documented in this file
 
+## [0.6.5] 2020-02-14
+### Changes
+- Fix for time reconstruction bug (!714)
+- Resolved errors Waveform longer than the frequency array (!710)
+- Prior reading clean-up (!715)
+- More efficient dynesty restarting (!713)
+- PP tests show 123 sigma bounds by default (!726)
+
+### Added
+- HealPixPrior (!651)
+- GW prior documentation (!720)
+- Multiple contours to PP tests plots (!721) 
+- Distance marginalization for non-luminosity-distance parameters (!719)
+
+### Removed
+- Pipenv (!724)
+
+
 ## [0.6.4] 2020-01-30
 ### Changes
 - Discontinue python2.7 support (!697)
