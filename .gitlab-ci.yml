@@ -51,7 +51,7 @@ python-3.7:
     - flake8 .
 
     # Run tests and collect coverage data
-    - pytest --cov=bilby
+    - pytest --cov=bilby --durations 10
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
 
@@ -75,10 +75,28 @@ python-3.6:
 
     - pytest
 
+# test samplers on python 3.7
+python-3.7-samplers:
+  stage: test
+  image: bilbydev/v2-dockerfile-test-suite-python37
+  script:
+    - python -m pip install .
+
+    - pytest test/sampler_test.py --durations 10
+
+# test samplers on python 3.6
+python-3.6-samplers:
+  stage: test
+  image: bilbydev/v2-dockerfile-test-suite-python36
+  script:
+    - python -m pip install .
+
+    - pytest test/sampler_test.py
+
 # Tests run at a fixed schedule rather than on push
 scheduled-python-3.7:
   stage: test
-  image: bilbydev/bilby-test-suite-python37
+  image: bilbydev/v2-dockerfile-test-suite-python37
   only:
     - schedules
   script:
