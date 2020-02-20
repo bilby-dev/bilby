@@ -552,7 +552,8 @@ class TestRunningSamplers(unittest.TestCase):
     def test_run_dynamic_dynesty(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors, sampler='dynamic_dynesty',
-            nlive=100, save=False)
+            nlive_init=100, nlive_batch=100, dlogz_init=1.0, maxbatch=0,
+            maxcall=100, bound="single", save=False)
 
     def test_run_emcee(self):
         _ = bilby.run_sampler(
