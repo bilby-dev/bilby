@@ -8,14 +8,14 @@ from skimage import io
 class Likelihood(bilby.Likelihood):
     def __init__(self, interp):
         self.interp = interp
-        self.parameters = dict(x=None, y=None)
+        super().__init__(parameters=dict(x=None, y=None))
 
     def log_likelihood(self):
         return -1 / (self.interp(self.parameters['x'], self.parameters['y'])[0])
 
 
 for letter in ['B', 'I', 'L', 'Y']:
-    img = 1 - io.imread('{}.png'.format(letter), as_grey=True)[::-1, :]
+    img = 1 - io.imread('{}.png'.format(letter), as_gray=True)[::-1, :]
     x = np.arange(img.shape[0])
     y = np.arange(img.shape[1])
     interp = si.interpolate.interp2d(x, y, img.T)
