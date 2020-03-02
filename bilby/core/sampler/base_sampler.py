@@ -439,7 +439,11 @@ class Sampler(object):
         return np.array(unit_cube), np.array(parameters), np.array(likelihood)
 
     def check_draw(self, theta, warning=True):
-        """ Checks if the draw will generate an infinite prior or likelihood
+        """
+        Checks if the draw will generate an infinite or nan prior or likelihood
+        
+        This also identifies if the likelihood/prior have been passed through
+        `np.nan_to_num`.
 
         Parameters
         ----------
@@ -452,11 +456,12 @@ class Sampler(object):
             True if the likelihood and prior are finite, false otherwise
 
         """
-        if np.isinf(self.log_prior(theta)):
+        bad_values = [np.inf, np.nan_to_num(np.inf), np.nan]
+        if abs(self.log_prior(theta)) in bad_values:
             if warning:
                 logger.warning('Prior draw {} has inf prior'.format(theta))
             return False
-        if np.isinf(self.log_likelihood(theta)):
+        if abs(self.log_likelihood(theta)) in bad_values:
             if warning:
                 logger.warning('Prior draw {} has inf likelihood'.format(theta))
             return False
