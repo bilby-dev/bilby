@@ -397,7 +397,7 @@ def _base_lal_cbc_fd_waveform(
     h_cross *= frequency_bounds
 
     if wf_func == lalsim_SimInspiralFD:
-        dt = 1. / delta_frequency - (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
+        dt = 1. / delta_frequency + (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
         h_plus *= np.exp(
             -1j * 2 * np.pi * dt * frequency_array)
         h_cross *= np.exp(
