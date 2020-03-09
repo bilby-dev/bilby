@@ -216,3 +216,46 @@ We provide default conversion functions for the BBH and BNS PriorDicts.
 For BBHs this generates all the BBH mass parameters so constraints can be placed on any mass parameters.
 
 For BNSs it also generates the tidal deformability parameters.
+
+-----------------
+Prior Examples 
+-----------------
+
+Here we show some  examples of prior files for different waveform families.
+Note that to constrain a certain parameter to a fixed value, you just need:
+
+.. code:: python
+
+  parameter_name = <value>
+
+------
+
+To constraint the prior to a certain range , you can use:
+
+.. code:: python
+
+ parameter_name = Constraint(name='parameter_name', minimum=<value>, maximum=<value>)
+
+------
+
+Aligned spins waveform with tides off
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_off.prior
+
+Aligned spins waveform with tides on
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_on.prior
+
+Precessing spins waveform with tides off
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_off.prior  
+
+Precessing spins waveform with tides on
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_on.prior  
+
+
