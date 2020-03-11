@@ -112,14 +112,14 @@ class TestCPNest(unittest.TestCase):
         del self.sampler
 
     def test_default_kwargs(self):
-        expected = dict(verbose=1, nthreads=1, nlive=500, maxmcmc=1000,
+        expected = dict(verbose=3, nthreads=1, nlive=500, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
                         output='outdir/cpnest_label/', proposals=None,
                         n_periodic_checkpoint=8000)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
-        expected = dict(verbose=1, nthreads=1, nlive=250, maxmcmc=1000,
+        expected = dict(verbose=3, nthreads=1, nlive=250, maxmcmc=1000,
                         seed=None, poolsize=100, nhamiltonian=0, resume=True,
                         output='outdir/cpnest_label/', proposals=None,
                         n_periodic_checkpoint=8000)
