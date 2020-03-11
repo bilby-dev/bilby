@@ -329,7 +329,6 @@ class Dynesty(NestedSampler):
         sampler_kwargs['add_live'] = True
         self.start_time = datetime.datetime.now()
         while True:
-            sampler_kwargs['maxcall'] += self.n_check_point
             self._run_nested_wrapper(sampler_kwargs)
             if self.sampler.ncall == old_ncall:
                 break
