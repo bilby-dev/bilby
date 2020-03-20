@@ -918,8 +918,10 @@ class Result(object):
         cond2 = parameters is None
         cond3 = bool(kwargs.get("truths", True))
         if cond1 and cond2 and cond3:
-            parameters = {key: self.injection_parameters[key] for key in
-                          self.search_parameter_keys}
+            parameters = {
+                key: self.injection_parameters.get(key, np.nan)
+                for key in self.search_parameter_keys
+            }
 
         # If parameters is a dictionary, use the keys to determine which
         # parameters to plot and the values as truths.
