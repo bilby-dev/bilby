@@ -9,7 +9,10 @@ from matplotlib import rcParams
 import numpy as np
 
 from ..core.result import Result as CoreResult
-from ..core.utils import infft, logger, check_directory_exists_and_if_not_mkdir
+from ..core.utils import (
+    infft, logger, check_directory_exists_and_if_not_mkdir,
+    latex_plot_format, safe_save_figure
+)
 from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
 from .detector import get_empty_interferometer, Interferometer
 
@@ -133,6 +136,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             logger.info("No injection for detector {}".format(detector))
             return None
 
+    @latex_plot_format
     def plot_calibration_posterior(self, level=.9, format="png"):
         """ Plots the calibration amplitude and phase uncertainty.
         Adapted from the LALInference version in bayespputils
@@ -148,12 +152,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """
         if format not in ["png", "pdf"]:
             raise ValueError("Format should be one of png or pdf")
-        _old_tex = rcParams["text.usetex"]
-        _old_serif = rcParams["font.serif"]
-        _old_family = rcParams["font.family"]
-        rcParams["text.usetex"] = True
-        rcParams["font.serif"] = "Computer Modern Roman"
-        rcParams["font.family"] = "Serif"
 
         fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(15, 15), dpi=500)
         posterior = self.posterior
@@ -214,17 +212,11 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
         filename = os.path.join(outdir, self.label + '_calibration.' + format)
         fig.tight_layout()
-        try:
-            plt.savefig(filename, format=format, dpi=600, bbox_inches='tight')
-        except RuntimeError:
-            logger.debug(
-                "Failed to save waveform with tex labels turning off tex."
-            )
-            rcParams["text.usetex"] = False
-            plt.savefig(filename, format=format, dpi=600, bbox_inches='tight')
-        rcParams["text.usetex"] = _old_tex
-        rcParams["font.serif"] = _old_serif
-        rcParams["font.family"] = _old_family
+        safe_save_figure(
+            fig=fig, filename=filename,
+            format=format, dpi=600, bbox_inches='tight'
+        )
+        logger.debug("Calibration figure saved to {}".format(filename))
         plt.close()
 
     def plot_waveform_posterior(
@@ -268,6 +260,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 save=True, format=format, start_time=start_time,
                 end_time=end_time)
 
+    @latex_plot_format
     def plot_interferometer_waveform_posterior(
             self, interferometer, level=0.9, n_samples=None, save=True,
             format='png', start_time=None, end_time=None):
@@ -328,13 +321,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     "HTML plotting requested, but plotly cannot be imported, "
                     "falling back to png format for waveform plot.")
                 format = "png"
-        else:
-            _old_tex = rcParams["text.usetex"]
-            _old_serif = rcParams["font.serif"]
-            _old_family = rcParams["font.family"]
-            rcParams["text.usetex"] = True
-            rcParams["font.serif"] = "Computer Modern Roman"
-            rcParams["font.family"] = "Serif"
 
         if isinstance(interferometer, str):
             interferometer = get_empty_interferometer(interferometer)
@@ -383,7 +369,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
             len(frequency_idxs))
         )
         plot_times = interferometer.time_array[time_idxs]
-        # if format == "html":
         plot_times -= interferometer.strain_data.start_time
         start_time -= interferometer.strain_data.start_time
         end_time -= interferometer.strain_data.start_time
@@ -663,7 +648,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             fig.update_xaxes(title_text=f_domain_x_label, type="log", row=1)
             fig.update_yaxes(title_text=f_domain_y_label, type="log", row=1)
             fig.update_xaxes(title_text=t_domain_x_label, type="linear", row=2)
-            fig.update_yaxes(title_text=t_domain_x_label, type="linear", row=2)
+            fig.update_yaxes(title_text=t_domain_y_label, type="linear", row=2)
         else:
             axs[0].set_xlim(interferometer.minimum_frequency,
                             interferometer.maximum_frequency)
@@ -684,19 +669,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 plot(fig, filename=filename, include_mathjax='cdn', auto_open=False)
             else:
                 plt.tight_layout()
-                try:
-                    plt.savefig(filename, format=format, dpi=600)
-                except RuntimeError:
-                    logger.debug(
-                        "Failed to save waveform with tex labels turning off tex."
-                    )
-                    rcParams["text.usetex"] = False
-                    plt.savefig(filename, format=format, dpi=600)
+                safe_save_figure(
+                    fig=fig, filename=filename,
+                    format=format, dpi=600
+                )
                 plt.close()
-                rcParams["text.usetex"] = _old_tex
-                rcParams["font.serif"] = _old_serif
-                rcParams["font.family"] = _old_family
-            logger.debug("Figure saved to {}".format(filename))
+            logger.debug("Waveform figure saved to {}".format(filename))
         else:
             return fig
 
@@ -714,14 +692,14 @@ class CompactBinaryCoalescenceResult(CoreResult):
         Parameters
         ----------
         maxpts: int
-            Number of samples to use, if None all samples are used
+            Maximum number of samples to use, if None all samples are used
         trials: int
             Number of trials at each clustering number
         jobs: int
             Number of multiple threads
         enable_multiresolution: bool
             Generate a multiresolution HEALPix map (default: True)
-        objid: st
+        objid: str
             Event ID to store in FITS header
         instruments: str
             Name of detectors
@@ -766,16 +744,16 @@ class CompactBinaryCoalescenceResult(CoreResult):
         if load_pickle is False:
             try:
                 pts = data[['ra', 'dec', 'luminosity_distance']].values
-                cls = kde.Clustered2Plus1DSkyKDE
+                confidence_levels = kde.Clustered2Plus1DSkyKDE
                 distance = True
             except KeyError:
                 logger.warning("The results file does not contain luminosity_distance")
                 pts = data[['ra', 'dec']].values
-                cls = kde.Clustered2DSkyKDE
+                confidence_levels = kde.Clustered2DSkyKDE
                 distance = False
 
             logger.info('Initialising skymap class')
-            skypost = cls(pts, trials=trials, multiprocess=jobs)
+            skypost = confidence_levels(pts, trials=trials, jobs=jobs)
             logger.info('Pickling skymap to {}'.format(default_obj_filename))
             with open(default_obj_filename, 'wb') as out:
                 pickle.dump(skypost, out)
@@ -788,7 +766,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
             logger.info('Reading from pickle {}'.format(obj_filename))
             with open(obj_filename, 'rb') as file:
                 skypost = pickle.load(file)
-            skypost.multiprocess = jobs
+            skypost.jobs = jobs
+            distance = isinstance(skypost, kde.Clustered2Plus1DSkyKDE)
 
         logger.info('Making skymap')
         hpmap = skypost.as_healpix()
@@ -844,12 +823,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
             cb.set_label(r'prob. per deg$^2$')
 
         if contour is not None:
-            cls = 100 * postprocess.find_greedy_credible_levels(skymap)
-            cs = ax.contour_hpx(
-                (cls, 'ICRS'), nested=metadata['nest'],
+            confidence_levels = 100 * postprocess.find_greedy_credible_levels(skymap)
+            contours = ax.contour_hpx(
+                (confidence_levels, 'ICRS'), nested=metadata['nest'],
                 colors='k', linewidths=0.5, levels=contour)
             fmt = r'%g\%%' if rcParams['text.usetex'] else '%g%%'
-            plt.clabel(cs, fmt=fmt, fontsize=6, inline=True)
+            plt.clabel(contours, fmt=fmt, fontsize=6, inline=True)
 
         # Add continents.
         if geo:
@@ -875,7 +854,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 text.append('event ID: {}'.format(objid))
             if contour:
                 pp = np.round(contour).astype(int)
-                ii = np.round(np.searchsorted(np.sort(cls), contour) *
+                ii = np.round(np.searchsorted(np.sort(confidence_levels), contour) *
                               deg2perpix).astype(int)
                 for i, p in zip(ii, pp):
                     text.append(
@@ -884,15 +863,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
         filename = os.path.join(self.outdir, "{}_skymap.png".format(self.label))
         logger.info("Generating 2D projected skymap to {}".format(filename))
-        plt.savefig(filename, dpi=500)
-
-
-class CompactBinaryCoalesenceResult(CompactBinaryCoalescenceResult):
-
-    def __init__(self, **kwargs):
-        logger.warning('CompactBinaryCoalesenceResult is deprecated use '
-                       'CompactBinaryCoalescenceResult')
-        super(CompactBinaryCoalesenceResult, self).__init__(**kwargs)
+        safe_save_figure(fig=plt.gcf(), filename=filename, dpi=dpi)
 
 
 CBCResult = CompactBinaryCoalescenceResult

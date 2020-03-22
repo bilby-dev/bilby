@@ -1,36 +1,48 @@
-from __future__ import absolute_import, division
+import os
+import shutil
+import unittest
+
+import pandas as pd
 
 import bilby
-import unittest
-import shutil
 
 
 class TestCBCResult(unittest.TestCase):
 
     def setUp(self):
         bilby.utils.command_line_args.bilby_test_mode = False
-        priors = bilby.prior.PriorDict(dict(
-            x=bilby.prior.Uniform(0, 1, 'x', latex_label='$x$', unit='s'),
-            y=bilby.prior.Uniform(0, 1, 'y', latex_label='$y$', unit='m'),
-            c=1,
-            d=2))
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors['geocent_time'] = 2
+        injection_parameters = priors.sample()
         self.meta_data = dict(
             likelihood=dict(
-                phase_marginalization=True, distance_marginalization=False,
+                phase_marginalization=True,
+                distance_marginalization=False,
                 time_marginalization=True,
                 frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
                 waveform_arguments=dict(
                     reference_frequency=20.0,
                     waveform_approximant='IMRPhenomPv2'),
                 interferometers=dict(
-                    H1=dict(optimal_SNR=1, parameters=dict(x=0.1, y=0.3)),
-                    L1=dict(optimal_SNR=1, parameters=dict(x=0.1, y=0.3)))))
+                    H1=dict(optimal_SNR=1, parameters=injection_parameters),
+                    L1=dict(optimal_SNR=1, parameters=injection_parameters)),
+                sampling_frequency=4096,
+                duration=4,
+                start_time=0,
+                waveform_generator_class=bilby.gw.waveform_generator.WaveformGenerator,
+                parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+            )
+        )
         self.result = bilby.gw.result.CBCResult(
             label='label', outdir='outdir', sampler='nestle',
-            search_parameter_keys=['x', 'y'], fixed_parameter_keys=['c', 'd'],
+            search_parameter_keys=list(priors.keys()), fixed_parameter_keys=list(),
             priors=priors, sampler_kwargs=dict(test='test', func=lambda x: x),
-            injection_parameters=dict(x=0.5, y=0.5),
-            meta_data=self.meta_data)
+            injection_parameters=injection_parameters,
+            meta_data=self.meta_data,
+            posterior=pd.DataFrame(priors.sample(100))
+        )
+        if not os.path.isdir(self.result.outdir):
+            os.mkdir(self.result.outdir)
         pass
 
     def tearDown(self):
@@ -82,6 +94,36 @@ class TestCBCResult(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.result.reference_frequency
 
+    def test_sampling_frequency(self):
+        self.assertEqual(
+            self.result.sampling_frequency,
+            self.meta_data['likelihood']['sampling_frequency'])
+
+    def test_sampling_frequency_unset(self):
+        self.result.meta_data['likelihood'].pop('sampling_frequency')
+        with self.assertRaises(AttributeError):
+            self.result.sampling_frequency
+
+    def test_duration(self):
+        self.assertEqual(
+            self.result.duration,
+            self.meta_data['likelihood']['duration'])
+
+    def test_duration_unset(self):
+        self.result.meta_data['likelihood'].pop('duration')
+        with self.assertRaises(AttributeError):
+            self.result.duration
+
+    def test_start_time(self):
+        self.assertEqual(
+            self.result.start_time,
+            self.meta_data['likelihood']['start_time'])
+
+    def test_start_time_unset(self):
+        self.result.meta_data['likelihood'].pop('start_time')
+        with self.assertRaises(AttributeError):
+            self.result.start_time
+
     def test_waveform_approximant(self):
         self.assertEqual(
             self.result.waveform_approximant,
@@ -106,6 +148,26 @@ class TestCBCResult(unittest.TestCase):
         self.result.meta_data['likelihood'].pop('frequency_domain_source_model')
         with self.assertRaises(AttributeError):
             self.result.frequency_domain_source_model
+
+    def test_parameter_conversion(self):
+        self.assertEqual(
+            self.result.parameter_conversion,
+            self.meta_data['likelihood']['parameter_conversion'])
+
+    def test_parameter_conversion_unset(self):
+        self.result.meta_data['likelihood'].pop('parameter_conversion')
+        with self.assertRaises(AttributeError):
+            self.result.parameter_conversion
+
+    def test_waveform_generator_class(self):
+        self.assertEqual(
+            self.result.waveform_generator_class,
+            self.meta_data['likelihood']['waveform_generator_class'])
+
+    def test_waveform_generator_class_unset(self):
+        self.result.meta_data['likelihood'].pop('waveform_generator_class')
+        with self.assertRaises(AttributeError):
+            self.result.waveform_generator_class
 
     def test_interferometer_names(self):
         self.assertEqual(
