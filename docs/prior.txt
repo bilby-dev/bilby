@@ -216,3 +216,64 @@ We provide default conversion functions for the BBH and BNS PriorDicts.
 For BBHs this generates all the BBH mass parameters so constraints can be placed on any mass parameters.
 
 For BNSs it also generates the tidal deformability parameters.
+
+-----------------
+Prior Examples 
+-----------------
+
+Here we show some examples of prior files for different waveform families.
+To constrain a certain parameter to a fixed value, you just need:
+
+.. code:: python
+
+  parameter_name = <value>
+
+------
+
+To constrain the prior to a certain range , you can use:
+
+.. code:: python
+
+ parameter_name = Constraint(name='parameter_name', minimum=<value>, maximum=<value>)
+
+------
+
+Note that to activate the tidal effect you need to specify in your configuration
+file:
+
+.. code:: python
+
+ frequency_domain_source_model=lal_binary_neutron_star 
+
+------
+
+
+Aligned spins waveform with tides off
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_off.prior
+
+Aligned spins waveform with tides on
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_on.prior
+
+Precessing spins waveform with tides off
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_off.prior  
+
+Precessing spins waveform with tides on
+==============
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_on.prior  
+
+
+-----------------
+Priors using a Jupyter notebook 
+-----------------
+
+Bilby saves as output the prior volume sampled. You might also find useful to
+produce priors directly from a Jupyter notebook. You can have a look at one of
+the Bilby tutorials to check how you define and plot priors in a Jupyter notebook:
+`making_priors.ipynb <https://git.ligo.org/lscsoft/bilby/-/blob/master/examples/tutorials/making_priors.ipynb>`_.
