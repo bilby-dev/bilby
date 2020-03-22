@@ -1,11 +1,13 @@
 from __future__ import division
 
+from distutils.spawn import find_executable
 import logging
 import os
 from math import fmod
 import argparse
 import traceback
 import inspect
+import functools
 import types
 import subprocess
 import multiprocessing
@@ -1097,6 +1099,43 @@ def reflect(u):
     u[idxs_even] = np.mod(u[idxs_even], 1)
     u[~idxs_even] = 1 - np.mod(u[~idxs_even], 1)
     return u
+
+
+def latex_plot_format(func):
+    """
+    Wrap a plotting function to set rcParams so that text renders nicely with
+    latex and Computer Modern Roman font.
+    """
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        from matplotlib import rcParams
+        _old_tex = rcParams["text.usetex"]
+        _old_serif = rcParams["font.serif"]
+        _old_family = rcParams["font.family"]
+        if find_executable("latex"):
+            rcParams["text.usetex"] = True
+        else:
+            rcParams["text.usetex"] = False
+        rcParams["font.serif"] = "Computer Modern Roman"
+        rcParams["font.family"] = "serif"
+        value = func(*args, **kwargs)
+        rcParams["text.usetex"] = _old_tex
+        rcParams["font.serif"] = _old_serif
+        rcParams["font.family"] = _old_family
+        return value
+    return wrapper_decorator
+
+
+def safe_save_figure(fig, filename, **kwargs):
+    from matplotlib import rcParams
+    try:
+        fig.savefig(fname=filename, **kwargs)
+    except RuntimeError:
+        logger.debug(
+            "Failed to save plot with tex labels turning off tex."
+        )
+        rcParams["text.usetex"] = False
+        fig.savefig(fname=filename, **kwargs)
 
 
 class IllegalDurationAndSamplingFrequencyException(Exception):

@@ -107,6 +107,17 @@ scheduled-python-3.7:
     - pytest test/gw_example_test.py
     - pytest test/sample_from_the_prior_test.py
 
+plotting:
+  stage: test
+  image: bilbydev/bilby-test-suite-python37
+  only:
+    - schedules
+  script:
+    - python -m pip install .
+    - python -m pip install ligo.skymap
+
+    - pytest test/gw_plot_test.py
+
 pages:
   stage: deploy
   dependencies:
