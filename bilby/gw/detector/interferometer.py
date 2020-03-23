@@ -16,8 +16,8 @@ try:
     import gwpy
     import gwpy.signal
 except ImportError:
-    logger.warning("You do not have gwpy installed currently. You will "
-                   " not be able to use some of the prebuilt functions.")
+    logger.debug("You do not have gwpy installed currently. You will "
+                 " not be able to use some of the prebuilt functions.")
 
 
 class Interferometer(object):

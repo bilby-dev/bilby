@@ -9,8 +9,8 @@ try:
     import lal
     import lalsimulation as lalsim
 except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+    logger.debug("You do not have lalsuite installed currently. You will"
+                 " not be able to use some of the prebuilt functions.")
 
 
 def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
