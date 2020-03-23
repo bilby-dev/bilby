@@ -11,14 +11,14 @@ try:
     import gwpy
     import gwpy.signal
 except ImportError:
-    logger.warning("You do not have gwpy installed currently. You will "
-                   " not be able to use some of the prebuilt functions.")
+    logger.debug("You do not have gwpy installed currently. You will "
+                 " not be able to use some of the prebuilt functions.")
 
 try:
     import lal
 except ImportError:
-    logger.warning("You do not have lalsuite installed currently. You will"
-                   " not be able to use some of the prebuilt functions.")
+    logger.debug("You do not have lalsuite installed currently. You will"
+                 " not be able to use some of the prebuilt functions.")
 
 
 class InterferometerStrainData(object):

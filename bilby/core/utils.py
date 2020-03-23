@@ -992,7 +992,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
             if isinstance(obj, units.PrefixUnit):
                 return str(obj)
         except ImportError:
-            logger.info("Cannot import astropy, cannot write cosmological priors")
+            logger.debug("Cannot import astropy, cannot write cosmological priors")
         if isinstance(obj, np.ndarray):
             return {'__array__': True, 'content': obj.tolist()}
         if isinstance(obj, complex):
@@ -1054,8 +1054,8 @@ def decode_astropy_cosmology(dct):
         del dct['__cosmology__'], dct['__name__']
         return cosmo_cls(**dct)
     except ImportError:
-        logger.info("Cannot import astropy, cosmological priors may not be "
-                    "properly loaded.")
+        logger.debug("Cannot import astropy, cosmological priors may not be "
+                     "properly loaded.")
         return dct
 
 
@@ -1068,8 +1068,8 @@ def decode_astropy_quantity(dct):
             del dct['__astropy_quantity__']
             return units.Quantity(**dct)
     except ImportError:
-        logger.info("Cannot import astropy, cosmological priors may not be "
-                    "properly loaded.")
+        logger.debug("Cannot import astropy, cosmological priors may not be "
+                     "properly loaded.")
         return dct
 
 
