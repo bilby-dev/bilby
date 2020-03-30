@@ -1101,6 +1101,25 @@ def reflect(u):
     return u
 
 
+def safe_file_dump(data, filename, module):
+    """ Safely dump data to a .pickle file
+
+    Parameters
+    ----------
+    data:
+        data to dump
+    filename: str
+        The file to dump to
+    module: pickle, dill
+        The python module to use
+    """
+
+    temp_filename = filename + ".temp"
+    with open(temp_filename, "wb") as file:
+        module.dump(data, file)
+    os.rename(temp_filename, filename)
+
+
 def latex_plot_format(func):
     """
     Wrap a plotting function to set rcParams so that text renders nicely with
