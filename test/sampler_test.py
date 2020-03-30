@@ -563,7 +563,7 @@ class TestRunningSamplers(unittest.TestCase):
     def test_run_kombine(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors, sampler='kombine',
-            iterations=2500, nwalkers=100, save=False)
+            iterations=1000, nwalkers=100, save=False, autoburnin=True)
 
     def test_run_nestle(self):
         _ = bilby.run_sampler(

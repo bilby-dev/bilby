@@ -907,6 +907,26 @@ class TestPriorDict(unittest.TestCase):
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))
 
 
+class TestConstraintPriorNormalisation(unittest.TestCase):
+    def setUp(self):
+        self.priors = dict(mass_1=bilby.core.prior.Uniform(name='mass_1', minimum=5, maximum=10, unit='$M_{\odot}$',
+                                                           boundary=None),
+                      mass_2=bilby.core.prior.Uniform(name='mass_2', minimum=5, maximum=10, unit='$M_{\odot}$',
+                                                      boundary=None),
+                      mass_ratio=bilby.core.prior.Constraint(name='mass_ratio', minimum=0, maximum=1))
+        self.priors = bilby.core.prior.PriorDict(self.priors)
+
+    def test_prob_integrate_to_one(self):
+        keys = ['mass_1', 'mass_2', 'mass_ratio']
+        n = 5000
+        samples = self.priors.sample_subset(keys=keys, size=n)
+        prob = self.priors.prob(samples, axis=0)
+        dm1 = self.priors['mass_1'].maximum - self.priors['mass_1'].minimum
+        dm2 = self.priors['mass_2'].maximum - self.priors['mass_2'].minimum
+        integral = np.sum(prob * (dm1 * dm2)) / len(samples['mass_1'])
+        self.assertAlmostEqual(1, integral, 5)
+
+
 class TestLoadPrior(unittest.TestCase):
     def test_load_prior_with_float(self):
         filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
