@@ -160,8 +160,8 @@ class Kombine(Emcee):
         self.result.nburn = self.nburn
         if self.result.nburn > self.nsteps:
             raise SamplerError(
-                "The run has finished, but the chain is not burned in: "
-                "`nburn < nsteps`. Try increasing the number of steps.")
+                "The run has finished, but the chain is not burned in: `nburn < nsteps` ({} < {}). Try increasing the "
+                "number of steps.".format(self.result.nburn, self.nsteps))
         tmp_chain = self.sampler.chain[self.nburn:, :, :].copy()
         self.result.samples = tmp_chain.reshape((-1, self.ndim))
         blobs = np.array(self.sampler.blobs)
