@@ -546,7 +546,8 @@ class Dynesty(NestedSampler):
         self.sampler.versions = dict(
             bilby=bilby_version, dynesty=dynesty_version
         )
-        del self.sampler.pool, self.sampler.M
+        self.sampler.pool = None
+        self.sampler.M = map
         if dill.pickles(self.sampler):
             safe_file_dump(self.sampler, self.resume_file, dill)
             logger.info("Written checkpoint file {}".format(self.resume_file))
@@ -557,9 +558,7 @@ class Dynesty(NestedSampler):
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
-            self.sampler.M = self.sampler.pool.M
-        else:
-            self.sampler.M = map
+            self.sampler.M = self.sampler.pool.map
 
 
     def plot_current_state(self):
