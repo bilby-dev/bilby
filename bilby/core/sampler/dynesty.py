@@ -560,7 +560,6 @@ class Dynesty(NestedSampler):
         if self.sampler.pool is not None:
             self.sampler.M = self.sampler.pool.map
 
-
     def plot_current_state(self):
         if self.check_point_plot:
             import dynesty.plotting as dyplot
