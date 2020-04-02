@@ -24,7 +24,7 @@ _priors = None
 _search_parameter_keys = None
 
 
-def initialize_likelihood_and_prior(likelihood, priors, search_parameter_keys):
+def _initialize_global_variables(likelihood, priors, search_parameter_keys):
     """
     Store a global copy of the likelihood, priors, and search keys for
     multiprocessing.
@@ -294,12 +294,12 @@ class Dynesty(NestedSampler):
             import multiprocessing
             self.pool = multiprocessing.Pool(
                 processes=self.kwargs["queue_size"],
-                initializer=initialize_likelihood_and_prior,
+                initializer=_initialize_global_variables,
                 initargs=(self.likelihood, self.priors, self._search_parameter_keys)
             )
             self.kwargs["pool"] = self.pool
         else:
-            initialize_likelihood_and_prior(
+            _initialize_global_variables(
                 likelihood=self.likelihood,
                 priors=self.priors,
                 search_parameter_keys=self._search_parameter_keys
