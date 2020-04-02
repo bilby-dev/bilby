@@ -178,8 +178,9 @@ First thing: define a function which generates z=x-y from x and y.
         -------
         dict: Dictionary with constraint parameter 'z' added.
         """
-        parameters['z'] = parameters['x'] - parameters['y']
-        return parameters
+        converted_parameters = parameters.copy()
+        converted_parameters['z'] = parameters['x'] - parameters['y']
+        return converted_parameters
 
 Create our prior:
 
