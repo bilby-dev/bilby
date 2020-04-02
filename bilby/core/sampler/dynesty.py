@@ -546,6 +546,7 @@ class Dynesty(NestedSampler):
         self.sampler.versions = dict(
             bilby=bilby_version, dynesty=dynesty_version
         )
+        del self.sampler.pool, self.sampler.M
         if dill.pickles(self.sampler):
             safe_file_dump(self.sampler, self.resume_file, dill)
             logger.info("Written checkpoint file {}".format(self.resume_file))
@@ -554,6 +555,12 @@ class Dynesty(NestedSampler):
                 "Cannot write pickle resume file! "
                 "Job will not resume if interrupted."
             )
+        self.sampler.pool = self.pool
+        if self.sampler.pool is not None:
+            self.sampler.M = self.sampler.pool.M
+        else:
+            self.sampler.M = map
+
 
     def plot_current_state(self):
         if self.check_point_plot:
