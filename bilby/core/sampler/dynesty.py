@@ -288,7 +288,6 @@ class Dynesty(NestedSampler):
                     self.use_ratio
                 )
             )
-            self.kwargs["pool"] = self.pool
         else:
             _initialize_global_variables(
                 likelihood=self.likelihood,
@@ -297,6 +296,7 @@ class Dynesty(NestedSampler):
                 use_ratio=self.use_ratio
             )
             self.pool = None
+        self.kwargs["pool"] = self.pool
 
     def _close_pool(self):
         if getattr(self, "pool", None) is not None:
@@ -304,6 +304,7 @@ class Dynesty(NestedSampler):
             self.pool.close()
             self.pool.join()
             self.pool = None
+            self.kwargs["pool"] = self.pool
             logger.info("Finished closing worker pool.")
 
     def run_sampler(self):
