@@ -24,9 +24,12 @@ import warnings
 _likelihood = None
 _priors = None
 _search_parameter_keys = None
+_use_ratio = False
 
 
-def _initialize_global_variables(likelihood, priors, search_parameter_keys):
+def _initialize_global_variables(
+        likelihood, priors, search_parameter_keys, use_ratio
+):
     """
     Store a global copy of the likelihood, priors, and search keys for
     multiprocessing.
@@ -34,9 +37,11 @@ def _initialize_global_variables(likelihood, priors, search_parameter_keys):
     global _likelihood
     global _priors
     global _search_parameter_keys
+    global _use_ratio
     _likelihood = likelihood
     _priors = priors
     _search_parameter_keys = search_parameter_keys
+    _use_ratio = use_ratio
 
 
 def _prior_transform_wrapper(theta):
@@ -51,7 +56,10 @@ def _log_likelihood_wrapper(theta):
     }):
         params = {key: t for key, t in zip(_search_parameter_keys, theta)}
         _likelihood.parameters.update(params)
-        return _likelihood.log_likelihood_ratio()
+        if _use_ratio:
+            return _likelihood.log_likelihood_ratio()
+        else:
+            return _likelihood.log_likelihood()
     else:
         return np.nan_to_num(-np.inf)
 
@@ -273,7 +281,12 @@ class Dynesty(NestedSampler):
             self.pool = multiprocessing.Pool(
                 processes=self.kwargs["queue_size"],
                 initializer=_initialize_global_variables,
-                initargs=(self.likelihood, self.priors, self._search_parameter_keys)
+                initargs=(
+                    self.likelihood,
+                    self.priors,
+                    self._search_parameter_keys,
+                    self.use_ratio
+                )
             )
             self.kwargs["pool"] = self.pool
         else:
