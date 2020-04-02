@@ -293,7 +293,8 @@ class Dynesty(NestedSampler):
             _initialize_global_variables(
                 likelihood=self.likelihood,
                 priors=self.priors,
-                search_parameter_keys=self._search_parameter_keys
+                search_parameter_keys=self._search_parameter_keys,
+                use_ratio=self.use_ratio
             )
             self.pool = None
 
