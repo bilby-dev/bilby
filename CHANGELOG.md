@@ -1,5 +1,17 @@
 # All notable changes will be documented in this file
 
+## [0.6.6] 2020-03-06
+### Changes
+- Fix bug where injected values are not present for corner plot (!749)
+- Significant backwards-incompatible improvements to `dynesty` checkpointing (!746)
+- Improve checkpoint interval calculation with `dynesty` (!741)
+- Fix reading of `PriorDict` class from result file (!739)
+- Fix definition of time for time-domain `lalsimulation` waveforms (!736)
+- LaTeX text formatting for plots by default (!702)
+
+### Added
+- Normalisation dynamically computed when using prior constraints (!704)
+
 ## [0.6.5] 2020-02-14
 ### Changes
 - Fix for time reconstruction bug (!714)
