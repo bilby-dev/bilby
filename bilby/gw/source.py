@@ -301,6 +301,9 @@ def _base_lal_cbc_fd_waveform(
     pn_tidal_order = waveform_kwargs['pn_tidal_order']
     pn_phase_order = waveform_kwargs['pn_phase_order']
     pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
+    waveform_dictionary = waveform_kwargs.get(
+        'lal_waveform_dictionary', lal.CreateDict()
+    )
 
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
@@ -327,7 +330,6 @@ def _base_lal_cbc_fd_waveform(
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
 
-    waveform_dictionary = lal.CreateDict()
     lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(
         waveform_dictionary, int(pn_spin_order))
     lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(
