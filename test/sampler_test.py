@@ -387,33 +387,19 @@ class TestPTEmcee(unittest.TestCase):
         del self.sampler
 
     def test_default_kwargs(self):
-        expected = dict(ntemps=2, nwalkers=500,
-                        Tmax=None, betas=None,
-                        threads=1, pool=None, a=2.0,
-                        loglargs=[], logpargs=[],
-                        loglkwargs={}, logpkwargs={},
-                        adaptation_lag=10000, adaptation_time=100,
-                        random=None, iterations=100, thin=1,
-                        storechain=True, adapt=True,
-                        swap_ratios=False,
-                        )
+        expected = dict(ntemps=20, nwalkers=200, Tmax=None, betas=None, a=2.0,
+                        adaptation_lag=10000, adaptation_time=100, random=None,
+                        adapt=True, swap_ratios=False,)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
-        expected = dict(ntemps=2, nwalkers=150,
-                        Tmax=None, betas=None,
-                        threads=1, pool=None, a=2.0,
-                        loglargs=[], logpargs=[],
-                        loglkwargs={}, logpkwargs={},
-                        adaptation_lag=10000, adaptation_time=100,
-                        random=None, iterations=100, thin=1,
-                        storechain=True, adapt=True,
-                        swap_ratios=False,
-                        )
+        expected = dict(ntemps=20, nwalkers=200, Tmax=None, betas=None, a=2.0,
+                        adaptation_lag=10000, adaptation_time=100, random=None,
+                        adapt=True, swap_ratios=False,)
         for equiv in bilby.core.sampler.base_sampler.MCMCSampler.nwalkers_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['nwalkers']
-            new_kwargs[equiv] = 150
+            new_kwargs[equiv] = 200
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
 
@@ -578,7 +564,8 @@ class TestRunningSamplers(unittest.TestCase):
     def test_run_ptemcee(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors, sampler='ptemcee',
-            nsteps=1000, nwalkers=10, ntemps=10, save=False)
+            nsamples=100, nwalkers=50, burn_in_act=1, ntemps=1,
+            frac_threshold=0.5, save=False)
 
     def test_run_pymc3(self):
         _ = bilby.run_sampler(
