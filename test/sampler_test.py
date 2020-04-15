@@ -151,7 +151,7 @@ class TestDynesty(unittest.TestCase):
     def test_default_kwargs(self):
         expected = dict(bound='multi', sample='rwalk', periodic=None, reflective=None, verbose=True,
                         check_point_delta_t=600, nlive=1000, first_update=None,
-                        npdim=None, rstate=None, queue_size=None, pool=None,
+                        npdim=None, rstate=None, queue_size=1, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
                         enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
@@ -173,7 +173,7 @@ class TestDynesty(unittest.TestCase):
     def test_translate_kwargs(self):
         expected = dict(bound='multi', sample='rwalk', periodic=[], reflective=[], verbose=True,
                         check_point_delta_t=600, nlive=1000, first_update=None,
-                        npdim=None, rstate=None, queue_size=None, pool=None,
+                        npdim=None, rstate=None, queue_size=1, pool=None,
                         use_pool=None, live_points=None, logl_args=None, logl_kwargs=None,
                         ptform_args=None, ptform_kwargs=None,
                         enlarge=1.5, bootstrap=None, vol_dec=0.5, vol_check=8.0,
