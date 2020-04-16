@@ -1,5 +1,12 @@
 # All notable changes will be documented in this file
 
+## [0.6.7] 2020-04-15
+### Changes
+- Allow dynesty to run with multiprocessing (!754)
+- Rewrite ptemcee implementation (!750)
+- Change 'source frame' to 'detector frame' in L34-35 of compare_samplers tutorial (!745)
+- Allow lal dictionary to be passed through to '_base_lal_cbc_fd_waveform' (!752)
+
 ## [0.6.6] 2020-03-06
 ### Changes
 - Fix bug where injected values are not present for corner plot (!749)
