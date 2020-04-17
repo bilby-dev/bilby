@@ -83,6 +83,7 @@ python-3.7-samplers:
     - python -m pip install .
 
     - pytest test/sampler_test.py --durations 10
+    - pytest test/sample_from_the_prior_test.py
 
 # test samplers on python 3.6
 python-3.6-samplers:
