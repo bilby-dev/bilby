@@ -66,6 +66,15 @@ python-3.7:
       - coverage_badge.svg
       - docs/_build/html/
 
+# test example on python 3.8
+python-3.8:
+  stage: test
+  image: bilbydev/v2-dockerfile-test-suite-python38
+  script:
+    - python -m pip install .
+
+    - pytest
+
 # test example on python 3.6
 python-3.6:
   stage: test
