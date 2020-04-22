@@ -15,6 +15,7 @@ from importlib import import_module
 import json
 import warnings
 
+from distutils.version import StrictVersion
 import numpy as np
 from scipy.interpolate import interp2d
 from scipy.special import logsumexp
@@ -965,7 +966,10 @@ else:
     for backend in non_gui_backends:
         try:
             logger.debug("Trying backend {}".format(backend))
-            matplotlib.use(backend, warn=False)
+            if StrictVersion(matplotlib.__version__) >= StrictVersion("3.1"):
+                matplotlib.use(backend)
+            else:
+                matplotlib.use(backend, warn=False)
             plt.switch_backend(backend)
             break
         except Exception:
