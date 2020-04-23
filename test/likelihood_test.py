@@ -6,7 +6,9 @@ import mock
 import numpy as np
 from bilby.core.likelihood import (
     Likelihood, GaussianLikelihood, PoissonLikelihood, StudentTLikelihood,
-    Analytical1DLikelihood, ExponentialLikelihood, JointLikelihood)
+    Analytical1DLikelihood, ExponentialLikelihood,
+    AnalyticalMultidimensionalCovariantGaussian,
+    AnalyticalMultidimensionalBimodalCovariantGaussian, JointLikelihood)
 
 
 class TestLikelihoodBase(unittest.TestCase):
@@ -489,6 +491,83 @@ class TestExponentialLikelihood(unittest.TestCase):
         expected = 'ExponentialLikelihood(x={}, y={}, func={})'.format(self.x, self.y, self.function.__name__)
         self.assertEqual(expected, repr(self.exponential_likelihood))
 
+
+class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
+
+    def setUp(self):
+        self.cov = [[1, 0, 0], [0, 4, 0], [0, 0, 9]]
+        self.sigma = [1, 2, 3]
+        self.mean = [10, 11, 12]
+        self.likelihood = AnalyticalMultidimensionalCovariantGaussian(
+            mean=self.mean,
+            cov=self.cov)
+
+    def tearDown(self):
+        del self.cov
+        del self.sigma
+        del self.mean
+        del self.likelihood
+
+    def test_cov(self):
+        self.assertTrue(np.array_equal(self.cov, self.likelihood.cov))
+
+    def test_mean(self):
+        self.assertTrue(np.array_equal(self.mean, self.likelihood.mean))
+
+    def test_sigma(self):
+        self.assertTrue(np.array_equal(self.sigma, self.likelihood.sigma))
+
+    def test_parameters(self):
+        self.assertDictEqual(dict(x0=0, x1=0, x2=0), self.likelihood.parameters)
+
+    def test_dim(self):
+        self.assertEqual(3, self.likelihood.dim)
+
+    def test_log_likelihood(self):
+        likelihood = AnalyticalMultidimensionalCovariantGaussian(mean=[0], cov=[1])
+        self.assertEqual(-np.log(2*np.pi)/2, likelihood.log_likelihood())
+
+
+class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
+
+    def setUp(self):
+        self.cov = [[1, 0, 0], [0, 4, 0], [0, 0, 9]]
+        self.sigma = [1, 2, 3]
+        self.mean_1 = [10, 11, 12]
+        self.mean_2 = [20, 21, 22]
+        self.likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
+            mean_1=self.mean_1,
+            mean_2=self.mean_2,
+            cov=self.cov)
+
+    def tearDown(self):
+        del self.cov
+        del self.sigma
+        del self.mean_1
+        del self.mean_2
+        del self.likelihood
+
+    def test_cov(self):
+        self.assertTrue(np.array_equal(self.cov, self.likelihood.cov))
+
+    def test_mean_1(self):
+        self.assertTrue(np.array_equal(self.mean_1, self.likelihood.mean_1))
+
+    def test_mean_2(self):
+        self.assertTrue(np.array_equal(self.mean_2, self.likelihood.mean_2))
+
+    def test_sigma(self):
+        self.assertTrue(np.array_equal(self.sigma, self.likelihood.sigma))
+
+    def test_parameters(self):
+        self.assertDictEqual(dict(x0=0, x1=0, x2=0), self.likelihood.parameters)
+
+    def test_dim(self):
+        self.assertEqual(3, self.likelihood.dim)
+
+    def test_log_likelihood(self):
+        likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(mean_1=[0], mean_2=[0], cov=[1])
+        self.assertEqual(-np.log(2*np.pi)/2, likelihood.log_likelihood())
 
 class TestJointLikelihood(unittest.TestCase):
 

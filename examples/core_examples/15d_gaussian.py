@@ -1,7 +1,8 @@
-from scipy.stats import multivariate_normal
-
 import bilby
 import numpy as np
+
+from bilby.core.likelihood import AnalyticalMultidimensionalCovariantGaussian, \
+    AnalyticalMultidimensionalBimodalCovariantGaussian
 
 logger = bilby.core.utils.logger
 
@@ -57,68 +58,6 @@ cov = [
 
 dim = 15
 mean = np.zeros(dim)
-
-
-class AnalyticalMultidimensionalCovariantGaussian(bilby.Likelihood):
-    """
-        A multivariate Gaussian likelihood
-        with known analytic solution.
-
-        Parameters
-        ----------
-        mean: array_like
-            Array with the mean value of distribution
-        cov: array_like
-            The ndim*ndim covariance matrix
-        """
-
-    def __init__(self, mean, cov):
-        super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=dict())
-        self.cov = np.array(cov)
-        self.mean = np.array(mean)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.pdf = multivariate_normal(mean=self.mean, cov=self.cov)
-
-    @property
-    def dim(self):
-        return len(self.cov[0])
-
-    def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
-        return self.pdf.logpdf(x)
-
-
-class AnalyticalMultidimensionalBimodalCovariantGaussian(bilby.Likelihood):
-    """
-        A multivariate Gaussian likelihood
-        with known analytic solution.
-
-        Parameters
-        ----------
-        mean_1: array_like
-            Array with the mean value of the first mode
-        mean_2: array_like
-            Array with the mean value of the second mode
-        cov: array_like
-        """
-
-    def __init__(self, mean_1, mean_2, cov):
-        super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__(parameters=dict())
-        self.cov = np.array(cov)
-        self.mean_1 = np.array(mean_1)
-        self.mean_2 = np.array(mean_2)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.pdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov)
-        self.pdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov)
-
-    @property
-    def dim(self):
-        return len(self.cov[0])
-
-    def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
-        return -np.log(2) + np.logaddexp(self.pdf_1.logpdf(x), self.pdf_2.logpdf(x))
-
 
 label = "multidim_gaussian_unimodal"
 outdir = "outdir"
