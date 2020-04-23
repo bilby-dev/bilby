@@ -3,6 +3,7 @@ import copy
 
 import numpy as np
 from scipy.special import gammaln
+from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function
 
@@ -399,6 +400,69 @@ class StudentTLikelihood(Analytical1DLikelihood):
     @nu.setter
     def nu(self, nu):
         self._nu = nu
+
+
+class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
+    """
+        A multivariate Gaussian likelihood
+        with known analytic solution.
+
+        Parameters
+        ----------
+        mean: array_like
+            Array with the mean values of distribution
+        cov: array_like
+            The ndim*ndim covariance matrix
+        """
+
+    def __init__(self, mean, cov):
+        self.cov = np.atleast_2d(cov)
+        self.mean = np.atleast_1d(mean)
+        self.sigma = np.sqrt(np.diag(self.cov))
+        self.pdf = multivariate_normal(mean=self.mean, cov=self.cov)
+        parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
+        super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=parameters)
+
+    @property
+    def dim(self):
+        return len(self.cov[0])
+
+    def log_likelihood(self):
+        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        return self.pdf.logpdf(x)
+
+
+class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
+    """
+        A multivariate Gaussian likelihood
+        with known analytic solution.
+
+        Parameters
+        ----------
+        mean_1: array_like
+            Array with the mean value of the first mode
+        mean_2: array_like
+            Array with the mean value of the second mode
+        cov: array_like
+        """
+
+    def __init__(self, mean_1, mean_2, cov):
+        self.cov = np.atleast_2d(cov)
+        self.sigma = np.sqrt(np.diag(self.cov))
+        self.mean_1 = np.atleast_1d(mean_1)
+        self.mean_2 = np.atleast_1d(mean_2)
+        self.pdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov)
+        self.pdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov)
+        parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
+        super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__(parameters=parameters)
+
+    @property
+    def dim(self):
+        return len(self.cov[0])
+
+    def log_likelihood(self):
+        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        return -np.log(2) + np.logaddexp(self.pdf_1.logpdf(x), self.pdf_2.logpdf(x))
 
 
 class JointLikelihood(Likelihood):
