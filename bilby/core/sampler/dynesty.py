@@ -433,6 +433,8 @@ class Dynesty(NestedSampler):
 
         sampler_kwargs['add_live'] = True
         self._run_nested_wrapper(sampler_kwargs)
+        self.write_current_state()
+        self.plot_current_state()
         return self.sampler.results
 
     def _remove_checkpoint(self):
@@ -577,7 +579,8 @@ class Dynesty(NestedSampler):
                 plt.close("all")
             try:
                 filename = "{}/{}_checkpoint_run.png".format(self.outdir, self.label)
-                fig, axs = dyplot.runplot(self.sampler.results)
+                fig, axs = dyplot.runplot(
+                    self.sampler.results, logplot=False, use_math_text=False)
                 fig.tight_layout()
                 plt.savefig(filename)
             except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError) as e:
