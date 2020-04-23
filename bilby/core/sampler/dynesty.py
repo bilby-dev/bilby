@@ -166,9 +166,15 @@ class Dynesty(NestedSampler):
         self.sampling_time = datetime.timedelta()
         self.exit_code = exit_code
 
-        signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
-        signal.signal(signal.SIGINT, self.write_current_state_and_exit)
-        signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
+        try:
+            signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
+            signal.signal(signal.SIGINT, self.write_current_state_and_exit)
+            signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
+        except AttributeError:
+            logger.debug(
+                "Setting signal attributes unavailable on this system. "
+                "This is likely the case if you are running on a Windows machine"
+                " and is no further concern.")
 
     def __getstate__(self):
         """ For pickle: remove external_sampler, which can be an unpicklable "module" """
