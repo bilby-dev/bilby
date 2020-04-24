@@ -2,7 +2,7 @@ from __future__ import division, print_function
 import copy
 
 import numpy as np
-from scipy.special import gammaln
+from scipy.special import gammaln, xlogy
 from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function
@@ -400,6 +400,53 @@ class StudentTLikelihood(Analytical1DLikelihood):
     @nu.setter
     def nu(self, nu):
         self._nu = nu
+
+
+class Multinomial(Likelihood):
+    """
+    Likelihood for system with N discrete possibilities.
+    """
+
+    def __init__(self, data, n_dimensions, label="parameter_"):
+        """
+
+        Parameters
+        ----------
+        data: array-like
+            The number of objects in each class
+        n_dimensions: int
+            The number of classes
+        """
+        self.data = np.array(data)
+        self._total = np.sum(self.data)
+        super(Multinomial, self).__init__(dict())
+        self.n = n_dimensions
+        self.label = label
+        self._nll = None
+
+    def log_likelihood(self):
+        """
+        Since n - 1 parameters are sampled, the last parameter is 1 - the rest
+        """
+        probs = [self.parameters[self.label + str(ii)]
+                 for ii in range(self.n - 1)]
+        probs.append(1 - sum(probs))
+        return self._multinomial_ln_pdf(probs=probs)
+
+    def noise_log_likelihood(self):
+        """
+        Our null hypothesis is that all bins have probability 1 / nbins, i.e.,
+        no bin is preferred over any other.
+        """
+        if self._nll is None:
+            self._nll = self._multinomial_ln_pdf(probs=1 / self.n)
+        return self._nll
+
+    def _multinomial_ln_pdf(self, probs):
+        """Lifted from scipy.stats.multinomial._logpdf"""
+        ln_prob = gammaln(self._total + 1) + np.sum(
+            xlogy(self.data, probs) - gammaln(self.data + 1), axis=-1)
+        return ln_prob
 
 
 class AnalyticalMultidimensionalCovariantGaussian(Likelihood):

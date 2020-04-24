@@ -225,6 +225,62 @@ ConditionalFermiDirac = conditional_prior_factory(FermiDirac)
 ConditionalInterped = conditional_prior_factory(Interped)
 
 
+class DirichletElement(ConditionalBeta):
+    """
+    Single element in a dirichlet distribution
+
+    The probability scales as
+
+    $p(x_order) \propto (x_max - x_order)^(n_dimensions - order - 2)$
+
+    for x_order < x_max, where x_max is the sum of x_i for i < order
+
+    Examples
+    --------
+    n_dimensions = 1:
+    p(x_0) \propto 1 ; 0 < x_0 < 1
+    n_dimensions = 2:
+    p(x_0) \propto (1 - x_0) ; 0 < x_0 < 1
+    p(x_1) \propto 1 ; 0 < x_1 < 1
+
+    Parameters
+    ----------
+    order: int
+        Order of this element of the dirichlet distribution.
+    n_dimensions: int
+        Total number of elements of the dirichlet distribution
+    label: str
+        Label for the dirichlet distribution.
+        This should be the same for all elements.
+    """
+
+    def __init__(self, order, n_dimensions, label):
+        super(DirichletElement, self).__init__(
+            minimum=0, maximum=1, alpha=1, beta=n_dimensions - order - 1,
+            name=label + str(order),
+            condition_func=self.dirichlet_condition
+        )
+        self.label = label
+        self.n_dimensions = n_dimensions
+        self.order = order
+        self._required_variables = [
+            label + str(ii) for ii in range(order)
+        ]
+        self.__class__.__name__ = 'Dirichlet'
+
+    def dirichlet_condition(self, reference_parms, **kwargs):
+        remaining = 1 - sum(
+            [kwargs[self.label + str(ii)] for ii in range(self.order)]
+        )
+        return dict(minimum=reference_parms["minimum"], maximum=remaining)
+
+    def __repr__(self):
+        return Prior.__repr__(self)
+
+    def get_instantiation_dict(self):
+        return Prior.get_instantiation_dict(self)
+
+
 class ConditionalPriorException(PriorException):
     """ General base class for all conditional prior exceptions """
 
