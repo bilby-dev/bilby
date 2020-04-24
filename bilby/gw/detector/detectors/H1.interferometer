@@ -1,8 +1,8 @@
 # Advanced LIGO Hanford at design sensitvity.
 # LIGO-T980044-10
-# https://dcc.ligo.org/LIGO-P1200087-v42/public
+# https://dcc.ligo.org/LIGO-T2000012/public
 name = 'H1'
-power_spectral_density = PowerSpectralDensity(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
+power_spectral_density = PowerSpectralDensity(asd_file='aLIGO_O4_high_asd.txt')
 minimum_frequency = 20
 maximum_frequency = 2048
 length = 4

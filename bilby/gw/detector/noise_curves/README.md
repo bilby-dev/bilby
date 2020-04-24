@@ -5,7 +5,7 @@ WARNING: Some of these may not (yet) be correct.
 If you alter or add any curves to this directory please edit this file appropriately.
 
 ### AdLIGO
-https://dcc.ligo.org/LIGO-P1200087-v42/public
+https://dcc.ligo.org/LIGO-T2000012/public
 
 ### AdVirgo
 https://dcc.ligo.org/LIGO-P1200087-v42/public
