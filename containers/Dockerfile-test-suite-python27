@@ -22,7 +22,7 @@ echo "conda activate base" >> ~/.bashrc
 # Install conda-installable programs
 RUN conda install -y numpy scipy matplotlib pandas==0.23
 
-RUN conda install -c conda-forge deepdish
+RUN conda install -c conda-forge deepdish arviz
 
 # Install requirements
 RUN pip install --upgrade pip \

@@ -28,7 +28,7 @@ RUN pip install --upgrade pip \
 RUN conda install -y numpy scipy matplotlib pandas
 
 # Install conda-forge-installable programs
-RUN conda install -c conda-forge deepdish
+RUN conda install -c conda-forge deepdish arviz
 
 # Install requirements
 RUN pip install future \
