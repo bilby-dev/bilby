@@ -1,0 +1,22 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-merge-conflict # prevent committing files with merge conflicts
+    -   id: flake8 # checks for flake8 errors
+#-   repo: https://github.com/codespell-project/codespell
+#    rev: v1.16.0
+#    hooks:
+#    -   id: codespell # Spellchecker
+#        args: [-L, nd, --skip, "*.ipynb,*.html", --ignore-words=.dictionary.txt]
+#        exclude: ^examples/tutorials/
+#-   repo: https://github.com/asottile/seed-isort-config
+#    rev: v1.3.0
+#    hooks:
+#    -   id: seed-isort-config
+#        args: [--application-directories, 'bilby/']
+#-   repo: https://github.com/pre-commit/mirrors-isort
+#    rev: v4.3.21
+#    hooks:
+#    -   id: isort # sort imports alphabetically and separates import into sections
+#        args: [-w=88, -m=3, -tc, -sp=setup.cfg ]

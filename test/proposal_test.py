@@ -10,7 +10,6 @@ from bilby.core.sampler import proposal
 
 
 class TestSample(unittest.TestCase):
-
     def setUp(self):
         self.sample = proposal.Sample(dict(a=1, c=2))
 
@@ -34,17 +33,28 @@ class TestSample(unittest.TestCase):
 
 
 class TestJumpProposal(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(
+                    minimum=-0.5, maximum=1, boundary="reflective"
+                ),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
         self.sample_above = dict(reflective=1.1, periodic=1.1, default=1.1)
         self.sample_below = dict(reflective=-0.6, periodic=-0.6, default=-0.6)
         self.sample_way_above_case1 = dict(reflective=272, periodic=272, default=272)
-        self.sample_way_above_case2 = dict(reflective=270.1, periodic=270.1, default=270.1)
-        self.sample_way_below_case1 = dict(reflective=-274, periodic=-274.1, default=-274)
-        self.sample_way_below_case2 = dict(reflective=-273.1, periodic=-273.1, default=-273.1)
+        self.sample_way_above_case2 = dict(
+            reflective=270.1, periodic=270.1, default=270.1
+        )
+        self.sample_way_below_case1 = dict(
+            reflective=-274, periodic=-274.1, default=-274
+        )
+        self.sample_way_below_case2 = dict(
+            reflective=-273.1, periodic=-273.1, default=-273.1
+        )
         self.jump_proposal = proposal.JumpProposal(priors=self.priors)
 
     def tearDown(self):
@@ -63,62 +73,65 @@ class TestJumpProposal(unittest.TestCase):
 
     def test_boundary_above_reflective(self):
         new_sample = self.jump_proposal(self.sample_above)
-        self.assertAlmostEqual(0.9, new_sample['reflective'])
+        self.assertAlmostEqual(0.9, new_sample["reflective"])
 
     def test_boundary_above_periodic(self):
         new_sample = self.jump_proposal(self.sample_above)
-        self.assertAlmostEqual(-0.4, new_sample['periodic'])
+        self.assertAlmostEqual(-0.4, new_sample["periodic"])
 
     def test_boundary_above_default(self):
         new_sample = self.jump_proposal(self.sample_above)
-        self.assertAlmostEqual(1.1, new_sample['default'])
+        self.assertAlmostEqual(1.1, new_sample["default"])
 
     def test_boundary_below_reflective(self):
         new_sample = self.jump_proposal(self.sample_below)
-        self.assertAlmostEqual(-0.4, new_sample['reflective'])
+        self.assertAlmostEqual(-0.4, new_sample["reflective"])
 
     def test_boundary_below_periodic(self):
         new_sample = self.jump_proposal(self.sample_below)
-        self.assertAlmostEqual(0.9, new_sample['periodic'])
+        self.assertAlmostEqual(0.9, new_sample["periodic"])
 
     def test_boundary_below_default(self):
         new_sample = self.jump_proposal(self.sample_below)
-        self.assertAlmostEqual(-0.6, new_sample['default'])
+        self.assertAlmostEqual(-0.6, new_sample["default"])
 
     def test_boundary_way_below_reflective_case1(self):
         new_sample = self.jump_proposal(self.sample_way_below_case1)
-        self.assertAlmostEqual(0.0, new_sample['reflective'])
+        self.assertAlmostEqual(0.0, new_sample["reflective"])
 
     def test_boundary_way_below_reflective_case2(self):
         new_sample = self.jump_proposal(self.sample_way_below_case2)
-        self.assertAlmostEqual(-0.1, new_sample['reflective'])
+        self.assertAlmostEqual(-0.1, new_sample["reflective"])
 
     def test_boundary_way_below_periodic(self):
         new_sample = self.jump_proposal(self.sample_way_below_case2)
-        self.assertAlmostEqual(-0.1, new_sample['periodic'])
+        self.assertAlmostEqual(-0.1, new_sample["periodic"])
 
     def test_boundary_way_above_reflective_case1(self):
         new_sample = self.jump_proposal(self.sample_way_above_case1)
-        self.assertAlmostEqual(0.0, new_sample['reflective'])
+        self.assertAlmostEqual(0.0, new_sample["reflective"])
 
     def test_boundary_way_above_reflective_case2(self):
         new_sample = self.jump_proposal(self.sample_way_above_case2)
-        self.assertAlmostEqual(0.1, new_sample['reflective'])
+        self.assertAlmostEqual(0.1, new_sample["reflective"])
 
     def test_boundary_way_above_periodic(self):
         new_sample = self.jump_proposal(self.sample_way_above_case2)
-        self.assertAlmostEqual(0.1, new_sample['periodic'])
+        self.assertAlmostEqual(0.1, new_sample["periodic"])
 
     def test_priors(self):
         self.assertEqual(self.priors, self.jump_proposal.priors)
 
 
 class TestNormJump(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="reflective"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
         self.jump_proposal = proposal.NormJump(step_size=3.0, priors=self.priors)
 
     def tearDown(self):
@@ -142,13 +155,19 @@ class TestNormJump(unittest.TestCase):
 
 
 class TestEnsembleWalk(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
-        self.jump_proposal = proposal.EnsembleWalk(random_number_generator=random.random,
-                                                   n_points=4, priors=self.priors)
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(
+                    minimum=-0.5, maximum=1, boundary="reflective"
+                ),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
+        self.jump_proposal = proposal.EnsembleWalk(
+            random_number_generator=random.random, n_points=4, priors=self.priors
+        )
 
     def tearDown(self):
         del self.priors
@@ -165,17 +184,22 @@ class TestEnsembleWalk(unittest.TestCase):
         self.assertEqual(random.random, self.jump_proposal.random_number_generator)
 
     def test_get_center_of_mass(self):
-        samples = [proposal.Sample(dict(reflective=0.1*i, periodic=0.1*i, default=0.1*i)) for i in range(3)]
+        samples = [
+            proposal.Sample(dict(reflective=0.1 * i, periodic=0.1 * i, default=0.1 * i))
+            for i in range(3)
+        ]
         expected = proposal.Sample(dict(reflective=0.1, periodic=0.1, default=0.1))
         actual = self.jump_proposal.get_center_of_mass(samples)
         for key in samples[0].keys():
             self.assertAlmostEqual(expected[key], actual[key])
 
     def test_jump_proposal_call(self):
-        with mock.patch('random.sample') as m:
+        with mock.patch("random.sample") as m:
             self.jump_proposal.random_number_generator = lambda: 2
-            m.return_value = [proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
-                              proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))]
+            m.return_value = [
+                proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
+                proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1)),
+            ]
             sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
             new_sample = self.jump_proposal(sample, coordinates=None)
             expected = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
@@ -184,11 +208,16 @@ class TestEnsembleWalk(unittest.TestCase):
 
 
 class TestEnsembleEnsembleStretch(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(
+                    minimum=-0.5, maximum=1, boundary="reflective"
+                ),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
         self.jump_proposal = proposal.EnsembleStretch(scale=3.0, priors=self.priors)
 
     def tearDown(self):
@@ -203,41 +232,63 @@ class TestEnsembleEnsembleStretch(unittest.TestCase):
         self.assertEqual(5.0, self.jump_proposal.scale)
 
     def test_jump_proposal_call(self):
-        with mock.patch('random.choice') as m:
-            with mock.patch('random.uniform') as n:
-                second_sample = proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3))
+        with mock.patch("random.choice") as m:
+            with mock.patch("random.uniform") as n:
+                second_sample = proposal.Sample(
+                    dict(periodic=0.3, reflective=0.3, default=0.3)
+                )
                 random_number = 0.5
                 m.return_value = second_sample
                 n.return_value = random_number
-                sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
+                sample = proposal.Sample(
+                    dict(periodic=0.1, reflective=0.1, default=0.1)
+                )
                 new_sample = self.jump_proposal(sample, coordinates=None)
-                coords = 0.3 - 0.2 * np.exp(random_number * np.log(self.jump_proposal.scale))
-                expected = proposal.Sample(dict(periodic=coords, reflective=coords, default=coords))
+                coords = 0.3 - 0.2 * np.exp(
+                    random_number * np.log(self.jump_proposal.scale)
+                )
+                expected = proposal.Sample(
+                    dict(periodic=coords, reflective=coords, default=coords)
+                )
                 for key, value in new_sample.items():
                     self.assertAlmostEqual(expected[key], value)
 
     def test_log_j_after_call(self):
-        with mock.patch('random.uniform') as m1:
-            with mock.patch('numpy.log') as m2:
-                with mock.patch('numpy.exp') as m3:
+        with mock.patch("random.uniform") as m1:
+            with mock.patch("numpy.log") as m2:
+                with mock.patch("numpy.exp") as m3:
                     m1.return_value = 1
                     m2.return_value = 1
                     m3.return_value = 1
-                    coordinates = [proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
-                                   proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3))]
-                    sample = proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2))
-                    self.jump_proposal(sample=sample,
-                                       coordinates=coordinates)
+                    coordinates = [
+                        proposal.Sample(
+                            dict(periodic=0.3, reflective=0.3, default=0.3)
+                        ),
+                        proposal.Sample(
+                            dict(periodic=0.3, reflective=0.3, default=0.3)
+                        ),
+                    ]
+                    sample = proposal.Sample(
+                        dict(periodic=0.2, reflective=0.2, default=0.2)
+                    )
+                    self.jump_proposal(sample=sample, coordinates=coordinates)
                     self.assertEqual(3, self.jump_proposal.log_j)
 
 
 class TestDifferentialEvolution(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
-        self.jump_proposal = proposal.DifferentialEvolution(sigma=1e-3, mu=0.5, priors=self.priors)
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(
+                    minimum=-0.5, maximum=1, boundary="reflective"
+                ),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
+        self.jump_proposal = proposal.DifferentialEvolution(
+            sigma=1e-3, mu=0.5, priors=self.priors
+        )
 
     def tearDown(self):
         del self.priors
@@ -255,24 +306,35 @@ class TestDifferentialEvolution(unittest.TestCase):
         self.assertEqual(2, self.jump_proposal.sigma)
 
     def test_jump_proposal_call(self):
-        with mock.patch('random.sample') as m:
-            with mock.patch('random.gauss') as n:
-                m.return_value = proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2)),\
-                                 proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3))
+        with mock.patch("random.sample") as m:
+            with mock.patch("random.gauss") as n:
+                m.return_value = (
+                    proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2)),
+                    proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
+                )
                 n.return_value = 1
-                sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
-                expected = proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2))
+                sample = proposal.Sample(
+                    dict(periodic=0.1, reflective=0.1, default=0.1)
+                )
+                expected = proposal.Sample(
+                    dict(periodic=0.2, reflective=0.2, default=0.2)
+                )
                 new_sample = self.jump_proposal(sample, coordinates=None)
                 for key, value in new_sample.items():
                     self.assertAlmostEqual(expected[key], value)
 
 
 class TestEnsembleEigenVector(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(reflective=prior.Uniform(minimum=-0.5, maximum=1, boundary='reflective'),
-                                           periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary='periodic'),
-                                           default=prior.Uniform(minimum=-0.5, maximum=1)))
+        self.priors = prior.PriorDict(
+            dict(
+                reflective=prior.Uniform(
+                    minimum=-0.5, maximum=1, boundary="reflective"
+                ),
+                periodic=prior.Uniform(minimum=-0.5, maximum=1, boundary="periodic"),
+                default=prior.Uniform(minimum=-0.5, maximum=1),
+            )
+        )
         self.jump_proposal = proposal.EnsembleEigenVector(priors=self.priors)
 
     def tearDown(self):
@@ -292,62 +354,79 @@ class TestEnsembleEigenVector(unittest.TestCase):
         self.assertIsNone(self.jump_proposal.update_eigenvectors(coordinates=None))
 
     def test_jump_proposal_update_eigenvectors_1_d(self):
-        coordinates = [proposal.Sample(dict(periodic=0.3)), proposal.Sample(dict(periodic=0.1))]
-        with mock.patch('numpy.var') as m:
+        coordinates = [
+            proposal.Sample(dict(periodic=0.3)),
+            proposal.Sample(dict(periodic=0.1)),
+        ]
+        with mock.patch("numpy.var") as m:
             m.return_value = 1
             self.jump_proposal.update_eigenvectors(coordinates)
             self.assertTrue(np.equal(np.array([1]), self.jump_proposal.eigen_values))
             self.assertTrue(np.equal(np.array([1]), self.jump_proposal.covariance))
-            self.assertTrue(np.equal(np.array([[1.]]), self.jump_proposal.eigen_vectors))
+            self.assertTrue(
+                np.equal(np.array([[1.0]]), self.jump_proposal.eigen_vectors)
+            )
 
     def test_jump_proposal_update_eigenvectors_n_d(self):
-        coordinates = [proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
-                       proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))]
-        with mock.patch('numpy.cov') as m:
-            with mock.patch('numpy.linalg.eigh') as n:
+        coordinates = [
+            proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
+            proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1)),
+        ]
+        with mock.patch("numpy.cov") as m:
+            with mock.patch("numpy.linalg.eigh") as n:
                 m.side_effect = lambda x: x
                 n.return_value = 1, 2
                 self.jump_proposal.update_eigenvectors(coordinates)
-                self.assertTrue(np.array_equal(np.array([[0.3, 0.1], [0.3, 0.1], [0.3, 0.1]]), self.jump_proposal.covariance))
+                self.assertTrue(
+                    np.array_equal(
+                        np.array([[0.3, 0.1], [0.3, 0.1], [0.3, 0.1]]),
+                        self.jump_proposal.covariance,
+                    )
+                )
                 self.assertEqual(1, self.jump_proposal.eigen_values)
                 self.assertEqual(2, self.jump_proposal.eigen_vectors)
 
     def test_jump_proposal_call(self):
         self.jump_proposal.update_eigenvectors = lambda x: None
         self.jump_proposal.eigen_values = np.array([1, np.nan, np.nan])
-        self.jump_proposal.eigen_vectors = np.array([[0.1, np.nan, np.nan],
-                                                    [0.4, np.nan, np.nan],
-                                                    [0.7, np.nan, np.nan]])
-        with mock.patch('random.randrange') as m:
-            with mock.patch('random.gauss') as n:
+        self.jump_proposal.eigen_vectors = np.array(
+            [[0.1, np.nan, np.nan], [0.4, np.nan, np.nan], [0.7, np.nan, np.nan]]
+        )
+        with mock.patch("random.randrange") as m:
+            with mock.patch("random.gauss") as n:
                 m.return_value = 0
                 n.return_value = 1
                 expected = proposal.Sample()
-                expected['periodic'] = 0.2
-                expected['reflective'] = 0.5
-                expected['default'] = 0.8
+                expected["periodic"] = 0.2
+                expected["reflective"] = 0.5
+                expected["default"] = 0.8
                 sample = proposal.Sample()
-                sample['periodic'] = 0.1
-                sample['reflective'] = 0.1
-                sample['default'] = 0.1
+                sample["periodic"] = 0.1
+                sample["reflective"] = 0.1
+                sample["default"] = 0.1
                 new_sample = self.jump_proposal(sample, coordinates=None)
                 for key, value in new_sample.items():
                     self.assertAlmostEqual(expected[key], value)
 
 
 class TestSkyLocationWanderJump(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(ra=prior.Uniform(minimum=0.0, maximum=2*np.pi, boundary='periodic'),
-                                           dec=prior.Uniform(minimum=0.0, maximum=np.pi, boundary='reflective')))
-        self.jump_proposal = bilby.gw.sampler.proposal.SkyLocationWanderJump(priors=self.priors)
+        self.priors = prior.PriorDict(
+            dict(
+                ra=prior.Uniform(minimum=0.0, maximum=2 * np.pi, boundary="periodic"),
+                dec=prior.Uniform(minimum=0.0, maximum=np.pi, boundary="reflective"),
+            )
+        )
+        self.jump_proposal = bilby.gw.sampler.proposal.SkyLocationWanderJump(
+            priors=self.priors
+        )
 
     def tearDown(self):
         del self.priors
         del self.jump_proposal
 
     def test_jump_proposal_call_without_inverse_temperature(self):
-        with mock.patch('random.gauss') as m:
+        with mock.patch("random.gauss") as m:
             m.return_value = 1
             sample = proposal.Sample(dict(ra=0.2, dec=-0.5))
             expected = proposal.Sample(dict(ra=1.2, dec=0.5))
@@ -357,7 +436,7 @@ class TestSkyLocationWanderJump(unittest.TestCase):
             m.assert_called_with(0, 1.0 / 2 / np.pi)
 
     def test_jump_proposal_call_with_inverse_temperature(self):
-        with mock.patch('random.gauss') as m:
+        with mock.patch("random.gauss") as m:
             m.return_value = 1
             sample = proposal.Sample(dict(ra=0.2, dec=-0.5))
             expected = proposal.Sample(dict(ra=1.2, dec=0.5))
@@ -368,41 +447,55 @@ class TestSkyLocationWanderJump(unittest.TestCase):
 
 
 class TestCorrelatedPolarisationPhaseJump(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(phase=prior.Uniform(minimum=0.0, maximum=2*np.pi),
-                                           psi=prior.Uniform(minimum=0.0, maximum=np.pi)))
-        self.jump_proposal = bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(priors=self.priors)
+        self.priors = prior.PriorDict(
+            dict(
+                phase=prior.Uniform(minimum=0.0, maximum=2 * np.pi),
+                psi=prior.Uniform(minimum=0.0, maximum=np.pi),
+            )
+        )
+        self.jump_proposal = bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(
+            priors=self.priors
+        )
 
     def tearDown(self):
         del self.priors
         del self.jump_proposal
 
     def test_jump_proposal_call_case_1(self):
-        with mock.patch('random.random') as m:
+        with mock.patch("random.random") as m:
             m.return_value = 0.3
             sample = proposal.Sample(dict(phase=0.2, psi=0.5))
             alpha = 3.0 * np.pi * 0.3
             beta = 0.3
-            expected = proposal.Sample(dict(phase=0.5*(alpha-beta), psi=0.5*(alpha+beta)))
+            expected = proposal.Sample(
+                dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta))
+            )
             self.assertEqual(expected, self.jump_proposal(sample, coordinates=None))
 
     def test_jump_proposal_call_case_2(self):
-        with mock.patch('random.random') as m:
+        with mock.patch("random.random") as m:
             m.return_value = 0.7
             sample = proposal.Sample(dict(phase=0.2, psi=0.5))
             alpha = 0.7
             beta = 3.0 * np.pi * 0.7 - 2 * np.pi
-            expected = proposal.Sample(dict(phase=0.5*(alpha-beta), psi=0.5*(alpha+beta)))
+            expected = proposal.Sample(
+                dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta))
+            )
             self.assertEqual(expected, self.jump_proposal(sample))
 
 
 class TestPolarisationPhaseJump(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(phase=prior.Uniform(minimum=0.0, maximum=2*np.pi),
-                                           psi=prior.Uniform(minimum=0.0, maximum=np.pi)))
-        self.jump_proposal = bilby.gw.sampler.proposal.PolarisationPhaseJump(priors=self.priors)
+        self.priors = prior.PriorDict(
+            dict(
+                phase=prior.Uniform(minimum=0.0, maximum=2 * np.pi),
+                psi=prior.Uniform(minimum=0.0, maximum=np.pi),
+            )
+        )
+        self.jump_proposal = bilby.gw.sampler.proposal.PolarisationPhaseJump(
+            priors=self.priors
+        )
 
     def tearDown(self):
         del self.priors
@@ -410,15 +503,18 @@ class TestPolarisationPhaseJump(unittest.TestCase):
 
     def test_jump_proposal_call(self):
         sample = proposal.Sample(dict(phase=0.2, psi=0.5))
-        expected = proposal.Sample(dict(phase=0.2+np.pi, psi=0.5+np.pi/2))
+        expected = proposal.Sample(dict(phase=0.2 + np.pi, psi=0.5 + np.pi / 2))
         self.assertEqual(expected, self.jump_proposal(sample))
 
 
 class TestDrawFlatPrior(unittest.TestCase):
-
     def setUp(self):
-        self.priors = prior.PriorDict(dict(phase=prior.Uniform(minimum=0.0, maximum=2*np.pi),
-                                           psi=prior.Cosine(minimum=0.0, maximum=np.pi)))
+        self.priors = prior.PriorDict(
+            dict(
+                phase=prior.Uniform(minimum=0.0, maximum=2 * np.pi),
+                psi=prior.Cosine(minimum=0.0, maximum=np.pi),
+            )
+        )
         self.jump_proposal = proposal.DrawFlatPrior(priors=self.priors)
 
     def tearDown(self):
@@ -426,7 +522,7 @@ class TestDrawFlatPrior(unittest.TestCase):
         del self.jump_proposal
 
     def test_jump_proposal_call(self):
-        with mock.patch('bilby.core.prior.Uniform.sample') as m:
+        with mock.patch("bilby.core.prior.Uniform.sample") as m:
             m.return_value = 0.3
             sample = proposal.Sample(dict(phase=0.2, psi=0.5))
             expected = proposal.Sample(dict(phase=0.3, psi=0.3))

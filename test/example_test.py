@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 
 import unittest
 import os
@@ -12,14 +13,14 @@ from past.builtins import execfile
 import bilby.core.utils
 
 # Imported to ensure the examples run
-import numpy as np
-import inspect
+import numpy as np  # noqa: F401
+import inspect  # noqa: F401
 
 bilby.core.utils.command_line_args.bilby_test_mode = True
 
 
 class Test(unittest.TestCase):
-    outdir = 'outdir'
+    outdir = "outdir"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     dir_path = os.path.abspath(os.path.join(dir_path, os.path.pardir))
 
@@ -29,8 +30,7 @@ class Test(unittest.TestCase):
             try:
                 shutil.rmtree(self.outdir)
             except OSError:
-                logging.warning(
-                    "{} not removed prior to tests".format(self.outdir))
+                logging.warning("{} not removed prior to tests".format(self.outdir))
 
     @classmethod
     def tearDownClass(self):
@@ -38,20 +38,18 @@ class Test(unittest.TestCase):
             try:
                 shutil.rmtree(self.outdir)
             except OSError:
-                logging.warning(
-                    "{} not removed prior to tests".format(self.outdir))
+                logging.warning("{} not removed prior to tests".format(self.outdir))
 
     def test_examples(self):
         """ Loop over examples to check they run """
-        examples = ['examples/core_examples/linear_regression.py',
-                    'examples/core_examples/linear_regression_unknown_noise.py',
-                    ]
+        examples = [
+            "examples/core_examples/linear_regression.py",
+            "examples/core_examples/linear_regression_unknown_noise.py",
+        ]
         for filename in examples:
             print("Testing {}".format(filename))
             execfile(filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-
-
