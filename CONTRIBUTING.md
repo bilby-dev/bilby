@@ -49,6 +49,33 @@ def my_new_function(x, y, print=False):
 5. Don't repeat yourself. If code is repeated in multiple places, wrap it up into a function.
 6. Add tests. The C.I. is there to do the work of "checking" the code, both now and into the future. Use it.
 
+## Automated code checking
+
+In order to automate checking of the code quality, we use
+[pre-commit](https://pre-commit.com/). For more details, see the documentation,
+here we will give a quick-start guide:
+1. Install and configure:
+```console
+$ pip install pre-commit  # install the pre-commit package
+$ cd bilby
+$ pre-commit install
+```
+2. Now, when you run `$ git commit`, there will be a pre-commit check.
+   This is going to search for issues in your code: spelling, formatting, etc.
+   In some cases, it will automatically fix the code, in other cases, it will
+   print a warning. If it automatically fixed the code, you'll need to add the
+   changes to the index (`$ git add FILE.py`) and run `$ git commit` again. If
+   it didn't automatically fix the code, but still failed, it will have printed
+   a message as to why the commit failed. Read the message, fix the issues,
+   then recommit.
+3. The pre-commit checks are done to avoid pushing and then failing. But, you
+   can skip them by running `$ git commit --no-verify`, but note that the C.I.
+   still does the check so you won't be able to merge until the issues are
+   resolved.
+If you experience any issues with pre-commit, please ask for support on the
+usual help channels.
+
+
 ## Code relevance
 
 The bilby code base is intended to be highly modular and flexible. We encourage

@@ -6,7 +6,6 @@ from bilby.core import utils
 
 
 class TestInferParameters(unittest.TestCase):
-
     def setUp(self):
         def source_function1(freqs, a, b: int):
             return None
@@ -40,26 +39,26 @@ class TestInferParameters(unittest.TestCase):
         del self.source4
 
     def test_type_hinting(self):
-        expected = ['a', 'b']
+        expected = ["a", "b"]
         actual = utils.infer_parameters_from_function(self.source1)
         self.assertListEqual(expected, actual)
 
     def test_args_kwargs_handling(self):
-        expected = ['a', 'b']
+        expected = ["a", "b"]
         actual = utils.infer_parameters_from_function(self.source2)
         self.assertListEqual(expected, actual)
 
     def test_both(self):
-        expected = ['a', 'b']
+        expected = ["a", "b"]
         actual = utils.infer_parameters_from_function(self.source3)
         self.assertListEqual(expected, actual)
 
     def test_self_handling(self):
-        expected = ['a', 'b']
+        expected = ["a", "b"]
         actual = utils.infer_args_from_method(self.source4)
         self.assertListEqual(expected, actual)
 
     def test_self_handling_method_as_function(self):
-        expected = ['a', 'b']
+        expected = ["a", "b"]
         actual = utils.infer_args_from_method(self.source5)
         self.assertListEqual(expected, actual)
