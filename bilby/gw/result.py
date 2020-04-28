@@ -393,7 +393,13 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 )
             )
         else:
-            fig, axs = plt.subplots(2, 1)
+            old_font_size = rcParams["font.size"]
+            rcParams["font.size"] = 20
+            fig, axs = plt.subplots(
+                2, 1,
+                gridspec_kw=dict(height_ratios=[1.5, 1]),
+                figsize=(16, 12.5)
+            )
 
         if PLOT_DATA:
             if format == "html":
@@ -567,9 +573,10 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 col=1,
             )
         else:
+            lower_limit = np.mean(fd_waveforms, axis=0)[0] / 1e3
             axs[0].loglog(
                 plot_frequencies,
-                np.median(fd_waveforms, axis=0), color=WAVEFORM_COLOR, label='Median reconstructed')
+                np.mean(fd_waveforms, axis=0), color=WAVEFORM_COLOR, label='Mean reconstructed')
             axs[0].fill_between(
                 plot_frequencies,
                 np.percentile(fd_waveforms, lower_percentile, axis=0),
@@ -578,7 +585,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     int(upper_percentile - lower_percentile)),
                 alpha=0.3)
             axs[1].plot(
-                plot_times, np.median(td_waveforms, axis=0),
+                plot_times, np.mean(td_waveforms, axis=0),
                 color=WAVEFORM_COLOR)
             axs[1].fill_between(
                 plot_times, np.percentile(
@@ -653,12 +660,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
             axs[0].set_xlim(interferometer.minimum_frequency,
                             interferometer.maximum_frequency)
             axs[1].set_xlim(start_time, end_time)
-
+            axs[0].set_ylim(lower_limit)
             axs[0].set_xlabel(f_domain_x_label)
             axs[0].set_ylabel(f_domain_y_label)
             axs[1].set_xlabel(t_domain_x_label)
             axs[1].set_ylabel(t_domain_y_label)
-            axs[0].legend(loc='lower left')
+            axs[0].legend(loc='lower left', ncol=2)
 
         if save:
             filename = os.path.join(
@@ -675,7 +682,9 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 )
                 plt.close()
             logger.debug("Waveform figure saved to {}".format(filename))
+            rcParams["font.size"] = old_font_size
         else:
+            rcParams["font.size"] = old_font_size
             return fig
 
     def plot_skymap(
