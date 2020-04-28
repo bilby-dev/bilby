@@ -22,7 +22,7 @@ from .utils import (
     check_directory_exists_and_if_not_mkdir,
     latex_plot_format, safe_save_figure,
 )
-from .utils import BilbyJsonEncoder, decode_bilby_json
+from .utils import BilbyJsonEncoder, load_json, move_old_file
 from .prior import Prior, PriorDict, DeltaFunction
 
 
@@ -259,14 +259,7 @@ class Result(object):
         filename = _determine_file_name(filename, outdir, label, 'json', gzip)
 
         if os.path.isfile(filename):
-            if gzip or os.path.splitext(filename)[1].lstrip('.') == 'gz':
-                import gzip
-                with gzip.GzipFile(filename, 'r') as file:
-                    json_str = file.read().decode('utf-8')
-                dictionary = json.loads(json_str, object_hook=decode_bilby_json)
-            else:
-                with open(filename, 'r') as file:
-                    dictionary = json.load(file, object_hook=decode_bilby_json)
+            dictionary = load_json(filename, gzip)
             try:
                 return cls(**dictionary)
             except TypeError as e:
@@ -468,17 +461,7 @@ class Result(object):
         if filename is None:
             filename = result_file_name(outdir, self.label, extension, gzip)
 
-        if os.path.isfile(filename):
-            if overwrite:
-                logger.debug('Removing existing file {}'.format(filename))
-                os.remove(filename)
-            else:
-                logger.debug(
-                    'Renaming existing file {} to {}.old'.format(filename,
-                                                                 filename))
-                os.rename(filename, filename + '.old')
-
-        logger.debug("Saving result to {}".format(filename))
+        move_old_file(filename, overwrite)
 
         # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()

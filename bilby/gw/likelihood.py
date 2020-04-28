@@ -439,14 +439,7 @@ class GravitationalWaveTransient(Likelihood):
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
-        d_inner_h = 0
-        h_inner_h = 0
-        for interferometer in self.interferometers:
-            per_detector_snr = self.calculate_snrs(
-                signal_polarizations, interferometer)
-
-            d_inner_h += per_detector_snr.d_inner_h
-            h_inner_h += per_detector_snr.optimal_snr_squared
+        d_inner_h, h_inner_h = self._calculate_inner_products(signal_polarizations)
 
         d_inner_h_dist = (
             d_inner_h * self.parameters['luminosity_distance'] /
@@ -471,6 +464,17 @@ class GravitationalWaveTransient(Likelihood):
 
         self._rescale_signal(signal_polarizations, new_distance)
         return new_distance
+
+    def _calculate_inner_products(self, signal_polarizations):
+        d_inner_h = 0
+        h_inner_h = 0
+        for interferometer in self.interferometers:
+            per_detector_snr = self.calculate_snrs(
+                signal_polarizations, interferometer)
+
+            d_inner_h += per_detector_snr.d_inner_h
+            h_inner_h += per_detector_snr.optimal_snr_squared
+        return d_inner_h, h_inner_h
 
     def generate_phase_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
@@ -497,14 +501,7 @@ class GravitationalWaveTransient(Likelihood):
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
-        d_inner_h = 0
-        h_inner_h = 0
-        for interferometer in self.interferometers:
-            per_detector_snr = self.calculate_snrs(
-                signal_polarizations, interferometer)
-
-            d_inner_h += per_detector_snr.d_inner_h
-            h_inner_h += per_detector_snr.optimal_snr_squared
+        d_inner_h, h_inner_h = self._calculate_inner_products(signal_polarizations)
 
         phases = np.linspace(0, 2 * np.pi, 101)
         phasor = np.exp(-2j * phases)

@@ -3,7 +3,6 @@ from ..utils import logger, get_progress_bar
 import numpy as np
 import os
 from .emcee import Emcee
-from .base_sampler import SamplerError
 
 
 class Kombine(Emcee):
@@ -157,20 +156,11 @@ class Kombine(Emcee):
             tmp_chain = self.sampler.chain.copy()
             self.calculate_autocorrelation(tmp_chain.reshape((-1, self.ndim)))
             self.print_nburn_logging_info()
-        self.result.nburn = self.nburn
-        if self.result.nburn > self.nsteps:
-            raise SamplerError(
-                "The run has finished, but the chain is not burned in: `nburn < nsteps` ({} < {}). Try increasing the "
-                "number of steps.".format(self.result.nburn, self.nsteps))
+
+        self._generate_result()
+        self.result.log_evidence_err = np.nan
+
         tmp_chain = self.sampler.chain[self.nburn:, :, :].copy()
         self.result.samples = tmp_chain.reshape((-1, self.ndim))
-        blobs = np.array(self.sampler.blobs)
-        blobs_trimmed = blobs[self.nburn:, :, :].reshape((-1, 2))
-        self.calc_likelihood_count()
-        log_likelihoods, log_priors = blobs_trimmed.T
-        self.result.log_likelihood_evaluations = log_likelihoods
-        self.result.log_prior_evaluations = log_priors
         self.result.walkers = self.sampler.chain.reshape((self.nwalkers, self.nsteps, self.ndim))
-        self.result.log_evidence = np.nan
-        self.result.log_evidence_err = np.nan
         return self.result
