@@ -469,43 +469,13 @@ class Pymc3(MCMCSampler):
                         for sms in self.step_method[key]:
                             curmethod = sms.lower()
                             methodslist.append(curmethod)
-                            args = {}
-                            if curmethod == 'nuts':
-                                if nuts_kwargs is not None:
-                                    args = nuts_kwargs
-                                elif step_kwargs is not None:
-                                    args = step_kwargs.pop('nuts', {})
-                                    # add values into nuts_kwargs
-                                    nuts_kwargs = args
-                                else:
-                                    args = {}
-                            else:
-                                if step_kwargs is not None:
-                                    args = step_kwargs.get(curmethod, {})
-                                else:
-                                    args = {}
-                            self.kwargs['step'].append(
-                                pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+                            nuts_kwargs = self._create_nuts_kwargs(curmethod, key, nuts_kwargs, pymc3, step_kwargs,
+                                                                   step_methods)
                     else:
                         curmethod = self.step_method[key].lower()
                         methodslist.append(curmethod)
-                        args = {}
-                        if curmethod == 'nuts':
-                            if nuts_kwargs is not None:
-                                args = nuts_kwargs
-                            elif step_kwargs is not None:
-                                args = step_kwargs.pop('nuts', {})
-                                # add values into nuts_kwargs
-                                nuts_kwargs = args
-                            else:
-                                args = {}
-                        else:
-                            if step_kwargs is not None:
-                                args = step_kwargs.get(curmethod, {})
-                            else:
-                                args = {}
-                        self.kwargs['step'].append(
-                            pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+                        nuts_kwargs = self._create_nuts_kwargs(curmethod, key, nuts_kwargs, pymc3, step_kwargs,
+                                                               step_methods)
         else:
             with self.pymc3_model:
                 # check for a compound step list
@@ -514,18 +484,7 @@ class Pymc3(MCMCSampler):
                     for sms in self.step_method:
                         curmethod = sms.lower()
                         methodslist.append(curmethod)
-                        args = {}
-                        if curmethod == 'nuts':
-                            if nuts_kwargs is not None:
-                                args = nuts_kwargs
-                            elif step_kwargs is not None:
-                                args = step_kwargs.pop('nuts', {})
-                                # add values into nuts_kwargs
-                                nuts_kwargs = args
-                            else:
-                                args = {}
-                        else:
-                            args = step_kwargs.get(curmethod, {})
+                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(curmethod, nuts_kwargs, step_kwargs)
                         compound.append(pymc3.__dict__[step_methods[curmethod]](**args))
                         self.kwargs['step'] = compound
                 else:
@@ -533,18 +492,7 @@ class Pymc3(MCMCSampler):
                     if self.step_method is not None:
                         curmethod = self.step_method.lower()
                         methodslist.append(curmethod)
-                        args = {}
-                        if curmethod == 'nuts':
-                            if nuts_kwargs is not None:
-                                args = nuts_kwargs
-                            elif step_kwargs is not None:
-                                args = step_kwargs.pop('nuts', {})
-                                # add values into nuts_kwargs
-                                nuts_kwargs = args
-                            else:
-                                args = {}
-                        else:
-                            args = step_kwargs.get(curmethod, {})
+                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(curmethod, nuts_kwargs, step_kwargs)
                         self.kwargs['step'] = pymc3.__dict__[step_methods[curmethod]](**args)
                     else:
                         # re-add step_kwargs if no step methods are set
@@ -581,6 +529,37 @@ class Pymc3(MCMCSampler):
         self.result.log_evidence_err = np.nan
         self.calc_likelihood_count()
         return self.result
+
+    def _create_args_and_nuts_kwargs(self, curmethod, nuts_kwargs, step_kwargs):
+        if curmethod == 'nuts':
+            args, nuts_kwargs = self._get_nuts_args(nuts_kwargs, step_kwargs)
+        else:
+            args = step_kwargs.get(curmethod, {})
+        return args, nuts_kwargs
+
+    def _create_nuts_kwargs(self, curmethod, key, nuts_kwargs, pymc3, step_kwargs, step_methods):
+        if curmethod == 'nuts':
+            args, nuts_kwargs = self._get_nuts_args(nuts_kwargs, step_kwargs)
+        else:
+            if step_kwargs is not None:
+                args = step_kwargs.get(curmethod, {})
+            else:
+                args = {}
+        self.kwargs['step'].append(
+            pymc3.__dict__[step_methods[curmethod]](vars=[self.pymc3_priors[key]], **args))
+        return nuts_kwargs
+
+    @staticmethod
+    def _get_nuts_args(nuts_kwargs, step_kwargs):
+        if nuts_kwargs is not None:
+            args = nuts_kwargs
+        elif step_kwargs is not None:
+            args = step_kwargs.pop('nuts', {})
+            # add values into nuts_kwargs
+            nuts_kwargs = args
+        else:
+            args = {}
+        return args, nuts_kwargs
 
     def set_prior(self):
         """

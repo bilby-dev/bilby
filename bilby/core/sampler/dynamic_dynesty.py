@@ -5,7 +5,6 @@ import dill as pickle
 import signal
 
 import numpy as np
-from pandas import DataFrame
 
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import Sampler
@@ -139,20 +138,7 @@ class DynamicDynesty(Dynesty):
             print("")
 
         # self.result.sampler_output = out
-        weights = np.exp(out['logwt'] - out['logz'][-1])
-        nested_samples = DataFrame(
-            out.samples, columns=self.search_parameter_keys)
-        nested_samples['weights'] = weights
-        nested_samples['log_likelihood'] = out.logl
-
-        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
-        self.result.nested_samples = nested_samples
-        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
-            unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
-            sorted_samples=self.result.samples)
-        self.result.log_evidence = out.logz[-1]
-        self.result.log_evidence_err = out.logzerr[-1]
-
+        self._generate_result(out)
         if self.plot:
             self.generate_trace_plots(out)
 

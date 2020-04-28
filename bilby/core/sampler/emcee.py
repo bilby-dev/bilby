@@ -373,20 +373,26 @@ class Emcee(MCMCSampler):
         self.calculate_autocorrelation(
             self.sampler.chain.reshape((-1, self.ndim)))
         self.print_nburn_logging_info()
-        self.calc_likelihood_count()
+
+        self._generate_result()
+
+        self.result.samples = self.sampler.chain[:, self.nburn:, :].reshape(
+            (-1, self.ndim))
+        self.result.walkers = self.sampler.chain
+        return self.result
+
+    def _generate_result(self):
         self.result.nburn = self.nburn
+        self.calc_likelihood_count()
         if self.result.nburn > self.nsteps:
             raise SamplerError(
                 "The run has finished, but the chain is not burned in: "
-                "`nburn < nsteps`. Try increasing the number of steps.")
-        self.result.samples = self.sampler.chain[:, self.nburn:, :].reshape(
-            (-1, self.ndim))
+                "`nburn < nsteps` ({} < {}). Try increasing the "
+                "number of steps.".format(self.result.nburn, self.nsteps))
         blobs = np.array(self.sampler.blobs)
         blobs_trimmed = blobs[self.nburn:, :, :].reshape((-1, 2))
         log_likelihoods, log_priors = blobs_trimmed.T
         self.result.log_likelihood_evaluations = log_likelihoods
         self.result.log_prior_evaluations = log_priors
-        self.result.walkers = self.sampler.chain
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
-        return self.result

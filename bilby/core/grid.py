@@ -8,7 +8,7 @@ from collections import OrderedDict
 from .prior import Prior, PriorDict
 from .utils import (logtrapzexp, check_directory_exists_and_if_not_mkdir,
                     logger)
-from .utils import BilbyJsonEncoder, decode_bilby_json
+from .utils import BilbyJsonEncoder, load_json, move_old_file
 from .result import FileMovedError
 
 
@@ -397,18 +397,7 @@ class Grid(object):
 
             filename = grid_file_name(outdir, self.label, gzip)
 
-        if os.path.isfile(filename):
-            if overwrite:
-                logger.debug('Removing existing file {}'.format(filename))
-                os.remove(filename)
-            else:
-                logger.debug(
-                    'Renaming existing file {} to {}.old'.format(filename,
-                                                                 filename))
-                os.rename(filename, filename + '.old')
-
-        logger.debug("Saving result to {}".format(filename))
-
+        move_old_file(filename, overwrite)
         dictionary = self._get_save_data_dictionary()
 
         try:
@@ -452,23 +441,14 @@ class Grid(object):
 
         """
 
-        if filename is not None:
-            fname = filename
-        else:
+        if filename is None:
             if (outdir is None) and (label is None):
                 raise ValueError("No information given to load file")
             else:
-                fname = grid_file_name(outdir, label, gzip)
+                filename = grid_file_name(outdir, label, gzip)
 
-        if os.path.isfile(fname):
-            if gzip or os.path.splitext(fname)[1].lstrip('.') == 'gz':
-                import gzip
-                with gzip.GzipFile(fname, 'r') as file:
-                    json_str = file.read().decode('utf-8')
-                dictionary = json.loads(json_str, object_hook=decode_bilby_json)
-            else:
-                with open(fname, 'r') as file:
-                    dictionary = json.load(file, object_hook=decode_bilby_json)
+        if os.path.isfile(filename):
+            dictionary = load_json(filename, gzip)
             try:
                 grid = cls(likelihood=None, priors=dictionary['priors'],
                            grid_size=dictionary['sample_points'],

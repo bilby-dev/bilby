@@ -3,7 +3,7 @@ import scipy.stats
 from scipy.special import erfinv
 
 from .base import Prior, PriorException
-from bilby.core.utils import logger, infer_args_from_method
+from bilby.core.utils import logger, infer_args_from_method, get_dict_with_properties
 
 
 class BaseJointPriorDist(object):
@@ -105,11 +105,7 @@ class BaseJointPriorDist(object):
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
-        property_names = [p for p in dir(self.__class__)
-                          if isinstance(getattr(self.__class__, p), property)]
-        dict_with_properties = self.__dict__.copy()
-        for key in property_names:
-            dict_with_properties[key] = getattr(self, key)
+        dict_with_properties = get_dict_with_properties(self)
         instantiation_dict = dict()
         for key in subclass_args:
             if isinstance(dict_with_properties[key], list):

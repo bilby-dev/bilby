@@ -357,26 +357,29 @@ class Dynesty(NestedSampler):
         with open(dynesty_result, 'wb') as file:
             pickle.dump(out, file)
 
-        weights = np.exp(out['logwt'] - out['logz'][-1])
-        nested_samples = DataFrame(
-            out.samples, columns=self.search_parameter_keys)
-        nested_samples['weights'] = weights
-        nested_samples['log_likelihood'] = out.logl
-
-        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
-        self.result.nested_samples = nested_samples
-        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
-            unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
-            sorted_samples=self.result.samples)
+        self._generate_result(out)
         self.calc_likelihood_count()
-        self.result.log_evidence = out.logz[-1]
-        self.result.log_evidence_err = out.logzerr[-1]
         self.result.sampling_time = self.sampling_time
 
         if self.plot:
             self.generate_trace_plots(out)
 
         return self.result
+
+    def _generate_result(self, out):
+        import dynesty
+        weights = np.exp(out['logwt'] - out['logz'][-1])
+        nested_samples = DataFrame(
+            out.samples, columns=self.search_parameter_keys)
+        nested_samples['weights'] = weights
+        nested_samples['log_likelihood'] = out.logl
+        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+        self.result.nested_samples = nested_samples
+        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
+            unsorted_loglikelihoods=out.logl, unsorted_samples=out.samples,
+            sorted_samples=self.result.samples)
+        self.result.log_evidence = out.logz[-1]
+        self.result.log_evidence_err = out.logzerr[-1]
 
     def _run_nested_wrapper(self, kwargs):
         """ Wrapper function to run_nested

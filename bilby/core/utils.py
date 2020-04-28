@@ -131,6 +131,15 @@ def _infer_args_from_function_except_for_first_arg(func):
     return infer_args_from_function_except_n_args(func=func, n=1)
 
 
+def get_dict_with_properties(obj):
+    property_names = [p for p in dir(obj.__class__)
+                      if isinstance(getattr(obj.__class__, p), property)]
+    dict_with_properties = obj.__dict__.copy()
+    for key in property_names:
+        dict_with_properties[key] = getattr(obj, key)
+    return dict_with_properties
+
+
 def get_sampling_frequency(time_array):
     """
     Calculate sampling frequency from a time series
@@ -1020,6 +1029,41 @@ def encode_astropy_quantity(dct):
     if isinstance(dct['value'], np.ndarray):
         dct['value'] = list(dct['value'])
     return dct
+
+
+def move_old_file(filename, overwrite=False):
+    """ Moves or removes an old file.
+
+    Parameters
+    ----------
+    filename: str
+        Name of the file to be move
+    overwrite: bool, optional
+        Whether or not to remove the file or to change the name
+        to filename + '.old'
+    """
+    if os.path.isfile(filename):
+        if overwrite:
+            logger.debug('Removing existing file {}'.format(filename))
+            os.remove(filename)
+        else:
+            logger.debug(
+                'Renaming existing file {} to {}.old'.format(filename,
+                                                             filename))
+            os.rename(filename, filename + '.old')
+    logger.debug("Saving result to {}".format(filename))
+
+
+def load_json(filename, gzip):
+    if gzip or os.path.splitext(filename)[1].lstrip('.') == 'gz':
+        import gzip
+        with gzip.GzipFile(filename, 'r') as file:
+            json_str = file.read().decode('utf-8')
+        dictionary = json.loads(json_str, object_hook=decode_bilby_json)
+    else:
+        with open(filename, 'r') as file:
+            dictionary = json.load(file, object_hook=decode_bilby_json)
+    return dictionary
 
 
 def decode_bilby_json(dct):
