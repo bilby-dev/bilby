@@ -94,6 +94,114 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     return result
 
 
+def reweight(result, label=None, new_likelihood=None, new_prior=None,
+             old_likelihood=None, old_prior=None, resample=True, fraction=0.1,
+             replace=False):
+    """ Reweight a result to a new likelihood/prior
+
+    Parameters
+    ----------
+    label: str, optional
+        An updated label to apply to the result object
+    new_likelihood: bilby.core.likelood.Likelihood, (optional)
+        If given, the new likelihood to reweight too. If not given, likelihood
+        reweighting is not applied
+    new_prior: bilby.core.prior.PriorDict, (optional)
+        If given, the new prior to reweight too. If not given, prior
+        reweighting is not applied
+    old_likelihood: bilby.core.likelihood.Likelihood, (optional)
+        If given, calculate the old likelihoods from this object. If not given,
+        the values stored in the posterior are used.
+    old_prior: bilby.core.prior.PriorDict, (optional)
+        If given, calculate the old prior from this object. If not given,
+        the values stored in the posterior are used.
+    resample: bool (default: True)
+        If true, resample to the effective number of samples after reweighting
+    fraction: float [0, 1]
+        A multiplictive factor to apply to the effective number of samples
+    replace: bool
+        If true, sample with replacement
+
+    Note:
+        The default settings have been tested in low dimensional cases.
+        Appropriate steps should be taken in high dimensional cases and when
+        changing the fraction, and replace settings.
+
+    Returns
+    -------
+    result: bilby.core.result.Result
+        A copy of the result object with a reweighted posterior
+
+    """
+
+    result = copy(result)
+    nposterior = len(result.posterior)
+    logger.info("Reweighting posterior with {} samples".format(nposterior))
+
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    for ii, sample in result.posterior.iterrows():
+        # Convert sample to dictionary
+        par_sample = {key: sample[key] for key in result.search_parameter_keys}
+
+        if old_likelihood is not None:
+            old_likelihood.parameters.update(par_sample)
+            old_log_likelihood_array[ii] = old_likelihood.log_likelihood()
+        else:
+            old_log_likelihood_array[ii] = sample["log_likelihood"]
+
+        if new_likelihood is not None:
+            new_likelihood.parameters.update(par_sample)
+            new_log_likelihood_array[ii] = new_likelihood.log_likelihood()
+        else:
+            # Don't perform likelihood reweighting (i.e. likelihood isn't updated)
+            new_log_likelihood_array[ii] = old_log_likelihood_array[ii]
+
+        if old_prior is not None:
+            old_log_prior_array[ii] = old_prior.ln_prob(par_sample)
+        else:
+            old_log_prior_array[ii] = sample["log_prior"]
+
+        if new_prior is not None:
+            new_log_prior_array[ii] = new_prior.ln_prob(par_sample)
+        else:
+            # Don't perform prior reweighting (i.e. prior isn't updated)
+            new_log_prior_array[ii] = old_log_prior_array[ii]
+
+    ln_weights = (
+        new_log_likelihood_array + new_log_prior_array
+        - old_log_likelihood_array - old_log_prior_array)
+    log_n_eff = 2 * logsumexp(ln_weights) - logsumexp(2 * ln_weights)
+    n_eff = int(fraction * np.exp(log_n_eff))
+    logger.info("Reweighted posterior has {} effective samples".format(n_eff))
+    weights = np.exp(ln_weights)
+
+    if resample:
+        nsamples = n_eff
+    else:
+        nsamples = nposterior
+
+    # Overwrite the likelihood and prior evaluations
+    result.posterior["log_likelihood"] = new_log_likelihood_array
+    result.posterior["log_prior"] = new_log_prior_array
+
+    # Resample
+    result.posterior = result.posterior.sample(nsamples, weights=weights, replace=replace)
+    result.priors = new_prior
+
+    result.log_evidence += np.mean(weights)
+
+    if label:
+        result.label = label
+    else:
+        result.label += "_reweighted"
+
+    return result
+
+
 class Result(object):
     def __init__(self, label='no_label', outdir='.', sampler=None,
                  search_parameter_keys=None, fixed_parameter_keys=None,
