@@ -572,6 +572,16 @@ class Dynesty(NestedSampler):
         if self.sampler.pool is not None:
             self.sampler.M = self.sampler.pool.map
 
+        self.dump_samples_to_dat()
+
+    def dump_samples_to_dat(self):
+        from dynesty.utils import resample_equal
+        sampler = self.sampler
+        weights = np.exp(sampler.saved_logwt - sampler.saved_logz[-1])
+        samples = resample_equal(np.array(sampler.saved_v), weights)
+        self.search_parameter_keys
+        import IPython; IPython.embed()
+
     def plot_current_state(self):
         if self.check_point_plot:
             import dynesty.plotting as dyplot
