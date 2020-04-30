@@ -94,6 +94,63 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     return result
 
 
+def get_weights_for_reweighting(
+        result, new_likelihood=None, new_prior=None, old_likelihood=None,
+        old_prior=None):
+    """ Calculate the weights for reweight()
+
+    See bilby.core.result.reweight() for help with the inputs
+
+    Returns
+    -------
+    ln_weights: array
+        An array of the natural-log weights
+    new_log_likelihood_array: array
+        An array of the natural-log likelihoods
+    new_log_prior_array: array
+        An array of the natural-log priors
+
+    """
+    nposterior = len(result.posterior)
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    for ii, sample in result.posterior.iterrows():
+        # Convert sample to dictionary
+        par_sample = {key: sample[key] for key in result.search_parameter_keys}
+
+        if old_likelihood is not None:
+            old_likelihood.parameters.update(par_sample)
+            old_log_likelihood_array[ii] = old_likelihood.log_likelihood()
+        else:
+            old_log_likelihood_array[ii] = sample["log_likelihood"]
+
+        if new_likelihood is not None:
+            new_likelihood.parameters.update(par_sample)
+            new_log_likelihood_array[ii] = new_likelihood.log_likelihood()
+        else:
+            # Don't perform likelihood reweighting (i.e. likelihood isn't updated)
+            new_log_likelihood_array[ii] = old_log_likelihood_array[ii]
+
+        if old_prior is not None:
+            old_log_prior_array[ii] = old_prior.ln_prob(par_sample)
+        else:
+            old_log_prior_array[ii] = sample["log_prior"]
+
+        if new_prior is not None:
+            new_log_prior_array[ii] = new_prior.ln_prob(par_sample)
+        else:
+            # Don't perform prior reweighting (i.e. prior isn't updated)
+            new_log_prior_array[ii] = old_log_prior_array[ii]
+
+    ln_weights = (
+        new_log_likelihood_array + new_log_prior_array - old_log_likelihood_array - old_log_prior_array)
+
+    return ln_weights, new_log_likelihood_array, new_log_prior_array
+
+
 def reweight(result, label=None, new_likelihood=None, new_prior=None,
              old_likelihood=None, old_prior=None, resample=True, fraction=0.1,
              replace=False):
@@ -138,42 +195,9 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     nposterior = len(result.posterior)
     logger.info("Reweighting posterior with {} samples".format(nposterior))
 
-    old_log_likelihood_array = np.zeros(nposterior)
-    old_log_prior_array = np.zeros(nposterior)
-    new_log_likelihood_array = np.zeros(nposterior)
-    new_log_prior_array = np.zeros(nposterior)
+    ln_weights, new_log_likelihood_array, new_log_prior_array = get_weights_for_reweighting(
+        result, new_likelihood=None, new_prior=None, old_likelihood=None, old_prior=None)
 
-    for ii, sample in result.posterior.iterrows():
-        # Convert sample to dictionary
-        par_sample = {key: sample[key] for key in result.search_parameter_keys}
-
-        if old_likelihood is not None:
-            old_likelihood.parameters.update(par_sample)
-            old_log_likelihood_array[ii] = old_likelihood.log_likelihood()
-        else:
-            old_log_likelihood_array[ii] = sample["log_likelihood"]
-
-        if new_likelihood is not None:
-            new_likelihood.parameters.update(par_sample)
-            new_log_likelihood_array[ii] = new_likelihood.log_likelihood()
-        else:
-            # Don't perform likelihood reweighting (i.e. likelihood isn't updated)
-            new_log_likelihood_array[ii] = old_log_likelihood_array[ii]
-
-        if old_prior is not None:
-            old_log_prior_array[ii] = old_prior.ln_prob(par_sample)
-        else:
-            old_log_prior_array[ii] = sample["log_prior"]
-
-        if new_prior is not None:
-            new_log_prior_array[ii] = new_prior.ln_prob(par_sample)
-        else:
-            # Don't perform prior reweighting (i.e. prior isn't updated)
-            new_log_prior_array[ii] = old_log_prior_array[ii]
-
-    ln_weights = (
-        new_log_likelihood_array + new_log_prior_array
-        - old_log_likelihood_array - old_log_prior_array)
     log_n_eff = 2 * logsumexp(ln_weights) - logsumexp(2 * ln_weights)
     n_eff = int(fraction * np.exp(log_n_eff))
     logger.info("Reweighted posterior has {} effective samples".format(n_eff))
