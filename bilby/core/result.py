@@ -198,7 +198,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     ln_weights, new_log_likelihood_array, new_log_prior_array = get_weights_for_reweighting(
         result, new_likelihood=None, new_prior=None, old_likelihood=None, old_prior=None)
 
-    log_n_eff = 2 * logsumexp(ln_weights) - logsumexp(2 * ln_weights)
+    log_n_eff = utils.kish_log_effective_sample_size(ln_weights)
     n_eff = int(fraction * np.exp(log_n_eff))
     logger.info("Reweighted posterior has {} effective samples".format(n_eff))
     weights = np.exp(ln_weights)
