@@ -13,7 +13,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 
-from ..utils import logger, check_directory_exists_and_if_not_mkdir, reflect, safe_file_dump
+from ..utils import (
+    logger,
+    check_directory_exists_and_if_not_mkdir,
+    reflect,
+    safe_file_dump,
+    kish_log_effective_sample_size
+)
 from .base_sampler import Sampler, NestedSampler
 
 from numpy import linalg
@@ -577,10 +583,21 @@ class Dynesty(NestedSampler):
     def dump_samples_to_dat(self):
         from dynesty.utils import resample_equal
         sampler = self.sampler
-        weights = np.exp(sampler.saved_logwt - sampler.saved_logz[-1])
+        ln_weights = sampler.saved_logwt - sampler.saved_logz[-1]
+        neff = int(np.exp(kish_log_effective_sample_size(ln_weights)))
+
+        # If we don't have enough samples, don't dump them
+        if neff < 100:
+            return
+
+        weights = np.exp(ln_weights)
         samples = resample_equal(np.array(sampler.saved_v), weights)
-        self.search_parameter_keys
-        import IPython; IPython.embed()
+        df = DataFrame(samples, columns=self.search_parameter_keys)
+        # Downsample to neff
+        df = df.sample(neff)
+        filename = "{}/{}_samples.dat".format(self.outdir, self.label)
+        logger.info("Writing current samples to {} with neff={}".format(filename, neff))
+        df.to_csv(filename, index=False, header=True, sep=' ')
 
     def plot_current_state(self):
         if self.check_point_plot:
