@@ -535,7 +535,7 @@ class Sampler(object):
 
 
 class NestedSampler(Sampler):
-    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive']
+    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive', 'num_live_points']
     walks_equiv_kwargs = ['walks', 'steps', 'nmcmc']
 
     def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,

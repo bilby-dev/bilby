@@ -18,6 +18,7 @@ from .ptemcee import Ptemcee
 from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
+from .ultranest import Ultranest
 from .fake_sampler import FakeSampler
 from . import proposal
 
@@ -25,7 +26,8 @@ IMPLEMENTED_SAMPLERS = {
     'cpnest': Cpnest, 'dynamic_dynesty': DynamicDynesty, 'dynesty': Dynesty,
     'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle, 'ptemcee': Ptemcee,
     'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3, 'pymultinest': Pymultinest,
-    'pypolychord': PyPolyChord, 'fake_sampler': FakeSampler}
+    'pypolychord': PyPolyChord, 'ultranest': Ultranest,
+    'fake_sampler': FakeSampler}
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
