@@ -201,7 +201,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     log_n_eff = utils.kish_log_effective_sample_size(ln_weights)
     n_eff = int(fraction * np.exp(log_n_eff))
     logger.info("Reweighted posterior has {} effective samples".format(n_eff))
-    weights = np.exp(ln_weights)
+    weights = np.exp(ln_weights - max(ln_weights))
 
     if resample:
         nsamples = n_eff
