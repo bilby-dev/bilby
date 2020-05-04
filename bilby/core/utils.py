@@ -1181,6 +1181,7 @@ def latex_plot_format(func):
         _old_family = rcParams["font.family"]
         if find_executable("latex"):
             rcParams["text.usetex"] = True
+            rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
         else:
             rcParams["text.usetex"] = False
         rcParams["font.serif"] = "Computer Modern Roman"
