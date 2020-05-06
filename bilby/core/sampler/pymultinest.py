@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-
+import importlib
 import os
 import tempfile
 import shutil
@@ -74,6 +73,7 @@ class Pymultinest(NestedSampler):
         plot=False,
         exit_code=77,
         skip_import_verification=False,
+        temporary_directory=True,
         **kwargs
     ):
         super(Pymultinest, self).__init__(
@@ -88,6 +88,13 @@ class Pymultinest(NestedSampler):
         )
         self._apply_multinest_boundaries()
         self.exit_code = exit_code
+        using_mpi = len([key for key in os.environ if "MPI" in key])
+        if using_mpi and temporary_directory:
+            logger.info(
+                "Temporary directory incompatible with MPI, "
+                "will run in original directory"
+            )
+        self.use_temporary_directory = temporary_directory and not using_mpi
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
@@ -125,9 +132,9 @@ class Pymultinest(NestedSampler):
     @outputfiles_basename.setter
     def outputfiles_basename(self, outputfiles_basename):
         if outputfiles_basename is None:
-            outputfiles_basename = "{}/pm_{}".format(self.outdir, self.label)
-        if outputfiles_basename.endswith("/") is True:
-            outputfiles_basename = outputfiles_basename.rstrip("/")
+            outputfiles_basename = "{}/pm_{}/".format(self.outdir, self.label)
+        if not outputfiles_basename.endswith("/"):
+            outputfiles_basename += "/"
         check_directory_exists_and_if_not_mkdir(self.outdir)
         self._outputfiles_basename = outputfiles_basename
 
@@ -137,7 +144,7 @@ class Pymultinest(NestedSampler):
 
     @temporary_outputfiles_basename.setter
     def temporary_outputfiles_basename(self, temporary_outputfiles_basename):
-        if temporary_outputfiles_basename.endswith("/") is False:
+        if not temporary_outputfiles_basename.endswith("/"):
             temporary_outputfiles_basename = "{}/".format(
                 temporary_outputfiles_basename
             )
@@ -158,43 +165,38 @@ class Pymultinest(NestedSampler):
                 signum, self.exit_code
             )
         )
-        # self.copy_temporary_directory_to_proper_path()
+        if self.use_temporary_directory:
+            self._move_temporary_directory_to_proper_path()
         os._exit(self.exit_code)
 
-    def copy_temporary_directory_to_proper_path(self):
+    def _move_temporary_directory_to_proper_path(self):
+        """
+        Move the temporary back to the proper path
+
+        Anything in the proper path at this point is removed including links
+        """
         logger.info(
             "Overwriting {} with {}".format(
                 self.outputfiles_basename, self.temporary_outputfiles_basename
             )
         )
-
-        # First remove anything in the outputfiles_basename for overwriting
-        if os.path.exists(self.outputfiles_basename):
-            if os.path.islink(self.outputfiles_basename):
-                os.unlink(self.outputfiles_basename)
-            else:
-                shutil.rmtree(self.outputfiles_basename, ignore_errors=True)
-
-        shutil.copytree(self.temporary_outputfiles_basename, self.outputfiles_basename)
+        if os.path.islink(self.outputfiles_basename.strip("/")):
+            os.unlink(self.outputfiles_basename.strip("/"))
+        elif os.path.isdir(self.outputfiles_basename):
+            shutil.rmtree(self.outputfiles_basename, ignore_errors=True)
+        shutil.move(self.temporary_outputfiles_basename, self.outputfiles_basename)
 
     def run_sampler(self):
         import pymultinest
 
         self._verify_kwargs_against_default_kwargs()
 
-        temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
-        self.temporary_outputfiles_basename = temporary_outputfiles_basename
-        logger.info("Using temporary file {}".format(temporary_outputfiles_basename))
+        self._setup_run_directory()
 
-        check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
-        self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
+        # Overwrite pymultinest's signal handling function
+        pm_run = importlib.import_module("pymultinest.run")
+        pm_run.interrupt_handler = self.write_current_state_and_exit
 
-        # Symlink the temporary directory with the target directory: ensures data is stored on exit
-        os.symlink(
-            os.path.abspath(self.temporary_outputfiles_basename),
-            os.path.abspath(self.outputfiles_basename),
-            target_is_directory=True,
-        )
         out = pymultinest.solve(
             LogLikelihood=self.log_likelihood,
             Prior=self.prior_transform,
@@ -202,10 +204,7 @@ class Pymultinest(NestedSampler):
             **self.kwargs
         )
 
-        self.copy_temporary_directory_to_proper_path()
-
-        # Clean up
-        shutil.rmtree(temporary_outputfiles_basename)
+        self._clean_up_run_directory()
 
         post_equal_weights = os.path.join(
             self.outputfiles_basename, "post_equal_weights.dat"
@@ -219,3 +218,33 @@ class Pymultinest(NestedSampler):
         self.calc_likelihood_count()
         self.result.outputfiles_basename = self.outputfiles_basename
         return self.result
+
+    def _setup_run_directory(self):
+        """
+        If using a temporary directory, the output directory is moved to the
+        temporary directory and symlinked back.
+        """
+        if self.use_temporary_directory:
+            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
+            self.temporary_outputfiles_basename = temporary_outputfiles_basename
+
+            if os.path.exists(self.outputfiles_basename):
+                shutil.move(self.outputfiles_basename, self.temporary_outputfiles_basename)
+            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
+
+            os.symlink(
+                os.path.abspath(self.temporary_outputfiles_basename),
+                os.path.abspath(self.outputfiles_basename),
+                target_is_directory=True,
+            )
+            self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
+            logger.info("Using temporary file {}".format(temporary_outputfiles_basename))
+        else:
+            check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
+            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
+            logger.info("Using output file {}".format(self.outputfiles_basename))
+
+    def _clean_up_run_directory(self):
+        if self.use_temporary_directory:
+            self._move_temporary_directory_to_proper_path()
+            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
