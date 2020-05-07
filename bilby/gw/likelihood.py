@@ -737,6 +737,13 @@ class GravitationalWaveTransient(Likelihood):
     def reference_frame(self):
         return self._reference_frame
 
+    @property
+    def _reference_frame_str(self):
+        if isinstance(self.reference_frame, str):
+            return self.reference_frame
+        else:
+            return "".join([ifo.name for ifo in self.reference_frame])
+
     @reference_frame.setter
     def reference_frame(self, frame):
         if frame == "sky":
@@ -747,6 +754,8 @@ class GravitationalWaveTransient(Likelihood):
             self._reference_frame = InterferometerList(frame[:2])
         elif isinstance(frame, str):
             self._reference_frame = InterferometerList([frame[:2], frame[2:4]])
+        else:
+            raise ValueError("Unable to parse reference frame {}".format(frame))
 
     def get_sky_frame_parameters(self):
         time = self.parameters['{}_time'.format(self.time_reference)]
@@ -791,6 +800,8 @@ class GravitationalWaveTransient(Likelihood):
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
             start_time=self.waveform_generator.start_time,
+            time_reference=self.time_reference,
+            reference_frame=self._reference_frame_str,
             lal_version=self.lal_version)
 
 
