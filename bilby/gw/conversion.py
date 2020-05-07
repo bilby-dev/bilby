@@ -1135,6 +1135,7 @@ def generate_sky_frame_parameters(samples, likelihood):
     if isinstance(samples, dict):
         likelihood.parameters.update(samples)
         samples.update(likelihood.get_sky_frame_parameters())
+        return
     elif not isinstance(samples, DataFrame):
         raise ValueError
 
