@@ -219,9 +219,57 @@ class TestGWTransient(unittest.TestCase):
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
             start_time=self.waveform_generator.start_time,
+            time_reference="geocent",
+            reference_frame="sky",
             lal_version=self.likelihood.lal_version,
         )
         self.assertDictEqual(expected, self.likelihood.meta_data)
+
+    def test_reference_frame_agrees_with_default(self):
+        new_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+            priors=self.prior.copy(),
+            reference_frame="H1L1"
+        )
+        parameters = self.parameters.copy()
+        del parameters["ra"], parameters["dec"]
+        parameters["kappa"] = 1.0
+        parameters["eta"] = 1.0
+        parameters["ra"], parameters["dec"] = bilby.gw.utils.kappa_eta_to_ra_dec(
+            kappa=parameters["kappa"],
+            eta=parameters["eta"],
+            geocent_time=parameters["geocent_time"],
+            ifos=bilby.gw.detector.InterferometerList(["H1", "L1"])
+        )
+        new_likelihood.parameters.update(parameters)
+        self.likelihood.parameters.update(parameters)
+        self.assertEqual(
+            new_likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood_ratio()
+        )
+
+    def test_time_reference_agrees_with_default(self):
+        new_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+            priors=self.prior.copy(),
+            time_reference="H1"
+        )
+        ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        time_delay = ifo.time_delay_from_geocenter(
+            ra=self.parameters["ra"],
+            dec=self.parameters["dec"],
+            time=self.parameters["geocent_time"]
+        )
+        parameters = self.parameters.copy()
+        parameters["H1_time"] = parameters["geocent_time"] + time_delay
+        new_likelihood.parameters.update(parameters)
+        self.likelihood.parameters.update(parameters)
+        self.assertEqual(
+            new_likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood_ratio()
+        )
 
 
 class TestTimeMarginalization(unittest.TestCase):

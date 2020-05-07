@@ -8,6 +8,7 @@ import numpy as np
 import gwpy
 import lal
 import lalsimulation as lalsim
+from scipy.stats import ks_2samp
 
 import bilby
 from bilby.gw import utils as gwutils
@@ -256,6 +257,36 @@ class TestGWUtils(unittest.TestCase):
                 None,
                 1.5,
             )
+
+
+class TestSkyFrameConversion(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.priors = bilby.core.prior.PriorDict()
+        self.priors["ra"] = bilby.core.prior.Uniform(0, 2 * np.pi)
+        self.priors["dec"] = bilby.core.prior.Cosine()
+        self.priors["eta"] = bilby.core.prior.Uniform(0, 2 * np.pi)
+        self.priors["kappa"] = bilby.core.prior.Sine()
+        self.priors["time"] = bilby.core.prior.Uniform(-0.1, 0.1)
+        self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.samples = self.priors.sample(10000)
+
+    def tearDown(self) -> None:
+        del self.priors
+        del self.ifos
+        del self.samples
+
+    def test_conversion_gives_correct_prior(self) -> None:
+        kappas = self.samples["kappa"]
+        etas = self.samples["eta"]
+        times = self.samples["time"]
+        args = zip(*[
+            (kappa, eta, time, self.ifos)
+            for kappa, eta, time in zip(kappas, etas, times)
+        ])
+        ras, decs = zip(*map(bilby.gw.utils.kappa_eta_to_ra_dec, *args))
+        self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
+        self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
 
 
 if __name__ == "__main__":
