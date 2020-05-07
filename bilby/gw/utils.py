@@ -279,6 +279,10 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
     return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
 
 
+__cached_euler_matrix = None
+__cached_delta_x = None
+
+
 def euler_rotation(delta_x):
     """
     Calculate the rotation matrix mapping the vector (0, 0, 1) to delta_x
@@ -298,7 +302,14 @@ def euler_rotation(delta_x):
         Rotation matrix which maps vectors from the frame in which delta_x is
         aligned with the z-axis to the target frame.
     """
+    global __cached_delta_x
+    global __cached_euler_matrix
+
     delta_x = delta_x / np.sum(delta_x**2)**0.5
+    if np.array_equal(delta_x, __cached_delta_x):
+        return __cached_euler_matrix
+    else:
+        __cached_delta_x = delta_x
     alpha = np.arctan(- delta_x[1] * delta_x[2] / delta_x[0])
     beta = np.arccos(delta_x[2])
     gamma = np.arctan(delta_x[1] / delta_x[0])
@@ -313,6 +324,8 @@ def euler_rotation(delta_x):
         [0, 0, 1]])
     total_rotation = np.einsum(
         'ij,jk,kl->il', rotation_3, rotation_2, rotation_1)
+    __cached_delta_x = delta_x
+    __cached_euler_matrix = total_rotation
     return total_rotation
 
 
@@ -333,13 +346,12 @@ def kappa_eta_to_theta_phi(kappa, eta, ifos):
     theta, phi: float
         The zenith and azimuthal angles in the earth frame.
     """
-    delta_x = (ifos[0].vertex_position_geocentric() -
-               ifos[1].vertex_position_geocentric())
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
     omega_prime = np.array([
         np.sin(kappa) * np.cos(eta), np.sin(kappa) * np.sin(eta),
         np.cos(kappa)])
     rotation_matrix = euler_rotation(delta_x)
-    omega = np.einsum('ij,j->i', rotation_matrix, omega_prime)
+    omega = np.dot(rotation_matrix, omega_prime)
     theta = np.arccos(omega[2])
     phi = np.arctan2(omega[1], omega[0]) % (2 * np.pi)
     return theta, phi
