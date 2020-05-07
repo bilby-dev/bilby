@@ -81,6 +81,18 @@ class GravitationalWaveTransient(Likelihood):
         missing the likelihood peak, or introducing biases in the
         reconstructed time posterior due to an insufficient sampling frequency.
         Default is False, however using this parameter is strongly encouraged.
+    reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
+        Definition of the reference frame for the sky location.
+        - "sky": sample in RA/dec, this is the default
+        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+          sample in azimuth and zenith, `eta` and `kappa` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+    time_reference: str, optional
+        Name of the reference for the sampled time parameter.
+        - "geocent"/"geocenter": sample in the time at the Earth's center,
+          this is the default
+        - e.g., "H1": sample in the time of arrival at H1
 
     Returns
     -------
@@ -380,6 +392,7 @@ class GravitationalWaveTransient(Likelihood):
         new_time: float
             Sample from the time posterior.
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
         if signal_polarizations is None:
@@ -452,6 +465,7 @@ class GravitationalWaveTransient(Likelihood):
         new_distance: float
             Sample from the distance posterior.
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
@@ -514,6 +528,7 @@ class GravitationalWaveTransient(Likelihood):
         -----
         This is only valid when assumes that mu(phi) \propto exp(-2i phi).
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
@@ -907,6 +922,18 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         The lookup table is stored after construction in either the
         provided string or a default location:
         '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+    reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
+        Definition of the reference frame for the sky location.
+        - "sky": sample in RA/dec, this is the default
+        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+          sample in azimuth and zenith, `eta` and `kappa` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+    time_reference: str, optional
+        Name of the reference for the sampled time parameter.
+        - "geocent"/"geocenter": sample in the time at the Earth's center,
+          this is the default
+        - e.g., "H1": sample in the time of arrival at H1
 
     """
     def __init__(
