@@ -722,5 +722,12 @@ class TestResultListError(unittest.TestCase):
             self.nested_results.combine()
 
 
+class TestMiscResults(unittest.TestCase):
+    def test_sanity_check_labels(self):
+        labels = ["a", "$a$", "a_1", "$a_1$"]
+        labels_checked = bilby.core.result.sanity_check_labels(labels)
+        self.assertEqual(labels_checked, ["a", "$a$", "a-1", "$a_1$"])
+
+
 if __name__ == "__main__":
     unittest.main()

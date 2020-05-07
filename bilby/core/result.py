@@ -927,6 +927,8 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        kwargs["labels"] = sanity_check_labels(kwargs["labels"])
+
         # Unless already set, set the range to include all samples
         # This prevents ValueErrors being raised for parameters with no range
         kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
@@ -1584,6 +1586,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     if labels is None:
         labels = default_labels
 
+    labels = sanity_check_labels(labels)
+
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
             template = ' $\mathrm{{ln}}(Z)={lnz:1.3g}$'
@@ -1718,6 +1722,14 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         safe_save_figure(fig=fig, filename=filename, dpi=500)
 
     return fig, pvals
+
+
+def sanity_check_labels(labels):
+    """ Check labels for plotting to remove matplotlib errors """
+    for ii, lab in enumerate(labels):
+        if "_" in lab and "$" not in lab:
+            labels[ii] = lab.replace("_", "-")
+    return labels
 
 
 class ResultError(Exception):
