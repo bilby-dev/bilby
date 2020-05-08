@@ -329,7 +329,7 @@ def euler_rotation(delta_x):
     return total_rotation
 
 
-def kappa_eta_to_theta_phi(kappa, eta, ifos):
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
 
@@ -348,8 +348,9 @@ def kappa_eta_to_theta_phi(kappa, eta, ifos):
     """
     delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
     omega_prime = np.array([
-        np.sin(kappa) * np.cos(eta), np.sin(kappa) * np.sin(eta),
-        np.cos(kappa)])
+        np.sin(zenith) * np.cos(azimuth),
+        np.sin(zenith) * np.sin(azimuth),
+        np.cos(zenith)])
     rotation_matrix = euler_rotation(delta_x)
     omega = np.dot(rotation_matrix, omega_prime)
     theta = np.arccos(omega[2])
@@ -357,7 +358,7 @@ def kappa_eta_to_theta_phi(kappa, eta, ifos):
     return theta, phi
 
 
-def kappa_eta_to_ra_dec(kappa, eta, geocent_time, ifos):
+def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
 
@@ -376,7 +377,7 @@ def kappa_eta_to_ra_dec(kappa, eta, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
-    theta, phi = kappa_eta_to_theta_phi(kappa, eta, ifos)
+    theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
     gmst = lal.GreenwichMeanSiderealTime(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
     ra = ra % (2 * np.pi)

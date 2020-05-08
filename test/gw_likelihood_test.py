@@ -234,11 +234,11 @@ class TestGWTransient(unittest.TestCase):
         )
         parameters = self.parameters.copy()
         del parameters["ra"], parameters["dec"]
-        parameters["kappa"] = 1.0
-        parameters["eta"] = 1.0
-        parameters["ra"], parameters["dec"] = bilby.gw.utils.kappa_eta_to_ra_dec(
-            kappa=parameters["kappa"],
-            eta=parameters["eta"],
+        parameters["zenith"] = 1.0
+        parameters["azimuth"] = 1.0
+        parameters["ra"], parameters["dec"] = bilby.gw.utils.zenith_azimuth_to_ra_dec(
+            zenith=parameters["zenith"],
+            azimuth=parameters["azimuth"],
             geocent_time=parameters["geocent_time"],
             ifos=bilby.gw.detector.InterferometerList(["H1", "L1"])
         )

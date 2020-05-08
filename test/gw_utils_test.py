@@ -265,8 +265,8 @@ class TestSkyFrameConversion(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict()
         self.priors["ra"] = bilby.core.prior.Uniform(0, 2 * np.pi)
         self.priors["dec"] = bilby.core.prior.Cosine()
-        self.priors["eta"] = bilby.core.prior.Uniform(0, 2 * np.pi)
-        self.priors["kappa"] = bilby.core.prior.Sine()
+        self.priors["azimuth"] = bilby.core.prior.Uniform(0, 2 * np.pi)
+        self.priors["zenith"] = bilby.core.prior.Sine()
         self.priors["time"] = bilby.core.prior.Uniform(-0.1, 0.1)
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
         self.samples = self.priors.sample(10000)
@@ -277,14 +277,14 @@ class TestSkyFrameConversion(unittest.TestCase):
         del self.samples
 
     def test_conversion_gives_correct_prior(self) -> None:
-        kappas = self.samples["kappa"]
-        etas = self.samples["eta"]
+        zeniths = self.samples["zenith"]
+        azimuths = self.samples["azimuth"]
         times = self.samples["time"]
         args = zip(*[
-            (kappa, eta, time, self.ifos)
-            for kappa, eta, time in zip(kappas, etas, times)
+            (zenith, azimuth, time, self.ifos)
+            for zenith, azimuth, time in zip(zeniths, azimuths, times)
         ])
-        ras, decs = zip(*map(bilby.gw.utils.kappa_eta_to_ra_dec, *args))
+        ras, decs = zip(*map(bilby.gw.utils.zenith_azimuth_to_ra_dec, *args))
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
 

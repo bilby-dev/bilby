@@ -26,7 +26,7 @@ from .prior import BBHPriorDict, CBCPriorDict, Cosmological
 from .source import lal_binary_black_hole
 from .utils import (
     noise_weighted_inner_product, build_roq_weights, blockwise_dot_product,
-    kappa_eta_to_ra_dec)
+    zenith_azimuth_to_ra_dec)
 from .waveform_generator import WaveformGenerator
 from collections import namedtuple
 
@@ -85,7 +85,7 @@ class GravitationalWaveTransient(Likelihood):
         Definition of the reference frame for the sky location.
         - "sky": sample in RA/dec, this is the default
         - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
-          sample in azimuth and zenith, `eta` and `kappa` defined in the
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
           frame where the z-axis is aligned the the vector connecting H1
           and L1.
     time_reference: str, optional
@@ -760,8 +760,8 @@ class GravitationalWaveTransient(Likelihood):
     def get_sky_frame_parameters(self):
         time = self.parameters['{}_time'.format(self.time_reference)]
         if not self.reference_frame == "sky":
-            ra, dec = kappa_eta_to_ra_dec(
-                self.parameters['kappa'], self.parameters['eta'],
+            ra, dec = zenith_azimuth_to_ra_dec(
+                self.parameters['zenith'], self.parameters['azimuth'],
                 time, self.reference_frame)
         else:
             ra = self.parameters["ra"]
@@ -937,7 +937,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         Definition of the reference frame for the sky location.
         - "sky": sample in RA/dec, this is the default
         - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
-          sample in azimuth and zenith, `eta` and `kappa` defined in the
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
           frame where the z-axis is aligned the the vector connecting H1
           and L1.
     time_reference: str, optional
