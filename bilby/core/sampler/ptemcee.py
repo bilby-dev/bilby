@@ -156,6 +156,7 @@ class Ptemcee(MCMCSampler):
             use_ratio=use_ratio,
             plot=plot,
             skip_import_verification=skip_import_verification,
+            exit_code=exit_code,
             **kwargs
         )
 
@@ -169,7 +170,6 @@ class Ptemcee(MCMCSampler):
         signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
 
         # Checkpointing inputs
-        self.exit_code = exit_code
         self.resume = resume
         self.check_point_deltaT = check_point_deltaT
         self.check_point_plot = check_point_plot
