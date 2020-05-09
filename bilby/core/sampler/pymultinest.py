@@ -84,6 +84,7 @@ class Pymultinest(NestedSampler):
             use_ratio=use_ratio,
             plot=plot,
             skip_import_verification=skip_import_verification,
+            exit_code=exit_code,
             **kwargs
         )
         self._apply_multinest_boundaries()

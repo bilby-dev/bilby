@@ -147,6 +147,7 @@ class Dynesty(NestedSampler):
         super(Dynesty, self).__init__(likelihood=likelihood, priors=priors,
                                       outdir=outdir, label=label, use_ratio=use_ratio,
                                       plot=plot, skip_import_verification=skip_import_verification,
+                                      exit_code=exit_code,
                                       **kwargs)
         self.n_check_point = n_check_point
         self.check_point = check_point
@@ -164,7 +165,6 @@ class Dynesty(NestedSampler):
 
         self.resume_file = '{}/{}_resume.pickle'.format(self.outdir, self.label)
         self.sampling_time = datetime.timedelta()
-        self.exit_code = exit_code
 
         try:
             signal.signal(signal.SIGTERM, self.write_current_state_and_exit)

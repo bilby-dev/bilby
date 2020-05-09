@@ -91,10 +91,10 @@ class Ultranest(NestedSampler):
             use_ratio=use_ratio,
             plot=plot,
             skip_import_verification=skip_import_verification,
+            exit_code=exit_code,
             **kwargs,
         )
         self._apply_ultranest_boundaries()
-        self.exit_code = exit_code
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)

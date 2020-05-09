@@ -70,6 +70,8 @@ class Sampler(object):
         only advisable for testing environments
     result: bilby.core.result.Result
         Container for the results of the sampling run
+    exit_code: int
+        System exit code to return on interrupt
     kwargs: dict
         Dictionary of keyword arguments that can be used in the external sampler
 
@@ -91,7 +93,7 @@ class Sampler(object):
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
             injection_parameters=None, meta_data=None, result_class=None,
-            likelihood_benchmark=False, soft_init=False,
+            likelihood_benchmark=False, soft_init=False, exit_code=130,
             **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
@@ -113,6 +115,8 @@ class Sampler(object):
         self._fixed_parameter_keys = list()
         self._constraint_parameter_keys = list()
         self._initialise_parameters()
+
+        self.exit_code = exit_code
 
         if not soft_init:
             self._verify_parameters()
