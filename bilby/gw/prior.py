@@ -270,7 +270,8 @@ class UniformSourceFrame(Cosmological):
 class AlignedSpin(Interped):
 
     def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),
-                 name=None, latex_label=None, unit=None, boundary=None):
+                 name=None, latex_label=None, unit=None, boundary=None,
+                 minimum=np.nan, maximum=np.nan):
         """
         Prior distribution for the aligned (z) component of the spin.
 
@@ -305,7 +306,8 @@ class AlignedSpin(Interped):
                                      z_prior.prob(x / aas)), aas) for x in xx]
         super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
                                           latex_label=latex_label, unit=unit,
-                                          boundary=boundary)
+                                          boundary=boundary, minimum=minimum,
+                                          maximum=maximum)
 
 
 class CBCPriorDict(PriorDict):
