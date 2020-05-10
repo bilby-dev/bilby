@@ -151,10 +151,29 @@ def get_weights_for_reweighting(
     return ln_weights, new_log_likelihood_array, new_log_prior_array
 
 
+def rejection_sample(posterior, weights):
+    """ Perform rejection sampling on a posterior using weights
+
+    Parameters
+    ----------
+    posterior: pd.DataFrame
+        The dataframe containing posterior samples
+    weights: np.ndarray
+        An array of weights
+
+    Returns
+    -------
+    reweighted_posterior: pd.DataFrame
+        The posterior resampled using rejection sampling
+
+    """
+    keep = weights > np.random.uniform(0, max(weights), weights.shape)
+    return posterior.iloc[keep]
+
+
 def reweight(result, label=None, new_likelihood=None, new_prior=None,
-             old_likelihood=None, old_prior=None, resample=True, fraction=0.1,
-             replace=False):
-    """ Reweight a result to a new likelihood/prior
+             old_likelihood=None, old_prior=None):
+    """ Reweight a result to a new likelihood/prior using rejection sampling
 
     Parameters
     ----------
@@ -172,17 +191,6 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     old_prior: bilby.core.prior.PriorDict, (optional)
         If given, calculate the old prior from this object. If not given,
         the values stored in the posterior are used.
-    resample: bool (default: True)
-        If true, resample to the effective number of samples after reweighting
-    fraction: float [0, 1]
-        A multiplictive factor to apply to the effective number of samples
-    replace: bool
-        If true, sample with replacement
-
-    Note:
-        The default settings have been tested in low dimensional cases.
-        Appropriate steps should be taken in high dimensional cases and when
-        changing the fraction, and replace settings.
 
     Returns
     -------
@@ -196,27 +204,21 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     logger.info("Reweighting posterior with {} samples".format(nposterior))
 
     ln_weights, new_log_likelihood_array, new_log_prior_array = get_weights_for_reweighting(
-        result, new_likelihood=None, new_prior=None, old_likelihood=None, old_prior=None)
-
-    log_n_eff = utils.kish_log_effective_sample_size(ln_weights)
-    n_eff = int(fraction * np.exp(log_n_eff))
-    logger.info("Reweighted posterior has {} effective samples".format(n_eff))
-    weights = np.exp(ln_weights)
-
-    if resample:
-        nsamples = n_eff
-    else:
-        nsamples = nposterior
+        result, new_likelihood=new_likelihood, new_prior=new_prior,
+        old_likelihood=old_likelihood, old_prior=old_prior)
 
     # Overwrite the likelihood and prior evaluations
     result.posterior["log_likelihood"] = new_log_likelihood_array
     result.posterior["log_prior"] = new_log_prior_array
 
-    # Resample
-    result.posterior = result.posterior.sample(nsamples, weights=weights, replace=replace)
-    result.priors = new_prior
+    weights = np.exp(ln_weights)
+
+    result.posterior = rejection_sample(result.posterior, weights=weights)
+    logger.info("Rejection sampling resulted in {} samples".format(len(result.posterior)))
+    result.meta_data["reweighted_using_rejection_sampling"] = True
 
     result.log_evidence += np.mean(weights)
+    result.priors = new_prior
 
     if label:
         result.label = label
