@@ -310,6 +310,32 @@ class AlignedSpin(Interped):
                                           maximum=maximum)
 
 
+class EOSCheck(Constraint):
+    def __init__(self, minimum=-np.inf, maximum=np.inf):
+        """
+        Constraint used for EoS sampling. Converts the result of various
+        checks on the EoS and its parameters into a prior that can reject
+        unphysical samples. Necessary for EoS sampling.
+        """
+
+        super().__init__(minimum=minimum, maximum=maximum, name=None, latex_label=None, unit=None)
+
+    def prob(self, val):
+        """
+        Returns the result of the equation of state check in the conversion function.
+        """
+        return val
+
+    def ln_prob(self, val):
+
+        if val:
+            result = 0.0
+        elif not val:
+            result = -np.inf
+
+        return result
+
+
 class CBCPriorDict(PriorDict):
     @property
     def minimum_chirp_mass(self):

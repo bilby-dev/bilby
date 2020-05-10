@@ -23,6 +23,7 @@ Welcome to bilby's documentation!
    gw_prior
    conversion
    gw_references
+   gw_eos
    writing-documentation
    hyperparameters
    containers

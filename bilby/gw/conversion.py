@@ -9,6 +9,7 @@ from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
+from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
 from .cosmology import get_cosmology
 
 try:
@@ -284,7 +285,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
     if not any([key in converted_parameters for key in
-                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde']]):
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde', 'eos_spectral_gamma_0']]):
         converted_parameters['lambda_1'] = 0
         converted_parameters['lambda_2'] = 0
         added_keys = added_keys + ['lambda_1', 'lambda_2']
@@ -301,21 +302,84 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
                 converted_parameters['mass_1'], converted_parameters['mass_2'])
-    if 'lambda_2' not in converted_parameters.keys():
+    if 'lambda_2' not in converted_parameters.keys() and 'lambda_1' in converted_parameters.keys():
         converted_parameters['lambda_2'] =\
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
-    elif converted_parameters['lambda_2'] is None:
+    elif 'lambda_2' in converted_parameters.keys() and converted_parameters['lambda_2'] is None:
         converted_parameters['lambda_2'] =\
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
+    elif 'eos_spectral_gamma_0' in converted_parameters.keys():  # FIXME: This is a clunky way to do this
+        # Pick out the eos parameters from dict of parameters and sort them
+        eos_parameter_keys = sorted([key for key in original_keys if 'eos_spectral_gamma_' in key])
+        gammas = [converted_parameters[key] for key in eos_parameter_keys]
+
+        eos = SpectralDecompositionEOS(gammas, sampling_flag=True, e0=1.2856e14, p0=5.3716e32)
+        if eos.warning_flag:
+            converted_parameters['lambda_1'] = 0.0
+            converted_parameters['lambda_2'] = 0.0
+            converted_parameters['eos_check'] = False
+        elif eos_family_physical_check(eos):
+            converted_parameters['lambda_1'] = 0.0
+            converted_parameters['lambda_2'] = 0.0
+            converted_parameters['eos_check'] = False
+        else:
+            fam = EOSFamily(eos)
+
+            if (converted_parameters['mass_1'] <= fam.maximum_mass and
+                    converted_parameters['mass_2'] <= fam.maximum_mass):
+                converted_parameters['lambda_1'] = fam.lambda_from_mass(converted_parameters['mass_1'])
+                converted_parameters['lambda_2'] = fam.lambda_from_mass(converted_parameters['mass_2'])
+            else:
+                converted_parameters['lambda_1'] = 0.0
+                converted_parameters['lambda_2'] = 0.0
+                converted_parameters['eos_check'] = False
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
 
     return converted_parameters, added_keys
+
+
+def eos_family_physical_check(eos):
+    """
+    Function that determines if the EoS family contains
+    sufficient number of points before maximum mass is reached.
+
+    e_min is chosen to be sufficiently small so that the entire
+    EoS is captured when converting to mass-radius space.
+
+    Returns True if family is valid, False if not.
+    """
+    e_min = 1.6e-10
+    e_central = eos.e_pdat[-1, 1]
+    loge_min = np.log(e_min)
+    loge_central = np.log(e_central)
+    logedat = np.linspace(loge_min, loge_central, num=eos.npts)
+    edat = np.exp(logedat)
+
+    # Generate m, r, and k2 lists
+    mdat = []
+    rdat = []
+    k2dat = []
+    for i in range(8):
+        tov_solver = IntegrateTOV(eos, edat[i])
+        m, r, k2 = tov_solver.integrate_TOV()
+        mdat.append(m)
+        rdat.append(r)
+        k2dat.append(k2)
+
+        # Check if maximum mass has been found
+        if i > 0 and mdat[i] <= mdat[i - 1]:
+            break
+
+    if len(mdat) < 8:
+        return False
+    else:
+        return True
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
