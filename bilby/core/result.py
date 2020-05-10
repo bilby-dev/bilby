@@ -156,7 +156,7 @@ def rejection_sample(posterior, weights):
 
     Parameters
     ----------
-    posterior: pd.DataFrame
+    posterior: pd.DataFrame or np.ndarray of shape (nsamples, nparameters)
         The dataframe containing posterior samples
     weights: np.ndarray
         An array of weights
@@ -168,7 +168,10 @@ def rejection_sample(posterior, weights):
 
     """
     keep = weights > np.random.uniform(0, max(weights), weights.shape)
-    return posterior.iloc[keep]
+    if isinstance(posterior, np.ndarray):
+        return posterior[keep]
+    elif isinstance(posterior, pd.DataFrame):
+        return posterior.iloc[keep]
 
 
 def reweight(result, label=None, new_likelihood=None, new_prior=None,
