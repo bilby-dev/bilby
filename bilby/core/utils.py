@@ -28,6 +28,7 @@ speed_of_light = 299792458.0  # m/s
 parsec = 3.085677581491367e+16  # m
 solar_mass = 1.9884099021470415e+30  # Kg
 radius_of_earth = 6378136.6  # m
+gravitational_constant = 6.6743e-11  # m^3 kg^-1 s^-2
 
 _TOL = 14
 
@@ -1181,6 +1182,7 @@ def latex_plot_format(func):
         _old_family = rcParams["font.family"]
         if find_executable("latex"):
             rcParams["text.usetex"] = True
+            rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
         else:
             rcParams["text.usetex"] = False
         rcParams["font.serif"] = "Computer Modern Roman"
@@ -1194,6 +1196,7 @@ def latex_plot_format(func):
 
 
 def safe_save_figure(fig, filename, **kwargs):
+    check_directory_exists_and_if_not_mkdir(os.path.dirname(filename))
     from matplotlib import rcParams
     try:
         fig.savefig(fname=filename, **kwargs)

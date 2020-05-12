@@ -18,6 +18,7 @@ from .ptemcee import Ptemcee
 from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
+from .ultranest import Ultranest
 from .fake_sampler import FakeSampler
 from . import proposal
 
@@ -25,7 +26,8 @@ IMPLEMENTED_SAMPLERS = {
     'cpnest': Cpnest, 'dynamic_dynesty': DynamicDynesty, 'dynesty': Dynesty,
     'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle, 'ptemcee': Ptemcee,
     'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3, 'pymultinest': Pymultinest,
-    'pypolychord': PyPolyChord, 'fake_sampler': FakeSampler}
+    'pypolychord': PyPolyChord, 'ultranest': Ultranest,
+    'fake_sampler': FakeSampler}
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
@@ -48,7 +50,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 sampler='dynesty', use_ratio=None, injection_parameters=None,
                 conversion_function=None, plot=False, default_priors_file=None,
                 clean=None, meta_data=None, save=True, gzip=False,
-                result_class=None, **kwargs):
+                result_class=None, npool=1, **kwargs):
     """
     The primary interface to easy parameter estimation
 
@@ -97,6 +99,9 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
         additional methods.
+    npool: int
+        An integer specifying the available CPUs to create pool objects for
+        parallelization.
     **kwargs:
         All kwargs are passed directly to the samplers `run` function
 
@@ -149,7 +154,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
                 likelihood, priors=priors, outdir=outdir, label=label,
                 injection_parameters=injection_parameters, meta_data=meta_data,
                 use_ratio=use_ratio, plot=plot, result_class=result_class,
-                **kwargs)
+                npool=npool, **kwargs)
         else:
             print(IMPLEMENTED_SAMPLERS)
             raise ValueError(
@@ -159,7 +164,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             likelihood, priors=priors,
             outdir=outdir, label=label, use_ratio=use_ratio, plot=plot,
             injection_parameters=injection_parameters, meta_data=meta_data,
-            **kwargs)
+            npool=npool, **kwargs)
     else:
         raise ValueError(
             "Provided sampler should be a Sampler object or name of a known "
@@ -202,7 +207,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
             result.injection_parameters)
 
     result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
-                                conversion_function=conversion_function)
+                                conversion_function=conversion_function,
+                                npool=npool)
 
     if save:
         # The overwrite here ensures we overwrite the initially stored data

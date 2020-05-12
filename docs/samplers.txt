@@ -84,6 +84,10 @@ PyPolyChord
 
 .. autoclass:: bilby.core.sampler.polychord.PyPolyChord
 
+UltraNest
+=========
+
+.. autoclass:: bilby.core.sampler.ultranest.Ultranest
 
 -------------
 MCMC samplers

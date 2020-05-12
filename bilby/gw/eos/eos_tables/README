@@ -1,0 +1,57 @@
+This file is a copy of what can be found at http://xtreme.as.arizona.edu/NeutronStars/
+
+This folder contains files for various equations of state proposed for
+the interiors of neutron stars. Each file has three columns (unless otherwise
+specified):
+(i) baryon density, (ii) pressure (p/c^2), (iii) energy density (epsilon/c^2).
+The average mass of a baryon is taken to be 1.66 times 10^{-24} g
+and the units of all three columns are g/cm^3.
+
+The naming convention comes from Lattimer & Prakash 2001, ApJ, 550,
+426 and Read et al. 2009, PRD, 79, 124032 with some additional
+equations of state from Ozel & Freire 2016, ARAA, in press. The names
+of the various files have an initial set of letters that correspond to
+a particular set of calculations and a set of numbers that correspond
+to different parameters in the calculations.
+
+H1-H7: B. D. Lackey, M. Nayyar, 73, 024021 (2006)
+
+alf1-alf4: M. Alford, M. Braby, M. Paris, and S. Reddy, Astrophys.
+J. 629, 969 (2005)
+
+ap1-ap4: A. Akmal, V. R. Pandharipande, Phys. Rev. C 58, 1804 (1998)
+
+bbb2: M. Baldo, I. Bombaci, and G.F. Burgio, Astron. Astrophys. 328, 274 (1997)
+
+bgn1h1: S. Balberg and A. Gal, Nucl. Phys. A625, 435 (1997)
+
+bpal12: W. Zuo, I. Bombaci, and U. Lombardo, Phys. Rev. C 60, 024605 (1999)
+
+bsk: A. Potehkin, A. Fantina, N. Chamel, J. Pearson, & S. Goriely A&A, 560, 48 (2013)
+
+eng: L. Engvik et al., Astrophys. J. 469, 794 (1996)
+
+fps: B. Friedman and V. R. Pandharipande, Nucl. Phys. A361, 502 (1981)
+
+gnh3: N. K. Glendenning, Astrophys. J. 293, 470 (1985)
+
+gs1-2: N. K. Glendenning and J. Schaffner-Bielich, Phys. Rev. C
+60, 025803 (1999)
+
+mpa1: H. Muther, M. Prakash, and T. L. Ainsworth, Phys. Lett. B 199,
+469 (1987)
+
+ms1-2: H. Muller and B. D. Serot, Nucl. Phys. A606, 508 (1996).
+
+pal6: M. Prakash, T. L. Ainsworth, and Rev. Lett. 61, 2518 (1988).
+
+pcl2: M. Prakash, J. R. Cooke, and J. M. Lattimer, Phys. Rev. D
+52, 661 (1995)
+
+qmc700: J. Stone, P. Guichon, H. Matevosyan, A. Thomas, Nucl Phys. A 792, 341 (2007)
+
+sly: F. Douchin and P. Haensel, Astron. Astrophys. 380, 151 (2001)
+
+sqm1-3: Prakash, M., Cooke, J. R., & Lattimer, J. M. 1995, Phys. Rev., D52, 661
+
+wff1-3: R. B. Wiringa, V. Fiks, and A. Fabrocini, Phys. Rev. C 38, 1010 (1988)

@@ -1,5 +1,6 @@
 from __future__ import division
 
+import inspect
 import os
 from collections import OrderedDict, namedtuple
 from copy import copy
@@ -21,8 +22,9 @@ from .utils import (
     logger, infer_parameters_from_function,
     check_directory_exists_and_if_not_mkdir,
     latex_plot_format, safe_save_figure,
+    BilbyJsonEncoder, load_json,
+    move_old_file, get_version_information
 )
-from .utils import BilbyJsonEncoder, load_json, move_old_file
 from .prior import Prior, PriorDict, DeltaFunction
 
 
@@ -157,7 +159,7 @@ def rejection_sample(posterior, weights):
     Parameters
     ----------
     posterior: pd.DataFrame or np.ndarray of shape (nsamples, nparameters)
-        The dataframe containing posterior samples
+        The dataframe or array containing posterior samples
     weights: np.ndarray
         An array of weights
 
@@ -217,7 +219,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     logger.info("Rejection sampling resulted in {} samples".format(len(result.posterior)))
     result.meta_data["reweighted_using_rejection_sampling"] = True
 
-    result.log_evidence += np.mean(weights)
+    result.log_evidence += logsumexp(ln_weights) - np.log(nposterior)
     result.priors = new_prior
 
     if label:
@@ -1060,6 +1062,8 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        kwargs["labels"] = sanity_check_labels(kwargs["labels"])
+
         # Unless already set, set the range to include all samples
         # This prevents ValueErrors being raised for parameters with no range
         kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
@@ -1223,7 +1227,7 @@ class Result(object):
         return posterior
 
     def samples_to_posterior(self, likelihood=None, priors=None,
-                             conversion_function=None):
+                             conversion_function=None, npool=1):
         """
         Convert array of samples to posterior (a Pandas data frame)
 
@@ -1254,7 +1258,10 @@ class Result(object):
             else:
                 data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:
-            data_frame = conversion_function(data_frame, likelihood, priors)
+            if "npool" in inspect.getargspec(conversion_function).args:
+                data_frame = conversion_function(data_frame, likelihood, priors, npool=npool)
+            else:
+                data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
 
     def calculate_prior_values(self, priors):
@@ -1371,7 +1378,7 @@ class Result(object):
             return self._kde
 
     def posterior_probability(self, sample):
-        """ Calculate the posterior probabily for a new sample
+        """ Calculate the posterior probability for a new sample
 
         This queries a Kernel Density Estimate of the posterior to calculate
         the posterior probability density for the new sample.
@@ -1448,6 +1455,75 @@ class Result(object):
             weights.append(weight)
 
         return weights
+
+    def to_arviz(self, prior=None):
+        """ Convert the Result object to an ArviZ InferenceData object.
+
+            Parameters
+            ----------
+            prior: int
+                If a positive integer is given then that number of prior
+                samples will be drawn and stored in the ArviZ InferenceData
+                object.
+
+            Returns
+            -------
+            azdata: InferenceData
+                The ArviZ InferenceData object.
+        """
+
+        try:
+            import arviz as az
+        except ImportError:
+            logger.debug(
+                "ArviZ is not installed, so cannot convert to InferenceData"
+            )
+
+        posdict = {}
+        for key in self.posterior:
+            posdict[key] = self.posterior[key].values
+
+        if "log_likelihood" in posdict:
+            loglikedict = {
+                "log_likelihood": posdict.pop("log_likelihood")
+            }
+        else:
+            if self.log_likelihood_evaluations is not None:
+                loglikedict = {
+                    "log_likelihood": self.log_likelihood_evaluations
+                }
+            else:
+                loglikedict = None
+
+        priorsamples = None
+        if prior is not None:
+            if self.priors is None:
+                logger.warning(
+                    "No priors are in the Result object, so prior samples "
+                    "will not be included in the output."
+                )
+            else:
+                priorsamples = self.priors.sample(size=prior)
+
+        azdata = az.from_dict(
+            posterior=posdict,
+            log_likelihood=loglikedict,
+            prior=priorsamples,
+        )
+
+        # add attributes
+        version = {
+            "inference_library": "bilby: {}".format(self.sampler),
+            "inference_library_version": get_version_information()
+        }
+
+        azdata.posterior.attrs.update(version)
+        if "log_likelihood" in azdata._groups:
+            azdata.log_likelihood.attrs.update(version)
+        if "prior" in azdata._groups:
+            azdata.prior.attrs.update(version)
+
+        return azdata
 
 
 class ResultList(list):
@@ -1587,7 +1663,7 @@ class ResultList(list):
 
 @latex_plot_format
 def plot_multiple(results, filename=None, labels=None, colours=None,
-                  save=True, evidences=False, **kwargs):
+                  save=True, evidences=False, corner_labels=None, **kwargs):
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
@@ -1607,12 +1683,16 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     save: bool
         If true, save the figure
     kwargs: dict
-        All other keyword arguments are passed to `result.plot_corner`.
+        All other keyword arguments are passed to `result.plot_corner` (except
+        for the keyword `labels` for which you should use the dedicated
+        `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
         ambiguous on such a plot.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
+    corner_labels: list, optional
+        List of strings to be passed to the input `labels` to `result.plot_corner`.
 
     Returns
     -------
@@ -1623,6 +1703,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     kwargs['show_titles'] = False
     kwargs['truths'] = None
+    if corner_labels is not None:
+        kwargs['labels'] = corner_labels
 
     fig = results[0].plot_corner(save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
@@ -1647,6 +1729,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if labels is None:
         labels = default_labels
+
+    labels = sanity_check_labels(labels)
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
@@ -1782,6 +1866,14 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         safe_save_figure(fig=fig, filename=filename, dpi=500)
 
     return fig, pvals
+
+
+def sanity_check_labels(labels):
+    """ Check labels for plotting to remove matplotlib errors """
+    for ii, lab in enumerate(labels):
+        if "_" in lab and "$" not in lab:
+            labels[ii] = lab.replace("_", "-")
+    return labels
 
 
 class ResultError(Exception):

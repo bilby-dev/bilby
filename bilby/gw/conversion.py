@@ -1,5 +1,6 @@
 from __future__ import division
 import sys
+import multiprocessing
 
 from tqdm import tqdm
 import numpy as np
@@ -9,6 +10,7 @@ from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
+from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
 from .cosmology import get_cosmology
 
 try:
@@ -284,7 +286,7 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
     if not any([key in converted_parameters for key in
-                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde']]):
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde', 'eos_spectral_gamma_0']]):
         converted_parameters['lambda_1'] = 0
         converted_parameters['lambda_2'] = 0
         added_keys = added_keys + ['lambda_1', 'lambda_2']
@@ -301,21 +303,84 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
                 converted_parameters['mass_1'], converted_parameters['mass_2'])
-    if 'lambda_2' not in converted_parameters.keys():
+    if 'lambda_2' not in converted_parameters.keys() and 'lambda_1' in converted_parameters.keys():
         converted_parameters['lambda_2'] =\
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
-    elif converted_parameters['lambda_2'] is None:
+    elif 'lambda_2' in converted_parameters.keys() and converted_parameters['lambda_2'] is None:
         converted_parameters['lambda_2'] =\
             converted_parameters['lambda_1']\
             * converted_parameters['mass_1']**5\
             / converted_parameters['mass_2']**5
+    elif 'eos_spectral_gamma_0' in converted_parameters.keys():  # FIXME: This is a clunky way to do this
+        # Pick out the eos parameters from dict of parameters and sort them
+        eos_parameter_keys = sorted([key for key in original_keys if 'eos_spectral_gamma_' in key])
+        gammas = [converted_parameters[key] for key in eos_parameter_keys]
+
+        eos = SpectralDecompositionEOS(gammas, sampling_flag=True, e0=1.2856e14, p0=5.3716e32)
+        if eos.warning_flag:
+            converted_parameters['lambda_1'] = 0.0
+            converted_parameters['lambda_2'] = 0.0
+            converted_parameters['eos_check'] = False
+        elif eos_family_physical_check(eos):
+            converted_parameters['lambda_1'] = 0.0
+            converted_parameters['lambda_2'] = 0.0
+            converted_parameters['eos_check'] = False
+        else:
+            fam = EOSFamily(eos)
+
+            if (converted_parameters['mass_1'] <= fam.maximum_mass and
+                    converted_parameters['mass_2'] <= fam.maximum_mass):
+                converted_parameters['lambda_1'] = fam.lambda_from_mass(converted_parameters['mass_1'])
+                converted_parameters['lambda_2'] = fam.lambda_from_mass(converted_parameters['mass_2'])
+            else:
+                converted_parameters['lambda_1'] = 0.0
+                converted_parameters['lambda_2'] = 0.0
+                converted_parameters['eos_check'] = False
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
 
     return converted_parameters, added_keys
+
+
+def eos_family_physical_check(eos):
+    """
+    Function that determines if the EoS family contains
+    sufficient number of points before maximum mass is reached.
+
+    e_min is chosen to be sufficiently small so that the entire
+    EoS is captured when converting to mass-radius space.
+
+    Returns True if family is valid, False if not.
+    """
+    e_min = 1.6e-10
+    e_central = eos.e_pdat[-1, 1]
+    loge_min = np.log(e_min)
+    loge_central = np.log(e_central)
+    logedat = np.linspace(loge_min, loge_central, num=eos.npts)
+    edat = np.exp(logedat)
+
+    # Generate m, r, and k2 lists
+    mdat = []
+    rdat = []
+    k2dat = []
+    for i in range(8):
+        tov_solver = IntegrateTOV(eos, edat[i])
+        m, r, k2 = tov_solver.integrate_TOV()
+        mdat.append(m)
+        rdat.append(r)
+        k2dat.append(k2)
+
+        # Check if maximum mass has been found
+        if i > 0 and mdat[i] <= mdat[i - 1]:
+            break
+
+    if len(mdat) < 8:
+        return False
+    else:
+        return True
 
 
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
@@ -683,7 +748,7 @@ def lambda_tilde_to_lambda_1_lambda_2(
 
 
 def _generate_all_cbc_parameters(sample, defaults, base_conversion,
-                                 likelihood=None, priors=None):
+                                 likelihood=None, priors=None, npool=1):
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
     waveform_defaults = defaults
@@ -706,7 +771,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
         ):
             try:
                 generate_posterior_samples_from_marginalized_likelihood(
-                    samples=output_sample, likelihood=likelihood)
+                    samples=output_sample, likelihood=likelihood, npool=npool)
             except MarginalizedLikelihoodReconstructionError as e:
                 logger.warning(
                     "Marginalised parameter reconstruction failed with message "
@@ -733,7 +798,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     return output_sample
 
 
-def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
+def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
     """
     From either a single sample or a set of samples fill in all missing
     BBH parameters, in place.
@@ -755,11 +820,11 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_black_hole_parameters,
-        likelihood=likelihood, priors=priors)
+        likelihood=likelihood, priors=priors, npool=npool)
     return output_sample
 
 
-def generate_all_bns_parameters(sample, likelihood=None, priors=None):
+def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
     """
     From either a single sample or a set of samples fill in all missing
     BNS parameters, in place.
@@ -777,6 +842,9 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+    npool: int, (default=1)
+        If given, perform generation (where possible) using a multiprocessing pool
+
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'TaylorF2',
@@ -784,7 +852,7 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
-        likelihood=likelihood, priors=priors)
+        likelihood=likelihood, priors=priors, npool=npool)
     try:
         output_sample = generate_tidal_parameters(output_sample)
     except KeyError as e:
@@ -1073,7 +1141,7 @@ def compute_snrs(sample, likelihood):
 
 
 def generate_posterior_samples_from_marginalized_likelihood(
-        samples, likelihood):
+        samples, likelihood, npool=1):
     """
     Reconstruct the distance posterior from a run which used a likelihood which
     explicitly marginalised over time/distance/phase.
@@ -1086,6 +1154,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
         Posterior from run with a marginalised likelihood.
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
         Likelihood used during sampling.
+    npool: int, (default=1)
+        If given, perform generation (where possible) using a multiprocessing pool
 
     Return
     ------
@@ -1096,22 +1166,36 @@ def generate_posterior_samples_from_marginalized_likelihood(
                 likelihood.distance_marginalization,
                 likelihood.time_marginalization]):
         return samples
-    else:
-        logger.info('Reconstructing marginalised parameters.')
+
+    # pass through a dictionary
     if isinstance(samples, dict):
-        pass
-    elif isinstance(samples, DataFrame):
-        new_time_samples = list()
-        new_distance_samples = list()
-        new_phase_samples = list()
-        for ii in tqdm(range(len(samples)), file=sys.stdout):
-            sample = dict(samples.iloc[ii]).copy()
-            likelihood.parameters.update(sample)
-            new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
-            new_time_samples.append(new_sample['geocent_time'])
-            new_distance_samples.append(new_sample['luminosity_distance'])
-            new_phase_samples.append(new_sample['phase'])
-        samples['geocent_time'] = new_time_samples
-        samples['luminosity_distance'] = new_distance_samples
-        samples['phase'] = new_phase_samples
+        return samples
+    elif not isinstance(samples, DataFrame):
+        raise ValueError("Unable to handle input samples of type {}".format(type(samples)))
+
+    logger.info('Reconstructing marginalised parameters.')
+
+    fill_args = [(ii, row, likelihood) for ii, row in samples.iterrows()]
+    if npool > 1:
+        pool = multiprocessing.Pool(processes=npool)
+        logger.info(
+            "Using a pool with size {} for nsamples={}"
+            .format(npool, len(samples))
+        )
+        new_samples = np.array(pool.map(fill_sample, tqdm(fill_args, file=sys.stdout)))
+        pool.close()
+    else:
+        new_samples = np.array([fill_sample(xx) for xx in tqdm(fill_args, file=sys.stdout)])
+
+    samples['geocent_time'] = new_samples[:, 0]
+    samples['luminosity_distance'] = new_samples[:, 1]
+    samples['phase'] = new_samples[:, 2]
     return samples
+
+
+def fill_sample(args):
+    ii, sample, likelihood = args
+    sample = dict(sample).copy()
+    likelihood.parameters.update(dict(sample).copy())
+    new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
+    return new_sample["geocent_time"], new_sample["luminosity_distance"], new_sample["phase"]

@@ -399,7 +399,7 @@ class TestResult(unittest.TestCase):
         self.assertEqual(len(self.result.posterior), len(self.result.prior_values))
 
     def test_plot_multiple(self):
-        filename = "multiple.png".format(self.result.outdir)
+        filename = "{}/multiple.png".format(self.result.outdir)
         bilby.core.result.plot_multiple([self.result, self.result], filename=filename)
         self.assertTrue(os.path.isfile(filename))
         os.remove(filename)
@@ -504,6 +504,43 @@ class TestResult(unittest.TestCase):
                 self.result.kde([[0, 0.1], [0.8, 0]]),
             )
         )
+
+    def test_to_arviz(self):
+        with self.assertRaises(TypeError):
+            self.result.to_arviz(prior=dict())
+
+        Nprior = 100
+
+        log_likelihood = np.random.rand(len(self.result.posterior))
+        self.result.log_likelihood_evaluations = log_likelihood
+
+        az = self.result.to_arviz(prior=Nprior)
+
+        self.assertTrue("x" in az.posterior and "y" in az.posterior)
+        for var in ["x", "y"]:
+            self.assertTrue(np.array_equal(az.posterior[var].values.squeeze(),
+                                           self.result.posterior[var].values))
+            self.assertTrue(len(az.prior[var][0]) == Nprior)
+
+        self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
+                                       log_likelihood))
+
+        self.assertTrue(
+            az.posterior.attrs["inference_library"] == "bilby: {}".format(
+                self.result.sampler
+            )
+        )
+        self.assertTrue(
+            az.posterior.attrs["inference_library_version"]
+            == bilby.utils.get_version_information()
+        )
+
+        # add log likelihood to samples and extract from there
+        del az
+        self.result.posterior["log_likelihood"] = log_likelihood
+        az = self.result.to_arviz()
+        self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
+                                       log_likelihood))
 
 
 class TestResultListError(unittest.TestCase):
@@ -683,6 +720,13 @@ class TestResultListError(unittest.TestCase):
         self.nested_results.append(result)
         with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
+
+
+class TestMiscResults(unittest.TestCase):
+    def test_sanity_check_labels(self):
+        labels = ["a", "$a$", "a_1", "$a_1$"]
+        labels_checked = bilby.core.result.sanity_check_labels(labels)
+        self.assertEqual(labels_checked, ["a", "$a$", "a-1", "$a_1$"])
 
 
 if __name__ == "__main__":

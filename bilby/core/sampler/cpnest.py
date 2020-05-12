@@ -47,6 +47,11 @@ class Cpnest(NestedSampler):
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['nlive'] = kwargs.pop(equiv)
+        if 'nthreads' not in kwargs:
+            for equiv in self.npool_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['nthreads'] = kwargs.pop(equiv)
+
         if 'seed' not in kwargs:
             logger.warning('No seed provided, cpnest will use 1234.')
 
@@ -105,7 +110,12 @@ class Cpnest(NestedSampler):
                 logger.info(
                     "Attempting to rerun with kwarg {} removed".format(kwarg))
                 self.kwargs.pop(kwarg)
-        out.run()
+        try:
+            out.run()
+        except SystemExit as e:
+            import sys
+            logger.info(f"Caught exit code {e.args[0]}, exiting with signal {self.exit_code}")
+            sys.exit(self.exit_code)
 
         if self.plot:
             out.plot()

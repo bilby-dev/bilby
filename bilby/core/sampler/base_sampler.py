@@ -70,6 +70,8 @@ class Sampler(object):
         only advisable for testing environments
     result: bilby.core.result.Result
         Container for the results of the sampling run
+    exit_code: int
+        System exit code to return on interrupt
     kwargs: dict
         Dictionary of keyword arguments that can be used in the external sampler
 
@@ -86,12 +88,13 @@ class Sampler(object):
 
     """
     default_kwargs = dict()
+    npool_equiv_kwargs = ['queue_size', 'threads', 'nthreads', 'npool']
 
     def __init__(
             self, likelihood, priors, outdir='outdir', label='label',
             use_ratio=False, plot=False, skip_import_verification=False,
             injection_parameters=None, meta_data=None, result_class=None,
-            likelihood_benchmark=False, soft_init=False,
+            likelihood_benchmark=False, soft_init=False, exit_code=130,
             **kwargs):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
@@ -113,6 +116,8 @@ class Sampler(object):
         self._fixed_parameter_keys = list()
         self._constraint_parameter_keys = list()
         self._initialise_parameters()
+
+        self.exit_code = exit_code
 
         if not soft_init:
             self._verify_parameters()
@@ -535,7 +540,7 @@ class Sampler(object):
 
 
 class NestedSampler(Sampler):
-    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive']
+    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive', 'num_live_points']
     walks_equiv_kwargs = ['walks', 'steps', 'nmcmc']
 
     def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,
