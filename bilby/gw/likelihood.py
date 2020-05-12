@@ -1172,8 +1172,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         # Maximum delay time to geocentre + 5 steps
         earth_light_crossing_time = radius_of_earth / speed_of_light + 5 * time_space
         delta_times = np.arange(
-            self.priors['geocent_time'].minimum - earth_light_crossing_time,
-            self.priors['geocent_time'].maximum + earth_light_crossing_time,
+            self.priors['{}_time'.format(self.time_reference)].minimum - earth_light_crossing_time,
+            self.priors['{}_time'.format(self.time_reference)].maximum + earth_light_crossing_time,
             time_space)
         time_samples = delta_times - self.interferometers.start_time
         self.weights['time_samples'] = time_samples
