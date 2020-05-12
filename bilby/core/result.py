@@ -927,6 +927,8 @@ class Result(object):
             'labels', self.get_latex_labels_from_parameter_keys(
                 plot_parameter_keys))
 
+        kwargs["labels"] = sanity_check_labels(kwargs["labels"])
+
         # Unless already set, set the range to include all samples
         # This prevents ValueErrors being raised for parameters with no range
         kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
@@ -1523,7 +1525,7 @@ class ResultList(list):
 
 @latex_plot_format
 def plot_multiple(results, filename=None, labels=None, colours=None,
-                  save=True, evidences=False, **kwargs):
+                  save=True, evidences=False, corner_labels=None, **kwargs):
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
@@ -1543,12 +1545,16 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     save: bool
         If true, save the figure
     kwargs: dict
-        All other keyword arguments are passed to `result.plot_corner`.
+        All other keyword arguments are passed to `result.plot_corner` (except
+        for the keyword `labels` for which you should use the dedicated
+        `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
         ambiguous on such a plot.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
+    corner_labels: list, optional
+        List of strings to be passed to the input `labels` to `result.plot_corner`.
 
     Returns
     -------
@@ -1559,6 +1565,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     kwargs['show_titles'] = False
     kwargs['truths'] = None
+    if corner_labels is not None:
+        kwargs['labels'] = corner_labels
 
     fig = results[0].plot_corner(save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
@@ -1583,6 +1591,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if labels is None:
         labels = default_labels
+
+    labels = sanity_check_labels(labels)
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
@@ -1718,6 +1728,14 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         safe_save_figure(fig=fig, filename=filename, dpi=500)
 
     return fig, pvals
+
+
+def sanity_check_labels(labels):
+    """ Check labels for plotting to remove matplotlib errors """
+    for ii, lab in enumerate(labels):
+        if "_" in lab and "$" not in lab:
+            labels[ii] = lab.replace("_", "-")
+    return labels
 
 
 class ResultError(Exception):

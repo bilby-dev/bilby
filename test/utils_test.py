@@ -34,6 +34,9 @@ class TestConstants(unittest.TestCase):
             1e-5,
         )
 
+    def test_gravitational_constant(self):
+        self.assertEqual(bilby.core.utils.gravitational_constant, lal.G_SI)
+
 
 class TestFFT(unittest.TestCase):
     def setUp(self):
