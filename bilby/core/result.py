@@ -95,6 +95,140 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     return result
 
 
+def get_weights_for_reweighting(
+        result, new_likelihood=None, new_prior=None, old_likelihood=None,
+        old_prior=None):
+    """ Calculate the weights for reweight()
+
+    See bilby.core.result.reweight() for help with the inputs
+
+    Returns
+    -------
+    ln_weights: array
+        An array of the natural-log weights
+    new_log_likelihood_array: array
+        An array of the natural-log likelihoods
+    new_log_prior_array: array
+        An array of the natural-log priors
+
+    """
+    nposterior = len(result.posterior)
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    for ii, sample in result.posterior.iterrows():
+        # Convert sample to dictionary
+        par_sample = {key: sample[key] for key in result.search_parameter_keys}
+
+        if old_likelihood is not None:
+            old_likelihood.parameters.update(par_sample)
+            old_log_likelihood_array[ii] = old_likelihood.log_likelihood()
+        else:
+            old_log_likelihood_array[ii] = sample["log_likelihood"]
+
+        if new_likelihood is not None:
+            new_likelihood.parameters.update(par_sample)
+            new_log_likelihood_array[ii] = new_likelihood.log_likelihood()
+        else:
+            # Don't perform likelihood reweighting (i.e. likelihood isn't updated)
+            new_log_likelihood_array[ii] = old_log_likelihood_array[ii]
+
+        if old_prior is not None:
+            old_log_prior_array[ii] = old_prior.ln_prob(par_sample)
+        else:
+            old_log_prior_array[ii] = sample["log_prior"]
+
+        if new_prior is not None:
+            new_log_prior_array[ii] = new_prior.ln_prob(par_sample)
+        else:
+            # Don't perform prior reweighting (i.e. prior isn't updated)
+            new_log_prior_array[ii] = old_log_prior_array[ii]
+
+    ln_weights = (
+        new_log_likelihood_array + new_log_prior_array - old_log_likelihood_array - old_log_prior_array)
+
+    return ln_weights, new_log_likelihood_array, new_log_prior_array
+
+
+def rejection_sample(posterior, weights):
+    """ Perform rejection sampling on a posterior using weights
+
+    Parameters
+    ----------
+    posterior: pd.DataFrame
+        The dataframe containing posterior samples
+    weights: np.ndarray
+        An array of weights
+
+    Returns
+    -------
+    reweighted_posterior: pd.DataFrame
+        The posterior resampled using rejection sampling
+
+    """
+    keep = weights > np.random.uniform(0, max(weights), weights.shape)
+    return posterior.iloc[keep]
+
+
+def reweight(result, label=None, new_likelihood=None, new_prior=None,
+             old_likelihood=None, old_prior=None):
+    """ Reweight a result to a new likelihood/prior using rejection sampling
+
+    Parameters
+    ----------
+    label: str, optional
+        An updated label to apply to the result object
+    new_likelihood: bilby.core.likelood.Likelihood, (optional)
+        If given, the new likelihood to reweight too. If not given, likelihood
+        reweighting is not applied
+    new_prior: bilby.core.prior.PriorDict, (optional)
+        If given, the new prior to reweight too. If not given, prior
+        reweighting is not applied
+    old_likelihood: bilby.core.likelihood.Likelihood, (optional)
+        If given, calculate the old likelihoods from this object. If not given,
+        the values stored in the posterior are used.
+    old_prior: bilby.core.prior.PriorDict, (optional)
+        If given, calculate the old prior from this object. If not given,
+        the values stored in the posterior are used.
+
+    Returns
+    -------
+    result: bilby.core.result.Result
+        A copy of the result object with a reweighted posterior
+
+    """
+
+    result = copy(result)
+    nposterior = len(result.posterior)
+    logger.info("Reweighting posterior with {} samples".format(nposterior))
+
+    ln_weights, new_log_likelihood_array, new_log_prior_array = get_weights_for_reweighting(
+        result, new_likelihood=new_likelihood, new_prior=new_prior,
+        old_likelihood=old_likelihood, old_prior=old_prior)
+
+    # Overwrite the likelihood and prior evaluations
+    result.posterior["log_likelihood"] = new_log_likelihood_array
+    result.posterior["log_prior"] = new_log_prior_array
+
+    weights = np.exp(ln_weights)
+
+    result.posterior = rejection_sample(result.posterior, weights=weights)
+    logger.info("Rejection sampling resulted in {} samples".format(len(result.posterior)))
+    result.meta_data["reweighted_using_rejection_sampling"] = True
+
+    result.log_evidence += logsumexp(ln_weights) - np.log(nposterior)
+    result.priors = new_prior
+
+    if label:
+        result.label = label
+    else:
+        result.label += "_reweighted"
+
+    return result
+
+
 class Result(object):
     def __init__(self, label='no_label', outdir='.', sampler=None,
                  search_parameter_keys=None, fixed_parameter_keys=None,
