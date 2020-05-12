@@ -867,7 +867,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                               deg2perpix).astype(int)
                 for i, p in zip(ii, pp):
                     text.append(
-                        u'{:d}% area: {:d} deg$^2$'.format(p, i, grouping=True))
+                        u'{:d}% area: {:d} deg$^2$'.format(p, i))
             ax.text(1, 1, '\n'.join(text), transform=ax.transAxes, ha='right')
 
         filename = os.path.join(self.outdir, "{}_skymap.png".format(self.label))

@@ -1196,6 +1196,7 @@ def latex_plot_format(func):
 
 
 def safe_save_figure(fig, filename, **kwargs):
+    check_directory_exists_and_if_not_mkdir(os.path.dirname(filename))
     from matplotlib import rcParams
     try:
         fig.savefig(fname=filename, **kwargs)
