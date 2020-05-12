@@ -109,8 +109,8 @@ log_evidences = []
 log_evidences_err = []
 log_occam_factors = []
 ns = range(1, 11)
-for l in ns:
-    e, e_err, o = fit(l)
+for ll in ns:
+    e, e_err, o = fit(ll)
     log_evidences.append(e)
     log_evidences_err.append(e_err)
     log_occam_factors.append(o)
