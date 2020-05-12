@@ -221,6 +221,10 @@ class Ptemcee(MCMCSampler):
             for equiv in self.nwalkers_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs["nwalkers"] = kwargs.pop(equiv)
+        if "threads" not in kwargs:
+            for equiv in self.npool_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs["threads"] = kwargs.pop(equiv)
 
     def get_pos0_from_prior(self):
         """ Draw the initial positions from the prior

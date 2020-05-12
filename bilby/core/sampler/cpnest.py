@@ -47,6 +47,11 @@ class Cpnest(NestedSampler):
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['nlive'] = kwargs.pop(equiv)
+        if 'nthreads' not in kwargs:
+            for equiv in self.npool_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['nthreads'] = kwargs.pop(equiv)
+
         if 'seed' not in kwargs:
             logger.warning('No seed provided, cpnest will use 1234.')
 

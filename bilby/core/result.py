@@ -1,5 +1,6 @@
 from __future__ import division
 
+import inspect
 import os
 from collections import OrderedDict, namedtuple
 from copy import copy
@@ -1226,7 +1227,7 @@ class Result(object):
         return posterior
 
     def samples_to_posterior(self, likelihood=None, priors=None,
-                             conversion_function=None):
+                             conversion_function=None, npool=1):
         """
         Convert array of samples to posterior (a Pandas data frame)
 
@@ -1257,7 +1258,10 @@ class Result(object):
             else:
                 data_frame['log_prior'] = self.log_prior_evaluations
         if conversion_function is not None:
-            data_frame = conversion_function(data_frame, likelihood, priors)
+            if "npool" in inspect.getargspec(conversion_function).args:
+                data_frame = conversion_function(data_frame, likelihood, priors, npool=npool)
+            else:
+                data_frame = conversion_function(data_frame, likelihood, priors)
         self.posterior = data_frame
 
     def calculate_prior_values(self, priors):
