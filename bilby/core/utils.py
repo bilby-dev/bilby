@@ -1208,6 +1208,26 @@ def safe_save_figure(fig, filename, **kwargs):
         fig.savefig(fname=filename, **kwargs)
 
 
+def kish_log_effective_sample_size(ln_weights):
+    """ Calculate the Kish effective sample size from the natural-log weights
+
+    See https://en.wikipedia.org/wiki/Effective_sample_size for details
+
+    Parameters
+    ----------
+    ln_weights: array
+        An array of the ln-weights
+
+    Returns
+    -------
+    ln_n_eff:
+        The natural-log of the effective sample size
+
+    """
+    log_n_eff = 2 * logsumexp(ln_weights) - logsumexp(2 * ln_weights)
+    return log_n_eff
+
+
 class IllegalDurationAndSamplingFrequencyException(Exception):
     pass
 
