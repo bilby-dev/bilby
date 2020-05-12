@@ -399,7 +399,7 @@ class TestResult(unittest.TestCase):
         self.assertEqual(len(self.result.posterior), len(self.result.prior_values))
 
     def test_plot_multiple(self):
-        filename = "multiple.png".format(self.result.outdir)
+        filename = "{}/multiple.png".format(self.result.outdir)
         bilby.core.result.plot_multiple([self.result, self.result], filename=filename)
         self.assertTrue(os.path.isfile(filename))
         os.remove(filename)
