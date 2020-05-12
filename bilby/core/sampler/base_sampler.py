@@ -86,6 +86,7 @@ class Sampler(object):
 
     """
     default_kwargs = dict()
+    npool_equiv_kwargs = ['queue_size', 'threads', 'nthreads', 'npool']
 
     def __init__(
             self, likelihood, priors, outdir='outdir', label='label',

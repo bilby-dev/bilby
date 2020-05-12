@@ -208,6 +208,10 @@ class Dynesty(NestedSampler):
             for equiv in self.walks_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs['walks'] = kwargs.pop(equiv)
+        if "queue_size" not in kwargs:
+            for equiv in self.npool_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs['queue_size'] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs['walks']:
