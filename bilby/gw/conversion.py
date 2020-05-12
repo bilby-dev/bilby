@@ -1,5 +1,6 @@
 from __future__ import division
 import sys
+import multiprocessing
 
 from tqdm import tqdm
 import numpy as np
@@ -747,7 +748,7 @@ def lambda_tilde_to_lambda_1_lambda_2(
 
 
 def _generate_all_cbc_parameters(sample, defaults, base_conversion,
-                                 likelihood=None, priors=None):
+                                 likelihood=None, priors=None, npool=1):
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
     waveform_defaults = defaults
@@ -770,7 +771,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
         ):
             try:
                 generate_posterior_samples_from_marginalized_likelihood(
-                    samples=output_sample, likelihood=likelihood)
+                    samples=output_sample, likelihood=likelihood, npool=npool)
             except MarginalizedLikelihoodReconstructionError as e:
                 logger.warning(
                     "Marginalised parameter reconstruction failed with message "
@@ -811,7 +812,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     return output_sample
 
 
-def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
+def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
     """
     From either a single sample or a set of samples fill in all missing
     BBH parameters, in place.
@@ -833,11 +834,11 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_black_hole_parameters,
-        likelihood=likelihood, priors=priors)
+        likelihood=likelihood, priors=priors, npool=npool)
     return output_sample
 
 
-def generate_all_bns_parameters(sample, likelihood=None, priors=None):
+def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
     """
     From either a single sample or a set of samples fill in all missing
     BNS parameters, in place.
@@ -855,6 +856,9 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+    npool: int, (default=1)
+        If given, perform generation (where possible) using a multiprocessing pool
+
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'TaylorF2',
@@ -862,7 +866,7 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
-        likelihood=likelihood, priors=priors)
+        likelihood=likelihood, priors=priors, npool=npool)
     try:
         output_sample = generate_tidal_parameters(output_sample)
     except KeyError as e:
@@ -1151,7 +1155,7 @@ def compute_snrs(sample, likelihood):
 
 
 def generate_posterior_samples_from_marginalized_likelihood(
-        samples, likelihood):
+        samples, likelihood, npool=1):
     """
     Reconstruct the distance posterior from a run which used a likelihood which
     explicitly marginalised over time/distance/phase.
@@ -1164,6 +1168,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
         Posterior from run with a marginalised likelihood.
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
         Likelihood used during sampling.
+    npool: int, (default=1)
+        If given, perform generation (where possible) using a multiprocessing pool
 
     Return
     ------
@@ -1174,24 +1180,30 @@ def generate_posterior_samples_from_marginalized_likelihood(
                 likelihood.distance_marginalization,
                 likelihood.time_marginalization]):
         return samples
-    else:
-        logger.info('Reconstructing marginalised parameters.')
+
+    # pass through a dictionary
     if isinstance(samples, dict):
-        pass
-    elif isinstance(samples, DataFrame):
-        new_time_samples = list()
-        new_distance_samples = list()
-        new_phase_samples = list()
-        for ii in tqdm(range(len(samples)), file=sys.stdout):
-            sample = dict(samples.iloc[ii]).copy()
-            likelihood.parameters.update(sample)
-            new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
-            new_time_samples.append(new_sample['geocent_time'])
-            new_distance_samples.append(new_sample['luminosity_distance'])
-            new_phase_samples.append(new_sample['phase'])
-        samples['geocent_time'] = new_time_samples
-        samples['luminosity_distance'] = new_distance_samples
-        samples['phase'] = new_phase_samples
+        return samples
+    elif not isinstance(samples, DataFrame):
+        raise ValueError("Unable to handle input samples of type {}".format(type(samples)))
+
+    logger.info('Reconstructing marginalised parameters.')
+
+    fill_args = [(ii, row, likelihood) for ii, row in samples.iterrows()]
+    if npool > 1:
+        pool = multiprocessing.Pool(processes=npool)
+        logger.info(
+            "Using a pool with size {} for nsamples={}"
+            .format(npool, len(samples))
+        )
+        new_samples = np.array(pool.map(fill_sample, tqdm(fill_args, file=sys.stdout)))
+        pool.close()
+    else:
+        new_samples = np.array([fill_sample(xx) for xx in tqdm(fill_args, file=sys.stdout)])
+
+    samples['geocent_time'] = new_samples[:, 0]
+    samples['luminosity_distance'] = new_samples[:, 1]
+    samples['phase'] = new_samples[:, 2]
     return samples
 
 
@@ -1212,3 +1224,11 @@ def generate_sky_frame_parameters(samples, likelihood):
     new_samples = DataFrame(new_samples)
     for key in new_samples:
         samples[key] = new_samples[key]
+
+
+def fill_sample(args):
+    ii, sample, likelihood = args
+    sample = dict(sample).copy()
+    likelihood.parameters.update(dict(sample).copy())
+    new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
+    return new_sample["geocent_time"], new_sample["luminosity_distance"], new_sample["phase"]
