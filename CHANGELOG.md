@@ -1,5 +1,23 @@
 # All notable changes will be documented in this file
 
+## [0.6.8] 2020-05-13
+### Added
+- Option to sample in the sky frame (!786)
+- Multiprocessing to reconstruction of marginalized parameters (!782)
+- Generic reweighting method for likelihood / priors (!776)
+- Parameterized EOS sampling (!543)
+- Implementation of the UltraNest sampler (!766)
+- Implementation of arVix result files (!772)
+- Added basic pre-commit behaviour (!763)
+
+### Changes
+- Updated the default PSD to O4 (!757)
+- Make multinest allow long file names, optional and work with MPI (!764 !785)
+- Add min/max to aligned spin prior (!787)
+- Reduce redudant code (!703)
+- Added testing for python 3.8 (!762)
+- Improvements to the waveform plot (!769)
+
 ## [0.6.7] 2020-04-15
 ### Changes
 - Allow dynesty to run with multiprocessing (!754)
