@@ -21,10 +21,12 @@ from ..core.utils import (
     logger, UnsortedInterp2d, create_frequency_series, create_time_series,
     speed_of_light, radius_of_earth)
 from ..core.prior import Interped, Prior, Uniform
-from .detector import InterferometerList
+from .detector import InterferometerList, get_empty_interferometer
 from .prior import BBHPriorDict, CBCPriorDict, Cosmological
 from .source import lal_binary_black_hole
-from .utils import noise_weighted_inner_product, build_roq_weights, blockwise_dot_product
+from .utils import (
+    noise_weighted_inner_product, build_roq_weights, blockwise_dot_product,
+    zenith_azimuth_to_ra_dec)
 from .waveform_generator import WaveformGenerator
 from collections import namedtuple
 
@@ -79,6 +81,18 @@ class GravitationalWaveTransient(Likelihood):
         missing the likelihood peak, or introducing biases in the
         reconstructed time posterior due to an insufficient sampling frequency.
         Default is False, however using this parameter is strongly encouraged.
+    reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
+        Definition of the reference frame for the sky location.
+        - "sky": sample in RA/dec, this is the default
+        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+    time_reference: str, optional
+        Name of the reference for the sampled time parameter.
+        - "geocent"/"geocenter": sample in the time at the Earth's center,
+          this is the default
+        - e.g., "H1": sample in the time of arrival at H1
 
     Returns
     -------
@@ -94,11 +108,12 @@ class GravitationalWaveTransient(Likelihood):
                                   'complex_matched_filter_snr',
                                   'd_inner_h_squared_tc_array'])
 
-    def __init__(self, interferometers, waveform_generator,
-                 time_marginalization=False, distance_marginalization=False,
-                 phase_marginalization=False, priors=None,
-                 distance_marginalization_lookup_table=None,
-                 jitter_time=True):
+    def __init__(
+        self, interferometers, waveform_generator, time_marginalization=False,
+        distance_marginalization=False, phase_marginalization=False, priors=None,
+        distance_marginalization_lookup_table=None, jitter_time=True,
+        reference_frame="sky", time_reference="geocenter"
+    ):
 
         self.waveform_generator = waveform_generator
         super(GravitationalWaveTransient, self).__init__(dict())
@@ -109,6 +124,17 @@ class GravitationalWaveTransient(Likelihood):
         self.priors = priors
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
         self.jitter_time = jitter_time
+        self.reference_frame = reference_frame
+        if "geocent" not in time_reference:
+            self.time_reference = time_reference
+            self.reference_ifo = get_empty_interferometer(self.time_reference)
+            if self.time_marginalization:
+                logger.info("Cannot marginalise over non-geocenter time.")
+                self.time_marginalization = False
+                self.jitter_time = False
+        else:
+            self.time_reference = "geocent"
+            self.reference_ifo = None
 
         if self.time_marginalization:
             self._check_prior_is_set(key='geocent_time')
@@ -261,6 +287,8 @@ class GravitationalWaveTransient(Likelihood):
         waveform_polarizations =\
             self.waveform_generator.frequency_domain_strain(self.parameters)
 
+        self.parameters.update(self.get_sky_frame_parameters())
+
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
 
@@ -364,6 +392,7 @@ class GravitationalWaveTransient(Likelihood):
         new_time: float
             Sample from the time posterior.
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
         if signal_polarizations is None:
@@ -436,6 +465,7 @@ class GravitationalWaveTransient(Likelihood):
         new_distance: float
             Sample from the distance posterior.
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
@@ -498,6 +528,7 @@ class GravitationalWaveTransient(Likelihood):
         -----
         This is only valid when assumes that mu(phi) \propto exp(-2i phi).
         """
+        self.parameters.update(self.get_sky_frame_parameters())
         if signal_polarizations is None:
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
@@ -703,6 +734,49 @@ class GravitationalWaveTransient(Likelihood):
             signal[mode] *= self._ref_dist / new_distance
 
     @property
+    def reference_frame(self):
+        return self._reference_frame
+
+    @property
+    def _reference_frame_str(self):
+        if isinstance(self.reference_frame, str):
+            return self.reference_frame
+        else:
+            return "".join([ifo.name for ifo in self.reference_frame])
+
+    @reference_frame.setter
+    def reference_frame(self, frame):
+        if frame == "sky":
+            self._reference_frame = frame
+        elif isinstance(frame, InterferometerList):
+            self._reference_frame = frame[:2]
+        elif isinstance(frame, list):
+            self._reference_frame = InterferometerList(frame[:2])
+        elif isinstance(frame, str):
+            self._reference_frame = InterferometerList([frame[:2], frame[2:4]])
+        else:
+            raise ValueError("Unable to parse reference frame {}".format(frame))
+
+    def get_sky_frame_parameters(self):
+        time = self.parameters['{}_time'.format(self.time_reference)]
+        if not self.reference_frame == "sky":
+            ra, dec = zenith_azimuth_to_ra_dec(
+                self.parameters['zenith'], self.parameters['azimuth'],
+                time, self.reference_frame)
+        else:
+            ra = self.parameters["ra"]
+            dec = self.parameters["dec"]
+        if "geocent" not in self.time_reference:
+            geocent_time = (
+                time - self.reference_ifo.time_delay_from_geocenter(
+                    ra=ra, dec=dec, time=time
+                )
+            )
+        else:
+            geocent_time = self.parameters["geocent_time"]
+        return dict(ra=ra, dec=dec, geocent_time=geocent_time)
+
+    @property
     def lal_version(self):
         try:
             from lal import git_version
@@ -726,6 +800,8 @@ class GravitationalWaveTransient(Likelihood):
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
             start_time=self.waveform_generator.start_time,
+            time_reference=self.time_reference,
+            reference_frame=self._reference_frame_str,
             lal_version=self.lal_version)
 
 
@@ -857,13 +933,29 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         The lookup table is stored after construction in either the
         provided string or a default location:
         '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+    reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
+        Definition of the reference frame for the sky location.
+        - "sky": sample in RA/dec, this is the default
+        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+    time_reference: str, optional
+        Name of the reference for the sampled time parameter.
+        - "geocent"/"geocenter": sample in the time at the Earth's center,
+          this is the default
+        - e.g., "H1": sample in the time of arrival at H1
 
     """
-    def __init__(self, interferometers, waveform_generator, priors,
-                 weights=None, linear_matrix=None, quadratic_matrix=None,
-                 roq_params=None, roq_params_check=True, roq_scale_factor=1,
-                 distance_marginalization=False, phase_marginalization=False,
-                 distance_marginalization_lookup_table=None):
+    def __init__(
+        self, interferometers, waveform_generator, priors,
+        weights=None, linear_matrix=None, quadratic_matrix=None,
+        roq_params=None, roq_params_check=True, roq_scale_factor=1,
+        distance_marginalization=False, phase_marginalization=False,
+        distance_marginalization_lookup_table=None,
+        reference_frame="sky", time_reference="geocenter"
+
+    ):
         super(ROQGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator, priors=priors,
@@ -871,7 +963,10 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             phase_marginalization=phase_marginalization,
             time_marginalization=False,
             distance_marginalization_lookup_table=distance_marginalization_lookup_table,
-            jitter_time=False)
+            jitter_time=False,
+            reference_frame=reference_frame,
+            time_reference=time_reference
+        )
 
         self.roq_params_check = roq_params_check
         self.roq_scale_factor = roq_scale_factor
@@ -1077,8 +1172,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         # Maximum delay time to geocentre + 5 steps
         earth_light_crossing_time = radius_of_earth / speed_of_light + 5 * time_space
         delta_times = np.arange(
-            self.priors['geocent_time'].minimum - earth_light_crossing_time,
-            self.priors['geocent_time'].maximum + earth_light_crossing_time,
+            self.priors['{}_time'.format(self.time_reference)].minimum - earth_light_crossing_time,
+            self.priors['{}_time'.format(self.time_reference)].maximum + earth_light_crossing_time,
             time_space)
         time_samples = delta_times - self.interferometers.start_time
         self.weights['time_samples'] = time_samples

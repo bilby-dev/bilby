@@ -784,6 +784,20 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     ['luminosity_distance', 'phase', 'geocent_time']):
                 if getattr(likelihood, '{}_marginalization'.format(par), False):
                     priors[name] = likelihood.priors[name]
+
+        if (
+            not getattr(likelihood, "reference_frame", "sky") == "sky"
+            or not getattr(likelihood, "time_reference", "geocenter") == "geocenter"
+        ):
+            try:
+                generate_sky_frame_parameters(
+                    samples=output_sample, likelihood=likelihood
+                )
+            except TypeError:
+                logger.info(
+                    "Failed to generate sky frame parameters for type {}"
+                    .format(type(output_sample))
+                )
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
             generate_source_frame_parameters]):
@@ -1191,6 +1205,25 @@ def generate_posterior_samples_from_marginalized_likelihood(
     samples['luminosity_distance'] = new_samples[:, 1]
     samples['phase'] = new_samples[:, 2]
     return samples
+
+
+def generate_sky_frame_parameters(samples, likelihood):
+    if isinstance(samples, dict):
+        likelihood.parameters.update(samples)
+        samples.update(likelihood.get_sky_frame_parameters())
+        return
+    elif not isinstance(samples, DataFrame):
+        raise ValueError
+
+    logger.info('Generating sky frame parameters.')
+    new_samples = list()
+    for ii in tqdm(range(len(samples)), file=sys.stdout):
+        sample = dict(samples.iloc[ii]).copy()
+        likelihood.parameters.update(sample)
+        new_samples.append(likelihood.get_sky_frame_parameters())
+    new_samples = DataFrame(new_samples)
+    for key in new_samples:
+        samples[key] = new_samples[key]
 
 
 def fill_sample(args):

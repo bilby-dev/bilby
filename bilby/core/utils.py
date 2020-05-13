@@ -312,6 +312,12 @@ def ra_dec_to_theta_phi(ra, dec, gmst):
     return theta, phi
 
 
+def theta_phi_to_ra_dec(theta, phi, gmst):
+    ra = phi + gmst
+    dec = np.pi / 2 - theta
+    return ra, dec
+
+
 def gps_time_to_gmst(gps_time):
     """
     Convert gps time to Greenwich mean sidereal time in radians

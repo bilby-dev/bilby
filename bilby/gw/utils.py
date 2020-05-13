@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
-                          SamplesSummary)
+                          SamplesSummary, theta_phi_to_ra_dec)
 
 try:
     from gwpy.timeseries import TimeSeries
@@ -277,6 +277,111 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
 
     """
     return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
+
+
+__cached_euler_matrix = None
+__cached_delta_x = None
+
+
+def euler_rotation(delta_x):
+    """
+    Calculate the rotation matrix mapping the vector (0, 0, 1) to delta_x
+    while preserving the origin of the azimuthal angle.
+
+    This is decomposed into three Euler angle, alpha, beta, gamma, which rotate
+    about the z-, y-, and z- axes respectively.
+
+    Parameters
+    ----------
+    delta_x: array-like (3,)
+        Vector onto which (0, 0, 1) should be mapped.
+
+    Returns
+    -------
+    total_rotation: array-like (3,3)
+        Rotation matrix which maps vectors from the frame in which delta_x is
+        aligned with the z-axis to the target frame.
+    """
+    global __cached_delta_x
+    global __cached_euler_matrix
+
+    delta_x = delta_x / np.sum(delta_x**2)**0.5
+    if np.array_equal(delta_x, __cached_delta_x):
+        return __cached_euler_matrix
+    else:
+        __cached_delta_x = delta_x
+    alpha = np.arctan(- delta_x[1] * delta_x[2] / delta_x[0])
+    beta = np.arccos(delta_x[2])
+    gamma = np.arctan(delta_x[1] / delta_x[0])
+    rotation_1 = np.array([
+        [np.cos(alpha), -np.sin(alpha), 0], [np.sin(alpha), np.cos(alpha), 0],
+        [0, 0, 1]])
+    rotation_2 = np.array([
+        [np.cos(beta), 0, - np.sin(beta)], [0, 1, 0],
+        [np.sin(beta), 0, np.cos(beta)]])
+    rotation_3 = np.array([
+        [np.cos(gamma), -np.sin(gamma), 0], [np.sin(gamma), np.cos(gamma), 0],
+        [0, 0, 1]])
+    total_rotation = np.einsum(
+        'ij,jk,kl->il', rotation_3, rotation_2, rotation_1)
+    __cached_delta_x = delta_x
+    __cached_euler_matrix = total_rotation
+    return total_rotation
+
+
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
+    """
+    Convert from the 'detector frame' to the Earth frame.
+
+    Parameters
+    kappa: float
+        The zenith angle in the detector frame
+    eta: float
+        The azimuthal angle in the detector frame
+    ifos: list
+        List of Interferometer objects defining the detector frame
+
+    Returns
+    -------
+    theta, phi: float
+        The zenith and azimuthal angles in the earth frame.
+    """
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    omega_prime = np.array([
+        np.sin(zenith) * np.cos(azimuth),
+        np.sin(zenith) * np.sin(azimuth),
+        np.cos(zenith)])
+    rotation_matrix = euler_rotation(delta_x)
+    omega = np.dot(rotation_matrix, omega_prime)
+    theta = np.arccos(omega[2])
+    phi = np.arctan2(omega[1], omega[0]) % (2 * np.pi)
+    return theta, phi
+
+
+def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
+    """
+    Convert from the 'detector frame' to the Earth frame.
+
+    Parameters
+    kappa: float
+        The zenith angle in the detector frame
+    eta: float
+        The azimuthal angle in the detector frame
+    geocent_time: float
+        GPS time at geocenter
+    ifos: list
+        List of Interferometer objects defining the detector frame
+
+    Returns
+    -------
+    ra, dec: float
+        The zenith and azimuthal angles in the sky frame.
+    """
+    theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
+    gmst = lal.GreenwichMeanSiderealTime(geocent_time)
+    ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
+    ra = ra % (2 * np.pi)
+    return ra, dec
 
 
 def get_event_time(event):
