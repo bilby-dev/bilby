@@ -181,11 +181,15 @@ class Pymultinest(NestedSampler):
                 self.outputfiles_basename, self.temporary_outputfiles_basename
             )
         )
-        if os.path.islink(self.outputfiles_basename.strip("/")):
-            os.unlink(self.outputfiles_basename.strip("/"))
-        elif os.path.isdir(self.outputfiles_basename):
-            shutil.rmtree(self.outputfiles_basename, ignore_errors=True)
-        shutil.move(self.temporary_outputfiles_basename, self.outputfiles_basename)
+        if self.outputfiles_basename.endswith('/'):
+            outputfiles_basename_stripped = self.outputfiles_basename[:-1]
+        else:
+            outputfiles_basename_stripped = self.outputfiles_basename
+        if os.path.islink(outputfiles_basename_stripped):
+            os.unlink(outputfiles_basename_stripped)
+        elif os.path.isdir(outputfiles_basename_stripped):
+            shutil.rmtree(outputfiles_basename_stripped)
+        shutil.move(self.temporary_outputfiles_basename, outputfiles_basename_stripped)
 
     def run_sampler(self):
         import pymultinest
