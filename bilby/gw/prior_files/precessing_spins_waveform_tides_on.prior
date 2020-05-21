@@ -11,7 +11,7 @@ phi_jl = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='periodic
 luminosity_distance = bilby.gw.prior.UniformComovingVolume(name='luminosity_distance', minimum=1, maximum=750, unit='Mpc')
 ra = Uniform(minimum=0, maximum=2 * np.pi, name='ra',  boundary='periodic')
 dec = Cosine(name='dec')
-cos_theta_jn = Uniform(name='cos_theta_jn', minimum=-1, maximum=1)
+theta_jn = Sine(name='theta_jn')
 psi = Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic')
 phase = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic')
 lambda_1 = Uniform(name='lambda_2', minimum=0, maximum=5000)
