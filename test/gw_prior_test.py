@@ -1,6 +1,7 @@
 from __future__ import division, absolute_import
 from collections import OrderedDict
 import unittest
+import glob
 import os
 import sys
 import pickle
@@ -25,7 +26,7 @@ class TestBBHPriorDict(unittest.TestCase):
         )
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_black_holes.prior",
+            "prior_files/precessing_spins_binary_black_holes.prior",
         )
         self.bbh_prior_dict = bilby.gw.prior.BBHPriorDict(filename=self.filename)
         for key, value in self.bbh_prior_dict.items():
@@ -101,8 +102,8 @@ class TestBBHPriorDict(unittest.TestCase):
             self.assertTrue(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_masses(self):
-        del self.bbh_prior_dict["mass_2"]
-        for prior in ["mass_2", "chirp_mass", "total_mass", "symmetric_mass_ratio"]:
+        del self.bbh_prior_dict["chirp_mass"]
+        for prior in ["chirp_mass", "total_mass", "symmetric_mass_ratio"]:
             self.assertFalse(self.bbh_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_spin_magnitudes(self):
@@ -140,9 +141,9 @@ class TestBBHPriorDict(unittest.TestCase):
     def test_test_has_redundant_priors(self):
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
         for prior in [
-            "chirp_mass",
+            "mass_1",
+            "mass_2",
             "total_mass",
-            "mass_ratio",
             "symmetric_mass_ratio",
             "cos_tilt_1",
             "cos_tilt_2",
@@ -266,26 +267,27 @@ class TestPackagedPriors(unittest.TestCase):
     """ Test that the prepackaged priors load """
 
     def test_aligned(self):
-        filename = "aligned_spin_binary_black_holes.prior"
+        filename = "aligned_spins_binary_black_holes.prior"
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
         self.assertTrue("chi_1" in prior_dict)
         self.assertTrue("chi_2" in prior_dict)
 
-    def test_precessing(self):
-        filename = "precessing_binary_neutron_stars.prior"
-        prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
-        self.assertTrue("lambda_1" in prior_dict)
-        self.assertTrue("lambda_2" in prior_dict)
-
     def test_binary_black_holes(self):
-        filename = "binary_black_holes.prior"
+        filename = "precessing_spins_binary_black_holes.prior"
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
         self.assertTrue("a_1" in prior_dict)
 
-    def test_binary_neutron_stars(self):
-        filename = "binary_neutron_stars.prior"
-        prior_dict = bilby.gw.prior.BNSPriorDict(filename=filename)
-        self.assertTrue("lambda_1" in prior_dict)
+    def test_all(self):
+        prior_files = glob.glob(bilby.gw.prior.DEFAULT_PRIOR_DIR + "/*prior")
+        for ff in prior_files:
+            print("Checking prior file {}".format(ff))
+            prior_dict = bilby.gw.prior.BBHPriorDict(filename=ff)
+            self.assertTrue("chirp_mass" in prior_dict)
+            self.assertTrue("mass_ratio" in prior_dict)
+            if "precessing" in ff:
+                self.assertTrue("a_1" in prior_dict)
+            elif "aligned" in ff:
+                self.assertTrue("chi_1" in prior_dict)
 
 
 class TestBNSPriorDict(unittest.TestCase):
@@ -296,7 +298,7 @@ class TestBNSPriorDict(unittest.TestCase):
         )
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_neutron_stars.prior",
+            "prior_files/aligned_spins_waveform_tides_on.prior",
         )
         self.bns_prior_dict = bilby.gw.prior.BNSPriorDict(filename=self.filename)
         for key, value in self.bns_prior_dict.items():
@@ -369,8 +371,8 @@ class TestBNSPriorDict(unittest.TestCase):
             self.assertTrue(self.bns_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_masses(self):
-        del self.bns_prior_dict["mass_2"]
-        for prior in ["mass_2", "chirp_mass", "total_mass", "symmetric_mass_ratio"]:
+        del self.bns_prior_dict["chirp_mass"]
+        for prior in ["chirp_mass", "total_mass", "symmetric_mass_ratio"]:
             self.assertFalse(self.bns_prior_dict.test_redundancy(prior))
 
     def test_correct_not_redundant_priors_spin_magnitudes(self):
@@ -398,9 +400,9 @@ class TestBNSPriorDict(unittest.TestCase):
     def test_test_has_redundant_priors(self):
         self.assertFalse(self.bns_prior_dict.test_has_redundant_keys())
         for prior in [
-            "chirp_mass",
+            "mass_1",
+            "mass_2",
             "total_mass",
-            "mass_ratio",
             "symmetric_mass_ratio",
             "cos_theta_jn",
             "comoving_distance",

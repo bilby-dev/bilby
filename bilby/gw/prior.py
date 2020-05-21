@@ -25,6 +25,9 @@ except ImportError:
                  " not be able to use some of the prebuilt functions.")
 
 
+DEFAULT_PRIOR_DIR = os.path.join(os.path.dirname(__file__), 'prior_files')
+
+
 class BilbyPriorConversionError(Exception):
     pass
 
@@ -406,17 +409,17 @@ class BBHPriorDict(CBCPriorDict):
             By default this generates many additional parameters, see
             BBHPriorDict.default_conversion_function
         """
-        basedir = os.path.join(os.path.dirname(__file__), 'prior_files')
         if dictionary is None and filename is None:
-            fname = 'binary_black_holes.prior'
             if aligned_spin:
-                fname = 'aligned_spin_' + fname
+                fname = 'aligned_spins_binary_black_holes.prior'
                 logger.info('Using aligned spin prior')
-            filename = os.path.join(basedir, fname)
+            else:
+                fname = 'precessing_spins_binary_black_holes.prior'
+            filename = os.path.join(DEFAULT_PRIOR_DIR, fname)
             logger.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif filename is not None:
             if not os.path.isfile(filename):
-                filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
+                filename = os.path.join(DEFAULT_PRIOR_DIR, filename)
         super(BBHPriorDict, self).__init__(dictionary=dictionary, filename=filename,
                                            conversion_function=conversion_function)
 
@@ -514,15 +517,15 @@ class BNSPriorDict(CBCPriorDict):
             BNSPriorDict.default_conversion_function
         """
         if aligned_spin:
-            default_file = 'binary_neutron_stars.prior'
+            default_file = 'aligned_spins_waveform_tides_on.prior'
         else:
-            default_file = 'precessing_binary_neutron_stars.prior'
+            default_file = 'precessing_spins_waveform_tides_on.prior'
         if dictionary is None and filename is None:
-            filename = os.path.join(os.path.dirname(__file__), 'prior_files', default_file)
+            filename = os.path.join(DEFAULT_PRIOR_DIR, default_file)
             logger.info('No prior given, using default BNS priors in {}.'.format(filename))
         elif filename is not None:
             if not os.path.isfile(filename):
-                filename = os.path.join(os.path.dirname(__file__), 'prior_files', filename)
+                filename = os.path.join(DEFAULT_PRIOR_DIR, filename)
         super(BNSPriorDict, self).__init__(dictionary=dictionary, filename=filename,
                                            conversion_function=conversion_function)
 
@@ -628,8 +631,7 @@ class CalibrationPriorDict(PriorDict):
             See superclass
         """
         if dictionary is None and filename is not None:
-            filename = os.path.join(os.path.dirname(__file__),
-                                    'prior_files', filename)
+            filename = os.path.join(DEFAULT_PRIOR_DIR, filename)
         super(CalibrationPriorDict, self).__init__(dictionary=dictionary, filename=filename)
         self.source = None
 

@@ -911,7 +911,7 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_black_holes.prior",
+            "prior_files/precessing_spins_binary_black_holes.prior",
         )
         self.prior_set_from_file = bilby.core.prior.PriorDict(
             filename=self.default_prior_file
@@ -946,21 +946,23 @@ class TestPriorDict(unittest.TestCase):
 
     def test_read_from_file(self):
         expected = dict(
-            mass_1=bilby.core.prior.Uniform(
+            mass_1=bilby.core.prior.Constraint(
                 name="mass_1",
                 minimum=5,
                 maximum=100,
-                unit="$M_{\\odot}$",
-                boundary=None,
             ),
-            mass_2=bilby.core.prior.Uniform(
+            mass_2=bilby.core.prior.Constraint(
                 name="mass_2",
                 minimum=5,
                 maximum=100,
-                unit="$M_{\\odot}$",
-                boundary=None,
             ),
-            mass_ratio=bilby.core.prior.Constraint(
+            chirp_mass=bilby.core.prior.Uniform(
+                name="chirp_mass",
+                minimum=25,
+                maximum=100,
+                latex_label="$\mathcal{M}$",
+            ),
+            mass_ratio=bilby.core.prior.Uniform(
                 name="mass_ratio",
                 minimum=0.125,
                 maximum=1,
@@ -968,13 +970,13 @@ class TestPriorDict(unittest.TestCase):
                 unit=None,
             ),
             a_1=bilby.core.prior.Uniform(
-                name="a_1", minimum=0, maximum=0.8, boundary="reflective"
+                name="a_1", minimum=0, maximum=0.99
             ),
             a_2=bilby.core.prior.Uniform(
-                name="a_2", minimum=0, maximum=0.8, boundary="reflective"
+                name="a_2", minimum=0, maximum=0.99
             ),
-            tilt_1=bilby.core.prior.Sine(name="tilt_1", boundary="reflective"),
-            tilt_2=bilby.core.prior.Sine(name="tilt_2", boundary="reflective"),
+            tilt_1=bilby.core.prior.Sine(name="tilt_1"),
+            tilt_2=bilby.core.prior.Sine(name="tilt_2"),
             phi_12=bilby.core.prior.Uniform(
                 name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"
             ),
@@ -988,11 +990,11 @@ class TestPriorDict(unittest.TestCase):
                 unit="Mpc",
                 boundary=None,
             ),
-            dec=bilby.core.prior.Cosine(name="dec", boundary="reflective"),
+            dec=bilby.core.prior.Cosine(name="dec"),
             ra=bilby.core.prior.Uniform(
                 name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
             ),
-            theta_jn=bilby.core.prior.Sine(name="theta_jn", boundary="reflective"),
+            theta_jn=bilby.core.prior.Sine(name="theta_jn"),
             psi=bilby.core.prior.Uniform(
                 name="psi", minimum=0, maximum=np.pi, boundary="periodic"
             ),
@@ -1054,21 +1056,23 @@ class TestPriorDict(unittest.TestCase):
         prior_set = bilby.core.prior.PriorDict(dictionary=self.default_prior_file)
         expected = bilby.core.prior.PriorDict(
             dict(
-                mass_1=bilby.core.prior.Uniform(
+                mass_1=bilby.core.prior.Constraint(
                     name="mass_1",
                     minimum=5,
                     maximum=100,
-                    unit="$M_{\\odot}$",
-                    boundary=None,
                 ),
-                mass_2=bilby.core.prior.Uniform(
+                mass_2=bilby.core.prior.Constraint(
                     name="mass_2",
                     minimum=5,
                     maximum=100,
-                    unit="$M_{\\odot}$",
-                    boundary=None,
                 ),
-                mass_ratio=bilby.core.prior.Constraint(
+                chirp_mass=bilby.core.prior.Uniform(
+                    name="chirp_mass",
+                    minimum=25,
+                    maximum=100,
+                    latex_label="$\mathcal{M}$",
+                ),
+                mass_ratio=bilby.core.prior.Uniform(
                     name="mass_ratio",
                     minimum=0.125,
                     maximum=1,
@@ -1076,13 +1080,13 @@ class TestPriorDict(unittest.TestCase):
                     unit=None,
                 ),
                 a_1=bilby.core.prior.Uniform(
-                    name="a_1", minimum=0, maximum=0.8, boundary="reflective"
+                    name="a_1", minimum=0, maximum=0.99,
                 ),
                 a_2=bilby.core.prior.Uniform(
-                    name="a_2", minimum=0, maximum=0.8, boundary="reflective"
+                    name="a_2", minimum=0, maximum=0.99,
                 ),
-                tilt_1=bilby.core.prior.Sine(name="tilt_1", boundary="reflective"),
-                tilt_2=bilby.core.prior.Sine(name="tilt_2", boundary="reflective"),
+                tilt_1=bilby.core.prior.Sine(name="tilt_1"),
+                tilt_2=bilby.core.prior.Sine(name="tilt_2"),
                 phi_12=bilby.core.prior.Uniform(
                     name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"
                 ),
@@ -1096,11 +1100,11 @@ class TestPriorDict(unittest.TestCase):
                     unit="Mpc",
                     boundary=None,
                 ),
-                dec=bilby.core.prior.Cosine(name="dec", boundary="reflective"),
+                dec=bilby.core.prior.Cosine(name="dec"),
                 ra=bilby.core.prior.Uniform(
                     name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
                 ),
-                theta_jn=bilby.core.prior.Sine(name="theta_jn", boundary="reflective"),
+                theta_jn=bilby.core.prior.Sine(name="theta_jn"),
                 psi=bilby.core.prior.Uniform(
                     name="psi", minimum=0, maximum=np.pi, boundary="periodic"
                 ),
@@ -1248,7 +1252,7 @@ class TestFillPrior(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_black_holes.prior",
+            "prior_files/precessing_spins_binary_black_holes.prior",
         )
         self.priors.fill_priors(self.likelihood, self.default_prior_file)
 
@@ -1288,7 +1292,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
     def test_bbh_params(self):
         prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_black_holes.prior",
+            "prior_files/precessing_spins_binary_black_holes.prior",
         )
         prior_set = bilby.core.prior.PriorDict(filename=prior_file)
         for prior in prior_set:
@@ -1302,7 +1306,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
     def test_unknown_prior(self):
         prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/binary_black_holes.prior",
+            "prior_files/precessing_spins_binary_black_holes.prior",
         )
         self.assertIsNone(
             bilby.core.prior.create_default_prior(
