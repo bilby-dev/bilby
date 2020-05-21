@@ -715,19 +715,20 @@ def sample_rwalk_bilby(args):
     reject = 0
     nfail = 0
     act = np.inf
-    u_list = [u]
-    v_list = [prior_transform(u)]
-    logl_list = [loglikelihood(v_list[-1])]
-    max_walk_warning = True
+    u_list = []
+    v_list = []
+    logl_list = []
 
-    while len(u_list) < nact * act:
+    ii = 0
+    while ii < nact * act:
+        ii += 1
 
         # Propose a direction on the unit n-sphere.
         drhat = rstate.randn(n)
         drhat /= linalg.norm(drhat)
 
         # Scale based on dimensionality.
-        dr = drhat * rstate.rand()**(1. / n)
+        dr = drhat * rstate.rand() ** (1.0 / n)
 
         # Transform to proposal distribution.
         du = np.dot(axes, dr)
@@ -778,16 +779,12 @@ def sample_rwalk_bilby(args):
                 old_act=old_act, maxmcmc=maxmcmc)
 
         # If we've taken too many likelihood evaluations then break
-        if accept + reject > maxmcmc and accept > 0:
-            if max_walk_warning:
-                warnings.warn(
-                    "Hit maximum number of walks {} with accept={}, reject={}, "
-                    "and nfail={} try increasing maxmcmc"
-                    .format(maxmcmc, accept, reject, nfail))
-                max_walk_warning = False
-            if accept > 0:
-                # Break if we are above maxmcmc and have at least one accepted point
-                break
+        if accept + reject > maxmcmc:
+            warnings.warn(
+                "Hit maximum number of walks {} with accept={}, reject={}, "
+                "and nfail={} try increasing maxmcmc"
+                .format(maxmcmc, accept, reject, nfail))
+            break
 
     # If the act is finite, pick randomly from within the chain
     if np.isfinite(act) and int(.5 * nact * act) < len(u_list):
@@ -795,17 +792,11 @@ def sample_rwalk_bilby(args):
         u = u_list[idx]
         v = v_list[idx]
         logl = logl_list[idx]
-    elif len(u_list) == 1:
-        logger.warning("Returning the only point in the chain")
-        u = u_list[-1]
-        v = v_list[-1]
-        logl = logl_list[-1]
     else:
-        idx = np.random.randint(int(len(u_list) / 2), len(u_list))
-        logger.warning("Returning random point in second half of the chain")
-        u = u_list[idx]
-        v = v_list[idx]
-        logl = logl_list[idx]
+        logger.warning("Unable to find a new point using walk: returning a random point")
+        u = np.random.uniform(size=n)
+        v = prior_transform(u)
+        logl = loglikelihood(v)
 
     blob = {'accept': accept, 'reject': reject, 'fail': nfail, 'scale': scale}
     kwargs["old_act"] = act
