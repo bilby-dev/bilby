@@ -1,5 +1,11 @@
 # All notable changes will be documented in this file
 
+## [0.6.8] 2020-05-21
+### Changes
+- Improvement to the proposal step in dynesty (!774)
+- Fix a bug in checking and making directories (!792)
+- Clean up of the default prior files (!789)
+
 ## [0.6.8] 2020-05-13
 ### Added
 - Option to sample in the sky frame (!786)
