@@ -39,7 +39,7 @@ def write_version_file(version):
     except Exception as e:
         print("Unable to obtain git version information, exception: {}"
               .format(e))
-        git_status = ''
+        git_status = 'release'
 
     version_file = '.version'
     if os.path.isfile(version_file) is False:
