@@ -123,10 +123,11 @@ class Ultranest(NestedSampler):
         ):
             self.kwargs["wrapped_params"] = []
             for param, value in self.priors.items():
-                if value.boundary == "periodic":
-                    self.kwargs["wrapped_params"].append(1)
-                else:
-                    self.kwargs["wrapped_params"].append(0)
+                if param in self.search_parameter_keys:
+                    if value.boundary == "periodic":
+                        self.kwargs["wrapped_params"].append(1)
+                    else:
+                        self.kwargs["wrapped_params"].append(0)
 
     @property
     def outputfiles_basename(self):
