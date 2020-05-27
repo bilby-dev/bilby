@@ -1123,15 +1123,16 @@ class Result(object):
         idxs = np.arange(nsteps)
         fig, axes = plt.subplots(nrows=ndim, figsize=(6, 3 * ndim))
         walkers = self.walkers[:, :, :]
+        parameter_labels = sanity_check_labels(self.parameter_labels)
         for i, ax in enumerate(axes):
             ax.plot(idxs[:self.nburn + 1], walkers[:, :self.nburn + 1, i].T,
                     lw=0.1, color='r')
-            ax.set_ylabel(self.parameter_labels[i])
+            ax.set_ylabel(parameter_labels[i])
 
         for i, ax in enumerate(axes):
             ax.plot(idxs[self.nburn:], walkers[:, self.nburn:, i].T, lw=0.1,
                     color='k')
-            ax.set_ylabel(self.parameter_labels[i])
+            ax.set_ylabel(parameter_labels[i])
 
         fig.tight_layout()
         outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_walkers)
