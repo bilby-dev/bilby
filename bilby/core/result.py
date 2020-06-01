@@ -23,7 +23,8 @@ from .utils import (
     check_directory_exists_and_if_not_mkdir,
     latex_plot_format, safe_save_figure,
     BilbyJsonEncoder, load_json,
-    move_old_file, get_version_information
+    move_old_file, get_version_information,
+    decode_bilby_json,
 )
 from .prior import Prior, PriorDict, DeltaFunction
 
@@ -368,9 +369,11 @@ class Result(object):
                 # compatibility)
                 if not isinstance(dictionary["priors"], PriorDict):
                     try:
-                        dictionary["priors"] = PriorDict._get_from_json_dict(
-                            dictionary["priors"]
-                        )
+                        priordict = PriorDict()
+                        for key, value in dictionary["priors"].items():
+                            if key not in ["__module__", "__name__", "__prior_dict__"]:
+                                priordict[key] = decode_bilby_json(value)
+                        dictionary["priors"] = priordict
                     except Exception as e:
                         raise IOError(
                             "Unable to parse priors from '{}':\n{}".format(
