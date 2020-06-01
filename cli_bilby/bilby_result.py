@@ -41,6 +41,10 @@ def setup_command_line_args():
                         help="Convert all results.", default=False)
     parser.add_argument("-m", "--merge", action='store_true',
                         help="Merge the set of runs, output saved using the outdir and label")
+    parser.add_argument("-e", "--extension", type=str, choices=["json", "hdf5"],
+                        default=True, help="Use given extension for the merged output file.")
+    parser.add_argument("-g", "--gzip", action="store_true",
+                        help="Gzip the merged output results file if using JSON format.")
     parser.add_argument("-o", "--outdir", type=str, default=None,
                         help="Output directory.")
     parser.add_argument("-l", "--label", type=str, default=None,
@@ -131,4 +135,6 @@ def main():
             result.label = args.label
         if args.outdir is not None:
             result.outdir = args.outdir
-        result.save_to_file()
+
+        extension = args.extension
+        result.save_to_file(gzip=args.gzip, extension=extension)
