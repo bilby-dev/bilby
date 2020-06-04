@@ -42,6 +42,7 @@ waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
 waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration, sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments)
 
 # Set up interferometers.  In this case we'll use two interferometers
