@@ -767,7 +767,8 @@ class TestPymultinest(unittest.TestCase):
                         n_iter_before_update=100, null_log_evidence=-1e90,
                         max_modes=100, mode_tolerance=-1e90, seed=-1,
                         context=0, write_output=True, log_zero=-1e100,
-                        max_iter=0, init_MPI=False, dump_callback=None)
+                        max_iter=0, init_MPI=False, dump_callback='dumper')
+        self.sampler.kwargs['dump_callback'] = 'dumper'  # Check like the dynesty print_func
         self.assertListEqual([1, 0], self.sampler.kwargs['wrapped_params'])  # Check this separately
         self.sampler.kwargs['wrapped_params'] = None  # The dict comparison can't handle lists
         self.assertDictEqual(expected, self.sampler.kwargs)
@@ -782,7 +783,7 @@ class TestPymultinest(unittest.TestCase):
                         n_iter_before_update=100, null_log_evidence=-1e90,
                         max_modes=100, mode_tolerance=-1e90, seed=-1,
                         context=0, write_output=True, log_zero=-1e100,
-                        max_iter=0, init_MPI=False, dump_callback=None)
+                        max_iter=0, init_MPI=False, dump_callback='dumper')
 
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
@@ -790,6 +791,7 @@ class TestPymultinest(unittest.TestCase):
             new_kwargs[
                 "wrapped_params"
             ] = None  # The dict comparison can't handle lists
+            new_kwargs['dump_callback'] = 'dumper'  # Check this like Dynesty print_func
             new_kwargs[equiv] = 123
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
