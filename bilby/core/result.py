@@ -23,7 +23,8 @@ from .utils import (
     check_directory_exists_and_if_not_mkdir,
     latex_plot_format, safe_save_figure,
     BilbyJsonEncoder, load_json,
-    move_old_file, get_version_information
+    move_old_file, get_version_information,
+    decode_bilby_json,
 )
 from .prior import Prior, PriorDict, DeltaFunction
 
@@ -358,10 +359,27 @@ class Result(object):
 
         if os.path.isfile(filename):
             dictionary = deepdish.io.load(filename)
-            # Some versions of deepdish/pytables return the dictionanary as
+            # Some versions of deepdish/pytables return the dictionary as
             # a dictionary with a key 'data'
             if len(dictionary) == 1 and 'data' in dictionary:
                 dictionary = dictionary['data']
+
+            if "priors" in dictionary:
+                # parse priors from JSON string (allowing for backwards
+                # compatibility)
+                if not isinstance(dictionary["priors"], PriorDict):
+                    try:
+                        priordict = PriorDict()
+                        for key, value in dictionary["priors"].items():
+                            if key not in ["__module__", "__name__", "__prior_dict__"]:
+                                priordict[key] = decode_bilby_json(value)
+                        dictionary["priors"] = priordict
+                    except Exception as e:
+                        raise IOError(
+                            "Unable to parse priors from '{}':\n{}".format(
+                                filename, e,
+                            )
+                        )
             try:
                 if isinstance(dictionary.get('posterior', None), dict):
                     dictionary['posterior'] = pd.DataFrame(dictionary['posterior'])
@@ -609,8 +627,9 @@ class Result(object):
                     dictionary['sampler_kwargs'][key] = str(dictionary['sampler_kwargs'])
 
         try:
+            # convert priors to JSON dictionary for both JSON and hdf5 files
+            dictionary["priors"] = dictionary["priors"]._get_json_dict()
             if extension == 'json':
-                dictionary["priors"] = dictionary["priors"]._get_json_dict()
                 if gzip:
                     import gzip
                     # encode to a string

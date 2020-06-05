@@ -68,6 +68,9 @@ class Prior(object):
         if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
             return False
         for key in self.__dict__:
+            if key == "least_recently_sampled":
+                # ignore sample drawn from prior in comparison
+                continue
             if type(self.__dict__[key]) is np.ndarray:
                 if not np.array_equal(self.__dict__[key], other.__dict__[key]):
                     return False
