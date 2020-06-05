@@ -73,7 +73,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.start_time,
                 self.waveform_generator.frequency_domain_source_model.__name__,
                 self.waveform_generator.time_domain_source_model,
-                None,
+                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -92,7 +92,7 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.start_time,
                 self.waveform_generator.frequency_domain_source_model,
                 self.waveform_generator.time_domain_source_model.__name__,
-                None,
+                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
                 self.waveform_generator.waveform_arguments,
             )
         )

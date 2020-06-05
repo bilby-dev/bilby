@@ -3,6 +3,7 @@ import numpy as np
 from ..core import utils
 from ..core.series import CoupledTimeAndFrequencySeries
 from .utils import PropertyAccessor
+from .conversion import convert_to_lal_binary_black_hole_parameters
 
 
 class WaveformGenerator(object):
@@ -57,7 +58,7 @@ class WaveformGenerator(object):
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self.__parameters_from_source_model()
         if parameter_conversion is None:
-            self.parameter_conversion = _default_parameter_conversion
+            self.parameter_conversion = convert_to_lal_binary_black_hole_parameters
         else:
             self.parameter_conversion = parameter_conversion
         if waveform_arguments is not None:
@@ -67,6 +68,15 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             self.parameters = parameters
         self._cache = dict(parameters=None, waveform=None, model=None)
+        utils.logger.info(
+            "Waveform generator initiated with\n"
+            "  frequency_domain_source_model: {}\n"
+            "  frequency_domain_source_model: {}\n"
+            "  parameter_conversion: {}"
+            .format(utils.get_function_path(self.frequency_domain_source_model),
+                    utils.get_function_path(self.time_domain_source_model),
+                    utils.get_function_path(self.parameter_conversion))
+        )
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
@@ -77,7 +87,7 @@ class WaveformGenerator(object):
             tdsm_name = self.time_domain_source_model.__name__
         else:
             tdsm_name = None
-        if self.parameter_conversion.__name__ == '_default_parameter_conversion':
+        if self.parameter_conversion is None:
             param_conv_name = None
         else:
             param_conv_name = self.parameter_conversion.__name__
@@ -237,7 +247,3 @@ class WaveformGenerator(object):
             raise AttributeError('Either time or frequency domain source '
                                  'model must be provided.')
         return set(utils.infer_parameters_from_function(model))
-
-
-def _default_parameter_conversion(parmeters):
-    return parmeters, list()
