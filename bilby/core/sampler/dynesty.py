@@ -257,11 +257,11 @@ class Dynesty(NestedSampler):
         # Constructing output.
         string = []
         string.append("bound:{:d}".format(bounditer))
-        string.append("nc:{:d}".format(nc))
-        string.append("ncall:{:d}".format(ncall))
+        string.append("nc:{:3d}".format(nc))
+        string.append("ncall:{:.1e}".format(ncall))
         string.append("eff:{:0.1f}%".format(eff))
         string.append("{}={:0.2f}+/-{:0.2f}".format(key, logz, logzerr))
-        string.append("dlogz:{:0.3f}>{:0.2f}".format(delta_logz, dlogz))
+        string.append("dlogz:{:0.3f}>{:0.2g}".format(delta_logz, dlogz))
 
         self.pbar.set_postfix_str(" ".join(string), refresh=False)
         self.pbar.update(niter - self.pbar.n)
@@ -793,7 +793,7 @@ def sample_rwalk_bilby(args):
         v = v_list[idx]
         logl = logl_list[idx]
     else:
-        logger.warning("Unable to find a new point using walk: returning a random point")
+        logger.debug("Unable to find a new point using walk: returning a random point")
         u = np.random.uniform(size=n)
         v = prior_transform(u)
         logl = loglikelihood(v)

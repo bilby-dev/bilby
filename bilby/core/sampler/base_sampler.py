@@ -430,6 +430,7 @@ class Sampler(object):
             likelihood evaluations.
 
         """
+        logger.info("Generating initial points from the prior")
         unit_cube = []
         parameters = []
         likelihood = []
