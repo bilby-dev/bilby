@@ -196,7 +196,7 @@ class GravitationalWaveTransient(Likelihood):
                     "The waveform_generator {} is None. Setting from the "
                     "provided interferometers.".format(attr))
             elif wfg_attr != ifo_attr:
-                logger.warning(
+                logger.debug(
                     "The waveform_generator {} is not equal to that of the "
                     "provided interferometers. Overwriting the "
                     "waveform_generator.".format(attr))

@@ -1236,6 +1236,13 @@ def kish_log_effective_sample_size(ln_weights):
     return log_n_eff
 
 
+def get_function_path(func):
+    if hasattr(func, "__module__") and hasattr(func, "__name__"):
+        return "{}.{}".format(func.__module__, func.__name__)
+    else:
+        return func
+
+
 class IllegalDurationAndSamplingFrequencyException(Exception):
     pass
 
