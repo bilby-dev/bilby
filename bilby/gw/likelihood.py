@@ -399,20 +399,32 @@ class GravitationalWaveTransient(Likelihood):
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
 
+        times = create_time_series(
+            sampling_frequency=16384,
+            starting_time=self.parameters['geocent_time'] - self.waveform_generator.start_time,
+            duration=self.waveform_generator.duration)
+        times = times % self.waveform_generator.duration
+        times += self.waveform_generator.start_time
+
+        prior = self.priors["geocent_time"]
+        in_prior = (times >= prior.minimum) & (times < prior.maximum)
+        times = times[in_prior]
+
         n_time_steps = int(self.waveform_generator.duration * 16384)
-        d_inner_h = np.zeros(n_time_steps, dtype=np.complex)
+        d_inner_h = np.zeros(len(times), dtype=np.complex)
         psd = np.ones(n_time_steps)
         signal_long = np.zeros(n_time_steps, dtype=np.complex)
         data = np.zeros(n_time_steps, dtype=np.complex)
         h_inner_h = np.zeros(1)
         for ifo in self.interferometers:
             ifo_length = len(ifo.frequency_domain_strain)
+            mask = ifo.frequency_mask
             signal = ifo.get_detector_response(
                 signal_polarizations, self.parameters)
             signal_long[:ifo_length] = signal
             data[:ifo_length] = np.conj(ifo.frequency_domain_strain)
-            psd[:ifo_length] = ifo.power_spectral_density_array
-            d_inner_h += np.fft.fft(signal_long * data / psd)
+            psd[:ifo_length][mask] = ifo.power_spectral_density_array[mask]
+            d_inner_h += np.fft.fft(signal_long * data / psd)[in_prior]
             h_inner_h += ifo.optimal_snr_squared(signal=signal).real
 
         if self.distance_marginalization:
@@ -423,13 +435,6 @@ class GravitationalWaveTransient(Likelihood):
                              h_inner_h.real / 2)
         else:
             time_log_like = (d_inner_h.real - h_inner_h.real / 2)
-
-        times = create_time_series(
-            sampling_frequency=16384,
-            starting_time=self.parameters['geocent_time'] - self.waveform_generator.start_time,
-            duration=self.waveform_generator.duration)
-        times = times % self.waveform_generator.duration
-        times += self.waveform_generator.start_time
 
         time_prior_array = self.priors['geocent_time'].prob(times)
         time_post = (
