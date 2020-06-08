@@ -117,7 +117,6 @@ class TestCBCResult(unittest.TestCase):
 
         expected_keys = {
             "HISTORY",
-            "build_date",
             "creator",
             "distmean",
             "diststd",
@@ -126,7 +125,6 @@ class TestCBCResult(unittest.TestCase):
             "nest",
             "objid",
             "origin",
-            "vcs_revision",
             "vcs_version",
             "instruments",
         }
