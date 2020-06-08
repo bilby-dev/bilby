@@ -659,7 +659,7 @@ class JointPrior(Prior):
             raise TypeError("Must supply a JointPriorDist object instance to be shared by all joint params")
 
         if name not in dist.names:
-            raise ValueError("'{}' is not a parameter in the JointPriorDist")
+            raise ValueError("'{}' is not a parameter in the JointPriorDist".format(name))
 
         self.dist = dist
         super(JointPrior, self).__init__(name=name, latex_label=latex_label, unit=unit, minimum=dist.bounds[name][0],
