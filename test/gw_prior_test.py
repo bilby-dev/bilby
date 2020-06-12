@@ -26,7 +26,7 @@ class TestBBHPriorDict(unittest.TestCase):
         )
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_binary_black_holes.prior",
+            "prior_files/precessing_spins_bbh.prior",
         )
         self.bbh_prior_dict = bilby.gw.prior.BBHPriorDict(filename=self.filename)
         for key, value in self.bbh_prior_dict.items():
@@ -267,13 +267,13 @@ class TestPackagedPriors(unittest.TestCase):
     """ Test that the prepackaged priors load """
 
     def test_aligned(self):
-        filename = "aligned_spins_binary_black_holes.prior"
+        filename = "aligned_spins_bbh.prior"
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
         self.assertTrue("chi_1" in prior_dict)
         self.assertTrue("chi_2" in prior_dict)
 
     def test_binary_black_holes(self):
-        filename = "precessing_spins_binary_black_holes.prior"
+        filename = "precessing_spins_bbh.prior"
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=filename)
         self.assertTrue("a_1" in prior_dict)
 
@@ -298,7 +298,7 @@ class TestBNSPriorDict(unittest.TestCase):
         )
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/aligned_spins_waveform_tides_on.prior",
+            "prior_files/aligned_spins_bns_tides_on.prior",
         )
         self.bns_prior_dict = bilby.gw.prior.BNSPriorDict(filename=self.filename)
         for key, value in self.bns_prior_dict.items():
