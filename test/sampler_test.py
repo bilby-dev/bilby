@@ -836,7 +836,7 @@ class TestUltranest(unittest.TestCase):
             dlogz=None,
             max_iters=None,
             update_interval_iter_fraction=0.2,
-            viz_callback="auto",
+            viz_callback=None,
             dKL=0.5,
             frac_remain=0.01,
             Lepsilon=0.001,
@@ -850,6 +850,7 @@ class TestUltranest(unittest.TestCase):
         self.assertListEqual([1, 0], self.sampler.kwargs["wrapped_params"])  # Check this separately
         self.sampler.kwargs["wrapped_params"] = None  # The dict comparison can't handle lists
         self.sampler.kwargs["derived_param_names"] = None
+        self.sampler.kwargs["viz_callback"] = None
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
@@ -870,7 +871,7 @@ class TestUltranest(unittest.TestCase):
             dlogz=None,
             max_iters=None,
             update_interval_iter_fraction=0.2,
-            viz_callback="auto",
+            viz_callback=None,
             dKL=0.5,
             frac_remain=0.01,
             Lepsilon=0.001,
@@ -884,10 +885,11 @@ class TestUltranest(unittest.TestCase):
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs['num_live_points']
-            new_kwargs['wrapped_params'] = None  # The dict comparison can't handle lists
-            new_kwargs["derived_param_names"] = None
             new_kwargs[equiv] = 123
             self.sampler.kwargs = new_kwargs
+            self.sampler.kwargs["wrapped_params"] = None
+            self.sampler.kwargs["derived_param_names"] = None
+            self.sampler.kwargs["viz_callback"] = None
             self.assertDictEqual(expected, self.sampler.kwargs)
 
 
