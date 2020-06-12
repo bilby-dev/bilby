@@ -911,7 +911,7 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_binary_black_holes.prior",
+            "prior_files/precessing_spins_bbh.prior",
         )
         self.prior_set_from_file = bilby.core.prior.PriorDict(
             filename=self.default_prior_file
@@ -1252,7 +1252,7 @@ class TestFillPrior(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_binary_black_holes.prior",
+            "prior_files/precessing_spins_bbh.prior",
         )
         self.priors.fill_priors(self.likelihood, self.default_prior_file)
 
@@ -1292,7 +1292,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
     def test_bbh_params(self):
         prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_binary_black_holes.prior",
+            "prior_files/precessing_spins_bbh.prior",
         )
         prior_set = bilby.core.prior.PriorDict(filename=prior_file)
         for prior in prior_set:
@@ -1306,7 +1306,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
     def test_unknown_prior(self):
         prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_binary_black_holes.prior",
+            "prior_files/precessing_spins_bbh.prior",
         )
         self.assertIsNone(
             bilby.core.prior.create_default_prior(

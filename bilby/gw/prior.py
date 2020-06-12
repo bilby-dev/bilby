@@ -411,10 +411,10 @@ class BBHPriorDict(CBCPriorDict):
         """
         if dictionary is None and filename is None:
             if aligned_spin:
-                fname = 'aligned_spins_binary_black_holes.prior'
+                fname = 'aligned_spins_bbh.prior'
                 logger.info('Using aligned spin prior')
             else:
-                fname = 'precessing_spins_binary_black_holes.prior'
+                fname = 'precessing_spins_bbh.prior'
             filename = os.path.join(DEFAULT_PRIOR_DIR, fname)
             logger.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif filename is not None:
@@ -517,9 +517,9 @@ class BNSPriorDict(CBCPriorDict):
             BNSPriorDict.default_conversion_function
         """
         if aligned_spin:
-            default_file = 'aligned_spins_waveform_tides_on.prior'
+            default_file = 'aligned_spins_bns_tides_on.prior'
         else:
-            default_file = 'precessing_spins_waveform_tides_on.prior'
+            default_file = 'precessing_spins_bns_tides_on.prior'
         if dictionary is None and filename is None:
             filename = os.path.join(DEFAULT_PRIOR_DIR, default_file)
             logger.info('No prior given, using default BNS priors in {}.'.format(filename))
