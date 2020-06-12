@@ -70,8 +70,7 @@ priors = bilby.gw.prior.BNSPriorDict()
 for key in ['psi', 'geocent_time', 'ra', 'dec', 'chi_1', 'chi_2',
             'theta_jn', 'luminosity_distance', 'phase']:
     priors[key] = injection_parameters[key]
-priors.pop('mass_1')
-priors.pop('mass_2')
+priors.pop('mass_ratio')
 priors.pop('lambda_1')
 priors.pop('lambda_2')
 priors['chirp_mass'] = bilby.core.prior.Gaussian(
