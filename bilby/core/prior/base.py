@@ -424,7 +424,7 @@ class Prior(object):
             val = other_cls.from_repr(vals)
         else:
             try:
-                val = eval(val, dict(), dict(np=np))
+                val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi))
             except NameError:
                 raise TypeError(
                     "Cannot evaluate prior, "
