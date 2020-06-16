@@ -372,20 +372,17 @@ class Ultranest(NestedSampler):
         self.start_time = current_time
 
     def _generate_result(self, out):
-        # extract results (samples stored in "v" will change to "points",
-        # weights stored in "w" will change to "weights")
-        datakey = "v" if "v" in out["weighted_samples"] else "points"
-        weightskey = "w" if "w" in out["weighted_samples"] else "weights"
-        data = np.array(out["weighted_samples"][datakey])
-        weights = np.array(out["weighted_samples"][weightskey])
+        # extract results
+        data = np.array(out["weighted_samples"]["points"])
+        weights = np.array(out["weighted_samples"]["weights"])
 
         scaledweights = weights / weights.max()
         mask = np.random.rand(len(scaledweights)) < scaledweights
 
         nested_samples = DataFrame(data, columns=self.search_parameter_keys)
         nested_samples["weights"] = weights
-        nested_samples["log_likelihood"] = out["weighted_samples"]["L"]
-        self.result.log_likelihood_evaluations = np.array(out["weighted_samples"]["L"])[
+        nested_samples["log_likelihood"] = out["weighted_samples"]["logl"]
+        self.result.log_likelihood_evaluations = np.array(out["weighted_samples"]["logl"])[
             mask
         ]
         self.result.sampler_output = out
