@@ -1093,7 +1093,15 @@ class Result(object):
 
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
-        fig = corner.corner(xs, **kwargs)
+        if len(plot_parameter_keys) > 1:
+            fig = corner.corner(xs, **kwargs)
+        else:
+            ax = kwargs.get("ax", plt.subplot())
+            ax.hist(xs, bins=kwargs["bins"], color=kwargs["color"],
+                    histtype="step", **kwargs["hist_kwargs"])
+            ax.set_xlabel(kwargs["labels"][0])
+            fig = plt.gcf()
+
         axes = fig.get_axes()
 
         #  Add the titles
