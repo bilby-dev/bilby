@@ -631,7 +631,7 @@ class Dynesty(NestedSampler):
                 filename = "{}/{}_checkpoint_stats.png".format(self.outdir, self.label)
                 fig, axs = plt.subplots(nrows=3, sharex=True)
                 for ax, name in zip(axs, ["boundidx", "nc", "scale"]):
-                    ax.plot(getattr(self.sampler, f"saved_{name}"), color="C0")
+                    ax.plot(getattr(self.sampler, "saved_{}".format(name)), color="C0")
                     ax.set_ylabel(name)
                 axs[-1].set_xlabel("iteration")
                 fig.tight_layout()

@@ -114,7 +114,7 @@ class Cpnest(NestedSampler):
             out.run()
         except SystemExit as e:
             import sys
-            logger.info(f"Caught exit code {e.args[0]}, exiting with signal {self.exit_code}")
+            logger.info("Caught exit code {}, exiting with signal {}".format(e.args[0], self.exit_code))
             sys.exit(self.exit_code)
 
         if self.plot:
