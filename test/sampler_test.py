@@ -695,14 +695,16 @@ class TestPyMC3(unittest.TestCase):
             chains=2,
             cores=1,
             tune=500,
-            nuts_kwargs=None,
-            step_kwargs=None,
             progressbar=True,
             model=None,
+            nuts_kwargs=None,
+            step_kwargs=None,
             random_seed=None,
             discard_tuned_samples=True,
             compute_convergence_checks=True,
         )
+        expected.update(self.sampler.default_nuts_kwargs)
+        expected.update(self.sampler.default_step_kwargs)
         self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs(self):
@@ -717,14 +719,16 @@ class TestPyMC3(unittest.TestCase):
             chains=2,
             cores=1,
             tune=500,
-            nuts_kwargs=None,
-            step_kwargs=None,
             progressbar=True,
             model=None,
+            nuts_kwargs=None,
+            step_kwargs=None,
             random_seed=None,
             discard_tuned_samples=True,
             compute_convergence_checks=True,
         )
+        expected.update(self.sampler.default_nuts_kwargs)
+        expected.update(self.sampler.default_step_kwargs)
         self.sampler.kwargs["draws"] = 123
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
