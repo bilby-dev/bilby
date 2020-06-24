@@ -71,7 +71,7 @@ class WaveformGenerator(object):
         utils.logger.info(
             "Waveform generator initiated with\n"
             "  frequency_domain_source_model: {}\n"
-            "  frequency_domain_source_model: {}\n"
+            "  time_domain_source_model: {}\n"
             "  parameter_conversion: {}"
             .format(utils.get_function_path(self.frequency_domain_source_model),
                     utils.get_function_path(self.time_domain_source_model),
