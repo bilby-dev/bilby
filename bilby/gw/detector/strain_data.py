@@ -408,6 +408,7 @@ class InterferometerStrainData(object):
                 self.time_array = array
             elif domain == 'frequency':
                 self.frequency_array = array
+                self.start_time = start_time
             return
         elif sampling_frequency is None or duration is None:
             raise ValueError(
