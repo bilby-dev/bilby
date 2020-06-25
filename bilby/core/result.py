@@ -1884,7 +1884,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
             len(results), pvals.combined_pvalue))
     ax.set_xlabel("C.I.")
     ax.set_ylabel("Fraction of events in C.I.")
-    ax.legend(linewidth=1, handlelength=2, labelspacing=0.25, fontsize=legend_fontsize)
+    ax.legend(handlelength=2, labelspacing=0.25, fontsize=legend_fontsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     fig.tight_layout()
