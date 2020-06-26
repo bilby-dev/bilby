@@ -2,13 +2,11 @@
 Bilby output
 ============
 
-In this document, we will describe what :code:`bilby` outputs, where it is stored,
-and how you can access it.
-
-When you call :code:`run_sampler`, there are two arguments :code:`outdir` and :code:`label` which
-are used in generating all the file names for saved data. In the rest of these
-documents, we'll assume the defaults where used (which are :code:`outdir` and
-:code:`label`).
+In this document, we will describe what :code:`bilby` outputs, where it is
+stored, and how you can access it.  When you call :code:`run_sampler`, there
+are two arguments :code:`outdir` and :code:`label` which are used in generating
+all the file names for saved data. In the rest of these documents, we'll assume
+the defaults where used (which are :code:`outdir` and :code:`label`).
 
 
 The result file
@@ -97,8 +95,8 @@ done via::
 which will generate a file :code:`outdir/label_posterior.txt`.
 
 
-Visualising the results  
---------------------
+Visualising the results
+-----------------------
 Bilby also provides some useful built-in plotting tools. Some examples on how
 to visualise results using these tools (and  how to extend them) are shown in
 one of the tutorials at `visualising_the_results.ipynb  <https://git.ligo.org/lscsoft/bilby/-/blob/master/examples/tutorials/visualising_the_results.ipynb>`_.

@@ -16,7 +16,7 @@ from bilby.core.utils import logger, check_directory_exists_and_if_not_mkdir, Bi
 class PriorDict(dict):
     def __init__(self, dictionary=None, filename=None,
                  conversion_function=None):
-        """ A set of priors
+        """ A dictionary of priors
 
         Parameters
         ----------
