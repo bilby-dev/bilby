@@ -1,0 +1,20 @@
+.. gw_eos:
+
+====================================================
+Neutron Star Equation of State Modeling and Sampling
+====================================================
+
+Base class for EOS objects. Initialized with energy-density pressure data from either an 2D array or file. Includes plotting routines for common representations of EOS:
+
+.. autoclass:: bilby.gw.eos.TabularEOS
+   :members:
+
+Spectral decomposition parameterized EOS from Lindblom, 2010 (ArXiv: 1009.0738):
+
+.. autoclass:: bilby.gw.eos.SpectralDecompositionEOS
+   :members:
+
+A Neutron star EOS 'Family'. Constructing this object maps the passed EOS object to its corresponding mass-radius relationship by solving the TOV equations. Also includes plotting routines for mass-radius and several equivalent representations of NS Family:
+
+.. autoclass:: bilby.gw.eos.EOSFamily
+   :members:
