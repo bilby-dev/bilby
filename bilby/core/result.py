@@ -1650,7 +1650,7 @@ class ResultList(list):
             result_weights = np.exp(log_evidences - np.max(log_evidences))
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
-            result.log_evidence_err = logsumexp(2 * np.array(log_errs), b=1. / len(self))
+            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
         else:
             result.log_evidence_err = np.nan
         posteriors = list()
