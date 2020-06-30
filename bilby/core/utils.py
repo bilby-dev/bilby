@@ -3,6 +3,7 @@ from __future__ import division
 from distutils.spawn import find_executable
 import logging
 import os
+import shutil
 from math import fmod
 import argparse
 import traceback
@@ -1065,7 +1066,7 @@ def move_old_file(filename, overwrite=False):
             logger.debug(
                 'Renaming existing file {} to {}.old'.format(filename,
                                                              filename))
-            os.rename(filename, filename + '.old')
+            shutil.move(filename, filename + '.old')
     logger.debug("Saving result to {}".format(filename))
 
 
@@ -1178,7 +1179,7 @@ def safe_file_dump(data, filename, module):
     temp_filename = filename + ".temp"
     with open(temp_filename, "wb") as file:
         module.dump(data, file)
-    os.rename(temp_filename, filename)
+    shutil.move(temp_filename, filename)
 
 
 def latex_plot_format(func):

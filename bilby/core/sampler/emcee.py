@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 import os
 import signal
+import shutil
 from shutil import copyfile
 import sys
 
@@ -308,7 +309,7 @@ class Emcee(MCMCSampler):
         with open(temp_chain_file, "a") as ff:
             for ii, point in enumerate(points):
                 ff.write(self.checkpoint_info.chain_template.format(ii, *point))
-        os.rename(temp_chain_file, chain_file)
+        shutil.move(temp_chain_file, chain_file)
 
     @property
     def _previous_iterations(self):
