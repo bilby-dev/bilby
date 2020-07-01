@@ -310,7 +310,7 @@ class Interferometer(object):
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
 
-        # Be careful to first substract the two GPS times which are ~1e9 sec.
+        # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
