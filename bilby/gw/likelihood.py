@@ -137,7 +137,7 @@ class GravitationalWaveTransient(Likelihood):
             self.reference_ifo = None
 
         if self.time_marginalization:
-            self._check_prior_is_set(key='geocent_time')
+            self._check_marginalized_prior_is_set(key='geocent_time')
             self._setup_time_marginalization()
             priors['geocent_time'] = float(self.interferometers.start_time)
             if self.jitter_time:
@@ -152,7 +152,7 @@ class GravitationalWaveTransient(Likelihood):
             self.jitter_time = False
 
         if self.phase_marginalization:
-            self._check_prior_is_set(key='phase')
+            self._check_marginalized_prior_is_set(key='phase')
             self._bessel_function_interped = None
             self._setup_phase_marginalization()
             priors['phase'] = float(0)
@@ -160,7 +160,7 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.distance_marginalization:
             self._lookup_table_filename = None
-            self._check_prior_is_set(key='luminosity_distance')
+            self._check_marginalized_prior_is_set(key='luminosity_distance')
             self._distance_array = np.linspace(
                 self.priors['luminosity_distance'].minimum,
                 self.priors['luminosity_distance'].maximum, int(1e4))
@@ -234,7 +234,11 @@ class GravitationalWaveTransient(Likelihood):
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_squared_tc_array=d_inner_h_squared_tc_array)
 
-    def _check_prior_is_set(self, key):
+    def _check_marginalized_prior_is_set(self, key):
+        if key in self.priors and self.priors[key].is_fixed:
+            raise ValueError(
+                "Cannot use marginalized likelihood for {}: prior is fixed"
+                .format(key))
         if key not in self.priors or not isinstance(
                 self.priors[key], Prior):
             logger.warning(
