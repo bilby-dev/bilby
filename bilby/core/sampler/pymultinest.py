@@ -271,6 +271,7 @@ class Pymultinest(NestedSampler):
         current_time = time.time()
         new_sampling_time = current_time - self.start_time
         self.total_sampling_time += new_sampling_time
+        self.start_time = current_time
         with open(self.time_file_path, 'w') as time_file:
             time_file.write(str(self.total_sampling_time))
 
