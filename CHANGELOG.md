@@ -1,6 +1,15 @@
 # All notable changes will be documented in this file
 
-## [0.6.8] 2020-05-21
+## [1.0.0] 2020-07-06
+
+Version 1.0 release of bilby
+
+### Changes
+- Minor bug fixes and typo changes only from 0.6.9, see
+git.ligo.org/lscsoft/bilby/-/merge_requests?scope=all&utf8=%E2%9C%93&state=merged&milestone_title=1.0.0
+for details
+
+## [0.6.9] 2020-05-21
 ### Changes
 - Improvement to the proposal step in dynesty (!774)
 - Fix a bug in checking and making directories (!792)
