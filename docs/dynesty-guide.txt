@@ -49,33 +49,27 @@ until one of the stopping criteria are reached:
 Bilby-specific implementation details
 -------------------------------------
 
-In Bilby, we have re-implemented the :code:`sample="rwalk"` sample method. In
-dynesty, this method took an argument :code:`walks` which was the fixed number
-of walks to take each time a new point was proposed. In the bilby implementation,
-we still take an argument :code:`walks` which has the new meaning: the minimum
-number of walks to take (this ensures backward compatibility). Meanwhile, we
-add two new arguments
+In Bilby, we have re-implemented the :code:`sample="rwalk"` sample method (you
+can see exact details by looking at the function
+:code:`bilby.core.sampler.dynesty.sample_rwalk_bilby`. In dynesty, this method
+took an argument :code:`walks` which was the fixed number of walks to take each
+time a new point was proposed. In the bilby implementation, we still take an
+argument :code:`walks` which has the new meaning: the minimum number of walks
+to take (this ensures backward compatibility). Meanwhile, we add two new
+arguments
+
 1. :code:`maxmcmc`: the maximum number of walks to use. This naming is chosen for consistency with other codes. Default is 5000. If this limit is reached, a warning will be printed during sampling.
-2. :code:`nact`: the number of auto-correlation times to use before accepting a point. Default is 5.
 
-The autocorrelation time calculation uses the `emcee
-<https://emcee.readthedocs.io/en/stable/>`_ autocorr methods. For a detailed
-discussion on the topics, see `this post by Dan Foreman-Mackey
-<https://dfm.io/posts/autocorr/>`_.
+2. :code:`nact`: the number of auto-correlation times to use before accepting a point.
 
-You can revert to the original dynesty implementation by specifying
-:code:`sample="rwalk_dynesty"`.
-
-In addition, we also set several kwargs by default
-
-1. :code:`nwalk` (alias of :code:`nlive`), the number of live poinst. This defaults to 1000.
-2. :code:`facc`: The target acceptance fraction for the 'rwalk'. In dynesty, this defaults 0.5, but in testing we found that a value of 0.2 produced better behaviour at boundaries.
+In general, poor convergance can be resolved by increasing :code:`nact`. For GW
+events, we find a value of 10 is typically okay.  You can revert to the
+original dynesty implementation by specifying :code:`sample="rwalk_dynesty"`.
 
 Understanding the output
 ------------------------
 
 Before sampling begins, you will see a message like this
-
 
 .. code-block:: console
 

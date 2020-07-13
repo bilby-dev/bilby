@@ -1,32 +1,132 @@
 .. gw_prior:
 
 ===================================
-Transient Graviatiaonal wave priors
+Transient Gravitational wave priors
 ===================================
 
+We provide two base prior dictionaries for binary black hole (BBH) and binary
+neutron star (BNS) systems. These are :code:`bilby.gw.prior.BBHPriorDict` and
+:code:`bilby.gw.prior.BNSPriorDict` respectively. For BBHs this generates all
+the BBH mass parameters so constraints can be placed on any mass parameters.
+For BNSs it also generates the tidal deformability parameters.
+
+You can load in the default priors by running, e.g.
+
+.. code:: python
+
+   >>> prior = bilby.gw.prior.BBHPriorDict()
+
+This prior has a complete set of parameters for a BBH system. You can modify
+this, for example to set a different prior range for the chirp mass
+
+.. code:: python
+
+   >>> prior["chirp_mass"] = bilby.core.prior.Uniform(30, 31, "chirp_mass")
+
+.. note::
+   If you are using a tidal waveform, you need to specify a frequency domain
+   source model which includes tidal effects, e.g.
+
+    .. code:: python
+
+     frequency_domain_source_model=lal_binary_neutron_star
+
+
+Prior files
+===========
+
+As an alternative to specifying the prior in a python script, we also provide
+the ability to use a prior file. For example, given a file :code:`bbh.prior`
+which contains:
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_bbh.prior
+
+You can load this with
+
+.. code:: python
+
+   prior = bilby.gw.prior.BBHPriorDict("bbh.prior")
+
+Here we see several examples of different types of priors. For those available
+in the :code:`bilby.core.prior` module, you can specify these without a prefix,
+but for other (including any exisiting in your own modules) you need to specify
+the module path.
+
+Aligned spins waveform with tides off
+-------------------------------------
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_bbh.prior
+
+Aligned spins waveform with tides on
+------------------------------------
+
+.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_bns.prior
+
+Precessing spins waveform with tides off
+----------------------------------------
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_bbh.prior
+
+Precessing spins waveform with tides on
+---------------------------------------
+
+.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_bns.prior
+
+
+Modifying the prior
+-------------------
+
+Taking the example priors above, you can copy and modify them to suite your
+needs. For example, to fix a parameter to a given value
+
+.. code:: python
+
+  parameter_name = <value>
+
+while to constrain the prior to a certain range , you can use:
+
+.. code:: python
+
+ parameter_name = Constraint(name='parameter_name', minimum=<value>, maximum=<value>)
+
+
+Priors using a Jupyter notebook
+===============================
+
+Bilby saves as output the prior volume sampled. You might also find useful to
+produce priors directly from a Jupyter notebook. You can have a look at one of
+the Bilby tutorials to check how you define and plot priors in a Jupyter notebook:
+`making_priors.ipynb <https://git.ligo.org/lscsoft/bilby/-/blob/master/examples/tutorials/making_priors.ipynb>`_.
+
+Notes on GW-specific priors
+===========================
+
 A Cosmological GW prior, :code:`Cosmological`:
+----------------------------------------------
 
 .. autoclass:: bilby.gw.prior.Cosmological
    :members:
 
 Uniform in Comoving Volume GW Prior (inherited from Cosmological) :code:`UniformComovingVolume`:
+------------------------------------------------------------------------------------------------
 
 .. autoclass:: bilby.gw.prior.UniformComovingVolume
    :members:
 
 Uniform in Source Frame GW Prior :code:`UniformSourceFrame`:
+------------------------------------------------------------
 
 .. autoclass:: bilby.gw.prior.UniformSourceFrame
    :members:
 
 Aligned Spine GW Prior :code:`AlignedSpin`:
+-------------------------------------------
 
 .. autoclass:: bilby.gw.prior.AlignedSpin
    :members:
 
 HealPixMap JointPriorDist (See JointPriors in bilby.core.prior.joint) :code:`HealPixMapPriorDist`:
+--------------------------------------------------------------------------------------------------
 
 .. autoclass:: bilby.gw.prior.HealPixMapPriorDist
    :members:
-
-

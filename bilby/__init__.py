@@ -4,7 +4,7 @@ Bilby
 
 Bilby: a user-friendly Bayesian inference library.
 
-The aim of bilby is to provide user friendly interface to perform parameter
+The aim of bilby is to provide a user-friendly interface to perform parameter
 estimation. It is primarily designed and built for inference of compact
 binary coalescence events in interferometric data, but it can also be used for
 more general problems.

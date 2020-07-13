@@ -30,22 +30,9 @@ simple example that sets a uniform prior for :code:`a`, and a fixed value for
 Notice, that the :code:`latex_label` is optional, but if given will be used
 when generating plots. Latex label strings containing escape characters like :code:`\t`
 should either be preceded by :code:`r'` or include an extra backslash. As an example,
-either :code:`r'$\theta$'` or :code:`'$\\theta$'` is permissable. For a list of 
-recognized escape sequences, see the `python docs <https://docs.python.org/2.0/ref/strings.html>`_. 
+either :code:`r'$\theta$'` or :code:`'$\\theta$'` is permissable. For a list of
+recognized escape sequences, see the `python docs <https://docs.python.org/2.0/ref/strings.html>`_.
 
---------------
-Default priors
---------------
-
-If any model parameter required by the :ref:`likelihood` are not defined in the
-`priors` dictionary passed to :ref:`run_sampler <run_sampler>` then the code
-will try to use a default prior. By default, these are setup for a binary black
-hole and defined in a file like this
-
-.. literalinclude:: /../bilby/gw/prior_files/binary_black_holes.prior
-
-You can define your own default prior and pass a string pointing to that file
-to :ref:`run_sampler <run_sampler>`.
 
 
 --------------------------
@@ -92,7 +79,7 @@ Multivariate Gaussian prior
 
 We provide a prior class for correlated parameters in the form of a
 `multivariate Gaussian distribution <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`_.
-To set the prior you first must define the distribution using the 
+To set the prior you first must define the distribution using the
 :class:`bilby.core.prior.MultivariateGaussianDist` class. This requires the names of the
 correlated variables, their means, and either the covariance matrix or the correlation
 matrix and standard deviations, e.g.:
@@ -209,72 +196,4 @@ Sample from this distribution and plot the samples.
 
 ------
 
-Gravitational wave priors
-=========================
 
-We provide default conversion functions for the BBH and BNS PriorDicts.
-
-For BBHs this generates all the BBH mass parameters so constraints can be placed on any mass parameters.
-
-For BNSs it also generates the tidal deformability parameters.
-
------------------
-Prior Examples 
------------------
-
-Here we show some examples of prior files for different waveform families.
-To constrain a certain parameter to a fixed value, you just need:
-
-.. code:: python
-
-  parameter_name = <value>
-
-------
-
-To constrain the prior to a certain range , you can use:
-
-.. code:: python
-
- parameter_name = Constraint(name='parameter_name', minimum=<value>, maximum=<value>)
-
-------
-
-Note that to activate the tidal effect you need to specify in your configuration
-file:
-
-.. code:: python
-
- frequency_domain_source_model=lal_binary_neutron_star 
-
-------
-
-
-Aligned spins waveform with tides off
-==============
-
-.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_off.prior
-
-Aligned spins waveform with tides on
-==============
-
-.. literalinclude:: /../bilby/gw/prior_files/aligned_spins_waveform_tides_on.prior
-
-Precessing spins waveform with tides off
-==============
-
-.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_off.prior  
-
-Precessing spins waveform with tides on
-==============
-
-.. literalinclude:: /../bilby/gw/prior_files/precessing_spins_waveform_tides_on.prior  
-
-
------------------
-Priors using a Jupyter notebook 
------------------
-
-Bilby saves as output the prior volume sampled. You might also find useful to
-produce priors directly from a Jupyter notebook. You can have a look at one of
-the Bilby tutorials to check how you define and plot priors in a Jupyter notebook:
-`making_priors.ipynb <https://git.ligo.org/lscsoft/bilby/-/blob/master/examples/tutorials/making_priors.ipynb>`_.
