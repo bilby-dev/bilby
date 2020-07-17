@@ -139,7 +139,10 @@ class Cosmological(Interped):
 
     @minimum.setter
     def minimum(self, minimum):
-        self._set_limit(value=minimum, limit_dict=self._minimum)
+        if (self.name in self._minimum) and (minimum < self.minimum):
+            self._set_limit(value=minimum, limit_dict=self._minimum, recalculate_array=True)
+        else:
+            self._set_limit(value=minimum, limit_dict=self._minimum)
 
     @property
     def maximum(self):
@@ -147,11 +150,14 @@ class Cosmological(Interped):
 
     @maximum.setter
     def maximum(self, maximum):
-        self._set_limit(value=maximum, limit_dict=self._maximum)
+        if (self.name in self._maximum) and (maximum > self.maximum):
+            self._set_limit(value=maximum, limit_dict=self._maximum, recalculate_array=True)
+        else:
+            self._set_limit(value=maximum, limit_dict=self._maximum)
 
-    def _set_limit(self, value, limit_dict):
+    def _set_limit(self, value, limit_dict, recalculate_array=False):
         """
-        Set either the limits for redshift luminosity and comoving distances
+        Set either of the limits for redshift, luminosity, and comoving distances
 
         Parameters
         ----------
@@ -159,6 +165,8 @@ class Cosmological(Interped):
             Limit value in current class' parameter
         limit_dict: dict
             The limit dictionary to modify in place
+        recalculate_array: boolean
+            Determines if the distance arrays are recalculated
         """
         cosmology = get_cosmology(self.cosmology)
         limit_dict[self.name] = value
@@ -185,6 +193,13 @@ class Cosmological(Interped):
             limit_dict['luminosity_distance'] = (
                 cosmology.luminosity_distance(limit_dict['redshift']).value
             )
+        if recalculate_array:
+            if self.name == 'redshift':
+                self.xx, self.yy = self._get_redshift_arrays()
+            elif self.name == 'comoving_distance':
+                self.xx, self.yy = self._get_comoving_distance_arrays()
+            elif self.name == 'luminosity_distance':
+                self.xx, self.yy = self._get_luminosity_distance_arrays()
         try:
             self._update_instance()
         except (AttributeError, KeyError):
