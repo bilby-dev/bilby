@@ -458,6 +458,14 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
         )
         self.assertEqual(prior.maximum, 10000)
 
+    def test_increase_maximum(self):
+        prior = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name="luminosity_distance"
+        )
+        prior.maximum = 20000
+        prior_sample = prior.sample(5000)
+        self.assertGreater(np.mean(prior_sample), 10000)
+
     def test_zero_minimum_works(self):
         prior = bilby.gw.prior.UniformComovingVolume(
             minimum=0, maximum=10000, name="luminosity_distance"

@@ -44,6 +44,8 @@ class Interped(Prior):
 
         """
         self.xx = xx
+        self.min_limit = min(xx)
+        self.max_limit = max(xx)
         self._yy = yy
         self.YY = None
         self.probability_density = None
@@ -97,6 +99,8 @@ class Interped(Prior):
 
         Updates the prior distribution if minimum is set to a different value.
 
+        Yields an error if value is set below instantiated x-array minimum.
+
         Returns
         -------
         float: Minimum of the prior distribution
@@ -106,6 +110,8 @@ class Interped(Prior):
 
     @minimum.setter
     def minimum(self, minimum):
+        if minimum < self.min_limit:
+            raise ValueError('Minimum cannot be set below {}.'.format(round(self.min_limit, 2)))
         self._minimum = minimum
         if '_maximum' in self.__dict__ and self._maximum < np.inf:
             self._update_instance()
@@ -116,6 +122,8 @@ class Interped(Prior):
 
         Updates the prior distribution if maximum is set to a different value.
 
+        Yields an error if value is set above instantiated x-array maximum.
+
         Returns
         -------
         float: Maximum of the prior distribution
@@ -125,6 +133,8 @@ class Interped(Prior):
 
     @maximum.setter
     def maximum(self, maximum):
+        if maximum > self.max_limit:
+            raise ValueError('Maximum cannot be set above {}.'.format(round(self.max_limit, 2)))
         self._maximum = maximum
         if '_minimum' in self.__dict__ and self._minimum < np.inf:
             self._update_instance()
