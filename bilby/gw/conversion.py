@@ -1116,13 +1116,14 @@ def compute_snrs(sample, likelihood):
         if isinstance(sample, dict):
             signal_polarizations =\
                 likelihood.waveform_generator.frequency_domain_strain(sample)
+            likelihood.parameters.update(sample)
             for ifo in likelihood.interferometers:
-                signal = ifo.get_detector_response(signal_polarizations, sample)
+                per_detector_snr = likelihood.calculate_snrs(
+                    signal_polarizations, ifo)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
-                    ifo.matched_filter_snr(signal=signal)
+                    per_detector_snr.complex_matched_filter_snr
                 sample['{}_optimal_snr'.format(ifo.name)] = \
-                    ifo.optimal_snr_squared(signal=signal) ** 0.5
-
+                    per_detector_snr.optimal_snr_squared.real ** 0.5
         else:
             logger.info(
                 'Computing SNRs for every sample.')
