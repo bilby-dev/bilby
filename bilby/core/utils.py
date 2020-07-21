@@ -6,7 +6,6 @@ import os
 import shutil
 from math import fmod
 import argparse
-import traceback
 import inspect
 import functools
 import types
@@ -16,7 +15,6 @@ from importlib import import_module
 import json
 import warnings
 
-from distutils.version import StrictVersion
 import numpy as np
 from scipy.interpolate import interp2d
 from scipy.special import logsumexp
@@ -971,28 +969,6 @@ class UnsortedInterp2d(interp2d):
 command_line_args, command_line_parser = set_up_command_line_arguments()
 #  Instantiate the default logging
 setup_logger(print_version=False, log_level=command_line_args.log_level)
-
-if 'DISPLAY' in os.environ:
-    logger.debug("DISPLAY={} environment found".format(os.environ['DISPLAY']))
-    pass
-else:
-    logger.debug('No $DISPLAY environment variable found, so importing \
-                   matplotlib.pyplot with non-interactive "Agg" backend.')
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    non_gui_backends = matplotlib.rcsetup.non_interactive_bk
-    for backend in non_gui_backends:
-        try:
-            logger.debug("Trying backend {}".format(backend))
-            if StrictVersion(matplotlib.__version__) >= StrictVersion("3.1"):
-                matplotlib.use(backend)
-            else:
-                matplotlib.use(backend, warn=False)
-            plt.switch_backend(backend)
-            break
-        except Exception:
-            print(traceback.format_exc())
 
 
 class BilbyJsonEncoder(json.JSONEncoder):
