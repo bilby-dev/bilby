@@ -200,12 +200,12 @@ class FromFile(Interped):
 
         """
         try:
-            self.id = file_name
-            xx, yy = np.genfromtxt(self.id).T
+            self.file_name = file_name
+            xx, yy = np.genfromtxt(self.file_name).T
             super(FromFile, self).__init__(xx=xx, yy=yy, minimum=minimum,
                                            maximum=maximum, name=name, latex_label=latex_label,
                                            unit=unit, boundary=boundary)
         except IOError:
-            logger.warning("Can't load {}.".format(self.id))
+            logger.warning("Can't load {}.".format(self.file_name))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
