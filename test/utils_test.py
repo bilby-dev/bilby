@@ -1,9 +1,11 @@
 from __future__ import absolute_import, division
-
 import unittest
+import os
+
 import numpy as np
 from astropy import constants
 import lal
+import matplotlib.pyplot as plt
 
 import bilby
 from bilby.core import utils
@@ -251,6 +253,64 @@ class TestReflect(unittest.TestCase):
         xprime = np.array([-1.9, -1.5, -1.1])
         x = np.array([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
+
+
+class TestLatexPlotFormat(unittest.TestCase):
+    def setUp(self):
+        self.x = np.linspace(0, 1)
+        self.y = np.sin(self.x)
+        self.filename = "test_plot.png"
+
+    def tearDown(self):
+        if os.path.isfile(self.filename):
+            os.remove(self.filename)
+
+    def test_default(self):
+        @bilby.core.utils.latex_plot_format
+        def plot():
+            fig, ax = plt.subplots()
+            ax.plot(self.x, self.y)
+            fig.savefig(self.filename)
+        plot()
+        self.assertTrue(os.path.isfile(self.filename))
+
+    def test_mathedefault_one(self):
+        @bilby.core.utils.latex_plot_format
+        def plot():
+            fig, ax = plt.subplots()
+            ax.plot(self.x, self.y)
+            fig.savefig(self.filename)
+        plot(BILBY_MATHDEFAULT=1)
+        self.assertTrue(os.path.isfile(self.filename))
+
+    def test_mathedefault_zero(self):
+        @bilby.core.utils.latex_plot_format
+        def plot():
+            fig, ax = plt.subplots()
+            ax.plot(self.x, self.y)
+            fig.savefig(self.filename)
+        plot(BILBY_MATHDEFAULT=0)
+        self.assertTrue(os.path.isfile(self.filename))
+
+    def test_matplotlib_style(self):
+        @bilby.core.utils.latex_plot_format
+        def plot():
+            fig, ax = plt.subplots()
+            ax.plot(self.x, self.y)
+            fig.savefig(self.filename)
+
+        plot(BILBY_STYLE="fivethirtyeight")
+        self.assertTrue(os.path.isfile(self.filename))
+
+    def test_user_style(self):
+        @bilby.core.utils.latex_plot_format
+        def plot():
+            fig, ax = plt.subplots()
+            ax.plot(self.x, self.y)
+            fig.savefig(self.filename)
+
+        plot(BILBY_STYLE="test/test.mplstyle")
+        self.assertTrue(os.path.isfile(self.filename))
 
 
 if __name__ == "__main__":
