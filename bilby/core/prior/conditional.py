@@ -129,7 +129,7 @@ def conditional_prior_factory(prior_class):
 
             """
             if sorted(list(required_variables)) == sorted(self.required_variables):
-                parameters = self.condition_func(self.reference_params, **required_variables)
+                parameters = self.condition_func(self.reference_params.copy(), **required_variables)
                 for key, value in parameters.items():
                     setattr(self, key, value)
             elif len(required_variables) == 0:
