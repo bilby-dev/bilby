@@ -1,0 +1,19 @@
+=========================
+Frequency Asked Questions
+=========================
+
+Plotting questions
+------------------
+
+I'm running into latex errors when :code:`bilby` tries to create plots, what should I do?
+
+Matplotlib can be a little finicky. We wrap plotting commands in a function
+which can set up the rcParams and we use environment variables to allow
+configuration of this. See the docstring of this function for the allowed
+configuration options
+
+
+.. autofunction:: bilby.core.utils.latex_plot_format
+
+
+
