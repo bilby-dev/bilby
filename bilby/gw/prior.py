@@ -630,7 +630,9 @@ Prior._default_latex_labels = {
     'lambda_1': '$\\Lambda_1$',
     'lambda_2': '$\\Lambda_2$',
     'lambda_tilde': '$\\tilde{\\Lambda}$',
-    'delta_lambda_tilde': '$\\delta\\tilde{\\Lambda}$'}
+    'delta_lambda_tilde': '$\\delta\\tilde{\\Lambda}$',
+    'chi_1': '$\\chi_1$',
+    'chi_2': '$\\chi_2$'}
 
 
 class CalibrationPriorDict(PriorDict):
