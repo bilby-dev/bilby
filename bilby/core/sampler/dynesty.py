@@ -756,7 +756,7 @@ def sample_rwalk_bilby(args):
         # Check proposed point.
         v_prop = prior_transform(np.array(u_prop))
         logl_prop = loglikelihood(np.array(v_prop))
-        if logl_prop >= loglstar:
+        if logl_prop > loglstar:
             u = u_prop
             v = v_prop
             logl = logl_prop
