@@ -222,6 +222,7 @@ class TestGWTransient(unittest.TestCase):
             time_reference="geocent",
             reference_frame="sky",
             lal_version=self.likelihood.lal_version,
+            lalsimulation_version=self.likelihood.lalsimulation_version,
         )
         self.assertDictEqual(expected, self.likelihood.meta_data)
 

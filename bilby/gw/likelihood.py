@@ -788,10 +788,24 @@ class GravitationalWaveTransient(Likelihood):
     @property
     def lal_version(self):
         try:
-            from lal import git_version
-            lal_version = str(git_version.verbose_msg).replace("\n", ";")
-            logger.info("Using LAL version {}".format(lal_version))
-            return lal_version
+            from lal import git_version, __version__
+            lal_version = str(__version__)
+            logger.info("Using lal version {}".format(lal_version))
+            lal_git_version = str(git_version.verbose_msg).replace("\n", ";")
+            logger.info("Using lal git version {}".format(lal_git_version))
+            return "lal_version={}, lal_git_version={}".format(lal_version, lal_git_version)
+        except (ImportError, AttributeError):
+            return "N/A"
+
+    @property
+    def lalsimulation_version(self):
+        try:
+            from lalsimulation import git_version, __version__
+            lalsim_version = str(__version__)
+            logger.info("Using lalsimulation version {}".format(lalsim_version))
+            lalsim_git_version = str(git_version.verbose_msg).replace("\n", ";")
+            logger.info("Using lalsimulation git version {}".format(lalsim_git_version))
+            return "lalsimulation_version={}, lalsimulation_git_version={}".format(lalsim_version, lalsim_git_version)
         except (ImportError, AttributeError):
             return "N/A"
 
@@ -811,7 +825,8 @@ class GravitationalWaveTransient(Likelihood):
             start_time=self.waveform_generator.start_time,
             time_reference=self.time_reference,
             reference_frame=self._reference_frame_str,
-            lal_version=self.lal_version)
+            lal_version=self.lal_version,
+            lalsimulation_version=self.lalsimulation_version)
 
 
 class BasicGravitationalWaveTransient(Likelihood):
