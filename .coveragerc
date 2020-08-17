@@ -1,6 +1,6 @@
 [run]
 omit =
-    test/example_test.py
-    test/gw_example_test.py
-    test/noise_realisation_test.py
-    test/other_test.py
+    test/core/example_test.py
+    test/gw/example_test.py
+    test/gw/noise_realisation_test.py
+    test/gw/other_test.py
