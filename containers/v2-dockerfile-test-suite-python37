@@ -35,7 +35,7 @@ RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 
 # Install dependencies and samplers
 RUN pip install corner lalsuite theano healpy cython
-RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine ultranest
+RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine ultranest dnest4
 
 # Install multinest
 RUN git clone https://github.com/farhanferoz/MultiNest.git \
@@ -45,7 +45,7 @@ ENV LD_LIBRARY_PATH $HOME/MultiNest/MultiNest_v3.12_CMake/multinest/lib:
 
 # Install Polychord
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
-&& (cd PolyChordLite && make pypolychord  MPI= && python setup.py install)
+&& (cd PolyChordLite && python setup.py --no-mpi install)
 
 # Install PTMCMCSampler
 RUN git clone https://github.com/jellis18/PTMCMCSampler.git \
