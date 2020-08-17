@@ -1,0 +1,2 @@
+logA = Uniform(name='logA', minimum=10, maximum=20, latex_label=r'$\log(A_{0})$')
+logB = Uniform(name='logB', minimum=10, maximum=20, latex_label='$\log(B_{0})$')

@@ -91,8 +91,8 @@ python-3.7-samplers:
   script:
     - python -m pip install .
 
-    - pytest test/sampler_test.py --durations 10
-    - pytest test/sample_from_the_prior_test.py
+    - pytest test/core/sampler/sampler_run_test.py --durations 10
+    - pytest test/gw/sample_from_the_prior_test.py
 
 # test samplers on python 3.6
 python-3.6-samplers:
@@ -101,7 +101,7 @@ python-3.6-samplers:
   script:
     - python -m pip install .
 
-    - pytest test/sampler_test.py
+    - pytest test/core/sampler/sampler_run_test.py
 
 # Tests run at a fixed schedule rather than on push
 scheduled-python-3.7:
@@ -113,9 +113,9 @@ scheduled-python-3.7:
     - python -m pip install .
 
     # Run tests which are only done on schedule
-    - pytest test/example_test.py
-    - pytest test/gw_example_test.py
-    - pytest test/sample_from_the_prior_test.py
+    - pytest test/core/example_test.py
+    - pytest test/gw/example_test.py
+    - pytest test/gw/sample_from_the_prior_test.py
 
 plotting:
   stage: test
@@ -126,7 +126,7 @@ plotting:
     - python -m pip install .
     - python -m pip install ligo.skymap
 
-    - pytest test/gw_plot_test.py
+    - pytest test/gw/plot_test.py
 
 pages:
   stage: deploy
