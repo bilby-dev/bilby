@@ -574,9 +574,10 @@ class Result(object):
             'injection_parameters', 'meta_data', 'search_parameter_keys',
             'fixed_parameter_keys', 'constraint_parameter_keys',
             'sampling_time', 'sampler_kwargs', 'use_ratio',
-            'log_likelihood_evaluations', 'log_prior_evaluations', 'samples',
-            'nested_samples', 'walkers', 'nburn', 'parameter_labels',
-            'parameter_labels_with_unit', 'version']
+            'log_likelihood_evaluations', 'log_prior_evaluations',
+            'num_likelihood_evaluations', 'samples', 'nested_samples',
+            'walkers', 'nburn', 'parameter_labels', 'parameter_labels_with_unit',
+            'version']
         dictionary = OrderedDict()
         for attr in save_attrs:
             try:
