@@ -76,33 +76,18 @@ class TabularEOS(object):
         self.pressure = table[:, 0]
         self.energy_density = table[:, 1]
 
-        # Store minimum pressure and energy density
         self.minimum_pressure = min(self.pressure)
         self.minimum_energy_density = min(self.energy_density)
         if (not self.check_monotonicity() and self.sampling_flag) or self.warning_flag:
-            # Not a monotonic or causal EOS, exiting.
             self.warning_flag = True
         else:
-            # plot analytic enthalpy
-
-            # interpolate *in log*
+            integrand = self.pressure / (self.energy_density + self.pressure)
+            self.pseudo_enthalpy = cumtrapz(integrand, np.log(self.pressure), initial=0) + integrand[0]
 
             self.interp_energy_density_from_pressure = CubicSpline(np.log10(self.pressure),
                                                                    np.log10(self.energy_density),
                                                                    )
 
-            self.pseudo_enthalpy = np.zeros(self.pressure.shape[0])
-
-            # construct arrays to do cumulative integral
-            dhdp = 1. / (self.energy_density + self.pressure)
-
-            num_int_arg = np.exp(np.log(self.pressure) + np.log(dhdp))
-
-            pseudo_enthalpy_0 = self.pressure[0] / (self.energy_density[0] + self.pressure[0])
-
-            self.pseudo_enthalpy = cumtrapz(num_int_arg, np.log(self.pressure), initial=pseudo_enthalpy_0)
-
-            # interpolate entropy related quantities *in log*
             self.interp_energy_density_from_pseudo_enthalpy = CubicSpline(np.log10(self.pseudo_enthalpy),
                                                                           np.log10(self.energy_density))
 
@@ -112,13 +97,10 @@ class TabularEOS(object):
             self.interp_pseudo_enthalpy_from_energy_density = CubicSpline(np.log10(self.energy_density),
                                                                           np.log10(self.pseudo_enthalpy))
 
-            # Create tables
             self.__construct_all_tables()
 
-            # Store minimum enthalpy
             self.minimum_pseudo_enthalpy = min(self.pseudo_enthalpy)
             if not self.check_causality() and self.sampling_flag:
-                # Finally, ensure the EOS is causal if sampling
                 self.warning_flag = True
 
     def __remove_leading_zero(self, table):
