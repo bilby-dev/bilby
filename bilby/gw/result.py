@@ -436,7 +436,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     go.Scatter(
                         x=plot_times,
                         y=infft(
-                            interferometer.whitened_frequency_domain_strain,
+                            interferometer.whitened_frequency_domain_strain *
+                            np.sqrt(2. / interferometer.sampling_frequency),
                             sampling_frequency=interferometer.strain_data.sampling_frequency)[time_idxs],
                         fill=None,
                         mode='lines', line_color=DATA_COLOR,
@@ -461,7 +462,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     color=DATA_COLOR, label='ASD')
                 axs[1].plot(
                     plot_times, infft(
-                        interferometer.whitened_frequency_domain_strain,
+                        interferometer.whitened_frequency_domain_strain *
+                        np.sqrt(2. / interferometer.sampling_frequency),
                         sampling_frequency=interferometer.strain_data.sampling_frequency)[time_idxs],
                     color=DATA_COLOR, alpha=0.3)
             logger.debug('Plotted interferometer data.')
@@ -474,7 +476,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
             fd_waveform = interferometer.get_detector_response(wf_pols, params)
             fd_waveforms.append(fd_waveform[frequency_idxs])
             td_waveform = infft(
-                fd_waveform / interferometer.amplitude_spectral_density_array,
+                fd_waveform * np.sqrt(2. / interferometer.sampling_frequency) /
+                interferometer.amplitude_spectral_density_array,
                 self.sampling_frequency)[time_idxs]
             td_waveforms.append(td_waveform)
         fd_waveforms = asd_from_freq_series(
@@ -601,7 +604,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 hf_inj_det = interferometer.get_detector_response(
                     hf_inj, self.injection_parameters)
                 ht_inj_det = infft(
-                    hf_inj_det /
+                    hf_inj_det * np.sqrt(2. / interferometer.sampling_frequency) /
                     interferometer.amplitude_spectral_density_array,
                     self.sampling_frequency)[time_idxs]
                 if format == "html":
