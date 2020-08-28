@@ -38,7 +38,7 @@ pytest-cov \
 coverage-badge
 
 # Install additional bilby requirements
-RUN pip install corner lalsuite astropy gwpy theano
+RUN pip install corner lalsuite astropy gwpy theano tables
 
 # Install samplers
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 pymultinest kombine ultranest dnest4
