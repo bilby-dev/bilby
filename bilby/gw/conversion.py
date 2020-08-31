@@ -1009,18 +1009,19 @@ def generate_component_spins(sample):
         ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2',
          'mass_1', 'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters):
-        output_sample['iota'], output_sample['spin_1x'],\
-            output_sample['spin_1y'], output_sample['spin_1z'], \
-            output_sample['spin_2x'], output_sample['spin_2y'],\
-            output_sample['spin_2z'] =\
-            transform_precessing_spins(
-                output_sample['theta_jn'], output_sample['phi_jl'],
-                output_sample['tilt_1'], output_sample['tilt_2'],
-                output_sample['phi_12'], output_sample['a_1'],
-                output_sample['a_2'],
-                output_sample['mass_1'] * solar_mass,
-                output_sample['mass_2'] * solar_mass,
-                output_sample['reference_frequency'], output_sample['phase'])
+        (
+            output_sample['iota'], output_sample['spin_1x'],
+            output_sample['spin_1y'], output_sample['spin_1z'],
+            output_sample['spin_2x'], output_sample['spin_2y'],
+            output_sample['spin_2z']
+        ) = np.vectorize(bilby_to_lalsimulation_spins)(
+            output_sample['theta_jn'], output_sample['phi_jl'],
+            output_sample['tilt_1'], output_sample['tilt_2'],
+            output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
+            output_sample['mass_1'] * solar_mass,
+            output_sample['mass_2'] * solar_mass,
+            output_sample['reference_frequency'], output_sample['phase']
+        )
 
         output_sample['phi_1'] =\
             np.fmod(2 * np.pi + np.arctan2(
