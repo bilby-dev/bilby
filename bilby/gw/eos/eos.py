@@ -29,7 +29,7 @@ path_to_eos_tables = os.path.join(os.path.dirname(__file__), 'eos_tables')
 list_of_eos_tables = os.listdir(path_to_eos_tables)
 valid_eos_files = [i for i in list_of_eos_tables if 'LAL' in i]
 valid_eos_file_paths = [os.path.join(path_to_eos_tables, filename) for filename in valid_eos_files]
-valid_eos_names = [i.split('_')[-1].strip('.dat') for i in valid_eos_files]
+valid_eos_names = [i.split('_', maxsplit=1)[-1].strip('.dat') for i in valid_eos_files]
 valid_eos_dict = dict(zip(valid_eos_names, valid_eos_file_paths))
 
 
