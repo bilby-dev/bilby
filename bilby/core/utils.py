@@ -977,6 +977,10 @@ class BilbyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         from .prior import MultivariateGaussianDist, Prior, PriorDict
         from ..gw.prior import HealPixMapPriorDist
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
         if isinstance(obj, PriorDict):
             return {'__prior_dict__': True, 'content': obj._get_json_dict()}
         if isinstance(obj, (MultivariateGaussianDist, HealPixMapPriorDist, Prior)):
