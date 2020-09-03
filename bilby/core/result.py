@@ -705,16 +705,20 @@ class Result(object):
 
         """
         latex_labels = []
-        for k in keys:
-            if k in self.search_parameter_keys:
-                idx = self.search_parameter_keys.index(k)
-                latex_labels.append(self.parameter_labels_with_unit[idx])
-            elif k in self.parameter_labels:
-                latex_labels.append(k)
+        for key in keys:
+            if key in self.search_parameter_keys:
+                idx = self.search_parameter_keys.index(key)
+                label = self.parameter_labels_with_unit[idx]
+            elif key in self.parameter_labels:
+                label = key
             else:
+                label = None
                 logger.debug(
-                    'key {} not a parameter label or latex label'.format(k))
-                latex_labels.append(' '.join(k.split('_')))
+                    'key {} not a parameter label or latex label'.format(key)
+                )
+            if label is None:
+                label = key.replace("_", " ")
+            latex_labels.append(label)
         return latex_labels
 
     @property
