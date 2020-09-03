@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import dill
 import os
@@ -326,10 +324,6 @@ class Dynesty(NestedSampler):
     def run_sampler(self):
         import dynesty
         logger.info("Using dynesty version {}".format(dynesty.__version__))
-        if self.kwargs['live_points'] is None:
-            self.kwargs['live_points'] = (
-                self.get_initial_points_from_prior(
-                    self.kwargs['nlive']))
 
         if self.kwargs.get("sample", "rwalk") == "rwalk":
             logger.info(
@@ -351,10 +345,21 @@ class Dynesty(NestedSampler):
 
         self._setup_pool()
 
-        self.sampler = dynesty.NestedSampler(
-            loglikelihood=_log_likelihood_wrapper,
-            prior_transform=_prior_transform_wrapper,
-            ndim=self.ndim, **self.sampler_init_kwargs)
+        if self.resume:
+            self.resume = self.read_saved_state(continuing=True)
+
+        if self.resume:
+            logger.info('Resume file successfully loaded.')
+        else:
+            if self.kwargs['live_points'] is None:
+                self.kwargs['live_points'] = (
+                    self.get_initial_points_from_prior(self.kwargs['nlive'])
+                )
+            self.sampler = dynesty.NestedSampler(
+                loglikelihood=_log_likelihood_wrapper,
+                prior_transform=_prior_transform_wrapper,
+                ndim=self.ndim, **self.sampler_init_kwargs
+            )
 
         if self.check_point:
             out = self._run_external_sampler_with_checkpointing()
@@ -424,10 +429,6 @@ class Dynesty(NestedSampler):
 
     def _run_external_sampler_with_checkpointing(self):
         logger.debug("Running sampler with checkpointing")
-        if self.resume:
-            resume_file_loaded = self.read_saved_state(continuing=True)
-            if resume_file_loaded:
-                logger.info('Resume file successfully loaded.')
 
         old_ncall = self.sampler.ncall
         sampler_kwargs = self.sampler_function_kwargs.copy()
