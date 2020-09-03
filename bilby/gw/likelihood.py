@@ -597,8 +597,8 @@ class GravitationalWaveTransient(Likelihood):
 
     @property
     def _ref_dist(self):
-        """ Smallest distance contained in priors """
-        return self._distance_array[0]
+        """ Median distance in priors """
+        return self.priors['luminosity_distance'].rescale(0.5)
 
     @property
     def _optimal_snr_squared_ref_array(self):
@@ -632,7 +632,7 @@ class GravitationalWaveTransient(Likelihood):
             self._create_lookup_table()
         self._interp_dist_margd_loglikelihood = UnsortedInterp2d(
             self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array, kind='cubic')
+            self._dist_margd_loglikelihood_array, kind='cubic', fill_value=-np.inf)
 
     @property
     def cached_lookup_table_filename(self):
