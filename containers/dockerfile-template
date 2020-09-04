@@ -1,17 +1,15 @@
-# This dockerfile is written automatically and should not be modified by hand.
-
 FROM continuumio/miniconda3
 LABEL name="bilby Base miniconda3" \
 maintainer="Gregory Ashton <gregory.ashton@ligo.org>"
 
 RUN conda update -n base -c defaults conda
 
-ENV conda_env python35
+ENV conda_env python{python_major_version}{python_minor_version}
 
-RUN conda create -n ${conda_env} python=3.5
-RUN echo "source activate ${conda_env}" > ~/.bashrc
-ENV PATH /opt/conda/envs/${conda_env}/bin:$PATH
-RUN /bin/bash -c "source activate ${conda_env}"
+RUN conda create -n ${{conda_env}} python={python_major_version}.{python_minor_version}
+RUN echo "source activate ${{conda_env}}" > ~/.bashrc
+ENV PATH /opt/conda/envs/${{conda_env}}/bin:$PATH
+RUN /bin/bash -c "source activate ${{conda_env}}"
 RUN conda info
 RUN python --version
 
@@ -21,11 +19,11 @@ RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
 libatlas3-base libatlas-base-dev cmake build-essential gfortran
 
 # Install conda-installable programs
-RUN conda install -n ${conda_env} -y matplotlib numpy scipy pandas astropy flake8 mock
-RUN conda install -n ${conda_env} -c anaconda coverage configargparse future
+RUN conda install -n ${{conda_env}} -y matplotlib numpy scipy pandas astropy flake8 mock
+RUN conda install -n ${{conda_env}} -c anaconda coverage configargparse future
 
 # Install conda-forge-installable programs
-RUN conda install -n ${conda_env} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov deepdish arviz
+RUN conda install -n ${{conda_env}} -c conda-forge black ligo-gracedb gwpy lalsuite ligo.skymap pytest-cov deepdish arviz
 
 # Install pip-requirements
 RUN pip install --upgrade pip
@@ -37,7 +35,7 @@ RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 # Install dependencies and samplers
 RUN pip install corner lalsuite theano healpy cython tables
 RUN pip install cpnest dynesty emcee nestle ptemcee pymc3 kombine dnest4
-RUN conda install -n ${conda_env} -c conda-forge pymultinest ultranest
+RUN conda install -n ${{conda_env}} -c conda-forge pymultinest ultranest
 
 # Install Polychord
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
