@@ -248,6 +248,14 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
             converted_parameters[angle] =\
                 np.arccos(converted_parameters[cos_angle])
 
+    if "delta_phase" in original_keys:
+        converted_parameters["phase"] = np.mod(
+            converted_parameters["delta_phase"]
+            - np.sign(np.cos(converted_parameters["theta_jn"]))
+            * converted_parameters["psi"],
+            2 * np.pi
+        )
+
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
 
