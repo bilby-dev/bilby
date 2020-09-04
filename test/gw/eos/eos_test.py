@@ -1,4 +1,3 @@
-from __future__ import division, absolute_import
 import unittest
 import numpy
 import lalsimulation as lalsim

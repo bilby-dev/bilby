@@ -1,4 +1,3 @@
-from __future__ import division, absolute_import
 import unittest
 
 from astropy.cosmology import WMAP9, Planck15

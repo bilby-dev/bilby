@@ -1,4 +1,3 @@
-from __future__ import division, absolute_import
 from collections import OrderedDict
 import unittest
 import glob
