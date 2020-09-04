@@ -3,6 +3,7 @@ import sys
 import datetime
 from collections import OrderedDict
 
+import bilby
 from ..utils import command_line_args, logger
 from ..prior import PriorDict, DeltaFunction
 
@@ -107,7 +108,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
 
     Returns
     -------
-    result
+    result: bilby.core.result.Result
         An object containing the results
     """
 
