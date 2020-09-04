@@ -444,9 +444,6 @@ class Constraint(Prior):
     def prob(self, val):
         return (val > self.minimum) & (val < self.maximum)
 
-    def ln_prob(self, val):
-        return np.log((val > self.minimum) & (val < self.maximum))
-
 
 class PriorException(Exception):
     """ General base class for all prior exceptions """

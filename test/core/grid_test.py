@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import unittest
 import numpy as np
 import shutil
@@ -107,65 +105,42 @@ class TestGrid(unittest.TestCase):
             self.grid.marginalize_posterior(parameters="jkgsd")
 
     def test_parameter_names(self):
-        assert list(self.priors.keys()) == self.grid.parameter_names
-        assert self.grid.n_dims == 2
+        self.assertListEqual(list(self.priors.keys()), self.grid.parameter_names)
+        self.assertEqual(2, self.grid.n_dims)
 
     def test_no_marginalization(self):
         # test arrays are the same if no parameters are given to marginalize
         # over
-        assert np.array_equal(
+        self.assertTrue(np.array_equal(
             self.grid.ln_likelihood,
-            self.grid.marginalize_ln_likelihood(
-                not_parameters=self.grid.parameter_names
-            ),
-        )
+            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names)))
 
     def test_marginalization_shapes(self):
-        assert len(self.grid.marginalize_ln_likelihood().shape) == 0
-
-        marg1 = self.grid.marginalize_ln_likelihood(
-            parameters=self.grid.parameter_names[0]
-        )
-        assert marg1.shape == (self.grid_size,)
-
-        marg2 = self.grid.marginalize_ln_likelihood(
-            parameters=self.grid.parameter_names[1]
-        )
-        assert marg2.shape == (self.grid_size,)
-
-        assert self.grid.ln_likelihood.shape == (self.grid_size, self.grid_size)
-        assert self.grid.ln_posterior.shape == (self.grid_size, self.grid_size)
+        self.assertEqual(0, len(self.grid.marginalize_ln_likelihood().shape))
+        marg1 = self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0])
+        marg2 = self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1])
+        self.assertTupleEqual((self.grid_size,), marg1.shape)
+        self.assertTupleEqual((self.grid_size,), marg2.shape)
+        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.ln_likelihood.shape)
+        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.ln_posterior.shape)
 
     def test_marginalization_opposite(self):
-        assert np.array_equal(
-            self.grid.marginalize_ln_likelihood(
-                parameters=self.grid.parameter_names[0]
-            ),
-            self.grid.marginalize_ln_likelihood(
-                not_parameters=self.grid.parameter_names[1]
-            ),
-        )
-        assert np.array_equal(
-            self.grid.marginalize_ln_likelihood(
-                parameters=self.grid.parameter_names[1]
-            ),
-            self.grid.marginalize_ln_likelihood(
-                not_parameters=self.grid.parameter_names[0]
-            ),
-        )
+        self.assertTrue(np.array_equal(
+            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0]),
+            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[1])))
+
+        self.assertTrue(np.array_equal(
+            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1]),
+            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[0])))
 
     def test_max_marginalized_likelihood(self):
         # marginalised likelihoods should have max values of 1 (as they are not
         # properly normalised)
-        assert (
-            self.grid.marginalize_likelihood(self.grid.parameter_names[0]).max() == 1.0
-        )
-        assert (
-            self.grid.marginalize_likelihood(self.grid.parameter_names[1]).max() == 1.0
-        )
+        self.assertEqual(1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[0]).max())
+        self.assertEqual(1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[1]).max())
 
     def test_ln_evidence(self):
-        assert np.isclose(self.grid.ln_evidence, self.expected_ln_evidence)
+        self.assertAlmostEqual(self.expected_ln_evidence, self.grid.ln_evidence, places=5)
 
     def test_fail_grid_size(self):
         with self.assertRaises(TypeError):
@@ -179,156 +154,100 @@ class TestGrid(unittest.TestCase):
             )
 
     def test_mesh_grid(self):
-        assert self.grid.mesh_grid[0].shape == (self.grid_size, self.grid_size)
-        assert (
-            self.grid.mesh_grid[0][0, 0]
-            == self.priors[self.grid.parameter_names[0]].minimum
-        )
-        assert (
-            self.grid.mesh_grid[0][-1, -1]
-            == self.priors[self.grid.parameter_names[1]].maximum
-        )
+        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.mesh_grid[0].shape)
+        self.assertEqual(self.priors[self.grid.parameter_names[0]].minimum, self.grid.mesh_grid[0][0, 0])
+        self.assertEqual(self.priors[self.grid.parameter_names[1]].maximum, self.grid.mesh_grid[0][-1, -1])
 
-    def test_different_grids(self):
-        npoints = [10, 20]
-
+    def test_grid_integer_points(self):
+        n_points = [10, 20]
         grid = bilby.core.grid.Grid(
             label="label",
             outdir="outdir",
             priors=self.priors,
-            grid_size=npoints,
-            likelihood=self.likelihood,
+            grid_size=n_points,
+            likelihood=self.likelihood
         )
 
-        assert grid.mesh_grid[0].shape == tuple(npoints)
-        assert (
-            grid.mesh_grid[0][0, 0] == self.priors[self.grid.parameter_names[0]].minimum
-        )
-        assert (
-            grid.mesh_grid[0][-1, -1]
-            == self.priors[self.grid.parameter_names[1]].maximum
-        )
+        self.assertTupleEqual(tuple(n_points), grid.mesh_grid[0].shape)
+        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
+        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
 
-        del grid
-
-        npoints = {"x0": 15, "x1": 18}
-
+    def test_grid_dict_points(self):
+        n_points = {"x0": 15, "x1": 18}
         grid = bilby.core.grid.Grid(
             label="label",
             outdir="outdir",
             priors=self.priors,
-            grid_size=npoints,
-            likelihood=self.likelihood,
+            grid_size=n_points,
+            likelihood=self.likelihood
         )
+        self.assertTupleEqual((n_points["x0"], n_points["x1"]), grid.mesh_grid[0].shape)
+        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
+        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
 
-        assert grid.mesh_grid[0].shape == (npoints["x0"], npoints["x1"])
-        assert (
-            grid.mesh_grid[0][0, 0] == self.priors[self.grid.parameter_names[0]].minimum
-        )
-        assert (
-            grid.mesh_grid[0][-1, -1]
-            == self.priors[self.grid.parameter_names[1]].maximum
-        )
-
-        del grid
-
+    def test_grid_from_array(self):
         x0s = np.linspace(self.priors["x0"].minimum, self.priors["x0"].maximum, 13)
         x1s = np.linspace(self.priors["x0"].minimum, self.priors["x0"].maximum, 14)
-        npoints = {"x0": x0s, "x1": x1s}
+        n_points = {"x0": x0s, "x1": x1s}
 
         grid = bilby.core.grid.Grid(
             label="label",
             outdir="outdir",
             priors=self.priors,
-            grid_size=npoints,
+            grid_size=n_points,
             likelihood=self.likelihood,
         )
 
-        assert grid.mesh_grid[0].shape == (len(x0s), len(x1s))
-        assert (
-            grid.mesh_grid[0][0, 0] == self.priors[self.grid.parameter_names[0]].minimum
-        )
-        assert (
-            grid.mesh_grid[0][-1, -1]
-            == self.priors[self.grid.parameter_names[1]].maximum
-        )
-        assert np.array_equal(grid.sample_points["x0"], x0s)
-        assert np.array_equal(grid.sample_points["x1"], x1s)
+        self.assertTupleEqual((len(x0s), len(x1s)), grid.mesh_grid[0].shape)
+        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
+        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
 
-    def test_save_and_load(self):
+        self.assertTrue(np.array_equal(grid.sample_points["x0"], x0s))
+        self.assertTrue(np.array_equal(grid.sample_points["x1"], x1s))
+
+    def test_save_and_load_from_filename(self):
         filename = os.path.join("outdir", "test_output.json")
-
         self.grid.save_to_file(filename=filename)
+        new_grid = bilby.core.grid.Grid.read(filename=filename)
 
-        # load file
-        newgrid = bilby.core.grid.Grid.read(filename=filename)
+        self.assertListEqual(new_grid.parameter_names, self.grid.parameter_names)
+        self.assertEqual(new_grid.n_dims, self.grid.n_dims)
+        self.assertTrue(np.array_equal(new_grid.mesh_grid[0], self.grid.mesh_grid[0]))
+        for par in new_grid.parameter_names:
+            self.assertTrue(np.array_equal(new_grid.sample_points[par], self.grid.sample_points[par]))
+        self.assertEqual(new_grid.ln_evidence, self.grid.ln_evidence)
+        self.assertTrue(np.array_equal(new_grid.ln_likelihood, self.grid.ln_likelihood))
+        self.assertTrue(np.array_equal(new_grid.ln_posterior, self.grid.ln_posterior))
 
-        assert newgrid.parameter_names == self.grid.parameter_names
-        assert newgrid.n_dims == self.grid.n_dims
-        assert np.array_equal(newgrid.mesh_grid[0], self.grid.mesh_grid[0])
-        for par in newgrid.parameter_names:
-            assert np.array_equal(
-                newgrid.sample_points[par], self.grid.sample_points[par]
-            )
-        assert newgrid.ln_evidence == self.grid.ln_evidence
-        assert np.array_equal(newgrid.ln_likelihood, self.grid.ln_likelihood)
-        assert np.array_equal(newgrid.ln_posterior, self.grid.ln_posterior)
-
-        del newgrid
-
+    def test_save_and_load_from_outdir_label(self):
         self.grid.save_to_file(overwrite=True, outdir="outdir")
+        new_grid = bilby.core.grid.Grid.read(outdir="outdir", label="label")
 
-        # load file
-        newgrid = bilby.core.grid.Grid.read(outdir="outdir", label="label")
-
-        assert newgrid.parameter_names == self.grid.parameter_names
-        assert newgrid.n_dims == self.grid.n_dims
-        assert np.array_equal(newgrid.mesh_grid[0], self.grid.mesh_grid[0])
-        for par in newgrid.parameter_names:
-            assert np.array_equal(
-                newgrid.sample_points[par], self.grid.sample_points[par]
+        self.assertListEqual(self.grid.parameter_names, new_grid.parameter_names)
+        self.assertEqual(self.grid.n_dims, new_grid.n_dims)
+        self.assertTrue(np.array_equal(new_grid.mesh_grid[0], self.grid.mesh_grid[0]))
+        for par in new_grid.parameter_names:
+            self.assertTrue(np.array_equal(
+                new_grid.sample_points[par], self.grid.sample_points[par])
             )
-        assert newgrid.ln_evidence == self.grid.ln_evidence
-        assert np.array_equal(newgrid.ln_likelihood, self.grid.ln_likelihood)
-        assert np.array_equal(newgrid.ln_posterior, self.grid.ln_posterior)
-
-        del newgrid
+        self.assertEqual(self.grid.ln_evidence, new_grid.ln_evidence)
+        self.assertTrue(np.array_equal(self.grid.ln_likelihood, new_grid.ln_likelihood))
+        self.assertTrue(np.array_equal(self.grid.ln_posterior, new_grid.ln_posterior))
+        del new_grid
 
     def test_save_and_load_gzip(self):
         filename = os.path.join("outdir", "test_output.json.gz")
-
         self.grid.save_to_file(filename=filename)
+        new_grid = bilby.core.grid.Grid.read(filename=filename)
 
-        # load file
-        newgrid = bilby.core.grid.Grid.read(filename=filename)
-
-        assert newgrid.parameter_names == self.grid.parameter_names
-        assert newgrid.n_dims == self.grid.n_dims
-        assert np.array_equal(newgrid.mesh_grid[0], self.grid.mesh_grid[0])
-        for par in newgrid.parameter_names:
-            assert np.array_equal(
-                newgrid.sample_points[par], self.grid.sample_points[par]
-            )
-        assert newgrid.ln_evidence == self.grid.ln_evidence
-        assert np.array_equal(newgrid.ln_likelihood, self.grid.ln_likelihood)
-        assert np.array_equal(newgrid.ln_posterior, self.grid.ln_posterior)
-
-        del newgrid
+        self.assertListEqual(self.grid.parameter_names, new_grid.parameter_names)
+        self.assertEqual(self.grid.n_dims, new_grid.n_dims)
+        self.assertTrue(np.array_equal(self.grid.mesh_grid[0], new_grid.mesh_grid[0]))
+        for par in new_grid.parameter_names:
+            self.assertTrue(np.array_equal(self.grid.sample_points[par], new_grid.sample_points[par]))
+        self.assertEqual(self.grid.ln_evidence, new_grid.ln_evidence)
+        self.assertTrue(np.array_equal(self.grid.ln_likelihood, new_grid.ln_likelihood))
+        self.assertTrue(np.array_equal(self.grid.ln_posterior, new_grid.ln_posterior))
 
         self.grid.save_to_file(overwrite=True, outdir="outdir", gzip=True)
-
-        # load file
-        newgrid = bilby.core.grid.Grid.read(outdir="outdir", label="label", gzip=True)
-
-        assert newgrid.parameter_names == self.grid.parameter_names
-        assert newgrid.n_dims == self.grid.n_dims
-        assert np.array_equal(newgrid.mesh_grid[0], self.grid.mesh_grid[0])
-        for par in newgrid.parameter_names:
-            assert np.array_equal(
-                newgrid.sample_points[par], self.grid.sample_points[par]
-            )
-        assert newgrid.ln_evidence == self.grid.ln_evidence
-        assert np.array_equal(newgrid.ln_likelihood, self.grid.ln_likelihood)
-        assert np.array_equal(newgrid.ln_posterior, self.grid.ln_posterior)
-
-        del newgrid
+        _ = bilby.core.grid.Grid.read(outdir="outdir", label="label", gzip=True)

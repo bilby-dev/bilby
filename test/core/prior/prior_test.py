@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 import bilby
 import unittest
-from mock import Mock
 import numpy as np
 import os
 import scipy.stats as ss
@@ -749,104 +748,6 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
-
-
-class TestConstraintPriorNormalisation(unittest.TestCase):
-    def setUp(self):
-        self.priors = dict(
-            mass_1=bilby.core.prior.Uniform(
-                name="mass_1", minimum=5, maximum=10, unit="$M_{\odot}$", boundary=None
-            ),
-            mass_2=bilby.core.prior.Uniform(
-                name="mass_2", minimum=5, maximum=10, unit="$M_{\odot}$", boundary=None
-            ),
-            mass_ratio=bilby.core.prior.Constraint(
-                name="mass_ratio", minimum=0, maximum=1
-            ),
-        )
-        self.priors = bilby.core.prior.PriorDict(self.priors)
-
-    def test_prob_integrate_to_one(self):
-        keys = ["mass_1", "mass_2", "mass_ratio"]
-        n = 5000
-        samples = self.priors.sample_subset(keys=keys, size=n)
-        prob = self.priors.prob(samples, axis=0)
-        dm1 = self.priors["mass_1"].maximum - self.priors["mass_1"].minimum
-        dm2 = self.priors["mass_2"].maximum - self.priors["mass_2"].minimum
-        integral = np.sum(prob * (dm1 * dm2)) / len(samples["mass_1"])
-        self.assertAlmostEqual(1, integral, 5)
-
-
-class TestFillPrior(unittest.TestCase):
-    def setUp(self):
-        self.likelihood = Mock()
-        self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
-        self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
-        self.priors = dict(a=1, b=1.1, c="string", d=bilby.core.prior.Uniform(0, 1))
-        self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
-        self.default_prior_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_bbh.prior",
-        )
-        self.priors.fill_priors(self.likelihood, self.default_prior_file)
-
-    def tearDown(self):
-        del self.likelihood
-        del self.priors
-
-    def test_prior_instances_are_not_changed_by_parsing(self):
-        self.assertIsInstance(self.priors["d"], bilby.core.prior.Uniform)
-
-    def test_parsing_ints_to_delta_priors_class(self):
-        self.assertIsInstance(self.priors["a"], bilby.core.prior.DeltaFunction)
-
-    def test_parsing_ints_to_delta_priors_with_right_value(self):
-        self.assertEqual(self.priors["a"].peak, 1)
-
-    def test_parsing_floats_to_delta_priors_class(self):
-        self.assertIsInstance(self.priors["b"], bilby.core.prior.DeltaFunction)
-
-    def test_parsing_floats_to_delta_priors_with_right_value(self):
-        self.assertAlmostEqual(self.priors["b"].peak, 1.1, 1e-8)
-
-    def test_without_available_default_priors_no_prior_is_set(self):
-        with self.assertRaises(KeyError):
-            print(self.priors["asdf"])
-
-    def test_with_available_default_priors_a_default_prior_is_set(self):
-        self.assertIsInstance(self.priors["ra"], bilby.core.prior.Uniform)
-
-
-class TestCreateDefaultPrior(unittest.TestCase):
-    def test_none_behaviour(self):
-        self.assertIsNone(
-            bilby.core.prior.create_default_prior(name="name", default_priors_file=None)
-        )
-
-    def test_bbh_params(self):
-        prior_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_bbh.prior",
-        )
-        prior_set = bilby.core.prior.PriorDict(filename=prior_file)
-        for prior in prior_set:
-            self.assertEqual(
-                prior_set[prior],
-                bilby.core.prior.create_default_prior(
-                    name=prior, default_priors_file=prior_file
-                ),
-            )
-
-    def test_unknown_prior(self):
-        prior_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/precessing_spins_bbh.prior",
-        )
-        self.assertIsNone(
-            bilby.core.prior.create_default_prior(
-                name="name", default_priors_file=prior_file
-            )
-        )
 
 
 if __name__ == "__main__":

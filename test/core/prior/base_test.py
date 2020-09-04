@@ -77,28 +77,20 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         self.assertIsNone(self.prior.boundary)
 
 
-class TestPriorName(unittest.TestCase):
+class TestPrior(unittest.TestCase):
     def setUp(self):
         self.test_name = "test_name"
-        self.prior = bilby.core.prior.Prior(self.test_name)
+        self.boundary = None
+        self.prior = bilby.core.prior.Prior(name=self.test_name, boundary=self.boundary)
 
     def tearDown(self):
-        del self.prior
         del self.test_name
+        del self.boundary
+        del self.prior
 
     def test_name_assignment(self):
         self.prior.name = "other_name"
         self.assertEqual(self.prior.name, "other_name")
-
-
-class TestPriorLatexLabel(unittest.TestCase):
-    def setUp(self):
-        self.test_name = "test_name"
-        self.prior = bilby.core.prior.Prior(self.test_name)
-
-    def tearDown(self):
-        del self.test_name
-        del self.prior
 
     def test_label_assignment(self):
         test_label = "test_label"
@@ -113,33 +105,13 @@ class TestPriorLatexLabel(unittest.TestCase):
     def test_default_label_assignment_default(self):
         self.assertTrue(self.prior.latex_label, self.prior.name)
 
-
-class TestPriorIsFixed(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        del self.prior
-
-    def test_is_fixed_parent_class(self):
+    def test_is_fixed_base_class(self):
         self.prior = bilby.core.prior.Prior()
         self.assertFalse(self.prior.is_fixed)
 
     def test_is_fixed_delta_function_class(self):
         self.prior = bilby.core.prior.DeltaFunction(peak=0)
         self.assertTrue(self.prior.is_fixed)
-
-    def test_is_fixed_uniform_class(self):
-        self.prior = bilby.core.prior.Uniform(minimum=0, maximum=10)
-        self.assertFalse(self.prior.is_fixed)
-
-
-class TestPriorBoundary(unittest.TestCase):
-    def setUp(self):
-        self.prior = bilby.core.prior.Prior(boundary=None)
-
-    def tearDown(self):
-        del self.prior
 
     def test_set_boundary_valid(self):
         self.prior.boundary = "periodic"
@@ -148,6 +120,53 @@ class TestPriorBoundary(unittest.TestCase):
     def test_set_boundary_invalid(self):
         with self.assertRaises(ValueError):
             self.prior.boundary = "else"
+
+
+class TestConstraint(unittest.TestCase):
+    def setUp(self):
+        self.prior = bilby.core.prior.Constraint(minimum=0, maximum=1)
+
+    def tearDown(self):
+        del self.prior
+
+    def test_is_fixed_constraint(self):
+        self.assertTrue(self.prior.is_fixed)
+
+    def test_prob_outside(self):
+        self.assertEqual(0, self.prior.prob(-0.5))
+
+    def test_prob_inside(self):
+        self.assertEqual(1, self.prior.prob(0.5))
+
+
+class TestConstraintPriorNormalisation(unittest.TestCase):
+    def setUp(self):
+        self.priors = dict(
+            a=bilby.core.prior.Uniform(name="a", minimum=5, maximum=10),
+            b=bilby.core.prior.Uniform(name="b", minimum=5, maximum=10),
+            c=bilby.core.prior.Constraint(name="c", minimum=0, maximum=1),
+        )
+
+        def conversion_func(parameters):
+            return dict(a=parameters["a"], b=parameters["b"], c=parameters["a"] / parameters["b"])
+        self.priors = bilby.core.prior.PriorDict(self.priors, conversion_function=conversion_func)
+
+    def test_prob_integrate_to_one(self):
+        keys = ["a", "b", "c"]
+        n_samples = 1000000
+        samples = self.priors.sample_subset(keys=keys, size=n_samples)
+        prob = self.priors.prob(samples, axis=0)
+        dm1 = self.priors["a"].maximum - self.priors["a"].minimum
+        dm2 = self.priors["b"].maximum - self.priors["b"].minimum
+        prior_volume = (dm1 * dm2)
+        n_accepted = np.sum(prob)
+        integral = prior_volume * n_accepted / n_samples
+        # binomial random distribution
+        p, q = 0.5, 0.5
+        sigma = np.sqrt(0.5 * n_samples * p * q)
+        sigma_integral = prior_volume * sigma / n_samples
+        # Test will only fail every 390682215445 executions for 7 sigma tolerance
+        self.assertAlmostEqual(1, integral, delta=7 * sigma_integral)
 
 
 if __name__ == "__main__":

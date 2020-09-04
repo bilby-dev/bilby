@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-# import bilby
 import unittest
 from mock import MagicMock
 import mock

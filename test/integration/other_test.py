@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import unittest
 
@@ -16,7 +14,7 @@ class Test(unittest.TestCase):
 
     # Run a script to produce standard data
     msd = {}  # A dictionary of variables saved in make_standard_data.py
-    execfile(dir_path + "/test/make_standard_data.py", msd)
+    execfile(dir_path + "/integration/make_standard_data.py", msd)
     """
     @classmethod
     def setUpClass(self):
@@ -42,7 +40,7 @@ class Test(unittest.TestCase):
 
         # Load in the saved standard data
         frequencies_saved, hf_real_saved, hf_imag_saved = np.loadtxt(
-            self.dir_path + "/test/standard_data.txt"
+            self.dir_path + "/integration/standard_data.txt"
         ).T
         hf_signal_and_noise_saved = hf_real_saved + 1j * hf_imag_saved
 

@@ -47,7 +47,6 @@ class TestCBCResult(unittest.TestCase):
         )
         if not os.path.isdir(self.result.outdir):
             os.mkdir(self.result.outdir)
-        pass
 
     def tearDown(self):
         bilby.utils.command_line_args.bilby_test_mode = True
@@ -56,7 +55,6 @@ class TestCBCResult(unittest.TestCase):
         except OSError:
             pass
         del self.result
-        pass
 
     def test_calibration_plot(self):
         calibration_prior = bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(

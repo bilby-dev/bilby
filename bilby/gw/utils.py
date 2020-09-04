@@ -279,6 +279,16 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
     return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
 
 
+def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=None,
+            lower_cut_off=None, upper_cut_off=None, norm_a=None, norm_b=None):
+    low_index = int(lower_cut_off / delta_frequency)
+    up_index = int(upper_cut_off / delta_frequency)
+    integrand = np.conj(signal_a) * signal_b
+    integrand = integrand[low_index:up_index] / power_spectral_density[low_index:up_index]
+    integral = (4 * delta_frequency * integrand) / norm_a / norm_b
+    return sum(integral).real
+
+
 __cached_euler_matrix = None
 __cached_delta_x = None
 
