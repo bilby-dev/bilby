@@ -103,6 +103,17 @@ python-3.6-samplers:
 
     - pytest test/integration/sampler_run_test.py
 
+# Test containers are up to date
+containers:
+  stage: test
+  image: bilbydev/v2-dockerfile-test-suite-python37
+  script:
+    - cd containers
+    - python write_dockerfiles.py
+    # Fail if differences exist. If this fails, you may need to run
+    # write_dockerfiles.py and commit the changes.
+    - git diff --exit-code
+
 # Tests run at a fixed schedule rather than on push
 scheduled-python-3.7:
   stage: test

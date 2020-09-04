@@ -1,7 +1,0 @@
-FROM bilbydev/bilby-test-suite-python37
-
-LABEL name="bilby" \
-maintainer="Gregory Ashton <gregory.ashton@ligo.org>" \
-date="20190130"
-
-RUN pip install bilby
