@@ -1,14 +1,17 @@
 # KAGRA at design sensitvity.
-# https://arxiv.org/pdf/1102.5421.pdf
-# WARNING: I think there's a typo in that reference for the orientation.
 # https://dcc.ligo.org/LIGO-P1200087-v42/public
+
+#Kagra detector location: https://gwdoc.icrr.u-tokyo.ac.jp/cgi-bin/DocDB/ShowDocument?docid=3824
+#The detector physical location needs to be converted into detector constants according to the BILBY convention.
+#check the detector constant LAL value (careful about the convention) (https://lscsoft.docs.ligo.org/lalsuite/lal/group___detector_constants.html) 
+
 name = 'K1'
 power_spectral_density = PowerSpectralDensity(psd_file='KAGRA_design_psd.txt')
 length = 3
 minimum_frequency = 20
 maximum_frequency = 2048
-latitude = 36 + 15. / 60 + 00. / 3600
-longitude = 137 + 10. / 60 + 48. / 3600
-elevation = 414.0
-xarm_azimuth = 25.0
-yarm_azimuth = 115.0
+latitude = 36 + 24 / 60 + 42.69722 / 3600
+longitude = 137 + 18 / 60 + 21.44171 / 3600 
+elevation = 414.181
+xarm_azimuth = 90 - 60.39623489157727
+yarm_azimuth = 90 + 29.60357629670688
