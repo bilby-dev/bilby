@@ -398,7 +398,7 @@ def load_interferometer(filename):
     with open(filename, 'r') as parameter_file:
         lines = parameter_file.readlines()
         for line in lines:
-            if line[0] == '#':
+            if line[0] == '#' or line[0] == '\n':
                 continue
             split_line = line.split('=')
             key = split_line[0].strip()
