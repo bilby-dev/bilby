@@ -167,6 +167,9 @@ class GravitationalWaveTransient(Likelihood):
             self.distance_prior_array = np.array(
                 [self.priors['luminosity_distance'].prob(distance)
                  for distance in self._distance_array])
+            if self.phase_marginalization:
+                max_bound = np.ceil(10 + np.log10(self._dist_multiplier))
+                self._setup_phase_marginalization(max_bound=max_bound)
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
             for key in ['redshift', 'comoving_distance']:
@@ -601,6 +604,11 @@ class GravitationalWaveTransient(Likelihood):
         return self.priors['luminosity_distance'].rescale(0.5)
 
     @property
+    def _dist_multiplier(self):
+        ''' Maximum value of ref_dist/dist_array '''
+        return self._ref_dist / self._distance_array[0]
+
+    @property
     def _optimal_snr_squared_ref_array(self):
         """ Optimal filter snr at fiducial distance of ref_dist Mpc """
         return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[0])
@@ -714,10 +722,10 @@ class GravitationalWaveTransient(Likelihood):
         self._dist_margd_loglikelihood_array -= log_norm
         self.cache_lookup_table()
 
-    def _setup_phase_marginalization(self):
+    def _setup_phase_marginalization(self, min_bound=-5, max_bound=10):
         self._bessel_function_interped = interp1d(
-            np.logspace(-5, 10, int(1e6)), np.logspace(-5, 10, int(1e6)) +
-            np.log([i0e(snr) for snr in np.logspace(-5, 10, int(1e6))]),
+            np.logspace(-5, max_bound, int(1e6)), np.logspace(-5, max_bound, int(1e6)) +
+            np.log([i0e(snr) for snr in np.logspace(-5, max_bound, int(1e6))]),
             bounds_error=False, fill_value=(0, np.nan))
 
     def _setup_time_marginalization(self):
