@@ -1,5 +1,27 @@
 # All notable changes will be documented in this file
 
+## [1.0.2] 2020-09-14
+
+Version 1.0.2 release of bilby
+
+### Added
+- Template for the docker files (!783)
+- New delta_phase parameter (!850)
+- Normalization factor to time-domain waveform plot (!867)
+- JSON encoding for int and float types (!866) 
+- Various minor formatting additions (!870)
+
+### Changes
+- Switched to the conda-forge version of multinest and ultranest (!783)
+- Updates KAGRA - K1 interferometer information (!861)
+- Restructures to tests to be uniform across project (!834)
+- Fix to distance and phase marginalization method (!875)
+- Fixed roundoff of in-plane spins samples with vectorisation (!864)
+- Fix to reference distance and interpolant behavior (!858)
+- Fix to constraint prior sampling method (!863)
+- Clean up of code (!854)
+- Various minor bug, test and plotting fixes (!859, !874, !872, !865)
+
 ## [1.0.1] 2020-08-29
 
 Version 1.0.1 release of bilby
