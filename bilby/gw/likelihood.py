@@ -1394,5 +1394,78 @@ def get_binary_black_hole_likelihood(interferometers):
     return GravitationalWaveTransient(interferometers, waveform_generator)
 
 
+class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
+    """A relative binning likelihood object
+
+    Parameters
+    ----------
+    interferometers: list, bilby.gw.detector.InterferometerList
+        A list of `bilby.detector.Interferometer` instances - contains the
+        detector data and power spectral densities
+    waveform_generator: `bilby.waveform_generator.WaveformGenerator`
+        An object which computes the frequency-domain strain of the signal,
+        given some set of parameters
+    priors: dict, bilby.prior.PriorDict
+        A dictionary of priors containing at least the geocent_time prior
+    reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
+        Definition of the reference frame for the sky location.
+        - "sky": sample in RA/dec, this is the default
+        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+    time_reference: str, optional
+        Name of the reference for the sampled time parameter.
+        - "geocent"/"geocenter": sample in the time at the Earth's center,
+          this is the default
+        - e.g., "H1": sample in the time of arrival at H1
+
+    """
+    def __init__(
+        self, interferometers, waveform_generator, priors,
+        weights=None, linear_matrix=None, quadratic_matrix=None,
+        roq_params=None, roq_params_check=True, roq_scale_factor=1,
+        distance_marginalization=False, phase_marginalization=False,
+        distance_marginalization_lookup_table=None,
+        reference_frame="sky", time_reference="geocenter"
+
+    ):
+        super(RelativeBinningGravitationalWaveTransient, self).__init__(
+            interferometers=interferometers,
+            waveform_generator=waveform_generator, priors=priors,
+            distance_marginalization=distance_marginalization,
+            phase_marginalization=phase_marginalization,
+            time_marginalization=False,
+            distance_marginalization_lookup_table=distance_marginalization_lookup_table,
+            jitter_time=False,
+            reference_frame=reference_frame,
+            time_reference=time_reference
+        )
+
+
+
+def get_binary_black_hole_likelihood(interferometers):
+    """ A rapper to quickly set up a likelihood for BBH parameter estimation
+
+    Parameters
+    ----------
+    interferometers: {bilby.gw.detector.InterferometerList, list}
+        A list of `bilby.detector.Interferometer` instances, typically the
+        output of either `bilby.detector.get_interferometer_with_open_data`
+        or `bilby.detector.get_interferometer_with_fake_noise_and_injection`
+
+    Returns
+    -------
+    bilby.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
+
+    """
+    waveform_generator = WaveformGenerator(
+        duration=interferometers.duration,
+        sampling_frequency=interferometers.sampling_frequency,
+        frequency_domain_source_model=lal_binary_black_hole,
+        waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
+                            'reference_frequency': 50})
+    return GravitationalWaveTransient(interferometers, waveform_generator)
+
 class BilbyROQParamsRangeError(Exception):
     pass
