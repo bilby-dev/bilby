@@ -337,7 +337,8 @@ class SymmetricLogUniform(Prior):
         -------
         float: Prior probability of val
         """
-        return (np.nan_to_num(0.5 / np.abs(val) / np.log(self.maximum / self.minimum)) *
+        val = np.abs(val)
+        return (np.nan_to_num(0.5 / val / np.log(self.maximum / self.minimum)) *
                 self.is_in_prior_range(val))
 
     def ln_prob(self, val):
@@ -353,6 +354,18 @@ class SymmetricLogUniform(Prior):
 
         """
         return np.nan_to_num(- np.log(2 * np.abs(val)) - np.log(np.log(self.maximum / self.minimum)))
+
+    def cdf(self, val):
+        val = np.atleast_1d(val)
+        norm = 0.5 / np.log(self.maximum / self.minimum)
+        cdf = np.zeros((len(val)))
+        lower_indices = np.where(np.logical_and(-self.maximum <= val, val <= -self.minimum))[0]
+        upper_indices = np.where(np.logical_and(self.minimum <= val, val <= self.maximum))[0]
+        cdf[lower_indices] = -norm * np.log(-val[lower_indices] / self.maximum)
+        cdf[np.where(np.logical_and(-self.minimum < val, val < self.minimum))] = 0.5
+        cdf[upper_indices] = 0.5 + norm * np.log(val[upper_indices] / self.minimum)
+        cdf[np.where(self.maximum < val)] = 1
+        return cdf
 
 
 class Cosine(Prior):
