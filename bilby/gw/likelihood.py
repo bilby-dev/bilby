@@ -1371,7 +1371,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
 
 def get_binary_black_hole_likelihood(interferometers):
-    """ A rapper to quickly set up a likelihood for BBH parameter estimation
+    """ A wrapper to quickly set up a likelihood for BBH parameter estimation
 
     Parameters
     ----------
