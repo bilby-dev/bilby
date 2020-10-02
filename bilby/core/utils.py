@@ -4,6 +4,7 @@ from distutils.spawn import find_executable
 import logging
 import os
 import shutil
+import sys
 from math import fmod
 import argparse
 import inspect
@@ -1267,6 +1268,15 @@ def get_function_path(func):
         return "{}.{}".format(func.__module__, func.__name__)
     else:
         return func
+
+
+def loaded_modules_dict():
+    module_names = sys.modules.keys()
+    vdict = {}
+    for key in module_names:
+        if "." not in key:
+            vdict[key] = str(getattr(sys.modules[key], "__version__", "N/A"))
+    return vdict
 
 
 class IllegalDurationAndSamplingFrequencyException(Exception):

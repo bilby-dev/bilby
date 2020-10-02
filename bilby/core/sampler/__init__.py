@@ -4,7 +4,7 @@ import datetime
 from collections import OrderedDict
 
 import bilby
-from ..utils import command_line_args, logger
+from ..utils import command_line_args, logger, loaded_modules_dict
 from ..prior import PriorDict, DeltaFunction
 
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
@@ -141,6 +141,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     if meta_data is None:
         meta_data = dict()
     meta_data['likelihood'] = likelihood.meta_data
+    meta_data["loaded_modules"] = loaded_modules_dict()
 
     if command_line_args.bilby_zero_likelihood_mode:
         from bilby.core.likelihood import ZeroLikelihood
