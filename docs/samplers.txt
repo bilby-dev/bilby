@@ -89,6 +89,11 @@ UltraNest
 
 .. autoclass:: bilby.core.sampler.ultranest.Ultranest
 
+Dnest4
+=========
+
+.. autoclass:: bilby.core.sampler.dnest4.Dnest4
+
 -------------
 MCMC samplers
 -------------
