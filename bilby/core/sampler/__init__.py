@@ -21,6 +21,7 @@ from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 from .ultranest import Ultranest
 from .fake_sampler import FakeSampler
+from .dnest4 import DNest4
 from . import proposal
 
 IMPLEMENTED_SAMPLERS = {
@@ -28,7 +29,7 @@ IMPLEMENTED_SAMPLERS = {
     'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle, 'ptemcee': Ptemcee,
     'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3, 'pymultinest': Pymultinest,
     'pypolychord': PyPolyChord, 'ultranest': Ultranest,
-    'fake_sampler': FakeSampler}
+    'fake_sampler': FakeSampler, 'dnest4': DNest4}
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
