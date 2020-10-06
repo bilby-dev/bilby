@@ -1484,6 +1484,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.setup_bins()
             print('Bin setup completed. Number of bins = %s' %
                   (len(self.bin_freqs) - 1))
+            self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
             self.find_maximum_likelihood_waveform(self.initial_parameters,
                                                   self.parameter_bounds,
                                                   max_iters=1)  # make a param

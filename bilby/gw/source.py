@@ -540,6 +540,116 @@ def _base_roq_waveform(
     return waveform_polarizations
 
 
+def lal_binary_black_hole_relativebinning(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2', reference_frequency=20.0)
+    waveform_kwargs.update(waveform_arguments)
+    return _base_relativebinning_waveform(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
+
+
+def lal_binary_neutron_star_relativebinning(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
+        **waveform_arguments):
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomD_NRTidal', reference_frequency=20.0)
+    waveform_kwargs.update(waveform_arguments)
+    return _base_relativebinning_waveform(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
+
+
+def _base_relativebinning_waveform(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, lambda_1, lambda_2, phi_jl, theta_jn, phase,
+        **waveform_arguments):
+    """
+    See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
+
+    Parameters
+    ----------
+    frequency_array: np.array
+        This input is ignored for the roq source model
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+
+    theta_jn: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+
+    Waveform arguments
+    ------------------
+    Non-sampled extra data used in the source model calculation
+    frequency_nodes_linear: np.array
+    frequency_nodes_quadratic: np.array
+    reference_frequency: float
+    approximant: str
+
+    Note: for the frequency_nodes_linear and frequency_nodes_quadratic arguments,
+    if using data from https://git.ligo.org/lscsoft/ROQ_data, this should be
+    loaded as `np.load(filename).T`.
+
+    Returns
+    -------
+    waveform_polarizations: dict
+        Dict containing plus and cross modes evaluated at the linear and
+        quadratic frequency nodes.
+    """
+    frequency_bin_edges = waveform_arguments['frequency_bin_edges']
+    reference_frequency = waveform_arguments['reference_frequency']
+    approximant = lalsim_GetApproximantFromString(
+        waveform_arguments['waveform_approximant'])
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    waveform_dictionary = lal.CreateDict()
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+
+    h_binned_plus, h_binned_cross = lalsim_SimInspiralChooseFDWaveformSequence(
+        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+        spin_2z, reference_frequency, luminosity_distance, iota,
+        waveform_dictionary, approximant, frequency_bin_edges)
+
+    waveform_polarizations = dict(
+        plus=h_binned_plus.data.data, cross=h_binned_cross.data.data)
+
+    return waveform_polarizations
+
+
 def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     tau = Q / (np.sqrt(2.0) * np.pi * frequency)
     temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
