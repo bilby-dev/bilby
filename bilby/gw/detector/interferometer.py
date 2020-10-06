@@ -327,6 +327,55 @@ class Interferometer(object):
 
         return signal_ifo
 
+    def get_detector_response_relative_binning(self, waveform_polarizations,
+                                               parameters, bin_frequencies):
+        """Get the detector response for a particular waveform, where the frequencies
+        of the waveform polarizations are only the binning frequencies and we
+        assume that there is no frequency mask necessary for the data. Kind of
+        a hacky workaround. Should do something better probably.
+
+        Parameters
+        -------
+        waveform_polarizations: dict
+            polarizations of the waveform
+        parameters: dict
+            parameters describing position and time of arrival of the signal
+
+        Returns
+        -------
+        array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
+        """
+        signal = {}
+        for mode in waveform_polarizations.keys():
+            det_response = self.antenna_response(
+                parameters['ra'],
+                parameters['dec'],
+                parameters['geocent_time'],
+                parameters['psi'], mode)
+
+            signal[mode] = waveform_polarizations[mode] * det_response
+        signal_ifo = sum(signal.values())
+
+        time_shift = self.time_delay_from_geocenter(
+            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+
+        # Be careful to first substract the two GPS times which are ~1e9 sec.
+        # And then add the time_shift which varies at ~1e-5 sec
+        dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
+        dt = dt_geocent + time_shift
+
+        # Assume that all our bin frequencies are used. Therefore we don't
+        # use a frequency mask when time-shiting our data or applying the
+        # calibration factor.
+        signal_ifo = signal_ifo * \
+            np.exp(-1j * 2 * np.pi * bin_frequencies * dt)
+
+        signal_ifo *= self.calibration_model.get_calibration_factor(
+            bin_frequencies, prefix='recalib_{}_'.format(self.name),
+            **parameters)
+
+        return signal_ifo
+
     def inject_signal(self, parameters, injection_polarizations=None,
                       waveform_generator=None):
         """ General signal injection method.
