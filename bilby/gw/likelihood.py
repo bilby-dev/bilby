@@ -1482,9 +1482,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             print('maxl value = %s' % maxl_logl)
             print('actual maxl value = %s' % self.log_likelihood_ratio_full(self.maximum_likelihood_parameters))
 
-        def __repr__(self):
-            return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\initial_parameters={},' \
-                .format(self.interferometers, self.waveform_generator, self.initial_parameters)
+    def __repr__(self):
+        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\initial_parameters={},' \
+            .format(self.interferometers, self.waveform_generator, self.initial_parameters)
 
     def log_likelihood(self):
         return self.log_likelihood_ratio_relative_binning() + self.noise_log_likelihood()
