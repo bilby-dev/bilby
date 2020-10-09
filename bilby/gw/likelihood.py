@@ -1454,9 +1454,12 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.chi = chi
         self.epsilon = epsilon
         self.debug = debug
+        self.waveform_generator = waveform_generator
+        print(waveform_generator)
 
         # We start without any bins or fidicual waveforms.
         self.fiducial_waveform_obtained = False
+        self.check_if_bins_are_setup = False
         self.fiducial_waveform_polarizations = None
         self.per_detector_fiducial_waveforms = {}
         self.bin_freqs = None
@@ -1475,16 +1478,16 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     def log_likelihood_ratio_relative_binning(self):
         # If this is the first likelihood sample taken, we need to obtain the
         # fiducial waveform.
-        if not self.fiducial_waveform_obtained:
-            # Set our parameter keys to convert between (sorted) list <->
-            # dictionary. This seems messy now, but I'm not sure of a better
-            # way to do it.
+
+        if not self.check_if_bins_are_setup:
             self.initial_parameter_keys_sorted = sorted(
                 self.initial_parameters)
             self.setup_bins()
             print('Bin setup completed. Number of bins = %s' %
                   (len(self.bin_freqs) - 1))
-            self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
+            self.check_if_bins_are_setup = True
+
+        if not self.fiducial_waveform_obtained:
             self.find_maximum_likelihood_waveform(self.initial_parameters,
                                                   self.parameter_bounds,
                                                   max_iters=1)  # make a param
@@ -1496,6 +1499,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             print('maxl value = %s' % maxl_logl)
             print('actual maxl value = %s' % self.log_likelihood_ratio_full(
                 self.maximum_likelihood_parameters))
+
+        self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
 
         # Once fiducial waveform is obtained, use relative binning procedure.
         logl = self.log_likelihood_ratio_approx(
@@ -1620,6 +1625,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return [parameter_dict[k] for k in self.initial_parameter_keys_sorted]
 
     def set_fiducial_waveforms(self, parameters):
+        self.waveform_generator.waveform_arguments["fiducial"] = True
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
 
@@ -1629,6 +1635,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.per_detector_fiducial_waveforms[interferometer.name] = (
                 interferometer.get_detector_response(
                     self.fiducial_polarizations, parameters))
+        self.waveform_generator.waveform_arguments["fiducial"] = True
         return
 
     def compute_summary_data(self):
