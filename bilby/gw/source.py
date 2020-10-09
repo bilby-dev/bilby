@@ -559,7 +559,7 @@ def lal_binary_black_hole_relativebinning(
             phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
 
     else:
-        return _base_lal_cbc_fd_waveform(
+        return _base_relativebinning_waveform(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
             luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
             a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
@@ -572,7 +572,7 @@ def lal_binary_neutron_star_relativebinning(
         **kwargs):
 
     waveform_kwargs = dict(
-        waveform_approximant='IMRPhenomD_NRTidal', reference_frequency=50.0,
+        waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
         minimum_frequency=20.0, maximum_frequency=frequency_array[-1],
         catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
         pn_phase_order=-1, pn_amplitude_order=0)
@@ -665,6 +665,10 @@ def _base_relativebinning_waveform(
         theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
         phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
         reference_frequency=reference_frequency, phase=phase)
+    # print(
+    #     phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+    #     spin_2z, reference_frequency, luminosity_distance, iota,
+    #     waveform_dictionary, approximant, frequency_bin_edges)
 
     h_binned_plus, h_binned_cross = lalsim_SimInspiralChooseFDWaveformSequence(
         phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,

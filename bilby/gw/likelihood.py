@@ -5,6 +5,7 @@ import os
 import json
 import copy
 import sys
+import matplotlib.pyplot as plt
 
 import numpy as np
 import scipy.integrate as integrate
@@ -981,6 +982,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         - e.g., "H1": sample in the time of arrival at H1
 
     """
+
     def __init__(
         self, interferometers, waveform_generator, priors,
         weights=None, linear_matrix=None, quadratic_matrix=None,
@@ -1455,7 +1457,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.epsilon = epsilon
         self.debug = debug
         self.waveform_generator = waveform_generator
-        print(waveform_generator)
 
         # We start without any bins or fidicual waveforms.
         self.fiducial_waveform_obtained = False
@@ -1497,17 +1498,15 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             maxl_logl = self.log_likelihood_ratio_approx(
                 None, parameter_dictionary=self.maximum_likelihood_parameters)
             print('maxl value = %s' % maxl_logl)
-            print('actual maxl value = %s' % self.log_likelihood_ratio_full(
-                self.maximum_likelihood_parameters))
-
-        self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
+            # print('actual maxl value = %s' % self.log_likelihood_ratio_full(
+            #     self.maximum_likelihood_parameters)
 
         # Once fiducial waveform is obtained, use relative binning procedure.
-        logl = self.log_likelihood_ratio_approx(
-            None, parameter_dictionary=self.parameters)
-        print('relative binning value = %s' % logl)
-        print('actual value = %s' %
-              self.log_likelihood_ratio_full(self.parameters))
+        # logl = self.log_likelihood_ratio_approx(
+        #     None, parameter_dictionary=self.parameters)
+        # print('relative binning value = %s' % logl)
+        # print('actual value = %s' %
+        #       self.log_likelihood_ratio_full(self.parameters))
 
         # return logl
 
@@ -1562,6 +1561,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         # Indices of frequency array points.
         self.bin_inds = np.array([np.where(frequency_array >= bin_freq)[0][0]
                                   for bin_freq in self.bin_freqs])
+        self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
         return
 
     def find_maximum_likelihood_waveform(self, initial_parameter_guess,
@@ -1628,6 +1628,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.waveform_generator.waveform_arguments["fiducial"] = True
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
+        plt.loglog(self.waveform_generator.frequency_array, self.fiducial_polarizations['plus'])
 
         # Save detector response to the fiducial waveform as well, for
         # computing the summary data.
@@ -1635,7 +1636,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.per_detector_fiducial_waveforms[interferometer.name] = (
                 interferometer.get_detector_response(
                     self.fiducial_polarizations, parameters))
-        self.waveform_generator.waveform_arguments["fiducial"] = True
+        self.waveform_generator.waveform_arguments["fiducial"] = False
         return
 
     def compute_summary_data(self):
@@ -1685,9 +1686,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         # doesn't cache. Not really sure how to do it better, maybe check back
         # once I'm done debugging..
         self.waveform_generator.parameters = parameter_dictionary
-        new_polarizations = self.waveform_generator._strain_from_model(
-            self.bin_freqs,
-            self.waveform_generator.frequency_domain_source_model)
+        new_polarizations = self.waveform_generator.frequency_domain_strain(parameter_dictionary)
 
         if (self.debug):
             print('new polarizations:  %s' % new_polarizations)
@@ -1753,15 +1752,15 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def calculate_snrs_full(self, waveform_polarizations, interferometer,
                             parameters):
-        print(len(interferometer.strain_data.frequency_array))
+        # print(len(interferometer.strain_data.frequency_array))
         signal = interferometer.get_detector_response_relative_binning(
             waveform_polarizations, parameters,
             interferometer.strain_data.frequency_array)
         d_inner_h = interferometer.inner_product(signal=signal)
         optimal_snr_squared = interferometer.optimal_snr_squared(signal=signal)
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
-        print('d_inner_h = %s' % d_inner_h)
-        print('optimal_snr_squared = %s' % optimal_snr_squared)
+        # print('d_inner_h = %s' % d_inner_h)
+        # print('optimal_snr_squared = %s' % optimal_snr_squared)
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
