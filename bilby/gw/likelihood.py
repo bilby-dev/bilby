@@ -1455,6 +1455,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.max_bin_frequency = max_bin_frequency
         self.chi = chi
         self.epsilon = epsilon
+        self.gamma = np.array([-5 / 3, -2 / 3, 1, 5 / 3, 7 / 3])
         self.debug = debug
         self.waveform_generator = waveform_generator
 
@@ -1465,58 +1466,45 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.per_detector_fiducial_waveforms = {}
         self.bin_freqs = None
         self.bin_inds = None
-        self.initial_parameter_keys_sorted = None
+        self.initial_parameter_keys_sorted = sorted(self.initial_parameters)
         self.maximum_likelihood_parameters = None
 
-    # For now, copied from above. Probably should include more details here.
-    def __repr__(self):
-        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\initial_parameters={}, ' \
-            .format(self.interferometers, self.waveform_generator, self.initial_parameters)
+        self.setup_bins()
+        logger.info('Bin setup completed. Number of bins = {}'.format(len(self.bin_freqs) - 1))
+
+        self.set_fiducial_waveforms(self.initial_parameters)
+        logger.info("Set up initial fiducial waveforms")
+
+        self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, max_iters=1)
+        maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
+
+        if debug:
+            print('maxl value = %s' % maxl_logl)
+            print('actual maxl value = %s' % self.log_likelihood_ratio_full(self.maximum_likelihood_parameters))
+
+        def __repr__(self):
+            return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\initial_parameters={},' \
+                .format(self.interferometers, self.waveform_generator, self.initial_parameters)
 
     def log_likelihood(self):
         return self.log_likelihood_ratio_relative_binning() + self.noise_log_likelihood()
 
     def log_likelihood_ratio_relative_binning(self):
-        # If this is the first likelihood sample taken, we need to obtain the
-        # fiducial waveform.
 
-        if not self.check_if_bins_are_setup:
-            self.initial_parameter_keys_sorted = sorted(
-                self.initial_parameters)
-            self.setup_bins()
-            print('Bin setup completed. Number of bins = %s' %
-                  (len(self.bin_freqs) - 1))
-            self.check_if_bins_are_setup = True
+        logl = self.log_likelihood_ratio_approx(
+            None, parameter_dictionary=self.parameters)
+        print('relative binning value = %s' % logl)
+        print('actual value = %s' %
+              self.log_likelihood_ratio_full(self.parameters))
 
-        if not self.fiducial_waveform_obtained:
-            self.find_maximum_likelihood_waveform(self.initial_parameters,
-                                                  self.parameter_bounds,
-                                                  max_iters=1)  # make a param
-            self.fiducial_waveform_obtained = True
+        return logl
 
-            # Test and see how well we did. For debugging purposes.
-            maxl_logl = self.log_likelihood_ratio_approx(
-                None, parameter_dictionary=self.maximum_likelihood_parameters)
-            print('maxl value = %s' % maxl_logl)
-            # print('actual maxl value = %s' % self.log_likelihood_ratio_full(
-            #     self.maximum_likelihood_parameters)
+    def log_likelihood_ratio_approx(self):
 
-        # Once fiducial waveform is obtained, use relative binning procedure.
-        # logl = self.log_likelihood_ratio_approx(
-        #     None, parameter_dictionary=self.parameters)
-        # print('relative binning value = %s' % logl)
-        # print('actual value = %s' %
-        #       self.log_likelihood_ratio_full(self.parameters))
-
-        # return logl
-
-    def log_likelihood_ratio_approx(self, parameter_list,
-                                    parameter_dictionary=None):
-        # Parameters here has to be a 1d array of variables or a dictionary if
-        # specified.
-        if not parameter_dictionary:
-            parameter_dictionary = self.get_parameter_dictionary_from_list(
-                parameter_list)
+        parameter_dictionary = self.maximum_likelihood_parameters
+        # if not parameter_dictionary:
+        #     parameter_dictionary = self.get_parameter_dictionary_from_list(
+        #         parameter_list)
 
         d_inner_h = 0.
         optimal_snr_squared = 0.
@@ -1540,27 +1528,26 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def setup_bins(self):
         frequency_array = self.waveform_generator.frequency_array
-        num_points = 50000
-        freq_vals = np.linspace(self.min_bin_frequency,
-                                self.max_bin_frequency, num_points)
-        gamma = np.array([-5 / 3, -2 / 3, 1, 5 / 3, 7 / 3])
+        frequency_array_useful = frequency_array[np.intersect1d(
+            np.where(frequency_array > self.min_bin_frequency),
+            np.where(frequency_array < self.max_bin_frequency))]
+        gamma = self.gamma
+
         d_alpha = self.chi * 2 * np.pi / np.abs(
             (self.min_bin_frequency ** gamma) * np.heaviside(
                 -gamma, 1) - (self.max_bin_frequency ** gamma) * np.heaviside(
                 gamma, 1))
         d_phi = np.sum(np.array([np.sign(gamma[i]) * d_alpha[i] * (
-            freq_vals ** gamma[i]) for i in range(len(gamma))]), axis=0)
+            frequency_array_useful ** gamma[i]) for i in range(len(gamma))]), axis=0)
         d_phi_from_start = d_phi - d_phi[0]
-        # Now construct frequency bins- number is floor(max(d_phi) / epsilon)
         num_bins = int(d_phi_from_start[-1] // self.epsilon)
-        # Frequency array points.
-        self.bin_freqs = np.array([freq_vals[np.where(d_phi_from_start >= (
+        self.bin_freqs = np.array([frequency_array_useful[np.where(d_phi_from_start >= (
             (i / num_bins) * d_phi_from_start[-1]))[0][0]] for i in range(
                 num_bins + 1)])
 
-        # Indices of frequency array points.
         self.bin_inds = np.array([np.where(frequency_array >= bin_freq)[0][0]
                                   for bin_freq in self.bin_freqs])
+
         self.waveform_generator.waveform_arguments['frequency_bin_edges'] = self.bin_freqs
         return
 
@@ -1568,8 +1555,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                                          parameter_bounds, max_iters=10,
                                          likelihood_threshold=1):
         prev_log_likelihood = -np.inf
-        self.set_fiducial_waveforms(initial_parameter_guess)
-        print('fiducial waveforms obtained!')
         self.compute_summary_data()
         print('summary data obtained!')
 
@@ -1630,8 +1615,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             parameters)
         plt.loglog(self.waveform_generator.frequency_array, self.fiducial_polarizations['plus'])
 
-        # Save detector response to the fiducial waveform as well, for
-        # computing the summary data.
         for interferometer in self.interferometers:
             self.per_detector_fiducial_waveforms[interferometer.name] = (
                 interferometer.get_detector_response(
@@ -1640,42 +1623,39 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return
 
     def compute_summary_data(self):
-        bin_freqs = self.bin_freqs
         num_bins = len(self.bin_freqs) - 1
-        # T = 1 / (self.frequency_grid[1] - self.frequency_grid[0])
-        T = self.waveform_generator.duration
 
-        # Helper function to calculate all our values for us:
-        def compute_as_and_bs(frequency_domain_data, h0, psd, bin_val):
-            bin_range = np.arange(self.bin_inds[bin_val],
-                                  self.bin_inds[bin_val + 1])
-            a_numerator = frequency_domain_data[bin_range] * np.conjugate(
-                h0[bin_range])
-            b_numerator = np.abs(h0[bin_range]) ** 2
-            denominator = (psd[bin_range] / T)
-            fm_val = (bin_freqs[bin_val] + bin_freqs[bin_val + 1]) / 2
-            f_vals = self.waveform_generator.frequency_array[bin_range]
-
-            a0 = 4 * np.sum(a_numerator / denominator)
-            a1 = 4 * np.sum((a_numerator / denominator) * (f_vals - fm_val))
-            b0 = 4 * np.sum(b_numerator / denominator)
-            b1 = 4 * np.sum((b_numerator / denominator) * (f_vals - fm_val))
-            return a0, a1, b0, b1
-
-        summary_data = {}
+        summary_data = dict()
 
         for interferometer in self.interferometers:
-            summary_data[interferometer.name] = []
             for i in range(num_bins):
-                summary_data[interferometer.name].append(compute_as_and_bs(
+                summary_data[interferometer.name] = self.compute_as_and_bs(
                     interferometer.frequency_domain_strain,
                     self.per_detector_fiducial_waveforms[interferometer.name],
-                    interferometer.power_spectral_density.psd_array, i))
+                    interferometer.power_spectral_density.psd_array, i)
 
             summary_data[interferometer.name] = np.array(
                 summary_data[interferometer.name]).T
 
         self.summary_data = summary_data
+
+    def compute_as_and_bs(self, frequency_domain_data, h0, psd, bin_val):
+
+        duration = self.waveform_generator.duration
+        bin_range = np.arange(self.bin_inds[bin_val],
+                              self.bin_inds[bin_val + 1])
+        a_numerator = frequency_domain_data[bin_range] * np.conjugate(
+            h0[bin_range])
+        b_numerator = np.abs(h0[bin_range]) ** 2
+        denominator = (psd[bin_range] / duration)
+        fm_val = (self.bin_freqs[bin_val] + self.bin_freqs[bin_val + 1]) / 2
+        f_vals = self.waveform_generator.frequency_array[bin_range]
+
+        a0 = 4 * np.sum(a_numerator / denominator)
+        a1 = 4 * np.sum((a_numerator / denominator) * (f_vals - fm_val))
+        b0 = 4 * np.sum(b_numerator / denominator)
+        b1 = 4 * np.sum((b_numerator / denominator) * (f_vals - fm_val))
+        return dict(a0=a0, a1=a1, b0=b0, b1=b1)
 
     def compute_relative_ratio(self, parameter_dictionary, interferometer):
 
