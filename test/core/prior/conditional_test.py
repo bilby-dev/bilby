@@ -110,7 +110,7 @@ class TestConditionalPrior(unittest.TestCase):
                 test_parameter_2=self.test_variable_2,
             )
 
-    def test_rescale_prob_update_conditions(self):
+    def test_prob_calls_update_conditions(self):
         with mock.patch.object(self.prior, "update_conditions") as m:
             self.prior.prob(
                 1,
@@ -137,6 +137,21 @@ class TestConditionalPrior(unittest.TestCase):
                 mock.call(),
             ]
             m.assert_has_calls(calls)
+
+    def test_cdf_calls_update_conditions(self):
+        self.prior = bilby.core.prior.ConditionalUniform(
+            condition_func=self.condition_func, minimum=self.minimum, maximum=self.maximum
+        )
+        with mock.patch.object(self.prior, "update_conditions") as m:
+            self.prior.cdf(
+                1,
+                test_parameter_1=self.test_variable_1,
+                test_parameter_2=self.test_variable_2,
+            )
+            m.assert_called_with(
+                test_parameter_1=self.test_variable_1,
+                test_parameter_2=self.test_variable_2,
+            )
 
     def test_reset_to_reference_parameters(self):
         self.prior.minimum = 10

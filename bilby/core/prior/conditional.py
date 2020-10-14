@@ -110,8 +110,40 @@ def conditional_prior_factory(prior_class):
             return super(ConditionalPrior, self).prob(val)
 
         def ln_prob(self, val, **required_variables):
+            """Return the natural log prior probability of val.
+
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+
+            Returns
+            -------
+            float: Natural log prior probability of val
+            """
             self.update_conditions(**required_variables)
             return super(ConditionalPrior, self).ln_prob(val)
+
+        def cdf(self, val, **required_variables):
+            """Return the cdf of val.
+
+            Parameters
+            ----------
+            val: Union[float, int, array_like]
+                See superclass
+            required_variables:
+                Any required variables that this prior depends on
+
+
+            Returns
+            -------
+            float: CDF of val
+            """
+            self.update_conditions(**required_variables)
+            return super(ConditionalPrior, self).cdf(val)
 
         def update_conditions(self, **required_variables):
             """
