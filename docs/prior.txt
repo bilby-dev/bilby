@@ -45,7 +45,7 @@ which provides extra functionality. For example, to sample from the prior:
 
 .. code:: python
 
-   >>> priors = bilby.core.priors.PriorDict()
+   >>> priors = bilby.core.prior.PriorDict()
    >>> priors['a'] = bilby.prior.Uniform(minimum=0, maximum=10, name='a')
    >>> priors['b'] = bilby.prior.Uniform(minimum=0, maximum=10, name='b')
    >>> priors.sample()
@@ -89,7 +89,7 @@ matrix and standard deviations, e.g.:
    >>> names = ['a', 'b']  # set the parameter names
    >>> mu = [0., 5.]  # the means of the parameters
    >>> cov = [[2., 0.7], [0.7, 3.]]  # the covariance matrix
-   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov)
+   >>> mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
 It is also possible to define a mixture model of multiple multivariate Gaussian modes of
 different weights if required, e.g.:
@@ -100,7 +100,7 @@ different weights if required, e.g.:
    >>> mu = [[0., 5.], [2., 7.]]  # the means of the parameters
    >>> cov = [[[2., 0.7], [0.7, 3.]], [[1., -0.9], [-0.9, 5.]]]  # the covariance matrix
    >>> weights = [0.3, 0.7]  # weights of each mode
-   >>> mvg = bilby.core.priors.MultivariateGaussianDist(names, mus=mu, covs=cov, nmodes=2, weights=weights)
+   >>> mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov, nmodes=2, weights=weights)
 
 The distribution can also have hard bounds on each parameter by supplying them.
 
