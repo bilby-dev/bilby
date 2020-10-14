@@ -84,10 +84,10 @@ for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'theta_jn', 'phase', 'psi', 'ra',
     priors[key] = injection_parameters[key]
 for key in ['mass_1', 'mass_2']:
     priors[key].minimum = max(priors[key].minimum, minimum_component_mass)
-priors['chirp_mass'] = bilby.core.prior.Constraint(
+priors['chirp_mass'] = bilby.core.prior.Uniform(
     name='chirp_mass', minimum=float(minimum_chirp_mass),
     maximum=float(maximum_chirp_mass))
-priors['mass_ratio'] = bilby.core.prior.Constraint(0.125, 1, name='mass_ratio')
+priors['mass_ratio'] = bilby.core.prior.Uniform(0.125, 1, name='mass_ratio')
 priors['geocent_time'] = bilby.core.prior.Uniform(
     injection_parameters['geocent_time'] - 0.1,
     injection_parameters['geocent_time'] + 0.1, latex_label='$t_c$', unit='s')
