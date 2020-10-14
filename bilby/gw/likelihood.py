@@ -1462,7 +1462,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         # We start without any bins or fidicual waveforms.
         self.fiducial_waveform_obtained = False
         self.check_if_bins_are_setup = False
-        self.fiducial_waveform_polarizations = None
+        self.fiducial_polarizations = None
+        self.fiducial_polarizations_binned = None
         self.per_detector_fiducial_waveforms = {}
         self.bin_freqs = None
         self.bin_inds = None
@@ -1472,7 +1473,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         logger.info('Bin setup completed. Number of bins = {}'.format(len(self.bin_freqs) - 1))
 
         self.set_fiducial_waveforms(self.initial_parameters)
-        logger.info("Set up initial fiducial waveforms")
+        logger.info("Initial fiducial waveforms set up")
 
         self.compute_summary_data()
 
@@ -1492,8 +1493,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     def setup_bins(self):
         frequency_array = self.waveform_generator.frequency_array
         frequency_array_useful = frequency_array[np.intersect1d(
-            np.where(frequency_array > self.min_bin_frequency),
-            np.where(frequency_array < self.max_bin_frequency))]
+            np.where(frequency_array >= self.min_bin_frequency),
+            np.where(frequency_array <= self.max_bin_frequency))]
         gamma = self.gamma
 
         d_alpha = self.chi * 2 * np.pi / np.abs(
@@ -1518,6 +1519,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.waveform_generator.waveform_arguments["fiducial"] = True
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
+
+        self.fiducial_polarizations_binned = {mode: (self.fiducial_polarizations[mode][self.bin_inds]
+                                                     ) for mode in (self.fiducial_polarizations.keys())}
+
         if self.fiducial_polarizations is None:
             return np.nan_to_num(-np.inf)
         plt.loglog(self.waveform_generator.frequency_array, self.fiducial_polarizations['plus'])
@@ -1535,9 +1540,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     def log_likelihood_ratio_relative_binning(self):
 
         logl = self.log_likelihood_ratio_approx()
-        print('relative binning value = %s' % logl)
-        print('actual value = %s' %
-              self.log_likelihood_ratio_full(self.parameters))
+        # print('relative binning value = %s' % logl)
+        # print('actual value = %s' %
+        #       self.log_likelihood_ratio_full(self.parameters))
 
         return logl
 
@@ -1624,58 +1629,65 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return [parameter_dict[k] for k in self.initial_parameter_keys_sorted]
 
     def compute_summary_data(self):
-        num_bins = len(self.bin_freqs) - 1
         summary_data = dict()
+
         for interferometer in self.interferometers:
-            for i in range(num_bins):
-                summary_data[interferometer.name] = self.compute_as_and_bs(
-                    interferometer.frequency_domain_strain,
-                    self.per_detector_fiducial_waveforms[interferometer.name],
-                    interferometer.power_spectral_density.psd_array, i)
+            mask = interferometer.frequency_mask
+            masked_frequency_array = interferometer.frequency_array[mask]
+            maximum_bin_frequency_array = np.ones_like(masked_frequency_array)
+            start_index = 0
+            for edge in self.bin_freqs[1:]:
+                index = np.where(masked_frequency_array == edge)[0][0]
+                maximum_bin_frequency_array[start_index:index +
+                                            1] = maximum_bin_frequency_array[start_index:index + 1] * edge
+                start_index = index + 1
+            factor = masked_frequency_array - maximum_bin_frequency_array
+
+            a0 = noise_weighted_inner_product(
+                interferometer.frequency_domain_strain[mask],
+                self.per_detector_fiducial_waveforms[interferometer.name][mask],
+                interferometer.power_spectral_density_array[mask],
+                self.waveform_generator.duration) / 2
+            b0 = noise_weighted_inner_product(
+                self.per_detector_fiducial_waveforms[interferometer.name][mask],
+                self.per_detector_fiducial_waveforms[interferometer.name][mask],
+                interferometer.power_spectral_density_array[mask],
+                self.waveform_generator.duration) / 2
+            a1 = noise_weighted_inner_product(
+                interferometer.frequency_domain_strain[mask] * factor,
+                self.per_detector_fiducial_waveforms[interferometer.name][mask],
+                interferometer.power_spectral_density_array[mask],
+                self.waveform_generator.duration) / 2
+            b1 = noise_weighted_inner_product(
+                self.per_detector_fiducial_waveforms[interferometer.name][mask] * factor,
+                self.per_detector_fiducial_waveforms[interferometer.name][mask],
+                interferometer.power_spectral_density_array[mask],
+                self.waveform_generator.duration) / 2
+
+            summary_data[interferometer.name] = dict(a0=a0, a1=a1, b0=b0, b1=b1)
 
         self.summary_data = summary_data
         logger.info("Summary Data Obtained")
-
-    def compute_as_and_bs(self, frequency_domain_data, h0, psd, bin_val):
-
-        duration = self.waveform_generator.duration
-        bin_range = np.arange(self.bin_inds[bin_val],
-                              self.bin_inds[bin_val + 1])
-        a_numerator = frequency_domain_data[bin_range] * np.conjugate(
-            h0[bin_range])
-        b_numerator = np.abs(h0[bin_range]) ** 2
-        denominator = (psd[bin_range] / duration)
-        fm_val = (self.bin_freqs[bin_val] + self.bin_freqs[bin_val + 1]) / 2
-        f_vals = self.waveform_generator.frequency_array[bin_range]
-
-        a0 = 4 * np.sum(a_numerator / denominator)
-        a1 = 4 * np.sum((a_numerator / denominator) * (f_vals - fm_val))
-        b0 = 4 * np.sum(b_numerator / denominator)
-        b1 = 4 * np.sum((b_numerator / denominator) * (f_vals - fm_val))
-        return dict(a0=a0, a1=a1, b0=b0, b1=b1)
 
     def compute_relative_ratio(self, parameter_dictionary, interferometer):
 
         self.waveform_generator.parameters = parameter_dictionary
         new_polarizations = self.waveform_generator.frequency_domain_strain(parameter_dictionary)
+        h = interferometer.get_detector_response_relative_binning(
+            new_polarizations, parameter_dictionary, self.bin_freqs)
+        h0 = self.per_detector_fiducial_waveforms[interferometer.name][self.bin_inds]
+        waveform_ratio = h / h0
 
         if (self.debug):
             print('new polarizations:  %s' % new_polarizations)
 
         # Divide the individual waveform polarizations.
         # Only evaluate at frequency bin edges.
-        waveform_polarization_ratios = {mode: (
-            self.fiducial_polarizations[mode][self.bin_inds] / (
-                new_polarizations[mode])) for mode in (
-                    self.fiducial_polarizations.keys())}
 
         if (self.debug):
-            print('ratios = %s' % waveform_polarization_ratios)
+            print('ratios = %s' % waveform_ratio)
             # Exit here so our debug statements don't loop forever..
             sys.exit()
-
-        waveform_ratio = interferometer.get_detector_response_relative_binning(
-            waveform_polarization_ratios, parameter_dictionary, self.bin_freqs)
 
         r0 = (waveform_ratio[1:] + waveform_ratio[:-1]) / 2
         r1 = (waveform_ratio[1:] - waveform_ratio[:-1]) / (
