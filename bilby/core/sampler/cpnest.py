@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import array
 import copy
 
 import numpy as np
@@ -88,8 +89,8 @@ class Cpnest(NestedSampler):
                 prior_samples = self.priors.sample()
                 self._update_bounds()
                 point = LivePoint(
-                    self.names, [prior_samples[name]
-                                 for name in self.names])
+                    self.names, array.array(
+                        'f', [prior_samples[name] for name in self.names]))
                 return point
 
         self._resolve_proposal_functions()
