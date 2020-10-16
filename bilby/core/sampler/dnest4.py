@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import os
-import tempfile
 import shutil
 import distutils.dir_util
 import signal
 import time
 import datetime
+import sys
 
 import numpy as np
 import pandas as pd
@@ -20,14 +18,14 @@ class _DNest4Model(object):
     def __init__(self, log_likelihood_func, from_prior_func, widths, centers, highs, lows):
         """Initialize the DNest4 model.
         Args:
-            log_likelihood_func (function): The loglikelihood function to use
-                during the Nested Sampling run.
-            from_prior_func (function): The function to use when randomly
-                selecting parameter vectors from the prior space.
-            widths (numpy.array): The approximate widths of the prior
-                distrbutions.
-            centers (numpy.array): The approximate center points of the prior
-                distributions.
+            log_likelihood_func: function
+                The loglikelihood function to use during the Nested Sampling run.
+            from_prior_func: function
+                The function to use when randomly selecting parameter vectors from the prior space.
+            widths: array_like
+                The approximate widths of the prior distrbutions.
+            centers: array_like
+                The approximate center points of the prior distributions.
         """
         self._log_likelihood = log_likelihood_func
         self._from_prior = from_prior_func
@@ -58,9 +56,11 @@ class _DNest4Model(object):
 
         return 0.0
 
-    def wrap(self, x, a, b):
-        assert b > a
-        return (x - a) % (b - a) + a
+    @staticmethod
+    def wrap(x, minimum, maximum):
+        if maximum <= minimum:
+            raise ValueError("maximum {} <= minimum {}, when trying to wrap coordinates".format(maximum, minimum))
+        return (x - minimum) % (maximum - minimum) + minimum
 
 
 class DNest4(NestedSampler):
@@ -83,8 +83,9 @@ class DNest4(NestedSampler):
         The python DNest4 backend for storing the output.
         Options are: 'memory' and 'csv'. If 'memory' the
         DNest4 outputs are stored in memory during the run. If 'csv' the
-        DNest4 outputs are written out to filse with a CSV format during
+        DNest4 outputs are written out to files with a CSV format during
         the run.
+        CSV backend may not be functional right now (October 2020)
     num_steps: int
         The number of MCMC iterations to run
     new_level_interval: int
@@ -97,59 +98,33 @@ class DNest4(NestedSampler):
         Set the seed for the C++ random number generator
     verbose: Bool
         If True, prints information during run
-    TO DO: add equivalent args for num_particles (nlive, etc.)
-    Add sampling time functions
     """
 
-    default_kwargs = dict(
-        max_num_levels=20,
-        num_steps=500,  # Number of iterations
-        new_level_interval=10000,
-        num_per_step=10000,
-        thread_steps=1,
-        num_particles=1000,
-        lam=10.0,
-        beta=100,
-        seed=None,
-        verbose=True,
-        outputfiles_basename=None,
-        # backend_callback=None,  # for checkpointing in dnest5
-        backend='memory',  # csv is currently bugged right now
+    default_kwargs = dict(max_num_levels=20, num_steps=500,
+                          new_level_interval=10000, num_per_step=10000,
+                          thread_steps=1, num_particles=1000, lam=10.0,
+                          beta=100, seed=None, verbose=True, outputfiles_basename=None,
+                          backend='memory')
 
-        # could change max_num_levels based on snr
-    )
-
-    def __init__(
-        self,
-        likelihood,
-        priors,
-        outdir="outdir",
-        label="label",
-        use_ratio=False,
-        plot=False,
-        exit_code=77,
-        skip_import_verification=False,
-        temporary_directory=True,
-        resume=True,
-        **kwargs
-    ):
+    def __init__(self, likelihood, priors, outdir="outdir", label="label", use_ratio=False, plot=False,
+                 exit_code=77, skip_import_verification=False, temporary_directory=True, **kwargs):
         super(DNest4, self).__init__(
-            likelihood=likelihood,
-            priors=priors,
-            outdir=outdir,
-            label=label,
-            use_ratio=use_ratio,
-            plot=plot,
-            skip_import_verification=skip_import_verification,
-            exit_code=exit_code,
-            **kwargs
-        )
+            likelihood=likelihood, priors=priors, outdir=outdir, label=label,
+            use_ratio=use_ratio, plot=plot, skip_import_verification=skip_import_verification,
+            exit_code=exit_code, **kwargs)
 
         self.num_particles = self.kwargs["num_particles"]
         self.max_num_levels = self.kwargs["max_num_levels"]
         self._verbose = self.kwargs["verbose"]
         self._backend = self.kwargs["backend"]
         self.use_temporary_directory = temporary_directory
+
+        self.start_time = np.nan
+        self.sampler = None
+        self._information = np.nan
+        self._last_live_sample_info = np.nan
+        self._outputfiles_basename = None
+        self._temporary_outputfiles_basename = None
 
         signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
         signal.signal(signal.SIGINT, self.write_current_state_and_exit)
@@ -180,26 +155,19 @@ class DNest4(NestedSampler):
         self._highs = np.array(highs)
         self._lows = np.array(lows)
 
-        self._from_prior = self.get_random_draw_from_prior
-
-        self._dnest4_model = _DNest4Model(self.log_likelihood, self._from_prior, self._widths,
+        self._dnest4_model = _DNest4Model(self.log_likelihood, self.get_random_draw_from_prior, self._widths,
                                           self._centers, self._highs, self._lows)
 
     def _set_backend(self):
         import dnest4
         if self._backend == 'csv':
-            # for CSVBackend, which is output data to disk
-            backend = dnest4.backends.CSVBackend("{}/dnest4{}/".format(self.outdir, self.label), sep=" ")
-            # change to original
+            return dnest4.backends.CSVBackend("{}/dnest4{}/".format(self.outdir, self.label), sep=" ")
         else:
-            # for the MemoryBackend, which is output data to memory
-            backend = dnest4.backends.MemoryBackend()
-        return backend
+            return dnest4.backends.MemoryBackend()
 
     def _set_dnest4_kwargs(self):
         dnest4_keys = ["num_steps", "new_level_interval", "lam", "beta", "seed"]
         self.dnest4_kwargs = {key: self.kwargs[key] for key in dnest4_keys}
-        return self.dnest4_kwargs
 
     def run_sampler(self):
         import dnest4
@@ -233,17 +201,11 @@ class DNest4(NestedSampler):
         if self._backend == 'memory':
             self._last_live_sample_info = pd.DataFrame(self.sampler.backend.sample_info[-1])
             self.result.log_likelihood_evaluations = self._last_live_sample_info['log_likelihood']
-
             self.result.samples = np.array(self.sampler.backend.posterior_samples)
-            print("here")
-            print(self.sampler.backend.posterior_samples)
-            print(self.result.samples)
         else:
             sample_info_path = './' + self.kwargs["outputfiles_basename"] + '/sample_info.txt'
-
             sample_info = np.genfromtxt(sample_info_path, comments='#', names=True)
             self.result.log_likelihood_evaluations = sample_info['log_likelihood']
-
             self.result.samples = np.array(self.sampler.backend.posterior_samples)
 
         self.result.sampler_output = out
@@ -262,36 +224,7 @@ class DNest4(NestedSampler):
 
     def _verify_kwargs_against_default_kwargs(self):
         self.outputfiles_basename = self.kwargs.pop("outputfiles_basename", None)
-
-        # if self.kwargs['backend_callback'] is None:
-        #     self.kwargs['backend_callback'] = self._backend_callback
-
-        NestedSampler._verify_kwargs_against_default_kwargs(self)
-
-    # def _backend_callback(self, *args, **kwargs):
-    #     if self.use_temporary_directory:
-    #         self._copy_temporary_directory_contents_to_proper_path()
-    #     self._calculate_and_save_sampling_time()
-
-    def _setup_run_directory(self):
-        """
-        If using a temporary directory, the output directory is moved to the
-        temporary directory.
-        """
-        if self.use_temporary_directory:
-            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
-            self.temporary_outputfiles_basename = temporary_outputfiles_basename
-
-            if os.path.exists(self.outputfiles_basename):
-                distutils.dir_util.copy_tree(self.outputfiles_basename, self.temporary_outputfiles_basename)
-            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
-
-            self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
-            logger.info("Using temporary file {}".format(temporary_outputfiles_basename))
-        else:
-            check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
-            self.kwargs["outputfiles_basename"] = self.outpuxtfiles_basename
-            logger.info("Using output file {}".format(self.outputfiles_basename))
+        super(DNest4, self)._verify_kwargs_against_default_kwargs()
 
     def _check_and_load_sampling_time_file(self):
         self.time_file_path = self.kwargs["outputfiles_basename"] + '/sampling_time.dat'
@@ -355,7 +288,7 @@ class DNest4(NestedSampler):
         self._calculate_and_save_sampling_time()
         if self.use_temporary_directory:
             self._move_temporary_directory_to_proper_path()
-        os._exit(self.exit_code)
+        sys.exit(self.exit_code)
 
     def _move_temporary_directory_to_proper_path(self):
         """

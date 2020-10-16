@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 import datetime
+import distutils.dir_util
 import numpy as np
+import os
+import tempfile
 
 from pandas import DataFrame
 
-from ..utils import logger, command_line_args, Counter
+from ..utils import logger, check_directory_exists_and_if_not_mkdir, command_line_args, Counter
 from ..prior import Prior, PriorDict, DeltaFunction, Constraint
 from ..result import Result, read_in_result
 
@@ -541,7 +544,8 @@ class Sampler(object):
 
 
 class NestedSampler(Sampler):
-    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints', 'npoint', 'Nlive', 'num_live_points']
+    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints',
+                            'npoint', 'Nlive', 'num_live_points', 'num_particles']
     walks_equiv_kwargs = ['walks', 'steps', 'nmcmc']
 
     def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,
@@ -600,6 +604,27 @@ class NestedSampler(Sampler):
             return Sampler.log_likelihood(self, theta)
         else:
             return np.nan_to_num(-np.inf)
+
+    def _setup_run_directory(self):
+        """
+        If using a temporary directory, the output directory is moved to the
+        temporary directory.
+        Used for Dnest4, Pymultinest, and Ultranest.
+        """
+        if self.use_temporary_directory:
+            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
+            self.temporary_outputfiles_basename = temporary_outputfiles_basename
+
+            if os.path.exists(self.outputfiles_basename):
+                distutils.dir_util.copy_tree(self.outputfiles_basename, self.temporary_outputfiles_basename)
+            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
+
+            self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
+            logger.info("Using temporary file {}".format(temporary_outputfiles_basename))
+        else:
+            check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
+            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
+            logger.info("Using output file {}".format(self.outputfiles_basename))
 
 
 class MCMCSampler(Sampler):

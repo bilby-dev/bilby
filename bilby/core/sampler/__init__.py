@@ -25,11 +25,11 @@ from .dnest4 import DNest4
 from . import proposal
 
 IMPLEMENTED_SAMPLERS = {
-    'cpnest': Cpnest, 'dynamic_dynesty': DynamicDynesty, 'dynesty': Dynesty,
-    'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle, 'ptemcee': Ptemcee,
-    'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3, 'pymultinest': Pymultinest,
-    'pypolychord': PyPolyChord, 'ultranest': Ultranest,
-    'fake_sampler': FakeSampler, 'dnest4': DNest4}
+    'cpnest': Cpnest, 'dnest4': DNest4, 'dynamic_dynesty': DynamicDynesty,
+    'dynesty': Dynesty, 'emcee': Emcee, 'kombine': Kombine, 'nestle': Nestle,
+    'ptemcee': Ptemcee, 'ptmcmcsampler': PTMCMCSampler, 'pymc3': Pymc3,
+    'pymultinest': Pymultinest, 'pypolychord': PyPolyChord, 'ultranest': Ultranest,
+    'fake_sampler': FakeSampler}
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
