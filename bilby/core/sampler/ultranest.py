@@ -6,7 +6,6 @@ import inspect
 import os
 import shutil
 import signal
-import tempfile
 import time
 
 import numpy as np
@@ -287,6 +286,7 @@ class Ultranest(NestedSampler):
         stepsampler = self.kwargs.pop("step_sampler", None)
 
         self._setup_run_directory()
+        self.kwargs["log_dir"] = self.kwargs.pop("outputfiles_basename")
         self._check_and_load_sampling_time_file()
 
         # use reactive nested sampler when no live points are given
@@ -325,30 +325,6 @@ class Ultranest(NestedSampler):
         self.calc_likelihood_count()
 
         return self.result
-
-    def _setup_run_directory(self):
-        """
-        If using a temporary directory, the output directory is moved to the
-        temporary directory and symlinked back.
-        """
-        if self.use_temporary_directory:
-            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
-            self.temporary_outputfiles_basename = temporary_outputfiles_basename
-
-            if os.path.exists(self.outputfiles_basename):
-                distutils.dir_util.copy_tree(
-                    self.outputfiles_basename, self.temporary_outputfiles_basename
-                )
-            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
-
-            self.kwargs["log_dir"] = self.temporary_outputfiles_basename
-            logger.info(
-                "Using temporary file {}".format(temporary_outputfiles_basename)
-            )
-        else:
-            check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
-            self.kwargs["log_dir"] = self.outputfiles_basename
-            logger.info("Using output file {}".format(self.outputfiles_basename))
 
     def _clean_up_run_directory(self):
         if self.use_temporary_directory:
