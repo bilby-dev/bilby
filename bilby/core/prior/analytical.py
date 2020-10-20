@@ -618,6 +618,7 @@ class TruncatedGaussian(Prior):
             / self.sigma / self.normalisation * self.is_in_prior_range(val)
 
     def cdf(self, val):
+        val = np.atleast_1d(val)
         _cdf = (erf((val - self.mu) / 2 ** 0.5 / self.sigma) - erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2 / self.normalisation
         _cdf[val > self.maximum] = 1
