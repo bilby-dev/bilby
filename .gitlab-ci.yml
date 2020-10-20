@@ -138,6 +138,12 @@ plotting:
 
     - pytest test/gw/plot_test.py
 
+authors:
+  stage: test
+  image: bilbydev/bilby-test-suite-python37
+  script:
+    - python test/check_author_list.py
+
 pages:
   stage: deploy
   dependencies:
