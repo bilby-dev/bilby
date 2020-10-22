@@ -64,7 +64,7 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 

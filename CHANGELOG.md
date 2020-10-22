@@ -1,5 +1,24 @@
 # All notable changes will be documented in this file
 
+## [1.0.3] 2020-10-23
+
+Version 1.0.3 release of bilby
+
+### Added
+- SlabSpikePrior and examples (!857)
+- Authors file (!885)
+- CDF function to conditional priors (!882)
+- Waveform plot in visualising_the_results.ipynb (!817)
+- Addition of dnest4 sampler (!849, !883)
+- Loaded modules added to meta-data (!881)
+
+### Changes
+- Constraint to Uniform priors in ROQ tutorial (!884)
+- Fix to CDF and PDF for SymmetricLogUniform prior (!876)
+- Fix bug in evidence combination (!880)
+- Typo fixes (!878, !887, !879)
+- Minor bug fixes (!888)
+
 ## [1.0.2] 2020-09-14
 
 Version 1.0.2 release of bilby
@@ -8,7 +27,7 @@ Version 1.0.2 release of bilby
 - Template for the docker files (!783)
 - New delta_phase parameter (!850)
 - Normalization factor to time-domain waveform plot (!867)
-- JSON encoding for int and float types (!866) 
+- JSON encoding for int and float types (!866)
 - Various minor formatting additions (!870)
 
 ### Changes
