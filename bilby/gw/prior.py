@@ -291,6 +291,23 @@ class UniformInComponentsChirpMass(PowerLaw):
 
     def __init__(self, minimum, maximum, name='chirp_mass',
                  latex_label='$\mathcal{M}$', unit=None, boundary=None):
+        """
+        Prior distribution for chirp mass which is uniform in component masses.
+
+        This is useful when chirp mass and mass ratio are sampled while the
+        prior is uniform in component masses.
+
+        Parameters
+        ----------
+        minimum : float
+            The minimum of chirp mass
+        maximum : float
+            The maximum of chirp mass
+        name: see superclass
+        latex_label: see superclass
+        unit: see superclass
+        boundary: see superclass
+        """
         super(UniformInComponentsChirpMass, self).__init__(
             alpha=1., minimum=minimum, maximum=maximum,
             name=name, latex_label=latex_label, unit=unit, boundary=boundary)
@@ -300,6 +317,23 @@ class UniformInComponentsMassRatio(Prior):
 
     def __init__(self, minimum, maximum, name='mass_ratio', latex_label='$q$',
                  unit=None, boundary=None):
+        """
+        Prior distribution for mass ratio which is uniform in component masses.
+
+        This is useful when chirp mass and mass ratio are sampled while the
+        prior is uniform in component masses.
+
+        Parameters
+        ----------
+        minimum : float
+            The minimum of mass ratio
+        maximum : float
+            The maximum of mass ratio
+        name: see superclass
+        latex_label: see superclass
+        unit: see superclass
+        boundary: see superclass
+        """
         super(UniformInComponentsMassRatio, self).__init__(
             minimum=minimum, maximum=maximum, name=name,
             latex_label=latex_label, unit=unit, boundary=boundary)
