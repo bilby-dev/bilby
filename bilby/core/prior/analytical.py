@@ -370,8 +370,8 @@ class SymmetricLogUniform(Prior):
 
 class Cosine(Prior):
 
-    def __init__(self, name=None, latex_label=None, unit=None,
-                 minimum=-np.pi / 2, maximum=np.pi / 2, boundary=None):
+    def __init__(self, minimum=-np.pi / 2, maximum=np.pi / 2, name=None,
+                 latex_label=None, unit=None, boundary=None):
         """Cosine prior with bounds
 
         Parameters
@@ -389,8 +389,8 @@ class Cosine(Prior):
         boundary: str
             See superclass
         """
-        super(Cosine, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                     minimum=minimum, maximum=maximum, boundary=boundary)
+        super(Cosine, self).__init__(minimum=minimum, maximum=maximum,  name=name,
+                                     latex_label=latex_label, unit=unit, boundary=boundary)
 
     def rescale(self, val):
         """
@@ -425,8 +425,8 @@ class Cosine(Prior):
 
 class Sine(Prior):
 
-    def __init__(self, name=None, latex_label=None, unit=None, minimum=0,
-                 maximum=np.pi, boundary=None):
+    def __init__(self, minimum=0, maximum=np.pi, name=None,
+                 latex_label=None, unit=None, boundary=None):
         """Sine prior with bounds
 
         Parameters
@@ -444,8 +444,8 @@ class Sine(Prior):
         boundary: str
             See superclass
         """
-        super(Sine, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                   minimum=minimum, maximum=maximum, boundary=boundary)
+        super(Sine, self).__init__(minimum=minimum, maximum=maximum, name=name,
+                                   latex_label=latex_label, unit=unit, boundary=boundary)
 
     def rescale(self, val):
         """
