@@ -15,3 +15,4 @@ MANIFEST
 *.ipynb_checkpoints
 outdir/*
 .idea/*
+.DS_Store
