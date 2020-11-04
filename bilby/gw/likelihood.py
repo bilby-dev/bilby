@@ -1477,10 +1477,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         self.compute_summary_data()
 
-        # self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, max_iters=1)
-        # maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
-        maxl_logl = self.log_likelihood_ratio_approx()
-        print(maxl_logl)
+        # # self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, max_iters=1)
+        # # maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
+        # maxl_logl = self.log_likelihood_ratio_approx()
+        # print(maxl_logl)
 
         if debug:
             print('maxl value = %s' % maxl_logl)
@@ -1548,7 +1548,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def log_likelihood_ratio_approx(self):
 
-        parameter_dictionary = self.maximum_likelihood_parameters
         # if not parameter_dictionary:
         #     parameter_dictionary = self.get_parameter_dictionary_from_list(
         #         parameter_list)
@@ -1559,7 +1558,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         for interferometer in self.interferometers:
             # Relative waveform to compute for each detector.
-            r0, r1 = self.compute_relative_ratio(parameter_dictionary,
+            r0, r1 = self.compute_relative_ratio(self.parameters,
                                                  interferometer)
             per_detector_snr = self.calculate_snrs_from_summary_data(
                 self.summary_data[interferometer.name], r0, r1)
