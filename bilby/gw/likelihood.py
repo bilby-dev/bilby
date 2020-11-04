@@ -1471,14 +1471,12 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.maximum_likelihood_parameters = initial_parameters
         self.setup_bins()
         logger.info('Bin setup completed. Number of bins = {}'.format(len(self.bin_freqs) - 1))
-
         self.set_fiducial_waveforms(self.initial_parameters)
         logger.info("Initial fiducial waveforms set up")
-
         self.compute_summary_data()
-
-        # # self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, max_iters=1)
-        # # maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
+        logger.info("Summary Data Obtained")
+        self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, iterations=1)
+        # maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
         # maxl_logl = self.log_likelihood_ratio_approx()
         # print(maxl_logl)
 
@@ -1538,20 +1536,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return self.log_likelihood_ratio_relative_binning() + self.noise_log_likelihood()
 
     def log_likelihood_ratio_relative_binning(self):
-
-        logl = self.log_likelihood_ratio_approx()
-        # print('relative binning value = %s' % logl)
-        # print('actual value = %s' %
-        #       self.log_likelihood_ratio_full(self.parameters))
-
-        return logl
-
-    def log_likelihood_ratio_approx(self):
-
-        # if not parameter_dictionary:
-        #     parameter_dictionary = self.get_parameter_dictionary_from_list(
-        #         parameter_list)
-
         d_inner_h = 0.
         optimal_snr_squared = 0.
         complex_matched_filter_snr = 0.
@@ -1572,12 +1556,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         # print('logl in inner calculation = ', log_l)
         return float(log_l.real)
 
+
     def find_maximum_likelihood_waveform(self, initial_parameter_guess,
-                                         parameter_bounds, max_iters=10,
+                                         parameter_bounds, iterations=10,
                                          likelihood_threshold=1):
         prev_log_likelihood = -np.inf
-        for i in range(max_iters):
+        for i in range(iterations):
             print("iter: %s" % i)
+            print("length of parameter_bounds", len(parameter_bounds))
             log_likelihood = self.get_best_fit_parameters(
                 self.get_parameter_list_from_dictionary(parameter_bounds),
                 atol=1e-10, maxiter=10)  # change back to 500, no input
@@ -1593,17 +1579,18 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
             prev_log_likelihood = log_likelihood
 
-        print("Max iters reached. Stopping.")
+        print("Max iteration reached. Stopping.")
         return
 
     def get_best_fit_parameters(self, initial_parameter_bounds, maxiter=500,
                                 atol=1e-10):
         # Walk uphill using differential evolution from scipy.
         print('computing maxL parameters...')
+        print('par bounds',initial_parameter_bounds)
         output = differential_evolution(
-            self.log_likelihood_ratio_approx,
+            self.log_likelihood_ratio_relative_binning,
             bounds=initial_parameter_bounds, atol=atol,
-            maxiter=maxiter, seed=0)
+            maxiter=maxiter)
         best_fit = output['x']
         log_likelihood = -output['fun']
 
@@ -1666,7 +1653,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             summary_data[interferometer.name] = dict(a0=a0, a1=a1, b0=b0, b1=b1)
 
         self.summary_data = summary_data
-        logger.info("Summary Data Obtained")
 
     def compute_relative_ratio(self, parameter_dictionary, interferometer):
 
