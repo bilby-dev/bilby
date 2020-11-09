@@ -1475,7 +1475,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         logger.info("Initial fiducial waveforms set up")
         self.compute_summary_data()
         logger.info("Summary Data Obtained")
-        self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, iterations=1)
+        #self.find_maximum_likelihood_waveform(self.initial_parameters, self.parameter_bounds, iterations=1)
         # maxl_logl = self.log_likelihood_ratio_approx(None, parameter_dictionary=self.maximum_likelihood_parameters)
         # maxl_logl = self.log_likelihood_ratio_approx()
         # print(maxl_logl)
@@ -1633,22 +1633,22 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 interferometer.frequency_domain_strain[mask],
                 self.per_detector_fiducial_waveforms[interferometer.name][mask],
                 interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
+                self.waveform_generator.duration)
             b0 = noise_weighted_inner_product(
                 self.per_detector_fiducial_waveforms[interferometer.name][mask],
                 self.per_detector_fiducial_waveforms[interferometer.name][mask],
                 interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
+                self.waveform_generator.duration)
             a1 = noise_weighted_inner_product(
                 interferometer.frequency_domain_strain[mask] * factor,
                 self.per_detector_fiducial_waveforms[interferometer.name][mask],
                 interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
+                self.waveform_generator.duration)
             b1 = noise_weighted_inner_product(
                 self.per_detector_fiducial_waveforms[interferometer.name][mask] * factor,
                 self.per_detector_fiducial_waveforms[interferometer.name][mask],
                 interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
+                self.waveform_generator.duration)
 
             summary_data[interferometer.name] = dict(a0=a0, a1=a1, b0=b0, b1=b1)
 
