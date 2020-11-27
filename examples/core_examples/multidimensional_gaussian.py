@@ -33,6 +33,7 @@ class MultidimGaussianLikelihood(bilby.Likelihood):
         """
 
     def __init__(self, data, dim):
+        super().__init__()
         self.dim = dim
         self.data = np.array(data)
         self.N = len(data)
