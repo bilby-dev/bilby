@@ -1,0 +1,13 @@
+# LIGO India Aundha at Aplus sensitvity.
+# LIGO-T2000158
+# https://dcc.ligo.org/LIGO-T2000012/public
+name = 'A1'
+power_spectral_density = PowerSpectralDensity(asd_file='Aplus_asd.txt')
+minimum_frequency = 20
+maximum_frequency = 2048
+length = 4
+latitude = 19 + 36. / 60 + 47.9017 / 3600
+longitude = 77 + 1. / 60 + 51.0997 / 3600
+elevation = 440.0
+xarm_azimuth = 117.6157
+yarm_azimuth = 207.6165
