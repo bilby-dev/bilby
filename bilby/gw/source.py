@@ -343,6 +343,15 @@ def _base_lal_cbc_fd_waveform(
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
 
+    for key, value in waveform_kwargs.items():
+        func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
+        if func is not None:
+            func(waveform_dictionary, value)
+
+    if waveform_kwargs.get('numerical_relativity_file', None) is not None:
+        lalsim.SimInspiralWaveformParamsInsertNumRelData(
+            waveform_dictionary, waveform_kwargs['numerical_relativity_file'])
+
     if ('mode_array' in waveform_kwargs) and waveform_kwargs['mode_array'] is not None:
         mode_array = waveform_kwargs['mode_array']
         mode_array_lal = lalsim.SimInspiralCreateModeArray()

@@ -79,6 +79,19 @@ class TestLalBBH(unittest.TestCase):
     #         bilby.gw.source.lal_binary_black_hole(
     #             self.frequency_array, **self.parameters), dict)
 
+    def test_lal_bbh_xpprecession_version(self):
+        self.parameters.update(self.waveform_kwargs)
+        self.parameters["waveform_approximant"] = "IMRPhenomXP"
+
+        # Test that we can modify the XP precession version
+        out_v223 = bilby.gw.source.lal_binary_black_hole(
+            self.frequency_array, PhenomXPrecVersion=223, **self.parameters
+        )
+        out_v102 = bilby.gw.source.lal_binary_black_hole(
+            self.frequency_array, PhenomXPrecVersion=102, **self.parameters
+        )
+        self.assertFalse(np.all(out_v223["plus"] == out_v102["plus"]))
+
 
 class TestLalBNS(unittest.TestCase):
     def setUp(self):
