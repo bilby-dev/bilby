@@ -612,7 +612,7 @@ class Dynesty(NestedSampler):
                 fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
                 fig.tight_layout()
                 fig.savefig(filename)
-            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError) as e:
+            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError, OverflowError, Exception) as e:
                 logger.warning(e)
                 logger.warning('Failed to create dynesty state plot at checkpoint')
             finally:
