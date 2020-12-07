@@ -140,7 +140,7 @@ class TestCBCResult(unittest.TestCase):
             objid="test",
             instruments="H1L1",
             load_pickle=True,
-            colorbar=True,
+            colorbar=False,
         )
 
 
