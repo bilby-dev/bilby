@@ -7,5 +7,5 @@ pymc3==3.6; python_version <= '2.7'
 pymc3>=3.6; python_version > '3.4'
 pymultinest
 kombine
-ultranest>=2.2.1
+ultranest>=3.0.0
 dnest4

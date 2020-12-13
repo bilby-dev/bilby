@@ -61,7 +61,7 @@ class Ultranest(NestedSampler):
         log_interval=None,
         dlogz=None,
         max_iters=None,
-        update_interval_iter_fraction=0.2,
+        update_interval_volume_fraction=0.2,
         viz_callback=None,
         dKL=0.5,
         frac_remain=0.01,
@@ -232,7 +232,7 @@ class Ultranest(NestedSampler):
             ]
         else:
             keys = [
-                "update_interval_iter_fraction",
+                "update_interval_volume_fraction",
                 "update_interval_ncall",
                 "log_interval",
                 "show_status",
