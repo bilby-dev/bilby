@@ -31,7 +31,7 @@ class InterferometerStrainData(object):
     time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
-                 roll_off=0.2):
+                 roll_off=0.2, notch_list=None):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -46,11 +46,14 @@ class InterferometerStrainData(object):
         roll_off: float
             The roll-off (in seconds) used in the Tukey window, default=0.2s.
             This corresponds to alpha * duration / 2 for scipy tukey window.
+        notch_list: bilby.gw.detector.strain_data.NotchList
+            A list of notches
 
         """
 
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
+        self.notch_list = notch_list
         self.roll_off = roll_off
         self.window_factor = 1
 
@@ -123,17 +126,45 @@ class InterferometerStrainData(object):
         self._frequency_mask_updated = False
 
     @property
+    def notch_list(self):
+        return self._notch_list
+
+    @notch_list.setter
+    def notch_list(self, notch_list):
+        """ Set the notch_list
+
+        Parameters
+        ----------
+        notch_list: list, bilby.gw.detector.strain_data.NotchList
+            A list of length-2 tuples of the (max, min) frequency for the
+            notches or a pre-made bilby NotchList.
+
+        """
+        if notch_list is None:
+            self._notch_list = NotchList(None)
+        elif isinstance(notch_list, list):
+            self._notch_list = NotchList(notch_list)
+        elif isinstance(notch_list, NotchList):
+            self._notch_list = notch_list
+        else:
+            raise ValueError("notch_list {} not understood".format(notch_list))
+        self._frequency_mask_updated = False
+
+    @property
     def frequency_mask(self):
-        """Masking array for limiting the frequency band.
+        """ Masking array for limiting the frequency band.
 
         Returns
         -------
-        array_like: An array of boolean values
+        mask: np.ndarray
+            An array of boolean values
         """
         if not self._frequency_mask_updated:
             frequency_array = self._times_and_frequencies.frequency_array
             mask = ((frequency_array >= self.minimum_frequency) &
                     (frequency_array <= self.maximum_frequency))
+            for notch in self.notch_list:
+                mask[notch.get_idxs(frequency_array)] = False
             self._frequency_mask = mask
             self._frequency_mask_updated = True
         return self._frequency_mask
@@ -683,3 +714,104 @@ class InterferometerStrainData(object):
         strain = strain.resample(sampling_frequency)
 
         self.set_from_gwpy_timeseries(strain)
+
+
+class Notch(object):
+    def __init__(self, minimum_frequency, maximum_frequency):
+        """ A notch object storing the maximum and minimum frequency of the notch
+
+        Parameters
+        ----------
+        minimum_frequency, maximum_frequency: float
+            The minimum and maximum frequency of the notch
+
+        """
+
+        if 0 < minimum_frequency < maximum_frequency < np.inf:
+            self.minimum_frequency = minimum_frequency
+            self.maximum_frequency = maximum_frequency
+        else:
+            msg = ("Your notch minimum_frequency {} and maximum_frequency {} are invalid"
+                   .format(minimum_frequency, maximum_frequency))
+            raise ValueError(msg)
+
+    def get_idxs(self, frequency_array):
+        """ Get a boolean mask for the frequencies in frequency_array in the notch
+
+        Parameters
+        ----------
+        frequency_array: np.ndarray
+            An array of frequencies
+
+        Returns
+        -------
+        idxs: np.ndarray
+            An array of booleans which are True for frequencies in the notch
+
+        """
+        lower = (frequency_array > self.minimum_frequency)
+        upper = (frequency_array < self.maximum_frequency)
+        return lower & upper
+
+    def check_frequency(self, freq):
+        """ Check if freq is inside the notch
+
+        Parameters
+        ----------
+        freq: float
+            The frequency to check
+
+        Returns
+        -------
+        True/False:
+            If freq inside the notch, return True, else False
+        """
+
+        if self.minimum_frequency < freq < self.maximum_frequency:
+            return True
+        else:
+            return False
+
+
+class NotchList(list):
+    def __init__(self, notch_list):
+        """ A list of notches
+
+        Parameters
+        ----------
+        notch_list: list
+            A list of length-2 tuples of the (max, min) frequency for the
+            notches.
+
+        Raises
+        ------
+        ValueError
+            If the list is malformed.
+        """
+
+        if notch_list is not None:
+            for notch in notch_list:
+                if isinstance(notch, tuple) and len(notch) == 2:
+                    self.append(Notch(*notch))
+                else:
+                    msg = "notch_list {} is malformed".format(notch_list)
+                    raise ValueError(msg)
+
+    def check_frequency(self, freq):
+        """ Check if freq is inside the notch list
+
+        Parameters
+        ----------
+        freq: float
+            The frequency to check
+
+        Returns
+        -------
+        True/False:
+            If freq inside any of the notches, return True, else False
+        """
+
+        for notch in self:
+            if notch.check_frequency(freq):
+                return True
+        return False
