@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import numpy as np
 
 from ..core import utils
@@ -408,11 +406,10 @@ def _base_lal_cbc_fd_waveform(
     h_cross *= frequency_bounds
 
     if wf_func == lalsim_SimInspiralFD:
-        dt = 1. / delta_frequency + (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
-        h_plus *= np.exp(
-            -1j * 2 * np.pi * dt * frequency_array)
-        h_cross *= np.exp(
-            -1j * 2 * np.pi * dt * frequency_array)
+        dt = 1 / hplus.deltaF + (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
+        time_shift = np.exp(-1j * 2 * np.pi * dt * frequency_array[frequency_bounds])
+        h_plus[frequency_bounds] *= time_shift
+        h_cross[frequency_bounds] *= time_shift
 
     return dict(plus=h_plus, cross=h_cross)
 
