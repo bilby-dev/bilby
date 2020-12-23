@@ -508,26 +508,6 @@ def get_version_information():
         print("No version information file '.version' found")
 
 
-def get_progress_bar(module='tqdm'):
-    """
-    TODO: Write proper docstring
-    """
-    if module in ['tqdm']:
-        try:
-            from tqdm import tqdm
-        except ImportError:
-            def tqdm(x, *args, **kwargs):
-                return x
-        return tqdm
-    elif module in ['tqdm_notebook']:
-        try:
-            from tqdm import tqdm_notebook as tqdm
-        except ImportError:
-            def tqdm(x, *args, **kwargs):
-                return x
-        return tqdm
-
-
 def spherical_to_cartesian(radius, theta, phi):
     """ Convert from spherical coordinates to cartesian.
 
