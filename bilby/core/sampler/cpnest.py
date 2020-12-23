@@ -132,6 +132,7 @@ class Cpnest(NestedSampler):
         self.result.nested_samples['weights'] = np.exp(log_weights)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
+        self.result.information_gain = out.NS.state.info
         return self.result
 
     def _verify_kwargs_against_default_kwargs(self):
