@@ -366,6 +366,8 @@ class Ultranest(NestedSampler):
         self.result.nested_samples = nested_samples
         self.result.log_evidence = out["logz"]
         self.result.log_evidence_err = out["logzerr"]
+        if self.kwargs["num_live_points"] is not None:
+            self.result.information_gain = np.power(out["logzerr"], 2) * self.kwargs["num_live_points"]
 
         self.result.outputfiles_basename = self.outputfiles_basename
         self.result.sampling_time = datetime.timedelta(seconds=self.total_sampling_time)

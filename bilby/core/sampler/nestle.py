@@ -74,6 +74,7 @@ class Nestle(NestedSampler):
             sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz
         self.result.log_evidence_err = out.logzerr
+        self.result.information_gain = out.h
         self.calc_likelihood_count()
         return self.result
 

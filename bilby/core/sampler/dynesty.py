@@ -401,6 +401,7 @@ class Dynesty(NestedSampler):
             sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
+        self.result.information_gain = out.information[-1]
 
     def _run_nested_wrapper(self, kwargs):
         """ Wrapper function to run_nested
