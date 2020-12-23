@@ -6,7 +6,7 @@ import pickle
 import signal
 import time
 
-import tqdm
+from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
@@ -224,7 +224,7 @@ class Dynesty(NestedSampler):
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
         if self.kwargs['print_func'] is None:
             self.kwargs['print_func'] = self._print_func
-            self.pbar = tqdm.tqdm(file=sys.stdout)
+            self.pbar = tqdm(file=sys.stdout)
         Sampler._verify_kwargs_against_default_kwargs(self)
 
     def _print_func(self, results, niter, ncall=None, dlogz=None, *args, **kwargs):
