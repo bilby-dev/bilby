@@ -7,7 +7,6 @@ supernova waveforms. The first few PCs are then linearly combined with a scale
 factor. (See https://arxiv.org/pdf/1202.3256.pdf)
 
 """
-from __future__ import division, print_function
 import numpy as np
 import bilby
 

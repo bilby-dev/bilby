@@ -4,7 +4,6 @@ An example of how to use bilby with a (multi-modal) multivariate
 Gaussian prior distribution.
 """
 
-from __future__ import division
 import bilby
 import numpy as np
 from scipy import linalg, stats

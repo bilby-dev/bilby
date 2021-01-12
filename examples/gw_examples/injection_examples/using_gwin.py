@@ -15,7 +15,6 @@ of the model. So, in the following, we only create priors for the parameters
 to be searched over.
 
 """
-from __future__ import division, print_function
 import numpy as np
 import bilby
 

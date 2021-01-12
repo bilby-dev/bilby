@@ -7,7 +7,6 @@ $ python get_LOSC_event_data -e GW150914
 
 """
 
-from __future__ import division
 import numpy as np
 import os
 import argparse

@@ -1,5 +1,3 @@
-from __future__ import division
-
 import inspect
 import os
 from collections import OrderedDict, namedtuple

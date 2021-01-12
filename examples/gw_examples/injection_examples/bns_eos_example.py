@@ -8,7 +8,6 @@ and also estimates the tidal deformabilities using a uniform prior in both
 tidal deformabilities
 """
 
-from __future__ import division, print_function
 
 import numpy as np
 

@@ -3,7 +3,6 @@
 Testing the recovery of a multi-dimensional
 Gaussian with zero mean and unit variance
 """
-from __future__ import division
 import bilby
 import numpy as np
 

@@ -2,7 +2,6 @@
 """
 An example of how to use bilby to perform parameter estimation for hyper params
 """
-from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 from bilby.core.likelihood import GaussianLikelihood

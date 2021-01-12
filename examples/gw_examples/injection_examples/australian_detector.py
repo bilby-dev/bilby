@@ -5,7 +5,6 @@ Tutorial to demonstrate a new interferometer
 We place a new instrument in Gingin, with an A+ sensitivity in a network of A+
 interferometers at Hanford and Livingston
 """
-from __future__ import division, print_function
 
 import numpy as np
 

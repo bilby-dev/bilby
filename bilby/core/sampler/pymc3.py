@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 from distutils.version import StrictVersion

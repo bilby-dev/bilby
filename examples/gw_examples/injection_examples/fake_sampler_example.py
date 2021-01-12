@@ -2,7 +2,6 @@
 """
 Read ROQ posterior and calculate full likelihood at same parameter space points.
 """
-from __future__ import division, print_function
 
 import numpy as np
 import deepdish as dd

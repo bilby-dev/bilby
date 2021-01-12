@@ -16,7 +16,6 @@ https://lscsoft.docs.ligo.org/bilby/installation.html.
 """
 
 
-from __future__ import absolute_import
 import sys
 
 from . import core, gw, hyper

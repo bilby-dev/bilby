@@ -8,7 +8,6 @@ would give equivalent results as using the pre-defined 'Gaussian Likelihood'
 
 """
 
-from __future__ import division
 import bilby
 import numpy as np
 import matplotlib.pyplot as plt
