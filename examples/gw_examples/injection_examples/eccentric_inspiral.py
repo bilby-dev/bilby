@@ -10,7 +10,6 @@ Lower et al. (2018) -> arXiv:1806.05350.
 For a more comprehensive look at what goes on in each step, refer to the
 "basic_tutorial.py" example.
 """
-from __future__ import division
 
 import numpy as np
 import bilby

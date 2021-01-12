@@ -1,4 +1,3 @@
-from __future__ import division
 
 import gc
 import os

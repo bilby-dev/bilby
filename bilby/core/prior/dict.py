@@ -3,7 +3,6 @@ from io import open as ioopen
 import json
 import os
 
-from future.utils import iteritems
 from matplotlib.cbook import flatten
 import numpy as np
 
@@ -185,7 +184,7 @@ class PriorDict(dict):
 
     def from_dictionary(self, dictionary):
         eval_dict = dict(inf=np.inf)
-        for key, val in iteritems(dictionary):
+        for key, val in dictionary.items():
             if isinstance(val, Prior):
                 continue
             elif isinstance(val, (int, float)):

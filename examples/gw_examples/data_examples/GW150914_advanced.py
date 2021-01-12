@@ -10,7 +10,6 @@ LIST OF AVAILABLE EVENTS:
 
 List of events in BILBY dict: run -> help(bilby.gw.utils.get_event_time(event))
 """
-from __future__ import division, print_function
 import bilby
 from gwpy.timeseries import TimeSeries
 

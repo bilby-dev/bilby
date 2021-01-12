@@ -1,4 +1,3 @@
-from __future__ import division
 
 from distutils.spawn import find_executable
 import logging

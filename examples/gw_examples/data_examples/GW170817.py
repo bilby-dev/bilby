@@ -4,7 +4,6 @@ This tutorial includes advanced specifications
 for analysing binary neutron star event data.
 Here GW170817 is used as an example.
 """
-from __future__ import division, print_function
 import bilby
 
 outdir = 'outdir'

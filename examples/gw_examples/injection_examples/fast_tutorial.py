@@ -7,7 +7,6 @@ This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance
 between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
-from __future__ import division, print_function
 
 import numpy as np
 import bilby

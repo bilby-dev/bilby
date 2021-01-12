@@ -2,7 +2,6 @@
 """
 A script to demonstrate how to use your own source model
 """
-from __future__ import division, print_function
 import bilby
 import numpy as np
 
