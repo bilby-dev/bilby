@@ -1,5 +1,14 @@
 # All notable changes will be documented in this file
 
+## [1.0.3] 2020-11-23
+Version 1.0.4 release of bilby
+
+### Added
+- Added a chirp-mass and mass-ratio prior which are uniform in component masses (!891)
+
+### Changes
+- Fixed issue in the CI
+
 ## [1.0.3] 2020-10-23
 
 Version 1.0.3 release of bilby

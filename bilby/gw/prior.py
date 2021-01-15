@@ -4,11 +4,13 @@ import copy
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.integrate import cumtrapz
+from scipy.special import hyp2f1
 from scipy.stats import norm
 
 from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
                           Interped, Constraint, conditional_prior_factory,
-                          BaseJointPriorDist, JointPrior, JointPriorDistError)
+                          BaseJointPriorDist, JointPrior, JointPriorDistError,
+                          PowerLaw)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -283,6 +285,93 @@ class UniformSourceFrame(Cosmological):
                          self._maximum['redshift'] * 1.01, 1000)
         p_dz = self.cosmology.differential_comoving_volume(zs).value / (1 + zs)
         return zs, p_dz
+
+
+class UniformInComponentsChirpMass(PowerLaw):
+
+    def __init__(self, minimum, maximum, name='chirp_mass',
+                 latex_label='$\mathcal{M}$', unit=None, boundary=None):
+        """
+        Prior distribution for chirp mass which is uniform in component masses.
+
+        This is useful when chirp mass and mass ratio are sampled while the
+        prior is uniform in component masses.
+
+        Parameters
+        ----------
+        minimum : float
+            The minimum of chirp mass
+        maximum : float
+            The maximum of chirp mass
+        name: see superclass
+        latex_label: see superclass
+        unit: see superclass
+        boundary: see superclass
+        """
+        super(UniformInComponentsChirpMass, self).__init__(
+            alpha=1., minimum=minimum, maximum=maximum,
+            name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+
+
+class WrappedInterp1d(interp1d):
+    """ A wrapper around scipy interp1d which sets equality-by-instantiation """
+    def __eq__(self, other):
+
+        for key in self.__dict__:
+            if type(self.__dict__[key]) is np.ndarray:
+                if not np.array_equal(self.__dict__[key], other.__dict__[key]):
+                    return False
+            elif key == "_spline":
+                pass
+            elif getattr(self, key) != getattr(other, key):
+                return False
+        return True
+
+
+class UniformInComponentsMassRatio(Prior):
+
+    def __init__(self, minimum, maximum, name='mass_ratio', latex_label='$q$',
+                 unit=None, boundary=None):
+        """
+        Prior distribution for mass ratio which is uniform in component masses.
+
+        This is useful when chirp mass and mass ratio are sampled while the
+        prior is uniform in component masses.
+
+        Parameters
+        ----------
+        minimum : float
+            The minimum of mass ratio
+        maximum : float
+            The maximum of mass ratio
+        name: see superclass
+        latex_label: see superclass
+        unit: see superclass
+        boundary: see superclass
+        """
+        super(UniformInComponentsMassRatio, self).__init__(
+            minimum=minimum, maximum=maximum, name=name,
+            latex_label=latex_label, unit=unit, boundary=boundary)
+        self.norm = self._integral(maximum) - self._integral(minimum)
+        qs = np.linspace(minimum, maximum, 1000)
+        self.icdf = WrappedInterp1d(
+            self.cdf(qs), qs, kind='cubic',
+            bounds_error=False, fill_value=(minimum, maximum))
+
+    @staticmethod
+    def _integral(q):
+        return -5. * q**(-1. / 5.) * hyp2f1(-2. / 5., -1. / 5., 4. / 5., -q)
+
+    def cdf(self, val):
+        return (self._integral(val) - self._integral(self.minimum)) / self.norm
+
+    def rescale(self, val):
+        self.test_valid_for_rescaling(val)
+        return self.icdf(val)
+
+    def prob(self, val):
+        in_prior = (val >= self.minimum) & (val <= self.maximum)
+        return (1. + val)**(2. / 5.) / (val**(6. / 5.)) / self.norm * in_prior
 
 
 class AlignedSpin(Interped):

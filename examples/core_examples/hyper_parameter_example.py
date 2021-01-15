@@ -2,7 +2,6 @@
 """
 An example of how to use bilby to perform parameter estimation for hyper params
 """
-from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 from bilby.core.likelihood import GaussianLikelihood
@@ -48,7 +47,7 @@ for i in range(Nevents):
         likelihood=likelihood, priors=priors, sampler='nestle', nlive=1000,
         outdir=outdir, verbose=False, label='individual_{}'.format(i),
         save=False, injection_parameters=injection_parameters)
-    ax2.hist(result.posterior.c0, color=line[0].get_color(), normed=True,
+    ax2.hist(result.posterior.c0, color=line[0].get_color(), density=True,
              alpha=0.5, label=labels[i])
     results.append(result)
 
@@ -62,12 +61,12 @@ ax2.legend()
 fig2.savefig('outdir/hyper_parameter_combined_posteriors.png')
 
 
-def hyper_prior(data, mu, sigma):
-    return np.exp(- (data['c0'] - mu)**2 / (2 * sigma**2)) /\
+def hyper_prior(dataset, mu, sigma):
+    return np.exp(- (dataset['c0'] - mu)**2 / (2 * sigma**2)) /\
         (2 * np.pi * sigma**2)**0.5
 
 
-def run_prior(data):
+def run_prior(dataset):
     return 1 / 20
 
 

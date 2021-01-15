@@ -1,6 +1,6 @@
 # This dockerfile is written automatically and should not be modified by hand.
 
-FROM continuumio/miniconda3
+FROM containers.ligo.org/docker/base:conda
 LABEL name="bilby Base miniconda3" \
 maintainer="Gregory Ashton <gregory.ashton@ligo.org>"
 

@@ -3,7 +3,6 @@
 Tutorial to demonstrate how to specify the prior distributions used for
 parameter estimation.
 """
-from __future__ import division, print_function
 
 import numpy as np
 import bilby

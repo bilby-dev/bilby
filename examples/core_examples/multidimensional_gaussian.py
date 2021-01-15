@@ -3,7 +3,6 @@
 Testing the recovery of a multi-dimensional
 Gaussian with zero mean and unit variance
 """
-from __future__ import division
 import bilby
 import numpy as np
 
@@ -33,6 +32,7 @@ class MultidimGaussianLikelihood(bilby.Likelihood):
         """
 
     def __init__(self, data, dim):
+        super().__init__()
         self.dim = dim
         self.data = np.array(data)
         self.N = len(data)

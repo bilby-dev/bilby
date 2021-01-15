@@ -4,7 +4,6 @@ Tutorial to demonstrate running parameter estimation on a full 15 parameter
 space for an injected cbc signal. This is the standard injection analysis script
 one can modify for the study of injected CBC events.
 """
-from __future__ import division, print_function
 import numpy as np
 import bilby
 

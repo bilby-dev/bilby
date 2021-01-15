@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from collections import namedtuple
 import os
 import signal
@@ -12,8 +10,7 @@ from pandas import DataFrame
 from distutils.version import LooseVersion
 import dill as pickle
 
-from ..utils import (
-    logger, get_progress_bar, check_directory_exists_and_if_not_mkdir)
+from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import MCMCSampler, SamplerError
 
 
@@ -353,7 +350,7 @@ class Emcee(MCMCSampler):
         self.pos0 = self.sampler.chain[:, -1, :]
 
     def run_sampler(self):
-        tqdm = get_progress_bar()
+        from tqdm.auto import tqdm
         sampler_function_kwargs = self.sampler_function_kwargs
         iterations = sampler_function_kwargs.pop('iterations')
         iterations -= self._previous_iterations

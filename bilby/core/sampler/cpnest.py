@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 import array
 import copy
@@ -89,8 +88,8 @@ class Cpnest(NestedSampler):
                 prior_samples = self.priors.sample()
                 self._update_bounds()
                 point = LivePoint(
-                    self.names, array.array(
-                        'f', [prior_samples[name] for name in self.names]))
+                    self.names, array.array('d', [prior_samples[name] for name in self.names])
+                )
                 return point
 
         self._resolve_proposal_functions()
@@ -132,6 +131,7 @@ class Cpnest(NestedSampler):
         self.result.nested_samples['weights'] = np.exp(log_weights)
         self.result.log_evidence = out.NS.state.logZ
         self.result.log_evidence_err = np.sqrt(out.NS.state.info / out.NS.state.nlive)
+        self.result.information_gain = out.NS.state.info
         return self.result
 
     def _verify_kwargs_against_default_kwargs(self):

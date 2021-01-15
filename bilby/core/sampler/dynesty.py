@@ -6,7 +6,7 @@ import pickle
 import signal
 import time
 
-import tqdm
+from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
@@ -224,7 +224,7 @@ class Dynesty(NestedSampler):
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
         if self.kwargs['print_func'] is None:
             self.kwargs['print_func'] = self._print_func
-            self.pbar = tqdm.tqdm(file=sys.stdout)
+            self.pbar = tqdm(file=sys.stdout)
         Sampler._verify_kwargs_against_default_kwargs(self)
 
     def _print_func(self, results, niter, ncall=None, dlogz=None, *args, **kwargs):
@@ -401,6 +401,7 @@ class Dynesty(NestedSampler):
             sorted_samples=self.result.samples)
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
+        self.result.information_gain = out.information[-1]
 
     def _run_nested_wrapper(self, kwargs):
         """ Wrapper function to run_nested
@@ -612,7 +613,7 @@ class Dynesty(NestedSampler):
                 fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
                 fig.tight_layout()
                 fig.savefig(filename)
-            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError) as e:
+            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError, OverflowError, Exception) as e:
                 logger.warning(e)
                 logger.warning('Failed to create dynesty state plot at checkpoint')
             finally:
@@ -689,6 +690,16 @@ class Dynesty(NestedSampler):
 
         """
         return self.priors.rescale(self._search_parameter_keys, theta)
+
+    def calc_likelihood_count(self):
+        if self.likelihood_benchmark:
+            if hasattr(self, 'sampler'):
+                self.result.num_likelihood_evaluations = \
+                    getattr(self.sampler, 'ncall', 0)
+            else:
+                self.result.num_likelihood_evaluations = 0
+        else:
+            return None
 
 
 def sample_rwalk_bilby(args):

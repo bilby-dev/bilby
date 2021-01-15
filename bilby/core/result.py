@@ -1,5 +1,3 @@
-from __future__ import division
-
 import inspect
 import os
 from collections import OrderedDict, namedtuple
@@ -238,8 +236,9 @@ class Result(object):
                  sampler_kwargs=None, injection_parameters=None,
                  meta_data=None, posterior=None, samples=None,
                  nested_samples=None, log_evidence=np.nan,
-                 log_evidence_err=np.nan, log_noise_evidence=np.nan,
-                 log_bayes_factor=np.nan, log_likelihood_evaluations=None,
+                 log_evidence_err=np.nan, information_gain=np.nan,
+                 log_noise_evidence=np.nan, log_bayes_factor=np.nan,
+                 log_likelihood_evaluations=None,
                  log_prior_evaluations=None, sampling_time=None, nburn=None,
                  num_likelihood_evaluations=None, walkers=None,
                  max_autocorrelation_time=None, use_ratio=None,
@@ -269,6 +268,8 @@ class Result(object):
             An array of the output posterior samples and the unweighted samples
         log_evidence, log_evidence_err, log_noise_evidence, log_bayes_factor: float
             Natural log evidences
+        information_gain: float
+            The Kullback-Leibler divergence
         log_likelihood_evaluations: array_like
             The evaluations of the likelihood for each sample point
         num_likelihood_evaluations: int
@@ -321,6 +322,7 @@ class Result(object):
         self.use_ratio = use_ratio
         self.log_evidence = log_evidence
         self.log_evidence_err = log_evidence_err
+        self.information_gain = information_gain
         self.log_noise_evidence = log_noise_evidence
         self.log_bayes_factor = log_bayes_factor
         self.log_likelihood_evaluations = log_likelihood_evaluations
@@ -573,7 +575,7 @@ class Result(object):
             'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
             'injection_parameters', 'meta_data', 'search_parameter_keys',
             'fixed_parameter_keys', 'constraint_parameter_keys',
-            'sampling_time', 'sampler_kwargs', 'use_ratio',
+            'sampling_time', 'sampler_kwargs', 'use_ratio', 'information_gain',
             'log_likelihood_evaluations', 'log_prior_evaluations',
             'num_likelihood_evaluations', 'samples', 'nested_samples',
             'walkers', 'nburn', 'parameter_labels', 'parameter_labels_with_unit',

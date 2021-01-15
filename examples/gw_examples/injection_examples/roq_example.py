@@ -8,7 +8,6 @@ This requires files specifying the appropriate basis weights.
 These aren't shipped with Bilby, but are available on LDG clusters and
 from the public repository https://git.ligo.org/lscsoft/ROQ_data.
 """
-from __future__ import division, print_function
 
 import numpy as np
 

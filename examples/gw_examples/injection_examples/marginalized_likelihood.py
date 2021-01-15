@@ -6,7 +6,6 @@ estimation on an injected signal using time, phase and distance marginalisation.
 We also demonstrate how the posterior distribution for the marginalised
 parameter can be recovered in post-processing.
 """
-from __future__ import division, print_function
 import bilby
 import numpy as np
 

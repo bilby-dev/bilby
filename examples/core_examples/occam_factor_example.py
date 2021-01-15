@@ -30,7 +30,6 @@ Note - the code uses a course 100-point estimation for speed, results can be
 improved by increasing this to say 500 or 1000.
 
 """
-from __future__ import division
 import bilby
 import numpy as np
 import matplotlib.pyplot as plt

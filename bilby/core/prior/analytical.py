@@ -389,7 +389,7 @@ class Cosine(Prior):
         boundary: str
             See superclass
         """
-        super(Cosine, self).__init__(minimum=minimum, maximum=maximum,  name=name,
+        super(Cosine, self).__init__(minimum=minimum, maximum=maximum, name=name,
                                      latex_label=latex_label, unit=unit, boundary=boundary)
 
     def rescale(self, val):

@@ -3,7 +3,6 @@
 Tutorial to demonstrate running parameter estimation with calibration
 uncertainties included.
 """
-from __future__ import division, print_function
 
 import numpy as np
 import bilby

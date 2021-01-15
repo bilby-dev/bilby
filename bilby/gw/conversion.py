@@ -1,8 +1,7 @@
-from __future__ import division
 import sys
 import multiprocessing
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import numpy as np
 from pandas import DataFrame
 

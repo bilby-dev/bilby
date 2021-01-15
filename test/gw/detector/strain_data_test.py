@@ -35,6 +35,49 @@ class TestInterferometerStrainData(unittest.TestCase):
                 np.array_equal(self.ifosd.frequency_mask, [False, True, False])
             )
 
+    def test_frequency_mask_2(self):
+        strain_data = bilby.gw.detector.InterferometerStrainData(
+            minimum_frequency=20, maximum_frequency=512)
+        strain_data.set_from_time_domain_strain(
+            time_domain_strain=np.random.normal(0, 1, 4096),
+            time_array=np.arange(0, 4, 4 / 4096)
+        )
+
+        # Test from init
+        freqs = strain_data.frequency_array[strain_data.frequency_mask]
+        self.assertTrue(all(freqs >= 20))
+        self.assertTrue(all(freqs <= 512))
+
+        # Test from update
+        strain_data.minimum_frequency = 30
+        strain_data.maximum_frequency = 256
+        freqs = strain_data.frequency_array[strain_data.frequency_mask]
+        self.assertTrue(all(freqs >= 30))
+        self.assertTrue(all(freqs <= 256))
+
+    def test_notches_frequency_mask(self):
+        strain_data = bilby.gw.detector.InterferometerStrainData(
+            minimum_frequency=20, maximum_frequency=512, notch_list=[(100, 101)])
+        strain_data.set_from_time_domain_strain(
+            time_domain_strain=np.random.normal(0, 1, 4096),
+            time_array=np.arange(0, 4, 4 / 4096)
+        )
+
+        # Test from init
+        freqs = strain_data.frequency_array[strain_data.frequency_mask]
+        idxs = (freqs > 100) * (freqs < 101)
+        self.assertTrue(len(freqs[idxs]) == 0)
+
+        # Test from setting
+        idxs = (freqs > 200) * (freqs < 201)
+        self.assertTrue(len(freqs[idxs]) > 0)
+        strain_data.notch_list = [(100, 101), (200, 201)]
+        freqs = strain_data.frequency_array[strain_data.frequency_mask]
+        idxs = (freqs > 200) * (freqs < 201)
+        self.assertTrue(len(freqs[idxs]) == 0)
+        idxs = (freqs > 100) * (freqs < 101)
+        self.assertTrue(len(freqs[idxs]) == 0)
+
     def test_set_data_fails(self):
         with mock.patch("bilby.core.utils.create_frequency_series") as m:
             m.return_value = [1, 2, 3]
@@ -314,6 +357,68 @@ class TestInterferometerStrainDataEquals(unittest.TestCase):
         )
         self.ifosd_1._time_domain_strain = new_strain
         self.assertNotEqual(self.ifosd_1, self.ifosd_2)
+
+
+class TestNotch(unittest.TestCase):
+    def setUp(self):
+        self.minimum_frequency = 20
+        self.maximum_frequency = 1024
+
+    def test_init(self):
+        notch = bilby.gw.detector.strain_data.Notch(self.minimum_frequency, self.maximum_frequency)
+        self.assertEqual(notch.minimum_frequency, self.minimum_frequency)
+        self.assertEqual(notch.maximum_frequency, self.maximum_frequency)
+
+    def test_init_fail(self):
+        # Infinite frequency
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.Notch(self.minimum_frequency, np.inf)
+
+        # Negative frequency
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.Notch(-10, 1024)
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.Notch(10, -1024)
+
+        # Ordering
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.Notch(30, 20)
+
+    def test_idxs(self):
+        notch = bilby.gw.detector.strain_data.Notch(self.minimum_frequency, self.maximum_frequency)
+        freqs = np.linspace(0, 2048, 100)
+        idxs = notch.get_idxs(freqs)
+        self.assertEqual(len(idxs), len(freqs))
+        freqs_masked = freqs[idxs]
+        self.assertTrue(all(freqs_masked > notch.minimum_frequency))
+        self.assertTrue(all(freqs_masked < notch.maximum_frequency))
+
+
+class TestNotchList(unittest.TestCase):
+
+    def test_init_single(self):
+        notch_list_of_tuples = [(32, 34)]
+        notch_list = bilby.gw.detector.strain_data.NotchList(notch_list_of_tuples)
+        self.assertEqual(len(notch_list), len(notch_list_of_tuples))
+        for notch, notch_tuple in zip(notch_list, notch_list_of_tuples):
+            self.assertEqual(notch.minimum_frequency, notch_tuple[0])
+            self.assertEqual(notch.maximum_frequency, notch_tuple[1])
+
+    def test_init_multiple(self):
+        notch_list_of_tuples = [(32, 34), (56, 59)]
+        notch_list = bilby.gw.detector.strain_data.NotchList(notch_list_of_tuples)
+        self.assertEqual(len(notch_list), len(notch_list_of_tuples))
+        for notch, notch_tuple in zip(notch_list, notch_list_of_tuples):
+            self.assertEqual(notch.minimum_frequency, notch_tuple[0])
+            self.assertEqual(notch.maximum_frequency, notch_tuple[1])
+
+    def test_init_fail(self):
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.NotchList([20, 30])
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.NotchList([(30, 20), (20)])
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.strain_data.NotchList([(30, 20, 20)])
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@
 Example script which produces posterior samples of ra and dec and generates a
 skymap
 """
-from __future__ import division, print_function
 import bilby
 
 duration = 4.

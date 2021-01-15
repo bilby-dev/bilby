@@ -43,7 +43,7 @@ basic-3.7:
 # test example on python 3.7
 python-3.7:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python -m pip install .
 
@@ -69,7 +69,7 @@ python-3.7:
 # test example on python 3.8
 python-3.8:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python38
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python38
   script:
     - python -m pip install .
 
@@ -78,7 +78,7 @@ python-3.8:
 # test example on python 3.6
 python-3.6:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python36
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
   script:
     - python -m pip install .
 
@@ -87,7 +87,7 @@ python-3.6:
 # test samplers on python 3.7
 python-3.7-samplers:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python -m pip install .
 
@@ -97,7 +97,7 @@ python-3.7-samplers:
 # test samplers on python 3.6
 python-3.6-samplers:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python36
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
   script:
     - python -m pip install .
 
@@ -106,7 +106,7 @@ python-3.6-samplers:
 # Test containers are up to date
 containers:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - cd containers
     - python write_dockerfiles.py
@@ -117,7 +117,7 @@ containers:
 # Tests run at a fixed schedule rather than on push
 scheduled-python-3.7:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   only:
     - schedules
   script:
@@ -129,7 +129,7 @@ scheduled-python-3.7:
 
 plotting:
   stage: test
-  image: bilbydev/bilby-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   only:
     - schedules
   script:
@@ -140,7 +140,7 @@ plotting:
 
 authors:
   stage: test
-  image: bilbydev/bilby-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python test/check_author_list.py
 
@@ -162,7 +162,7 @@ pages:
 
 deploy_release:
   stage: deploy
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   variables:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
@@ -177,7 +177,7 @@ deploy_release:
 
 precommits-py3.7:
   stage: test
-  image: bilbydev/v2-dockerfile-test-suite-python37
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - source activate python37
     - mkdir -p .pip37

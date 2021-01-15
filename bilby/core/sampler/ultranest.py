@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 import datetime
 import distutils.dir_util
@@ -61,7 +60,7 @@ class Ultranest(NestedSampler):
         log_interval=None,
         dlogz=None,
         max_iters=None,
-        update_interval_iter_fraction=0.2,
+        update_interval_volume_fraction=0.2,
         viz_callback=None,
         dKL=0.5,
         frac_remain=0.01,
@@ -232,7 +231,7 @@ class Ultranest(NestedSampler):
             ]
         else:
             keys = [
-                "update_interval_iter_fraction",
+                "update_interval_volume_fraction",
                 "update_interval_ncall",
                 "log_interval",
                 "show_status",
@@ -366,6 +365,8 @@ class Ultranest(NestedSampler):
         self.result.nested_samples = nested_samples
         self.result.log_evidence = out["logz"]
         self.result.log_evidence_err = out["logzerr"]
+        if self.kwargs["num_live_points"] is not None:
+            self.result.information_gain = np.power(out["logzerr"], 2) * self.kwargs["num_live_points"]
 
         self.result.outputfiles_basename = self.outputfiles_basename
         self.result.sampling_time = datetime.timedelta(seconds=self.total_sampling_time)

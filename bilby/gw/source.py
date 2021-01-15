@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import numpy as np
 
 from ..core import utils
@@ -343,6 +341,15 @@ def _base_lal_cbc_fd_waveform(
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
 
+    for key, value in waveform_kwargs.items():
+        func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
+        if func is not None:
+            func(waveform_dictionary, value)
+
+    if waveform_kwargs.get('numerical_relativity_file', None) is not None:
+        lalsim.SimInspiralWaveformParamsInsertNumRelData(
+            waveform_dictionary, waveform_kwargs['numerical_relativity_file'])
+
     if ('mode_array' in waveform_kwargs) and waveform_kwargs['mode_array'] is not None:
         mode_array = waveform_kwargs['mode_array']
         mode_array_lal = lalsim.SimInspiralCreateModeArray()
@@ -399,11 +406,10 @@ def _base_lal_cbc_fd_waveform(
     h_cross *= frequency_bounds
 
     if wf_func == lalsim_SimInspiralFD:
-        dt = 1. / delta_frequency + (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
-        h_plus *= np.exp(
-            -1j * 2 * np.pi * dt * frequency_array)
-        h_cross *= np.exp(
-            -1j * 2 * np.pi * dt * frequency_array)
+        dt = 1 / hplus.deltaF + (hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9)
+        time_shift = np.exp(-1j * 2 * np.pi * dt * frequency_array[frequency_bounds])
+        h_plus[frequency_bounds] *= time_shift
+        h_cross[frequency_bounds] *= time_shift
 
     return dict(plus=h_plus, cross=h_cross)
 
