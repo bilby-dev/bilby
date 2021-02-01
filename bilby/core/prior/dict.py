@@ -391,6 +391,7 @@ class PriorDict(dict):
             samples = self.sample_subset(keys=keys, size=sampling_chunk)
             keep = np.atleast_1d(self.evaluate_constraints(samples))
             if len(keep) == 1:
+                self._cached_normalizations[keys] = 1
                 return 1
             all_samples = {key: np.array([]) for key in keys}
             while np.count_nonzero(keep) < min_accept:
