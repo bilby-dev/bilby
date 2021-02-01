@@ -40,6 +40,15 @@ class TestRunningSamplers(unittest.TestCase):
             resume=False,
         )
 
+    def test_run_dnest4(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="dnest4",
+            nlive=100,
+            save=False,
+        )
+
     def test_run_dynesty(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood,
