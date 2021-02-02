@@ -166,6 +166,7 @@ class GravitationalWaveTransient(Likelihood):
             self.distance_prior_array = np.array(
                 [self.priors['luminosity_distance'].prob(distance)
                  for distance in self._distance_array])
+            self._ref_dist = self.priors['luminosity_distance'].rescale(0.5)
             if self.phase_marginalization:
                 max_bound = np.ceil(10 + np.log10(self._dist_multiplier))
                 self._setup_phase_marginalization(max_bound=max_bound)
@@ -596,11 +597,6 @@ class GravitationalWaveTransient(Likelihood):
     @property
     def _delta_distance(self):
         return self._distance_array[1] - self._distance_array[0]
-
-    @property
-    def _ref_dist(self):
-        """ Median distance in priors """
-        return self.priors['luminosity_distance'].rescale(0.5)
 
     @property
     def _dist_multiplier(self):
