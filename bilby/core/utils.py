@@ -1250,7 +1250,7 @@ def get_function_path(func):
 
 
 def loaded_modules_dict():
-    module_names = sys.modules.keys()
+    module_names = list(sys.modules.keys())
     vdict = {}
     for key in module_names:
         if "." not in key:
