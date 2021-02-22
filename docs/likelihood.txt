@@ -213,10 +213,7 @@ instantiating the likelihood::
           return -0.5 * (np.sum((res / sigma)**2)
                          + self.N*np.log(2*np.pi*sigma**2))
 
-We provide this general-purpose class as part of bilby:
-
-.. autoclass:: bilby.core.likelihood.GaussianLikelihood
-   :members:
+We provide this general-purpose class as part of bilby :code:`bilby.core.likelihood.GaussianLikleihood`
 
 An example using this likelihood can be found `on this page <https://git.ligo.org/lscsoft/bilby/blob/master/examples/other_examples/linear_regression_unknown_noise.py>`_.
 
@@ -226,19 +223,12 @@ Common likelihood functions
 As well as the Gaussian likelihood defined above, bilby provides
 the following common likelihood functions:
 
-.. autoclass:: bilby.core.likelihood.PoissonLikelihood
-   :members:
-
-.. autoclass:: bilby.core.likelihood.StudentTLikelihood
-   :members:
-
-.. autoclass:: bilby.core.likelihood.ExponentialLikelihood
-   :members:
+- :code:`bilby.core.likelihood.PoissonLikelihood`
+- :code:`bilby.core.likelihood.StudentTLikelihood`
+- :code:`bilby.core.likelihood.ExponentialLikelihood`
 
 Empty likelihood for subclassing
 --------------------------------
 
 We provide an empty parent class which can be subclassed for alternative use
-cases
-
-.. autoclass:: bilby.Likelihood
+cases :code:`bilby.Likelihood`

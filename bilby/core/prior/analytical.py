@@ -13,7 +13,7 @@ class DeltaFunction(Prior):
         """Dirac delta function prior, this always returns peak.
 
         Parameters
-        ----------
+        ==========
         peak: float
             Peak value of the delta function
         name: str
@@ -33,11 +33,11 @@ class DeltaFunction(Prior):
         """Rescale everything to the peak with the correct shape.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Rescaled probability, equivalent to peak
         """
         self.test_valid_for_rescaling(val)
@@ -47,11 +47,11 @@ class DeltaFunction(Prior):
         """Return the prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
          Union[float, array_like]: np.inf if val = peak, 0 otherwise
 
         """
@@ -69,7 +69,7 @@ class PowerLaw(Prior):
         """Power law with bounds and alpha, spectral index
 
         Parameters
-        ----------
+        ==========
         alpha: float
             Power law exponent parameter
         minimum: float
@@ -97,12 +97,12 @@ class PowerLaw(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             Uniform probability
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
@@ -116,11 +116,11 @@ class PowerLaw(Prior):
         """Return the prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         if self.alpha == -1:
@@ -134,11 +134,11 @@ class PowerLaw(Prior):
         """Return the logarithmic prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float:
 
         """
@@ -170,7 +170,7 @@ class Uniform(Prior):
         """Uniform prior with bounds
 
         Parameters
-        ----------
+        ==========
         minimum: float
             See superclass
         maximum: float
@@ -195,12 +195,12 @@ class Uniform(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             Uniform probability
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
@@ -210,11 +210,11 @@ class Uniform(Prior):
         """Return the prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         return ((val >= self.minimum) & (val <= self.maximum)) / (self.maximum - self.minimum)
@@ -223,11 +223,11 @@ class Uniform(Prior):
         """Return the log prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: log probability of val
         """
         return xlogy(1, (val >= self.minimum) & (val <= self.maximum)) - xlogy(1, self.maximum - self.minimum)
@@ -246,7 +246,7 @@ class LogUniform(PowerLaw):
         """Log-Uniform prior with bounds
 
         Parameters
-        ----------
+        ==========
         minimum: float
             See superclass
         maximum: float
@@ -278,7 +278,7 @@ class SymmetricLogUniform(Prior):
         maximum].
 
         Parameters
-        ----------
+        ==========
         minimum: float
             See superclass
         maximum: float
@@ -303,12 +303,12 @@ class SymmetricLogUniform(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             Uniform probability
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Rescaled probability
         """
         self.test_valid_for_rescaling(val)
@@ -330,11 +330,11 @@ class SymmetricLogUniform(Prior):
         """Return the prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         val = np.abs(val)
@@ -345,11 +345,11 @@ class SymmetricLogUniform(Prior):
         """Return the logarithmic prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float:
 
         """
@@ -375,7 +375,7 @@ class Cosine(Prior):
         """Cosine prior with bounds
 
         Parameters
-        ----------
+        ==========
         minimum: float
             See superclass
         maximum: float
@@ -406,11 +406,11 @@ class Cosine(Prior):
         """Return the prior probability of val. Defined over [-pi/2, pi/2].
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         return np.cos(val) / 2 * self.is_in_prior_range(val)
@@ -430,7 +430,7 @@ class Sine(Prior):
         """Sine prior with bounds
 
         Parameters
-        ----------
+        ==========
         minimum: float
             See superclass
         maximum: float
@@ -461,11 +461,11 @@ class Sine(Prior):
         """Return the prior probability of val. Defined over [0, pi].
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return np.sin(val) / 2 * self.is_in_prior_range(val)
@@ -484,7 +484,7 @@ class Gaussian(Prior):
         """Gaussian prior with mean mu and width sigma
 
         Parameters
-        ----------
+        ==========
         mu: float
             Mean of the Gaussian prior
         sigma:
@@ -507,7 +507,7 @@ class Gaussian(Prior):
         'Rescale' a sample from the unit line element to the appropriate Gaussian prior.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         This maps to the inverse CDF. This has been analytically solved for this case.
@@ -519,11 +519,11 @@ class Gaussian(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
@@ -532,11 +532,11 @@ class Gaussian(Prior):
         """Return the Log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
 
@@ -559,7 +559,7 @@ class TruncatedGaussian(Prior):
         https://en.wikipedia.org/wiki/Truncated_normal_distribution
 
         Parameters
-        ----------
+        ==========
         mu: float
             Mean of the Gaussian prior
         sigma:
@@ -587,7 +587,7 @@ class TruncatedGaussian(Prior):
         """ Calculates the proper normalisation of the truncated Gaussian
 
         Returns
-        -------
+        =======
         float: Proper normalisation of the truncated Gaussian
         """
         return (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
@@ -607,11 +607,11 @@ class TruncatedGaussian(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 \
@@ -635,7 +635,7 @@ class HalfGaussian(TruncatedGaussian):
         """A Gaussian with its mode at zero, and truncated to only be positive.
 
         Parameters
-        ----------
+        ==========
         sigma: float
             See superclass
         name: str
@@ -663,7 +663,7 @@ class LogNormal(Prior):
         https://en.wikipedia.org/wiki/Log-normal_distribution
 
         Parameters
-        ----------
+        ==========
         mu: float
             Mean of the Gaussian prior
         sigma:
@@ -699,11 +699,11 @@ class LogNormal(Prior):
         """Returns the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         if isinstance(val, (float, int)):
@@ -723,11 +723,11 @@ class LogNormal(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         if isinstance(val, (float, int)):
@@ -765,7 +765,7 @@ class Exponential(Prior):
         """Exponential prior with mean mu
 
         Parameters
-        ----------
+        ==========
         mu: float
             Mean of the Exponential prior
         name: str
@@ -794,11 +794,11 @@ class Exponential(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         if isinstance(val, (float, int)):
@@ -815,11 +815,11 @@ class Exponential(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         if isinstance(val, (float, int)):
@@ -853,7 +853,7 @@ class StudentT(Prior):
         https://en.wikipedia.org/wiki/Student%27s_t-distribution#Generalized_Student's_t-distribution
 
         Parameters
-        ----------
+        ==========
         df: float
             Number of degrees of freedom for distribution
         mu: float
@@ -902,11 +902,11 @@ class StudentT(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return np.exp(self.ln_prob(val))
@@ -915,11 +915,11 @@ class StudentT(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return gammaln(0.5 * (self.df + 1)) - gammaln(0.5 * self.df)\
@@ -941,7 +941,7 @@ class Beta(Prior):
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.beta.html
 
         Parameters
-        ----------
+        ==========
         alpha: float
             first shape parameter
         beta: float
@@ -981,11 +981,11 @@ class Beta(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return np.exp(self.ln_prob(val))
@@ -994,11 +994,11 @@ class Beta(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         _ln_prob = xlogy(self.alpha - 1, val - self.minimum) + xlogy(self.beta - 1, self.maximum - val)\
@@ -1039,7 +1039,7 @@ class Logistic(Prior):
         https://en.wikipedia.org/wiki/Logistic_distribution
 
         Parameters
-        ----------
+        ==========
         mu: float
             Mean of the distribution
         scale: float
@@ -1086,11 +1086,11 @@ class Logistic(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return np.exp(self.ln_prob(val))
@@ -1099,11 +1099,11 @@ class Logistic(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return -(val - self.mu) / self.scale -\
@@ -1120,7 +1120,7 @@ class Cauchy(Prior):
         https://en.wikipedia.org/wiki/Cauchy_distribution
 
         Parameters
-        ----------
+        ==========
         alpha: float
             Location parameter
         beta: float
@@ -1164,11 +1164,11 @@ class Cauchy(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         return 1. / self.beta / np.pi / (1. + ((val - self.alpha) / self.beta) ** 2)
@@ -1177,11 +1177,11 @@ class Cauchy(Prior):
         """Return the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Log prior probability of val
         """
         return - np.log(self.beta * np.pi) - np.log(1. + ((val - self.alpha) / self.beta) ** 2)
@@ -1201,7 +1201,7 @@ class Gamma(Prior):
         https://en.wikipedia.org/wiki/Gamma_distribution
 
         Parameters
-        ----------
+        ==========
         k: float
             The shape parameter
         theta: float
@@ -1237,11 +1237,11 @@ class Gamma(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val:  Union[float, int, array_like]
 
         Returns
-        -------
+        =======
          Union[float, array_like]: Prior probability of val
         """
         return np.exp(self.ln_prob(val))
@@ -1250,11 +1250,11 @@ class Gamma(Prior):
         """Returns the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Prior probability of val
         """
         if isinstance(val, (float, int)):
@@ -1288,7 +1288,7 @@ class ChiSquared(Gamma):
         https://en.wikipedia.org/wiki/Chi-squared_distribution
 
         Parameters
-        ----------
+        ==========
         nu: int
             Number of degrees of freedom
         name: str
@@ -1324,7 +1324,7 @@ class FermiDirac(Prior):
         is defined by Equation 22 of [1]_.
 
         Parameters
-        ----------
+        ==========
         sigma: float (required)
             The range over which the attenuation of the distribution happens
         mu: float
@@ -1341,7 +1341,7 @@ class FermiDirac(Prior):
             See superclass
 
         References
-        ----------
+        ==========
 
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
@@ -1370,14 +1370,14 @@ class FermiDirac(Prior):
         'Rescale' a sample from the unit line element to the appropriate Fermi-Dirac prior.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         This maps to the inverse CDF. This has been analytically solved for this case,
         see Equation 24 of [1]_.
 
         References
-        ----------
+        ==========
 
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
@@ -1404,11 +1404,11 @@ class FermiDirac(Prior):
         """Return the prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         float: Prior probability of val
         """
         return np.exp(self.ln_prob(val))
@@ -1417,11 +1417,11 @@ class FermiDirac(Prior):
         """Return the log prior probability of val.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         Union[float, array_like]: Log prior probability of val
         """
 

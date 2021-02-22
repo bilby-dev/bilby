@@ -72,11 +72,6 @@ this can also be done::
                                                        duration=duration,
                                                        start_time=start_time)
 
-Here is the full API:
-
-.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_frequency_domain_strain
-
-
 Setting the strain data to be Gaussian noise
 ============================================
 
@@ -84,18 +79,18 @@ Often, for testing, you may want to just generate a realization of coloured
 Gaussian noise from the power spectral density. This can be done using this
 method:
 
-.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_power_spectral_density
+   >>> H1.set_strain_data_from_power_spectral_density
 
 Setting the strain data to be zero noise
 ========================================
 
 You can also set the strain data without any noise at all
 
-.. automethod:: bilby.gw.detector.Interferometer.set_strain_data_from_zero_noise
+   >>> H1.set_strain_data_from_zero_noise
 
 Injecting a signal
 ------------------
 
 If you wish to inject a signal into the data, you can use this function
 
-.. automethod:: bilby.gw.detector.Interferometer.inject_signal
+   >>> bilby.gw.detector.Interferometer.inject_signal

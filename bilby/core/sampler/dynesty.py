@@ -79,7 +79,7 @@ class Dynesty(NestedSampler):
     we list commonly all kwargs and the bilby defaults.
 
     Parameters
-    ----------
+    ==========
     likelihood: likelihood.Likelihood
         A  object with a log_l method
     priors: bilby.core.prior.PriorDict, dict
@@ -99,7 +99,7 @@ class Dynesty(NestedSampler):
         only advisable for testing environments
 
     Other Parameters
-    ----------------
+    ------==========
     npoints: int, (1000)
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]
@@ -410,7 +410,7 @@ class Dynesty(NestedSampler):
         dynesty accepting different arguments.
 
         Parameters
-        ----------
+        ==========
         kwargs: dict
             The dictionary of kwargs to pass to run_nested
 
@@ -475,7 +475,7 @@ class Dynesty(NestedSampler):
         The previous run time is set to self.
 
         Parameters
-        ----------
+        ==========
         continuing: bool
             Whether the run is continuing or terminating, if True, the loaded
             state is mostly written back to disk.
@@ -680,12 +680,12 @@ class Dynesty(NestedSampler):
         cube we map this back to [0, 1].
 
         Parameters
-        ----------
+        ==========
         theta: list
             List of sampled values on a unit interval
 
         Returns
-        -------
+        =======
         list: Properly rescaled sampled values
 
         """
@@ -820,13 +820,13 @@ def sample_rwalk_bilby(args):
 def estimate_nmcmc(accept_ratio, old_act, maxmcmc, safety=5, tau=None):
     """ Estimate autocorrelation length of chain using acceptance fraction
 
-    Using ACL = (2/acc) - 1 multiplied by a safety margin. Code adapated from
-    CPNest:
-        - https://github.com/johnveitch/cpnest/blob/master/cpnest/sampler.py
-        - http://github.com/farr/Ensemble.jl
+    Using ACL = (2/acc) - 1 multiplied by a safety margin. Code adapated from CPNest:
+
+    - https://github.com/johnveitch/cpnest/blob/master/cpnest/sampler.py
+    - http://github.com/farr/Ensemble.jl
 
     Parameters
-    ----------
+    ==========
     accept_ratio: float [0, 1]
         Ratio of the number of accepted points to the total number of points
     old_act: int

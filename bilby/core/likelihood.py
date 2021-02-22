@@ -13,7 +13,7 @@ class Likelihood(object):
         """Empty likelihood class to be subclassed by other likelihoods
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             A dictionary of the parameter names and associated values
         """
@@ -28,7 +28,7 @@ class Likelihood(object):
         """
 
         Returns
-        -------
+        =======
         float
         """
         return np.nan
@@ -37,7 +37,7 @@ class Likelihood(object):
         """
 
         Returns
-        -------
+        =======
         float
         """
         return np.nan
@@ -46,7 +46,7 @@ class Likelihood(object):
         """Difference between log likelihood and noise log likelihood
 
         Returns
-        -------
+        =======
         float
         """
         return self.log_likelihood() - self.noise_log_likelihood()
@@ -71,7 +71,7 @@ class ZeroLikelihood(Likelihood):
     """ A special test-only class which already returns zero likelihood
 
     Parameters
-    ----------
+    ==========
     likelihood: bilby.core.likelihood.Likelihood
         A likelihood object to mimic
 
@@ -98,7 +98,7 @@ class Analytical1DLikelihood(Likelihood):
     parameters are inferred from the arguments of function
 
     Parameters
-    ----------
+    ==========
     x, y: array_like
         The data to analyse
     func:
@@ -174,7 +174,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         parameters are inferred from the arguments of function
 
         Parameters
-        ----------
+        ==========
         x, y: array_like
             The data to analyse
         func:
@@ -235,7 +235,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
         inferred from the arguments of function, which provides a rate.
 
         Parameters
-        ----------
+        ==========
 
         x: array_like
             A dependent variable at which the Poisson rates will be calculated
@@ -291,7 +291,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         An exponential likelihood function.
 
         Parameters
-        ----------
+        ==========
 
         x, y: array_like
             The data to analyse
@@ -338,7 +338,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
         https://en.wikipedia.org/wiki/Student%27s_t-distribution#Generalized_Student's_t-distribution
 
         Parameters
-        ----------
+        ==========
         x, y: array_like
             The data to analyse
         func:
@@ -410,7 +410,7 @@ class Multinomial(Likelihood):
         """
 
         Parameters
-        ----------
+        ==========
         data: array-like
             The number of objects in each class
         n_dimensions: int
@@ -454,7 +454,7 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
         with known analytic solution.
 
         Parameters
-        ----------
+        ==========
         mean: array_like
             Array with the mean values of distribution
         cov: array_like
@@ -484,7 +484,7 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
         with known analytic solution.
 
         Parameters
-        ----------
+        ==========
         mean_1: array_like
             Array with the mean value of the first mode
         mean_2: array_like
@@ -523,7 +523,7 @@ class JointLikelihood(Likelihood):
         set consistently
 
         Parameters
-        ----------
+        ==========
         *likelihoods: bilby.core.likelihood.Likelihood
             likelihoods to be combined parsed as arguments
         """

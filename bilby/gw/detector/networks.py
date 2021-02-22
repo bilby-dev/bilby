@@ -23,7 +23,7 @@ class InterferometerList(list):
         object has the data used in evaluating the likelihood
 
         Parameters
-        ----------
+        ==========
         interferometers: iterable
             The list of interferometers
         """
@@ -76,7 +76,7 @@ class InterferometerList(list):
         `bilby.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
-        ----------
+        ==========
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -98,7 +98,7 @@ class InterferometerList(list):
         `bilby.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
-        ----------
+        ==========
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -116,7 +116,7 @@ class InterferometerList(list):
         """ Inject a signal into noise in each of the three detectors.
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict
@@ -128,14 +128,14 @@ class InterferometerList(list):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note
-        ----------
+        Notes
+        ==========
         if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
         Returns
-        -------
+        =======
         injection_polarizations: dict
 
         """
@@ -159,7 +159,7 @@ class InterferometerList(list):
         """ Creates a save file for the data in plain text format
 
         Parameters
-        ----------
+        ==========
         outdir: str
             The output directory in which the data is supposed to be saved
         label: str
@@ -224,7 +224,7 @@ class InterferometerList(list):
         """ Saves the object to a hdf5 file
 
         Parameters
-        ----------
+        ==========
         outdir: str, optional
             Output directory name of the file
         label: str, optional
@@ -244,7 +244,7 @@ class InterferometerList(list):
         """ Loads in an InterferometerList object from an hdf5 file
 
         Parameters
-        ----------
+        ==========
         filename: str
             If given, try to load from this filename
 
@@ -296,7 +296,7 @@ def get_event_data(
     Get open data for a specified event.
 
     Parameters
-    ----------
+    ==========
     event: str
         Event descriptor, this can deal with some prefixes, e.g., '150914',
         'GW150914', 'LVT151012'
@@ -324,8 +324,8 @@ def get_event_data(
         All keyword arguments are passed to
         `gwpy.timeseries.TimeSeries.fetch_open_data()`.
 
-    Return
-    ------
+    Returns
+    ======
     list: A list of bilby.gw.detector.Interferometer objects
     """
 
@@ -376,12 +376,12 @@ def get_empty_interferometer(name):
 
 
     Parameters
-    ----------
+    ==========
     name: str
         Interferometer identifier.
 
     Returns
-    -------
+    =======
     interferometer: Interferometer
         Interferometer instance
     """
@@ -427,7 +427,7 @@ def get_interferometer_with_open_data(
     PSD and data, given an center_time.
 
     Parameters
-    ----------
+    ==========
 
     name: str
         Detector name, e.g., 'H1'.
@@ -458,7 +458,7 @@ def get_interferometer_with_open_data(
         `gwpy.timeseries.TimeSeries.fetch_open_data()`.
 
     Returns
-    -------
+    =======
     bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """

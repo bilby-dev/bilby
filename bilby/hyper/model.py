@@ -11,7 +11,7 @@ class Model(object):
     def __init__(self, model_functions=None):
         """
         Parameters
-        ----------
+        ==========
         model_functions: list
             List of functions to compute.
         """

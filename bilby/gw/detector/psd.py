@@ -15,17 +15,23 @@ class PowerSpectralDensity(object):
         """
         Instantiate a new PowerSpectralDensity object.
 
-        Example
-        -------
+        Examples
+        ========
         Using the `from` method directly (here `psd_file` is a string
         containing the path to the file to load):
-        >>> power_spectral_density = PowerSpectralDensity.from_power_spectral_density_file(psd_file)
+
+        .. code-block:: python
+
+            >>> power_spectral_density = PowerSpectralDensity.from_power_spectral_density_file(psd_file)
 
         Alternatively (and equivalently) setting the psd_file directly:
-        >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
+
+        .. code-block:: python
+
+            >>> power_spectral_density = PowerSpectralDensity(psd_file=psd_file)
 
         Attributes
-        ----------
+        ==========
         asd_array: array_like
             Array representation of the ASD
         asd_file: str
@@ -78,7 +84,7 @@ class PowerSpectralDensity(object):
         """ Set the amplitude spectral density from a given file
 
         Parameters
-        ----------
+        ==========
         asd_file: str
             File containing amplitude spectral density, format 'f h_f'
 
@@ -90,7 +96,7 @@ class PowerSpectralDensity(object):
         """ Set the power spectral density from a given file
 
         Parameters
-        ----------
+        ==========
         psd_file: str, optional
             File containing power spectral density, format 'f h_f'
 
@@ -105,7 +111,7 @@ class PowerSpectralDensity(object):
         """ Generate power spectral density from a frame file
 
         Parameters
-        ----------
+        ==========
         frame_file: str, optional
             Frame file to read data from.
         psd_start_time: float
@@ -149,7 +155,7 @@ class PowerSpectralDensity(object):
         by loading data using `strain_data.set_from_channel_name`
 
         Parameters
-        ----------
+        ==========
         psd_start_time: float
             Beginning of segment to analyse.
         psd_duration: float, optional
@@ -293,18 +299,18 @@ class PowerSpectralDensity(object):
         Test if the file exists or is available in the default directory.
 
         Parameters
-        ----------
+        ==========
         file: str, None
             A string pointing either to a PSD file, or the name of a psd file
             in the default directory. If none, no check is performed.
 
         Returns
-        -------
+        =======
         file: str
             The path to the PSD file to use
 
         Raises
-        ------
+        ======
         ValueError:
             If the PSD file cannot be located
 
@@ -340,14 +346,14 @@ class PowerSpectralDensity(object):
         Generate frequency Gaussian noise scaled to the power spectral density.
 
         Parameters
-        -------
+        ==========
         sampling_frequency: float
             sampling frequency of noise
         duration: float
             duration of noise
 
         Returns
-        -------
+        =======
         array_like: frequency domain strain of this noise realisation
         array_like: frequencies related to the frequency domain strain
 

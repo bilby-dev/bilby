@@ -13,8 +13,8 @@ class Nestle(NestedSampler):
     that function for further help. Under Other Parameters, we list commonly
     used kwargs and the bilby defaults
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     npoints: int
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points]
@@ -51,7 +51,7 @@ class Nestle(NestedSampler):
         """ Runs Nestle sampler with given kwargs and returns the result
 
         Returns
-        -------
+        =======
         bilby.core.result.Result: Packaged information about the result
 
         """
@@ -83,7 +83,7 @@ class Nestle(NestedSampler):
         kwargs without actually running to the end
 
         Returns
-        -------
+        =======
         bilby.core.result.Result: Dummy container for sampling results.
 
         """

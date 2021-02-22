@@ -10,11 +10,12 @@
 # before the next stage begins
 
 stages:
+  - initial
   - test
   - deploy
 
 .test-python: &test-python
-  stage: test
+  stage: initial
   image: python
   before_script:
     # this is required because pytables doesn't use a wheel on py37
@@ -55,15 +56,30 @@ python-3.7:
     - coverage html
     - coverage-badge -o coverage_badge.svg -f
 
+  artifacts:
+    paths:
+      - coverage_badge.svg
+      - htmlcov/
+
+docs:
+  stage: initial
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
+  script:
     # Make the documentation
+    - apt-get -yqq install pandoc
+    - python -m pip install .
     - cd docs
+    - pip install ipykernel ipython jupyter
+    - cp ../examples/tutorials/*.ipynb ./
+    - rm basic_ptmcmc_tutorial.ipynb
+    - rm compare_samplers.ipynb
+    - rm visualising_the_results.ipynb
+    - jupyter nbconvert --to notebook --execute *.ipynb --inplace
     - make clean
     - make html
 
   artifacts:
     paths:
-      - htmlcov/
-      - coverage_badge.svg
       - docs/_build/html/
 
 # test example on python 3.8
@@ -105,7 +121,7 @@ python-3.6-samplers:
 
 # Test containers are up to date
 containers:
-  stage: test
+  stage: initial
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - cd containers
@@ -139,7 +155,7 @@ plotting:
     - pytest test/gw/plot_test.py
 
 authors:
-  stage: test
+  stage: initial
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python test/check_author_list.py
@@ -147,6 +163,7 @@ authors:
 pages:
   stage: deploy
   dependencies:
+    - docs
     - python-3.7
   script:
     - mkdir public/
@@ -176,7 +193,7 @@ deploy_release:
 
 
 precommits-py3.7:
-  stage: test
+  stage: initial
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - source activate python37

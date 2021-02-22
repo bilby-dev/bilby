@@ -16,8 +16,8 @@ class PTMCMCSampler(MCMCSampler):
     documentation for that class for further help. Under Other Parameters, we
     list commonly used kwargs and the bilby defaults.
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     Niter: int (2*10**4 + 1)
         The number of mcmc steps
     burn: int (5 * 10**3)
@@ -32,10 +32,13 @@ class PTMCMCSampler(MCMCSampler):
         (https://github.com/rgreen1995/PTMCMCSampler/blob/master/examples/simple.ipynb)
         and
         (http://jellis18.github.io/PTMCMCSampler/PTMCMCSampler.html#ptmcmcsampler-ptmcmcsampler-module)
-        for examples and more info.  logl_grad: func (None) Gradient of
-        likelihood  if known (default = None) logp_grad: func (None) Gradient
-        of prior if known (default = None) verbose: bool (True) Update current
-        run-status to the screen
+        for examples and more info.
+    logl_grad: func (None)
+        Gradient of likelihood  if known (default = None)
+    logp_grad: func (None)
+        Gradient of prior if known (default = None)
+    verbose: bool (True)
+        Update current run-status to the screen
 
     """
 

@@ -15,7 +15,7 @@ class BaseJointPriorDist(object):
 
 
         Parameters
-        ----------
+        ==========
         names: list (required)
             A list of the parameter names in the JointPriorDist. The
             listed parameters must have the same order that they appear in
@@ -125,7 +125,7 @@ class BaseJointPriorDist(object):
         Works correctly for all child classes
 
         Returns
-        -------
+        =======
         str: A string representation of this instance
 
         """
@@ -149,14 +149,14 @@ class BaseJointPriorDist(object):
         probability will not be properly normalised.
 
         Parameters
-        ----------
+        ==========
         value: array_like
             A 1d vector of the sample, or 2d array of sample values with shape
             NxM, where N is the number of samples and M is the number of
             parameters.
 
         Returns
-        -------
+        =======
         samp: array_like
             returns the input value as a sample array
         outbounds: array_like
@@ -185,7 +185,7 @@ class BaseJointPriorDist(object):
         probability will not be properly normalised.
 
         Parameters
-        ----------
+        ==========
         value: array_like
             A 1d vector of the sample, or 2d array of sample values with shape
             NxM, where N is the number of samples and M is the number of
@@ -206,7 +206,7 @@ class BaseJointPriorDist(object):
         probability will not be properly normalised. **this method needs overwritten by child class**
 
         Parameters
-        ----------
+        ==========
         samp: vector
             sample to evaluate the ln_prob at
         lnprob: vector
@@ -215,7 +215,7 @@ class BaseJointPriorDist(object):
             boolean array showing which samples in lnprob vector are out of the given bounds
 
         Returns
-        -------
+        =======
         lnprob: vector
             array of lnprob values for each sample given
         """
@@ -229,7 +229,7 @@ class BaseJointPriorDist(object):
         Draw, and set, a sample from the Dist, accompanying method _sample needs to overwritten
 
         Parameters
-        ----------
+        ==========
         size: int
             number of samples to generate, defualts to 1
         """
@@ -248,7 +248,7 @@ class BaseJointPriorDist(object):
         Draw, and set, a sample from the joint dist (**needs to be ovewritten by child class**)
 
         Parameters
-        ----------
+        ==========
         size: int
             number of samples to generate, defualts to 1
         """
@@ -265,7 +265,7 @@ class BaseJointPriorDist(object):
         overwrite accompanying method _rescale().
 
         Parameters
-        ----------
+        ==========
         value: array
             A 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
@@ -275,7 +275,7 @@ class BaseJointPriorDist(object):
             args are called in the JointPrior rescale methods for each parameter
 
         Returns
-        -------
+        =======
         array:
             An vector sample drawn from the multivariate Gaussian
             distribution.
@@ -297,7 +297,7 @@ class BaseJointPriorDist(object):
         rescale a sample from a unit hypercybe to the joint dist (**needs to be ovewritten by child class**)
 
         Parameters
-        ----------
+        ==========
         samp: numpy array
             this is a vector sample drawn from a uniform distribtuion to be rescaled to the distribution
         """
@@ -322,7 +322,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         MultiNest.
 
         Parameters
-        ----------
+        ==========
         names: list
             A list of the parameter names in the multivariate Gaussian. The
             listed parameters must have the same order that they appear in
@@ -656,7 +656,7 @@ class JointPrior(Prior):
         """This defines the single parameter Prior object for parameters that belong to a JointPriorDist
 
         Parameters
-        ----------
+        ==========
         dist: ChildClass of BaseJointPriorDist
             The shared JointPriorDistribution that this parameter belongs to
         name: str
@@ -699,13 +699,13 @@ class JointPrior(Prior):
         Scale a unit hypercube sample to the prior.
 
         Parameters
-        ----------
+        ==========
         val: array_like
             value drawn from unit hypercube to be rescaled onto the prior
         kwargs: dict
             all kwargs passed to the dist.rescale method
         Returns
-        -------
+        =======
         float:
             A sample from the prior paramter.
         """
@@ -726,13 +726,13 @@ class JointPrior(Prior):
         Draw a sample from the prior.
 
         Parameters
-        ----------
+        ==========
         size: int, float (defaults to 1)
             number of samples to draw
         kwargs: dict
             kwargs passed to the dist.sample method
         Returns
-        -------
+        =======
         float:
             A sample from the prior paramter.
         """
@@ -764,11 +764,11 @@ class JointPrior(Prior):
         distribution.
 
         Parameters
-        ----------
+        ==========
         val: array_like
             value to evaluate the prior log-prob at
         Returns
-        -------
+        =======
         float:
             the logp value for the prior at given sample
         """
@@ -816,12 +816,12 @@ class JointPrior(Prior):
         """Return the prior probability of val
 
         Parameters
-        ----------
+        ==========
         val: array_like
             value to evaluate the prior prob at
 
         Returns
-        -------
+        =======
         float:
             the p value for the prior at given sample
         """

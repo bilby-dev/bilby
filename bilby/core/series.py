@@ -7,7 +7,7 @@ class CoupledTimeAndFrequencySeries(object):
         """ A waveform generator
 
     Parameters
-    ----------
+    ==========
     sampling_frequency: float, optional
         The sampling frequency
     duration: float, optional
@@ -32,7 +32,7 @@ class CoupledTimeAndFrequencySeries(object):
         """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
 
         Returns
-        -------
+        =======
         array_like: The frequency array
         """
         if not self._frequency_array_updated:
@@ -60,7 +60,7 @@ class CoupledTimeAndFrequencySeries(object):
         """ Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
 
         Returns
-        -------
+        =======
         array_like: The time array
         """
 
@@ -91,7 +91,7 @@ class CoupledTimeAndFrequencySeries(object):
         """ Allows one to set the time duration and automatically updates the frequency and time array.
 
         Returns
-        -------
+        =======
         float: The time duration.
 
         """
@@ -108,7 +108,7 @@ class CoupledTimeAndFrequencySeries(object):
         """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
 
         Returns
-        -------
+        =======
         float: The sampling frequency.
 
         """

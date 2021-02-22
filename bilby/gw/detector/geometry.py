@@ -10,7 +10,7 @@ class InterferometerGeometry(object):
         Instantiate an Interferometer object.
 
         Parameters
-        ----------
+        ==========
 
         length: float
             Length of the interferometer in km.
@@ -68,7 +68,7 @@ class InterferometerGeometry(object):
         """ Saves latitude in rad internally. Updates related quantities if set to a different value.
 
         Returns
-        -------
+        =======
         float: The latitude position of the detector in degree
         """
         return self._latitude * 180 / np.pi
@@ -84,7 +84,7 @@ class InterferometerGeometry(object):
     def latitude_radians(self):
         """
         Returns
-        -------
+        =======
         float: The latitude position of the detector in radians
         """
 
@@ -95,7 +95,7 @@ class InterferometerGeometry(object):
         """ Saves longitude in rad internally. Updates related quantities if set to a different value.
 
         Returns
-        -------
+        =======
         float: The longitude position of the detector in degree
         """
         return self._longitude * 180 / np.pi
@@ -111,7 +111,7 @@ class InterferometerGeometry(object):
     def longitude_radians(self):
         """
         Returns
-        -------
+        =======
         float: The latitude position of the detector in radians
         """
 
@@ -122,7 +122,7 @@ class InterferometerGeometry(object):
         """ Updates related quantities if set to a different values.
 
         Returns
-        -------
+        =======
         float: The height about the surface in meters
         """
         return self._elevation
@@ -137,7 +137,7 @@ class InterferometerGeometry(object):
         """ Saves the x-arm azimuth in rad internally. Updates related quantities if set to a different values.
 
         Returns
-        -------
+        =======
         float: The x-arm azimuth in degrees.
 
         """
@@ -153,7 +153,7 @@ class InterferometerGeometry(object):
         """ Saves the y-arm azimuth in rad internally. Updates related quantities if set to a different values.
 
         Returns
-        -------
+        =======
         float: The y-arm azimuth in degrees.
 
         """
@@ -169,7 +169,7 @@ class InterferometerGeometry(object):
         """ Updates related quantities if set to a different values.
 
         Returns
-        -------
+        =======
         float: The x-arm tilt in radians.
 
         """
@@ -185,7 +185,7 @@ class InterferometerGeometry(object):
         """ Updates related quantities if set to a different values.
 
         Returns
-        -------
+        =======
         float: The y-arm tilt in radians.
 
         """
@@ -203,7 +203,7 @@ class InterferometerGeometry(object):
         Is automatically updated if related quantities are modified.
 
         Returns
-        -------
+        =======
         array_like: A 3D array representation of the vertex
         """
         if not self._vertex_updated:
@@ -219,7 +219,7 @@ class InterferometerGeometry(object):
         Is automatically updated if related quantities are modified.
 
         Returns
-        -------
+        =======
         array_like: A 3D array representation of a unit vector along the x-arm
 
         """
@@ -236,7 +236,7 @@ class InterferometerGeometry(object):
         Is automatically updated if related quantities are modified.
 
         Returns
-        -------
+        =======
         array_like: A 3D array representation of a unit vector along the y-arm
 
         """
@@ -256,7 +256,7 @@ class InterferometerGeometry(object):
         Is automatically updated if related quantities are modified.
 
         Returns
-        -------
+        =======
         array_like: A 3x3 array representation of the detector tensor
 
         """
@@ -274,16 +274,16 @@ class InterferometerGeometry(object):
         See Eqs. B14-B17 in arXiv:gr-qc/0008066
 
         Parameters
-        -------
+        ==========
         arm: str
             'x' or 'y' (arm of the detector)
 
         Returns
-        -------
+        =======
         array_like: 3D unit vector along arm in cartesian Earth-based coordinates
 
         Raises
-        -------
+        ======
         ValueError: If arm is neither 'x' nor 'y'
 
         """

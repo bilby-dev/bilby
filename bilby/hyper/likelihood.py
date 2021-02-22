@@ -14,7 +14,7 @@ class HyperparameterLikelihood(Likelihood):
     See Eq. (34) of https://arxiv.org/abs/1809.02293 for a definition.
 
     Parameters
-    ----------
+    ==========
     posteriors: list
         An list of pandas data frames of samples sets of samples.
         Each set may have a different size.
@@ -77,12 +77,12 @@ class HyperparameterLikelihood(Likelihood):
         Convert list of pandas DataFrame object to dict of arrays.
 
         Parameters
-        ----------
+        ==========
         max_samples: int, opt
             Maximum number of samples to take from each posterior,
             default is length of shortest posterior chain.
         Returns
-        -------
+        =======
         data: dict
             Dictionary containing arrays of size (n_posteriors, max_samples)
             There is a key for each shared key in self.posteriors.

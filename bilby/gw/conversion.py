@@ -83,7 +83,7 @@ def transform_precessing_spins(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1,
     All parameters are defined at the reference frequency
 
     Parameters
-    ----------
+    ==========
     theta_jn: float
         Inclination angle
     phi_jl: float
@@ -107,7 +107,7 @@ def transform_precessing_spins(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1,
         Orbital phase
 
     Returns
-    -------
+    =======
     iota: float
         Transformed inclination
     spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z: float
@@ -137,12 +137,12 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     The keys in added_keys should be popped after evaluating the waveform.
 
     Parameters
-    ----------
+    ==========
     parameters: dict
         dictionary of parameter values to convert into the required parameters
 
-    Return
-    ------
+    Returns
+    =======
     converted_parameters: dict
         dict of the required parameters
     added_keys: list
@@ -276,12 +276,12 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
     The keys in added_keys should be popped after evaluating the waveform.
 
     Parameters
-    ----------
+    ==========
     parameters: dict
         dictionary of parameter values to convert into the required parameters
 
-    Return
-    ------
+    Returns
+    =======
     converted_parameters: dict
         dict of the required parameters
     added_keys: list
@@ -395,14 +395,14 @@ def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     Convert total mass and mass ratio of a binary to its component masses.
 
     Parameters
-    ----------
+    ==========
     mass_ratio: float
         Mass ratio (mass_2/mass_1) of the binary
     total_mass: float
         Total mass of the binary
 
-    Return
-    ------
+    Returns
+    =======
     mass_1: float
         Mass of the heavier object
     mass_2: float
@@ -419,12 +419,12 @@ def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
     Convert the symmetric mass ratio to the normal mass ratio.
 
     Parameters
-    ----------
+    ==========
     symmetric_mass_ratio: float
         Symmetric mass ratio of the binary
 
-    Return
-    ------
+    Returns
+    =======
     mass_ratio: float
         Mass ratio of the binary
     """
@@ -438,14 +438,14 @@ def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
     Convert chirp mass and total mass of a binary to its symmetric mass ratio.
 
     Parameters
-    ----------
+    ==========
     chirp_mass: float
         Chirp mass of the binary
     total_mass: float
         Total mass of the binary
 
-    Return
-    ------
+    Returns
+    =======
     symmetric_mass_ratio: float
         Symmetric mass ratio of the binary
     """
@@ -465,14 +465,14 @@ def chirp_mass_and_primary_mass_to_mass_ratio(chirp_mass, mass_1):
     Solving for q, we find the releation expressed in python below for q.
 
     Parameters
-    ----------
+    ==========
     chirp_mass: float
         Chirp mass of the binary
     mass_1: float
         The primary mass
 
-    Return
-    ------
+    Returns
+    =======
     mass_ratio: float
         Mass ratio (mass_2/mass_1) of the binary
     """
@@ -488,14 +488,14 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
     Convert chirp mass and mass ratio of a binary to its total mass.
 
     Parameters
-    ----------
+    ==========
     chirp_mass: float
         Chirp mass of the binary
     mass_ratio: float
         Mass ratio (mass_2/mass_1) of the binary
 
-    Return
-    ------
+    Returns
+    =======
     mass_1: float
         Mass of the heavier object
     mass_2: float
@@ -510,14 +510,14 @@ def component_masses_to_chirp_mass(mass_1, mass_2):
     Convert the component masses of a binary to its chirp mass.
 
     Parameters
-    ----------
+    ==========
     mass_1: float
         Mass of the heavier object
     mass_2: float
         Mass of the lighter object
 
-    Return
-    ------
+    Returns
+    =======
     chirp_mass: float
         Chirp mass of the binary
     """
@@ -530,14 +530,14 @@ def component_masses_to_total_mass(mass_1, mass_2):
     Convert the component masses of a binary to its total mass.
 
     Parameters
-    ----------
+    ==========
     mass_1: float
         Mass of the heavier object
     mass_2: float
         Mass of the lighter object
 
-    Return
-    ------
+    Returns
+    =======
     total_mass: float
         Total mass of the binary
     """
@@ -550,14 +550,14 @@ def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
     Convert the component masses of a binary to its symmetric mass ratio.
 
     Parameters
-    ----------
+    ==========
     mass_1: float
         Mass of the heavier object
     mass_2: float
         Mass of the lighter object
 
-    Return
-    ------
+    Returns
+    =======
     symmetric_mass_ratio: float
         Symmetric mass ratio of the binary
     """
@@ -570,14 +570,14 @@ def component_masses_to_mass_ratio(mass_1, mass_2):
     Convert the component masses of a binary to its chirp mass.
 
     Parameters
-    ----------
+    ==========
     mass_1: float
         Mass of the heavier object
     mass_2: float
         Mass of the lighter object
 
-    Return
-    ------
+    Returns
+    =======
     mass_ratio: float
         Mass ratio of the binary
     """
@@ -592,14 +592,14 @@ def mass_1_and_chirp_mass_to_mass_ratio(mass_1, chirp_mass):
     This involves solving mc = m1 * q**(3/5) / (1 + q)**(1/5).
 
     Parameters
-    ----------
+    ==========
     mass_1: float
         Mass of the heavier object
     chirp_mass: float
         Mass of the lighter object
 
-    Return
-    ------
+    Returns
+    =======
     mass_ratio: float
         Mass ratio of the binary
     """
@@ -618,7 +618,7 @@ def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
 
     Parameters
-    ----------
+    ==========
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -628,8 +628,8 @@ def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     mass_2: float
         Mass of less massive neutron star.
 
-    Return
-    ------
+    Returns
+    ======
     lambda_tilde: float
         Dominant tidal term.
     """
@@ -650,7 +650,7 @@ def lambda_1_lambda_2_to_delta_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
 
     Parameters
-    ----------
+    ==========
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -660,8 +660,8 @@ def lambda_1_lambda_2_to_delta_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
     mass_2: float
         Mass of less massive neutron star.
 
-    Return
-    ------
+    Returns
+    =======
     delta_lambda_tilde: float
         Second dominant tidal term.
     """
@@ -684,7 +684,7 @@ def lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
     See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
 
     Parameters
-    ----------
+    ==========
     lambda_tilde: float
         Dominant tidal term.
     delta_lambda_tilde: float
@@ -694,8 +694,8 @@ def lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
     mass_2: float
         Mass of less massive neutron star.
 
-    Return
-    ------
+    Returns
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -730,7 +730,7 @@ def lambda_tilde_to_lambda_1_lambda_2(
     See, e.g., Wade et al., https://arxiv.org/pdf/1402.5156.pdf.
 
     Parameters
-    ----------
+    ==========
     lambda_tilde: float
         Dominant tidal term.
     mass_1: float
@@ -738,8 +738,8 @@ def lambda_tilde_to_lambda_1_lambda_2(
     mass_2: float
         Mass of less massive neutron star.
 
-    Return
-    ------
+    Returns
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -825,7 +825,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
     BBH parameters, in place.
 
     Parameters
-    ----------
+    ==========
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an
         injection or posterior samples.
@@ -854,7 +854,7 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
     calculated.
 
     Parameters
-    ----------
+    ==========
     sample: dict or pandas.DataFrame
         Samples to fill in with extra parameters, this may be either an
         injection or posterior samples.
@@ -897,14 +897,14 @@ def fill_from_fixed_priors(sample, priors):
     """Add parameters with delta function prior to the data frame/dictionary.
 
     Parameters
-    ----------
+    ==========
     sample: dict
         A dictionary or data frame
     priors: dict
         A dictionary of priors
 
     Returns
-    -------
+    =======
     dict:
     """
     output_sample = sample.copy()
@@ -923,12 +923,12 @@ def generate_mass_parameters(sample):
         chirp mass, total mass, symmetric mass ratio, mass ratio
 
     Parameters
-    ----------
+    ==========
     sample : dict
         The input dictionary with component masses 'mass_1' and 'mass_2'
 
     Returns
-    -------
+    =======
     dict: The updated dictionary
 
     """
@@ -954,12 +954,12 @@ def generate_spin_parameters(sample):
         cartesian spin components, chi_eff, chi_p cos tilt 1, cos tilt 2
 
     Parameters
-    ----------
+    ==========
     sample : dict, pandas.DataFrame
         The input dictionary with some spin parameters
 
     Returns
-    -------
+    =======
     dict: The updated dictionary
 
     """
@@ -1001,13 +1001,13 @@ def generate_component_spins(sample):
     This function uses a lalsimulation function to transform the spins.
 
     Parameters
-    ----------
+    ==========
     sample: A dictionary with the necessary spin conversion parameters:
     'theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
     'mass_2', 'reference_frequency', 'phase'
 
     Returns
-    -------
+    =======
     dict: The updated dictionary
 
     """
@@ -1057,12 +1057,12 @@ def generate_tidal_parameters(sample):
     lambda_tilde, delta_lambda_tilde
 
     Parameters
-    ----------
+    ==========
     sample: dict, pandas.DataFrame
         Should contain lambda_1, lambda_2
 
     Returns
-    -------
+    =======
     output_sample: dict, pandas.DataFrame
         Updated sample
     """
@@ -1085,11 +1085,11 @@ def generate_source_frame_parameters(sample):
     Generate source frame masses along with redshifts and comoving distance.
 
     Parameters
-    ----------
+    ==========
     sample: dict, pandas.DataFrame
 
     Returns
-    -------
+    =======
     output_sample: dict, pandas.DataFrame
     """
     output_sample = sample.copy()
@@ -1113,7 +1113,7 @@ def compute_snrs(sample, likelihood):
     and print it out.
 
     Parameters
-    ----------
+    ==========
     sample: dict or array_like
 
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
@@ -1172,7 +1172,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
     See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
     Parameters
-    ----------
+    ==========
     samples: DataFrame
         Posterior from run with a marginalised likelihood.
     likelihood: bilby.gw.likelihood.GravitationalWaveTransient
@@ -1180,8 +1180,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
     npool: int, (default=1)
         If given, perform generation (where possible) using a multiprocessing pool
 
-    Return
-    ------
+    Returns
+    =======
     sample: DataFrame
         Returns the posterior with new samples.
     """
