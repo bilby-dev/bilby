@@ -19,7 +19,7 @@
 import os
 import sys
 import bilby
-sys.path.insert(0, os.path.abspath('../bilby/'))
+sys.path.insert(0, os.path.abspath('../'))
 
 # -- General configuration ------------------------------------------------
 
@@ -30,18 +30,26 @@ sys.path.insert(0, os.path.abspath('../bilby/'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'numpydoc',
-              'nbsphinx', 'sphinx.ext.autosummary',
-              'sphinx.ext.autosectionlabel', 'sphinx_tabs.tabs']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.mathjax',
+    'numpydoc',
+    'nbsphinx',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.autosectionlabel',
+    'sphinx_tabs.tabs',
+    "sphinx.ext.viewcode",
+]
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 source_suffix = ['.rst', '.md']
-source_suffix = '.txt'
+source_suffix = ['.txt', ".rst", ".ipynb"]
 
 # The master toctree document.
 master_doc = 'index'
@@ -173,3 +181,6 @@ texinfo_documents = [
 ]
 
 numpydoc_show_class_members = False
+
+# nbsphinx options
+nbsphinx_execute = "never"

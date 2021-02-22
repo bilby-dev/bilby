@@ -38,7 +38,7 @@ class InterferometerStrainData(object):
         of the `set_from..` methods.
 
         Parameters
-        ----------
+        ==========
         minimum_frequency: float
             Minimum frequency to analyse for detector. Default is 0.
         maximum_frequency: float
@@ -84,12 +84,12 @@ class InterferometerStrainData(object):
         """ Check if time is within the data span
 
         Parameters
-        ----------
+        ==========
         time: float
             The time to check
 
         Returns
-        -------
+        =======
         bool:
             A boolean stating whether the time is inside or outside the span
 
@@ -134,7 +134,7 @@ class InterferometerStrainData(object):
         """ Set the notch_list
 
         Parameters
-        ----------
+        ==========
         notch_list: list, bilby.gw.detector.strain_data.NotchList
             A list of length-2 tuples of the (max, min) frequency for the
             notches or a pre-made bilby NotchList.
@@ -155,7 +155,7 @@ class InterferometerStrainData(object):
         """ Masking array for limiting the frequency band.
 
         Returns
-        -------
+        =======
         mask: np.ndarray
             An array of boolean values
         """
@@ -186,15 +186,15 @@ class InterferometerStrainData(object):
         See https://dcc.ligo.org/DocDB/0027/T040089/000/T040089-00.pdf
 
         Parameters
-        ----------
+        ==========
         roll_off: float
             Rise time of window in seconds
         alpha: float
             Parameter to pass to tukey window, how much of segment falls
             into windowed part
 
-        Return
-        ------
+        Returns
+        ======
         window: array
             Window function over time array
         """
@@ -358,7 +358,7 @@ class InterferometerStrainData(object):
         PSD file.
 
         Parameters
-        ----------
+        ==========
         fft_length: float
             Duration of the analysis segment.
         overlap: float
@@ -374,7 +374,7 @@ class InterferometerStrainData(object):
             be removed before creating the PSD.
 
         Returns
-        -------
+        =======
         frequency_array, psd : array_like
             The frequencies and power spectral density array
 
@@ -461,7 +461,7 @@ class InterferometerStrainData(object):
         is applied.
 
         Parameters
-        ----------
+        ==========
         time_domain_strain: array_like
             An array of the time domain strain.
         sampling_frequency: float
@@ -495,7 +495,7 @@ class InterferometerStrainData(object):
         is applied.
 
         Parameters
-        ----------
+        ==========
         time_series: gwpy.timeseries.timeseries.TimeSeries
             The data to use
 
@@ -525,7 +525,7 @@ class InterferometerStrainData(object):
         is applied.
 
         Parameters
-        ----------
+        ==========
         name: str
             Detector name, e.g., 'H1'.
         start_time: float
@@ -552,7 +552,7 @@ class InterferometerStrainData(object):
         """ Set the strain data from a csv file
 
         Parameters
-        ----------
+        ==========
         filename: str
             The path to the file to read in
 
@@ -566,7 +566,7 @@ class InterferometerStrainData(object):
         """ Set the `frequency_domain_strain` from a numpy array
 
         Parameters
-        ----------
+        ==========
         frequency_domain_strain: array_like
             The data to set.
         sampling_frequency: float
@@ -599,7 +599,7 @@ class InterferometerStrainData(object):
         """ Set the `frequency_domain_strain` by generating a noise realisation
 
         Parameters
-        ----------
+        ==========
         power_spectral_density: bilby.gw.detector.PowerSpectralDensity
             A PowerSpectralDensity object used to generate the data
         sampling_frequency: float
@@ -630,7 +630,7 @@ class InterferometerStrainData(object):
         """ Set the `frequency_domain_strain` to zero noise
 
         Parameters
-        ----------
+        ==========
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -653,7 +653,7 @@ class InterferometerStrainData(object):
         """ Set the `frequency_domain_strain` from a frame fiile
 
         Parameters
-        ----------
+        ==========
         frame_file: str
             File from which to load data.
         channel: str
@@ -689,7 +689,7 @@ class InterferometerStrainData(object):
         also verifies that the specified channel is given in the correct format.
 
         Parameters
-        ----------
+        ==========
         channel: str
             Channel to look for using gwpy in the format `IFO:Channel`
         duration: float
@@ -721,7 +721,7 @@ class Notch(object):
         """ A notch object storing the maximum and minimum frequency of the notch
 
         Parameters
-        ----------
+        ==========
         minimum_frequency, maximum_frequency: float
             The minimum and maximum frequency of the notch
 
@@ -739,12 +739,12 @@ class Notch(object):
         """ Get a boolean mask for the frequencies in frequency_array in the notch
 
         Parameters
-        ----------
+        ==========
         frequency_array: np.ndarray
             An array of frequencies
 
         Returns
-        -------
+        =======
         idxs: np.ndarray
             An array of booleans which are True for frequencies in the notch
 
@@ -757,12 +757,12 @@ class Notch(object):
         """ Check if freq is inside the notch
 
         Parameters
-        ----------
+        ==========
         freq: float
             The frequency to check
 
         Returns
-        -------
+        =======
         True/False:
             If freq inside the notch, return True, else False
         """
@@ -778,13 +778,13 @@ class NotchList(list):
         """ A list of notches
 
         Parameters
-        ----------
+        ==========
         notch_list: list
             A list of length-2 tuples of the (max, min) frequency for the
             notches.
 
         Raises
-        ------
+        ======
         ValueError
             If the list is malformed.
         """
@@ -801,12 +801,12 @@ class NotchList(list):
         """ Check if freq is inside the notch list
 
         Parameters
-        ----------
+        ==========
         freq: float
             The frequency to check
 
         Returns
-        -------
+        =======
         True/False:
             If freq inside any of the notches, return True, else False
         """

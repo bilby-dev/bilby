@@ -20,7 +20,7 @@ class Prior(object):
         """ Implements a Prior object
 
         Parameters
-        ----------
+        ==========
         name: str, optional
             Name associated with prior.
         latex_label: str, optional
@@ -57,7 +57,7 @@ class Prior(object):
         """Overrides the __call__ special method. Calls the sample method.
 
         Returns
-        -------
+        =======
         float: The return value of the sample method.
         """
         return self.sample()
@@ -85,12 +85,12 @@ class Prior(object):
         """Draw a sample from the prior
 
         Parameters
-        ----------
+        ==========
         size: int or tuple of ints, optional
             See numpy.random.uniform docs
 
         Returns
-        -------
+        =======
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
@@ -104,12 +104,12 @@ class Prior(object):
         This should be overwritten by each subclass.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             A random number between 0 and 1
 
         Returns
-        -------
+        =======
         None
 
         """
@@ -119,11 +119,11 @@ class Prior(object):
         """Return the prior probability of val, this should be overwritten
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         np.nan
 
         """
@@ -146,11 +146,11 @@ class Prior(object):
         """Return the prior ln probability of val, this should be overwritten
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         np.nan
 
         """
@@ -160,11 +160,11 @@ class Prior(object):
         """Returns True if val is in the prior boundaries, zero otherwise
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         np.nan
 
         """
@@ -175,11 +175,11 @@ class Prior(object):
         """Test if 0 < val < 1
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Raises
-        -------
+        =======
         ValueError: If val is not between 0 and 1
         """
         valarray = np.atleast_1d(val)
@@ -194,7 +194,7 @@ class Prior(object):
         Works correctly for all child classes
 
         Returns
-        -------
+        =======
         str: A string representation of this instance
 
         """
@@ -224,7 +224,7 @@ class Prior(object):
 
 
         Returns
-        -------
+        =======
         bool: Whether it's fixed or not!
 
         """
@@ -237,7 +237,7 @@ class Prior(object):
         Draws from a set of default labels if no label is given
 
         Returns
-        -------
+        =======
         str: A latex representation for this prior
 
         """
@@ -392,17 +392,17 @@ class Prior(object):
 
 
         Parameters
-        ----------
+        ==========
         val: str
             The string version of the agument
 
         Returns
-        -------
+        =======
         val: object
             The parsed version of the argument.
 
         Raises
-        ------
+        ======
         TypeError:
             If val cannot be parsed as described above.
         """

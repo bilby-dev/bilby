@@ -9,9 +9,7 @@ using the :code:`run_sampler` function. This is the core interface which you sho
 use to setup a sampler and switch between different samplers easily.
 
 This can be accessed via :code:`bilby.run_sampler` or
-:code:`bilby.sampler.run_sampler`. Here is the detailed API information:
-
-.. autofunction:: bilby.run_sampler
+:code:`bilby.core.sampler.run_sampler`.
 
 --------------------------
 Switching between samplers
@@ -34,7 +32,7 @@ handle this, we allow the user to pass arbitrary `keyword arguments
 :code:`run_sampler`. To document what keyword arguments are available, below we
 give the API for each sampler. In each of these, there is an "Other Parameters"
 section which contains information on all the available keyword arguments that
-sampler takes. For example, to use the dynesty_ sampler with 250 live points,
+sampler takes. For example, to use the :code:`dynesty` sampler with 250 live points,
 you would use
 
 .. code-block:: python
@@ -55,63 +53,21 @@ recommended for direct use by the user, rather it should be accessed via the
 Nested Samplers
 ---------------
 
-Dynesty
-=======
-
-.. autoclass:: bilby.core.sampler.dynesty.Dynesty
-
-
-Nestle
-======
-
-.. autoclass:: bilby.core.sampler.nestle.Nestle
-
-
-CPNest
-======
-
-.. autoclass:: bilby.core.sampler.cpnest.Cpnest
-
-
-PyMultinest
-===========
-
-.. autoclass:: bilby.core.sampler.pymultinest.Pymultinest
-
-
-PyPolyChord
-===========
-
-.. autoclass:: bilby.core.sampler.polychord.PyPolyChord
-
-UltraNest
-=========
-
-.. autoclass:: bilby.core.sampler.ultranest.Ultranest
-
-Dnest4
-=========
-
-.. autoclass:: bilby.core.sampler.dnest4.Dnest4
+- Dynesty: :code:`bilby.core.sampler.dynesty.Dynesty`
+- Nestle :code:`bilby.core.sampler.nestle.Nestle`
+- CPNest :code:`bilby.core.sampler.cpnest.Cpnest`
+- PyMultiNest :code:`bilby.core.sampler.pymultinest.Pymultinest`
+- PyPolyChord :code:`bilby.core.sampler.polychord.PyPolyChord`
+- UltraNest :code:`bilby.core.sampler.ultranest.Ultranest`
+- DNest4 :code:`bilby.core.sampler.dnest4.DNest4`
 
 -------------
 MCMC samplers
 -------------
 
-Emcee
-=====
-
-.. autoclass:: bilby.core.sampler.emcee.Emcee
-
-PTEmcee
-=======
-
-.. autoclass:: bilby.core.sampler.ptemcee.Ptemcee
-
-pymc3
-=====
-
-.. autoclass:: bilby.core.sampler.pymc3.Pymc3
+- emcee :code:`bilby.core.sampler.emcee.Emcee`
+- ptemcee :code:`bilby.core.sampler.ptemcee.Ptemcee`
+- pymc3 :code:`bilby.core.sampler.pymc3.Pymc3`
 
 
 -------------------
@@ -207,21 +163,3 @@ enable this, we have base classes which can be subclassed. Below we provide the
 API for reference, note that the :code:`NestedSampler` and :code:`MCMCSampler`
 inherit from the :code:`Sampler` class.
 
-A base Sampler class
-====================
-
-.. autoclass:: bilby.core.sampler.base_sampler.Sampler
-   :members:
-
-A Nested Sampler class
-===========================
-
-.. autoclass:: bilby.core.sampler.base_sampler.NestedSampler
-   :members:
-
-A MCMC Sampler class
-===========================
-
-
-.. autoclass:: bilby.core.sampler.base_sampler.MCMCSampler
-   :members:

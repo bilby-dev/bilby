@@ -14,7 +14,7 @@ class Recalibrate(object):
         Base calibration object. This applies no transformation
 
         Parameters
-        ----------
+        ==========
         prefix: str
             Prefix on parameters relating to the calibration.
         """
@@ -30,7 +30,7 @@ class Recalibrate(object):
         This method should be overwritten by subclasses
 
         Parameters
-        ----------
+        ==========
         frequency_array: array-like
             The frequency values to calculate the calibration factor for.
         params : dict
@@ -38,7 +38,7 @@ class Recalibrate(object):
             calibration parameters.
 
         Returns
-        -------
+        =======
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
@@ -67,7 +67,7 @@ class CubicSpline(Recalibrate):
         np.logspace(np.log(minimum_frequency), np.log(maximum_frequency), n_points)
 
         Parameters
-        ----------
+        ==========
         prefix: str
             Prefix on parameters relating to the calibration.
         minimum_frequency: float
@@ -98,7 +98,7 @@ class CubicSpline(Recalibrate):
         """Apply calibration model
 
         Parameters
-        ----------
+        ==========
         frequency_array: array-like
             The frequency values to calculate the calibration factor for.
         prefix: str
@@ -108,7 +108,7 @@ class CubicSpline(Recalibrate):
             calibration parameters.
 
         Returns
-        -------
+        =======
         calibration_factor : array-like
             The factor to multiply the strain by.
         """

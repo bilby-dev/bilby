@@ -27,8 +27,8 @@ class Ultranest(NestedSampler):
     `ultranest.NestedSampler` will be used, otherwise the
     `ultranest.ReactiveNestedSampler` will be used.
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     num_live_points: int
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points, num_live_points]. If not given

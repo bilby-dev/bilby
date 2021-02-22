@@ -49,7 +49,7 @@ class Ptemcee(MCMCSampler):
     list commonly used kwargs and the bilby defaults.
 
     Parameters
-    ----------
+    ==========
     nsamples: int, (5000)
         The requested number of samples. Note, in cases where the
         autocorrelation parameter is difficult to measure, it is possible to
@@ -112,7 +112,7 @@ class Ptemcee(MCMCSampler):
 
 
     Other Parameters
-    ----------------
+    ------==========
     nwalkers: int, (200)
         The number of walkers
     nsteps: int, (100)
@@ -278,7 +278,7 @@ class Ptemcee(MCMCSampler):
         """ Draw the initial positions from the prior
 
         Returns
-        -------
+        =======
         pos0: list
             The initial postitions of the walkers, with shape (ntemps, nwalkers, ndim)
 
@@ -298,7 +298,7 @@ class Ptemcee(MCMCSampler):
         See pos0 in the class initialization for details.
 
         Returns
-        -------
+        =======
         pos0: list
             The initial postitions of the walkers, with shape (ntemps, nwalkers, ndim)
 
@@ -697,7 +697,7 @@ def check_iteration(
     """ Per-iteration logic to calculate the convergence check
 
     Parameters
-    ----------
+    ==========
     convergence_inputs: bilby.core.sampler.ptemcee.ConvergenceInputs
         A named tuple of the convergence checking inputs
     search_parameter_keys: list
@@ -706,7 +706,7 @@ def check_iteration(
         Lists used for tracking the run
 
     Returns
-    -------
+    =======
     stop: bool
         A boolean flag, True if the stoping criteria has been met
     burn: int

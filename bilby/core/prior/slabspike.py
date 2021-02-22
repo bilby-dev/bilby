@@ -16,7 +16,7 @@ class SlabSpikePrior(Prior):
         `SymmetricLogUniform` and `FermiDirac` are currently not supported.
 
         Parameters
-        ----------
+        ==========
         slab: Prior
             Any instance of a bilby prior class. All general prior attributes
             from the slab are copied into the SlabSpikePrior.
@@ -76,12 +76,12 @@ class SlabSpikePrior(Prior):
         'Rescale' a sample from the unit line element to the prior.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             A random number between 0 and 1
 
         Returns
-        -------
+        =======
         array_like: Associated prior value with input value.
         """
         val = np.atleast_1d(val)
@@ -104,12 +104,12 @@ class SlabSpikePrior(Prior):
         on the pure slab part of the prior.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
             A random number between 0 and self.slab_fraction
 
         Returns
-        -------
+        =======
         array_like: Associated prior value with input value.
         """
         return self.slab.rescale(val / self.slab_fraction)
@@ -119,11 +119,11 @@ class SlabSpikePrior(Prior):
         Returns np.inf for the spike location
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         array_like: Prior probability of val
         """
         res = self.slab.prob(val) * self.slab_fraction
@@ -136,11 +136,11 @@ class SlabSpikePrior(Prior):
         Returns np.inf for the spike location
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         array_like: Prior probability of val
         """
         res = self.slab.ln_prob(val) + np.log(self.slab_fraction)
@@ -154,11 +154,11 @@ class SlabSpikePrior(Prior):
         at the spike location.
 
         Parameters
-        ----------
+        ==========
         val: Union[float, int, array_like]
 
         Returns
-        -------
+        =======
         array_like: CDF value of val
 
         """

@@ -17,14 +17,14 @@ def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
     """ Calculate the safe signal duration, given the parameters
 
     Parameters
-    ----------
+    ==========
     mass_1, mass_2, a_1, a_2, tilt_1, tilt_2: float
         The signal parameters
     flow: float
         The lower frequency cutoff from which to calculate the signal duration
 
      Returns
-     -------
+     =======
      safe_signal_duration: float
         The shortest safe signal duration (i.e., the signal duration rounded up
         to the nearest power of 2)
@@ -41,7 +41,7 @@ def inject_signal_into_gwpy_timeseries(
     """ Inject a signal into a gwpy timeseries
 
     Parameters
-    ----------
+    ==========
     data: gwpy.timeseries.TimeSeries
         The time-series data into which we want to inject the signal
     waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
@@ -54,7 +54,7 @@ def inject_signal_into_gwpy_timeseries(
         If given, the outdir and label used to generate a plot
 
     Returns
-    -------
+    =======
     data_and_signal: gwpy.timeseries.TimeSeries
         The data with the time-domain signal added
     meta_data: dict
@@ -128,7 +128,7 @@ def get_interferometer_with_fake_noise_and_injection(
     density based on advanced LIGO.
 
     Parameters
-    ----------
+    ==========
     name: str
         Detector name, e.g., 'H1'.
     injection_parameters: dict
@@ -160,7 +160,7 @@ def get_interferometer_with_fake_noise_and_injection(
         If true, set noise to zero.
 
     Returns
-    -------
+    =======
     bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
 
     """
@@ -205,7 +205,7 @@ def load_data_from_cache_file(
     """ Helper routine to generate an interferometer from a cache file
 
     Parameters
-    ----------
+    ==========
     cache_file: str
         Path to the location of the cache file
     start_time, psd_start_time: float
@@ -225,7 +225,7 @@ def load_data_from_cache_file(
         The output directory in which the data is saved
 
     Returns
-    -------
+    =======
     ifo: bilby.gw.detector.Interferometer
         An initialised interferometer object with strain data set to the
         appropriate data in the cache file and a PSD.
@@ -299,7 +299,7 @@ def load_data_by_channel_name(
     the specified channel using gwpy.TimeSeries.get()
 
     Parameters
-    ----------
+    ==========
     channel_name: str
         Channel name with the format `IFO:Channel`
     start_time, psd_start_time: float
@@ -317,7 +317,7 @@ def load_data_by_channel_name(
         The output directory in which the data is saved
 
     Returns
-    -------
+    =======
     ifo: bilby.gw.detector.Interferometer
         An initialised interferometer object with strain data set to the
         appropriate data fetched from the specified channel and a PSD.

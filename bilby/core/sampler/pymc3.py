@@ -20,8 +20,8 @@ class Pymc3(MCMCSampler):
     class for further help. Under Other Parameters, we list commonly used
     kwargs and the bilby, or where appropriate, PyMC3 defaults.
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     draws: int, (1000)
         The number of sample draws from the posterior per chain.
     chains: int, (2)

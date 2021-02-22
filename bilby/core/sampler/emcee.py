@@ -22,8 +22,8 @@ class Emcee(MCMCSampler):
     documentation for that class for further help. Under Other Parameters, we
     list commonly used kwargs and the bilby defaults.
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     nwalkers: int, (100)
         The number of walkers
     nsteps: int, (100)
@@ -40,7 +40,6 @@ class Emcee(MCMCSampler):
         The number of autocorrelation times to discard as burn-in
     a: float (2)
         The proposal scale factor
-
 
     """
 
@@ -221,7 +220,7 @@ class Emcee(MCMCSampler):
         """ Defines various things related to checkpointing and storing data
 
         Returns
-        -------
+        =======
         checkpoint_info: named_tuple
             An object with attributes `sampler_file`, `chain_file`, and
             `chain_template`. The first two give paths to where the sampler and

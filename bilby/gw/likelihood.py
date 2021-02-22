@@ -38,9 +38,8 @@ class GravitationalWaveTransient(Likelihood):
     domain assuming a colored Gaussian noise model described by a power
     spectral density. See Thrane & Talbot (2019), arxiv.org/abs/1809.02293.
 
-
     Parameters
-    ----------
+    ==========
     interferometers: list, bilby.gw.detector.InterferometerList
         A list of `bilby.detector.Interferometer` instances - contains the
         detector data and power spectral densities
@@ -82,19 +81,22 @@ class GravitationalWaveTransient(Likelihood):
         Default is False, however using this parameter is strongly encouraged.
     reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
         Definition of the reference frame for the sky location.
-        - "sky": sample in RA/dec, this is the default
-        - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
+
+        - :code:`sky`: sample in RA/dec, this is the default
+        - e.g., :code:`"H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"])`:
           sample in azimuth and zenith, `azimuth` and `zenith` defined in the
           frame where the z-axis is aligned the the vector connecting H1
           and L1.
+
     time_reference: str, optional
         Name of the reference for the sampled time parameter.
-        - "geocent"/"geocenter": sample in the time at the Earth's center,
-          this is the default
-        - e.g., "H1": sample in the time of arrival at H1
+
+        - :code:`geocent`/:code:`geocenter`: sample in the time at the
+          Earth's center, this is the default
+        - e.g., :code:`H1`: sample in the time of arrival at H1
 
     Returns
-    -------
+    =======
     Likelihood: `bilby.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
@@ -210,7 +212,7 @@ class GravitationalWaveTransient(Likelihood):
         Compute the snrs
 
         Parameters
-        ----------
+        ==========
         waveform_polarizations: dict
             A dictionary of waveform polarizations and the corresponding array
         interferometer: bilby.gw.detector.Interferometer
@@ -348,13 +350,13 @@ class GravitationalWaveTransient(Likelihood):
 
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
-        Return
-        ------
+        Returns
+        =======
         sample: dict
             Returns the parameters with new samples.
 
         Notes
-        -----
+        =====
         This involves a deepcopy of the signal to avoid issues with waveform
         caching, as the signal is overwritten in place.
         """
@@ -390,12 +392,12 @@ class GravitationalWaveTransient(Likelihood):
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
         Parameters
-        ----------
+        ==========
         signal_polarizations: dict, optional
             Polarizations modes of the template.
 
         Returns
-        -------
+        =======
         new_time: float
             Sample from the time posterior.
         """
@@ -466,14 +468,14 @@ class GravitationalWaveTransient(Likelihood):
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
         Parameters
-        ----------
+        ==========
         signal_polarizations: dict, optional
             Polarizations modes of the template.
             Note: These are rescaled in place after the distance sample is
-                  generated to allow further parameter reconstruction to occur.
+            generated to allow further parameter reconstruction to occur.
 
         Returns
-        -------
+        =======
         new_distance: float
             Sample from the distance posterior.
         """
@@ -527,17 +529,17 @@ class GravitationalWaveTransient(Likelihood):
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
         Parameters
-        ----------
+        ==========
         signal_polarizations: dict, optional
             Polarizations modes of the template.
 
         Returns
-        -------
+        =======
         new_phase: float
             Sample from the phase posterior.
 
         Notes
-        -----
+        =====
         This is only valid when assumes that mu(phi) \propto exp(-2i phi).
         """
         self.parameters.update(self.get_sky_frame_parameters())
@@ -845,7 +847,7 @@ class BasicGravitationalWaveTransient(Likelihood):
 
 
         Parameters
-        ----------
+        ==========
         interferometers: list
             A list of `bilby.gw.detector.Interferometer` instances - contains the
             detector data and power spectral densities
@@ -866,7 +868,7 @@ class BasicGravitationalWaveTransient(Likelihood):
         """ Calculates the real part of noise log-likelihood
 
         Returns
-        -------
+        =======
         float: The real part of the noise log likelihood
 
         """
@@ -881,7 +883,7 @@ class BasicGravitationalWaveTransient(Likelihood):
         """ Calculates the real part of log-likelihood value
 
         Returns
-        -------
+        =======
         float: The real part of the log likelihood
 
         """
@@ -901,14 +903,14 @@ class BasicGravitationalWaveTransient(Likelihood):
         """
 
         Parameters
-        ----------
+        ==========
         waveform_polarizations: dict
             Dictionary containing the desired waveform polarization modes and the related strain
         interferometer: bilby.gw.detector.Interferometer
             The Interferometer object we want to have the log-likelihood for
 
         Returns
-        -------
+        =======
         float: The real part of the log-likelihood for this interferometer
 
         """
@@ -930,7 +932,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     https://git.ligo.org/lscsoft/ROQ_data.
 
     Parameters
-    ----------
+    ==========
     interferometers: list, bilby.gw.detector.InterferometerList
         A list of `bilby.detector.Interferometer` instances - contains the
         detector data and power spectral densities
@@ -1030,7 +1032,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         Compute the snrs for ROQ
 
         Parameters
-        ----------
+        ==========
         waveform_polarizations: waveform
         interferometer: bilby.gw.detector.Interferometer
 
@@ -1098,14 +1100,14 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         Get the closest five times
 
         Parameters
-        ----------
+        ==========
         time: float
             Time to check
         samples: array-like
             Available times
 
         Returns
-        -------
+        =======
         indices: list
             Indices nearest to time
         in_bounds: bool
@@ -1120,7 +1122,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """ Perform checking that the prior and data are valid for the ROQ
 
         Parameters
-        ----------
+        ==========
         ifo: bilby.gw.detector.Interferometer
             The interferometer
         """
@@ -1189,7 +1191,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """ Setup the time-dependent ROQ weights.
 
         Parameters
-        ----------
+        ==========
         linear_matrix, quadratic_matrix: array_like
             Arrays of the linear and quadratic basis
 
@@ -1309,7 +1311,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         each detector.
 
         Returns
-        -------
+        =======
         delta_t: float
             Time resolution
         """
@@ -1318,7 +1320,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             """
 
             Parameters
-            ----------
+            ==========
             freq: array-like
                 Frequency array
             psd: array-like
@@ -1327,7 +1329,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 SNR dependent scaling factor
 
             Returns
-            -------
+            =======
             f_high: float
                 The maximum frequency which must be considered
             """
@@ -1369,14 +1371,14 @@ def get_binary_black_hole_likelihood(interferometers):
     """ A wrapper to quickly set up a likelihood for BBH parameter estimation
 
     Parameters
-    ----------
+    ==========
     interferometers: {bilby.gw.detector.InterferometerList, list}
         A list of `bilby.detector.Interferometer` instances, typically the
         output of either `bilby.detector.get_interferometer_with_open_data`
         or `bilby.detector.get_interferometer_with_fake_noise_and_injection`
 
     Returns
-    -------
+    =======
     bilby.GravitationalWaveTransient: The likelihood to pass to `run_sampler`
 
     """

@@ -27,7 +27,7 @@ def set_cosmology(cosmology=None):
     as the last used cosmology.
 
     Parameters
-    ----------
+    ==========
     cosmology: astropy.cosmology.FLRW, str, dict
         Description of cosmology, one of:
             None - Use DEFAULT_COSMOLOGY
@@ -37,7 +37,7 @@ def set_cosmology(cosmology=None):
             class.
 
     Returns
-    -------
+    =======
     cosmo: astropy.cosmology.FLRW
         Cosmology instance
     """

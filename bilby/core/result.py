@@ -31,7 +31,7 @@ def result_file_name(outdir, label, extension='json', gzip=False):
     """ Returns the standard filename used for a result file
 
     Parameters
-    ----------
+    ==========
     outdir: str
         Name of the output directory
     label: str
@@ -42,7 +42,7 @@ def result_file_name(outdir, label, extension='json', gzip=False):
         Set to True to append `.gz` to the extension for saving in gzipped format
 
     Returns
-    -------
+    =======
     str: File name of the output file
     """
     if extension in ['json', 'hdf5']:
@@ -69,7 +69,7 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     """ Reads in a stored bilby result object
 
     Parameters
-    ----------
+    ==========
     filename: str
         Path to the file to be read (alternative to giving the outdir and label)
     outdir, label, extension: str
@@ -103,7 +103,7 @@ def get_weights_for_reweighting(
     See bilby.core.result.reweight() for help with the inputs
 
     Returns
-    -------
+    =======
     ln_weights: array
         An array of the natural-log weights
     new_log_likelihood_array: array
@@ -156,14 +156,14 @@ def rejection_sample(posterior, weights):
     """ Perform rejection sampling on a posterior using weights
 
     Parameters
-    ----------
+    ==========
     posterior: pd.DataFrame or np.ndarray of shape (nsamples, nparameters)
         The dataframe or array containing posterior samples
     weights: np.ndarray
         An array of weights
 
     Returns
-    -------
+    =======
     reweighted_posterior: pd.DataFrame
         The posterior resampled using rejection sampling
 
@@ -177,7 +177,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     """ Reweight a result to a new likelihood/prior using rejection sampling
 
     Parameters
-    ----------
+    ==========
     label: str, optional
         An updated label to apply to the result object
     new_likelihood: bilby.core.likelood.Likelihood, (optional)
@@ -194,7 +194,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
         the values stored in the posterior are used.
 
     Returns
-    -------
+    =======
     result: bilby.core.result.Result
         A copy of the result object with a reweighted posterior
 
@@ -247,7 +247,7 @@ class Result(object):
         """ A class to store the results of the sampling run
 
         Parameters
-        ----------
+        ==========
         label, outdir, sampler: str
             The label, output directory, and sampler used
         search_parameter_keys, fixed_parameter_keys, constraint_parameter_keys: list
@@ -295,8 +295,8 @@ class Result(object):
             Version information for software used to generate the result. Note,
             this information is generated when the result object is initialized
 
-        Note
-        ---------
+        Notes
+        =========
         All sampling output parameters, e.g. the samples themselves are
         typically not given at initialisation, but set at a later stage.
 
@@ -340,18 +340,18 @@ class Result(object):
         """ Read in a saved .h5 data file
 
         Parameters
-        ----------
+        ==========
         filename: str
             If given, try to load from this filename
         outdir, label: str
             If given, use the default naming convention for saved results file
 
         Returns
-        -------
+        =======
         result: bilby.core.result.Result
 
         Raises
-        -------
+        =======
         ValueError: If no filename is given and either outdir or label is None
                     If no bilby.core.result.Result is found in the path
 
@@ -396,18 +396,18 @@ class Result(object):
         """ Read in a saved .json data file
 
         Parameters
-        ----------
+        ==========
         filename: str
             If given, try to load from this filename
         outdir, label: str
             If given, use the default naming convention for saved results file
 
         Returns
-        -------
+        =======
         result: bilby.core.result.Result
 
         Raises
-        -------
+        =======
         ValueError: If no filename is given and either outdir or label is None
                     If no bilby.core.result.Result is found in the path
 
@@ -595,7 +595,7 @@ class Result(object):
         Writes the Result to a json or deepdish h5 file
 
         Parameters
-        ----------
+        ==========
         filename: optional,
             Filename to write to (overwrites the default)
         overwrite: bool, optional
@@ -663,7 +663,7 @@ class Result(object):
         abs appended to the column name
 
         Parameters
-        ----------
+        ==========
         filename: str
             Alternative filename to use. Defaults to
             outdir/label_posterior_samples.dat
@@ -697,12 +697,12 @@ class Result(object):
         """ Returns a list of latex_labels corresponding to the given keys
 
         Parameters
-        ----------
+        ==========
         keys: list
             List of strings corresponding to the desired latex_labels
 
         Returns
-        -------
+        =======
         list: The desired latex_labels
 
         """
@@ -760,7 +760,7 @@ class Result(object):
         See <https://arxiv.org/abs/1903.06682>
 
         Returns
-        -------
+        =======
         float: The model dimensionality
         """
         return 2 * (np.mean(self.posterior['log_likelihood']**2) -
@@ -771,7 +771,7 @@ class Result(object):
         """ Calculate the median and error bar for a given key
 
         Parameters
-        ----------
+        ==========
         key: str
             The parameter key for which to calculate the median and error bar
         fmt: str, ('.2f')
@@ -781,7 +781,7 @@ class Result(object):
             the errors bars for.
 
         Returns
-        -------
+        =======
         summary: namedtuple
             An object with attributes, median, lower, upper and string
 
@@ -811,7 +811,7 @@ class Result(object):
         """ Plot a 1D marginal density, either probability or cumulative.
 
         Parameters
-        ----------
+        ==========
         key: str
             Name of the parameter to plot
         prior: {bool (True), bilby.core.prior.Prior}
@@ -844,7 +844,7 @@ class Result(object):
             Dots per inch resolution of the plot
 
         Returns
-        -------
+        =======
         figure: matplotlib.pyplot.figure
             A matplotlib figure object
         """
@@ -895,7 +895,7 @@ class Result(object):
         """ Plot 1D marginal distributions
 
         Parameters
-        ----------
+        ==========
         parameters: (list, dict), optional
             If given, either a list of the parameter names to include, or a
             dictionary of parameter names and their "true" values to plot.
@@ -924,7 +924,7 @@ class Result(object):
             Path to the outdir. Default is the one store in the result object.
 
         Returns
-        -------
+        =======
         """
         if isinstance(parameters, dict):
             plot_parameter_keys = list(parameters.keys())
@@ -974,7 +974,7 @@ class Result(object):
         """ Plot a corner-plot
 
         Parameters
-        ----------
+        ==========
         parameters: (list, dict), optional
             If given, either a list of the parameter names to include, or a
             dictionary of parameter names and their "true" values to plot.
@@ -1012,7 +1012,7 @@ class Result(object):
             adding truths=False.
 
         Returns
-        -------
+        =======
         fig:
             A matplotlib figure instance
 
@@ -1183,7 +1183,7 @@ class Result(object):
         """ Generate a figure showing the data and fits to the data
 
         Parameters
-        ----------
+        ==========
         model: function
             A python function which when called as `model(x, **kwargs)` returns
             the model prediction (here `kwargs` is a dictionary of key-value
@@ -1269,7 +1269,7 @@ class Result(object):
         Also applies the conversion function to any stored posterior
 
         Parameters
-        ----------
+        ==========
         likelihood: bilby.likelihood.GravitationalWaveTransient, optional
             GravitationalWaveTransient likelihood used for sampling.
         priors: bilby.prior.PriorDict, optional
@@ -1304,7 +1304,7 @@ class Result(object):
         Evaluate prior probability for each parameter for each sample.
 
         Parameters
-        ----------
+        ==========
         priors: dict, PriorDict
             Prior distributions
         """
@@ -1322,13 +1322,13 @@ class Result(object):
         Get credible levels for all parameters
 
         Parameters
-        ----------
+        ==========
         keys: list, optional
             A list of keys for which return the credible levels, if None,
             defaults to search_parameter_keys
 
         Returns
-        -------
+        =======
         credible_levels: dict
             The credible levels at which the injected parameters are found.
         """
@@ -1349,11 +1349,11 @@ class Result(object):
         Calculated as CDF(injection value)
 
         Parameters
-        ----------
+        ==========
         parameter: str
             Parameter to get credible level for
         Returns
-        -------
+        =======
         float: credible level
         """
         if self.injection_parameters is None:
@@ -1372,14 +1372,14 @@ class Result(object):
         """ Check attribute name exists in other_object and is the same
 
         Parameters
-        ----------
+        ==========
         name: str
             Name of the attribute in this instance
         other_object: object
             Other object with attributes to compare with
 
         Returns
-        -------
+        =======
         bool: True if attribute name matches with an attribute of other_object, False otherwise
 
         """
@@ -1419,14 +1419,14 @@ class Result(object):
         the posterior probability density for the new sample.
 
         Parameters
-        ----------
+        ==========
         sample: dict, or list of dictionaries
             A dictionary containing all the keys from
             self.search_parameter_keys and corresponding values at which to
             calculate the posterior probability
 
         Returns
-        -------
+        =======
         p: array-like,
             The posterior probability of the sample
 
@@ -1453,7 +1453,7 @@ class Result(object):
         """ Calculate a list of sample weights based on the ratio of new to old priors
 
             Parameters
-            ----------
+            ==========
             old_prior: PriorDict,
                 The prior used in the generation of the original samples.
 
@@ -1464,7 +1464,7 @@ class Result(object):
                 A list of the priors to include in the ratio during reweighting.
 
             Returns
-            -------
+            =======
             weights: array-like,
                 A list of sample weights.
 
@@ -1495,14 +1495,14 @@ class Result(object):
         """ Convert the Result object to an ArviZ InferenceData object.
 
             Parameters
-            ----------
+            ==========
             prior: int
                 If a positive integer is given then that number of prior
                 samples will be drawn and stored in the ArviZ InferenceData
                 object.
 
             Returns
-            -------
+            =======
             azdata: InferenceData
                 The ArviZ InferenceData object.
         """
@@ -1569,7 +1569,7 @@ class ResultList(list):
         outputing combined results.
 
         Parameters
-        ----------
+        ==========
         results: list
             A list of `:class:`bilby.core.result.Result`.
         """
@@ -1583,7 +1583,7 @@ class ResultList(list):
         list.
 
         Parameters
-        ----------
+        ==========
         result: :class:`bilby.core.result.Result` or filename
             pointing to a result object, to append to the list.
         """
@@ -1633,12 +1633,12 @@ class ResultList(list):
         the evidence for each individual run
 
         Parameters
-        ----------
+        ==========
         result: bilby.core.result.Result
             The result object to put the new samples in.
 
         Returns
-        -------
+        =======
         posteriors: list
             A list of pandas DataFrames containing the reduced sample set from
             each run.
@@ -1704,7 +1704,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
-    ----------
+    ==========
     results: list
         A list of `bilby.core.result.Result` objects containing the samples to
         plot.
@@ -1732,7 +1732,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         List of strings to be passed to the input `labels` to `result.plot_corner`.
 
     Returns
-    -------
+    =======
     fig:
         A matplotlib figure instance
 
@@ -1799,7 +1799,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     Make a P-P plot for a set of runs with injected signals.
 
     Parameters
-    ----------
+    ==========
     results: list
         A list of Result objects, each of these should have injected_parameters
     filename: str, optional
@@ -1821,7 +1821,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         Additional kwargs to pass to matplotlib.pyplot.plot
 
     Returns
-    -------
+    =======
     fig, pvals:
         matplotlib figure and a NamedTuple with attributes `combined_pvalue`,
         `pvalues`, and `names`.

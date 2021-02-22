@@ -21,7 +21,7 @@ class WaveformGenerator(object):
         """ A waveform generator
 
     Parameters
-    ----------
+    ==========
     sampling_frequency: float, optional
         The sampling frequency
     duration: float, optional
@@ -106,18 +106,18 @@ class WaveformGenerator(object):
         Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
 
         Parameters
-        ----------
+        ==========
         parameters: dict, optional
             Parameters to evaluate the waveform for, this overwrites
             `self.parameters`.
             If not provided will fall back to `self.parameters`.
 
         Returns
-        -------
+        =======
         array_like: The frequency domain strain for the given set of parameters
 
         Raises
-        -------
+        =======
         RuntimeError: If no source model is given
 
         """
@@ -136,18 +136,18 @@ class WaveformGenerator(object):
         given.
 
         Parameters
-        ----------
+        ==========
         parameters: dict, optional
             Parameters to evaluate the waveform for, this overwrites
             `self.parameters`.
             If not provided will fall back to `self.parameters`.
 
         Returns
-        -------
+        =======
         array_like: The time domain strain for the given set of parameters
 
         Raises
-        -------
+        =======
         RuntimeError: If no source model is given
 
         """
@@ -201,7 +201,7 @@ class WaveformGenerator(object):
         """ The dictionary of parameters for source model.
 
         Returns
-        -------
+        =======
         dict: The dictionary of parameter key-value pairs
 
         """
@@ -216,7 +216,7 @@ class WaveformGenerator(object):
         (set.symmetric_difference is the opposite of set.intersection)
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             Input parameter dictionary, this is copied, passed to the conversion
             function and has self.waveform_arguments added to it.
@@ -236,7 +236,7 @@ class WaveformGenerator(object):
         Infer the named arguments of the source model.
 
         Returns
-        -------
+        =======
         set: The names of the arguments of the source model.
         """
         if self.frequency_domain_source_model is not None:

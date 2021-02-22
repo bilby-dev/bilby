@@ -18,8 +18,8 @@ class Cpnest(NestedSampler):
     for that class for further help. Under Other Parameters, we list commonly
     used kwargs and the bilby defaults.
 
-    Other Parameters
-    ----------------
+    Parameters
+    ==========
     nlive: int
         The number of live points, note this can also equivalently be given as
         one of [npoints, nlives, n_live_points]

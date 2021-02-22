@@ -57,7 +57,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     The primary interface to easy parameter estimation
 
     Parameters
-    ----------
+    ==========
     likelihood: `bilby.Likelihood`
         A `Likelihood` instance
     priors: `bilby.PriorDict`
@@ -108,7 +108,7 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         All kwargs are passed directly to the samplers `run` function
 
     Returns
-    -------
+    =======
     result: bilby.core.result.Result
         An object containing the results
     """

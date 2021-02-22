@@ -15,7 +15,7 @@ class Sampler(object):
     """ A sampler object to aid in setting up an inference run
 
     Parameters
-    ----------
+    ==========
     likelihood: likelihood.Likelihood
         A  object with a log_l method
     priors: bilby.core.prior.PriorDict, dict
@@ -50,7 +50,7 @@ class Sampler(object):
         Additional keyword arguments
 
     Attributes
-    ----------
+    ==========
     likelihood: likelihood.Likelihood
         A  object with a log_l method
     priors: bilby.core.prior.PriorDict
@@ -78,7 +78,7 @@ class Sampler(object):
         Dictionary of keyword arguments that can be used in the external sampler
 
     Raises
-    ------
+    ======
     TypeError:
         If external_sampler is neither a string nor an instance of this class
         If not all likelihood.parameters have been defined
@@ -226,7 +226,7 @@ class Sampler(object):
     def _initialise_result(self, result_class):
         """
         Returns
-        -------
+        =======
         bilby.core.result.Result: An initial template for the result
 
         """
@@ -254,7 +254,7 @@ class Sampler(object):
         """Check if all priors can be sampled properly.
 
         Raises
-        ------
+        ======
         AttributeError
             prior can't be sampled.
         """
@@ -272,7 +272,7 @@ class Sampler(object):
         Tests if the likelihood evaluation passes
 
         Raises
-        ------
+        ======
         TypeError
             Likelihood can't be evaluated.
 
@@ -296,7 +296,7 @@ class Sampler(object):
         """ Times the likelihood evaluation and print an info message
 
         Parameters
-        ----------
+        ==========
         n_evaluations: int
             The number of evaluations to estimate the evaluation time from
 
@@ -342,12 +342,12 @@ class Sampler(object):
         """ Prior transform method that is passed into the external sampler.
 
         Parameters
-        ----------
+        ==========
         theta: list
             List of sampled values on a unit interval
 
         Returns
-        -------
+        =======
         list: Properly rescaled sampled values
         """
         return self.priors.rescale(self._search_parameter_keys, theta)
@@ -356,12 +356,12 @@ class Sampler(object):
         """
 
         Parameters
-        ----------
+        ==========
         theta: list
             List of sampled values on a unit interval
 
         Returns
-        -------
+        =======
         float: Joint ln prior probability of theta
 
         """
@@ -373,12 +373,12 @@ class Sampler(object):
         """
 
         Parameters
-        ----------
+        ==========
         theta: list
             List of values for the likelihood parameters
 
         Returns
-        -------
+        =======
         float: Log-likelihood or log-likelihood-ratio given the current
             likelihood.parameter values
 
@@ -400,7 +400,7 @@ class Sampler(object):
         """ Get a random draw from the prior distribution
 
         Returns
-        -------
+        =======
         draw: array_like
             An ndim-length array of values drawn from the prior. Parameters
             with delta-function (or fixed) priors are not returned
@@ -419,12 +419,12 @@ class Sampler(object):
         finite prior and likelihood (relevant for constrained priors).
 
         Parameters
-        ----------
+        ==========
         npoints: int
             The number of values to return
 
         Returns
-        -------
+        =======
         unit_cube, parameters, likelihood: tuple of array_like
             unit_cube (nlive, ndim) is an array of the prior samples from the
             unit cube, parameters (nlive, ndim) is the unit_cube array
@@ -453,12 +453,12 @@ class Sampler(object):
         Also catches the output of `numpy.nan_to_num`.
 
         Parameters
-        ----------
+        ==========
         theta: array_like
             Parameter values at which to evaluate likelihood
 
         Returns
-        -------
+        =======
         bool, cube (nlive,
             True if the likelihood and prior are finite, false otherwise
 
@@ -482,7 +482,7 @@ class Sampler(object):
         """
         TODO: Implement this method
         Raises
-        -------
+        =======
         ValueError: in any case
         """
         raise ValueError("Method not yet implemented")
@@ -556,7 +556,7 @@ class NestedSampler(Sampler):
         loglikelihoods
 
         Parameters
-        ----------
+        ==========
         sorted_samples, unsorted_samples: array-like
             Sorted and unsorted values of the samples. These should be of the
             same shape and contain the same sample values, but in different
@@ -565,7 +565,7 @@ class NestedSampler(Sampler):
             The loglikelihoods corresponding to the unsorted_samples
 
         Returns
-        -------
+        =======
         sorted_loglikelihoods: array-like
             The loglikelihoods reordered to match that of the sorted_samples
 
@@ -589,12 +589,12 @@ class NestedSampler(Sampler):
         the prior constraint here.
 
         Parameters
-        ----------
+        ==========
         theta: array_like
             Parameter values at which to evaluate likelihood
 
         Returns
-        -------
+        =======
         float: log_likelihood
         """
         if self.priors.evaluate_constraints({
@@ -645,7 +645,7 @@ class MCMCSampler(Sampler):
         """ Uses the `emcee.autocorr` module to estimate the autocorrelation
 
         Parameters
-        ----------
+        ==========
         samples: array_like
             A chain of samples.
         c: float

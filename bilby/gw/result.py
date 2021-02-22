@@ -118,12 +118,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
         properties.
 
         Parameters
-        ----------
+        ==========
         detector: str [H1, L1, V1]
             Detector name
 
         Returns
-        -------
+        =======
         injection_properties: dict
             A dictionary of the injection properties
 
@@ -143,7 +143,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         Plot is saved to {self.outdir}/{self.label}_calibration.{format}
 
         Parameters
-        ----------
+        ==========
         level: float
             Quantile for confidence levels, default=0.9, i.e., 90% interval
         format: str
@@ -230,7 +230,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         If injection parameters can be found, the injection will be plotted.
 
         Parameters
-        ----------
+        ==========
         interferometers: (list, bilby.gw.detector.InterferometerList, optional)
         level: float, optional
             symmetric confidence interval to show, default is 90%
@@ -272,7 +272,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         If injection parameters can be found, the injection will be plotted.
 
         Parameters
-        ----------
+        ==========
         interferometer: (str, bilby.gw.detector.interferometer.Interferometer)
             detector to use, if an Interferometer object is passed the data
             will be overlaid on the posterior
@@ -296,7 +296,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             posterior. Default is 0.2
 
         Returns
-        -------
+        =======
         fig: figure-handle, only is save=False
 
         Notes
@@ -703,7 +703,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         required the installation of ligo.skymap.
 
         Parameters
-        ----------
+        ==========
         maxpts: int
             Maximum number of samples to use, if None all samples are used
         trials: int

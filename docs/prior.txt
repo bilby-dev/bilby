@@ -51,27 +51,12 @@ which provides extra functionality. For example, to sample from the prior:
    >>> priors.sample()
    {'a': 0.1234, 'b': 4.5232}
 
-Here is the detailed API information:
-
-.. autoclass:: bilby.core.prior.PriorDict
-   :members:
-
-   .. automethod:: __init__
-
 -----------------------
 Available prior classes
 -----------------------
 
-We have provided a number of standard priors. Here we document a few of them,
-note that this list is incomplete.
-
-.. autoclass:: bilby.core.prior.Uniform
-   :members:
-   :special-members:
-
-.. autoclass:: bilby.core.prior.Gaussian
-   :members:
-   :special-members:
+We have provided a number of standard priors.
+An exhaustive list can be found in the API section.
 
 ---------------------------
 Multivariate Gaussian prior
@@ -113,23 +98,13 @@ a :class:`bilby.core.prior.MultivariateGaussian` prior for each parameter, e.g.:
    >>> priors['a'] = bilby.core.prior.MultivariateGaussian(mvg, 'a')
    >>> priors['b'] = bilby.core.prior.MultivariateGaussian(mvg, 'b')
 
-The detailed API information for the distribution and prior classes are below:
-
-.. autoclass:: bilby.core.prior.MultivariateGaussianDist
-   :members:
-
-.. autoclass:: bilby.core.prior.MultivariateGaussian
-   :members:
+The detailed API information for the distribution and prior classes can be found in the API section.
 
 -----------------------
 Defining your own prior
 -----------------------
 
 You can define your own by subclassing the :code:`bilby.prior.Prior` class.
-
-.. autoclass:: bilby.core.prior.Prior
-   :members:
-   :special-members:
 
 -----------------
 Prior Constraints
@@ -193,7 +168,4 @@ Sample from this distribution and plot the samples.
     plt.tight_layout()
     plt.show()
     plt.close()
-
-------
-
 

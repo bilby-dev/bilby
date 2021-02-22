@@ -55,7 +55,7 @@ class Interferometer(object):
         Instantiate an Interferometer object.
 
         Parameters
-        ----------
+        ==========
         name: str
             Interferometer name, e.g., H1.
         power_spectral_density: bilby.gw.detector.PowerSpectralDensity
@@ -120,7 +120,7 @@ class Interferometer(object):
         """ Set the `Interferometer.strain_data` from a gwpy TimeSeries
 
         Parameters
-        ----------
+        ==========
         time_series: gwpy.timeseries.timeseries.TimeSeries
             The data to set.
 
@@ -133,7 +133,7 @@ class Interferometer(object):
         """ Set the `Interferometer.strain_data` from a numpy array
 
         Parameters
-        ----------
+        ==========
         frequency_domain_strain: array_like
             The data to set.
         sampling_frequency: float
@@ -161,7 +161,7 @@ class Interferometer(object):
         `bilby.gw.detector.InterferometerStrainData` for further information.
 
         Parameters
-        ----------
+        ==========
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -180,7 +180,7 @@ class Interferometer(object):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
-        ----------
+        ==========
         frame_file: str
             File from which to load data.
         channel: str
@@ -208,7 +208,7 @@ class Interferometer(object):
         using strain_data.set_from_channel_name()
 
         Parameters
-        ----------
+        ==========
         channel: str
             Channel to look for using gwpy in the format `IFO:Channel`
         sampling_frequency: float
@@ -227,7 +227,7 @@ class Interferometer(object):
         """ Set the `Interferometer.strain_data` from a csv file
 
         Parameters
-        ----------
+        ==========
         filename: str
             The path to the file to read in
 
@@ -239,7 +239,7 @@ class Interferometer(object):
         """ Set the `Interferometer.strain_data` to zero noise
 
         Parameters
-        ----------
+        ==========
         sampling_frequency: float
             The sampling frequency (in Hz)
         duration: float
@@ -263,7 +263,7 @@ class Interferometer(object):
         Note: there is a typo in the definition of the wave-frame in Nishizawa et al.
 
         Parameters
-        -------
+        ==========
         ra: float
             right ascension in radians
         dec: float
@@ -276,7 +276,7 @@ class Interferometer(object):
             polarisation mode (e.g. 'plus', 'cross')
 
         Returns
-        -------
+        =======
         array_like: A 3x3 array representation of the antenna response for the specified mode
 
         """
@@ -287,14 +287,14 @@ class Interferometer(object):
         """ Get the detector response for a particular waveform
 
         Parameters
-        -------
+        ==========
         waveform_polarizations: dict
             polarizations of the waveform
         parameters: dict
             parameters describing position and time of arrival of the signal
 
         Returns
-        -------
+        =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
         signal = {}
@@ -335,7 +335,7 @@ class Interferometer(object):
         Defaults to the injection polarizations is both are given.
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict, optional
@@ -347,14 +347,14 @@ class Interferometer(object):
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
 
-        Note
-        -------
+        Notes
+        =====
         if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.
 
         Returns
-        -------
+        =======
         injection_polarizations: dict
             The injected polarizations. This is the same as the injection_polarizations parameters
             if it was passed in. Otherwise it is the return value of waveform_generator.frequency_domain_strain().
@@ -377,20 +377,20 @@ class Interferometer(object):
         Alternative to `inject_signal` and `inject_signal_from_waveform_polarizations`
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             Parameters of the injection.
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject.
 
-        Note
-        -------
+        Notes
+        =====
         if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to use the
         inject_signal_from_waveform_polarizations() method.
 
         Returns
-        -------
+        =======
         injection_polarizations: dict
             The internally generated injection parameters
 
@@ -406,7 +406,7 @@ class Interferometer(object):
         Alternative to `inject_signal` and `inject_signal_from_waveform_generator`.
 
         Parameters
-        ----------
+        ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict
@@ -439,7 +439,7 @@ class Interferometer(object):
         """ Returns the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
 
         Returns
-        -------
+        =======
         array_like: An array representation of the ASD
 
         """
@@ -455,7 +455,7 @@ class Interferometer(object):
         This accounts for whether the data in the interferometer has been windowed.
 
         Returns
-        -------
+        =======
         array_like: An array representation of the PSD
 
         """
@@ -476,7 +476,7 @@ class Interferometer(object):
         Use the time delay function from utils.
 
         Parameters
-        -------
+        ==========
         ra: float
             right ascension of source in radians
         dec: float
@@ -485,7 +485,7 @@ class Interferometer(object):
             GPS time
 
         Returns
-        -------
+        =======
         float: The time delay from geocenter in seconds
         """
         return gwutils.time_delay_geocentric(self.geometry.vertex, np.array([0, 0, 0]), ra, dec, time)
@@ -498,7 +498,7 @@ class Interferometer(object):
         See Section 2.1 of LIGO-T980044-10 for the correct expression
 
         Returns
-        -------
+        =======
         array_like: A 3D array representation of the vertex
         """
         return gwutils.get_vertex_position_geocentric(self.geometry.latitude_radians,
@@ -509,12 +509,12 @@ class Interferometer(object):
         """
 
         Parameters
-        ----------
+        ==========
         signal: array_like
             Array containing the signal
 
         Returns
-        -------
+        =======
         float: The optimal signal to noise ratio possible squared
         """
         return gwutils.optimal_snr_squared(
@@ -526,12 +526,12 @@ class Interferometer(object):
         """
 
         Parameters
-        ----------
+        ==========
         signal: array_like
             Array containing the signal
 
         Returns
-        -------
+        =======
         float: The optimal signal to noise ratio possible squared
         """
         return gwutils.noise_weighted_inner_product(
@@ -544,12 +544,12 @@ class Interferometer(object):
         """
 
         Parameters
-        ----------
+        ==========
         signal: array_like
             Array containing the signal
 
         Returns
-        -------
+        =======
         float: The matched filter signal to noise ratio squared
 
         """
@@ -564,7 +564,7 @@ class Interferometer(object):
         """ Calculates the whitened data by dividing data by the amplitude spectral density
 
         Returns
-        -------
+        =======
         array_like: The whitened data
         """
         return self.strain_data.frequency_domain_strain / self.amplitude_spectral_density_array
@@ -573,7 +573,7 @@ class Interferometer(object):
         """ Creates a save file for the data in plain text format
 
         Parameters
-        ----------
+        ==========
         outdir: str
             The output directory in which the data is supposed to be saved
         label: str
@@ -641,7 +641,7 @@ class Interferometer(object):
         """ Plots the strain data in the time domain
 
         Parameters
-        ----------
+        ==========
         outdir, label: str
             Used in setting the saved filename.
         bandpass: tuple, optional
@@ -711,7 +711,7 @@ class Interferometer(object):
         """ Save the object to a hdf5 file
 
         Attributes
-        ----------
+        ==========
         outdir: str, optional
             Output directory name of the file, defaults to 'outdir'.
         label: str, optional
@@ -732,7 +732,7 @@ class Interferometer(object):
         """ Loads in an Interferometer object from an hdf5 file
 
         Parameters
-        ----------
+        ==========
         filename: str
             If given, try to load from this filename
 

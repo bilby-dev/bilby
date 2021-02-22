@@ -43,12 +43,12 @@ class JumpProposal(object):
         """ A generic class for jump proposals
 
         Parameters
-        ----------
+        ==========
         priors: bilby.core.prior.PriorDict
             Dictionary of priors used in this sampling run
 
         Attributes
-        ----------
+        ==========
         log_j: float
             Log Jacobian of the proposal. Characterises whether or not detailed balance
             is preserved. If not, log_j needs to be adjusted accordingly.
@@ -60,12 +60,12 @@ class JumpProposal(object):
         """ A generic wrapper for the jump proposal function
 
         Parameters
-        ----------
+        ==========
         args: Arguments that are going to be passed into the proposal function
         kwargs: Keyword arguments that are going to be passed into the proposal function
 
         Returns
-        -------
+        =======
         dict: A dictionary with the new samples. Boundary conditions are applied.
 
         """
@@ -106,7 +106,7 @@ class JumpProposalCycle(object):
         """ A generic wrapper class for proposal cycles
 
         Parameters
-        ----------
+        ==========
         proposal_functions: list
             A list of callable proposal functions/objects
         weights: list
@@ -153,7 +153,7 @@ class JumpProposalCycle(object):
         """
 
         Returns
-        -------
+        =======
         Normalised proposal weights
 
         """
@@ -175,7 +175,7 @@ class NormJump(JumpProposal):
         A normal distributed step centered around the old sample
 
         Parameters
-        ----------
+        ==========
         step_size: float
             The scalable step size
         priors:
@@ -196,8 +196,9 @@ class EnsembleWalk(JumpProposal):
                  **random_number_generator_args):
         """
         An ensemble walk
+
         Parameters
-        ----------
+        ==========
         random_number_generator: func, optional
             A random number generator. Default is random.random
         n_points: int, optional
@@ -233,7 +234,7 @@ class EnsembleStretch(JumpProposal):
         Stretch move. Calculates the log Jacobian which can be used in cpnest to bias future moves.
 
         Parameters
-        ----------
+        ==========
         scale: float, optional
             Stretching scale. Default is 2.0.
         """
@@ -257,7 +258,7 @@ class DifferentialEvolution(JumpProposal):
         old sample based on them using some Gaussian randomisation in the step.
 
         Parameters
-        ----------
+        ==========
         sigma: float, optional
             Random spread in the evolution step. Default is 1e-4
         mu: float, optional
@@ -280,7 +281,7 @@ class EnsembleEigenVector(JumpProposal):
         Ensemble step based on the ensemble eigenvectors.
 
         Parameters
-        ----------
+        ==========
         priors:
             See superclass
         """

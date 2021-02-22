@@ -69,11 +69,11 @@ class DNest4(NestedSampler):
     Bilby wrapper of DNest4
 
     Parameters
-    ----------
+    ==========
     TBD
 
     Other Parameters
-    ----------------
+    ------==========
     num_particles: int
         The number of points to use in the Nested Sampling active population.
     max_num_levels: int

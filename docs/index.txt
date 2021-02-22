@@ -5,7 +5,7 @@ Welcome to bilby's documentation!
     :members:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Contents:
 
    installation
@@ -23,10 +23,32 @@ Welcome to bilby's documentation!
    gw_prior
    conversion
    gw_references
-   gw_eos
    writing-documentation
    hyperparameters
    containers
    faq
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples:
+
+   making_priors
+   compare_samplers
+   fitting_with_x_and_y_errors
+   visualising_the_results
+
+.. currentmodule:: bilby
+
+API:
+----
+
+.. autosummary::
+   :toctree: api
+   :template: custom-module-template.rst
+   :caption: API:
+   :recursive:
+
+    core
+    gw
+    hyper
 

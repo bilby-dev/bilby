@@ -15,7 +15,7 @@ def conditional_prior_factory(prior_class):
             """
 
             Parameters
-            ----------
+            ==========
             condition_func: func
                 Functional form of the condition for this prior. The first function argument
                 has to be a dictionary for the `reference_params` (see below). The following
@@ -27,10 +27,14 @@ def conditional_prior_factory(prior_class):
                 `p(x|y)` with the boundaries linearly depending on y, then this
                 could have the following form:
 
-                ```
-                def condition_func(reference_params, y):
-                    return dict(minimum=reference_params['minimum'] + y, maximum=reference_params['maximum'] + y)
-                ```
+                .. code-block:: python
+
+                    def condition_func(reference_params, y):
+                        return dict(
+                            minimum=reference_params['minimum'] + y,
+                            maximum=reference_params['maximum'] + y
+                        )
+
             name: str, optional
                See superclass
             latex_label: str, optional
@@ -61,14 +65,14 @@ def conditional_prior_factory(prior_class):
             """Draw a sample from the prior
 
             Parameters
-            ----------
+            ==========
             size: int or tuple of ints, optional
                 See superclass
             required_variables:
                 Any required variables that this prior depends on
 
             Returns
-            -------
+            =======
             float: See superclass
 
             """
@@ -80,7 +84,7 @@ def conditional_prior_factory(prior_class):
             'Rescale' a sample from the unit line element to the prior.
 
             Parameters
-            ----------
+            ==========
             val: Union[float, int, array_like]
                 See superclass
             required_variables:
@@ -95,7 +99,7 @@ def conditional_prior_factory(prior_class):
             """Return the prior probability of val.
 
             Parameters
-            ----------
+            ==========
             val: Union[float, int, array_like]
                 See superclass
             required_variables:
@@ -103,7 +107,7 @@ def conditional_prior_factory(prior_class):
 
 
             Returns
-            -------
+            =======
             float: Prior probability of val
             """
             self.update_conditions(**required_variables)
@@ -113,7 +117,7 @@ def conditional_prior_factory(prior_class):
             """Return the natural log prior probability of val.
 
             Parameters
-            ----------
+            ==========
             val: Union[float, int, array_like]
                 See superclass
             required_variables:
@@ -121,7 +125,7 @@ def conditional_prior_factory(prior_class):
 
 
             Returns
-            -------
+            =======
             float: Natural log prior probability of val
             """
             self.update_conditions(**required_variables)
@@ -131,7 +135,7 @@ def conditional_prior_factory(prior_class):
             """Return the cdf of val.
 
             Parameters
-            ----------
+            ==========
             val: Union[float, int, array_like]
                 See superclass
             required_variables:
@@ -139,7 +143,7 @@ def conditional_prior_factory(prior_class):
 
 
             Returns
-            -------
+            =======
             float: CDF of val
             """
             self.update_conditions(**required_variables)
@@ -154,7 +158,7 @@ def conditional_prior_factory(prior_class):
             If no variables are given, the most recently used conditional parameters are kept
 
             Parameters
-            ----------
+            ==========
             required_variables:
                 Any required variables that this prior depends on. If none are given,
                 self.reference_params will be used.
@@ -217,7 +221,7 @@ def conditional_prior_factory(prior_class):
             Works correctly for all child classes
 
             Returns
-            -------
+            =======
             str: A string representation of this instance
 
             """
@@ -234,49 +238,116 @@ def conditional_prior_factory(prior_class):
     return ConditionalPrior
 
 
-ConditionalBasePrior = conditional_prior_factory(Prior)  # Only for testing purposes
-ConditionalUniform = conditional_prior_factory(Uniform)
-ConditionalDeltaFunction = conditional_prior_factory(DeltaFunction)
-ConditionalPowerLaw = conditional_prior_factory(PowerLaw)
-ConditionalGaussian = conditional_prior_factory(Gaussian)
-ConditionalLogUniform = conditional_prior_factory(LogUniform)
-ConditionalSymmetricLogUniform = conditional_prior_factory(SymmetricLogUniform)
-ConditionalCosine = conditional_prior_factory(Cosine)
-ConditionalSine = conditional_prior_factory(Sine)
-ConditionalTruncatedGaussian = conditional_prior_factory(TruncatedGaussian)
-ConditionalHalfGaussian = conditional_prior_factory(HalfGaussian)
-ConditionalLogNormal = conditional_prior_factory(LogNormal)
-ConditionalExponential = conditional_prior_factory(Exponential)
-ConditionalStudentT = conditional_prior_factory(StudentT)
-ConditionalBeta = conditional_prior_factory(Beta)
-ConditionalLogistic = conditional_prior_factory(Logistic)
-ConditionalCauchy = conditional_prior_factory(Cauchy)
-ConditionalGamma = conditional_prior_factory(Gamma)
-ConditionalChiSquared = conditional_prior_factory(ChiSquared)
-ConditionalFermiDirac = conditional_prior_factory(FermiDirac)
-ConditionalInterped = conditional_prior_factory(Interped)
+class ConditionalBasePrior(conditional_prior_factory(Prior)):
+    pass
+
+
+class ConditionalUniform(conditional_prior_factory(Uniform)):
+    pass
+
+
+class ConditionalDeltaFunction(conditional_prior_factory(DeltaFunction)):
+    pass
+
+
+class ConditionalPowerLaw(conditional_prior_factory(PowerLaw)):
+    pass
+
+
+class ConditionalGaussian(conditional_prior_factory(Gaussian)):
+    pass
+
+
+class ConditionalLogUniform(conditional_prior_factory(LogUniform)):
+    pass
+
+
+class ConditionalSymmetricLogUniform(conditional_prior_factory(SymmetricLogUniform)):
+    pass
+
+
+class ConditionalCosine(conditional_prior_factory(Cosine)):
+    pass
+
+
+class ConditionalSine(conditional_prior_factory(Sine)):
+    pass
+
+
+class ConditionalTruncatedGaussian(conditional_prior_factory(TruncatedGaussian)):
+    pass
+
+
+class ConditionalHalfGaussian(conditional_prior_factory(HalfGaussian)):
+    pass
+
+
+class ConditionalLogNormal(conditional_prior_factory(LogNormal)):
+    pass
+
+
+class ConditionalExponential(conditional_prior_factory(Exponential)):
+    pass
+
+
+class ConditionalStudentT(conditional_prior_factory(StudentT)):
+    pass
+
+
+class ConditionalBeta(conditional_prior_factory(Beta)):
+    pass
+
+
+class ConditionalLogistic(conditional_prior_factory(Logistic)):
+    pass
+
+
+class ConditionalCauchy(conditional_prior_factory(Cauchy)):
+    pass
+
+
+class ConditionalGamma(conditional_prior_factory(Gamma)):
+    pass
+
+
+class ConditionalChiSquared(conditional_prior_factory(ChiSquared)):
+    pass
+
+
+class ConditionalFermiDirac(conditional_prior_factory(FermiDirac)):
+    pass
+
+
+class ConditionalInterped(conditional_prior_factory(Interped)):
+    pass
 
 
 class DirichletElement(ConditionalBeta):
-    """
+    r"""
     Single element in a dirichlet distribution
 
     The probability scales as
 
-    $p(x_order) \propto (x_max - x_order)^(n_dimensions - order - 2)$
+    .. math::
+        p(x_n) \propto (x_\max - x_n)^{(N - n - 2)}
 
-    for x_order < x_max, where x_max is the sum of x_i for i < order
+    for :math:`x_n < x_\max`, where :math:`x_\max` is the sum of :math:`x_i`
+    for :math:`i < n`
 
     Examples
-    --------
+    ========
     n_dimensions = 1:
-    p(x_0) \propto 1 ; 0 < x_0 < 1
+
+        .. math::
+            p(x_0) \propto 1 ; 0 < x_0 < 1
+
     n_dimensions = 2:
-    p(x_0) \propto (1 - x_0) ; 0 < x_0 < 1
-    p(x_1) \propto 1 ; 0 < x_1 < 1
+        .. math::
+            p(x_0) &\propto (1 - x_0) ; 0 < x_0 < 1
+            p(x_1) &\propto 1 ; 0 < x_1 < 1
 
     Parameters
-    ----------
+    ==========
     order: int
         Order of this element of the dirichlet distribution.
     n_dimensions: int
@@ -284,9 +355,11 @@ class DirichletElement(ConditionalBeta):
     label: str
         Label for the dirichlet distribution.
         This should be the same for all elements.
+
     """
 
     def __init__(self, order, n_dimensions, label):
+        """ """
         super(DirichletElement, self).__init__(
             minimum=0, maximum=1, alpha=1, beta=n_dimensions - order - 1,
             name=label + str(order),
