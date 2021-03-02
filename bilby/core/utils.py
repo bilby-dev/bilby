@@ -1211,7 +1211,7 @@ def latex_plot_format(func):
 
         if bilby_mathdefault == 1:
             logger.debug("Setting mathdefault in the rcParams")
-            rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
+            rcParams['text.latex.preamble'] = r'\providecommand{\mathdefault}[1][]{}'
 
         logger.debug("Using BILBY_STYLE={}".format(bilby_style))
         if bilby_style.lower() == "none":
