@@ -21,7 +21,7 @@ for line in lines:
     for element in line.split()[1:]:
         element = element.lower()
         if element not in AUTHORS_list and element not in special_cases:
-            print("Failure: {} not in AUTHOR.md".format(element))
+            print(f"Failure: {element} not in AUTHOR.md")
             fail_test += True
 
 if fail_test:
