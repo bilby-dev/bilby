@@ -12,6 +12,7 @@
 stages:
   - initial
   - test
+  - docs
   - deploy
 
 .test-python: &test-python
@@ -47,6 +48,8 @@ python-3.7:
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     # Run pyflakes
     - flake8 .
@@ -62,12 +65,14 @@ python-3.7:
       - htmlcov/
 
 docs:
-  stage: initial
+  stage: docs
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     # Make the documentation
     - apt-get -yqq install pandoc
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
     - cd docs
     - pip install ipykernel ipython jupyter
     - cp ../examples/tutorials/*.ipynb ./
@@ -88,6 +93,8 @@ python-3.8:
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python38
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     - pytest
 
@@ -97,6 +104,8 @@ python-3.6:
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     - pytest
 
@@ -106,6 +115,8 @@ python-3.7-samplers:
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python37
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     - pytest test/integration/sampler_run_test.py --durations 10
     - pytest test/integration/sample_from_the_prior_test.py
@@ -116,6 +127,8 @@ python-3.6-samplers:
   image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     - pytest test/integration/sampler_run_test.py
 
@@ -138,6 +151,8 @@ scheduled-python-3.7:
     - schedules
   script:
     - python -m pip install .
+    # temporary fix for broken astropy version
+    - pip install pyerfa==1.7.1.1
 
     # Run tests which are only done on schedule
     - pytest test/integration/example_test.py

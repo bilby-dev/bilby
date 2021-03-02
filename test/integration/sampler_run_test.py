@@ -1,7 +1,10 @@
-import bilby
 import unittest
-import numpy as np
+import pytest
 import shutil
+import sys
+
+import bilby
+import numpy as np
 
 
 class TestRunningSamplers(unittest.TestCase):
@@ -103,6 +106,7 @@ class TestRunningSamplers(unittest.TestCase):
         )
 
     def test_run_pypolychord(self):
+        pytest.importorskip("pypolychord")
         _ = bilby.run_sampler(
             likelihood=self.likelihood,
             priors=self.priors,
@@ -124,6 +128,7 @@ class TestRunningSamplers(unittest.TestCase):
             save=False,
         )
 
+    @pytest.mark.skipif(sys.version_info[1] <= 6, reason="pymc3 is broken in py36")
     def test_run_pymc3(self):
         _ = bilby.run_sampler(
             likelihood=self.likelihood,
