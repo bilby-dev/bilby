@@ -312,5 +312,50 @@ class TestLatexPlotFormat(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.filename))
 
 
+class TestUnsortedInterp2d(unittest.TestCase):
+
+    def setUp(self):
+        self.xx = np.linspace(0, 1, 10)
+        self.yy = np.linspace(0, 1, 10)
+        self.zz = np.random.random((10, 10))
+        self.interpolant = bilby.core.utils.UnsortedInterp2d(
+            self.xx, self.yy, self.zz
+        )
+
+    def tearDown(self):
+        pass
+
+    def test_returns_float_for_floats(self):
+        self.assertIsInstance(self.interpolant(0.5, 0.5), float)
+
+    def test_returns_none_for_floats_outside_range(self):
+        self.assertIsNone(self.interpolant(0.5, -0.5))
+        self.assertIsNone(self.interpolant(-0.5, 0.5))
+
+    def test_returns_float_for_float_and_array(self):
+        self.assertIsInstance(
+            self.interpolant(0.5, np.random.random(10)), np.ndarray
+        )
+        self.assertIsInstance(
+            self.interpolant(np.random.random(10), 0.5), np.ndarray
+        )
+        self.assertIsInstance(
+            self.interpolant(np.random.random(10), np.random.random(10)),
+            np.ndarray
+        )
+
+    def test_raises_for_mismatched_arrays(self):
+        with self.assertRaises(ValueError):
+            self.interpolant(
+                np.random.random(10), np.random.random(20)
+            )
+
+    def test_returns_fill_in_correct_place(self):
+        x_data = np.random.random(10)
+        y_data = np.random.random(10)
+        x_data[3] = -1
+        self.assertTrue(np.isnan(self.interpolant(x_data, y_data)[3]))
+
+
 if __name__ == "__main__":
     unittest.main()

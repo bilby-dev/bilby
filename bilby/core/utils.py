@@ -12,6 +12,7 @@ import types
 import subprocess
 import multiprocessing
 from importlib import import_module
+from numbers import Number
 import json
 import warnings
 
@@ -953,33 +954,43 @@ class UnsortedInterp2d(interp2d):
 
         """
         from scipy.interpolate.dfitpack import bispeu
+        x, y = self._sanitize_inputs(x, y)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
         bad = out_of_bounds_x | out_of_bounds_y
-        if isinstance(x, float) and isinstance(y, float):
+        if isinstance(x, Number) and isinstance(y, Number):
             if bad:
                 output = self.fill_value
                 ier = 0
             else:
                 output, ier = bispeu(*self.tck, x, y)
+                output = float(output)
         else:
-            if isinstance(x, np.ndarray):
-                output = np.zeros_like(x)
-                x_ = x[~bad]
-            else:
-                x_ = x * np.ones_like(y)
-            if isinstance(y, np.ndarray):
-                output = np.zeros_like(y)
-                y_ = y[~bad]
-            else:
-                y_ = y * np.ones_like(x)
+            output = np.empty_like(x)
             output[bad] = self.fill_value
-            output[~bad], ier = bispeu(*self.tck, x_, y_)
+            output[~bad], ier = bispeu(*self.tck, x[~bad], y[~bad])
         if ier == 10:
             raise ValueError("Invalid input data")
         elif ier:
             raise TypeError("An error occurred")
         return output
+
+    @staticmethod
+    def _sanitize_inputs(x, y):
+        if isinstance(x, np.ndarray) and x.size == 1:
+            x = float(x)
+        if isinstance(y, np.ndarray) and y.size == 1:
+            y = float(y)
+        if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+            if x.shape != y.shape:
+                raise ValueError(
+                    "UnsortedInterp2d received unequally shaped arrays"
+                )
+        elif isinstance(x, np.ndarray) and not isinstance(y, np.ndarray):
+            y = y * np.ones_like(x)
+        elif not isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+            x = x * np.ones_like(y)
+        return x, y
 
 
 #  Instantiate the default argument parser at runtime
