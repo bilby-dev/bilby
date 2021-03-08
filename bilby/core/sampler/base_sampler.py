@@ -250,22 +250,6 @@ class Sampler(object):
 
         return result
 
-    def _check_if_priors_can_be_sampled(self):
-        """Check if all priors can be sampled properly.
-
-        Raises
-        ======
-        AttributeError
-            prior can't be sampled.
-        """
-        for key in self.priors:
-            if isinstance(self.priors[key], Constraint):
-                continue
-            try:
-                self.priors[key].sample()
-            except AttributeError as e:
-                logger.warning('Cannot sample from {}, {}'.format(key, e))
-
     def _verify_parameters(self):
         """ Evaluate a set of parameters drawn from the prior
 
@@ -322,7 +306,13 @@ class Sampler(object):
         Checks if use_ratio is set. Prints a warning if use_ratio is set but
         not properly implemented.
         """
-        self._check_if_priors_can_be_sampled()
+        try:
+            self.priors.sample_subset(self.search_parameter_keys)
+        except (KeyError, AttributeError):
+            logger.error("Cannot sample from priors with keys: {}.".format(
+                self.search_parameter_keys
+            ))
+            raise
         if self.use_ratio is False:
             logger.debug("use_ratio set to False")
             return

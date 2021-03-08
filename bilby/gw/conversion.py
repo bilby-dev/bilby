@@ -234,12 +234,26 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     for idx in ['1', '2']:
         key = 'chi_{}'.format(idx)
         if key in original_keys:
-            converted_parameters['a_{}'.format(idx)] = abs(
-                converted_parameters[key])
-            converted_parameters['cos_tilt_{}'.format(idx)] = \
-                np.sign(converted_parameters[key])
-            converted_parameters['phi_jl'] = 0.0
-            converted_parameters['phi_12'] = 0.0
+            if "chi_{}_in_plane".format(idx) in original_keys:
+                converted_parameters["a_{}".format(idx)] = (
+                    converted_parameters[f"chi_{idx}"] ** 2
+                    + converted_parameters[f"chi_{idx}_in_plane"] ** 2
+                ) ** 0.5
+                converted_parameters[f"cos_tilt_{idx}"] = (
+                    converted_parameters[f"chi_{idx}"]
+                    / converted_parameters[f"a_{idx}"]
+                )
+            elif "a_{}".format(idx) not in original_keys:
+                converted_parameters['a_{}'.format(idx)] = abs(
+                    converted_parameters[key])
+                converted_parameters['cos_tilt_{}'.format(idx)] = \
+                    np.sign(converted_parameters[key])
+                converted_parameters['phi_jl'] = 0.0
+                converted_parameters['phi_12'] = 0.0
+            else:
+                converted_parameters[f"cos_tilt_{idx}"] = (
+                    converted_parameters[key] / converted_parameters[f"a_{idx}"]
+                )
 
     for angle in ['tilt_1', 'tilt_2', 'theta_jn']:
         cos_angle = str('cos_' + angle)

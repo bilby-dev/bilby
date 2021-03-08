@@ -40,7 +40,7 @@ class Test(unittest.TestCase):
         duration = 4.0
         sampling_frequency = 2048.0
         label = "full_15_parameters"
-        np.random.seed(8817020)
+        np.random.seed(8817021)
 
         waveform_arguments = dict(
             waveform_approximant="IMRPhenomPv2",

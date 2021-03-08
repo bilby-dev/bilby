@@ -667,17 +667,6 @@ class TestPriorClasses(unittest.TestCase):
         prior_2.other_key = 5
         self.assertNotEqual(prior_1, prior_2)
 
-    def test_np_array_eq(self):
-        prior_1 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1
-        )
-        prior_2 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1
-        )
-        prior_1.array_attribute = np.array([1, 2, 3])
-        prior_2.array_attribute = np.array([2, 2, 3])
-        self.assertNotEqual(prior_1, prior_2)
-
     def test_repr(self):
         for prior in self.priors:
             if isinstance(prior, bilby.core.prior.Interped):

@@ -63,21 +63,52 @@ class Prior(object):
         return self.sample()
 
     def __eq__(self, other):
+        """
+        Test equality of two prior objects.
+
+        Returns true iff:
+
+        - The class of the two priors are the same
+        - Both priors have the same keys in the __dict__ attribute
+        - The instantiation arguments match
+
+        We don't check that all entries the the __dict__ attribute
+        are equal as some attributes are variable for conditional
+        priors.
+
+        Parameters
+        ==========
+        other: Prior
+            The prior to compare with
+
+        Returns
+        =======
+        bool
+            Whether the priors are equivalent
+
+        Notes
+        =====
+        A special case is made for :code `scipy.stats.beta`: instances.
+        It may be possible to remove this as we now only check instantiation
+        arguments.
+
+        """
         if self.__class__ != other.__class__:
             return False
         if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
             return False
-        for key in self.__dict__:
+        this_dict = self.get_instantiation_dict()
+        other_dict = other.get_instantiation_dict()
+        for key in this_dict:
             if key == "least_recently_sampled":
-                # ignore sample drawn from prior in comparison
                 continue
-            if type(self.__dict__[key]) is np.ndarray:
-                if not np.array_equal(self.__dict__[key], other.__dict__[key]):
+            if isinstance(this_dict[key], np.ndarray):
+                if not np.array_equal(this_dict[key], other_dict[key]):
                     return False
-            elif isinstance(self.__dict__[key], type(scipy.stats.beta(1., 1.))):
+            elif isinstance(this_dict[key], type(scipy.stats.beta(1., 1.))):
                 continue
             else:
-                if not self.__dict__[key] == other.__dict__[key]:
+                if not this_dict[key] == other_dict[key]:
                     return False
         return True
 
