@@ -523,5 +523,20 @@ class TestAlignedSpin(unittest.TestCase):
         self.assertAlmostEqual(max_difference, 0, 2)
 
 
+class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_marginalized_prior_is_uniform(self):
+        priors = bilby.gw.prior.BBHPriorDict(aligned_spin=True)
+        priors["a_1"] = bilby.gw.prior.ConditionalChiUniformSpinMagnitude(
+            minimum=0.1, maximum=priors["chi_1"].maximum, name="a_1"
+        )
+        samples = priors.sample(100000)["a_1"]
+        ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
+        self.assertTrue(ks.pvalue > 0.001)
+
+
 if __name__ == "__main__":
     unittest.main()

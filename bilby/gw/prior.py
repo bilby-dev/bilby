@@ -7,10 +7,12 @@ from scipy.integrate import cumtrapz
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
-from ..core.prior import (PriorDict, Uniform, Prior, DeltaFunction, Gaussian,
-                          Interped, Constraint, conditional_prior_factory,
-                          BaseJointPriorDist, JointPrior, JointPriorDistError,
-                          PowerLaw)
+from ..core.prior import (
+    PriorDict, Uniform, Prior, DeltaFunction, Gaussian, Interped, Constraint,
+    conditional_prior_factory, PowerLaw, ConditionalLogUniform,
+    ConditionalPriorDict, ConditionalBasePrior, BaseJointPriorDist, JointPrior,
+    JointPriorDistError,
+)
 from ..core.utils import infer_args_from_method, logger
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
@@ -417,6 +419,141 @@ class AlignedSpin(Interped):
                                           maximum=maximum)
 
 
+class ConditionalChiUniformSpinMagnitude(ConditionalLogUniform):
+    r"""
+    This prior characterizes the conditional prior on the spin magnitude given
+    the aligned component of the spin  such that the marginal prior is uniform
+    if the distribution of spin orientations is isotropic.
+
+    .. math::
+        p(a) &= \frac{1}{a_{\max}}
+        p(\chi) &= - \frac{1}{2 a_{\max}} \ln(|\chi|)
+        p(a | \chi) &\propto \frac{1}{a}
+    """
+
+    def __init__(self, minimum, maximum, name, latex_label=None, unit=None, boundary=None):
+        super(ConditionalChiUniformSpinMagnitude, self).__init__(
+            minimum=minimum, maximum=maximum, name=name, latex_label=latex_label, unit=unit, boundary=boundary,
+            condition_func=self._condition_function)
+        self._required_variables = [name.replace("a", "chi")]
+        self.__class__.__name__ = "ConditionalChiUniformSpinMagnitude"
+        self.__class__.__qualname__ = "ConditionalChiUniformSpinMagnitude"
+
+    def _condition_function(self, reference_params, **kwargs):
+        return dict(minimum=np.abs(kwargs[self._required_variables[0]]), maximum=reference_params["maximum"])
+
+    def __repr__(self):
+        return Prior.__repr__(self)
+
+    def get_instantiation_dict(self):
+        instantiation_dict = Prior.get_instantiation_dict(self)
+        for key, value in self.reference_params.items():
+            if key in instantiation_dict:
+                instantiation_dict[key] = value
+        return instantiation_dict
+
+
+class ConditionalChiInPlane(ConditionalBasePrior):
+    r"""
+    This prior characterizes the conditional prior on the in-plane spin magnitude
+    given the aligned component of the spin  such that the marginal prior is uniform
+    if the distribution of spin orientations is isotropic.
+
+    .. math::
+        p(a) &= \frac{1}{a_{\max}}
+        p(\chi_\perp) = 2 N \chi_\perp / (\chi ** 2 + \chi_\perp ** 2)
+        N^{-1} &= 2 \ln(a_\max / |\chi|)
+    """
+
+    def __init__(self, minimum, maximum, name, latex_label=None, unit=None, boundary=None):
+        super(ConditionalChiInPlane, self).__init__(
+            minimum=minimum, maximum=maximum,
+            name=name, latex_label=latex_label,
+            unit=unit, boundary=boundary,
+            condition_func=self._condition_function
+        )
+        self._required_variables = [name[:5]]
+        self._reference_maximum = maximum
+        self.__class__.__name__ = "ConditionalChiInPlane"
+        self.__class__.__qualname__ = "ConditionalChiInPlane"
+
+    def prob(self, val, **required_variables):
+        self.update_conditions(**required_variables)
+        chi_aligned = abs(required_variables[self._required_variables[0]])
+        return (
+            (val >= self.minimum) * (val <= self.maximum)
+            * val
+            / (chi_aligned ** 2 + val ** 2)
+            / np.log(self._reference_maximum / chi_aligned)
+        )
+
+    def ln_prob(self, val, **required_variables):
+        return np.log(self.prob(val, **required_variables))
+
+    def cdf(self, val, **required_variables):
+        r"""
+        .. math::
+            \text{CDF}(\chi_\per) = N ln(1 + (\chi_\perp / \chi) ** 2)
+
+        Parameters
+        ----------
+        val: (float, array-like)
+            The value at which to evaluate the CDF
+        required_variables: dict
+            A dictionary containing the aligned component of the spin
+
+        Returns
+        -------
+        (float, array-like)
+            The value of the CDF
+
+        """
+        self.update_conditions(**required_variables)
+        chi_aligned = abs(required_variables[self._required_variables[0]])
+        return np.maximum(np.minimum(
+            (val >= self.minimum) * (val <= self.maximum)
+            * np.log(1 + (val / chi_aligned) ** 2)
+            / 2 / np.log(self._reference_maximum / chi_aligned)
+            , 1
+        ), 0)
+
+    def rescale(self, val, **required_variables):
+        r"""
+        .. math::
+            \text{PPF}(\chi_\perp) = ((a_\max / \chi) ** (2x) - 1) ** 0.5 * \chi
+
+        Parameters
+        ----------
+        val: (float, array-like)
+            The value to rescale
+        required_variables: dict
+            Dictionary containing the aligned spin component
+
+        Returns
+        -------
+        (float, array-like)
+            The in-plane component of the spin
+        """
+        self.update_conditions(**required_variables)
+        chi_aligned = abs(required_variables[self._required_variables[0]])
+        return chi_aligned * ((self._reference_maximum / chi_aligned) ** (2 * val) - 1) ** 0.5
+
+    def _condition_function(self, reference_params, **kwargs):
+        return dict(minimum=0, maximum=(
+            self._reference_maximum ** 2 - kwargs[self._required_variables[0]] ** 2
+        ) ** 0.5)
+
+    def __repr__(self):
+        return Prior.__repr__(self)
+
+    def get_instantiation_dict(self):
+        instantiation_dict = Prior.get_instantiation_dict(self)
+        for key, value in self.reference_params.items():
+            if key in instantiation_dict:
+                instantiation_dict[key] = value
+        return instantiation_dict
+
+
 class EOSCheck(Constraint):
     def __init__(self, minimum=-np.inf, maximum=np.inf):
         """
@@ -443,7 +580,7 @@ class EOSCheck(Constraint):
         return result
 
 
-class CBCPriorDict(PriorDict):
+class CBCPriorDict(ConditionalPriorDict):
     @property
     def minimum_chirp_mass(self):
         mass_1 = None
