@@ -57,6 +57,12 @@ def get_long_description():
     return long_description
 
 
+def get_requirements():
+    with open("requirements.txt", "r") as ff:
+        requirements = ff.readlines()
+    return requirements
+
+
 # get version info from __init__.py
 def readfile(filename):
     with open(filename) as fp:
@@ -86,16 +92,7 @@ setup(name='bilby',
                     'bilby.gw.eos': ['eos_tables/*.dat'],
                     'bilby': [version_file]},
       python_requires='>=3.5',
-      install_requires=[
-          'dynesty>=1.0.0',
-          'emcee',
-          'corner',
-          'dill',
-          'numpy<1.20',
-          'matplotlib>=2.0',
-          'pandas<1.2',
-          'scipy',
-          'tqdm'],
+      install_requires=get_requirements(),
       entry_points={'console_scripts':
                     ['bilby_plot=cli_bilby.plot_multiple_posteriors:main',
                      'bilby_result=cli_bilby.bilby_result:main']

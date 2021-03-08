@@ -3,9 +3,11 @@ import os
 from collections import OrderedDict, namedtuple
 from copy import copy
 from distutils.version import LooseVersion
+from importlib import import_module
 from itertools import product
 
 import corner
+import h5py
 import json
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,7 +24,9 @@ from .utils import (
     latex_plot_format, safe_save_figure,
     BilbyJsonEncoder, load_json,
     move_old_file, get_version_information,
-    decode_bilby_json,
+    decode_bilby_json, docstring,
+    recursively_save_dict_contents_to_group,
+    recursively_load_dict_contents_from_group,
 )
 from .prior import Prior, PriorDict, DeltaFunction
 
@@ -88,6 +92,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
         result = Result.from_json(filename=filename)
     elif ('hdf5' in extension) or ('h5' in extension):
         result = Result.from_hdf5(filename=filename)
+    elif ("pkl" in extension) or ("pickle" in extension):
+        result = Result.from_pickle(filename=filename)
     elif extension is None:
         raise ValueError("No filetype extension provided")
     else:
@@ -336,8 +342,8 @@ class Result(object):
         self._kde = None
 
     @classmethod
-    def from_hdf5(cls, filename=None, outdir=None, label=None):
-        """ Read in a saved .h5 data file
+    def _from_hdf5_old(cls, filename=None, outdir=None, label=None):
+        """ Read in a saved .h5 data file in the old format.
 
         Parameters
         ==========
@@ -374,7 +380,10 @@ class Result(object):
                         priordict = PriorDict()
                         for key, value in dictionary["priors"].items():
                             if key not in ["__module__", "__name__", "__prior_dict__"]:
-                                priordict[key] = decode_bilby_json(value)
+                                try:
+                                    priordict[key] = decode_bilby_json(value)
+                                except AttributeError:
+                                    continue
                         dictionary["priors"] = priordict
                     except Exception as e:
                         raise IOError(
@@ -391,27 +400,62 @@ class Result(object):
         else:
             raise IOError("No result '{}' found".format(filename))
 
+    _load_doctstring = """ Read in a saved .{format} data file
+
+    Parameters
+    ==========
+    filename: str
+        If given, try to load from this filename
+    outdir, label: str
+        If given, use the default naming convention for saved results file
+
+    Returns
+    =======
+    result: bilby.core.result.Result
+
+    Raises
+    =======
+    ValueError: If no filename is given and either outdir or label is None
+                If no bilby.core.result.Result is found in the path
+
+    """
+
+    @staticmethod
+    @docstring(_load_doctstring.format(format="pickle"))
+    def from_pickle(filename=None, outdir=None, label=None):
+        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
+        import dill
+        with open(filename, "rb") as ff:
+            return dill.load(ff)
+
     @classmethod
+    @docstring(_load_doctstring.format(format="hdf5"))
+    def from_hdf5(cls, filename=None, outdir=None, label=None):
+        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
+        with h5py.File(filename, "r") as ff:
+            data = recursively_load_dict_contents_from_group(ff, '/')
+        if list(data.keys()) == ["data"]:
+            return cls._from_hdf5_old(filename=filename)
+        data["posterior"] = pd.DataFrame(data["posterior"])
+        data["priors"] = PriorDict._get_from_json_dict(
+            json.loads(data["priors"], object_hook=decode_bilby_json)
+        )
+        try:
+            cls = getattr(import_module(data['__module__']), data['__name__'])
+        except ImportError:
+            logger.debug(
+                "Module {}.{} not found".format(data["__module__"], data["__name__"])
+            )
+        except KeyError:
+            logger.debug("No class specified, using base Result.")
+        for key in ["__module__", "__name__"]:
+            if key in data:
+                del data[key]
+        return cls(**data)
+
+    @classmethod
+    @docstring(_load_doctstring.format(format="json"))
     def from_json(cls, filename=None, outdir=None, label=None, gzip=False):
-        """ Read in a saved .json data file
-
-        Parameters
-        ==========
-        filename: str
-            If given, try to load from this filename
-        outdir, label: str
-            If given, use the default naming convention for saved results file
-
-        Returns
-        =======
-        result: bilby.core.result.Result
-
-        Raises
-        =======
-        ValueError: If no filename is given and either outdir or label is None
-                    If no bilby.core.result.Result is found in the path
-
-        """
         filename = _determine_file_name(filename, outdir, label, 'json', gzip)
 
         if os.path.isfile(filename):
@@ -592,7 +636,10 @@ class Result(object):
     def save_to_file(self, filename=None, overwrite=False, outdir=None,
                      extension='json', gzip=False):
         """
-        Writes the Result to a json or deepdish h5 file
+
+        Writes the Result to a file.
+
+        Supported formats are: `json`, `hdf5`, `arviz`, `pickle`
 
         Parameters
         ==========
@@ -631,8 +678,8 @@ class Result(object):
 
         try:
             # convert priors to JSON dictionary for both JSON and hdf5 files
-            dictionary["priors"] = dictionary["priors"]._get_json_dict()
             if extension == 'json':
+                dictionary["priors"] = dictionary["priors"]._get_json_dict()
                 if gzip:
                     import gzip
                     # encode to a string
@@ -643,16 +690,25 @@ class Result(object):
                     with open(filename, 'w') as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
-                import deepdish
-                for key in dictionary:
-                    if isinstance(dictionary[key], pd.DataFrame):
-                        dictionary[key] = dictionary[key].to_dict()
-                deepdish.io.save(filename, dictionary)
+                dictionary["__module__"] = self.__module__
+                dictionary["__name__"] = self.__class__.__name__
+                with h5py.File(filename, 'w') as h5file:
+                    recursively_save_dict_contents_to_group(h5file, '/', dictionary)
+            elif extension == 'pkl':
+                import dill
+                with open(filename, "wb") as ff:
+                    dill.dump(self, ff)
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
         except Exception as e:
-            logger.error("\n\n Saving the data has failed with the "
-                         "following message:\n {} \n\n".format(e))
+            import dill
+            filename = ".".join(filename.split(".")[:-1]) + ".pkl"
+            with open(filename, "wb") as ff:
+                dill.dump(self, ff)
+            logger.error(
+                "\n\nSaving the data has failed with the following message:\n"
+                "{}\nData has been dumped to {}.\n\n".format(e, filename)
+            )
 
     def save_posterior_samples(self, filename=None, outdir=None, label=None):
         """ Saves posterior samples to a file

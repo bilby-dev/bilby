@@ -1,11 +1,14 @@
 import sys
 import unittest
+import pytest
 from shutil import rmtree
+from packaging import version
 
 import deepdish as dd
 import mock
 import numpy as np
 from mock import patch, MagicMock
+import pandas
 
 import bilby
 
@@ -320,6 +323,10 @@ class TestInterferometerList(unittest.TestCase):
         names = [ifo.name for ifo in self.ifo_list]
         self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
 
+    pandas_version_test = version.parse(pandas.__version__) >= version.parse("1.2.0")
+    skip_reason = "Deepdish requires pandas < 1.2"
+
+    @pytest.mark.skipif(pandas_version_test, reason=skip_reason)
     def test_to_and_from_hdf5_loading(self):
         if sys.version_info[0] < 3:
             with self.assertRaises(NotImplementedError):
@@ -330,16 +337,30 @@ class TestInterferometerList(unittest.TestCase):
             recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
             self.assertListEqual(self.ifo_list, recovered_ifo)
 
+    @pytest.mark.skipif(pandas_version_test or sys.version_info[0] < 3, reason=skip_reason)
     def test_to_and_from_hdf5_wrong_class(self):
-        if sys.version_info[0] < 3:
-            pass
-        else:
-            dd.io.save("./outdir/psd.h5", self.ifo_list[0].power_spectral_density)
-            filename = self.ifo_list._hdf5_filename_from_outdir_label(
-                outdir="outdir", label="psd"
-            )
-            with self.assertRaises(TypeError):
-                bilby.gw.detector.InterferometerList.from_hdf5(filename)
+        dd.io.save("./outdir/psd.h5", self.ifo_list[0].power_spectral_density)
+        filename = self.ifo_list._filename_from_outdir_label_extension(
+            outdir="outdir", label="psd", extension="h5"
+        )
+        with self.assertRaises(TypeError):
+            bilby.gw.detector.InterferometerList.from_hdf5(filename)
+
+    def test_to_and_from_pkl_loading(self):
+        self.ifo_list.to_pickle(outdir="outdir", label="test")
+        filename = "outdir/test_name1name2.pkl"
+        recovered_ifo = bilby.gw.detector.InterferometerList.from_pickle(filename)
+        self.assertListEqual(self.ifo_list, recovered_ifo)
+
+    def test_to_and_from_pkl_wrong_class(self):
+        import dill
+        with open("./outdir/psd.pkl", "wb") as ff:
+            dill.dump(self.ifo_list[0].power_spectral_density, ff)
+        filename = self.ifo_list._filename_from_outdir_label_extension(
+            outdir="outdir", label="psd", extension="pkl"
+        )
+        with self.assertRaises(TypeError):
+            bilby.gw.detector.InterferometerList.from_pickle(filename)
 
     def test_plot_data(self):
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])

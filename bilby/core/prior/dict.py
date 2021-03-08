@@ -155,7 +155,7 @@ class PriorDict(dict):
     @classmethod
     def _get_from_json_dict(cls, prior_dict):
         try:
-            cls == getattr(
+            cls = getattr(
                 import_module(prior_dict["__module__"]),
                 prior_dict["__name__"])
         except ImportError:
@@ -231,9 +231,19 @@ class PriorDict(dict):
                             "= {}. Error message {}".format(key, val, e)
                         )
             elif isinstance(val, dict):
-                logger.warning(
-                    'Cannot convert {} into a prior object. '
-                    'Leaving as dictionary.'.format(key))
+                try:
+                    _class = getattr(
+                        import_module(val.get("__module__", "none")),
+                        val.get("__name__", "none"))
+                    dictionary[key] = _class(**val.get("kwargs", dict()))
+                except ImportError:
+                    logger.debug("Cannot import prior module {}.{}".format(
+                        val.get("__module__", "none"), val.get("__name__", "none")
+                    ))
+                    logger.warning(
+                        'Cannot convert {} into a prior object. '
+                        'Leaving as dictionary.'.format(key))
+                    continue
             else:
                 raise TypeError(
                     "Unable to parse prior, bad entry: {} "

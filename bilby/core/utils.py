@@ -1314,3 +1314,167 @@ class tcolors:
     VALUE = '\033[91m'
     HIGHLIGHT = '\033[95m'
     END = '\033[0m'
+
+
+def decode_from_hdf5(item):
+    """
+    Decode an item from HDF5 format to python type.
+
+    This currently just converts __none__ to None and some arrays to lists
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    item: object
+        Item to be decoded
+
+    Returns
+    -------
+    output: object
+        Converted input item
+    """
+    if isinstance(item, str) and item == "__none__":
+        output = None
+    elif isinstance(item, bytes) and item == b"__none__":
+        output = None
+    elif isinstance(item, (bytes, bytearray)):
+        output = item.decode()
+    elif isinstance(item, np.ndarray):
+        if "|S" in str(item.dtype) or isinstance(item[0], bytes):
+            output = [it.decode() for it in item]
+        else:
+            output = item
+    else:
+        output = item
+    return output
+
+
+def encode_for_hdf5(item):
+    """
+    Encode an item to a HDF5 savable format.
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    item: object
+        Object to be encoded, specific options are provided for Bilby types
+
+    Returns
+    -------
+    output: object
+        Input item converted into HDF5 savable format
+    """
+    from .prior.dict import PriorDict
+    if isinstance(item, np.int_):
+        item = int(item)
+    elif isinstance(item, np.float_):
+        item = float(item)
+    elif isinstance(item, np.complex_):
+        item = complex(item)
+    if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
+        output = item
+    elif item is None:
+        output = "__none__"
+    elif isinstance(item, list):
+        if len(item) == 0:
+            output = item
+        elif isinstance(item[0], (str, bytes)) or item[0] is None:
+            output = list()
+            for value in item:
+                if isinstance(value, str):
+                    output.append(value.encode("utf-8"))
+                elif isinstance(value, bytes):
+                    output.append(value)
+                else:
+                    output.append(b"__none__")
+        elif isinstance(item[0], (int, float, complex)):
+            output = np.array(item)
+    elif isinstance(item, PriorDict):
+        output = json.dumps(item._get_json_dict())
+    elif isinstance(item, pd.DataFrame):
+        output = item.to_dict(orient="list")
+    elif isinstance(item, pd.Series):
+        output = item.to_dict()
+    elif inspect.isfunction(item) or inspect.isclass(item):
+        output = dict(__module__=item.__module__, __name__=item.__name__)
+    elif isinstance(item, dict):
+        output = item.copy()
+    else:
+        raise ValueError(f'Cannot save {type(item)} type')
+    return output
+
+
+def recursively_load_dict_contents_from_group(h5file, path):
+    """
+    Recursively load a HDF5 file into a dictionary
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    h5file: h5py.File
+        Open h5py file object
+    path: str
+        Path within the HDF5 file
+
+    Returns
+    -------
+    output: dict
+        The contents of the HDF5 file unpacked into the dictionary.
+    """
+    import h5py
+    output = dict()
+    for key, item in h5file[path].items():
+        if isinstance(item, h5py.Dataset):
+            output[key] = decode_from_hdf5(item[()])
+        elif isinstance(item, h5py.Group):
+            output[key] = recursively_load_dict_contents_from_group(h5file, path + key + '/')
+    return output
+
+
+def recursively_save_dict_contents_to_group(h5file, path, dic):
+    """
+    Recursively save a dictionary to a HDF5 group
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    h5file: h5py.File
+        Open HDF5 file
+    path: str
+        Path inside the HDF5 file
+    dic: dict
+        The dictionary containing the data
+    """
+    for key, item in dic.items():
+        item = encode_for_hdf5(item)
+        if isinstance(item, dict):
+            recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+        else:
+            h5file[path + key] = item
+
+
+def docstring(docstr, sep="\n"):
+    """
+    Decorator: Append to a function's docstring.
+
+    This is required for e.g., :code:`classmethods` as the :code:`__doc__`
+    can't be changed after.
+
+    Parameters
+    ==========
+    docstr: str
+        The docstring
+    sep: str
+        Separation character for appending the existing docstring.
+    """
+    def _decorator(func):
+        if func.__doc__ is None:
+            func.__doc__ = docstr
+        else:
+            func.__doc__ = sep.join([func.__doc__, docstr])
+        return func
+    return _decorator
