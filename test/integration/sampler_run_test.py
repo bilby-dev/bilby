@@ -105,6 +105,17 @@ class TestRunningSamplers(unittest.TestCase):
             save=False,
         )
 
+    def test_run_nessai(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="nessai",
+            nlive=100,
+            poolsize=1000,
+            max_iteration=1000,
+            save=False,
+        )
+
     def test_run_pypolychord(self):
         pytest.importorskip("pypolychord")
         _ = bilby.run_sampler(
