@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from ...core import utils
-from ...core.utils import logger
+from ...core.utils import docstring, logger
 from .. import utils as gwutils
 from ..utils import PropertyAccessor
 from .calibration import Recalibrate
@@ -704,19 +704,35 @@ class Interferometer(object):
         plt.close(fig)
 
     @staticmethod
-    def _hdf5_filename_from_outdir_label(outdir, label):
-        return os.path.join(outdir, label + '.h5')
+    def _filename_from_outdir_label_extension(outdir, label, extension="h5"):
+        return os.path.join(outdir, label + f'.{extension}')
 
+    _save_ifo_docstring = """ Save the object to a {format} file
+
+    {extra}
+
+    Attributes
+    ==========
+    outdir: str, optional
+        Output directory name of the file, defaults to 'outdir'.
+    label: str, optional
+        Output file name, is self.name if not given otherwise.
+    """
+
+    _load_docstring = """ Loads in an Interferometer object from a {format} file
+
+    Parameters
+    ==========
+    filename: str
+        If given, try to load from this filename
+
+    """
+
+    @docstring(_save_ifo_docstring.format(
+        format="hdf5", extra=""".. deprecated:: 1.1.0
+    Use :func:`to_pickle` instead."""
+    ))
     def to_hdf5(self, outdir='outdir', label=None):
-        """ Save the object to a hdf5 file
-
-        Attributes
-        ==========
-        outdir: str, optional
-            Output directory name of the file, defaults to 'outdir'.
-        label: str, optional
-            Output file name, is self.name if not given otherwise.
-        """
         import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
@@ -724,25 +740,42 @@ class Interferometer(object):
         if label is None:
             label = self.name
         utils.check_directory_exists_and_if_not_mkdir('outdir')
-        filename = self._hdf5_filename_from_outdir_label(outdir, label)
-        deepdish.io.save(filename, self)
+        try:
+            filename = self._filename_from_outdir_label_extension(outdir, label, "h5")
+            deepdish.io.save(filename, self)
+        except AttributeError:
+            logger.warning("Saving to hdf5 using deepdish failed. Pickle dumping instead.")
+            self.to_pickle(outdir=outdir, label=label)
 
     @classmethod
+    @docstring(_load_docstring.format(format="hdf5"))
     def from_hdf5(cls, filename=None):
-        """ Loads in an Interferometer object from an hdf5 file
-
-        Parameters
-        ==========
-        filename: str
-            If given, try to load from this filename
-
-        """
         import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of Interferometer is not supported in Python 2.'
                                       'Use Python 3 instead.')
 
         res = deepdish.io.load(filename)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not an Interferometer')
+        return res
+
+    @docstring(_save_ifo_docstring.format(
+        format="pickle", extra=".. versionadded:: 1.1.0"
+    ))
+    def to_pickle(self, outdir="outdir", label=None):
+        import dill
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
+        with open(filename, "wb") as ff:
+            dill.dump(self, ff)
+
+    @classmethod
+    @docstring(_load_docstring.format(format="pickle"))
+    def from_pickle(cls, filename=None):
+        import dill
+        with open(filename, "rb") as ff:
+            res = dill.load(ff)
         if res.__class__ != cls:
             raise TypeError('The loaded object is not an Interferometer')
         return res

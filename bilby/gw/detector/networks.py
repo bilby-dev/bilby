@@ -217,38 +217,47 @@ class InterferometerList(list):
                 for interferometer in self}
 
     @staticmethod
-    def _hdf5_filename_from_outdir_label(outdir, label):
-        return os.path.join(outdir, label + '.h5')
+    def _filename_from_outdir_label_extension(outdir, label, extension="h5"):
+        return os.path.join(outdir, label + f'.{extension}')
+
+    _save_docstring = """ Saves the object to a {format} file
+
+    {extra}
+
+    Parameters
+    ==========
+    outdir: str, optional
+        Output directory name of the file
+    label: str, optional
+        Output file name, is 'ifo_list' if not given otherwise. A list of
+        the included interferometers will be appended.
+    """
+
+    _load_docstring = """ Loads in an InterferometerList object from a {format} file
+
+    Parameters
+    ==========
+    filename: str
+        If given, try to load from this filename
+
+    """
 
     def to_hdf5(self, outdir='outdir', label='ifo_list'):
-        """ Saves the object to a hdf5 file
-
-        Parameters
-        ==========
-        outdir: str, optional
-            Output directory name of the file
-        label: str, optional
-            Output file name, is 'ifo_list' if not given otherwise. A list of
-            the included interferometers will be appended.
-        """
         import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
                                       'Use Python 3 instead.')
         label = label + '_' + ''.join(ifo.name for ifo in self)
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        deepdish.io.save(self._hdf5_filename_from_outdir_label(outdir, label), self)
+        try:
+            filename = self._filename_from_outdir_label_extension(outdir, label, "h5")
+            deepdish.io.save(filename, self)
+        except AttributeError:
+            logger.warning("Saving to hdf5 using deepdish failed. Pickle dumping instead.")
+            self.to_pickle(outdir=outdir, label=label)
 
     @classmethod
     def from_hdf5(cls, filename=None):
-        """ Loads in an InterferometerList object from an hdf5 file
-
-        Parameters
-        ==========
-        filename: str
-            If given, try to load from this filename
-
-        """
         import deepdish
         if sys.version_info[0] < 3:
             raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
@@ -259,6 +268,33 @@ class InterferometerList(list):
         if res.__class__ != cls:
             raise TypeError('The loaded object is not a InterferometerList')
         return res
+
+    def to_pickle(self, outdir="outdir", label="ifo_list"):
+        import dill
+        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        label = label + '_' + ''.join(ifo.name for ifo in self)
+        filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
+        with open(filename, "wb") as ff:
+            dill.dump(self, ff)
+
+    @classmethod
+    def from_pickle(cls, filename=None):
+        import dill
+        with open(filename, "rb") as ff:
+            res = dill.load(ff)
+        if res.__class__ != cls:
+            raise TypeError('The loaded object is not an InterferometerList')
+        return res
+
+    to_hdf5.__doc__ = _save_docstring.format(
+        format="hdf5", extra=""".. deprecated:: 1.1.0
+    Use :func:`to_pickle` instead."""
+    )
+    to_pickle.__doc__ = _save_docstring.format(
+        format="pickle", extra=".. versionadded:: 1.1.0"
+    )
+    from_hdf5.__doc__ = _load_docstring.format(format="hdf5")
+    from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
 
 class TriangularInterferometer(InterferometerList):
