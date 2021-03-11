@@ -129,9 +129,9 @@ class Pymultinest(NestedSampler):
 
     def _apply_multinest_boundaries(self):
         if self.kwargs["wrapped_params"] is None:
-            self.kwargs["wrapped_params"] = []
-            for param, value in self.priors.items():
-                if value.boundary == "periodic":
+            self.kwargs["wrapped_params"] = list()
+            for param in self.search_parameter_keys:
+                if self.priors[param].boundary == "periodic":
                     self.kwargs["wrapped_params"].append(1)
                 else:
                     self.kwargs["wrapped_params"].append(0)
