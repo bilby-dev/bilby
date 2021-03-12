@@ -2,7 +2,89 @@
 """
 
 import numpy as np
+import tables
 from scipy.interpolate import interp1d
+
+
+def read_calibration_file(filename, frequency_array, number_of_response_curves, starting_index=0):
+    """
+    Function to read the hdf5 files from the calibration group containing the physical calibration response curves.
+
+    Parameters
+    ----------
+    filename: str
+        Location of the HDF5 file that contains the curves
+    frequency_array: array-like
+        The frequency values to calculate the calibration response curves at
+    number_of_response_curves: int
+        Number of random draws to use from the calibration file
+    starting_index: int
+        Index of the first curve to use within the array. This allows for segmenting the calibration curve array
+        into smaller pieces.
+
+    Returns
+    -------
+    calibration_draws: array-like
+        Array which contains the calibration responses as a function of the frequency array specified.
+        Shape is (number_of_response_curves x len(frequency_array))
+
+    """
+
+    calibration_file = tables.open_file(filename, 'r')
+    calibration_amplitude = \
+        calibration_file.root.deltaR.draws_amp_rel[starting_index:number_of_response_curves + starting_index]
+    calibration_phase = \
+        calibration_file.root.deltaR.draws_phase[starting_index:number_of_response_curves + starting_index]
+
+    calibration_frequencies = calibration_file.root.deltaR.freq[:]
+
+    calibration_file.close()
+
+    if len(calibration_amplitude.dtype) != 0:  # handling if this is a calibration group hdf5 file
+        calibration_amplitude = calibration_amplitude.view(np.float64).reshape(calibration_amplitude.shape + (-1,))
+        calibration_phase = calibration_phase.view(np.float64).reshape(calibration_phase.shape + (-1,))
+        calibration_frequencies = calibration_frequencies.view(np.float64)
+
+    # interpolate to the frequency array (where if outside the range of the calibration uncertainty its fixed to 1)
+    calibration_draws = calibration_amplitude * np.exp(1j * calibration_phase)
+    calibration_draws = interp1d(
+        calibration_frequencies, calibration_draws, kind='cubic',
+        bounds_error=False, fill_value=1)(frequency_array)
+
+    return calibration_draws
+
+
+def write_calibration_file(filename, frequency_array, calibration_draws, calibration_parameter_draws=None):
+    """
+    Function to write the generated response curves to file
+
+    Parameters
+    ----------
+    filename: str
+        Location and filename to save the file
+    frequency_array: array-like
+        The frequency values where the calibration response was calculated
+    calibration_draws: array-like
+        Array which contains the calibration responses as a function of the frequency array specified.
+        Shape is (number_of_response_curves x len(frequency_array))
+    calibration_parameter_draws: data_frame
+        Parameters used to generate the random draws of the calibration response curves
+
+    """
+
+    calibration_file = tables.open_file(filename, 'w')
+    deltaR_group = calibration_file.create_group(calibration_file.root, 'deltaR')
+
+    # Save output
+    calibration_file.create_carray(deltaR_group, 'draws_amp_rel', obj=np.abs(calibration_draws))
+    calibration_file.create_carray(deltaR_group, 'draws_phase', obj=np.angle(calibration_draws))
+    calibration_file.create_carray(deltaR_group, 'freq', obj=frequency_array)
+
+    calibration_file.close()
+
+    # Save calibration parameter draws
+    if calibration_parameter_draws is not None:
+        calibration_parameter_draws.to_hdf(filename, key='CalParams', data_columns=True, format='table')
 
 
 class Recalibrate(object):

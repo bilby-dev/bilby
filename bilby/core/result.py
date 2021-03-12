@@ -5,6 +5,7 @@ from copy import copy
 from distutils.version import LooseVersion
 from importlib import import_module
 from itertools import product
+from tqdm import tqdm
 
 import corner
 import h5py
@@ -103,7 +104,7 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
 
 def get_weights_for_reweighting(
         result, new_likelihood=None, new_prior=None, old_likelihood=None,
-        old_prior=None):
+        old_prior=None, resume_file=None, n_checkpoint=5000):
     """ Calculate the weights for reweight()
 
     See bilby.core.result.reweight() for help with the inputs
@@ -116,17 +117,33 @@ def get_weights_for_reweighting(
         An array of the natural-log likelihoods
     new_log_prior_array: array
         An array of the natural-log priors
+    resume_file: string
+        filepath for the resume file which stores the weights
+    n_checkpoint: int
+        Number of samples to reweight before writing a resume file
 
     """
-    nposterior = len(result.posterior)
-    old_log_likelihood_array = np.zeros(nposterior)
-    old_log_prior_array = np.zeros(nposterior)
-    new_log_likelihood_array = np.zeros(nposterior)
-    new_log_prior_array = np.zeros(nposterior)
 
-    for ii, sample in result.posterior.iterrows():
+    nposterior = len(result.posterior)
+
+    if (resume_file is not None) and os.path.exists(resume_file):
+        old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = \
+            np.genfromtxt(resume_file)
+
+        starting_index = np.argmin(np.abs(old_log_likelihood_array))
+        logger.info(f'Checkpoint resuming from {starting_index}.')
+
+    else:
+        old_log_likelihood_array = np.zeros(nposterior)
+        old_log_prior_array = np.zeros(nposterior)
+        new_log_likelihood_array = np.zeros(nposterior)
+        new_log_prior_array = np.zeros(nposterior)
+
+        starting_index = 0
+
+    for ii, sample in tqdm(result.posterior.iloc[starting_index:].iterrows()):
         # Convert sample to dictionary
-        par_sample = {key: sample[key] for key in result.search_parameter_keys}
+        par_sample = {key: sample[key] for key in result.posterior}
 
         if old_likelihood is not None:
             old_likelihood.parameters.update(par_sample)
@@ -152,10 +169,17 @@ def get_weights_for_reweighting(
             # Don't perform prior reweighting (i.e. prior isn't updated)
             new_log_prior_array[ii] = old_log_prior_array[ii]
 
+        if (ii % (n_checkpoint) == 0) and (resume_file is not None):
+            checkpointed_index = np.argmin(np.abs(old_log_likelihood_array))
+            logger.info(f'Checkpointing with {checkpointed_index} samples')
+            np.savetxt(
+                resume_file,
+                [old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array])
+
     ln_weights = (
         new_log_likelihood_array + new_log_prior_array - old_log_likelihood_array - old_log_prior_array)
 
-    return ln_weights, new_log_likelihood_array, new_log_prior_array
+    return ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array
 
 
 def rejection_sample(posterior, weights):
@@ -179,7 +203,9 @@ def rejection_sample(posterior, weights):
 
 
 def reweight(result, label=None, new_likelihood=None, new_prior=None,
-             old_likelihood=None, old_prior=None):
+             old_likelihood=None, old_prior=None, conversion_function=None, npool=1,
+             verbose_output=False, resume_file=None, n_checkpoint=5000,
+             use_nested_samples=False):
     """ Reweight a result to a new likelihood/prior using rejection sampling
 
     Parameters
@@ -198,6 +224,21 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     old_prior: bilby.core.prior.PriorDict, (optional)
         If given, calculate the old prior from this object. If not given,
         the values stored in the posterior are used.
+    conversion_function: function, optional
+        Function which adds in extra parameters to the data frame,
+        should take the data_frame, likelihood and prior as arguments.
+    npool: int, optional
+        Number of threads with which to execute the conversion function
+    verbose_output: bool, optional
+        Flag determining whether the weight array and associated prior and
+        likelihood evaluations are output as well as the result file
+    resume_file: string, optional
+        filepath for the resume file which stores the weights
+    n_checkpoint: int, optional
+        Number of samples to reweight before writing a resume file
+    use_nested_samples: bool, optional
+        If true reweight the nested samples instead. This can greatly improve reweighting efficiency, especially if the
+        target distribution has support beyond the proposal posterior distribution.
 
     Returns
     =======
@@ -207,32 +248,56 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     """
 
     result = copy(result)
+
+    if use_nested_samples:
+        result.posterior = result.nested_samples
+
     nposterior = len(result.posterior)
     logger.info("Reweighting posterior with {} samples".format(nposterior))
 
-    ln_weights, new_log_likelihood_array, new_log_prior_array = get_weights_for_reweighting(
-        result, new_likelihood=new_likelihood, new_prior=new_prior,
-        old_likelihood=old_likelihood, old_prior=old_prior)
+    ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array =\
+        get_weights_for_reweighting(
+            result, new_likelihood=new_likelihood, new_prior=new_prior,
+            old_likelihood=old_likelihood, old_prior=old_prior,
+            resume_file=resume_file, n_checkpoint=n_checkpoint)
+
+    weights = np.exp(ln_weights)
+
+    if use_nested_samples:
+        weights *= result.posterior['weights']
 
     # Overwrite the likelihood and prior evaluations
     result.posterior["log_likelihood"] = new_log_likelihood_array
     result.posterior["log_prior"] = new_log_prior_array
 
-    weights = np.exp(ln_weights)
-
     result.posterior = rejection_sample(result.posterior, weights=weights)
+    result.posterior = result.posterior.reset_index(drop=True)
     logger.info("Rejection sampling resulted in {} samples".format(len(result.posterior)))
     result.meta_data["reweighted_using_rejection_sampling"] = True
 
-    result.log_evidence += logsumexp(ln_weights) - np.log(nposterior)
-    result.priors = new_prior
+    if use_nested_samples:
+        result.log_evidence += np.log(np.sum(weights))
+    else:
+        result.log_evidence += logsumexp(ln_weights) - np.log(nposterior)
+
+    if conversion_function is not None:
+        data_frame = result.posterior
+        if "npool" in inspect.getargspec(conversion_function).args:
+            data_frame = conversion_function(data_frame, new_likelihood, new_prior, npool=npool)
+        else:
+            data_frame = conversion_function(data_frame, new_likelihood, new_prior)
+        result.posterior = data_frame
 
     if label:
         result.label = label
     else:
         result.label += "_reweighted"
 
-    return result
+    if verbose_output:
+        return result, weights, new_log_likelihood_array, \
+            new_log_prior_array, old_log_likelihood_array, old_log_prior_array
+    else:
+        return result
 
 
 class Result(object):
@@ -1398,7 +1463,7 @@ class Result(object):
                            if isinstance(self.injection_parameters.get(key, None), float)}
         return credible_levels
 
-    def get_injection_credible_level(self, parameter):
+    def get_injection_credible_level(self, parameter, weights=None):
         """
         Get the credible level of the injected parameter
 
@@ -1415,11 +1480,15 @@ class Result(object):
         if self.injection_parameters is None:
             raise(TypeError, "Result object has no 'injection_parameters'. "
                              "Cannot copmute credible levels.")
+
+        if weights is None:
+            weights = np.ones(len(self.posterior))
+
         if parameter in self.posterior and\
                 parameter in self.injection_parameters:
             credible_level =\
-                sum(self.posterior[parameter].values <
-                    self.injection_parameters[parameter]) / len(self.posterior)
+                sum(np.array(self.posterior[parameter].values <
+                    self.injection_parameters[parameter]) * weights) / (sum(weights))
             return credible_level
         else:
             return np.nan
@@ -1849,7 +1918,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 @latex_plot_format
 def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0.95, 0.997],
                  lines=None, legend_fontsize='x-small', keys=None, title=True,
-                 confidence_interval_alpha=0.1,
+                 confidence_interval_alpha=0.1, weight_list=None,
                  **kwargs):
     """
     Make a P-P plot for a set of runs with injected signals.
@@ -1873,6 +1942,8 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         A list of keys to use, if None defaults to search_parameter_keys
     confidence_interval_alpha: float, list, optional
         The transparency for the background condifence interval
+    weight_list: list, optional
+        List of the weight arrays for each calculation.
     kwargs:
         Additional kwargs to pass to matplotlib.pyplot.plot
 
@@ -1886,10 +1957,14 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     if keys is None:
         keys = results[0].search_parameter_keys
 
+    if weight_list is None:
+        weight_list = [None] * len(results)
+
     credible_levels = pd.DataFrame()
-    for result in results:
+    for i, result in enumerate(results):
         credible_levels = credible_levels.append(
-            result.get_all_injection_credible_levels(keys), ignore_index=True)
+            result.get_all_injection_credible_levels(keys, weights=weight_list[i]),
+            ignore_index=True)
 
     if lines is None:
         colors = ["C{}".format(i) for i in range(8)]

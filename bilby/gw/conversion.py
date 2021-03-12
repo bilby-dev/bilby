@@ -788,7 +788,8 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
         if (
                 hasattr(likelihood, 'phase_marginalization') or
                 hasattr(likelihood, 'time_marginalization') or
-                hasattr(likelihood, 'distance_marginalization')
+                hasattr(likelihood, 'distance_marginalization') or
+                hasattr(likelihood, 'calibration_marginalization')
         ):
             try:
                 generate_posterior_samples_from_marginalized_likelihood(
@@ -1162,6 +1163,7 @@ def compute_snrs(sample, likelihood):
                 for ifo in likelihood.interferometers:
                     per_detector_snr = likelihood.calculate_snrs(
                         signal_polarizations, ifo)
+
                     matched_filter_snrs[ifo.name].append(
                         per_detector_snr.complex_matched_filter_snr)
                     optimal_snrs[ifo.name].append(
@@ -1201,7 +1203,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
     """
     if not any([likelihood.phase_marginalization,
                 likelihood.distance_marginalization,
-                likelihood.time_marginalization]):
+                likelihood.time_marginalization,
+                likelihood.calibration_marginalization]):
         return samples
 
     # pass through a dictionary
@@ -1227,6 +1230,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
     samples['geocent_time'] = new_samples[:, 0]
     samples['luminosity_distance'] = new_samples[:, 1]
     samples['phase'] = new_samples[:, 2]
+    if likelihood.calibration_marginalization:
+        samples['recalib_index'] = new_samples[:, 3]
     return samples
 
 
@@ -1254,4 +1259,10 @@ def fill_sample(args):
     sample = dict(sample).copy()
     likelihood.parameters.update(dict(sample).copy())
     new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
-    return new_sample["geocent_time"], new_sample["luminosity_distance"], new_sample["phase"]
+
+    if not likelihood.calibration_marginalization:
+        return new_sample["geocent_time"], new_sample["luminosity_distance"],\
+            new_sample["phase"]
+    else:
+        return new_sample["geocent_time"], new_sample["luminosity_distance"],\
+            new_sample["phase"], new_sample['recalib_index']
