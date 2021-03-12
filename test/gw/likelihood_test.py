@@ -164,9 +164,10 @@ class TestGWTransient(unittest.TestCase):
         expected = (
             "GravitationalWaveTransient(interferometers={},\n\twaveform_generator={},\n\t"
             "time_marginalization={}, distance_marginalization={}, phase_marginalization={}, "
-            "priors={})".format(
+            "calibration_marginalization={}, priors={})".format(
                 self.interferometers,
                 self.waveform_generator,
+                False,
                 False,
                 False,
                 False,
@@ -211,6 +212,7 @@ class TestGWTransient(unittest.TestCase):
             time_marginalization=False,
             phase_marginalization=False,
             distance_marginalization=False,
+            calibration_marginalization=False,
             waveform_generator_class=self.waveform_generator.__class__,
             waveform_arguments=self.waveform_generator.waveform_arguments,
             frequency_domain_source_model=self.waveform_generator.frequency_domain_source_model,
