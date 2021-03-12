@@ -114,14 +114,17 @@ def get_weights_for_reweighting(
     ln_weights: array
         An array of the natural-log weights
     new_log_likelihood_array: array
-        An array of the natural-log likelihoods
+        An array of the natural-log likelihoods from the new likelihood
     new_log_prior_array: array
+        An array of the natural-log priors
+    old_log_likelihood_array: array
+        An array of the natural-log likelihoods from the old likelihood
+    old_log_prior_array: array
         An array of the natural-log priors
     resume_file: string
         filepath for the resume file which stores the weights
     n_checkpoint: int
         Number of samples to reweight before writing a resume file
-
     """
 
     nposterior = len(result.posterior)
@@ -244,6 +247,14 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
     =======
     result: bilby.core.result.Result
         A copy of the result object with a reweighted posterior
+    new_log_likelihood_array: array, optional (if verbose_output=True)
+        An array of the natural-log likelihoods from the new likelihood
+    new_log_prior_array: array, optional (if verbose_output=True)
+        An array of the natural-log priors from the new likelihood
+    old_log_likelihood_array: array, optional (if verbose_output=True)
+        An array of the natural-log likelihoods from the old likelihood
+    old_log_prior_array: array, optional (if verbose_output=True)
+        An array of the natural-log priors from the old likelihood
 
     """
 
@@ -279,6 +290,10 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
         result.log_evidence += np.log(np.sum(weights))
     else:
         result.log_evidence += logsumexp(ln_weights) - np.log(nposterior)
+
+    if new_prior is not None:
+        for key, prior in new_prior.items():
+            result.priors[key] = prior
 
     if conversion_function is not None:
         data_frame = result.posterior
@@ -1438,7 +1453,7 @@ class Result(object):
                     self.prior_values[key]\
                         = priors[key].prob(self.posterior[key].values)
 
-    def get_all_injection_credible_levels(self, keys=None):
+    def get_all_injection_credible_levels(self, keys=None, weights=None):
         """
         Get credible levels for all parameters
 
@@ -1447,6 +1462,10 @@ class Result(object):
         keys: list, optional
             A list of keys for which return the credible levels, if None,
             defaults to search_parameter_keys
+        weights: array, optional
+            A list of weights for the posterior samples to calculate a set of
+            weighted credible intervals.
+            If None, assumes equal weights between samples.
 
         Returns
         =======
@@ -1458,7 +1477,7 @@ class Result(object):
         if self.injection_parameters is None:
             raise(TypeError, "Result object has no 'injection_parameters'. "
                              "Cannot compute credible levels.")
-        credible_levels = {key: self.get_injection_credible_level(key)
+        credible_levels = {key: self.get_injection_credible_level(key, weights=weights)
                            for key in keys
                            if isinstance(self.injection_parameters.get(key, None), float)}
         return credible_levels
@@ -1473,6 +1492,11 @@ class Result(object):
         ==========
         parameter: str
             Parameter to get credible level for
+        weights: array, optional
+            A list of weights for the posterior samples to calculate a
+            weighted credible interval.
+            If None, assumes equal weights between samples.
+
         Returns
         =======
         float: credible level
@@ -1943,7 +1967,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     confidence_interval_alpha: float, list, optional
         The transparency for the background condifence interval
     weight_list: list, optional
-        List of the weight arrays for each calculation.
+        List of the weight arrays for each set of posterior samples.
     kwargs:
         Additional kwargs to pass to matplotlib.pyplot.plot
 
