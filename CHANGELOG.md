@@ -1,6 +1,45 @@
 # All notable changes will be documented in this file
 
-## [1.0.3] 2020-11-23
+## [1.1.0] 2021-03-15
+Version 1.1.0 release of bilby
+
+### Added
+- Calibration marginalisation using a discrete set of realisations (!856)
+- Nessai sampler (!921, !926)
+- Capability to sample in aligned spin and spin magnitude (!868)
+- Information gain now stored in the result (!907)
+- Added option to save result/interferometers as pickle (!925)
+- Added functionality to notch data (!898)
+- Added LIGO India Aundha (A1) coordinates (!886)
+
+### Changes
+- Fixed periodic keys not working when constrained priors are present in pymultinest (!927)
+- Some changes to reweighting likelihoods (!851)
+- `CBCPriorDict` is now a `ConditionalPriorDict` (!868)
+- Fixed hyper PE example (!910)
+- Pinned numpy and pandas version number (!916)
+- Fixed an issue with GPS times in `cpnest`
+- `deepdish` is now longer a requirement since it lost its support (!925)
+- Removed annoying warning message due to use of `newcommand` in latex (!924)
+- Interpolation should be slightly faster now because we now access interpolation libraries more directly (!917, !923)
+- Documentation now builds properly (!915)
+- Fixed a bug caused by `loaded_modules_dict` (!920)
+- `_ref_dist` is an attribute now which speeds up distance marginalised runs slightly (!913)
+- Cache normalisation for `PriorDict` objects without `Constraint` priors (!914)
+- Removed some deprecated `__future__` imports (!911)
+- Fixed the behaviour of `plot_waveform_posterior` to use representative samples (!894)
+- Uses `tqdm.auto` in some samplers now for better progress bars (!895)
+- Fixed the correction of the epoch in time domain waveforms when using a segment duration that is not a power of two (!909)
+- Fixed `ultranest` from failing
+- Fixed issues with plotting failing in tests (!904)
+- Changed the CI to run on auto-built images (!899)
+- Resolved a `matplotlib` error occuring at `dynesty` checkpoint plots (!902)
+- Fixed the multidimensional Gaussian example (!901)
+- Now allow any lal dictionary option and added a numerical relativity file (!896)
+- Fixed the likelihood count in `dynesty` (!853)
+- Changed the ordering of keyword arguments for the `Sine` and `Cosine` constructors (!892)
+
+## [1.0.4] 2020-11-23
 Version 1.0.4 release of bilby
 
 ### Added
