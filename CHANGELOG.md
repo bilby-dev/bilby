@@ -1,5 +1,11 @@
 # All notable changes will be documented in this file
 
+## [1.1.1] 2021-03-16
+Version 1.1.1 release of bilby
+
+### Changes
+- Added `include requirements.txt` in `MANIFEST.in` to stop the pip installation from breaking
+
 ## [1.1.0] 2021-03-15
 Version 1.1.0 release of bilby
 
