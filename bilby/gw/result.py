@@ -1,10 +1,7 @@
-
 import json
-import pickle
 import os
+import pickle
 
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
 import numpy as np
 
 from ..core.result import Result as CoreResult
@@ -149,6 +146,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         format: str
             Format to save the plot, default=png, options are png/pdf
         """
+        import matplotlib.pyplot as plt
         if format not in ["png", "pdf"]:
             raise ValueError("Format should be one of png or pdf")
 
@@ -394,6 +392,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 )
             )
         else:
+            import matplotlib.pyplot as plt
+            from matplotlib import rcParams
             old_font_size = rcParams["font.size"]
             rcParams["font.size"] = 20
             fig, axs = plt.subplots(
@@ -734,6 +734,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
             If true, load the cached pickle file (default name), or the
             pickle-file give as a path.
         """
+        import matplotlib.pyplot as plt
+        from matplotlib import rcParams
 
         try:
             from astropy.time import Time

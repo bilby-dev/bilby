@@ -1,7 +1,6 @@
 # Monica Rizzo, 2019
 
 import numpy as np
-from scipy.integrate import solve_ivp
 
 
 class IntegrateTOV:
@@ -111,6 +110,7 @@ class IntegrateTOV:
         """
         Evolves TOV+k2 equations and returns final quantities
         """
+        from scipy.integrate import solve_ivp
 
         # integration settings the same as in lalsimulation
         rel_err = 1e-4

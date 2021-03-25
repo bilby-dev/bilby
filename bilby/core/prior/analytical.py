@@ -4,7 +4,7 @@ from scipy.special._ufuncs import xlogy, erf, log1p, stdtrit, gammaln, stdtr, \
     btdtri, betaln, btdtr, gammaincinv, gammainc
 
 from .base import Prior
-from bilby.core.utils import logger
+from ..utils import logger
 
 
 class DeltaFunction(Prior):

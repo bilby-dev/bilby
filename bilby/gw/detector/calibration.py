@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import tables
 from scipy.interpolate import interp1d
 
 
@@ -29,6 +28,7 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
         Shape is (number_of_response_curves x len(frequency_array))
 
     """
+    import tables
 
     calibration_file = tables.open_file(filename, 'r')
     calibration_amplitude = \
@@ -71,6 +71,7 @@ def write_calibration_file(filename, frequency_array, calibration_draws, calibra
         Parameters used to generate the random draws of the calibration response curves
 
     """
+    import tables
 
     calibration_file = tables.open_file(filename, 'w')
     deltaR_group = calibration_file.create_group(calibration_file.root, 'deltaR')

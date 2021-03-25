@@ -1,9 +1,8 @@
 import numpy as np
-from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 
 from .base import Prior
-from bilby.core.utils import logger
+from ..utils import logger
 
 
 class Interped(Prior):
@@ -164,6 +163,7 @@ class Interped(Prior):
         self._initialize_attributes()
 
     def _initialize_attributes(self):
+        from scipy.integrate import cumtrapz
         if np.trapz(self._yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self._yy /= np.trapz(self._yy, self.xx)

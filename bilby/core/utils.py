@@ -1,26 +1,24 @@
-
-from distutils.spawn import find_executable
-import logging
-import os
-import shutil
-import sys
-from math import fmod
 import argparse
-import inspect
 import functools
-import types
-import subprocess
-import multiprocessing
-from importlib import import_module
-from numbers import Number
+import inspect
 import json
+import logging
+import multiprocessing
+import os
+import types
+import shutil
+import subprocess
+import sys
 import warnings
+from distutils.spawn import find_executable
+from importlib import import_module
+from math import fmod
+from numbers import Number
 
 import numpy as np
+import pandas as pd
 from scipy.interpolate import interp2d
 from scipy.special import logsumexp
-import pandas as pd
-import matplotlib.pyplot as plt
 
 logger = logging.getLogger('bilby')
 
@@ -1208,6 +1206,7 @@ def latex_plot_format(func):
     """
     @functools.wraps(func)
     def wrapper_decorator(*args, **kwargs):
+        import matplotlib.pyplot as plt
         from matplotlib import rcParams
 
         if "BILBY_STYLE" in kwargs:

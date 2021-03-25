@@ -1,22 +1,14 @@
 import inspect
+import json
 import os
 from collections import OrderedDict, namedtuple
 from copy import copy
-from distutils.version import LooseVersion
 from importlib import import_module
 from itertools import product
-from tqdm import tqdm
 
-import corner
-import h5py
-import json
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import lines as mpllines
 import numpy as np
 import pandas as pd
 import scipy.stats
-from scipy.special import logsumexp
 
 from . import utils
 from .utils import (
@@ -126,6 +118,7 @@ def get_weights_for_reweighting(
     n_checkpoint: int
         Number of samples to reweight before writing a resume file
     """
+    from tqdm.auto import tqdm
 
     nposterior = len(result.posterior)
 
@@ -257,6 +250,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
         An array of the natural-log priors from the old likelihood
 
     """
+    from scipy.special import logsumexp
 
     result = copy(result)
 
@@ -511,6 +505,7 @@ class Result(object):
     @classmethod
     @docstring(_load_doctstring.format(format="hdf5"))
     def from_hdf5(cls, filename=None, outdir=None, label=None):
+        import h5py
         filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
         with h5py.File(filename, "r") as ff:
             data = recursively_load_dict_contents_from_group(ff, '/')
@@ -770,6 +765,7 @@ class Result(object):
                     with open(filename, 'w') as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
+                import h5py
                 dictionary["__module__"] = self.__module__
                 dictionary["__name__"] = self.__class__.__name__
                 with h5py.File(filename, 'w') as h5file:
@@ -984,6 +980,7 @@ class Result(object):
         figure: matplotlib.pyplot.figure
             A matplotlib figure object
         """
+        import matplotlib.pyplot as plt
         logger.info('Plotting {} marginal distribution'.format(key))
         label = self.get_latex_labels_from_parameter_keys([key])[0]
         fig, ax = plt.subplots()
@@ -1153,6 +1150,8 @@ class Result(object):
             A matplotlib figure instance
 
         """
+        import corner
+        import matplotlib.pyplot as plt
 
         # If in testing mode, not corner plots are generated
         if utils.command_line_args.bilby_test_mode:
@@ -1165,12 +1164,7 @@ class Result(object):
             truth_color='tab:orange', quantiles=[0.16, 0.84],
             levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.)),
             plot_density=False, plot_datapoints=True, fill_contours=True,
-            max_n_ticks=3)
-
-        if LooseVersion(matplotlib.__version__) < "2.1":
-            defaults_kwargs['hist_kwargs'] = dict(normed=True)
-        else:
-            defaults_kwargs['hist_kwargs'] = dict(density=True)
+            max_n_ticks=3, hist_kwargs=dict(density=True))
 
         if 'lionize' in kwargs and kwargs['lionize'] is True:
             defaults_kwargs['truth_color'] = 'tab:blue'
@@ -1282,6 +1276,7 @@ class Result(object):
     @latex_plot_format
     def plot_walkers(self, **kwargs):
         """ Method to plot the trace of the walkers in an ensemble MCMC plot """
+        import matplotlib.pyplot as plt
         if hasattr(self, 'walkers') is False:
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
@@ -1345,6 +1340,7 @@ class Result(object):
             Path to the outdir. Default is the one store in the result object.
 
         """
+        import matplotlib.pyplot as plt
 
         # Determine model_posterior, the subset of the full posterior which
         # should be passed into the model
@@ -1794,6 +1790,7 @@ class ResultList(list):
         result: bilby.core.result.Result
             The result object with the combined evidences.
         """
+        from scipy.special import logsumexp
         self.check_nested_samples()
 
         # Combine evidences
@@ -1886,6 +1883,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         A matplotlib figure instance
 
     """
+    import matplotlib.pyplot as plt
+    import matplotlib.lines as mpllines
 
     kwargs['show_titles'] = False
     kwargs['truths'] = None
@@ -1977,6 +1976,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         matplotlib figure and a NamedTuple with attributes `combined_pvalue`,
         `pvalues`, and `names`.
     """
+    import matplotlib.pyplot as plt
 
     if keys is None:
         keys = results[0].search_parameter_keys

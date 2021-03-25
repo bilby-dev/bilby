@@ -6,7 +6,6 @@ from collections import OrderedDict
 import bilby
 from ..utils import command_line_args, logger, loaded_modules_dict
 from ..prior import PriorDict, DeltaFunction
-
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 from .cpnest import Cpnest
 from .dynamic_dynesty import DynamicDynesty

@@ -1,15 +1,14 @@
-from importlib import import_module
-from io import open as ioopen
 import json
 import os
+from importlib import import_module
+from io import open as ioopen
 
-from matplotlib.cbook import flatten
 import numpy as np
 
-from bilby.core.prior.analytical import DeltaFunction
-from bilby.core.prior.base import Prior, Constraint
-from bilby.core.prior.joint import JointPrior
-from bilby.core.utils import logger, check_directory_exists_and_if_not_mkdir, BilbyJsonEncoder, decode_bilby_json
+from .analytical import DeltaFunction
+from .base import Prior, Constraint
+from .joint import JointPrior
+from ..utils import logger, check_directory_exists_and_if_not_mkdir, BilbyJsonEncoder, decode_bilby_json
 
 
 class PriorDict(dict):
@@ -496,6 +495,7 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
+        from matplotlib.cbook import flatten
         return list(flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)]))
 
     def test_redundancy(self, key, disable_logging=False):

@@ -2,7 +2,6 @@ import os
 import sys
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from ...core import utils
 from ...core.utils import docstring, logger
@@ -11,13 +10,6 @@ from ..utils import PropertyAccessor
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
-
-try:
-    import gwpy
-    import gwpy.signal
-except ImportError:
-    logger.debug("You do not have gwpy installed currently. You will "
-                 " not be able to use some of the prebuilt functions.")
 
 
 class Interferometer(object):
@@ -599,6 +591,7 @@ class Interferometer(object):
                    header='f h(f)')
 
     def plot_data(self, signal=None, outdir='.', label=None):
+        import matplotlib.pyplot as plt
         if utils.command_line_args.bilby_test_mode:
             return
 
@@ -656,23 +649,26 @@ class Interferometer(object):
             plotting.
 
         """
+        import matplotlib.pyplot as plt
+        from gwpy.timeseries import TimeSeries
+        from gwpy.signal.filter_design import bandpass, concatenate_zpks, notch
 
         # We use the gwpy timeseries to perform bandpass and notching
         if notches is None:
             notches = list()
-        timeseries = gwpy.timeseries.TimeSeries(
+        timeseries = TimeSeries(
             data=self.strain_data.time_domain_strain, times=self.strain_data.time_array)
         zpks = []
         if bandpass_frequencies is not None:
-            zpks.append(gwpy.signal.filter_design.bandpass(
+            zpks.append(bandpass(
                 bandpass_frequencies[0], bandpass_frequencies[1],
                 self.strain_data.sampling_frequency))
         if notches is not None:
             for line in notches:
-                zpks.append(gwpy.signal.filter_design.notch(
+                zpks.append(notch(
                     line, self.strain_data.sampling_frequency))
         if len(zpks) > 0:
-            zpk = gwpy.signal.filter_design.concatenate_zpks(*zpks)
+            zpk = concatenate_zpks(*zpks)
             strain = timeseries.filter(zpk, filtfilt=False)
         else:
             strain = timeseries

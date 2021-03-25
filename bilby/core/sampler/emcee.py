@@ -1,14 +1,13 @@
-from collections import namedtuple
 import os
 import signal
 import shutil
-from shutil import copyfile
 import sys
+from collections import namedtuple
+from distutils.version import LooseVersion
+from shutil import copyfile
 
 import numpy as np
 from pandas import DataFrame
-from distutils.version import LooseVersion
-import dill as pickle
 
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
 from .base_sampler import MCMCSampler, SamplerError
@@ -254,13 +253,14 @@ class Emcee(MCMCSampler):
 
     def checkpoint(self):
         """ Writes a pickle file of the sampler to disk using dill """
+        import dill
         logger.info("Checkpointing sampler to file {}"
                     .format(self.checkpoint_info.sampler_file))
         with open(self.checkpoint_info.sampler_file, 'wb') as f:
             # Overwrites the stored sampler chain with one that is truncated
             # to only the completed steps
             self.sampler._chain = self.sampler_chain
-            pickle.dump(self._sampler, f)
+            dill.dump(self._sampler, f)
 
     def checkpoint_and_exit(self, signum, frame):
         logger.info("Recieved signal {}".format(signum))
@@ -283,10 +283,11 @@ class Emcee(MCMCSampler):
         if hasattr(self, '_sampler'):
             pass
         elif self.resume and os.path.isfile(self.checkpoint_info.sampler_file):
+            import dill
             logger.info("Resuming run from checkpoint file {}"
                         .format(self.checkpoint_info.sampler_file))
             with open(self.checkpoint_info.sampler_file, 'rb') as f:
-                self._sampler = pickle.load(f)
+                self._sampler = dill.load(f)
             self._set_pos0_for_resume()
         else:
             self._initialise_sampler()
