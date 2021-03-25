@@ -3,7 +3,7 @@ import scipy.stats
 from scipy.special import erfinv
 
 from .base import Prior, PriorException
-from bilby.core.utils import logger, infer_args_from_method, get_dict_with_properties
+from ..utils import logger, infer_args_from_method, get_dict_with_properties
 
 
 class BaseJointPriorDist(object):

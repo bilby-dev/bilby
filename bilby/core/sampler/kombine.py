@@ -1,7 +1,9 @@
-from ..utils import logger
-import numpy as np
 import os
+
+import numpy as np
+
 from .emcee import Emcee
+from ..utils import logger
 
 
 class Kombine(Emcee):

@@ -3,7 +3,6 @@ import copy
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
-from scipy.integrate import cumtrapz
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
@@ -21,12 +20,6 @@ from .conversion import (
     chirp_mass_and_mass_ratio_to_total_mass,
     total_mass_and_mass_ratio_to_component_masses)
 from .cosmology import get_cosmology
-
-try:
-    from astropy import cosmology as cosmo, units
-except ImportError:
-    logger.debug("You do not have astropy installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
 
 
 DEFAULT_PRIOR_DIR = os.path.join(os.path.dirname(__file__), 'prior_files')
@@ -99,6 +92,7 @@ class Cosmological(Interped):
 
     @property
     def _default_args_dict(self):
+        from astropy import units
         return dict(
             redshift=dict(name='redshift', latex_label='$z$', unit=None),
             luminosity_distance=dict(
@@ -108,6 +102,7 @@ class Cosmological(Interped):
 
     def __init__(self, minimum, maximum, cosmology=None, name=None,
                  latex_label=None, unit=None, boundary=None):
+        from astropy import units
         self.cosmology = get_cosmology(cosmology)
         if name not in self._default_args_dict:
             raise ValueError(
@@ -172,6 +167,7 @@ class Cosmological(Interped):
         recalculate_array: boolean
             Determines if the distance arrays are recalculated
         """
+        from astropy.cosmology import z_at_value
         cosmology = get_cosmology(self.cosmology)
         limit_dict[self.name] = value
         if self.name == 'redshift':
@@ -183,8 +179,9 @@ class Cosmological(Interped):
             if value == 0:
                 limit_dict['redshift'] = 0
             else:
-                limit_dict['redshift'] = cosmo.z_at_value(
-                    cosmology.luminosity_distance, value * self.unit)
+                limit_dict['redshift'] = z_at_value(
+                    cosmology.luminosity_distance, value * self.unit
+                )
             limit_dict['comoving_distance'] = (
                 cosmology.comoving_distance(limit_dict['redshift']).value
             )
@@ -192,8 +189,9 @@ class Cosmological(Interped):
             if value == 0:
                 limit_dict['redshift'] = 0
             else:
-                limit_dict['redshift'] = cosmo.z_at_value(
-                    cosmology.comoving_distance, value * self.unit)
+                limit_dict['redshift'] = z_at_value(
+                    cosmology.comoving_distance, value * self.unit
+                )
             limit_dict['luminosity_distance'] = (
                 cosmology.luminosity_distance(limit_dict['redshift']).value
             )
@@ -255,8 +253,10 @@ class Cosmological(Interped):
         """
         Get a dictionary containing the arguments needed to reproduce this object.
         """
+        from astropy.cosmology.core import Cosmology
+        from astropy import units
         dict_with_properties = super(Cosmological, self)._repr_dict
-        if isinstance(dict_with_properties['cosmology'], cosmo.core.Cosmology):
+        if isinstance(dict_with_properties['cosmology'], Cosmology):
             if dict_with_properties['cosmology'].name is not None:
                 dict_with_properties['cosmology'] = dict_with_properties['cosmology'].name
         if isinstance(dict_with_properties['unit'], units.Unit):
@@ -1113,6 +1113,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         Method that builds the inverse cdf of the P(pixel) distribution for rescaling
         """
+        from scipy.integrate import cumtrapz
         yy = self._all_interped(self.pix_xx)
         yy /= np.trapz(yy, self.pix_xx)
         YY = cumtrapz(yy, self.pix_xx, initial=0)

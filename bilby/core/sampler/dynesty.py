@@ -1,13 +1,10 @@
 import datetime
-import dill
 import os
 import sys
-import pickle
 import signal
 import time
+import warnings
 
-from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 
@@ -19,11 +16,6 @@ from ..utils import (
 )
 from .base_sampler import Sampler, NestedSampler
 from ..result import rejection_sample
-
-from numpy import linalg
-from dynesty.utils import unitcheck
-import warnings
-
 
 _likelihood = None
 _priors = None
@@ -218,6 +210,7 @@ class Dynesty(NestedSampler):
                     kwargs['queue_size'] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
+        from tqdm.auto import tqdm
         if not self.kwargs['walks']:
             self.kwargs['walks'] = self.ndim * 10
         if not self.kwargs['update_interval']:
@@ -323,6 +316,7 @@ class Dynesty(NestedSampler):
 
     def run_sampler(self):
         import dynesty
+        import dill
         logger.info("Using dynesty version {}".format(dynesty.__version__))
 
         if self.kwargs.get("sample", "rwalk") == "rwalk":
@@ -376,7 +370,7 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
         with open(dynesty_result, 'wb') as file:
-            pickle.dump(out, file)
+            dill.dump(out, file)
 
         self._generate_result(out)
         self.calc_likelihood_count()
@@ -482,6 +476,7 @@ class Dynesty(NestedSampler):
         """
         from ... import __version__ as bilby_version
         from dynesty import __version__ as dynesty_version
+        import dill
         versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         if os.path.isfile(self.resume_file):
             logger.info("Reading resume file {}".format(self.resume_file))
@@ -560,6 +555,7 @@ class Dynesty(NestedSampler):
 
         from ... import __version__ as bilby_version
         from dynesty import __version__ as dynesty_version
+        import dill
         check_directory_exists_and_if_not_mkdir(self.outdir)
         end_time = datetime.datetime.now()
         if hasattr(self, 'start_time'):
@@ -605,6 +601,7 @@ class Dynesty(NestedSampler):
         df.to_csv(filename, index=False, header=True, sep=' ')
 
     def plot_current_state(self):
+        import matplotlib.pyplot as plt
         if self.check_point_plot:
             import dynesty.plotting as dyplot
             labels = [label.replace('_', ' ') for label in self.search_parameter_keys]
@@ -704,6 +701,7 @@ class Dynesty(NestedSampler):
 
 def sample_rwalk_bilby(args):
     """ Modified bilby-implemented version of dynesty.sampling.sample_rwalk """
+    from dynesty.utils import unitcheck
 
     # Unzipping.
     (u, loglstar, axes, scale,
@@ -737,7 +735,7 @@ def sample_rwalk_bilby(args):
 
         # Propose a direction on the unit n-sphere.
         drhat = rstate.randn(n)
-        drhat /= linalg.norm(drhat)
+        drhat /= np.linalg.norm(drhat)
 
         # Scale based on dimensionality.
         dr = drhat * rstate.rand() ** (1.0 / n)

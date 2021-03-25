@@ -1,12 +1,14 @@
-import numpy as np
-import os
 import json
+import os
 from collections import OrderedDict
 
+import numpy as np
+
 from .prior import Prior, PriorDict
-from .utils import (logtrapzexp, check_directory_exists_and_if_not_mkdir,
-                    logger)
-from .utils import BilbyJsonEncoder, load_json, move_old_file
+from .utils import (
+    logtrapzexp, check_directory_exists_and_if_not_mkdir, logger,
+    BilbyJsonEncoder, load_json, move_old_file
+)
 from .result import FileMovedError
 
 

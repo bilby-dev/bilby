@@ -5,13 +5,6 @@ from .networks import *
 from .psd import *
 from .strain_data import *
 
-try:
-    import lal
-    import lalsimulation as lalsim
-except ImportError:
-    logger.debug("You do not have lalsuite installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
-
 
 def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
     """ Calculate the safe signal duration, given the parameters
@@ -30,8 +23,10 @@ def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
         to the nearest power of 2)
 
     """
-    chirp_time = lalsim.SimInspiralChirpTimeBound(
-        flow, mass_1 * lal.MSUN_SI, mass_2 * lal.MSUN_SI,
+    from lal import MSUN_SI
+    from lalsimulation import SimInspiralChirpTimeBound
+    chirp_time = SimInspiralChirpTimeBound(
+        flow, mass_1 * MSUN_SI, mass_2 * MSUN_SI,
         a_1 * np.cos(tilt_1), a_2 * np.cos(tilt_2))
     return max(2**(int(np.log2(chirp_time)) + 1), 4)
 
@@ -329,7 +324,7 @@ def load_data_by_channel_name(
     ifo = get_empty_interferometer(det)
 
     ifo.set_strain_data_from_channel_name(
-        channel = channel_name,
+        channel=channel_name,
         sampling_frequency=sampling_frequency,
         duration=segment_duration,
         start_time=start_time)

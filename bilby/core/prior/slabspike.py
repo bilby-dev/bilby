@@ -1,7 +1,7 @@
 import numpy as np
 
-from bilby.core.prior.base import Prior
-from bilby.core.utils import logger
+from .base import Prior
+from ..utils import logger
 
 
 class SlabSpikePrior(Prior):

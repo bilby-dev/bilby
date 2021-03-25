@@ -3,8 +3,7 @@ dynesty
 emcee
 nestle
 ptemcee
-pymc3==3.6; python_version <= '2.7'
-pymc3>=3.6; python_version > '3.4'
+pymc3>=3.6
 pymultinest
 kombine
 ultranest>=3.0.0

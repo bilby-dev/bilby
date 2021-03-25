@@ -1,6 +1,5 @@
 
 import os
-import dill as pickle
 import signal
 
 import numpy as np
@@ -168,18 +167,20 @@ class DynamicDynesty(Dynesty):
     def write_current_state(self):
         """
         """
+        import dill
         check_directory_exists_and_if_not_mkdir(self.outdir)
         with open(self.resume_file, 'wb') as file:
-            pickle.dump(self, file)
+            dill.dump(self, file)
 
     def read_saved_state(self, continuing=False):
         """
         """
+        import dill
 
         logger.debug("Reading resume file {}".format(self.resume_file))
         if os.path.isfile(self.resume_file):
             with open(self.resume_file, 'rb') as file:
-                self = pickle.load(file)
+                self = dill.load(file)
         else:
             logger.debug(
                 "Failed to read resume file {}".format(self.resume_file))

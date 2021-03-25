@@ -1,19 +1,20 @@
-from ..core.utils import logger
+DEFAULT_COSMOLOGY = None
+COSMOLOGY = [None, str(None)]
 
-try:
+
+def _set_default_cosmology():
     from astropy import cosmology as cosmo
-    DEFAULT_COSMOLOGY = cosmo.Planck15
-    COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
-except ImportError:
-    logger.debug("You do not have astropy installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
-    DEFAULT_COSMOLOGY = None
-    COSMOLOGY = [None, str(None)]
+    global DEFAULT_COSMOLOGY, COSMOLOGY
+    if DEFAULT_COSMOLOGY is None:
+        DEFAULT_COSMOLOGY = cosmo.Planck15
+        COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
 
 
 def get_cosmology(cosmology=None):
+    from astropy import cosmology as cosmo
+    _set_default_cosmology()
     if cosmology is None:
-        cosmology = COSMOLOGY[0]
+        cosmology = DEFAULT_COSMOLOGY
     elif isinstance(cosmology, str):
         cosmology = cosmo.__dict__[cosmology]
     return cosmology
@@ -41,6 +42,8 @@ def set_cosmology(cosmology=None):
     cosmo: astropy.cosmology.FLRW
         Cosmology instance
     """
+    from astropy import cosmology as cosmo
+    _set_default_cosmology()
     if cosmology is None:
         cosmology = DEFAULT_COSMOLOGY
     elif isinstance(cosmology, cosmo.FLRW):

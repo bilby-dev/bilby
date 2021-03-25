@@ -46,7 +46,7 @@ class TestGetCosmology(unittest.TestCase):
         self.assertEqual(cosmology.get_cosmology("WMAP9").name, "WMAP9")
 
     def test_getting_cosmology_with_default(self):
-        self.assertEqual(cosmology.get_cosmology(), cosmology.COSMOLOGY[0])
+        self.assertEqual(cosmology.get_cosmology().name, "Planck15")
 
 
 if __name__ == "__main__":

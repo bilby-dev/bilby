@@ -10,13 +10,6 @@ from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralWaveformParamsInsertTidalLambda2,
                     lalsim_SimInspiralChooseFDWaveformSequence)
 
-try:
-    import lal
-    import lalsimulation as lalsim
-except ImportError:
-    logger.debug("You do not have lalsuite installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
-
 
 def lal_binary_black_hole(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
@@ -293,6 +286,9 @@ def _base_lal_cbc_fd_waveform(
     =======
     dict: A dictionary with the plus and cross polarisation strain modes
     """
+    import lal
+    import lalsimulation as lalsim
+
     waveform_approximant = waveform_kwargs['waveform_approximant']
     reference_frequency = waveform_kwargs['reference_frequency']
     minimum_frequency = waveform_kwargs['minimum_frequency']
@@ -509,6 +505,7 @@ def _base_roq_waveform(
         Dict containing plus and cross modes evaluated at the linear and
         quadratic frequency nodes.
     """
+    from lal import CreateDict
     frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
     frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
     reference_frequency = waveform_arguments['reference_frequency']
@@ -519,7 +516,7 @@ def _base_roq_waveform(
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
 
-    waveform_dictionary = lal.CreateDict()
+    waveform_dictionary = CreateDict()
     lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
         waveform_dictionary, lambda_1)
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(

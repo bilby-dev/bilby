@@ -33,6 +33,7 @@ stages:
     - python -c "import bilby.gw.sampler"
     - python -c "import bilby.hyper"
     - python -c "import cli_bilby"
+    - python test/import_test.py
     - for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
           ${script} --help;
       done

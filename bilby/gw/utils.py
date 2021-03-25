@@ -1,28 +1,14 @@
-import os
 import json
+import os
 from math import fmod
 
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
 
 from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)
-
-try:
-    from gwpy.timeseries import TimeSeries
-except ImportError:
-    logger.debug("You do not have gwpy installed currently. You will "
-                 " not be able to use some of the prebuilt functions.")
-
-try:
-    import lal
-    import lalsimulation as lalsim
-except ImportError:
-    logger.debug("You do not have lalsuite installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
 
 
 def asd_from_freq_series(freq_data, df):
@@ -88,7 +74,8 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     float: Time delay between the two detectors in the geocentric frame
 
     """
-    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
+    from lal import GreenwichMeanSiderealTime
+    gmst = fmod(GreenwichMeanSiderealTime(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     omega = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
     delta_d = detector2 - detector1
@@ -122,7 +109,8 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     array_like: A 3x3 representation of the polarization_tensor for the specified mode.
 
     """
-    gmst = fmod(lal.GreenwichMeanSiderealTime(time), 2 * np.pi)
+    from lal import GreenwichMeanSiderealTime
+    gmst = fmod(GreenwichMeanSiderealTime(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
     v = np.array([-np.sin(phi), np.cos(phi), 0])
@@ -390,8 +378,9 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
+    from lal import GreenwichMeanSiderealTime
     theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
-    gmst = lal.GreenwichMeanSiderealTime(geocent_time)
+    gmst = GreenwichMeanSiderealTime(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
     ra = ra % (2 * np.pi)
     return ra, dec
@@ -478,6 +467,7 @@ def get_open_strain_data(
         fails, this function retruns `None`.
 
     """
+    from gwpy.timeseries import TimeSeries
     filename = '{}/{}_{}_{}.txt'.format(outdir, name, start_time, end_time)
 
     if buffer_time < 0:
@@ -529,6 +519,7 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
     strain: gwpy.timeseries.TimeSeries
 
     """
+    from gwpy.timeseries import TimeSeries
     loaded = False
     strain = None
 
@@ -793,17 +784,19 @@ def convert_args_list_to_float(*args_list):
 def lalsim_SimInspiralTransformPrecessingNewInitialConditions(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
         reference_frequency, phase):
+    from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
 
     args_list = convert_args_list_to_float(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
         reference_frequency, phase)
 
-    return lalsim.SimInspiralTransformPrecessingNewInitialConditions(*args_list)
+    return SimInspiralTransformPrecessingNewInitialConditions(*args_list)
 
 
 def lalsim_GetApproximantFromString(waveform_approximant):
+    from lalsimulation import GetApproximantFromString
     if isinstance(waveform_approximant, str):
-        return lalsim.GetApproximantFromString(waveform_approximant)
+        return GetApproximantFromString(waveform_approximant)
     else:
         raise ValueError("waveform_approximant must be of type str")
 
@@ -840,6 +833,7 @@ def lalsim_SimInspiralFD(
     waveform_dictionary: None, lal.Dict
     approximant: int, str
     """
+    from lalsimulation import SimInspiralFD
 
     args = convert_args_list_to_float(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
@@ -849,7 +843,7 @@ def lalsim_SimInspiralFD(
 
     approximant = _get_lalsim_approximant(approximant)
 
-    return lalsim.SimInspiralFD(*args, waveform_dictionary, approximant)
+    return SimInspiralFD(*args, waveform_dictionary, approximant)
 
 
 def lalsim_SimInspiralChooseFDWaveform(
@@ -884,6 +878,7 @@ def lalsim_SimInspiralChooseFDWaveform(
     waveform_dictionary: None, lal.Dict
     approximant: int, str
     """
+    from lalsimulation import SimInspiralChooseFDWaveform
 
     args = convert_args_list_to_float(
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
@@ -893,7 +888,7 @@ def lalsim_SimInspiralChooseFDWaveform(
 
     approximant = _get_lalsim_approximant(approximant)
 
-    return lalsim.SimInspiralChooseFDWaveform(*args, waveform_dictionary, approximant)
+    return SimInspiralChooseFDWaveform(*args, waveform_dictionary, approximant)
 
 
 def _get_lalsim_approximant(approximant):
@@ -931,6 +926,8 @@ def lalsim_SimInspiralChooseFDWaveformSequence(
     approximant: int, str
     frequency_array: np.ndarray, lal.REAL8Vector
     """
+    from lal import REAL8Vector, CreateREAL8Vector
+    from lalsimulation import SimInspiralChooseFDWaveformSequence
 
     [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
      luminosity_distance, iota, phase, reference_frequency] = convert_args_list_to_float(
@@ -944,12 +941,12 @@ def lalsim_SimInspiralChooseFDWaveformSequence(
     else:
         raise ValueError("approximant not an int")
 
-    if not isinstance(frequency_array, lal.REAL8Vector):
+    if not isinstance(frequency_array, REAL8Vector):
         old_frequency_array = frequency_array.copy()
-        frequency_array = lal.CreateREAL8Vector(len(old_frequency_array))
+        frequency_array = CreateREAL8Vector(len(old_frequency_array))
         frequency_array.data = old_frequency_array
 
-    return lalsim.SimInspiralChooseFDWaveformSequence(
+    return SimInspiralChooseFDWaveformSequence(
         phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, reference_frequency, luminosity_distance, iota,
         waveform_dictionary, approximant, frequency_array)
@@ -957,23 +954,25 @@ def lalsim_SimInspiralChooseFDWaveformSequence(
 
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
         waveform_dictionary, lambda_1):
+    from lalsimulation import SimInspiralWaveformParamsInsertTidalLambda1
     try:
         lambda_1 = float(lambda_1)
     except ValueError:
         raise ValueError("Unable to convert lambda_1 to float")
 
-    return lalsim.SimInspiralWaveformParamsInsertTidalLambda1(
+    return SimInspiralWaveformParamsInsertTidalLambda1(
         waveform_dictionary, lambda_1)
 
 
 def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2):
+    from lalsimulation import SimInspiralWaveformParamsInsertTidalLambda2
     try:
         lambda_2 = float(lambda_2)
     except ValueError:
         raise ValueError("Unable to convert lambda_2 to float")
 
-    return lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
+    return SimInspiralWaveformParamsInsertTidalLambda2(
         waveform_dictionary, lambda_2)
 
 
@@ -1020,6 +1019,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
         Function to transform the spline into plotted values.
 
     """
+    import matplotlib.pyplot as plt
     freq_points = np.exp(log_freqs)
     freqs = np.logspace(min(log_freqs), max(log_freqs), nfreqs, base=np.exp(1))
 

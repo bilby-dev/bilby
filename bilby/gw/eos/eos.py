@@ -1,9 +1,6 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.integrate import cumtrapz, quad
 from scipy.interpolate import interp1d, CubicSpline
-from scipy.optimize import minimize_scalar
 
 from .tov_solver import IntegrateTOV
 from ...core import utils
@@ -58,6 +55,7 @@ class TabularEOS(object):
     """
 
     def __init__(self, eos, sampling_flag=False, warning_flag=False):
+        from scipy.integrate import cumtrapz
 
         self.sampling_flag = sampling_flag
         self.warning_flag = warning_flag
@@ -398,6 +396,7 @@ class TabularEOS(object):
         fig: matplotlib.figure.Figure
             EOS plot.
         """
+        import matplotlib.pyplot as plt
 
         # Set data based on specified representation
         varnames = rep.split('-')
@@ -538,7 +537,7 @@ class SpectralDecompositionEOS(TabularEOS):
         return 1. / spectral_adiabatic_index(self.gammas, x)
 
     def mu(self, x):
-
+        from scipy.integrate import quad
         return np.exp(-quad(self.__mu_integrand, 0, x)[0])
 
     def __eps_integrand(self, x):
@@ -546,7 +545,7 @@ class SpectralDecompositionEOS(TabularEOS):
         return np.exp(x) * self.mu(x) / spectral_adiabatic_index(self.gammas, x)
 
     def energy_density(self, x, eps0):
-
+        from scipy.integrate import quad
         quad_result, quad_err = quad(self.__eps_integrand, 0, x)
         eps_of_x = (eps0 * C_CGS ** 2.) / self.mu(x) + self.p0 / self.mu(x) * quad_result
         return eps_of_x
@@ -638,6 +637,7 @@ class EOSFamily(object):
     populated here via the TOV solver upon object construction.
     """
     def __init__(self, eos, npts=500):
+        from scipy.optimize import minimize_scalar
         self.eos = eos
 
         # FIXME: starting_energy_density is set somewhat arbitrarily
@@ -781,6 +781,7 @@ class EOSFamily(object):
         fig: matplotlib.figure.Figure
             EOS Family plot.
         """
+        import matplotlib.pyplot as plt
 
         # Set data based on specified representation
         varnames = rep.split('-')

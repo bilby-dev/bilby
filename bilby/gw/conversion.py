@@ -1,7 +1,6 @@
 import sys
 import multiprocessing
 
-from tqdm.auto import tqdm
 import numpy as np
 from pandas import DataFrame
 
@@ -11,13 +10,6 @@ from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
 from .cosmology import get_cosmology
-
-try:
-    from astropy import units
-    from astropy.cosmology import z_at_value
-except ImportError:
-    logger.debug("You do not have astropy installed currently. You will"
-                 " not be able to use some of the prebuilt functions.")
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -32,12 +24,16 @@ def redshift_to_comoving_distance(redshift, cosmology=None):
 
 @np.vectorize
 def luminosity_distance_to_redshift(distance, cosmology=None):
+    from astropy import units
+    from astropy.cosmology import z_at_value
     cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.luminosity_distance, distance * units.Mpc)
 
 
 @np.vectorize
 def comoving_distance_to_redshift(distance, cosmology=None):
+    from astropy import units
+    from astropy.cosmology import z_at_value
     cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.comoving_distance, distance * units.Mpc)
 
@@ -1148,6 +1144,7 @@ def compute_snrs(sample, likelihood):
                 sample['{}_optimal_snr'.format(ifo.name)] = \
                     per_detector_snr.optimal_snr_squared.real ** 0.5
         else:
+            from tqdm.auto import tqdm
             logger.info(
                 'Computing SNRs for every sample.')
 
@@ -1212,6 +1209,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
         return samples
     elif not isinstance(samples, DataFrame):
         raise ValueError("Unable to handle input samples of type {}".format(type(samples)))
+    from tqdm.auto import tqdm
 
     logger.info('Reconstructing marginalised parameters.')
 
@@ -1242,6 +1240,7 @@ def generate_sky_frame_parameters(samples, likelihood):
         return
     elif not isinstance(samples, DataFrame):
         raise ValueError
+    from tqdm.auto import tqdm
 
     logger.info('Generating sky frame parameters.')
     new_samples = list()

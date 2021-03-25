@@ -5,7 +5,6 @@ import re
 
 import numpy as np
 import scipy.stats
-from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 
 from bilby.core.utils import infer_args_from_method, BilbyJsonEncoder, decode_bilby_json, logger, \
@@ -162,6 +161,7 @@ class Prior(object):
 
     def cdf(self, val):
         """ Generic method to calculate CDF, can be overwritten in subclass """
+        from scipy.integrate import cumtrapz
         if np.any(np.isinf([self.minimum, self.maximum])):
             raise ValueError(
                 "Unable to use the generic CDF calculation for priors with"

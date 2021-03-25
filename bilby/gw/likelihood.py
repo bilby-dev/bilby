@@ -5,16 +5,9 @@ import json
 import copy
 
 import numpy as np
-import scipy.integrate as integrate
-from scipy.interpolate import interp1d
 import pandas as pd
-from tqdm import tqdm
-
-try:
-    from scipy.special import logsumexp
-except ImportError:
-    from scipy.misc import logsumexp
-from scipy.special import i0e
+from scipy.interpolate import interp1d
+from scipy.special import logsumexp, i0e
 
 from ..core.likelihood import Likelihood
 from ..core.utils import BilbyJsonEncoder, decode_bilby_json
@@ -939,10 +932,11 @@ class GravitationalWaveTransient(Likelihood):
         self.cache_lookup_table()
 
     def _setup_phase_marginalization(self, min_bound=-5, max_bound=10):
+        x_values = np.logspace(min_bound, max_bound, int(1e6))
         self._bessel_function_interped = interp1d(
-            np.logspace(-5, max_bound, int(1e6)), np.logspace(-5, max_bound, int(1e6)) +
-            np.log([i0e(snr) for snr in np.logspace(-5, max_bound, int(1e6))]),
-            bounds_error=False, fill_value=(0, np.nan))
+            x_values, x_values + np.log([i0e(snr) for snr in x_values]),
+            bounds_error=False, fill_value=(0, np.nan)
+        )
 
     def _setup_time_marginalization(self):
         self._delta_tc = 2 / self.waveform_generator.sampling_frequency
@@ -980,6 +974,7 @@ class GravitationalWaveTransient(Likelihood):
                         self.number_of_response_curves, self.starting_index)
 
             else:  # generate the fake curves
+                from tqdm.auto import tqdm
                 self.calibration_parameter_draws[interferometer.name] =\
                     pd.DataFrame(calibration_priors.sample(self.number_of_response_curves))
 
@@ -1609,10 +1604,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             f_high: float
                 The maximum frequency which must be considered
             """
+            from scipy.integrate import simps
             integrand1 = np.power(freq, -7. / 3) / psd
-            integral1 = integrate.simps(integrand1, freq)
+            integral1 = simps(integrand1, freq)
             integrand3 = np.power(freq, 2. / 3.) / (psd * integral1)
-            f_3_bar = integrate.simps(integrand3, freq)
+            f_3_bar = simps(integrand3, freq)
 
             f_high = scaling * f_3_bar**(1 / 3)
 
