@@ -3,3 +3,4 @@ lalsuite
 gwpy
 theano
 plotly
+pyfftw
