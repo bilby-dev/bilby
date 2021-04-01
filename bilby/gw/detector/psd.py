@@ -359,7 +359,8 @@ class PowerSpectralDensity(object):
 
         """
         white_noise, frequencies = utils.create_white_noise(sampling_frequency, duration)
-        frequency_domain_strain = self.__power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
+        with np.errstate(invalid="ignore"):
+            frequency_domain_strain = self.__power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
         return frequency_domain_strain, frequencies
