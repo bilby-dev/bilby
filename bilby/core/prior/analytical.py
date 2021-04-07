@@ -713,7 +713,7 @@ class LogNormal(Prior):
                 _prob = np.exp(-(np.log(val) - self.mu) ** 2 / self.sigma ** 2 / 2)\
                     / np.sqrt(2 * np.pi) / val / self.sigma
         else:
-            _prob = np.zeros(len(val))
+            _prob = np.zeros(val.size)
             idx = (val > self.minimum)
             _prob[idx] = np.exp(-(np.log(val[idx]) - self.mu) ** 2 / self.sigma ** 2 / 2)\
                 / np.sqrt(2 * np.pi) / val[idx] / self.sigma
@@ -737,7 +737,7 @@ class LogNormal(Prior):
                 _ln_prob = -(np.log(val) - self.mu) ** 2 / self.sigma ** 2 / 2\
                     - np.log(np.sqrt(2 * np.pi) * val * self.sigma)
         else:
-            _ln_prob = -np.inf * np.ones(len(val))
+            _ln_prob = -np.inf * np.ones(val.size)
             idx = (val > self.minimum)
             _ln_prob[idx] = -(np.log(val[idx]) - self.mu) ** 2\
                 / self.sigma ** 2 / 2 - np.log(np.sqrt(2 * np.pi) * val[idx] * self.sigma)
@@ -750,7 +750,7 @@ class LogNormal(Prior):
             else:
                 _cdf = 0.5 + erf((np.log(val) - self.mu) / self.sigma / np.sqrt(2)) / 2
         else:
-            _cdf = np.zeros(len(val))
+            _cdf = np.zeros(val.size)
             _cdf[val > self.minimum] = 0.5 + erf((
                 np.log(val[val > self.minimum]) - self.mu) / self.sigma / np.sqrt(2)) / 2
         return _cdf
@@ -807,7 +807,7 @@ class Exponential(Prior):
             else:
                 _prob = np.exp(-val / self.mu) / self.mu
         else:
-            _prob = np.zeros(len(val))
+            _prob = np.zeros(val.size)
             _prob[val >= self.minimum] = np.exp(-val[val >= self.minimum] / self.mu) / self.mu
         return _prob
 
@@ -828,7 +828,7 @@ class Exponential(Prior):
             else:
                 _ln_prob = -val / self.mu - np.log(self.mu)
         else:
-            _ln_prob = -np.inf * np.ones(len(val))
+            _ln_prob = -np.inf * np.ones(val.size)
             _ln_prob[val >= self.minimum] = -val[val >= self.minimum] / self.mu - np.log(self.mu)
         return _ln_prob
 
@@ -839,7 +839,7 @@ class Exponential(Prior):
             else:
                 _cdf = 1. - np.exp(-val / self.mu)
         else:
-            _cdf = np.zeros(len(val))
+            _cdf = np.zeros(val.size)
             _cdf[val >= self.minimum] = 1. - np.exp(-val[val >= self.minimum] / self.mu)
         return _cdf
 
@@ -1010,7 +1010,7 @@ class Beta(Prior):
                 return _ln_prob
             return -np.inf
         else:
-            _ln_prob_sub = -np.inf * np.ones(len(val))
+            _ln_prob_sub = -np.inf * np.ones(val.size)
             idx = np.isfinite(_ln_prob) & (val >= self.minimum) & (val <= self.maximum)
             _ln_prob_sub[idx] = _ln_prob[idx]
             return _ln_prob_sub
@@ -1076,7 +1076,7 @@ class Logistic(Prior):
             else:
                 rescaled = self.mu + self.scale * np.log(val / (1. - val))
         else:
-            rescaled = np.inf * np.ones(len(val))
+            rescaled = np.inf * np.ones(val.size)
             rescaled[val == 0] = -np.inf
             rescaled[(val > 0) & (val < 1)] = self.mu + self.scale\
                 * np.log(val[(val > 0) & (val < 1)] / (1. - val[(val > 0) & (val < 1)]))
@@ -1263,7 +1263,7 @@ class Gamma(Prior):
             else:
                 _ln_prob = xlogy(self.k - 1, val) - val / self.theta - xlogy(self.k, self.theta) - gammaln(self.k)
         else:
-            _ln_prob = -np.inf * np.ones(len(val))
+            _ln_prob = -np.inf * np.ones(val.size)
             idx = (val >= self.minimum)
             _ln_prob[idx] = xlogy(self.k - 1, val[idx]) - val[idx] / self.theta\
                 - xlogy(self.k, self.theta) - gammaln(self.k)
@@ -1276,7 +1276,7 @@ class Gamma(Prior):
             else:
                 _cdf = gammainc(self.k, val / self.theta)
         else:
-            _cdf = np.zeros(len(val))
+            _cdf = np.zeros(val.size)
             _cdf[val >= self.minimum] = gammainc(self.k, val[val >= self.minimum] / self.theta)
         return _cdf
 
