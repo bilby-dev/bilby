@@ -530,14 +530,6 @@ class PriorDict(dict):
         return self.__class__(dictionary=dict(self))
 
 
-class PriorSet(PriorDict):
-
-    def __init__(self, dictionary=None, filename=None):
-        """ DEPRECATED: USE PriorDict INSTEAD"""
-        logger.warning("The name 'PriorSet' is deprecated use 'PriorDict' instead")
-        super(PriorSet, self).__init__(dictionary, filename)
-
-
 class PriorDictException(Exception):
     """ General base class for all prior dict exceptions """
 

@@ -1,16 +1,13 @@
 import os
 import sys
-import warnings
 
 import numpy as np
 import math
 
 from ...core import utils
 from ...core.utils import logger
-from .. import utils as gwutils
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
-from .strain_data import InterferometerStrainData
 
 
 class InterferometerList(list):
@@ -324,73 +321,6 @@ class TriangularInterferometer(InterferometerList):
             longitude += np.arctan(length * np.cos(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
 
 
-def get_event_data(
-        event, interferometer_names=None, duration=4, roll_off=0.2,
-        psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
-        label=None, plot=True, filter_freq=None, **kwargs):
-    """
-    Get open data for a specified event.
-
-    Parameters
-    ==========
-    event: str
-        Event descriptor, this can deal with some prefixes, e.g., '150914',
-        'GW150914', 'LVT151012'
-    interferometer_names: list, optional
-        List of interferometer identifiers, e.g., 'H1'.
-        If None will look for data in 'H1', 'V1', 'L1'
-    duration: float
-        Time duration to search for.
-    roll_off: float
-        The roll-off (in seconds) used in the Tukey window.
-    psd_offset, psd_duration: float
-        The power spectral density (psd) is estimated using data from
-        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
-    cache: bool
-        Whether or not to store the acquired data.
-    outdir: str
-        Directory where the psd files are saved
-    label: str
-        If given, an identifying label used in generating file names.
-    plot: bool
-        If true, create an ASD + strain plot
-    filter_freq: float
-        Low pass filter frequency
-    **kwargs:
-        All keyword arguments are passed to
-        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
-
-    Returns
-    ======
-    list: A list of bilby.gw.detector.Interferometer objects
-    """
-
-    warnings.warn(
-        "get_event_data is deprecated, use set_strain_data_from_gwpy instead",
-        DeprecationWarning
-    )
-
-    event_time = gwutils.get_event_time(event)
-
-    interferometers = []
-
-    if interferometer_names is None:
-        interferometer_names = ['H1', 'L1', 'V1']
-
-    for name in interferometer_names:
-        try:
-            interferometers.append(get_interferometer_with_open_data(
-                name, trigger_time=event_time, duration=duration, roll_off=roll_off,
-                psd_offset=psd_offset, psd_duration=psd_duration, cache=cache,
-                outdir=outdir, label=label, plot=plot, filter_freq=filter_freq,
-                **kwargs))
-        except ValueError as e:
-            logger.debug("Error raised {}".format(e))
-            logger.warning('No data found for {}.'.format(name))
-
-    return InterferometerList(interferometers)
-
-
 def get_empty_interferometer(name):
     """
     Get an interferometer with standard parameters for known detectors.
@@ -452,90 +382,3 @@ def load_interferometer(filename):
     else:
         raise IOError("{} could not be loaded. Invalid parameter 'shape'.".format(filename))
     return ifo
-
-
-def get_interferometer_with_open_data(
-        name, trigger_time, duration=4, start_time=None, roll_off=0.2,
-        psd_offset=-1024, psd_duration=100, cache=True, outdir='outdir',
-        label=None, plot=True, filter_freq=None, **kwargs):
-    """
-    Helper function to obtain an Interferometer instance with appropriate
-    PSD and data, given an center_time.
-
-    Parameters
-    ==========
-
-    name: str
-        Detector name, e.g., 'H1'.
-    trigger_time: float
-        Trigger GPS time.
-    duration: float, optional
-        The total time (in seconds) to analyse. Defaults to 4s.
-    start_time: float, optional
-        Beginning of the segment, if None, the trigger is placed 2s before the end
-        of the segment.
-    roll_off: float
-        The roll-off (in seconds) used in the Tukey window.
-    psd_offset, psd_duration: float
-        The power spectral density (psd) is estimated using data from
-        `center_time+psd_offset` to `center_time+psd_offset + psd_duration`.
-    cache: bool, optional
-        Whether or not to store the acquired data
-    outdir: str
-        Directory where the psd files are saved
-    label: str
-        If given, an identifying label used in generating file names.
-    plot: bool
-        If true, create an ASD + strain plot
-    filter_freq: float
-        Low pass filter frequency
-    **kwargs:
-        All keyword arguments are passed to
-        `gwpy.timeseries.TimeSeries.fetch_open_data()`.
-
-    Returns
-    =======
-    bilby.gw.detector.Interferometer: An Interferometer instance with a PSD and frequency-domain strain data.
-
-    """
-
-    warnings.warn(
-        "get_interferometer_with_open_data is deprecated, use set_strain_data_from_gwpy instead",
-        DeprecationWarning
-    )
-
-    logger.warning(
-        "Parameter estimation for real interferometer data in bilby is in "
-        "alpha testing at the moment: the routines for windowing and filtering"
-        " have not been reviewed.")
-
-    utils.check_directory_exists_and_if_not_mkdir(outdir)
-
-    if start_time is None:
-        start_time = trigger_time + 2 - duration
-
-    strain = InterferometerStrainData(roll_off=roll_off)
-    strain.set_from_open_data(
-        name=name, start_time=start_time, duration=duration,
-        outdir=outdir, cache=cache, **kwargs)
-    strain.low_pass_filter(filter_freq)
-
-    strain_psd = InterferometerStrainData(roll_off=roll_off)
-    strain_psd.set_from_open_data(
-        name=name, start_time=start_time + duration + psd_offset,
-        duration=psd_duration, outdir=outdir, cache=cache, **kwargs)
-    # Low pass filter
-    strain_psd.low_pass_filter(filter_freq)
-    # Create and save PSDs
-    psd_frequencies, psd_array = strain_psd.create_power_spectral_density(
-        name=name, outdir=outdir, fft_length=strain.duration)
-
-    interferometer = get_empty_interferometer(name)
-    interferometer.power_spectral_density = PowerSpectralDensity(
-        psd_array=psd_array, frequency_array=psd_frequencies)
-    interferometer.strain_data = strain
-
-    if plot:
-        interferometer.plot_data(outdir=outdir, label=label)
-
-    return interferometer
