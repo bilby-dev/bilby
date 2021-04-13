@@ -1,7 +1,7 @@
 dynesty
 emcee
 corner
-numpy<1.20
+numpy
 matplotlib>=2.1
 scipy>=0.16
 pandas
