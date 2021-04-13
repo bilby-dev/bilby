@@ -41,11 +41,6 @@ class TestPriorDict(unittest.TestCase):
         priors = bilby.core.prior.PriorDict(self.priors)
         self.assertEqual(priors, priors.copy())
 
-    def test_prior_set(self):
-        priors_dict = bilby.core.prior.PriorDict(self.priors)
-        priors_set = bilby.core.prior.PriorSet(self.priors)
-        self.assertEqual(priors_dict, priors_set)
-
     def test_prior_set_is_dict(self):
         self.assertIsInstance(self.prior_set_from_dict, dict)
 

@@ -830,7 +830,7 @@ class TestROQLikelihood(unittest.TestCase):
         roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.roq,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
             waveform_arguments=dict(
                 frequency_nodes_linear=fnodes_linear,
                 frequency_nodes_quadratic=fnodes_quadratic,
@@ -1080,7 +1080,7 @@ class TestRescaledROQLikelihood(unittest.TestCase):
         self.roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.roq,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
             waveform_arguments=dict(
                 frequency_nodes_linear=fnodes_linear,
                 frequency_nodes_quadratic=fnodes_quadratic,

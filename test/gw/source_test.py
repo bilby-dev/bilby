@@ -236,7 +236,7 @@ class TestROQBBH(unittest.TestCase):
     def test_roq_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.roq(self.frequency_array, **self.parameters), dict
+            bilby.gw.source.binary_black_hole_roq(self.frequency_array, **self.parameters), dict
         )
 
     def test_roq_fails_without_frequency_nodes(self):
@@ -244,7 +244,7 @@ class TestROQBBH(unittest.TestCase):
         del self.parameters["frequency_nodes_linear"]
         del self.parameters["frequency_nodes_quadratic"]
         with self.assertRaises(KeyError):
-            bilby.gw.source.roq(self.frequency_array, **self.parameters)
+            bilby.gw.source.binary_black_hole_roq(self.frequency_array, **self.parameters)
 
 
 if __name__ == "__main__":

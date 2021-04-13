@@ -413,19 +413,6 @@ def _base_lal_cbc_fd_waveform(
     return dict(plus=h_plus, cross=h_cross)
 
 
-def roq(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
-    logger.warning(
-        'bilby.gw.source.roq has been deprecated and will be removed. Use '
-        'bilby.gw.source.binary_black_hole_roq instead.')
-    return binary_black_hole_roq(
-        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
-        luminosity_distance=luminosity_distance, a_1=a_1, tilt_1=tilt_1,
-        phi_12=phi_12, a_2=a_2, tilt_2=tilt_2, phi_jl=phi_jl,
-        theta_jn=theta_jn, phase=phase, **waveform_arguments)
-
-
 def binary_black_hole_roq(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
