@@ -48,7 +48,12 @@ class TestRunningSamplers(unittest.TestCase):
             likelihood=self.likelihood,
             priors=self.priors,
             sampler="dnest4",
-            nlive=100,
+            max_num_levels=2,
+            num_steps=10,
+            new_level_interval=10,
+            num_per_step=10,
+            thread_steps=1,
+            num_particles=50,
             save=False,
         )
 
@@ -147,7 +152,7 @@ class TestRunningSamplers(unittest.TestCase):
             sampler="pymc3",
             draws=50,
             tune=50,
-            n_init=1000,
+            n_init=250,
             save=False,
         )
 
