@@ -154,19 +154,21 @@ class PriorDict(dict):
     @classmethod
     def _get_from_json_dict(cls, prior_dict):
         try:
-            cls = getattr(
+            class_ = getattr(
                 import_module(prior_dict["__module__"]),
                 prior_dict["__name__"])
         except ImportError:
             logger.debug("Cannot import prior module {}.{}".format(
                 prior_dict["__module__"], prior_dict["__name__"]
             ))
+            class_ = cls
         except KeyError:
             logger.debug("Cannot find module name to load")
+            class_ = cls
         for key in ["__module__", "__name__", "__prior_dict__"]:
             if key in prior_dict:
                 del prior_dict[key]
-        obj = cls(dict())
+        obj = class_(dict())
         obj.from_dictionary(prior_dict)
         return obj
 
@@ -206,7 +208,15 @@ class PriorDict(dict):
                     module = __name__.replace(
                         '.' + os.path.basename(__file__).replace('.py', ''), ''
                     )
-                cls = getattr(import_module(module), cls, cls)
+                try:
+                    cls = getattr(import_module(module), cls, cls)
+                except ModuleNotFoundError:
+                    logger.error(
+                        "Cannot import prior class {} for entry: {}={}".format(
+                            cls, key, val
+                        )
+                    )
+                    raise
                 if key.lower() in ["conversion_function", "condition_func"]:
                     setattr(self, key, cls)
                 elif isinstance(cls, str):
