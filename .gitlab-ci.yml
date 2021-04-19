@@ -148,7 +148,6 @@ scheduled-python-3.7:
 
     # Run tests which are only done on schedule
     - pytest test/integration/example_test.py
-    - pytest test/integration/sample_from_the_prior_test.py
 
 plotting:
   stage: test
