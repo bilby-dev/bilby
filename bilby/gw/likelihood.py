@@ -156,8 +156,12 @@ class GravitationalWaveTransient(Likelihood):
             priors['geocent_time'] = float(self.interferometers.start_time)
             if self.jitter_time:
                 priors['time_jitter'] = Uniform(
-                    minimum=- self._delta_tc / 2, maximum=self._delta_tc / 2,
-                    boundary='periodic')
+                    minimum=- self._delta_tc / 2,
+                    maximum=self._delta_tc / 2,
+                    boundary='periodic',
+                    name="time_jitter",
+                    latex_label="$t_j$"
+                )
             self._marginalized_parameters.append('geocent_time')
         elif self.jitter_time:
             logger.debug(
@@ -1353,7 +1357,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,
                     self.weights[interferometer.name + '_quadratic'])
 
-        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
+        with np.errstate(invalid="ignore"):
+            complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
         d_inner_h_squared_tc_array = None
 
         return self._CalculatedSNRs(
