@@ -254,16 +254,18 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     for angle in ['tilt_1', 'tilt_2', 'theta_jn']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
-            converted_parameters[angle] =\
-                np.arccos(converted_parameters[cos_angle])
+            with np.errstate(invalid="ignore"):
+                converted_parameters[angle] =\
+                    np.arccos(converted_parameters[cos_angle])
 
     if "delta_phase" in original_keys:
-        converted_parameters["phase"] = np.mod(
-            converted_parameters["delta_phase"]
-            - np.sign(np.cos(converted_parameters["theta_jn"]))
-            * converted_parameters["psi"],
-            2 * np.pi
-        )
+        with np.errstate(invalid="ignore"):
+            converted_parameters["phase"] = np.mod(
+                converted_parameters["delta_phase"]
+                - np.sign(np.cos(converted_parameters["theta_jn"]))
+                * converted_parameters["psi"],
+                2 * np.pi
+            )
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
@@ -512,7 +514,8 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
         Mass of the lighter object
     """
 
-    return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
+    with np.errstate(invalid="ignore"):
+        return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
 
 
 def component_masses_to_chirp_mass(mass_1, mass_2):
