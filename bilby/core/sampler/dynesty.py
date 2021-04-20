@@ -122,7 +122,7 @@ class Dynesty(NestedSampler):
     """
     default_kwargs = dict(bound='multi', sample='rwalk',
                           verbose=True, periodic=None, reflective=None,
-                          check_point_delta_t=600, nlive=1000,
+                          check_point_delta_t=1800, nlive=1000,
                           first_update=None, walks=100,
                           npdim=None, rstate=None, queue_size=1, pool=None,
                           use_pool=None, live_points=None,
