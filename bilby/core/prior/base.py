@@ -185,7 +185,8 @@ class Prior(object):
         np.nan
 
         """
-        return np.log(self.prob(val))
+        with np.errstate(divide='ignore'):
+            return np.log(self.prob(val))
 
     def is_in_prior_range(self, val):
         """Returns True if val is in the prior boundaries, zero otherwise
@@ -312,6 +313,10 @@ class Prior(object):
     @maximum.setter
     def maximum(self, maximum):
         self._maximum = maximum
+
+    @property
+    def width(self):
+        return self.maximum - self.minimum
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)

@@ -367,6 +367,28 @@ class PriorDict(dict):
                 logger.debug('{} not a known prior.'.format(key))
         return samples
 
+    @property
+    def non_fixed_keys(self):
+        keys = self.keys()
+        keys = [k for k in keys if isinstance(self[k], Prior)]
+        keys = [k for k in keys if self[k].is_fixed is False]
+        keys = [k for k in keys if k not in self.constraint_keys]
+        return keys
+
+    @property
+    def fixed_keys(self):
+        return [
+            k for k, p in self.items()
+            if (p.is_fixed and k not in self.constraint_keys)
+        ]
+
+    @property
+    def constraint_keys(self):
+        return [
+            k for k, p in self.items()
+            if isinstance(p, Constraint)
+        ]
+
     def sample_subset_constrained(self, keys=iter([]), size=None):
         if size is None or size == 1:
             while True:
@@ -432,6 +454,9 @@ class PriorDict(dict):
         prob = np.product([self[key].prob(sample[key])
                            for key in sample], **kwargs)
 
+        return self.check_prob(sample, prob)
+
+    def check_prob(self, sample, prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(prob == 0.):
             return prob
@@ -465,7 +490,9 @@ class PriorDict(dict):
         """
         ln_prob = np.sum([self[key].ln_prob(sample[key])
                           for key in sample], axis=axis)
+        return self.check_ln_prob(sample, ln_prob)
 
+    def check_ln_prob(self, sample, ln_prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(np.isinf(ln_prob)):
             return ln_prob
@@ -648,7 +675,8 @@ class ConditionalPriorDict(PriorDict):
         for key, value in sample.items():
             self[key].least_recently_sampled = value
         res = [self[key].prob(sample[key], **self.get_required_variables(key)) for key in sample]
-        return np.product(res, **kwargs)
+        prob = np.product(res, **kwargs)
+        return self.check_prob(sample, prob)
 
     def ln_prob(self, sample, axis=None):
         """
@@ -669,7 +697,8 @@ class ConditionalPriorDict(PriorDict):
         for key, value in sample.items():
             self[key].least_recently_sampled = value
         res = [self[key].ln_prob(sample[key], **self.get_required_variables(key)) for key in sample]
-        return np.sum(res, axis=axis)
+        ln_prob = np.sum(res, axis=axis)
+        return self.check_ln_prob(sample, ln_prob)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
