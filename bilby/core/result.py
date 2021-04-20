@@ -20,6 +20,7 @@ from .utils import (
     decode_bilby_json, docstring,
     recursively_save_dict_contents_to_group,
     recursively_load_dict_contents_from_group,
+    recursively_decode_bilby_json,
 )
 from .prior import Prior, PriorDict, DeltaFunction
 
@@ -559,6 +560,17 @@ class Result(object):
                         .format(len(self.posterior), self.log_evidence, self.log_evidence_err))
         else:
             return ''
+
+    @property
+    def meta_data(self):
+        return self._meta_data
+
+    @meta_data.setter
+    def meta_data(self, meta_data):
+        if meta_data is None:
+            meta_data = dict()
+        meta_data = recursively_decode_bilby_json(meta_data)
+        self._meta_data = meta_data
 
     @property
     def priors(self):
