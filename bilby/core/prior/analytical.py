@@ -148,8 +148,11 @@ class PowerLaw(Prior):
             normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
                                               self.minimum ** (1 + self.alpha))
 
-        return (self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)) + np.log(
-            1. * self.is_in_prior_range(val))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ln_in_range = np.log(1. * self.is_in_prior_range(val))
+            ln_p = self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)
+
+        return ln_p + ln_in_range
 
     def cdf(self, val):
         if self.alpha == -1:
