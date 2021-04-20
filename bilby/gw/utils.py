@@ -74,8 +74,7 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     float: Time delay between the two detectors in the geocentric frame
 
     """
-    from lal import GreenwichMeanSiderealTime
-    gmst = fmod(GreenwichMeanSiderealTime(time), 2 * np.pi)
+    gmst = fmod(greenwich_mean_sidereal_time(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     omega = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
     delta_d = detector2 - detector1
@@ -109,8 +108,7 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     array_like: A 3x3 representation of the polarization_tensor for the specified mode.
 
     """
-    from lal import GreenwichMeanSiderealTime
-    gmst = fmod(GreenwichMeanSiderealTime(time), 2 * np.pi)
+    gmst = fmod(greenwich_mean_sidereal_time(time), 2 * np.pi)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
     u = np.array([np.cos(phi) * np.cos(theta), np.cos(theta) * np.sin(phi), -np.sin(theta)])
     v = np.array([-np.sin(phi), np.cos(phi), 0])
@@ -378,9 +376,8 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
-    from lal import GreenwichMeanSiderealTime
     theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
-    gmst = GreenwichMeanSiderealTime(geocent_time)
+    gmst = greenwich_mean_sidereal_time(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
     ra = ra % (2 * np.pi)
     return ra, dec
@@ -1016,3 +1013,9 @@ class PropertyAccessor(object):
 
     def __set__(self, instance, value):
         setattr(getattr(instance, self.container_instance_name), self.property_name, value)
+
+
+def greenwich_mean_sidereal_time(time):
+    from lal import GreenwichMeanSiderealTime
+    time = float(time)
+    return GreenwichMeanSiderealTime(time)
