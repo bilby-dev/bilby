@@ -508,11 +508,7 @@ def check_directory_exists_and_if_not_mkdir(directory):
     """
     if directory == "":
         return
-    elif not os.path.exists(directory):
-        os.makedirs(directory)
-        logger.debug('Making directory {}'.format(directory))
-    else:
-        logger.debug('Directory {} exists'.format(directory))
+    os.makedirs(directory, exist_ok=True)
 
 
 def set_up_command_line_arguments():
