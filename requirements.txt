@@ -9,4 +9,3 @@ mock
 dill
 tqdm
 h5py
-tables
