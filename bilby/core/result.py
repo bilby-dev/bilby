@@ -1752,7 +1752,7 @@ class ResultList(list):
         else:
             raise TypeError("Could not append a non-Result type")
 
-    def combine(self):
+    def combine(self, shuffle=False):
         """
         Return the combined results in a :class:bilby.core.result.Result`
         object.
@@ -1775,11 +1775,20 @@ class ResultList(list):
         # check which kind of sampler was used: MCMC or Nested Sampling
         if result._nested_samples is not None:
             posteriors, result = self._combine_nested_sampled_runs(result)
+        elif result.sampler in ["bilbymcmc"]:
+            posteriors, result = self._combine_mcmc_sampled_runs(result)
         else:
             posteriors = [res.posterior for res in self]
 
         combined_posteriors = pd.concat(posteriors, ignore_index=True)
-        result.posterior = combined_posteriors.sample(len(combined_posteriors))  # shuffle
+
+        if shuffle:
+            result.posterior = combined_posteriors.sample(len(combined_posteriors))
+        else:
+            result.posterior = combined_posteriors
+
+        logger.info(f"Combined results have {len(result.posterior)} samples")
+
         return result
 
     def _combine_nested_sampled_runs(self, result):
@@ -1827,6 +1836,47 @@ class ResultList(list):
         # remove original nested_samples
         result.nested_samples = None
         result.sampler_kwargs = None
+        return posteriors, result
+
+    def _combine_mcmc_sampled_runs(self, result):
+        """
+        Combine multiple MCMC sampling runs.
+
+        Currently this keeps all posterior samples from each run
+
+        Parameters
+        ----------
+        result: bilby.core.result.Result
+            The result object to put the new samples in.
+
+        Returns
+        -------
+        posteriors: list
+            A list of pandas DataFrames containing the reduced sample set from
+            each run.
+        result: bilby.core.result.Result
+            The result object with the combined evidences.
+        """
+
+        from scipy.special import logsumexp
+
+        # Combine evidences
+        log_evidences = np.array([res.log_evidence for res in self])
+        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+        result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+
+        # Propogate uncertainty in combined evidence
+        log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
+        if len(log_errs) > 0:
+            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
+        else:
+            result.log_evidence_err = np.nan
+
+        # Combined posteriors with a weighting
+        posteriors = list()
+        for res in self:
+            posteriors.append(res.posterior)
+
         return posteriors, result
 
     def check_nested_samples(self):
