@@ -616,6 +616,19 @@ class Dynesty(NestedSampler):
             finally:
                 plt.close("all")
             try:
+                filename = "{}/{}_checkpoint_trace_unit.png".format(self.outdir, self.label)
+                from copy import deepcopy
+                temp = deepcopy(self.sampler.results)
+                temp["samples"] = temp["samples_u"]
+                fig = dyplot.traceplot(temp, labels=labels)[0]
+                fig.tight_layout()
+                fig.savefig(filename)
+            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError, OverflowError, Exception) as e:
+                logger.warning(e)
+                logger.warning('Failed to create dynesty unit state plot at checkpoint')
+            finally:
+                plt.close("all")
+            try:
                 filename = "{}/{}_checkpoint_run.png".format(self.outdir, self.label)
                 fig, axs = dyplot.runplot(
                     self.sampler.results, logplot=False, use_math_text=False)
