@@ -35,7 +35,7 @@ def result_file_name(outdir, label, extension='json', gzip=False):
     label: str
         Naming scheme of the output file
     extension: str, optional
-        Whether to save as `hdf5` or `json`
+        Whether to save as `hdf5`, `json`, or `pickle`
     gzip: bool, optional
         Set to True to append `.gz` to the extension for saving in gzipped format
 
@@ -43,7 +43,9 @@ def result_file_name(outdir, label, extension='json', gzip=False):
     =======
     str: File name of the output file
     """
-    if extension in ['json', 'hdf5']:
+    if extension == 'pickle':
+        extension = 'pkl'
+    if extension in ['json', 'hdf5', 'pkl']:
         if extension == 'json' and gzip:
             return os.path.join(outdir, '{}_result.{}.gz'.format(label, extension))
         else:
@@ -324,7 +326,7 @@ class Result(object):
                  num_likelihood_evaluations=None, walkers=None,
                  max_autocorrelation_time=None, use_ratio=None,
                  parameter_labels=None, parameter_labels_with_unit=None,
-                 gzip=False, version=None):
+                 version=None):
         """ A class to store the results of the sampling run
 
         Parameters
@@ -370,8 +372,6 @@ class Result(object):
             likelihood was used during sampling
         parameter_labels, parameter_labels_with_unit: list
             Lists of the latex-formatted parameter labels
-        gzip: bool
-            Set to True to gzip the results file (if using json format)
         version: str,
             Version information for software used to generate the result. Note,
             this information is generated when the result object is initialized
@@ -737,11 +737,11 @@ class Result(object):
             default=False
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
-        extension: str, optional {json, hdf5, True}
+        extension: str, optional {json, hdf5, pkl, pickle, True}
             Determines the method to use to store the data (if True defaults
             to json)
         gzip: bool, optional
-            If true, and outputing to a json file, this will gzip the resulting
+            If true, and outputting to a json file, this will gzip the resulting
             file and add '.gz' to the file extension.
         """
 
