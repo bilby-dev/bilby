@@ -108,6 +108,22 @@ class TestResult(unittest.TestCase):
             "{}/{}_result.hdf5".format(outdir, label),
         )
 
+    def test_result_file_name_pkl(self):
+        outdir = "outdir"
+        label = "label"
+        self.assertEqual(
+            bilby.core.result.result_file_name(outdir, label, extension="pkl"),
+            "{}/{}_result.pkl".format(outdir, label),
+        )
+
+    def test_result_file_name_pickle(self):
+        outdir = "outdir"
+        label = "label"
+        self.assertEqual(
+            bilby.core.result.result_file_name(outdir, label, extension="pickle"),
+            "{}/{}_result.pkl".format(outdir, label),
+        )
+
     def test_fail_save_and_load(self):
         with self.assertRaises(ValueError):
             bilby.core.result.read_in_result()
@@ -176,39 +192,22 @@ class TestResult(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = self.result.posterior
 
+    def test_save_and_load_json(self):
+        self._save_and_load_test(extension='json')
+
+    def test_save_and_load_json_gzip(self):
+        self._save_and_load_test(extension='json', gzip=True)
+
+    def test_save_and_load_pkl(self):
+        self._save_and_load_test(extension='pkl')
+
     def test_save_and_load_hdf5(self):
-        self.result.save_to_file(extension="hdf5")
-        loaded_result = bilby.core.result.read_in_result(
-            outdir=self.result.outdir, label=self.result.label, extension="hdf5"
-        )
-        self.assertTrue(
-            pd.DataFrame.equals(self.result.posterior, loaded_result.posterior)
-        )
-        self.assertTrue(
-            self.result.fixed_parameter_keys == loaded_result.fixed_parameter_keys
-        )
-        self.assertTrue(
-            self.result.search_parameter_keys == loaded_result.search_parameter_keys
-        )
-        self.assertEqual(self.result.meta_data, loaded_result.meta_data)
-        self.assertEqual(
-            self.result.injection_parameters, loaded_result.injection_parameters
-        )
-        self.assertEqual(self.result.log_evidence, loaded_result.log_evidence)
-        self.assertEqual(
-            self.result.log_noise_evidence, loaded_result.log_noise_evidence
-        )
-        self.assertEqual(self.result.log_evidence_err, loaded_result.log_evidence_err)
-        self.assertEqual(self.result.log_bayes_factor, loaded_result.log_bayes_factor)
-        self.assertEqual(self.result.priors["x"], loaded_result.priors["x"])
-        self.assertEqual(self.result.priors["y"], loaded_result.priors["y"])
-        self.assertEqual(self.result.priors["c"], loaded_result.priors["c"])
-        self.assertEqual(self.result.priors["d"], loaded_result.priors["d"])
+        self._save_and_load_test(extension='hdf5')
 
-    def test_save_and_load_default(self):
-        self.result.save_to_file()
+    def _save_and_load_test(self, extension, gzip=False):
+        self.result.save_to_file(extension=extension, gzip=gzip)
         loaded_result = bilby.core.result.read_in_result(
-            outdir=self.result.outdir, label=self.result.label
+            outdir=self.result.outdir, label=self.result.label, extension=extension, gzip=gzip
         )
         self.assertTrue(
             np.array_equal(
@@ -237,102 +236,33 @@ class TestResult(unittest.TestCase):
         self.assertEqual(self.result.priors["c"], loaded_result.priors["c"])
         self.assertEqual(self.result.priors["d"], loaded_result.priors["d"])
 
-    def test_save_and_load_gzip(self):
-        self.result.save_to_file(gzip=True)
-        loaded_result = bilby.core.result.read_in_result(
-            outdir=self.result.outdir, label=self.result.label, gzip=True
-        )
-        self.assertTrue(
-            np.array_equal(
-                self.result.posterior.sort_values(by=["x"]),
-                loaded_result.posterior.sort_values(by=["x"]),
-            )
-        )
-        self.assertTrue(
-            self.result.fixed_parameter_keys == loaded_result.fixed_parameter_keys
-        )
-        self.assertTrue(
-            self.result.search_parameter_keys == loaded_result.search_parameter_keys
-        )
-        self.assertEqual(self.result.meta_data, loaded_result.meta_data)
-        self.assertEqual(
-            self.result.injection_parameters, loaded_result.injection_parameters
-        )
-        self.assertEqual(self.result.log_evidence, loaded_result.log_evidence)
-        self.assertEqual(
-            self.result.log_noise_evidence, loaded_result.log_noise_evidence
-        )
-        self.assertEqual(self.result.log_evidence_err, loaded_result.log_evidence_err)
-        self.assertEqual(self.result.log_bayes_factor, loaded_result.log_bayes_factor)
-        self.assertEqual(self.result.priors["x"], loaded_result.priors["x"])
-        self.assertEqual(self.result.priors["y"], loaded_result.priors["y"])
-        self.assertEqual(self.result.priors["c"], loaded_result.priors["c"])
-        self.assertEqual(self.result.priors["d"], loaded_result.priors["d"])
+    def test_save_and_dont_overwrite_json(self):
+        self._save_and_dont_overwrite_test(extension='json')
 
-    def test_save_and_dont_overwrite_default(self):
-        shutil.rmtree(
-            "{}/{}_result.json.old".format(self.result.outdir, self.result.label),
-            ignore_errors=True,
-        )
-        self.result.save_to_file(overwrite=False)
-        self.result.save_to_file(overwrite=False)
-        self.assertTrue(
-            os.path.isfile(
-                "{}/{}_result.json.old".format(self.result.outdir, self.result.label)
-            )
-        )
+    def test_save_and_dont_overwrite_pkl(self):
+        self._save_and_dont_overwrite_test(extension='pkl')
 
     def test_save_and_dont_overwrite_hdf5(self):
-        shutil.rmtree(
-            "{}/{}_result.hdf5.old".format(self.result.outdir, self.result.label),
-            ignore_errors=True,
-        )
-        self.result.save_to_file(overwrite=False, extension="hdf5")
-        self.result.save_to_file(overwrite=False, extension="hdf5")
-        self.assertTrue(
-            os.path.isfile(
-                "{}/{}_result.hdf5.old".format(self.result.outdir, self.result.label)
-            )
-        )
+        self._save_and_dont_overwrite_test(extension='hdf5')
+
+    def _save_and_dont_overwrite_test(self, extension):
+        self.result.save_to_file(overwrite=False, extension=extension)
+        self.result.save_to_file(overwrite=False, extension=extension)
+        self.assertTrue(os.path.isfile(f"{self.result.outdir}/{self.result.label}_result.{extension}.old"))
+
+    def test_save_and_overwrite_json(self):
+        self._save_and_overwrite_test(extension='json')
+
+    def test_save_and_overwrite_pkl(self):
+        self._save_and_overwrite_test(extension='pkl')
 
     def test_save_and_overwrite_hdf5(self):
-        shutil.rmtree(
-            "{}/{}_result.hdf5.old".format(self.result.outdir, self.result.label),
-            ignore_errors=True,
-        )
-        self.result.save_to_file(overwrite=True, extension="hdf5")
-        self.result.save_to_file(overwrite=True, extension="hdf5")
-        self.assertFalse(
-            os.path.isfile(
-                "{}/{}_result.hdf5.old".format(self.result.outdir, self.result.label)
-            )
-        )
+        self._save_and_overwrite_test(extension='hdf5')
 
-    def test_save_and_overwrite_default(self):
-        shutil.rmtree(
-            "{}/{}_result.json.old".format(self.result.outdir, self.result.label),
-            ignore_errors=True,
-        )
-        self.result.save_to_file(overwrite=True, extension="hdf5")
-        self.result.save_to_file(overwrite=True, extension="hdf5")
-        self.assertFalse(
-            os.path.isfile(
-                "{}/{}_result.h5.old".format(self.result.outdir, self.result.label)
-            )
-        )
-
-    def test_save_and_overwrite_default_2(self):
-        shutil.rmtree(
-            "{}/{}_result.json.old".format(self.result.outdir, self.result.label),
-            ignore_errors=True,
-        )
-        self.result.save_to_file(overwrite=True)
-        self.result.save_to_file(overwrite=True)
-        self.assertFalse(
-            os.path.isfile(
-                "{}/{}_result.json.old".format(self.result.outdir, self.result.label)
-            )
-        )
+    def _save_and_overwrite_test(self, extension):
+        self.result.save_to_file(overwrite=True, extension=extension)
+        self.result.save_to_file(overwrite=True, extension=extension)
+        self.assertFalse(os.path.isfile(f"{self.result.outdir}/{self.result.label}_result.{extension}.old"))
 
     def test_save_samples(self):
         self.result.save_posterior_samples()

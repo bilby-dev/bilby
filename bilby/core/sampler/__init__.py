@@ -92,9 +92,10 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
         saving. For example, if `meta_data={dtype: 'signal'}`. Warning: in case
         of conflict with keys saved by bilby, the meta_data keys will be
         overwritten.
-    save: bool
+    save: bool, str
         If true, save the priors and results to disk.
         If hdf5, save as an hdf5 file instead of json.
+        If pickle or pkl, save as an pickle file instead of json.
     gzip: bool
         If true, and save is true, gzip the saved results file.
     result_class: bilby.core.result.Result, or child of
