@@ -519,6 +519,12 @@ def _base_roq_waveform(
         spin_2z, reference_frequency, luminosity_distance, iota,
         waveform_dictionary, approximant, frequency_nodes_linear)
 
+    waveform_dictionary = CreateDict()
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
+
     h_quadratic_plus, h_quadratic_cross = lalsim_SimInspiralChooseFDWaveformSequence(
         phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
         spin_2z, reference_frequency, luminosity_distance, iota,
