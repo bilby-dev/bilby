@@ -101,7 +101,9 @@ class Dynesty(NestedSampler):
         Method used to sample uniformly within the likelihood constraints,
         conditioned on the provided bounds
     walks: int
-        Number of walks taken if using `sample='rwalk'`, defaults to `ndim * 10`
+        Number of walks taken if using `sample='rwalk'`, defaults to `100`.
+        Note that the default `walks` in dynesty itself is 25, although using
+        `ndim * 10` can be a reasonable rule of thumb for new problems.
     dlogz: float, (0.1)
         Stopping criteria
     verbose: Bool
@@ -212,7 +214,7 @@ class Dynesty(NestedSampler):
     def _verify_kwargs_against_default_kwargs(self):
         from tqdm.auto import tqdm
         if not self.kwargs['walks']:
-            self.kwargs['walks'] = self.ndim * 10
+            self.kwargs['walks'] = 100
         if not self.kwargs['update_interval']:
             self.kwargs['update_interval'] = int(0.6 * self.kwargs['nlive'])
         if self.kwargs['print_func'] is None:
@@ -324,7 +326,7 @@ class Dynesty(NestedSampler):
                 "Using the bilby-implemented rwalk sample method with ACT estimated walks")
             dynesty.dynesty._SAMPLING["rwalk"] = sample_rwalk_bilby
             dynesty.nestedsamplers._SAMPLING["rwalk"] = sample_rwalk_bilby
-            if self.kwargs.get("walks", 25) > self.kwargs.get("maxmcmc"):
+            if self.kwargs.get("walks") > self.kwargs.get("maxmcmc"):
                 raise DynestySetupError("You have maxmcmc > walks (minimum mcmc)")
             if self.kwargs.get("nact", 5) < 1:
                 raise DynestySetupError("Unable to run with nact < 1")
@@ -715,8 +717,8 @@ def sample_rwalk_bilby(args):
 
     # Setup.
     n = len(u)
-    walks = kwargs.get('walks', 25)  # minimum number of steps
-    maxmcmc = kwargs.get('maxmcmc', 2000)  # Maximum number of steps
+    walks = kwargs.get('walks', 100)  # minimum number of steps
+    maxmcmc = kwargs.get('maxmcmc', 5000)  # Maximum number of steps
     nact = kwargs.get('nact', 5)  # Number of ACT
     old_act = kwargs.get('old_act', walks)
 
