@@ -62,6 +62,8 @@ class GravitationalWaveTransient(Likelihood):
         This is done numerically over a number of calibration response curve realizations.
     priors: dict, optional
         If given, used in the distance and phase marginalization.
+        Warning: when using marginalisation the dict is overwritten which will change the
+        the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
     distance_marginalization_lookup_table: (dict, str), optional
         If a dict, dictionary containing the lookup_table, distance_array,
         (distance) prior_array, and reference_distance used to construct
@@ -123,7 +125,7 @@ class GravitationalWaveTransient(Likelihood):
     def __init__(
         self, interferometers, waveform_generator, time_marginalization=False,
         distance_marginalization=False, phase_marginalization=False, calibration_marginalization=False, priors=None,
-        distance_marginalization_lookup_table=None, calibration_lookup_table={},
+        distance_marginalization_lookup_table=None, calibration_lookup_table=None,
         number_of_response_curves=1000, starting_index=0, jitter_time=True, reference_frame="sky",
         time_reference="geocenter"
     ):
@@ -956,6 +958,8 @@ class GravitationalWaveTransient(Likelihood):
             self.priors['geocent_time'].prob(self._times) * self._delta_tc
 
     def _setup_calibration_marginalization(self, calibration_lookup_table):
+        if calibration_lookup_table is None:
+            calibration_lookup_table = {}
         self.calibration_draws = {}
         self.calibration_abs_draws = {}
         self.calibration_parameter_draws = {}
@@ -1228,6 +1232,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         The ROQ scale factor used.
     priors: dict, bilby.prior.PriorDict
         A dictionary of priors containing at least the geocent_time prior
+        Warning: when using marginalisation the dict is overwritten which will change the
+        the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
     distance_marginalization_lookup_table: (dict, str), optional
         If a dict, dictionary containing the lookup_table, distance_array,
         (distance) prior_array, and reference_distance used to construct
