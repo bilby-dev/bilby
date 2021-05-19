@@ -375,7 +375,6 @@ class Dynesty(NestedSampler):
             dill.dump(out, file)
 
         self._generate_result(out)
-        self.calc_likelihood_count()
         self.result.sampling_time = self.sampling_time
 
         if self.plot:
@@ -385,7 +384,9 @@ class Dynesty(NestedSampler):
 
     def _generate_result(self, out):
         import dynesty
-        weights = np.exp(out['logwt'] - out['logz'][-1])
+        from scipy.special import logsumexp
+        logwts = out["logwt"]
+        weights = np.exp(logwts - out['logz'][-1])
         nested_samples = DataFrame(
             out.samples, columns=self.search_parameter_keys)
         nested_samples['weights'] = weights
@@ -398,6 +399,16 @@ class Dynesty(NestedSampler):
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
         self.result.information_gain = out.information[-1]
+        self.result.num_likelihood_evaluations = getattr(self.sampler, 'ncall', 0)
+
+        logneff = logsumexp(logwts) * 2 - logsumexp(logwts * 2)
+        neffsamples = int(np.exp(logneff))
+        self.result.meta_data["run_statistics"] = dict(
+            nlikelihood=self.result.num_likelihood_evaluations,
+            neffsamples=neffsamples,
+            sampling_time_s=self.sampling_time.seconds,
+            ncores=self.kwargs.get("queue_size", 1)
+        )
 
     def _run_nested_wrapper(self, kwargs):
         """ Wrapper function to run_nested
@@ -702,16 +713,6 @@ class Dynesty(NestedSampler):
 
         """
         return self.priors.rescale(self._search_parameter_keys, theta)
-
-    def calc_likelihood_count(self):
-        if self.likelihood_benchmark:
-            if hasattr(self, 'sampler'):
-                self.result.num_likelihood_evaluations = \
-                    getattr(self.sampler, 'ncall', 0)
-            else:
-                self.result.num_likelihood_evaluations = 0
-        else:
-            return None
 
 
 def sample_rwalk_bilby(args):
