@@ -983,38 +983,6 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
 
 
-class PropertyAccessor(object):
-    """
-    Generic descriptor class that allows handy access of properties without long
-    boilerplate code. The properties of Interferometer are defined as instances
-    of this class.
-
-    This avoids lengthy code like
-
-    .. code-block:: python
-
-        @property
-        def length(self):
-            return self.geometry.length
-
-        @length_setter
-        def length(self, length)
-            self.geometry.length = length
-
-    in the Interferometer class
-    """
-
-    def __init__(self, container_instance_name, property_name):
-        self.property_name = property_name
-        self.container_instance_name = container_instance_name
-
-    def __get__(self, instance, owner):
-        return getattr(getattr(instance, self.container_instance_name), self.property_name)
-
-    def __set__(self, instance, value):
-        setattr(getattr(instance, self.container_instance_name), self.property_name, value)
-
-
 def greenwich_mean_sidereal_time(time):
     from lal import GreenwichMeanSiderealTime
     time = float(time)
