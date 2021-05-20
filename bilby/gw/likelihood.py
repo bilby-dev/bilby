@@ -1625,7 +1625,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         inj_snr_sq = 0
         for ifo in self.interferometers:
-            inj_snr_sq += min(10, getattr(ifo.meta_data, 'optimal_SNR', 30))**2
+            inj_snr_sq += max(10, ifo.meta_data.get('optimal_SNR', 30))**2
 
         psd = ifo.power_spectral_density_array[ifo.frequency_mask]
         freq = ifo.frequency_array[ifo.frequency_mask]
