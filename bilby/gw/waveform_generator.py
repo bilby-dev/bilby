@@ -2,7 +2,7 @@ import numpy as np
 
 from ..core import utils
 from ..core.series import CoupledTimeAndFrequencySeries
-from .utils import PropertyAccessor
+from ..core.utils import PropertyAccessor
 from .conversion import convert_to_lal_binary_black_hole_parameters
 
 

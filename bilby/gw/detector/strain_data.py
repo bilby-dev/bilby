@@ -2,9 +2,8 @@ import numpy as np
 
 from ...core import utils
 from ...core.series import CoupledTimeAndFrequencySeries
-from ...core.utils import logger
+from ...core.utils import logger, PropertyAccessor
 from .. import utils as gwutils
-from ..utils import PropertyAccessor
 
 
 class InterferometerStrainData(object):

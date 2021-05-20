@@ -4,9 +4,8 @@ import sys
 import numpy as np
 
 from ...core import utils
-from ...core.utils import docstring, logger
+from ...core.utils import docstring, logger, PropertyAccessor
 from .. import utils as gwutils
-from ..utils import PropertyAccessor
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
