@@ -369,7 +369,6 @@ class UniformInComponentsMassRatio(Prior):
         return (self._integral(val) - self._integral(self.minimum)) / self.norm
 
     def rescale(self, val):
-        self.test_valid_for_rescaling(val)
         resc = self.icdf(val)
         if resc.ndim == 0:
             return resc.item()

@@ -202,23 +202,6 @@ class Prior(object):
         """
         return (val >= self.minimum) & (val <= self.maximum)
 
-    @staticmethod
-    def test_valid_for_rescaling(val):
-        """Test if 0 < val < 1
-
-        Parameters
-        ==========
-        val: Union[float, int, array_like]
-
-        Raises
-        =======
-        ValueError: If val is not between 0 and 1
-        """
-        valarray = np.atleast_1d(val)
-        tests = (valarray < 0) + (valarray > 1)
-        if np.any(tests):
-            raise ValueError("Number to be rescaled should be in [0, 1]")
-
     def __repr__(self):
         """Overrides the special method __repr__.
 
