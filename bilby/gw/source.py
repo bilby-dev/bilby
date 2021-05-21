@@ -387,8 +387,8 @@ def _base_lal_cbc_fd_waveform(
             else:
                 raise
 
-    h_plus = np.zeros_like(frequency_array, dtype=np.complex)
-    h_cross = np.zeros_like(frequency_array, dtype=np.complex)
+    h_plus = np.zeros_like(frequency_array, dtype=complex)
+    h_cross = np.zeros_like(frequency_array, dtype=complex)
 
     if len(hplus.data.data) > len(frequency_array):
         logger.debug("LALsim waveform longer than bilby's `frequency_array`" +

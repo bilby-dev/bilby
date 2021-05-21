@@ -553,10 +553,10 @@ class GravitationalWaveTransient(Likelihood):
         times = times[in_prior]
 
         n_time_steps = int(self.waveform_generator.duration * 16384)
-        d_inner_h = np.zeros(len(times), dtype=np.complex)
+        d_inner_h = np.zeros(len(times), dtype=complex)
         psd = np.ones(n_time_steps)
-        signal_long = np.zeros(n_time_steps, dtype=np.complex)
-        data = np.zeros(n_time_steps, dtype=np.complex)
+        signal_long = np.zeros(n_time_steps, dtype=complex)
+        data = np.zeros(n_time_steps, dtype=complex)
         h_inner_h = np.zeros(1)
         for ifo in self.interferometers:
             ifo_length = len(ifo.frequency_domain_strain)
@@ -1492,9 +1492,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             ifft = np.fft.ifft
         # Maximum delay time to geocentre + 5 steps
         earth_light_crossing_time = radius_of_earth / speed_of_light + 5 * time_space
-        start_idx = max(0, np.int(np.floor((self.priors['{}_time'.format(self.time_reference)].minimum -
+        start_idx = max(0, int(np.floor((self.priors['{}_time'.format(self.time_reference)].minimum -
                         earth_light_crossing_time - self.interferometers.start_time) / time_space)))
-        end_idx = min(number_of_time_samples - 1, np.int(np.ceil((
+        end_idx = min(number_of_time_samples - 1, int(np.ceil((
                       self.priors['{}_time'.format(self.time_reference)].maximum + earth_light_crossing_time -
                       self.interferometers.start_time) / time_space)))
         self.weights['time_samples'] = np.arange(start_idx, end_idx + 1) * time_space
@@ -1640,7 +1640,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         number_of_time_samples = max(
             self.interferometers.duration / delta_t,
             self.interferometers.frequency_array[-1] * self.interferometers.duration + 1)
-        number_of_time_samples = np.int(2**np.ceil(np.log2(number_of_time_samples)))
+        number_of_time_samples = int(2**np.ceil(np.log2(number_of_time_samples)))
         delta_t = self.interferometers.duration / number_of_time_samples
         logger.info("ROQ time-step = {}".format(delta_t))
         return delta_t

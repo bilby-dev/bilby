@@ -658,7 +658,7 @@ class InterferometerStrainData(object):
                                                                     start_time=start_time)
         logger.debug('Setting zero noise data')
         self._frequency_domain_strain = np.zeros_like(self.frequency_array,
-                                                      dtype=np.complex)
+                                                      dtype=complex)
 
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,

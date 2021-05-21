@@ -1438,7 +1438,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             elif isinstance(self.__dict__[key], (np.ndarray, list)):
                 thisarr = np.asarray(self.__dict__[key])
                 otherarr = np.asarray(other.__dict__[key])
-                if thisarr.dtype == np.float and otherarr.dtype == np.float:
+                if thisarr.dtype == float and otherarr.dtype == float:
                     fin1 = np.isfinite(np.asarray(self.__dict__[key]))
                     fin2 = np.isfinite(np.asarray(other.__dict__[key]))
                     if not np.array_equal(fin1, fin2):
