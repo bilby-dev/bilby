@@ -172,7 +172,7 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         # check sample(s) is within bounds
-        outbounds = np.ones(samp.shape[0], dtype=np.bool)
+        outbounds = np.ones(samp.shape[0], dtype=bool)
         for s, bound in zip(samp.T, self.bounds.values()):
             outbounds = (s < bound[0]) | (s > bound[1])
             if np.any(outbounds):
@@ -630,7 +630,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             elif isinstance(self.__dict__[key], (np.ndarray, list)):
                 thisarr = np.asarray(self.__dict__[key])
                 otherarr = np.asarray(other.__dict__[key])
-                if thisarr.dtype == np.float and otherarr.dtype == np.float:
+                if thisarr.dtype == float and otherarr.dtype == float:
                     fin1 = np.isfinite(np.asarray(self.__dict__[key]))
                     fin2 = np.isfinite(np.asarray(other.__dict__[key]))
                     if not np.array_equal(fin1, fin2):
