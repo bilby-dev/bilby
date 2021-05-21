@@ -40,7 +40,6 @@ class DeltaFunction(Prior):
         =======
         float: Rescaled probability, equivalent to peak
         """
-        self.test_valid_for_rescaling(val)
         return self.peak * val ** 0
 
     def prob(self, val):
@@ -105,7 +104,6 @@ class PowerLaw(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        self.test_valid_for_rescaling(val)
         if self.alpha == -1:
             return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
@@ -206,7 +204,6 @@ class Uniform(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        self.test_valid_for_rescaling(val)
         return self.minimum + val * (self.maximum - self.minimum)
 
     def prob(self, val):
@@ -314,7 +311,6 @@ class SymmetricLogUniform(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        self.test_valid_for_rescaling(val)
         if isinstance(val, (float, int)):
             if val < 0.5:
                 return -self.maximum * np.exp(-2 * val * np.log(self.maximum / self.minimum))
@@ -401,7 +397,6 @@ class Cosine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         norm = 1 / (np.sin(self.maximum) - np.sin(self.minimum))
         return np.arcsin(val / norm + np.sin(self.minimum))
 
@@ -456,7 +451,6 @@ class Sine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         norm = 1 / (np.cos(self.minimum) - np.cos(self.maximum))
         return np.arccos(np.cos(self.minimum) - val / norm)
 
@@ -515,7 +509,6 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
     def prob(self, val):
@@ -602,7 +595,6 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return erfinv(2 * val * self.normalisation + erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
@@ -695,7 +687,6 @@ class LogNormal(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return np.exp(self.mu + np.sqrt(2 * self.sigma ** 2) * erfinv(2 * val - 1))
 
     def prob(self, val):
@@ -790,7 +781,6 @@ class Exponential(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return -self.mu * log1p(-val)
 
     def prob(self, val):
@@ -887,7 +877,6 @@ class StudentT(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         if isinstance(val, (float, int)):
             if val == 0:
                 rescaled = -np.inf
@@ -977,7 +966,6 @@ class Beta(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return btdtri(self.alpha, self.beta, val) * (self.maximum - self.minimum) + self.minimum
 
     def prob(self, val):
@@ -1070,7 +1058,6 @@ class Logistic(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         if isinstance(val, (float, int)):
             if val == 0:
                 rescaled = -np.inf
@@ -1151,7 +1138,6 @@ class Cauchy(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         rescaled = self.alpha + self.beta * np.tan(np.pi * (val - 0.5))
         if isinstance(val, (float, int)):
             if val == 1:
@@ -1233,7 +1219,6 @@ class Gamma(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        self.test_valid_for_rescaling(val)
         return gammaincinv(self.k, val) * self.theta
 
     def prob(self, val):
@@ -1385,8 +1370,6 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        self.test_valid_for_rescaling(val)
-
         inv = (-np.exp(-1. * self.r) + (1. + np.exp(self.r)) ** -val +
                np.exp(-1. * self.r) * (1. + np.exp(self.r)) ** -val)
 

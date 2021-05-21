@@ -710,7 +710,6 @@ class JointPrior(Prior):
             A sample from the prior paramter.
         """
 
-        self.test_valid_for_rescaling(val)
         self.dist.rescale_parameters[self.name] = val
 
         if self.dist.filled_rescale():

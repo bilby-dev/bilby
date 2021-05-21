@@ -239,11 +239,6 @@ class TestPriorClasses(unittest.TestCase):
                 all((many_samples >= prior.minimum) & (many_samples <= prior.maximum))
             )
 
-    def test_out_of_bounds_rescaling(self):
-        """Test the the rescaling works as expected."""
-        for prior in self.priors:
-            self.assertRaises(ValueError, lambda: prior.rescale(-1))
-
     def test_least_recently_sampled(self):
         for prior in self.priors:
             least_recently_sampled_expected = prior.sample()
