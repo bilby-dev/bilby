@@ -98,6 +98,27 @@ class TestSampler(unittest.TestCase):
         self.sampler.run_sampler()
         self.assertDictEqual(sampler_copy.__dict__, self.sampler.__dict__)
 
+    def test_bad_value_nan(self):
+        self.sampler._check_bad_value(val=np.nan, warning=False, theta=None, label=None)
+
+    def test_bad_value_np_abs_nan(self):
+        self.sampler._check_bad_value(val=np.abs(np.nan), warning=False, theta=None, label=None)
+
+    def test_bad_value_abs_nan(self):
+        self.sampler._check_bad_value(val=abs(np.nan), warning=False, theta=None, label=None)
+
+    def test_bad_value_pos_inf(self):
+        self.sampler._check_bad_value(val=np.inf, warning=False, theta=None, label=None)
+
+    def test_bad_value_neg_inf(self):
+        self.sampler._check_bad_value(val=-np.inf, warning=False, theta=None, label=None)
+
+    def test_bad_value_pos_inf_nan_to_num(self):
+        self.sampler._check_bad_value(val=np.nan_to_num(np.inf), warning=False, theta=None, label=None)
+
+    def test_bad_value_neg_inf_nan_to_num(self):
+        self.sampler._check_bad_value(val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None)
+
 
 if __name__ == "__main__":
     unittest.main()

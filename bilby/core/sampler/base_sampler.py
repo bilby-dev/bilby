@@ -446,6 +446,8 @@ class Sampler(object):
         ==========
         theta: array_like
             Parameter values at which to evaluate likelihood
+        warning: bool
+            Whether or not to print a warning
 
         Returns
         =======
@@ -453,14 +455,19 @@ class Sampler(object):
             True if the likelihood and prior are finite, false otherwise
 
         """
-        bad_values = [np.inf, np.nan_to_num(np.inf), np.nan]
-        if abs(self.log_prior(theta)) in bad_values:
+        log_p = self.log_prior(theta)
+        log_l = self.log_likelihood(theta)
+        return \
+            self._check_bad_value(val=log_p, warning=warning, theta=theta, label='prior') and \
+            self._check_bad_value(val=log_l, warning=warning, theta=theta, label='likelihood')
+
+    @staticmethod
+    def _check_bad_value(val, warning, theta, label):
+        val = np.abs(val)
+        bad_values = [np.inf, np.nan_to_num(np.inf)]
+        if val in bad_values or np.isnan(val):
             if warning:
-                logger.warning('Prior draw {} has inf prior'.format(theta))
-            return False
-        if abs(self.log_likelihood(theta)) in bad_values:
-            if warning:
-                logger.warning('Prior draw {} has inf likelihood'.format(theta))
+                logger.warning(f'Prior draw {theta} has inf {label}')
             return False
         return True
 
