@@ -198,7 +198,10 @@ class UnsortedInterp2d(interp2d):
         else:
             output = np.empty_like(x)
             output[bad] = self.fill_value
-            output[~bad], ier = bispeu(*self.tck, x[~bad], y[~bad])
+            if np.any(~bad):
+                output[~bad], ier = bispeu(*self.tck, x[~bad], y[~bad])
+            else:
+                ier = 0
         if ier == 10:
             raise ValueError("Invalid input data")
         elif ier:
