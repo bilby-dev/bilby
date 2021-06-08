@@ -263,7 +263,6 @@ class GravitationalWaveTransient(Likelihood):
         if self.time_marginalization and self.calibration_marginalization:
 
             d_inner_h_integrand = np.tile(
-                4. / self.waveform_generator.duration *
                 interferometer.frequency_domain_strain.conjugate() * signal /
                 interferometer.power_spectral_density_array, (self.number_of_response_curves, 1)).T
 
