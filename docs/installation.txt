@@ -10,7 +10,7 @@ Installation
 
           $ conda install -c conda-forge bilby
 
-      Supported python versions: 3.5+.
+      Supported python versions: 3.6+.
 
    .. tab:: Pip
 
@@ -18,7 +18,7 @@ Installation
 
           $ pip install bilby
 
-      Supported python versions: 3.5+.
+      Supported python versions: 3.6+.
 
 
 This will install all requirements for running :code:`bilby` for general
