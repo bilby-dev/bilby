@@ -5,11 +5,11 @@ import subprocess
 import sys
 import os
 
-# check that python version is 3.5 or above
+# check that python version is 3.6 or above
 python_version = sys.version_info
-if python_version < (3, 5):
-    sys.exit("Python < 3.5 is not supported, aborting setup")
-print("Confirmed Python version {}.{}.{} >= 3.5.0".format(*python_version[:3]))
+if python_version < (3, 6):
+    sys.exit("Python < 3.6 is not supported, aborting setup")
+print("Confirmed Python version {}.{}.{} >= 3.6.0".format(*python_version[:3]))
 
 
 def write_version_file(version):
@@ -91,7 +91,7 @@ setup(name='bilby',
                     'bilby.gw.detector': ['noise_curves/*.txt', 'detectors/*'],
                     'bilby.gw.eos': ['eos_tables/*.dat'],
                     'bilby': [version_file]},
-      python_requires='>=3.5',
+      python_requires='>=3.6',
       install_requires=get_requirements(),
       entry_points={'console_scripts':
                     ['bilby_plot=cli_bilby.plot_multiple_posteriors:main',
