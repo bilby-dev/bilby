@@ -5,7 +5,6 @@ from .networks import *
 from .psd import *
 from .strain_data import *
 
-
 def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
     """ Calculate the safe signal duration, given the parameters
 
@@ -32,7 +31,7 @@ def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
 
 
 def inject_signal_into_gwpy_timeseries(
-        data, waveform_generator, parameters, det, outdir=None, label=None):
+        data, waveform_generator, parameters, det, power_spectral_density=None, outdir=None, label=None):
     """ Inject a signal into a gwpy timeseries
 
     Parameters
@@ -43,8 +42,10 @@ def inject_signal_into_gwpy_timeseries(
         An initialised waveform_generator
     parameters: dict
         A dictionary of the signal-parameters to inject
-    ifo: bilby.gw.detector.Interferometer
+    det: bilby.gw.detector.Interferometer
         The interferometer for which the data refers too
+    power_spectral_density: bilby.gw.detector.PowerSpectralDensity
+        Power spectral density determining the sensitivity of the detector.
     outdir, label: str
         If given, the outdir and label used to generate a plot
 
@@ -56,7 +57,19 @@ def inject_signal_into_gwpy_timeseries(
         A dictionary of meta data about the injection
 
     """
+    from gwpy.timeseries import TimeSeries
+    from gwpy.plot import Plot
+
     ifo = get_empty_interferometer(det)
+
+    if isinstance(power_spectral_density, PowerSpectralDensity):
+        ifo.power_spectral_density = power_spectral_density
+    elif power_spectral_density is not None:
+        raise TypeError(
+            "Input power_spectral_density should be bilby.gw.detector.psd.PowerSpectralDensity "
+            "object or None, received {}.".format(type(power_spectral_density))
+        )
+
     ifo.strain_data.set_from_gwpy_timeseries(data)
 
     parameters_check, _ = convert_to_lal_binary_black_hole_parameters(parameters)
@@ -83,13 +96,13 @@ def inject_signal_into_gwpy_timeseries(
     dt = parameters['geocent_time'] + time_shift - data.times[0].value
     n_roll = dt * data.sample_rate.value
     n_roll = int(np.round(n_roll))
-    signal_shifted = gwpy.timeseries.TimeSeries(
+    signal_shifted = TimeSeries(
         data=np.roll(signal, n_roll), times=data.times, unit=data.unit)
 
     signal_and_data = data.inject(signal_shifted)
 
     if outdir is not None and label is not None:
-        fig = gwpy.plot.Plot(signal_shifted)
+        fig = Plot(signal_shifted)
         fig.savefig('{}/{}_{}_time_domain_injected_signal'.format(
             outdir, ifo.name, label))
 

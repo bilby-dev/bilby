@@ -30,6 +30,7 @@ Isobel Marguarethe Romero-Shaw
 Jade Powell
 James A Clark
 John Veitch
+Joshua Brandt
 Katerina Chatziioannou
 Kaylee de Soto
 Khun Sang Phukon
