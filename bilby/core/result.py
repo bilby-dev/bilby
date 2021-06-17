@@ -22,7 +22,7 @@ from .utils import (
     recursively_load_dict_contents_from_group,
     recursively_decode_bilby_json,
 )
-from .prior import Prior, PriorDict, DeltaFunction
+from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -1399,7 +1399,8 @@ class Result(object):
         if priors is None:
             return posterior
         for key in priors:
-            if isinstance(priors[key], DeltaFunction):
+            if isinstance(priors[key], DeltaFunction) and \
+                    not isinstance(priors[key], ConditionalDeltaFunction):
                 posterior[key] = priors[key].peak
             elif isinstance(priors[key], float):
                 posterior[key] = priors[key]
