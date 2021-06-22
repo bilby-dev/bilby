@@ -1776,7 +1776,7 @@ class ResultList(list):
         # check which kind of sampler was used: MCMC or Nested Sampling
         if result._nested_samples is not None:
             posteriors, result = self._combine_nested_sampled_runs(result)
-        elif result.sampler in ["bilbymcmc"]:
+        elif result.sampler in ["bilby_mcmc", "bilbymcmc"]:
             posteriors, result = self._combine_mcmc_sampled_runs(result)
         else:
             posteriors = [res.posterior for res in self]

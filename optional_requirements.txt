@@ -5,3 +5,5 @@ theano
 plotly
 tables
 pyfftw
+scikit-learn
+nflows
