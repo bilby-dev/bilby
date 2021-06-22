@@ -668,6 +668,10 @@ class SamplerError(Error):
     """ Base class for Error related to samplers in this module """
 
 
+class ResumeError(Error):
+    """ Class for errors arising from resuming runs """
+
+
 class SamplerNotInstalledError(SamplerError):
     """ Base class for Error raised by not installed samplers """
 

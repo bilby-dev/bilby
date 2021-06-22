@@ -29,6 +29,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         from ..prior import MultivariateGaussianDist, Prior, PriorDict
         from ...gw.prior import HealPixMapPriorDist
+        from ...bilby_mcmc.proposals import ProposalCycle
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):
@@ -39,6 +40,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {'__prior__': True, '__module__': obj.__module__,
                     '__name__': obj.__class__.__name__,
                     'kwargs': dict(obj.get_instantiation_dict())}
+        if isinstance(obj, ProposalCycle):
+            return str(obj)
         try:
             from astropy import cosmology as cosmo, units
             if isinstance(obj, cosmo.FLRW):

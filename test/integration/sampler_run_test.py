@@ -23,7 +23,7 @@ class TestRunningSamplers(unittest.TestCase):
         )
 
         self.priors = bilby.core.prior.PriorDict()
-        self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="reflective")
+        self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")
         self.priors["c"] = bilby.core.prior.Uniform(-2, 2, boundary="reflective")
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
 
@@ -187,6 +187,13 @@ class TestRunningSamplers(unittest.TestCase):
         _ = bilby.run_sampler(
             likelihood=self.likelihood, priors=self.priors,
             sampler='ultranest', save=False,
+        )
+
+    def test_run_bilby_mcmc(self):
+        _ = bilby.run_sampler(
+            likelihood=self.likelihood, priors=self.priors,
+            sampler="bilby_mcmc", nsamples=200, save=False,
+            printdt=1,
         )
 
 
