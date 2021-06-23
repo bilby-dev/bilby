@@ -143,7 +143,7 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
 
 def logtrapzexp(lnf, dx):
     """
-    Perform trapezium rule integration for the logarithm of a function on a regular grid.
+    Perform trapezium rule integration for the logarithm of a function on a grid.
 
     Parameters
     ==========
@@ -157,7 +157,21 @@ def logtrapzexp(lnf, dx):
     =======
     The natural logarithm of the area under the function.
     """
-    return np.log(dx / 2.) + logsumexp([logsumexp(lnf[:-1]), logsumexp(lnf[1:])])
+    
+    lnfdx1 = lnf[:-1]
+    lnfdx2 = lnf[1:]
+    if isinstance(dx, (int, float)):
+        C = np.log(dx / 2.)
+    else:
+        if len(dx) != len(lnf) - 1:
+            raise ValueError("Step size array must have length one less than the function length")
+
+        lndx = np.log(dx)
+        lnfdx1 = lnfdx1.copy() + lndx
+        lnfdx2 = lnfdx2.copy() + lndx        
+        C = -np.log(2.0)
+
+    return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
 
 
 class UnsortedInterp2d(interp2d):
