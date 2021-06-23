@@ -191,8 +191,10 @@ class Grid(object):
         places = self.sample_points[name]
 
         if len(places) > 1:
+            dx = np.diff(places)
             out = np.apply_along_axis(
-                logtrapzexp, axis, log_array, places[1] - places[0])
+                logtrapzexp, axis, log_array, dx
+            )
         else:
             # no marginalisation required, just remove the singleton dimension
             z = log_array.shape
