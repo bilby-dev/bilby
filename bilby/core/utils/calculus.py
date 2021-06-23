@@ -162,7 +162,7 @@ def logtrapzexp(lnf, dx):
     lnfdx2 = lnf[1:]
     if isinstance(dx, (int, float)):
         C = np.log(dx / 2.)
-    else:
+    elif isinstance(dx, (list, np.ndarray)):
         if len(dx) != len(lnf) - 1:
             raise ValueError("Step size array must have length one less than the function length")
 
@@ -170,6 +170,8 @@ def logtrapzexp(lnf, dx):
         lnfdx1 = lnfdx1.copy() + lndx
         lnfdx2 = lnfdx2.copy() + lndx        
         C = -np.log(2.0)
+    else:
+        raise TypeError("Step size must be a single value or array-like")
 
     return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
 
