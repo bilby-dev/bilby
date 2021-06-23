@@ -270,6 +270,7 @@ class TestLatexPlotFormat(unittest.TestCase):
             fig, ax = plt.subplots()
             ax.plot(self.x, self.y)
             fig.savefig(self.filename)
+
         plot()
         self.assertTrue(os.path.isfile(self.filename))
 
@@ -279,6 +280,7 @@ class TestLatexPlotFormat(unittest.TestCase):
             fig, ax = plt.subplots()
             ax.plot(self.x, self.y)
             fig.savefig(self.filename)
+
         plot(BILBY_MATHDEFAULT=1)
         self.assertTrue(os.path.isfile(self.filename))
 
@@ -288,6 +290,7 @@ class TestLatexPlotFormat(unittest.TestCase):
             fig, ax = plt.subplots()
             ax.plot(self.x, self.y)
             fig.savefig(self.filename)
+
         plot(BILBY_MATHDEFAULT=0)
         self.assertTrue(os.path.isfile(self.filename))
 
@@ -313,14 +316,11 @@ class TestLatexPlotFormat(unittest.TestCase):
 
 
 class TestUnsortedInterp2d(unittest.TestCase):
-
     def setUp(self):
         self.xx = np.linspace(0, 1, 10)
         self.yy = np.linspace(0, 1, 10)
         self.zz = np.random.random((10, 10))
-        self.interpolant = bilby.core.utils.UnsortedInterp2d(
-            self.xx, self.yy, self.zz
-        )
+        self.interpolant = bilby.core.utils.UnsortedInterp2d(self.xx, self.yy, self.zz)
 
     def tearDown(self):
         pass
@@ -333,22 +333,15 @@ class TestUnsortedInterp2d(unittest.TestCase):
         self.assertIsNone(self.interpolant(-0.5, 0.5))
 
     def test_returns_float_for_float_and_array(self):
+        self.assertIsInstance(self.interpolant(0.5, np.random.random(10)), np.ndarray)
+        self.assertIsInstance(self.interpolant(np.random.random(10), 0.5), np.ndarray)
         self.assertIsInstance(
-            self.interpolant(0.5, np.random.random(10)), np.ndarray
-        )
-        self.assertIsInstance(
-            self.interpolant(np.random.random(10), 0.5), np.ndarray
-        )
-        self.assertIsInstance(
-            self.interpolant(np.random.random(10), np.random.random(10)),
-            np.ndarray
+            self.interpolant(np.random.random(10), np.random.random(10)), np.ndarray
         )
 
     def test_raises_for_mismatched_arrays(self):
         with self.assertRaises(ValueError):
-            self.interpolant(
-                np.random.random(10), np.random.random(20)
-            )
+            self.interpolant(np.random.random(10), np.random.random(20))
 
     def test_returns_fill_in_correct_place(self):
         x_data = np.random.random(10)
@@ -364,11 +357,11 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
         self.dx = self.dxs[0]
         with np.errstate(divide="ignore"):
             self.lnfunc1 = np.log(self.x)
-        self.func1int = (self.x[-1] ** 2 - self.x[0] ** 2) / 2 
+        self.func1int = (self.x[-1] ** 2 - self.x[0] ** 2) / 2
         with np.errstate(divide="ignore"):
             self.lnfunc2 = np.log(self.x ** 2)
         self.func2int = (self.x[-1] ** 3 - self.x[0] ** 3) / 3
-        
+
         self.irregularx = np.array(
             [
                 self.x[0],
@@ -397,7 +390,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
 
     def test_inconsistent_step_length(self):
         with self.assertRaises(ValueError):
-            utils.logtrapzexp(self.lnfunc1, self.x[0:len(self.x) // 2])
+            utils.logtrapzexp(self.lnfunc1, self.x[0 : len(self.x) // 2])
 
     def test_integral_func1(self):
         res1 = utils.logtrapzexp(self.lnfunc1, self.dx)
@@ -405,7 +398,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
 
         self.assertTrue(np.abs(res1 - res2) < 1e-12)
         self.assertTrue(np.abs((np.exp(res1) - self.func1int) / self.func1int) < 1e-12)
-        
+
     def test_integral_func2(self):
         res = utils.logtrapzexp(self.lnfunc2, self.dxs)
         self.assertTrue(np.abs((np.exp(res) - self.func2int) / self.func2int) < 1e-4)

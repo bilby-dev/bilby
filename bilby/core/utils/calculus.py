@@ -6,8 +6,16 @@ from scipy.special import logsumexp
 from .logger import logger
 
 
-def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
-                epsscale=0.5, nonfixedidx=None):
+def derivatives(
+    vals,
+    func,
+    releps=1e-3,
+    abseps=None,
+    mineps=1e-9,
+    reltol=1e-3,
+    epsscale=0.5,
+    nonfixedidx=None,
+):
     """
     Calculate the partial derivatives of a function at a set of values. The
     derivatives are calculated using the central difference, using an iterative
@@ -54,19 +62,19 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
     grads = np.zeros(len(nonfixedidx))
 
     # maximum number of times the gradient can change sign
-    flipflopmax = 10.
+    flipflopmax = 10.0
 
     # set steps
     if abseps is None:
         if isinstance(releps, float):
             eps = np.abs(vals) * releps
-            eps[eps == 0.] = releps  # if any values are zero set eps to releps
+            eps[eps == 0.0] = releps  # if any values are zero set eps to releps
             teps = releps * np.ones(len(vals))
         elif isinstance(releps, (list, np.ndarray)):
             if len(releps) != len(vals):
                 raise ValueError("Problem with input relative step sizes")
             eps = np.multiply(np.abs(vals), releps)
-            eps[eps == 0.] = np.array(releps)[eps == 0.]
+            eps[eps == 0.0] = np.array(releps)[eps == 0.0]
             teps = releps
         else:
             raise RuntimeError("Relative step sizes are not a recognised type!")
@@ -107,8 +115,10 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
             cureps *= epsscale
             if cureps < mineps or flipflop > flipflopmax:
                 # if no convergence set flat derivative (TODO: check if there is a better thing to do instead)
-                logger.warning("Derivative calculation did not converge: setting flat derivative.")
-                grads[count] = 0.
+                logger.warning(
+                    "Derivative calculation did not converge: setting flat derivative."
+                )
+                grads[count] = 0.0
                 break
             leps *= epsscale
 
@@ -122,10 +132,10 @@ def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,
                 break
 
             # check whether previous diff and current diff are the same within reltol
-            rat = (cdiff / cdiffnew)
-            if np.isfinite(rat) and rat > 0.:
+            rat = cdiff / cdiffnew
+            if np.isfinite(rat) and rat > 0.0:
                 # gradient has not changed sign
-                if np.abs(1. - rat) < reltol:
+                if np.abs(1.0 - rat) < reltol:
                     grads[count] = cdiffnew
                     break
                 else:
@@ -157,18 +167,20 @@ def logtrapzexp(lnf, dx):
     =======
     The natural logarithm of the area under the function.
     """
-    
+
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
     if isinstance(dx, (int, float)):
-        C = np.log(dx / 2.)
+        C = np.log(dx / 2.0)
     elif isinstance(dx, (list, np.ndarray)):
         if len(dx) != len(lnf) - 1:
-            raise ValueError("Step size array must have length one less than the function length")
+            raise ValueError(
+                "Step size array must have length one less than the function length"
+            )
 
         lndx = np.log(dx)
         lnfdx1 = lnfdx1.copy() + lndx
-        lnfdx2 = lnfdx2.copy() + lndx        
+        lnfdx2 = lnfdx2.copy() + lndx
         C = -np.log(2.0)
     else:
         raise TypeError("Step size must be a single value or array-like")
@@ -177,9 +189,8 @@ def logtrapzexp(lnf, dx):
 
 
 class UnsortedInterp2d(interp2d):
-
     def __call__(self, x, y, dx=0, dy=0, assume_sorted=False):
-        """  Modified version of the interp2d call method.
+        """Modified version of the interp2d call method.
 
         This avoids the outer product that is done when two numpy
         arrays are passed.
@@ -200,6 +211,7 @@ class UnsortedInterp2d(interp2d):
 
         """
         from scipy.interpolate.dfitpack import bispeu
+
         x, y = self._sanitize_inputs(x, y)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
@@ -232,9 +244,7 @@ class UnsortedInterp2d(interp2d):
             y = float(y)
         if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
             if x.shape != y.shape:
-                raise ValueError(
-                    "UnsortedInterp2d received unequally shaped arrays"
-                )
+                raise ValueError("UnsortedInterp2d received unequally shaped arrays")
         elif isinstance(x, np.ndarray) and not isinstance(y, np.ndarray):
             y = y * np.ones_like(x)
         elif not isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
