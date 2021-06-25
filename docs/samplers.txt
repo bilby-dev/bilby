@@ -60,7 +60,7 @@ Nested Samplers
 - PyPolyChord :code:`bilby.core.sampler.polychord.PyPolyChord`
 - UltraNest :code:`bilby.core.sampler.ultranest.Ultranest`
 - DNest4 :code:`bilby.core.sampler.dnest4.DNest4`
-- Nessai: code:`bilby.core.sampler.nessai.Nessai`
+- Nessai :code:`bilby.core.sampler.nessai.Nessai`
 
 -------------
 MCMC samplers
