@@ -4,6 +4,7 @@ from math import fmod
 
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.special import i0e
 
 from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
@@ -987,3 +988,21 @@ def greenwich_mean_sidereal_time(time):
     from lal import GreenwichMeanSiderealTime
     time = float(time)
     return GreenwichMeanSiderealTime(time)
+
+
+def ln_i0(value):
+    """
+    A numerically stable method to evaluate ln(I_0) a modified Bessel function
+    of order 0 used in the phase-marginalized likelihood.
+
+    Parameters
+    ==========
+    value: array-like
+        Value(s) at which to evaluate the function
+
+    Returns
+    =======
+    array-like:
+        The natural logarithm of the bessel function
+    """
+    return np.log(i0e(value)) + value
