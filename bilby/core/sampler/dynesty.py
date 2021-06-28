@@ -13,6 +13,7 @@ from ..utils import (
     check_directory_exists_and_if_not_mkdir,
     reflect,
     safe_file_dump,
+    latex_plot_format,
 )
 from .base_sampler import Sampler, NestedSampler
 from ..result import rejection_sample
@@ -654,11 +655,7 @@ class Dynesty(NestedSampler):
                 plt.close('all')
             try:
                 filename = "{}/{}_checkpoint_stats.png".format(self.outdir, self.label)
-                fig, axs = plt.subplots(nrows=3, sharex=True)
-                for ax, name in zip(axs, ["boundidx", "nc", "scale"]):
-                    ax.plot(getattr(self.sampler, "saved_{}".format(name)), color="C0")
-                    ax.set_ylabel(name)
-                axs[-1].set_xlabel("iteration")
+                fig, axs = dynesty_stats_plot(self.sampler)
                 fig.tight_layout()
                 plt.savefig(filename)
             except (RuntimeError, ValueError) as e:
@@ -865,6 +862,73 @@ def estimate_nmcmc(accept_ratio, old_act, maxmcmc, safety=5, tau=None):
         )
         Nmcmc_exact = float(min(Nmcmc_exact, maxmcmc))
     return max(safety, int(Nmcmc_exact))
+
+
+@latex_plot_format
+def dynesty_stats_plot(sampler):
+    """
+    Plot diagnostic statistics from a dynesty run
+
+    The plotted quantities per iteration are:
+    - nc: the number of likelihood calls
+    - scale: the scale applied to the MCMC steps
+    - lifetime: the number of iterations a point stays in the live set
+
+    There is also a histogram of the lifetime compared with the theoretical
+    distribution. To avoid edge effects, we discard the first 6 * nlive
+
+    Parameters
+    ----------
+    sampler
+
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure.Figure
+        Figure handle for the new plot
+    axs: matplotlib.pyplot.axes.Axes
+        Axes handles for the new plot
+
+    """
+    import matplotlib.pyplot as plt
+    from scipy.stats import geom, ks_1samp
+
+    fig, axs = plt.subplots(nrows=4, figsize=(8, 8))
+    for ax, name in zip(axs, ["nc", "scale"]):
+        ax.plot(getattr(sampler, "saved_{}".format(name)), color="blue")
+        ax.set_ylabel(name.title())
+    lifetimes = np.arange(len(sampler.saved_it)) - sampler.saved_it
+    axs[-2].set_ylabel("Lifetime")
+    nlive = sampler.nlive
+    burn = int(geom(p=1 / nlive).isf(1 / 2 / nlive))
+    if len(sampler.saved_it) > burn + sampler.nlive:
+        axs[-2].plot(np.arange(0, burn), lifetimes[:burn], color="grey")
+        axs[-2].plot(np.arange(burn, len(lifetimes) - nlive), lifetimes[burn: -nlive], color="blue")
+        axs[-2].plot(np.arange(len(lifetimes) - nlive, len(lifetimes)), lifetimes[-nlive:], color="red")
+        lifetimes = lifetimes[burn: -nlive]
+        ks_result = ks_1samp(lifetimes, geom(p=1 / nlive).cdf)
+        axs[-1].hist(
+            lifetimes,
+            bins=np.linspace(0, 6 * nlive, 60),
+            histtype="step",
+            density=True,
+            color="blue",
+            label=f"p value = {ks_result.pvalue:.3f}"
+        )
+        axs[-1].plot(
+            np.arange(1, 6 * nlive),
+            geom(p=1 / nlive).pmf(np.arange(1, 6 * nlive)),
+            color="red"
+        )
+        axs[-1].set_xlim(0, 6 * nlive)
+        axs[-1].legend()
+        axs[-1].set_yscale("log")
+    else:
+        axs[-2].plot(np.arange(0, len(lifetimes) - nlive), lifetimes[:-nlive], color="grey")
+        axs[-2].plot(np.arange(len(lifetimes) - nlive, len(lifetimes)), lifetimes[-nlive:], color="red")
+    axs[-2].set_yscale("log")
+    axs[-2].set_xlabel("Iteration")
+    axs[-1].set_xlabel("Lifetime")
+    return fig, axs
 
 
 class DynestySetupError(Exception):
