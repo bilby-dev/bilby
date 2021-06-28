@@ -1360,9 +1360,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             'i,ji->j', np.conjugate(h_plus_linear + h_cross_linear),
             self.weights[interferometer.name + '_linear'][indices])
 
-        d_inner_h = interp1d(
-            self.weights['time_samples'][indices],
-            d_inner_h_tc_array, kind='cubic', assume_sorted=True)(ifo_time)
+        d_inner_h = self._interp_five_samples(
+            self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
 
         optimal_snr_squared = \
             np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,
@@ -1398,10 +1397,38 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         in_bounds: bool
             Whether the indices are for valid times
         """
-        closest = np.argmin(abs(samples - time))
+        closest = int((time - samples[0]) / (samples[1] - samples[0]))
         indices = [closest + ii for ii in [-2, -1, 0, 1, 2]]
         in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
         return indices, in_bounds
+
+    @staticmethod
+    def _interp_five_samples(time_samples, values, time):
+        """
+        Interpolate a function of time with its values at the closest five times.
+        The algorithm is explained in https://dcc.ligo.org/T2100224.
+
+        Parameters
+        ==========
+        time_samples: array-like
+            Closest 5 times
+        values: array-like
+            The values of the function at closest 5 times
+        time: float
+            Time at which the function is calculated
+
+        Returns
+        =======
+        value: float
+            The value of the function at the input time
+        """
+        r1 = (-values[0] + 8. * values[1] - 14. * values[2] + 8. * values[3] - values[4]) / 4.
+        r2 = values[2] - 2. * values[3] + values[4]
+        a = (time_samples[3] - time) / (time_samples[1] - time_samples[0])
+        b = 1. - a
+        c = (a**3. - a) / 6.
+        d = (b**3. - b) / 6.
+        return a * values[2] + b * values[3] + c * r1 + d * r2
 
     def perform_roq_params_check(self, ifo=None):
         """ Perform checking that the prior and data are valid for the ROQ
