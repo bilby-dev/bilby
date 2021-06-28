@@ -298,6 +298,20 @@ class TestPriorDict(unittest.TestCase):
             ),
         )
 
+    def test_cdf(self):
+        """
+        Test that the CDF method is the inverse of the rescale method.
+
+        Note that the format of inputs/outputs is different between the two methods.
+        """
+        sample = self.prior_set_from_dict.sample()
+        self.assertEqual(
+            self.prior_set_from_dict.rescale(
+                sample.keys(),
+                self.prior_set_from_dict.cdf(sample=sample).values()
+            ), list(sample.values())
+        )
+
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))

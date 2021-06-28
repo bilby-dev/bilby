@@ -1,6 +1,7 @@
 import unittest
 
 import mock
+import numpy as np
 
 import bilby
 
@@ -170,13 +171,13 @@ class TestConditionalPrior(unittest.TestCase):
 class TestConditionalPriorDict(unittest.TestCase):
     def setUp(self):
         def condition_func_1(reference_parameters, var_0):
-            return reference_parameters
+            return dict(minimum=reference_parameters["minimum"], maximum=var_0)
 
         def condition_func_2(reference_parameters, var_0, var_1):
-            return reference_parameters
+            return dict(minimum=reference_parameters["minimum"], maximum=var_1)
 
         def condition_func_3(reference_parameters, var_1, var_2):
-            return reference_parameters
+            return dict(minimum=reference_parameters["minimum"], maximum=var_2)
 
         self.minimum = 0
         self.maximum = 1
@@ -203,7 +204,8 @@ class TestConditionalPriorDict(unittest.TestCase):
         self.conditional_priors_manually_set_items = (
             bilby.core.prior.ConditionalPriorDict()
         )
-        self.test_sample = dict(var_0=0.3, var_1=0.4, var_2=0.5, var_3=0.4)
+        self.test_sample = dict(var_0=0.7, var_1=0.6, var_2=0.5, var_3=0.4)
+        self.test_value = 1 / np.prod([self.test_sample[f"var_{ii}"] for ii in range(3)])
         for key, value in dict(
             var_0=self.prior_0,
             var_1=self.prior_1,
@@ -254,7 +256,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         )
 
     def test_prob(self):
-        self.assertEqual(1, self.conditional_priors.prob(sample=self.test_sample))
+        self.assertEqual(self.test_value, self.conditional_priors.prob(sample=self.test_sample))
 
     def test_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
@@ -262,7 +264,7 @@ class TestConditionalPriorDict(unittest.TestCase):
             self.conditional_priors.prob(sample=self.test_sample)
 
     def test_ln_prob(self):
-        self.assertEqual(0, self.conditional_priors.ln_prob(sample=self.test_sample))
+        self.assertEqual(np.log(self.test_value), self.conditional_priors.ln_prob(sample=self.test_sample))
 
     def test_ln_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
@@ -273,7 +275,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         with mock.patch("numpy.random.uniform") as m:
             m.return_value = 0.5
             self.assertDictEqual(
-                dict(var_0=0.5, var_1=0.5, var_2=0.5, var_3=0.5),
+                dict(var_0=0.5, var_1=0.5 ** 2, var_2=0.5 ** 3, var_3=0.5 ** 4),
                 self.conditional_priors.sample_subset(
                     keys=["var_0", "var_1", "var_2", "var_3"]
                 ),
@@ -301,31 +303,6 @@ class TestConditionalPriorDict(unittest.TestCase):
         print(priors.sample(2))
 
     def test_rescale(self):
-        def condition_func_1_rescale(reference_parameters, var_0):
-            if var_0 == 0.5:
-                return dict(minimum=reference_parameters["minimum"], maximum=1)
-            return reference_parameters
-
-        def condition_func_2_rescale(reference_parameters, var_0, var_1):
-            if var_0 == 0.5 and var_1 == 0.5:
-                return dict(minimum=reference_parameters["minimum"], maximum=1)
-            return reference_parameters
-
-        def condition_func_3_rescale(reference_parameters, var_1, var_2):
-            if var_1 == 0.5 and var_2 == 0.5:
-                return dict(minimum=reference_parameters["minimum"], maximum=1)
-            return reference_parameters
-
-        self.prior_0 = bilby.core.prior.Uniform(minimum=self.minimum, maximum=1)
-        self.prior_1 = bilby.core.prior.ConditionalUniform(
-            condition_func=condition_func_1_rescale, minimum=self.minimum, maximum=2
-        )
-        self.prior_2 = bilby.core.prior.ConditionalUniform(
-            condition_func=condition_func_2_rescale, minimum=self.minimum, maximum=2
-        )
-        self.prior_3 = bilby.core.prior.ConditionalUniform(
-            condition_func=condition_func_3_rescale, minimum=self.minimum, maximum=2
-        )
         self.conditional_priors = bilby.core.prior.ConditionalPriorDict(
             dict(
                 var_3=self.prior_3,
@@ -334,11 +311,28 @@ class TestConditionalPriorDict(unittest.TestCase):
                 var_1=self.prior_1,
             )
         )
-        ref_variables = [0.5, 0.5, 0.5, 0.5]
+        ref_variables = self.test_sample.values()
         res = self.conditional_priors.rescale(
-            keys=list(self.test_sample.keys()), theta=ref_variables
+            keys=self.test_sample.keys(), theta=ref_variables
         )
-        self.assertListEqual(ref_variables, res)
+        expected = [self.test_sample["var_0"]]
+        for ii in range(1, 4):
+            expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
+        self.assertListEqual(expected, res)
+
+    def test_cdf(self):
+        """
+        Test that the CDF method is the inverse of the rescale method.
+
+        Note that the format of inputs/outputs is different between the two methods.
+        """
+        sample = self.conditional_priors.sample()
+        self.assertEqual(
+            self.conditional_priors.rescale(
+                sample.keys(),
+                self.conditional_priors.cdf(sample=sample).values()
+            ), list(sample.values())
+        )
 
     def test_rescale_illegal_conditions(self):
         del self.conditional_priors["var_0"]

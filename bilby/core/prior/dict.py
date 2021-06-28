@@ -491,6 +491,21 @@ class PriorDict(dict):
                 constrained_ln_prob[keep] = ln_prob[keep] + np.log(ratio)
                 return constrained_ln_prob
 
+    def cdf(self, sample):
+        """Evaluate the cumulative distribution function at the provided points
+
+        Parameters
+        ----------
+        sample: dict, pandas.DataFrame
+            Dictionary of the samples of which to calculate the CDF
+
+        Returns
+        -------
+        dict, pandas.DataFrame: Dictionary containing the CDF values
+
+        """
+        return sample.__class__({key: self[key].cdf(sample) for key, sample in sample.items()})
+
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
 
@@ -654,9 +669,7 @@ class ConditionalPriorDict(PriorDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        self._check_resolved()
-        for key, value in sample.items():
-            self[key].least_recently_sampled = value
+        self._prepare_evaluation(*zip(*sample.items()))
         res = [self[key].prob(sample[key], **self.get_required_variables(key)) for key in sample]
         return np.product(res, **kwargs)
 
@@ -675,11 +688,14 @@ class ConditionalPriorDict(PriorDict):
         float: Joint log probability of all the individual sample probabilities
 
         """
-        self._check_resolved()
-        for key, value in sample.items():
-            self[key].least_recently_sampled = value
+        self._prepare_evaluation(*zip(*sample.items()))
         res = [self[key].ln_prob(sample[key], **self.get_required_variables(key)) for key in sample]
         return np.sum(res, axis=axis)
+
+    def cdf(self, sample):
+        self._prepare_evaluation(*zip(*sample.items()))
+        res = {key: self[key].cdf(sample[key], **self.get_required_variables(key)) for key in sample}
+        return sample.__class__(res)
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -695,18 +711,25 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        keys = list(keys)
+        theta = list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
         for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
-            required_variables = {k: result[k] for k in getattr(self[key], 'required_variables', [])}
-            result[key] = self[key].rescale(theta[index], **required_variables)
+            result[key] = self[key].rescale(theta[index], **self.get_required_variables(key))
+            self[key].least_recently_sampled = result[key]
         return [result[key] for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
             self._rescale_indexes = [keys.index(element) for element in self.sorted_keys_without_fixed_parameters]
             self._least_recently_rescaled_keys = keys
+
+    def _prepare_evaluation(self, keys, theta):
+        self._check_resolved()
+        for key, value in zip(keys, theta):
+            self[key].least_recently_sampled = value
 
     def _check_resolved(self):
         if not self._resolved:
