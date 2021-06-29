@@ -95,10 +95,10 @@ class TestRunningSamplers(unittest.TestCase):
             likelihood=self.likelihood,
             priors=self.priors,
             sampler="kombine",
-            iterations=1000,
-            nwalkers=100,
+            iterations=2000,
+            nwalkers=20,
             save=False,
-            autoburnin=True,
+            autoburnin=False,
         )
 
     def test_run_nestle(self):
