@@ -1423,3 +1423,97 @@ class FermiDirac(Prior):
             idx = val >= self.minimum
             lnp[idx] = norm - np.logaddexp((val[idx] / self.sigma) - self.r, 0.)
             return lnp
+
+
+class Categorical(Prior):
+    def __init__(self, ncategories, name=None, latex_label=None,
+                 unit=None, boundary="periodic"):
+        """ An equal-weighted Categorical prior
+
+        Parameters:
+        -----------
+        ncategories: int
+            The number of available categories. The prior mass support is then
+            integers [0, ncategories - 1].
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+
+        minimum = 0
+        # Small delta added to help with MCMC walking
+        maximum = ncategories - 1 + 1e-15
+        super(Categorical, self).__init__(
+            name=name, latex_label=latex_label, minimum=minimum,
+            maximum=maximum, unit=unit, boundary=boundary)
+        self.ncategories = ncategories
+        self.categories = np.arange(self.minimum, self.maximum)
+        self.p = 1 / self.ncategories
+        self.lnp = -np.log(self.ncategories)
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from the unit line element to the categorical prior.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+            Uniform probability
+
+        Returns
+        =======
+        Union[float, array_like]: Rescaled probability
+        """
+        return np.round(val * self.maximum)
+
+    def prob(self, val):
+        """Return the prior probability of val.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: Prior probability of val
+        """
+        if isinstance(val, (float, int)):
+            if val in self.categories:
+                return self.p
+            else:
+                return 0
+        else:
+            val = np.atleast_1d(val)
+            probs = np.zeros_like(val, dtype=np.float64)
+            idxs = np.isin(val, self.categories)
+            probs[idxs] = self.p
+            return probs
+
+    def ln_prob(self, val):
+        """Return the logarithmic prior probability of val
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float:
+
+        """
+        if isinstance(val, (float, int)):
+            if val in self.categories:
+                return self.lnp
+            else:
+                return -np.inf
+        else:
+            val = np.atleast_1d(val)
+            probs = -np.inf * np.ones_like(val, dtype=np.float64)
+            idxs = np.isin(val, self.categories)
+            probs[idxs] = self.lnp
+            return probs
