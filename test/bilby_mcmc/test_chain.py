@@ -103,7 +103,8 @@ class TestChain(unittest.TestCase):
 
     def test_minimum_index(self):
         chain = self.create_chain()
-        self.assertEqual(chain.minimum_index, 0)
+        # Test initialization
+        self.assertEqual(chain.minimum_index, 1)
 
         chain._last_minimum_index = (chain.position, 10, "I")
         self.assertEqual(chain.minimum_index, 10)

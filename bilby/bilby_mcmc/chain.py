@@ -406,8 +406,9 @@ class Chain(object):
 
         # Plot the histograms
         for ax, key in zip(axes[:, 1], self.keys):
-            yy_all = all_samples[key]
-            ax.hist(yy_all, bins=50, alpha=0.6, density=True, color="k")
+            if all_samples is not None:
+                yy_all = all_samples[key]
+                ax.hist(yy_all, bins=50, alpha=0.6, density=True, color="k")
 
             yy = self.get_1d_array(key)[nburn : self.position : self.thin]
             ax.hist(yy, bins=50, alpha=0.8, density=True)

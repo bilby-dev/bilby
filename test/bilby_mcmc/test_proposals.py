@@ -3,6 +3,7 @@ import copy
 import shutil
 import unittest
 import inspect
+import importlib
 import sys
 import time
 import bilby
@@ -150,10 +151,13 @@ class TestProposals(TestBaseProposals):
         self.assertTrue(prop.trained)
 
     def test_GMM_proposal(self):
-        priors = self.create_priors()
-        prop = proposals.GMMProposal(priors)
-        self.proposal_check(prop, N=20000)
-        self.assertTrue(prop.trained)
+        if importlib.util.find_spec("sklearn") is not None:
+            priors = self.create_priors()
+            prop = proposals.GMMProposal(priors)
+            self.proposal_check(prop, N=20000)
+            self.assertTrue(prop.trained)
+        else:
+            print("Unable to test GMM as sklearn is not installed")
 
     def test_NF_proposal(self):
         priors = self.create_priors()

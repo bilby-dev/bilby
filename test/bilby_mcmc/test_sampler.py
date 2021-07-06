@@ -3,7 +3,7 @@ import shutil
 import unittest
 
 import bilby
-from bilby.bilby_mcmc.sampler import BilbyMCMC, BilbyMCMCSampler, _initialize_global_variables
+from bilby.bilby_mcmc.sampler import Bilby_MCMC, BilbyMCMCSampler, _initialize_global_variables
 from bilby.bilby_mcmc.utils import ConvergenceInputs
 from bilby.core.sampler.base_sampler import SamplerError
 import numpy as np
@@ -12,7 +12,7 @@ import pandas as pd
 
 class TestBilbyMCMCSampler(unittest.TestCase):
     def setUp(self):
-        default_kwargs = BilbyMCMC.default_kwargs
+        default_kwargs = Bilby_MCMC.default_kwargs
         default_kwargs["target_nsamples"] = 100
         default_kwargs["L1steps"] = 1
         self.convergence_inputs = ConvergenceInputs(
@@ -78,8 +78,6 @@ class TestBilbyMCMCSampler(unittest.TestCase):
         self.assertEqual(sampler.chain.position, nsteps)
         self.assertEqual(sampler.accepted + sampler.rejected, nsteps)
         self.assertTrue(isinstance(sampler.samples, pd.DataFrame))
-        for prop in sampler.proposal_cycle.proposal_list:
-            self.assertGreater(prop.n, 50)
 
 
 if __name__ == "__main__":
