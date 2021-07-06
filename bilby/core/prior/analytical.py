@@ -1469,7 +1469,7 @@ class Categorical(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return np.round(val * self.maximum)
+        return np.floor(val * (1 + self.maximum))
 
     def prob(self, val):
         """Return the prior probability of val.
