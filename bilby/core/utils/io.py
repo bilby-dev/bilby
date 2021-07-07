@@ -208,7 +208,7 @@ def decode_from_hdf5(item):
     return output
 
 
-def encode_for_hdf5(item):
+def encode_for_hdf5(key, item):
     """
     Encode an item to a HDF5 savable format.
 
@@ -249,6 +249,8 @@ def encode_for_hdf5(item):
                     output.append(b"__none__")
         elif isinstance(item[0], (int, float, complex)):
             output = np.array(item)
+        else:
+            raise ValueError(f'Cannot save {key}: {type(item)} type')
     elif isinstance(item, PriorDict):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
@@ -262,7 +264,7 @@ def encode_for_hdf5(item):
     elif isinstance(item, tuple):
         output = {str(ii): elem for ii, elem in enumerate(item)}
     else:
-        raise ValueError(f'Cannot save {type(item)} type')
+        raise ValueError(f'Cannot save {key}: {type(item)} type')
     return output
 
 
@@ -310,7 +312,7 @@ def recursively_save_dict_contents_to_group(h5file, path, dic):
         The dictionary containing the data
     """
     for key, item in dic.items():
-        item = encode_for_hdf5(item)
+        item = encode_for_hdf5(key, item)
         if isinstance(item, dict):
             recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
         else:

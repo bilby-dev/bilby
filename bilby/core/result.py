@@ -25,6 +25,9 @@ from .utils import (
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
+EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
+
+
 def result_file_name(outdir, label, extension='json', gzip=False):
     """ Returns the standard filename used for a result file
 

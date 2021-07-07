@@ -4,7 +4,7 @@ Examples
 --------
 To convert all the JSON result files in `outdir` to hdf5 format:
 
-    $ bilby_result -r outdir/*json -c hdf5
+    $ bilby_result -r outdir/*json -e hdf5
 
 Note, by default this will save the new files in the outdir defined within the
 results files. To give a new location, use the `--outdir` argument.
@@ -17,54 +17,106 @@ To generate a corner plot for all the files in outdir
 
     $ bilby_result -r outdir/*json --call plot_corner
 
-This is effectively calling `plot_corner()` on each of the result files
+This is calling `plot_corner()` on each of the result files
 individually. Note that passing extra commands in is not yet implemented.
 
 """
 import argparse
-import pandas as pd
 
 import bilby
+from bilby.core.result import EXTENSIONS
 from bilby.core.utils import tcolors
 
 
 def setup_command_line_args():
-    parser = argparse.ArgumentParser(
-        description="Helper tool for bilby result files")
+    parser = argparse.ArgumentParser(description="Helper tool for bilby result files")
+    parser.add_argument("positional_results", nargs="*", help="List of results files.")
     parser.add_argument(
-        "results", nargs='?',
-        help="List of results files.")
+        "-r",
+        "--results",
+        nargs="+",
+        dest="optional_results",
+        default=list(),
+        help="List of results files (alternative to passing results as a positional argument).",
+    )
+
     parser.add_argument(
-        "-r", "--results", nargs='+', dest="option_results", default=list(),
-        help="List of results files (alternative to passing results as a positional argument).")
-    parser.add_argument("-c", "--convert", type=str, choices=['json', 'hdf5'],
-                        help="Convert all results.", default=False)
-    parser.add_argument("-m", "--merge", action='store_true',
-                        help="Merge the set of runs, output saved using the outdir and label")
-    parser.add_argument("-e", "--extension", type=str, choices=["json", "hdf5"],
-                        default=True, help="Use given extension for the merged output file.")
-    parser.add_argument("-g", "--gzip", action="store_true",
-                        help="Gzip the merged output results file if using JSON format.")
-    parser.add_argument("-o", "--outdir", type=str, default=None,
-                        help="Output directory.")
-    parser.add_argument("-l", "--label", type=str, default=None,
-                        help="New label for output result object")
-    parser.add_argument("-b", "--bayes", action='store_true',
-                        help="Print all Bayes factors.")
-    parser.add_argument("-p", "--print", nargs='+', default=None, dest="keys",
-                        help="Result dictionary keys to print.")
-    parser.add_argument("--call", nargs='+', default=None,
-                        help="Result dictionary methods to call (no argument passing available).")
-    parser.add_argument("--ipython", action='store_true',
-                        help=("For each result given, drops the user into an "
-                              "IPython shell with the result loaded in"))
+        "-e",
+        "--extension",
+        type=str,
+        choices=EXTENSIONS,
+        default=True,
+        help="Use given extension for the output file.",
+    )
+    parser.add_argument(
+        "-g",
+        "--gzip",
+        action="store_true",
+        help="Gzip the merged output results file if using JSON format.",
+    )
+    parser.add_argument(
+        "-o", "--outdir", type=str, default=None, help="Output directory."
+    )
+    parser.add_argument(
+        "-l",
+        "--label",
+        type=str,
+        default=None,
+        help="New label for output result object",
+    )
+    parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Maximum number of samples for output result object",
+    )
+    parser.add_argument(
+        "--lightweight",
+        action="store_true",
+        help="If true, strip back the result to only the posterior",
+    )
+
+    action_parser = parser.add_mutually_exclusive_group(required=True)
+    action_parser.add_argument(
+        "-s",
+        "--save",
+        action="store_true",
+        help="Save each result output saved using the outdir and label",
+    )
+    action_parser.add_argument(
+        "-m",
+        "--merge",
+        action="store_true",
+        help="Merge the set of runs, output saved using the outdir and label",
+    )
+    action_parser.add_argument(
+        "-b", "--bayes", action="store_true", help="Print all Bayes factors."
+    )
+    action_parser.add_argument(
+        "-p",
+        "--print",
+        nargs="+",
+        default=None,
+        dest="keys",
+        help="Result dictionary keys to print.",
+    )
+    action_parser.add_argument(
+        "--call",
+        nargs="+",
+        default=None,
+        help="Result dictionary methods to call (no argument passing available).",
+    )
+    action_parser.add_argument(
+        "--ipython",
+        action="store_true",
+        help=(
+            "For each result given, drops the user into an "
+            "IPython shell with the result loaded in"
+        ),
+    )
     args = parser.parse_args()
 
-    if args.results is None:
-        args.results = []
-    if isinstance(args.results, str):
-        args.results = [args.results]
-    args.results += args.option_results
+    args.results = args.positional_results + args.optional_results
 
     if len(args.results) == 0:
         raise ValueError("You have not passed any results to bilby_result")
@@ -80,24 +132,25 @@ def read_in_results(filename_list):
 
 
 def print_bayes_factors(results_list):
-    print("\nPrinting Bayes factors:")
-    N = len(results_list)
-    for i, res in enumerate(results_list):
-        print("For label={}".format(res.label))
-        index = ['noise'] + [results_list[j].label for j in range(i + 1, N)]
-        data = [res.log_bayes_factor]
-        data += [res.log_evidence - results_list[j].log_evidence for j in range(i + 1, N)]
-        series = pd.Series(data=data, index=index, name=res.label)
-        print(series)
+    for res in results_list:
+        print(f"For result {res.label}:")
+        print(f"  log_evidence={res.log_evidence}")
+        print(f"  log_noise_evidence={res.log_noise_evidence}")
+        print(f"  log_bayes_factor={res.log_noise_evidence}")
+        print(f"  log_10_evidence={res.log_10_evidence}")
+        print(f"  log_10_noise_evidence={res.log_10_noise_evidence}")
+        print(f"  log_10_bayes_factor={res.log_noise_evidence}")
 
 
 def drop_to_ipython(results_list):
     for result in results_list:
         message = "Opened IPython terminal for result {}".format(result.label)
-        message += ("\nRunning with bilby={},\nResult generated with bilby={}"
-                    .format(bilby.__version__, result.version))
+        message += "\nRunning with bilby={},\nResult generated with bilby={}".format(
+            bilby.__version__, result.version
+        )
         message += "\nBilby result loaded as `result`"
         import IPython
+
         IPython.embed(header=message)
 
 
@@ -108,17 +161,61 @@ def print_matches(results_list, args):
             for attr in r.__dict__:
                 if key in attr:
                     print_line = [
-                        "  ", tcolors.KEY, attr, ":", tcolors.VALUE,
-                        str(getattr(r, attr)), tcolors.END]
+                        "  ",
+                        tcolors.KEY,
+                        attr,
+                        ":",
+                        tcolors.VALUE,
+                        str(getattr(r, attr)),
+                        tcolors.END,
+                    ]
                     print(" ".join(print_line))
+
+
+def apply_max_samples(result, args):
+    if len(result.posterior) > args.max_samples:
+        result.posterior = result.posterior.sample(args.max_samples).sort_index()
+    return result
+
+
+def apply_lightweight(result, args):
+    strip_keys = [
+        "_nested_samples",
+        "log_likelihood_evaluations",
+        "log_prior_evaluations"
+    ]
+    for key in strip_keys:
+        setattr(result, key, None)
+    return result
+
+
+def save(result, args):
+    if args.max_samples is not None:
+        result = apply_max_samples(result, args)
+    if args.lightweight:
+        result = apply_lightweight(result, args)
+    result.save_to_file(gzip=args.gzip, extension=args.extension, outdir=args.outdir)
 
 
 def main():
     args = setup_command_line_args()
     results_list = read_in_results(args.results)
-    if args.convert:
-        for r in results_list:
-            r.save_to_file(extension=args.convert, outdir=args.outdir)
+
+    if args.save:
+        for res in results_list:
+            if args.label is not None:
+                res.label = args.label
+            save(res, args)
+
+    if args.merge:
+        result = results_list.combine()
+        if args.label is not None:
+            result.label = args.label
+        if args.outdir is not None:
+            result.outdir = args.outdir
+
+        save(res, args)
+
     if args.keys is not None:
         print_matches(results_list, args)
     if args.call is not None:
@@ -129,12 +226,3 @@ def main():
         print_bayes_factors(results_list)
     if args.ipython:
         drop_to_ipython(results_list)
-    if args.merge:
-        result = results_list.combine()
-        if args.label is not None:
-            result.label = args.label
-        if args.outdir is not None:
-            result.outdir = args.outdir
-
-        extension = args.extension
-        result.save_to_file(gzip=args.gzip, extension=extension)
