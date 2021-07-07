@@ -3,7 +3,7 @@ import numpy as np
 from scipy.interpolate import interp2d
 from scipy.special import logsumexp
 
-from .logger import logger
+from .log import logger
 
 
 def derivatives(vals, func, releps=1e-3, abseps=None, mineps=1e-9, reltol=1e-3,

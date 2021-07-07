@@ -2,7 +2,7 @@ import functools
 import os
 from distutils.spawn import find_executable
 
-from .logger import logger
+from .log import logger
 
 
 def latex_plot_format(func):
