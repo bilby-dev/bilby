@@ -8,7 +8,7 @@ from ..utils import logger, check_directory_exists_and_if_not_mkdir, load_json
 class Nessai(NestedSampler):
     """bilby wrapper of nessai (https://github.com/mj-will/nessai)
 
-    All positional and keyword arguments passed to `run_sampler` are propogated
+    All positional and keyword arguments passed to `run_sampler` are propagated
     to `nessai.flowsampler.FlowSampler`
 
     See the documentation for an explanation of the different kwargs.

@@ -49,7 +49,7 @@ Next, we assume that all data points are independent. As such,
 
    P(\{y_i, t_i\}| m, c, H) = \prod_{i=1}^n P(y_i, t_i| m, c, H) \,.
 
-When solving problems on a computer, it is often convienient to work with
+When solving problems on a computer, it is often convenient to work with
 the log-likelihood. Indeed, a :code:`bilby` *likelihood* must have a `log_likelihood()`
 method. For the normal distribution, the log-likelihood for *n* data points is
 

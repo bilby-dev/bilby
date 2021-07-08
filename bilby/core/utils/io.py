@@ -210,7 +210,7 @@ def decode_from_hdf5(item):
 
 def encode_for_hdf5(item):
     """
-    Encode an item to a HDF5 savable format.
+    Encode an item to a HDF5 saveable format.
 
     .. versionadded:: 1.1.0
 
@@ -222,7 +222,7 @@ def encode_for_hdf5(item):
     Returns
     -------
     output: object
-        Input item converted into HDF5 savable format
+        Input item converted into HDF5 saveable format
     """
     from ..prior.dict import PriorDict
     if isinstance(item, np.int_):

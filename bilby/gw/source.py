@@ -152,7 +152,7 @@ def lal_binary_neutron_star(
           only take positive modes and return the positive and the negative
           mode together, while others need to call both.  e.g.
           waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
-          mode_array=[[2,2],[4,-4]]) returns the 22 a\nd 2-2 of IMRPhenomHM.
+          mode_array=[[2,2],[4,-4]]) returns the 22 and 2-2 of IMRPhenomHM.
           However, waveform_arguments =
           dict(waveform_approximant='IMRPhenomXHM', mode_array=[[2,2],[4,-4]])
           returns the 22 and 4-4 of IMRPhenomXHM.

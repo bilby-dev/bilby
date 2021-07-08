@@ -427,7 +427,7 @@ class Interferometer(object):
 
     @property
     def amplitude_spectral_density_array(self):
-        """ Returns the amplitude spectral density (ASD) given we know a power spectral denstiy (PSD)
+        """ Returns the amplitude spectral density (ASD) given we know a power spectral density (PSD)
 
         Returns
         =======

@@ -454,7 +454,7 @@ def get_open_strain_data(
     cache: bool
         If true, cache the data
     buffer_time: float
-        Time to add to the begining and end of the segment.
+        Time to add to the beginning and end of the segment.
     **kwargs:
         Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
 
@@ -462,7 +462,7 @@ def get_open_strain_data(
     =======
     strain: gwpy.timeseries.TimeSeries
         The object containing the strain data. If the connection to the open-data server
-        fails, this function retruns `None`.
+        fails, this function returns `None`.
 
     """
     from gwpy.timeseries import TimeSeries
@@ -914,7 +914,7 @@ def spline_angle_xform(delta_psi):
 
     Parameters
     ==========
-    delta_psi: calibration phase uncertainity
+    delta_psi: calibration phase uncertainty
 
     Returns
     =======

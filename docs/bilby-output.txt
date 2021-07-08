@@ -58,7 +58,7 @@ to use.
 
 Reading in a result file
 ------------------------
-Rather than reading in the raw :code:`json` file, you will find it more convienient to
+Rather than reading in the raw :code:`json` file, you will find it more convenient to
 instead load the data using :code:`bilby`. To do this::
 
    >>> import bilby

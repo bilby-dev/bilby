@@ -99,7 +99,7 @@ Version 1.1.0 release of bilby
 - Fixed `ultranest` from failing
 - Fixed issues with plotting failing in tests (!904)
 - Changed the CI to run on auto-built images (!899)
-- Resolved a `matplotlib` error occuring at `dynesty` checkpoint plots (!902)
+- Resolved a `matplotlib` error occurring at `dynesty` checkpoint plots (!902)
 - Fixed the multidimensional Gaussian example (!901)
 - Now allow any lal dictionary option and added a numerical relativity file (!896)
 - Fixed the likelihood count in `dynesty` (!853)
@@ -171,7 +171,7 @@ Version 1.0.1 release of bilby
 - Fixed a minor issue with conditional priors that could cause unexpected behaviour in edge cases (!838)
 - Fixed `__repr__` method in the `FromFile` prior (!836)
 - Fixed an issue that caused problems for some users when plotting with a latex backend (!816)
-- Fixed bug that occured when min/max of interpolated priors was changed (!815)
+- Fixed bug that occurred when min/max of interpolated priors was changed (!815)
 - Fixed time domain waveform epoch (!736)
 - Fixed time keeping in multinest (!830)
 - Now checks if marginalised priors were defined before marginalising (!829)
@@ -209,7 +209,7 @@ for details
 - Updated the default PSD to O4 (!757)
 - Make multinest allow long file names, optional and work with MPI (!764 !785)
 - Add min/max to aligned spin prior (!787)
-- Reduce redudant code (!703)
+- Reduce redundant code (!703)
 - Added testing for python 3.8 (!762)
 - Improvements to the waveform plot (!769)
 
@@ -310,7 +310,7 @@ parameters.
 
 ## Changes
 - Speed up the prior evaluations by implementing directly with checks to scipy !627
-- Soft initalisation option for the Sampler class !620
+- Soft initialisation option for the Sampler class !620
 - Improvements to JSON reading and writing for functions !621
 - Fixed bug in prior reading !618 !617
 - Fixes to the examples !619 !614 !626 !616
@@ -371,7 +371,7 @@ parameters.
 - Removed the sqrt(2) normalisation from the scalar longitudinal mode
 - Improve PSD filename reading (no longer required "/" to read local files)
 - Fix bug in emcee chains
-- Added a try/except cluase for building the lookup table
+- Added a try/except clause for building the lookup table
 
 ## [0.5.4] 2019-07-30
 
@@ -412,7 +412,7 @@ shown (!564) to provide better convergence for the long-duration high-spin tests
 
 ### Changed
 - Updated and fixed bugs in examples
-- Resolve sampling time persistence for runs which are interupted
+- Resolve sampling time persistence for runs which are interrupted
 - Improvements to the PP plot
 - Speed up of the distance calculation
 - Fixed a bug in the inteference of bilby command line arguments with user specified command lines
@@ -708,7 +708,7 @@ re-instantiate the Prior in most cases
 - Changed to using `setuptools` for installation.
 - Clean up of real data handling: all data is now windowed with a 0.4s roll off (unless set otherwise) and low-pass filtered.
 - Add explicit method to create a power spectral density from time-domain data
-- Clean up of `PowerSpectralDensity()` - addds `set_from` methods to handle various ways to define the PSD.
+- Clean up of `PowerSpectralDensity()` - adds `set_from` methods to handle various ways to define the PSD.
 - Clean up of `detectors.py`: adds an `InterferometerStrainData` to handle strain data and `InterferometerSet` to handle multiple interferometers. All data setting should primarily be done through the `Interferometer.set_strain_data..` methods.
 - Fix the comments and units of `nfft` and `infft` and general improvement to documentation of data.
 - Fixed a bug in create_time_series

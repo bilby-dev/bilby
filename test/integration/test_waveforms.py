@@ -347,7 +347,7 @@ def get_lalsim_psd_list():
     return sorted(psd_list)
 
 
-# Function te generate PSDs
+# Function to generate PSDs
 def generate_PSD(psd_name="aLIGOZeroDetHighPower", length=None, delta_f=None):
     psd_list = get_lalsim_psd_list()
 

@@ -11,7 +11,7 @@ class BaseJointPriorDist(object):
     def __init__(self, names, bounds=None):
         """
         A class defining JointPriorDist that will be overwritten with child
-        classes defining the joint prior distribtuions between given parameters,
+        classes defining the joint prior distributions between given parameters,
 
 
         Parameters
@@ -210,7 +210,7 @@ class BaseJointPriorDist(object):
         samp: vector
             sample to evaluate the ln_prob at
         lnprob: vector
-            of -inf pased in with the same shape as the number of samples
+            of -inf passed in with the same shape as the number of samples
         outbounds: array_like
             boolean array showing which samples in lnprob vector are out of the given bounds
 
@@ -231,7 +231,7 @@ class BaseJointPriorDist(object):
         Parameters
         ==========
         size: int
-            number of samples to generate, defualts to 1
+            number of samples to generate, defaults to 1
         """
 
         if size is None:
@@ -250,7 +250,7 @@ class BaseJointPriorDist(object):
         Parameters
         ==========
         size: int
-            number of samples to generate, defualts to 1
+            number of samples to generate, defaults to 1
         """
         samps = np.zeros((size, len(self)))
         """
@@ -299,7 +299,7 @@ class BaseJointPriorDist(object):
         Parameters
         ==========
         samp: numpy array
-            this is a vector sample drawn from a uniform distribtuion to be rescaled to the distribution
+            this is a vector sample drawn from a uniform distribution to be rescaled to the distribution
         """
         """
         Here is where the subclass where overwrite rescale method
@@ -707,7 +707,7 @@ class JointPrior(Prior):
         Returns
         =======
         float:
-            A sample from the prior paramter.
+            A sample from the prior parameter.
         """
 
         self.dist.rescale_parameters[self.name] = val
@@ -733,7 +733,7 @@ class JointPrior(Prior):
         Returns
         =======
         float:
-            A sample from the prior paramter.
+            A sample from the prior parameter.
         """
 
         if self.name in self.dist.sampled_parameters:

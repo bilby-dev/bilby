@@ -31,7 +31,7 @@ def set_up_command_line_arguments():
 
     .. code-block:: python
 
-        # Here we import bilby, which initialses and parses the default command-line args
+        # Here we import bilby, which initialises and parses the default command-line args
         >>> import bilby
         # The command line arguments can then be accessed via
         >>> bilby.core.utils.command_line_args

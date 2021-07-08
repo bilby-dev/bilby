@@ -270,7 +270,7 @@ class SymmetricLogUniform(Prior):
 
     def __init__(self, minimum, maximum, name=None, latex_label=None,
                  unit=None, boundary=None):
-        """Symmetric Log-Uniform distribtions with bounds
+        """Symmetric Log-Uniform distributions with bounds
 
         This is identical to a Log-Uniform distribution, but mirrored about
         the zero-axis and subsequently normalized. As such, the distribution
