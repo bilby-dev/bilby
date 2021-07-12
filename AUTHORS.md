@@ -29,12 +29,14 @@ Ignacio Magaña Hernandez
 Isobel Marguarethe Romero-Shaw
 Jade Powell
 James A Clark
+Jeremy G Baier
 John Veitch
 Joshua Brandt
 Katerina Chatziioannou
 Kaylee de Soto
 Khun Sang Phukon
 Kshipraa Athar
+Leslie Wade
 Liting Xiao
 Maite Mateu-Lucena
 Marc Arene
@@ -50,6 +52,7 @@ Moritz Huebner
 Nicola De Lillo
 Nikhil Sarin
 Nirban Bose
+Olivia Wilk
 Paul Easter
 Paul Lasky
 Philip Relton
