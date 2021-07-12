@@ -413,7 +413,7 @@ class Prior(object):
         Parameters
         ==========
         val: str
-            The string version of the agument
+            The string version of the argument
 
         Returns
         =======

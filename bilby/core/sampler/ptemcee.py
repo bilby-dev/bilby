@@ -105,7 +105,7 @@ class Ptemcee(MCMCSampler):
         The number of iteration steps to take before checking ACT. This
         effectively pre-thins the chains. Larger values reduce the per-eval
         timing due to improved efficiency. But, if it is made too large the
-        pre-thinning may be overly agressive effectively wasting compute-time.
+        pre-thinning may be overly aggressive effectively wasting compute-time.
         If you see tau=1, then niterations_per_check is likely too large.
 
 
@@ -720,7 +720,7 @@ def check_iteration(
     Returns
     =======
     stop: bool
-        A boolean flag, True if the stoping criteria has been met
+        A boolean flag, True if the stopping criteria has been met
     burn: int
         The number of burn-in steps to discard
     thin: int

@@ -49,7 +49,7 @@ You can load this with
 
 Here we see several examples of different types of priors. For those available
 in the :code:`bilby.core.prior` module, you can specify these without a prefix,
-but for other (including any exisiting in your own modules) you need to specify
+but for other (including any existing in your own modules) you need to specify
 the module path.
 
 Aligned spins waveform with tides off

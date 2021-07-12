@@ -263,7 +263,7 @@ class Emcee(MCMCSampler):
             dill.dump(self._sampler, f)
 
     def checkpoint_and_exit(self, signum, frame):
-        logger.info("Recieved signal {}".format(signum))
+        logger.info("Received signal {}".format(signum))
         self.checkpoint()
         sys.exit()
 
@@ -275,7 +275,7 @@ class Emcee(MCMCSampler):
     def sampler(self):
         """ Returns the ptemcee sampler object
 
-        If, alrady initialized, returns the stored _sampler value. Otherwise,
+        If, already initialized, returns the stored _sampler value. Otherwise,
         first checks if there is a pickle file from which to load. If there is
         not, then initialize the sampler and set the initial random draw
 

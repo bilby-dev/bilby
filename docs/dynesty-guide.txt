@@ -62,7 +62,7 @@ arguments
 
 2. :code:`nact`: the number of auto-correlation times to use before accepting a point.
 
-In general, poor convergance can be resolved by increasing :code:`nact`. For GW
+In general, poor convergence can be resolved by increasing :code:`nact`. For GW
 events, we find a value of 10 is typically okay.  You can revert to the
 original dynesty implementation by specifying :code:`sample="rwalk_dynesty"`.
 

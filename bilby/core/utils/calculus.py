@@ -57,7 +57,7 @@ def derivatives(
         raise ValueError("To many non-fixed values")
 
     if max(nonfixedidx) >= len(vals) or min(nonfixedidx) < 0:
-        raise ValueError("Non-fixed indexes contain non-existant indices")
+        raise ValueError("Non-fixed indexes contain non-existent indices")
 
     grads = np.zeros(len(nonfixedidx))
 

@@ -520,7 +520,7 @@ class GravitationalWaveTransient(Likelihood):
         Generate a single sample from the posterior distribution for coalescence
         time when using a likelihood which explicitly marginalises over time.
 
-        In order to resolve the posterior we artifically upsample to 16kHz.
+        In order to resolve the posterior we artificially upsample to 16kHz.
 
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
@@ -1605,7 +1605,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         if format is None:
             format = filename.split(".")[-1]
         if format not in ["json", "npz"]:
-            raise IOError("Format {} not recongized.".format(format))
+            raise IOError("Format {} not recognized.".format(format))
         logger.info("Loading ROQ weights from {}".format(filename))
         if format == "json":
             with open(filename, 'r') as file:

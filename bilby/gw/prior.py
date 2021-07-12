@@ -981,7 +981,7 @@ class CalibrationPriorDict(PriorDict):
             Number of nodes for the spline.
         label: str
             Label for the names of the parameters, e.g., `recalib_H1_`
-        bounadry: None, 'reflective', 'periodic'
+        boundary: None, 'reflective', 'periodic'
             The type of prior boundary to assign
 
         Returns
@@ -1114,7 +1114,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
     ==========
 
     hp_file : file path to .fits file
-        .fits file that containes the 2D or 3D Healpix Map
+        .fits file that contains the 2D or 3D Healpix Map
     names : list (optional)
         list of names of parameters included in the JointPriorDist, defaults to ['ra', 'dec']
     bounds : dict or list (optional)
@@ -1238,7 +1238,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         Parameters
         ==========
         pix_idx : int
-            pixel index value to create the distribtuion for
+            pixel index value to create the distribution for
 
         Returns
         =======

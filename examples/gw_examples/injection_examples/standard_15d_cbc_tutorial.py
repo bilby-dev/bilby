@@ -53,7 +53,7 @@ ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
 
-# For this analysis, we implemenet the standard BBH priors defined, except for
+# For this analysis, we implement the standard BBH priors defined, except for
 # the definition of the time prior, which is defined as uniform about the
 # injected value.
 # Furthermore, we decide to sample in chirp mass and mass ratio, due to the

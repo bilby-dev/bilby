@@ -801,7 +801,7 @@ class Result(object):
     def save_posterior_samples(self, filename=None, outdir=None, label=None):
         """ Saves posterior samples to a file
 
-        Generates a .dat file containing the posterior samples and auxillary
+        Generates a .dat file containing the posterior samples and auxiliary
         data saved in the posterior. Note, strings in the posterior are
         removed while complex numbers will be given as absolute values with
         abs appended to the column name
@@ -1724,7 +1724,7 @@ class ResultList(list):
     def __init__(self, results=None):
         """ A class to store a list of :class:`bilby.core.result.Result` objects
         from equivalent runs on the same data. This provides methods for
-        outputing combined results.
+        outputting combined results.
 
         Parameters
         ==========
@@ -1820,7 +1820,7 @@ class ResultList(list):
         result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
         result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
-        # Propogate uncertainty in combined evidence
+        # Propagate uncertainty in combined evidence
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
             result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
@@ -1866,7 +1866,7 @@ class ResultList(list):
         result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
         result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
-        # Propogate uncertainty in combined evidence
+        # Propagate uncertainty in combined evidence
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
             result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
@@ -2136,7 +2136,7 @@ class ResultError(Exception):
 
 
 class ResultListError(ResultError):
-    """ For Errors occuring during combining results. """
+    """ For Errors occurring during combining results. """
 
 
 class FileMovedError(ResultError):

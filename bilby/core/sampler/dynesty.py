@@ -831,7 +831,7 @@ def sample_rwalk_bilby(args):
 def estimate_nmcmc(accept_ratio, old_act, maxmcmc, safety=5, tau=None):
     """ Estimate autocorrelation length of chain using acceptance fraction
 
-    Using ACL = (2/acc) - 1 multiplied by a safety margin. Code adapated from CPNest:
+    Using ACL = (2/acc) - 1 multiplied by a safety margin. Code adapted from CPNest:
 
     - https://github.com/johnveitch/cpnest/blob/master/cpnest/sampler.py
     - http://github.com/farr/Ensemble.jl

@@ -65,7 +65,7 @@ class TestChain(unittest.TestCase):
         for i in range(3 * block_length):
             chain.append(self.create_random_sample())
 
-        # Check the array is now longer than the block length (succesfully extended)
+        # Check the array is now longer than the block length (successfully extended)
         self.assertEqual(len(chain._chain_array), 4 * block_length)
 
     def test_get_item(self):

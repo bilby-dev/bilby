@@ -668,7 +668,7 @@ class EOSFamily(object):
         # If we're not at the end of the array, determine actual maximum mass. Else, assume
         # last point is the maximum mass and proceed.
         if i < (npts - 1):
-            # Now replace ith point with interpolated maximum mass
+            # Now replace with point with interpolated maximum mass
             # This is done by interpolating the last three points and then
             # minimizing the negative of the interpolated function
             x = [energy_density_grid[i - 2], energy_density_grid[i - 1], energy_density_grid[i]]

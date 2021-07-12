@@ -22,7 +22,7 @@ getting started with singularity
 <https://www.sylabs.io/guides/3.0/user-guide/quick_start.html>`_.
 
 While Docker is better known throughout software development, singularity
-is often preferred in science applications as it focusses on reproducibility,
+is often preferred in science applications as it focuses on reproducibility,
 makes interacting with your home file system easy, and is typically preferred
 by cluster admins as it does not require root-priveledges as run time.
 

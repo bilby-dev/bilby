@@ -275,7 +275,7 @@ help orient users and make it easier to contribute. The layout is intended to
 define the logic of the code and new merge requests should aim to fit within
 this logic (unless there is a good argument to change it). For example, code
 which adds a new sampler should not effect the gravitational-wave specific
-parts of the code. Note that this document is not programatically generated and
+parts of the code. Note that this document is not programmatically generated and
 so may get out of date with time. If you notice something wrong, please open an
 issue.
 
