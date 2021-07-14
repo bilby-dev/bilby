@@ -782,7 +782,6 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             logger.debug('Assuming {} = {}'.format(key, default))
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
-    output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
         if (
                 hasattr(likelihood, 'phase_marginalization') or
@@ -819,6 +818,9 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     "Failed to generate sky frame parameters for type {}"
                     .format(type(output_sample))
                 )
+    if likelihood is not None:
+        compute_snrs(output_sample, likelihood)
+    output_sample, _ = base_conversion(output_sample)
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
             generate_source_frame_parameters]):
@@ -828,8 +830,6 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             logger.info(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
-    if likelihood is not None:
-        compute_snrs(output_sample, likelihood)
     return output_sample
 
 
@@ -1154,7 +1154,7 @@ def compute_snrs(sample, likelihood):
             matched_filter_snrs = {
                 ifo.name: [] for ifo in likelihood.interferometers}
             optimal_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
-
+            pdb.set_trace()
             for ii in tqdm(range(len(sample)), file=sys.stdout):
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(
