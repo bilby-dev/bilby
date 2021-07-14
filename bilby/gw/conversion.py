@@ -1154,7 +1154,6 @@ def compute_snrs(sample, likelihood):
             matched_filter_snrs = {
                 ifo.name: [] for ifo in likelihood.interferometers}
             optimal_snrs = {ifo.name: [] for ifo in likelihood.interferometers}
-            pdb.set_trace()
             for ii in tqdm(range(len(sample)), file=sys.stdout):
                 signal_polarizations =\
                     likelihood.waveform_generator.frequency_domain_strain(
