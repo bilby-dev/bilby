@@ -148,7 +148,6 @@ class TestProposals(TestBaseProposals):
         priors = self.create_priors()
         prop = proposals.KDEProposal(priors)
         self.proposal_check(prop, N=20000)
-        self.assertTrue(prop.trained)
 
     def test_GMM_proposal(self):
         if importlib.util.find_spec("sklearn") is not None:
