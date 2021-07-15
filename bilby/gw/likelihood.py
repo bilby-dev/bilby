@@ -1528,8 +1528,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             logger.warning("You do not have pyfftw installed, falling back to numpy.fft.")
             ifft_input = np.zeros(number_of_time_samples, dtype=complex)
             ifft = np.fft.ifft
-        # Maximum delay time to geocentre + 5 steps
-        earth_light_crossing_time = radius_of_earth / speed_of_light + 5 * time_space
+        earth_light_crossing_time = 2 * radius_of_earth / speed_of_light + 5 * time_space
         start_idx = max(0, int(np.floor((self.priors['{}_time'.format(self.time_reference)].minimum -
                         earth_light_crossing_time - self.interferometers.start_time) / time_space)))
         end_idx = min(number_of_time_samples - 1, int(np.ceil((
