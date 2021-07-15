@@ -1858,6 +1858,13 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
     @time_offset.setter
     def time_offset(self, time_offset):
+        """
+        This sets the time offset assumed when frequency bands are constructed. The default value is (the
+        maximum offset of geocent time in the prior range) +  (light-traveling time of the Earth). If the
+        prior does not contain 'geocent_time', 2.12 seconds is used. It is calculated assuming that the
+        maximum offset of geocent time is 2.1 seconds, which is the value for the standard prior used by
+        LIGO-Virgo-KAGRA.
+        """
         if time_offset is not None:
             if isinstance(time_offset, int) or isinstance(time_offset, float):
                 self._time_offset = time_offset
@@ -1877,6 +1884,14 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
     @delta_f_end.setter
     def delta_f_end(self, delta_f_end):
+        """
+        This sets the frequency scale of tapering the high-frequency end of waveform, to avoid the issues of
+        abrupt termination of waveform described in Sec. 2. F of arXiv: 2104.07813. This needs to be much
+        larger than the inverse of the minimum time offset, and the default value is 100 times of that. If
+        the prior does not contain 'geocent_time' and the minimum time offset can not be computed, 53Hz is
+        used. It is computed assuming that the minimum offset of geocent time is 1.9 seconds, which is the
+        value for the standard prior used by LIGO-Virgo-KAGRA.
+        """
         if delta_f_end is not None:
             if isinstance(delta_f_end, int) or isinstance(delta_f_end, float):
                 self._delta_f_end = delta_f_end
@@ -1896,9 +1911,13 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
     @maximum_banding_frequency.setter
     def maximum_banding_frequency(self, maximum_banding_frequency):
-        # f - 1 / \sqrt(- d\tau / df) starts to decrease at fmax_tmp, which breaks the bisection search used for
-        # determining frequency bands. The stationary phase approximation is not valid at such a high frequency, which
-        # can break down the approximation.
+        """
+        This sets the upper limit on a starting frequency of a band. The default value is the frequency at
+        which f - 1 / \sqrt(- d\tau / df) starts to decrease, because the bisection search of the starting
+        frequency does not work from that frequency. The stationary phase approximation is not valid at such
+        a high frequency, which can break down the approximation. It is calculated from the 0PN formula of
+        time-to-merger \tau(f). The user-specified frequency is used if it is lower than that frequency.
+        """
         fmax_tmp = (15. / 968.)**(3. / 5.) * (self.highest_mode / (2. * np.pi))**(8. / 5.) \
             / self.reference_chirp_mass_in_second
         if maximum_banding_frequency is not None:
