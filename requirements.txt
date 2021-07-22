@@ -3,7 +3,7 @@ emcee
 corner
 numpy
 matplotlib>=2.1
-scipy>=0.16
+scipy>=1.5
 pandas
 mock
 dill
