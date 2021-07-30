@@ -54,6 +54,7 @@ Paul Easter
 Paul Lasky
 Philip Relton
 Rhys Green
+Rico Lo
 Roberto Cotesta
 Rory Smith
 S. H. Oh
