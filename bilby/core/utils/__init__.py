@@ -7,7 +7,7 @@ from .counter import *
 from .docs import *
 from .introspection import *
 from .io import *
-from .logger import *
+from .log import *
 from .plotting import *
 from .progress import *
 from .samples import *

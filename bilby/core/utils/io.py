@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .logger import logger
+from .log import logger
 from .introspection import infer_args_from_method
 
 

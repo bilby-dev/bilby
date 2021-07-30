@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess
 
-from .logger import logger
+from .log import logger
 
 
 def set_up_command_line_arguments():
