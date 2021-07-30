@@ -168,8 +168,7 @@ class PriorDict(dict):
         for key in ["__module__", "__name__", "__prior_dict__"]:
             if key in prior_dict:
                 del prior_dict[key]
-        obj = class_(dict())
-        obj.from_dictionary(prior_dict)
+        obj = class_(prior_dict)
         return obj
 
     @classmethod
