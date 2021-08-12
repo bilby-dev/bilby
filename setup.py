@@ -5,11 +5,10 @@ import subprocess
 import sys
 import os
 
-# check that python version is 3.6 or above
+# check that python version is 3.7 or above
 python_version = sys.version_info
-if python_version < (3, 6):
-    sys.exit("Python < 3.6 is not supported, aborting setup")
-print("Confirmed Python version {}.{}.{} >= 3.6.0".format(*python_version[:3]))
+if python_version < (3, 7):
+    sys.exit("Python < 3.7 is not supported, aborting setup")
 
 
 def write_version_file(version):

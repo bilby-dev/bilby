@@ -9,3 +9,5 @@ mock
 dill
 tqdm
 h5py
+tables
+astropy<4.3

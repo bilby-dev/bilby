@@ -96,16 +96,6 @@ python-3.8:
 
     - pytest
 
-# test example on python 3.6
-python-3.6:
-  stage: test
-  needs: ["basic-3.7", "precommits-py3.7"]
-  image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
-  script:
-    - python -m pip install .
-
-    - pytest
-
 # test samplers on python 3.7
 python-3.7-samplers:
   stage: test
@@ -116,15 +106,15 @@ python-3.7-samplers:
 
     - pytest test/integration/sampler_run_test.py --durations 10
 
-# test samplers on python 3.6
-python-3.6-samplers:
+# test samplers on python 3.8
+python-3.8-samplers:
   stage: test
   needs: ["basic-3.7", "precommits-py3.7"]
-  image: quay.io/bilbydev/v2-dockerfile-test-suite-python36
+  image: quay.io/bilbydev/v2-dockerfile-test-suite-python38
   script:
     - python -m pip install .
 
-    - pytest test/integration/sampler_run_test.py
+    - pytest test/integration/sampler_run_test.py --durations 10
 
 # Test containers are up to date
 containers:
