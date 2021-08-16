@@ -1001,7 +1001,7 @@ class Beta(Prior):
                 return _ln_prob
             return -np.inf
         else:
-            _ln_prob_sub = -np.inf * np.ones(val.size)
+            _ln_prob_sub = np.full_like(val, -np.inf)
             idx = np.isfinite(_ln_prob) & (val >= self.minimum) & (val <= self.maximum)
             _ln_prob_sub[idx] = _ln_prob[idx]
             return _ln_prob_sub
