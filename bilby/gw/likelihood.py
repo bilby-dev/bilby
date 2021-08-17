@@ -187,9 +187,6 @@ class GravitationalWaveTransient(Likelihood):
                 [self.priors['luminosity_distance'].prob(distance)
                  for distance in self._distance_array])
             self._ref_dist = self.priors['luminosity_distance'].rescale(0.5)
-            if self.phase_marginalization:
-                max_bound = np.ceil(10 + np.log10(self._dist_multiplier))
-                self._setup_phase_marginalization(max_bound=max_bound)
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
             for key in ['redshift', 'comoving_distance']:
