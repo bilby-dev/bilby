@@ -9,3 +9,4 @@ kombine
 ultranest>=3.0.0
 dnest4
 nessai>=0.2.3
+schwimmbad
