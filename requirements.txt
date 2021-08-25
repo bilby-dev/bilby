@@ -1,4 +1,4 @@
-dynesty
+dynesty<1.1
 emcee
 corner
 numpy
