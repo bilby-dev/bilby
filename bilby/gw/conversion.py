@@ -244,19 +244,28 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                     converted_parameters[key])
                 converted_parameters['cos_tilt_{}'.format(idx)] = \
                     np.sign(converted_parameters[key])
-                converted_parameters['phi_jl'] = 0.0
-                converted_parameters['phi_12'] = 0.0
             else:
-                converted_parameters[f"cos_tilt_{idx}"] = (
-                    converted_parameters[key] / converted_parameters[f"a_{idx}"]
-                )
+                with np.errstate(invalid="raise"):
+                    try:
+                        converted_parameters[f"cos_tilt_{idx}"] = (
+                            converted_parameters[key] / converted_parameters[f"a_{idx}"]
+                        )
+                    except (FloatingPointError, ZeroDivisionError):
+                        logger.debug(
+                            "Error in conversion to spherical spin tilt. "
+                            "This is often due to the spin parameters being zero. "
+                            f"Setting cos_tilt_{idx} = 1."
+                        )
+                        converted_parameters[f"cos_tilt_{idx}"] = 1.0
+
+    for key in ["phi_jl", "phi_12"]:
+        if key not in converted_parameters:
+            converted_parameters[key] = 0.0
 
     for angle in ['tilt_1', 'tilt_2', 'theta_jn']:
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
-            with np.errstate(invalid="ignore"):
-                converted_parameters[angle] =\
-                    np.arccos(converted_parameters[cos_angle])
+            converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
 
     if "delta_phase" in original_keys:
         with np.errstate(invalid="ignore"):
@@ -782,6 +791,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             logger.debug('Assuming {} = {}'.format(key, default))
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
+    output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
         if (
                 hasattr(likelihood, 'phase_marginalization') or
@@ -820,7 +830,6 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                 )
     if likelihood is not None:
         compute_snrs(output_sample, likelihood)
-    output_sample, _ = base_conversion(output_sample)
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
             generate_source_frame_parameters]):
