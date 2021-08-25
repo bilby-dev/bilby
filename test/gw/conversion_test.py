@@ -296,6 +296,55 @@ class TestConvertToLALParams(unittest.TestCase):
             dict(a_1=a_1, tilt_1=tilt_1, phi_jl=phi_jl, phi_12=phi_12),
         )
 
+    def test_bbh_zero_aligned_spin_to_spherical_with_magnitude(self):
+        """
+        Test the the conversion returns the correct tilt angles when zero
+        aligned spin is passed if the magnitude is also pass.
+
+        If the magnitude is zero this returns tilt = 0.
+        If the magnitude is non-zero this returns tilt = pi.
+        """
+        self.parameters["chi_1"] = 0
+        self.parameters["chi_2"] = 0
+        a_1 = 0
+        self.parameters["a_1"] = a_1
+        a_2 = 1
+        self.parameters["a_2"] = a_2
+        tilt_1 = 0
+        tilt_2 = np.pi / 2
+        phi_jl = 0
+        phi_12 = 0
+        self.bbh_convert()
+        self.assertDictEqual(
+            {
+                key: self.parameters[key]
+                for key in ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
+            },
+            dict(a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl, phi_12=phi_12),
+        )
+
+    def test_bbh_zero_aligned_spin_to_spherical_without_magnitude(self):
+        """
+        Test the the conversion returns the correct tilt angles when zero
+        aligned spin is passed if the magnitude is also pass.
+
+        If the magnitude is zero this returns tilt = 0.
+        If the magnitude is non-zero this returns tilt = pi.
+        """
+        self.parameters["chi_1"] = 0
+        a_1 = 0
+        tilt_1 = np.pi / 2
+        phi_jl = 0
+        phi_12 = 0
+        self.bbh_convert()
+        self.assertDictEqual(
+            {
+                key: self.parameters[key]
+                for key in ["a_1", "tilt_1", "phi_12", "phi_jl"]
+            },
+            dict(a_1=a_1, tilt_1=tilt_1, phi_jl=phi_jl, phi_12=phi_12),
+        )
+
     def test_bbh_cos_angle_to_angle_conversion(self):
         self.parameters["cos_tilt_1"] = 1
         t1 = np.arccos(self.parameters["cos_tilt_1"])
