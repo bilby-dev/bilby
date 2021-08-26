@@ -1,0 +1,157 @@
+.. _bilby-mcmc-guide:
+
+================
+Bilby MCMC Guide
+================
+
+Bilby MCMC is a native sampler built directly in :code:`bilby` and described in
+`Ashton & Talbot (2021) <https://ui.adsabs.harvard.edu/abs/2021arXiv210608730A/abstract>`_.
+Here, we describe how to use it.
+
+
+Quickstart and output
+---------------------
+To use the :code:`bilby_mcmc` sampler, we call
+
+.. code-block:: python
+
+   >>> bilby.run_sampler(likelihood, priors, sampler="bilby_mcmc", nsamples=1000)
+
+This will run the MCMC sampler until 1000 independent samples are drawn from the posterior.
+As the sampler is running, it will print output like this
+
+.. code-block:: console
+
+   2.18e+04|10:13:34|9.96e+02(AD)|t=56|n=1874|a=0.15|e=1.1e-02%|16.68ms/ev|maxl=71.70|ETF=0:38:52
+   2.18e+04|10:14:34|9.96e+02(AD)|t=56|n=1877|a=0.15|e=1.1e-02%|16.73ms/ev|maxl=71.70|ETF=0:38:03
+   2.19e+04|10:15:35|9.96e+02(AD)|t=56|n=1880|a=0.15|e=1.1e-02%|17.94ms/ev|maxl=71.70|ETF=0:39:50
+
+From left to right, this gives the number of iterations, the time-elapsed, the
+number of burn-in iterations, the current estimate of the autocorrelation time
+(ACT), the current estimate of the number of samples, the overall acceptance
+fraction, the efficiency, the time per likelihood evaluation, the maximum
+likelihood seen to far, and the estimated time to finish. Note that the
+estimates of the time to finish and number of samples are dependent on the ACT.
+If this increases, the corresponding time to finish will increase. Generally,
+once the number of independent samples is greater than 50, the ACT is
+reasonably stable.
+
+Configuration
+-------------
+
+We now describe the configuration of the sampler. First, we will present a
+detailed look at some commonly-used parameters. But, please refer to the
+full API at the end of this page for an exhaustive list.
+
+Here, we provide a code snippet to run :code:`bilby-mcmc` with
+parallel-tempering, and set the :code:`thin_by_nact` parameter. Note that,
+because :code:`thin_by_nact < 1`, this will produce 1000 correlated samples.
+The number of independent samples is :code:`nsamples*thin_by_nact=200` in this
+case.
+
+.. code-block:: python
+
+   >>> bilby.run_sampler(
+       likelihood,
+       priors,
+       sampler="bilby_mcmc",
+       nsamples=1000,  # This is the number of raw samples
+       thin_by_nact=0.2,  # This sets the thinning factor
+       ntemps=8,  # The number of parallel-tempered chains
+       npool=1,  # The multiprocessing cores to use
+       L1steps=100,  # The number of internal steps to take for each iteration
+       proposal_cycle='default',  # Use the standard (non-GW) proposal cycle
+       printdt=60,  # Print a progress update every 60s
+       check_point_delta_t=1800,  # Checkpoint and create progress plots every 30m
+       )
+
+.. note::
+   If the ACT of your runs are consistently 1 with the above settings, you may
+   wish to decrease the number of internal steps :code:`L1steps`. The parameter
+   above has been tuned for typical gravitational-wave problems where the ACT
+   is usually several thousand.
+
+.. note::
+   You should choose `npool` to suit your computer and the number of parallel
+   chains. If you have 8 cores and use 8 temperatures, then :code:`npool=8`
+   or :code:`npool=4` is recommended. Choosing non-multiple values will reduce
+   the efficiency.
+
+Proposal Cycles: built-in
+--------------------------
+
+:code:`bilby_mcmc` offers a flexible interface to define a proposal cycle.
+This can be passed in to the sampler via the `proposal_cycle` keyword argument.
+
+**Using the default proposal cycle:** If :code:`proposal_cycle='default'`, a
+default non-gravitational-wave specific proposal cycle will be used which
+consists of a mixture of the standard, adaptive, and learning proposals. This
+proposal cycle is general-purpose and can be used on a variety of problems.
+
+To evaluate the effectiveness of proposals, at the checkpoint stage we
+print a summary of the proposal cycles for the zero-temperature primary sampler.
+This provides the acceptance ratio for each proposal, the number of times it
+has been used, and the training status for the learning proposals.
+
+.. code-block:: console
+
+   14:14 bilby INFO    : Zero-temperature proposals:
+   14:14 bilby INFO    : AdaptiveGaussianProposal(acceptance_ratio:0.23,n:7e+04,scale:0.018,)
+   14:14 bilby INFO    : DifferentialEvolutionProposal(acceptance_ratio:0.21,n:6.6e+04,)
+   14:14 bilby INFO    : UniformProposal(acceptance_ratio:0,n:2.7e+02,)
+   14:14 bilby INFO    : KDEProposal(acceptance_ratio:0.42,n:6.9e+04,trained:1,)
+   14:14 bilby INFO    : GMMProposal(acceptance_ratio:0.73,n:6.9e+04,trained:1,)
+   14:14 bilby INFO    : NormalizingFlowProposal(acceptance_ratio:0.38,n:6.9e+04,trained:1,)
+
+**Using the default gravitational-wave proposal cycle:** If you are using
+:code:`bilby_mcmc` to analyse a CBC gravitational-wave signal, you can use
+:code:`proposal_cycle='gwA'` to select the proposal cycle described in Table 1
+of 2106.08730.
+
+.. note::
+   You can modify either the :code:`'default'` or :code:`'gwA'` proposal cycles
+   by removing a particular class of proposals. For example, to remove the
+   Adaptive Gaussian proposals used :code:`proposal_cycle='default_noAG'`. The
+   two-letter codes follow the conventions established in Ashton & Talbot (2021).
+
+.. note::
+   The Normalizing Flow, and Gaussian Mixture Model proposals require additional
+   software to be installed.
+
+   To install :code:`nflows`, run
+
+   .. code-block:: console
+
+      $ pip install nflows
+
+   Note: :code:`nflows` depends on :code:`PyTorch`. Please see `the
+   documentation <https://pytorch.org/>`_ for help with installation.
+
+   To install :code:`sklean` used by the Gaussian Mixture Model, see the
+   `installation instructions <https://scikit-learn.org/stable/install.html>`_.
+
+   If these are not installed, but the proposals are used a warning message is
+   printed and the proposals ignored.
+
+Proposal Cycles: custom
+-----------------------
+
+The :code:`proposal_cycle` can also be provided directly. For example, here
+we create a list of proposals then use these to initialize a the cycle directly.
+Note that the prior here is the prior as passed in to :code:`run_sampler`.
+
+.. code-block:: python
+
+   >>> from bilby.bilby_mcmc.proposals import ProposalCycle, AdaptiveGaussianProposal, PriorProposal
+   >>> proposal_cycle_list = []
+   >>> proposal_cycle_list.append(AdaptiveGaussianProposal(priors, weight=2))
+   >>> proposal_cycle_list.append(PriorProposal(priors, weight=1))
+   >>> proposal_cycle = ProposalCycle(proposal_cycle_list)
+
+
+New proposals can also be created by subclassing existing proposals.
+
+Full API
+--------
+
+.. autoclass:: bilby.bilby_mcmc.sampler.Bilby_MCMC
