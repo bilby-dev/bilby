@@ -30,6 +30,8 @@ class TestBaseProposals(unittest.TestCase):
             for i in range(ndim)
         })
         priors["fixedA"] = bilby.core.prior.DeltaFunction(1)
+        priors["infinite_support"] = bilby.core.prior.Normal(0, 1)
+        priors["half_infinite_support"] = bilby.core.prior.HalfNormal(1)
         return priors
 
     def create_random_sample(self, ndim=2):
@@ -37,6 +39,8 @@ class TestBaseProposals(unittest.TestCase):
         p[LOGLKEY] = np.random.normal(0, 1)
         p[LOGPKEY] = -1
         p["fixedA"] = 1
+        p["infinite_support"] = np.random.normal(0, 1)
+        p["half_infinite_support"] = np.abs(np.random.normal(0, 1))
         return Sample(p)
 
     def create_chain(self, n=1000, ndim=2):
