@@ -16,6 +16,7 @@ Welcome to bilby's documentation!
    likelihood
    samplers
    dynesty-guide
+   bilby-mcmc-guide
    bilby-output
    compact-binary-coalescence-parameter-estimation
    transient-gw-data
@@ -27,6 +28,7 @@ Welcome to bilby's documentation!
    hyperparameters
    containers
    faq
+
 
 .. toctree::
    :maxdepth: 1
@@ -51,4 +53,4 @@ API:
     core
     gw
     hyper
-
+    bilby_mcmc

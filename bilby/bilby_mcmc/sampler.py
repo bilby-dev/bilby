@@ -46,9 +46,6 @@ class Bilby_MCMC(MCMCSampler):
         If true, resume from any existing check point files
     exit_code: int
         The code on which to raise if exiting
-
-    Sampling Parameters
-    -------------------
     nsamples: int (1000)
         The number of samples to draw
     nensemble: int (1)

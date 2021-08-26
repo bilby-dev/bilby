@@ -42,7 +42,7 @@ def gps_time_to_gmst(gps_time):
     Error accumulates at a rate of ~0.0001 radians/decade.
 
     Parameters
-    -------
+    ----------
     gps_time: float
         gps time
 
