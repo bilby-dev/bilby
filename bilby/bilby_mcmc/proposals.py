@@ -313,6 +313,10 @@ class DifferentialEvolutionProposal(BaseProposal):
 class UniformProposal(BaseProposal):
     """A proposal using uniform draws from the prior support
 
+    Note: for priors with infinite support, this proposal will not propose a
+    point, leading to inefficient sampling. You may wish to omit this proposal
+    if you have priors with infinite support.
+
     Parameters
     ----------
     priors: bilby.core.prior.PriorDict
@@ -330,9 +334,14 @@ class UniformProposal(BaseProposal):
     def propose(self, chain):
         sample = chain.current_sample
         for key in self.parameters:
-            sample[key] = np.random.uniform(
-                self.prior_minimum_dict[key], self.prior_maximum_dict[key]
-            )
+            width = self.prior_width_dict[key]
+            if np.isinf(width) is False:
+                sample[key] = np.random.uniform(
+                    self.prior_minimum_dict[key], self.prior_maximum_dict[key]
+                )
+            else:
+                # Unable to generate a uniform sample on infinite support
+                pass
         log_factor = 0
         return sample, log_factor
 
