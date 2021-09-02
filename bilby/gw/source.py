@@ -72,6 +72,9 @@ def lal_binary_black_hole(
           However, waveform_arguments =
           dict(waveform_approximant='IMRPhenomXHM', mode_array=[[2,2],[4,-4]])
           returns the 22 and 4-4 of IMRPhenomXHM.
+        - lal_waveform_dictionary:
+          A dictionary (lal.Dict) of arguments passed to the lalsimulation
+          waveform generator. The arguments are specific to the waveform used.
 
     Returns
     =======
