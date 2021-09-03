@@ -9,6 +9,7 @@ from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
+from ..conversion import generate_all_bbh_parameters
 
 
 class Interferometer(object):
@@ -318,8 +319,50 @@ class Interferometer(object):
 
         return signal_ifo
 
+    def check_signal_duration(self, parameters, raise_error=True):
+        """ Check that the signal with the given parameters fits in the data
+
+        Parameters
+        ==========
+        parameters: dict
+            A dictionary of the injection parameters
+        raise_error: bool
+            If True, raise an error in the signal does not fit. Otherwise, print
+            a warning message.
+        """
+        try:
+            parameters = generate_all_bbh_parameters(parameters)
+        except AttributeError:
+            logger.debug(
+                "generate_all_bbh_parameters parameters failed during check_signal_duration"
+            )
+            return
+
+        if ("mass_1" not in parameters) and ("mass_2" not in parameters):
+            if raise_error:
+                raise AttributeError("Unable to check signal duration as mass not given")
+            else:
+                return
+
+        # Calculate the time to merger
+        deltaT = gwutils.calculate_time_to_merger(
+            frequency=self.minimum_frequency,
+            mass_1=parameters["mass_1"],
+            mass_2=parameters["mass_2"],
+        )
+        deltaT = np.round(deltaT, 1)
+        if deltaT > self.duration:
+            msg = (
+                f"The injected signal has a duration in-band of {deltaT}s, but "
+                f"the data for detector {self.name} has a duration of {self.duration}s"
+            )
+            if raise_error:
+                raise ValueError(msg)
+            else:
+                logger.warning(msg)
+
     def inject_signal(self, parameters, injection_polarizations=None,
-                      waveform_generator=None):
+                      waveform_generator=None, raise_error=True):
         """ General signal injection method.
         Provide the injection parameters and either the injection polarizations
         or the waveform generator to inject a signal into the detector.
@@ -337,6 +380,10 @@ class Interferometer(object):
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator, optional
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
+        raise_error: bool
+            If true, raise an error if the injected signal has a duration
+            longer than the data duration. If False, a warning will be printed
+            instead.
 
         Notes
         =====
@@ -351,6 +398,8 @@ class Interferometer(object):
             if it was passed in. Otherwise it is the return value of waveform_generator.frequency_domain_strain().
 
         """
+        self.check_signal_duration(parameters, raise_error)
+
         if injection_polarizations is None and waveform_generator is None:
             raise ValueError(
                 "inject_signal needs one of waveform_generator or "

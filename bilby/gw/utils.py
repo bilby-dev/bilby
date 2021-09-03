@@ -10,6 +10,7 @@ from ..core.utils import (ra_dec_to_theta_phi,
                           speed_of_light, logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)
+from ..core.utils.constants import solar_mass
 
 
 def asd_from_freq_series(freq_data, df):
@@ -1006,3 +1007,37 @@ def ln_i0(value):
         The natural logarithm of the bessel function
     """
     return np.log(i0e(value)) + value
+
+
+def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
+    """ Leading-order calculation of the time to merger from frequency
+
+    This uses the XLALSimInspiralTaylorF2ReducedSpinChirpTime routine to
+    estimate the time to merger. Based on the implementation in
+    `pycbc.pnutils._get_imr_duration`.
+
+    Parameters
+    ==========
+    frequency: float
+        The frequency (Hz) of the signal from which to calculate the time to merger
+    mass_1, mass_2: float
+        The detector frame component masses
+    chi: float
+        Dimensionless aligned-spin param
+    safety:
+        Multiplicitive safety factor
+
+    Returns
+    =======
+    time_to_merger: float
+        The time to merger from frequency in seconds
+    """
+
+    import lalsimulation
+    return safety * lalsimulation.SimInspiralTaylorF2ReducedSpinChirpTime(
+        frequency,
+        mass_1 * solar_mass,
+        mass_2 * solar_mass,
+        chi,
+        -1
+    )

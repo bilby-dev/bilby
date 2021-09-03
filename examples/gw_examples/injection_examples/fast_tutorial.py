@@ -15,6 +15,7 @@ import bilby
 # going to inject the signal into
 duration = 4.
 sampling_frequency = 2048.
+minimum_frequency = 20
 
 # Specify the output directory and the name of the simulation.
 outdir = 'outdir'
@@ -35,7 +36,8 @@ injection_parameters = dict(
 
 # Fixed arguments passed into the source model
 waveform_arguments = dict(waveform_approximant='IMRPhenomPv2',
-                          reference_frequency=50., minimum_frequency=20.)
+                          reference_frequency=50.,
+                          minimum_frequency=minimum_frequency)
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
 waveform_generator = bilby.gw.WaveformGenerator(
@@ -66,12 +68,15 @@ ifos.inject_signal(waveform_generator=waveform_generator,
 # sampler.  If we do nothing, then the default priors get used.
 priors = bilby.gw.prior.BBHPriorDict()
 priors['geocent_time'] = bilby.core.prior.Uniform(
-    minimum=injection_parameters['geocent_time'] - 1,
-    maximum=injection_parameters['geocent_time'] + 1,
+    minimum=injection_parameters['geocent_time'] - 0.1,
+    maximum=injection_parameters['geocent_time'] + 0.1,
     name='geocent_time', latex_label='$t_c$', unit='$s$')
 for key in ['a_1', 'a_2', 'tilt_1', 'tilt_2', 'phi_12', 'phi_jl', 'psi', 'ra',
             'dec', 'geocent_time', 'phase']:
     priors[key] = injection_parameters[key]
+
+# Perform a check that the prior does not extend to a parameter space longer than the data
+priors.validate_prior(duration, minimum_frequency)
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
 # the waveform generator

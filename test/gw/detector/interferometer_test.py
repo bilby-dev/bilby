@@ -61,7 +61,10 @@ class TestInterferometer(unittest.TestCase):
         self.waveform_generator.frequency_domain_strain = (
             lambda _: self.wg_polarizations
         )
-        self.parameters = dict(ra=0.0, dec=0.0, geocent_time=0.0, psi=0.0)
+        self.parameters = dict(
+            ra=0.0, dec=0.0, geocent_time=0.0, psi=0.0,
+            mass_1=100, mass_2=100
+        )
 
         bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
 
