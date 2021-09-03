@@ -189,6 +189,8 @@ def run_sampler(likelihood, priors=None, label='label', outdir='outdir',
     # Some samplers calculate the sampling time internally
     if result.sampling_time is None:
         result.sampling_time = end_time - start_time
+    elif isinstance(result.sampling_time, float):
+        result.sampling_time = datetime.timedelta(result.sampling_time)
     logger.info('Sampling time: {}'.format(result.sampling_time))
     # Convert sampling time into seconds
     result.sampling_time = result.sampling_time.total_seconds()
