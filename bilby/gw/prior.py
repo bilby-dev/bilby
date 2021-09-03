@@ -17,10 +17,12 @@ from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
     convert_to_lal_binary_neutron_star_parameters, generate_mass_parameters,
     generate_tidal_parameters, fill_from_fixed_priors,
+    generate_all_bbh_parameters,
     chirp_mass_and_mass_ratio_to_total_mass,
     total_mass_and_mass_ratio_to_component_masses)
 from .cosmology import get_cosmology
 from .source import PARAMETER_SETS
+from .utils import calculate_time_to_merger
 
 
 DEFAULT_PRIOR_DIR = os.path.join(os.path.dirname(__file__), 'prior_files')
@@ -682,6 +684,42 @@ class CBCPriorDict(ConditionalPriorDict):
     def phase(self):
         """ Return true if priors include phase parameters """
         return self.is_nonempty_intersection("phase")
+
+    def validate_prior(self, duration, minimum_frequency, N=1000, error=True, warning=False):
+        """ Validate the prior is suitable for use
+
+        Parameters
+        ==========
+        duration: float
+            The data duration in seconds
+        minimum_frequency: float
+            The minimum frequency in Hz of the analysis
+        N: int
+            The number of samples to draw when checking
+        """
+        samples = self.sample(N)
+        samples = generate_all_bbh_parameters(samples)
+        deltaT = np.array([
+            calculate_time_to_merger(
+                frequency=minimum_frequency,
+                mass_1=mass_1,
+                mass_2=mass_2,
+            )
+            for (mass_1, mass_2) in zip(samples["mass_1"], samples["mass_2"])
+        ])
+        if np.all(deltaT < duration):
+            return True
+        if warning:
+            logger.warning(
+                "Prior contains regions of parameter space in which the signal"
+                f" is longer than the data duration {duration}s"
+            )
+            return False
+        if error:
+            raise ValueError(
+                "Prior contains regions of parameter space in which the signal"
+                f" is longer than the data duration {duration}s"
+            )
 
 
 class BBHPriorDict(CBCPriorDict):
