@@ -1,14 +1,14 @@
 # This dockerfile is written automatically and should not be modified by hand.
 
 FROM containers.ligo.org/docker/base:conda
-LABEL name="bilby Base miniconda3" \
+LABEL name="bilby CI testing" \
 maintainer="Gregory Ashton <gregory.ashton@ligo.org>"
 
 RUN conda update -n base -c defaults conda
 
-ENV conda_env python37
+ENV conda_env python39
 
-RUN conda create -n ${conda_env} python=3.7
+RUN conda create -n ${conda_env} python=3.9
 RUN echo "source activate ${conda_env}" > ~/.bashrc
 ENV PATH /opt/conda/envs/${conda_env}/bin:$PATH
 RUN /bin/bash -c "source activate ${conda_env}"
@@ -16,7 +16,7 @@ RUN conda info
 RUN python --version
 
 # Install pymultinest requirements
-RUN apt-get update
+RUN apt-get update --allow-releaseinfo-change
 RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev \
 libatlas3-base libatlas-base-dev cmake build-essential gfortran
 
