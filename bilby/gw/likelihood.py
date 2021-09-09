@@ -4,6 +4,7 @@ import json
 import copy
 import math
 
+import attr
 import numpy as np
 import pandas as pd
 from scipy.special import logsumexp
@@ -23,7 +24,6 @@ from .utils import (
     ln_i0
 )
 from .waveform_generator import WaveformGenerator
-from collections import namedtuple
 
 
 class GravitationalWaveTransient(Likelihood):
@@ -117,13 +117,14 @@ class GravitationalWaveTransient(Likelihood):
 
     """
 
-    _CalculatedSNRs = namedtuple('CalculatedSNRs',
-                                 ['d_inner_h',
-                                  'optimal_snr_squared',
-                                  'complex_matched_filter_snr',
-                                  'd_inner_h_array',
-                                  'optimal_snr_squared_array',
-                                  'd_inner_h_squared_tc_array'])
+    @attr.s
+    class _CalculatedSNRs:
+        d_inner_h = attr.ib()
+        optimal_snr_squared = attr.ib()
+        complex_matched_filter_snr = attr.ib()
+        d_inner_h_array = attr.ib()
+        optimal_snr_squared_array = attr.ib()
+        d_inner_h_squared_tc_array = attr.ib()
 
     def __init__(
         self, interferometers, waveform_generator, time_marginalization=False,
@@ -218,19 +219,19 @@ class GravitationalWaveTransient(Likelihood):
         """
 
         attributes = ['duration', 'sampling_frequency', 'start_time']
-        for attr in attributes:
-            wfg_attr = getattr(self.waveform_generator, attr)
-            ifo_attr = getattr(self.interferometers, attr)
+        for attribute in attributes:
+            wfg_attr = getattr(self.waveform_generator, attribute)
+            ifo_attr = getattr(self.interferometers, attribute)
             if wfg_attr is None:
                 logger.debug(
                     "The waveform_generator {} is None. Setting from the "
-                    "provided interferometers.".format(attr))
+                    "provided interferometers.".format(attribute))
             elif wfg_attr != ifo_attr:
                 logger.debug(
                     "The waveform_generator {} is not equal to that of the "
                     "provided interferometers. Overwriting the "
-                    "waveform_generator.".format(attr))
-            setattr(self.waveform_generator, attr, ifo_attr)
+                    "waveform_generator.".format(attribute))
+            setattr(self.waveform_generator, attribute, ifo_attr)
 
     def calculate_snrs(self, waveform_polarizations, interferometer):
         """

@@ -11,3 +11,4 @@ tqdm
 h5py
 tables
 astropy
+attrs
