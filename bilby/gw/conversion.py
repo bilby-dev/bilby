@@ -1165,10 +1165,10 @@ def compute_snrs(sample, likelihood, npool=1):
                 logger.info(
                     "Using a pool with size {} for nsamples={}".format(npool, len(sample))
                 )
-                new_samples = np.array(pool.map(_compute_snrs, tqdm(fill_args, file=sys.stdout)))
+                new_samples = pool.map(_compute_snrs, tqdm(fill_args, file=sys.stdout))
                 pool.close()
             else:
-                new_samples = np.array([_compute_snrs(xx) for xx in tqdm(fill_args, file=sys.stdout)])
+                new_samples = [_compute_snrs(xx) for xx in tqdm(fill_args, file=sys.stdout)]
 
             for ii, ifo in enumerate(likelihood.interferometers):
                 matched_filter_snrs = list()
