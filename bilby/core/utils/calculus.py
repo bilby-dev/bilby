@@ -1,3 +1,4 @@
+import math
 from numbers import Number
 import numpy as np
 from scipy.interpolate import interp2d
@@ -250,3 +251,18 @@ class UnsortedInterp2d(interp2d):
         elif not isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
             x = x * np.ones_like(y)
         return x, y
+
+
+def round_up_to_power_of_two(x):
+    """Round up to the next power of two
+
+    Parameters
+    ----------
+    x: float
+
+    Returns
+    -------
+    float: next power of two
+
+    """
+    return 2**math.ceil(np.log2(x))

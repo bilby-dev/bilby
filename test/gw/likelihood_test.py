@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 import os
 
 import numpy as np
@@ -1004,6 +1005,165 @@ class TestBBHLikelihoodSetUp(unittest.TestCase):
 
     def test_instantiation(self):
         self.like = bilby.gw.likelihood.get_binary_black_hole_likelihood(self.ifos)
+
+
+class TestMBLikelihood(unittest.TestCase):
+    def setUp(self):
+        duration = 16
+        fmin = 20.
+        sampling_frequency = 2048.
+        self.test_parameters = dict(
+            chirp_mass=6.0,
+            mass_ratio=0.5,
+            a_1=0.0,
+            a_2=0.0,
+            tilt_1=0.0,
+            tilt_2=0.0,
+            phi_12=0.0,
+            phi_jl=0.0,
+            luminosity_distance=200.0,
+            theta_jn=0.4,
+            psi=0.659,
+            phase=1.3,
+            geocent_time=1187008882,
+            ra=1.3,
+            dec=-1.2
+        )  # Network SNR is ~50
+
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
+        np.random.seed(170817)
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=sampling_frequency, duration=duration,
+            start_time=self.test_parameters['geocent_time'] - duration + 2.
+        )
+        for ifo in ifos:
+            ifo.minimum_frequency = fmin
+
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors.pop("mass_1")
+        priors.pop("mass_2")
+        priors["chirp_mass"] = bilby.core.prior.Uniform(5.5, 6.5)
+        priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
+        priors["geocent_time"] = bilby.core.prior.Uniform(
+            self.test_parameters['geocent_time'] - 0.1,
+            self.test_parameters['geocent_time'] + 0.1)
+
+        approximant_22 = "IMRPhenomD"
+        approximant_homs = "IMRPhenomHM"
+        non_mb_wfg_22 = bilby.gw.WaveformGenerator(
+            duration=duration, sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=fmin, minimum_frequency=fmin, approximant=approximant_22)
+        )
+        mb_wfg_22 = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=duration, sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            waveform_arguments=dict(
+                reference_frequency=fmin, approximant=approximant_22)
+        )
+        non_mb_wfg_homs = bilby.gw.WaveformGenerator(
+            duration=duration, sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=fmin, minimum_frequency=fmin, approximant=approximant_homs)
+        )
+        mb_wfg_homs = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=duration, sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            waveform_arguments=dict(
+                reference_frequency=fmin, approximant=approximant_homs)
+        )
+
+        ifos_22 = deepcopy(ifos)
+        ifos_22.inject_signal(
+            parameters=self.test_parameters, waveform_generator=non_mb_wfg_22
+        )
+        ifos_homs = deepcopy(ifos)
+        ifos_homs.inject_signal(
+            parameters=self.test_parameters, waveform_generator=non_mb_wfg_homs
+        )
+
+        self.non_mb_22 = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos_22, waveform_generator=non_mb_wfg_22
+        )
+        self.non_mb_homs = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos_homs, waveform_generator=non_mb_wfg_homs
+        )
+
+        self.mb_22 = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=ifos_22, waveform_generator=deepcopy(mb_wfg_22),
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            priors=priors.copy()
+        )
+        self.mb_ifftfft_22 = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=ifos_22, waveform_generator=deepcopy(mb_wfg_22),
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            priors=priors.copy(), linear_interpolation=False
+        )
+        self.mb_homs = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=ifos_homs, waveform_generator=deepcopy(mb_wfg_homs),
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            priors=priors.copy(), linear_interpolation=False, highest_mode=4
+        )
+        self.mb_more_accurate = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=ifos_22, waveform_generator=deepcopy(mb_wfg_22),
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            priors=priors.copy(), accuracy_factor=50
+        )
+
+    def tearDown(self):
+        del (
+            self.non_mb_22,
+            self.non_mb_homs,
+            self.mb_22,
+            self.mb_ifftfft_22,
+            self.mb_homs,
+            self.mb_more_accurate
+        )
+
+    def test_matches_non_mb(self):
+        self.non_mb_22.parameters.update(self.test_parameters)
+        self.mb_22.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_mb_22.log_likelihood_ratio() - self.mb_22.log_likelihood_ratio()),
+            1e-2
+        )
+
+    def test_ifft_fft(self):
+        """
+        Check if multi-banding likelihood with (h, h) computed with the
+        IFFT-FFT algorithm matches the original likelihood.
+        """
+        self.non_mb_22.parameters.update(self.test_parameters)
+        self.mb_ifftfft_22.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_mb_22.log_likelihood_ratio() - self.mb_ifftfft_22.log_likelihood_ratio()),
+            5e-3
+        )
+
+    def test_homs(self):
+        """
+        Check if multi-banding likelihood matches the original likelihood for higher-order moments.
+        """
+        self.non_mb_homs.parameters.update(self.test_parameters)
+        self.mb_homs.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_mb_homs.log_likelihood_ratio() - self.mb_homs.log_likelihood_ratio()),
+            1e-3
+        )
+
+    def test_large_accuracy_factor(self):
+        """
+        Check if larger accuracy factor increases the accuracy.
+        """
+        self.non_mb_22.parameters.update(self.test_parameters)
+        self.mb_22.parameters.update(self.test_parameters)
+        self.mb_more_accurate.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_mb_22.log_likelihood_ratio() - self.mb_more_accurate.log_likelihood_ratio()),
+            abs(self.non_mb_22.log_likelihood_ratio() - self.mb_22.log_likelihood_ratio()) / 2
+        )
 
 
 if __name__ == "__main__":

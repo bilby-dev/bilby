@@ -542,6 +542,291 @@ def _base_roq_waveform(
     return waveform_polarizations
 
 
+def binary_black_hole_frequency_sequence(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ A Binary Black Hole waveform model using lalsimulation. This generates
+    a waveform only on specified frequency points. This is useful for
+    likelihood requiring waveform values at a subset of all the frequency
+    samples. For example, this is used for MBGravitationalWaveTransient.
+
+    Parameters
+    ==========
+    frequency_array: array_like
+        The input is ignored.
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
+    phase: float
+        The phase at coalescence
+    kwargs: dict
+        Required keyword arguments
+        - frequencies:
+            ndarray of frequencies at which waveforms are evaluated
+
+        Optional keyword arguments
+        - waveform_approximant
+        - reference_frequency
+        - catch_waveform_errors
+        - pn_spin_order
+        - pn_tidal_order
+        - pn_phase_order
+        - pn_amplitude_order
+        - mode_array:
+          Activate a specific mode array and evaluate the model using those
+          modes only.  e.g. waveform_arguments =
+          dict(waveform_approximant='IMRPhenomHM', mode_array=[[2,2],[2,-2])
+          returns the 22 and 2-2 modes only of IMRPhenomHM.  You can only
+          specify modes that are included in that particular model.  e.g.
+          waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+          mode_array=[[2,2],[2,-2],[5,5],[5,-5]]) is not allowed because the
+          55 modes are not included in this model.  Be aware that some models
+          only take positive modes and return the positive and the negative
+          mode together, while others need to call both.  e.g.
+          waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+          mode_array=[[2,2],[4,-4]]) returns the 22 and 2-2 of IMRPhenomHM.
+          However, waveform_arguments =
+          dict(waveform_approximant='IMRPhenomXHM', mode_array=[[2,2],[4,-4]])
+          returns the 22 and 4-4 of IMRPhenomXHM.
+
+    Returns
+    =======
+    dict: A dictionary with the plus and cross polarisation strain modes
+    """
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
+    waveform_kwargs.update(kwargs)
+    return _base_waveform_frequency_sequence(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
+
+
+def binary_neutron_star_frequency_sequence(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
+        **kwargs):
+    """ A Binary Neutron Star waveform model using lalsimulation. This generates
+    a waveform only on specified frequency points. This is useful for
+    likelihood requiring waveform values at a subset of all the frequency
+    samples. For example, this is used for MBGravitationalWaveTransient.
+
+    Parameters
+    ==========
+    frequency_array: array_like
+        The input is ignored.
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    lambda_1: float
+        Dimensionless tidal deformability of mass_1
+    lambda_2: float
+        Dimensionless tidal deformability of mass_2
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
+    phase: float
+        The phase at coalescence
+    kwargs: dict
+        Required keyword arguments
+        - frequencies:
+            ndarray of frequencies at which waveforms are evaluated
+
+        Optional keyword arguments
+        - waveform_approximant
+        - reference_frequency
+        - catch_waveform_errors
+        - pn_spin_order
+        - pn_tidal_order
+        - pn_phase_order
+        - pn_amplitude_order
+        - mode_array:
+          Activate a specific mode array and evaluate the model using those
+          modes only.  e.g. waveform_arguments =
+          dict(waveform_approximant='IMRPhenomHM', mode_array=[[2,2],[2,-2])
+          returns the 22 and 2-2 modes only of IMRPhenomHM.  You can only
+          specify modes that are included in that particular model.  e.g.
+          waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+          mode_array=[[2,2],[2,-2],[5,5],[5,-5]]) is not allowed because the
+          55 modes are not included in this model.  Be aware that some models
+          only take positive modes and return the positive and the negative
+          mode together, while others need to call both.  e.g.
+          waveform_arguments = dict(waveform_approximant='IMRPhenomHM',
+          mode_array=[[2,2],[4,-4]]) returns the 22 and 2-2 of IMRPhenomHM.
+          However, waveform_arguments =
+          dict(waveform_approximant='IMRPhenomXHM', mode_array=[[2,2],[4,-4]])
+          returns the 22 and 4-4 of IMRPhenomXHM.
+
+    Returns
+    =======
+    dict: A dictionary with the plus and cross polarisation strain modes
+    """
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
+    waveform_kwargs.update(kwargs)
+    return _base_waveform_frequency_sequence(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
+
+
+def _base_waveform_frequency_sequence(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, lambda_1, lambda_2, phi_jl, theta_jn, phase,
+        **waveform_kwargs):
+    """ Generate a cbc waveform model on specified frequency samples
+
+    Parameters
+    ----------
+    frequency_array: np.array
+        This input is ignored
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+    theta_jn: float
+        Orbital inclination
+    phase: float
+        The phase at coalescence
+    waveform_kwargs: dict
+        Optional keyword arguments
+
+    Returns
+    -------
+    waveform_polarizations: dict
+        Dict containing plus and cross modes evaluated at the linear and
+        quadratic frequency nodes.
+    """
+    from lal import CreateDict
+    import lalsimulation as lalsim
+
+    frequencies = waveform_kwargs['frequencies']
+    reference_frequency = waveform_kwargs['reference_frequency']
+    approximant = lalsim_GetApproximantFromString(waveform_kwargs['waveform_approximant'])
+    catch_waveform_errors = waveform_kwargs['catch_waveform_errors']
+    pn_spin_order = waveform_kwargs['pn_spin_order']
+    pn_tidal_order = waveform_kwargs['pn_tidal_order']
+    pn_phase_order = waveform_kwargs['pn_phase_order']
+    pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
+    waveform_dictionary = waveform_kwargs.get(
+        'lal_waveform_dictionary', CreateDict()
+    )
+
+    lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(
+        waveform_dictionary, int(pn_spin_order))
+    lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(
+        waveform_dictionary, int(pn_tidal_order))
+    lalsim.SimInspiralWaveformParamsInsertPNPhaseOrder(
+        waveform_dictionary, int(pn_phase_order))
+    lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
+        waveform_dictionary, int(pn_amplitude_order))
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
+        waveform_dictionary, lambda_1)
+    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
+        waveform_dictionary, lambda_2)
+
+    for key, value in waveform_kwargs.items():
+        func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
+        if func is not None:
+            func(waveform_dictionary, value)
+
+    if waveform_kwargs.get('numerical_relativity_file', None) is not None:
+        lalsim.SimInspiralWaveformParamsInsertNumRelData(
+            waveform_dictionary, waveform_kwargs['numerical_relativity_file'])
+
+    if ('mode_array' in waveform_kwargs) and waveform_kwargs['mode_array'] is not None:
+        mode_array = waveform_kwargs['mode_array']
+        mode_array_lal = lalsim.SimInspiralCreateModeArray()
+        for mode in mode_array:
+            lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
+        lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+
+    try:
+        h_plus, h_cross = lalsim_SimInspiralChooseFDWaveformSequence(
+            phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+            spin_2z, reference_frequency, luminosity_distance, iota,
+            waveform_dictionary, approximant, frequencies)
+    except Exception as e:
+        if not catch_waveform_errors:
+            raise
+        else:
+            EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
+            if EDOM:
+                failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
+                                         spin_1=(spin_1x, spin_2y, spin_1z),
+                                         spin_2=(spin_2x, spin_2y, spin_2z),
+                                         luminosity_distance=luminosity_distance,
+                                         iota=iota, phase=phase)
+                logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                               "The parameters were {}\n".format(failed_parameters) +
+                               "Likelihood will be set to -inf.")
+                return None
+            else:
+                raise
+
+    return dict(plus=h_plus.data.data, cross=h_cross.data.data)
+
+
 def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     tau = Q / (np.sqrt(2.0) * np.pi * frequency)
     temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
