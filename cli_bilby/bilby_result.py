@@ -202,10 +202,10 @@ def main():
     results_list = read_in_results(args.results)
 
     if args.save:
-        for res in results_list:
+        for result in results_list:
             if args.label is not None:
-                res.label = args.label
-            save(res, args)
+                result.label = args.label
+            save(result, args)
 
     if args.merge:
         result = results_list.combine()
@@ -214,7 +214,7 @@ def main():
         if args.outdir is not None:
             result.outdir = args.outdir
 
-        save(res, args)
+        save(result, args)
 
     if args.keys is not None:
         print_matches(results_list, args)
