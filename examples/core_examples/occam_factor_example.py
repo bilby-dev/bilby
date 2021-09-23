@@ -69,13 +69,13 @@ class Polynomial(bilby.Likelihood):
         n: int
             The degree of the polynomial to fit.
         """
+        self.keys = ['c{}'.format(k) for k in range(n)]
+        super().__init__(parameters={k: None for k in self.keys})
         self.x = x
         self.y = y
         self.sigma = sigma
         self.N = len(x)
         self.n = n
-        self.keys = ['c{}'.format(k) for k in range(n)]
-        self.parameters = {k: None for k in self.keys}
 
     def polynomial(self, x, parameters):
         coeffs = [parameters[k] for k in self.keys]
@@ -95,8 +95,8 @@ def fit(n):
         priors[k] = bilby.core.prior.Uniform(0, 10, k)
 
     result = bilby.run_sampler(
-        likelihood=likelihood, priors=priors, npoints=100, outdir=outdir,
-        label=label)
+        likelihood=likelihood, priors=priors, nlive=1000, outdir=outdir,
+        label=label, sampler="nestle")
     return (result.log_evidence, result.log_evidence_err,
             np.log(result.occam_factor(priors)))
 

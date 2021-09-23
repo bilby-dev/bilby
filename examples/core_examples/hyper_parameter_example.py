@@ -9,8 +9,10 @@ from bilby.core.prior import Uniform
 from bilby.core.sampler import run_sampler
 from bilby.core.result import make_pp_plot
 from bilby.hyper.likelihood import HyperparameterLikelihood
+from bilby.core.utils import check_directory_exists_and_if_not_mkdir
 
 outdir = 'outdir'
+check_directory_exists_and_if_not_mkdir(outdir)
 
 
 # Define a model to fit to each data set

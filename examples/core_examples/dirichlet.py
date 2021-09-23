@@ -20,7 +20,7 @@ data = [injection_parameters[label + str(ii)] * 1000 for ii in range(n_dim)]
 likelihood = Multinomial(data=data, n_dimensions=n_dim, label=label)
 
 result = run_sampler(
-    likelihood=likelihood, priors=priors, nlive=100, walks=10,
+    likelihood=likelihood, priors=priors, nlive=100,
     label="multinomial", injection_parameters=injection_parameters
 )
 

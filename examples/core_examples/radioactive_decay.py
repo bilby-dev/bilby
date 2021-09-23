@@ -88,6 +88,6 @@ priors['n_init'] = LogUniform(
 # And run sampler
 result = bilby.run_sampler(
     likelihood=likelihood, priors=priors, sampler='dynesty',
-    nlive=1000, sample='unif', injection_parameters=injection_parameters,
+    nlive=1000, injection_parameters=injection_parameters,
     outdir=outdir, label=label)
 result.plot_corner()

@@ -57,7 +57,9 @@ priors['sigma'] = bilby.core.prior.Uniform(0, 10, 'sigma')
 
 # And run sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
-    sample='unif', injection_parameters=injection_parameters, outdir=outdir,
+    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=250,
+    injection_parameters=injection_parameters, outdir=outdir,
     label=label)
+
+# Finally plot a corner plot: all outputs are stored in outdir
 result.plot_corner()

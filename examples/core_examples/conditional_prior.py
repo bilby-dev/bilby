@@ -39,6 +39,6 @@ priors['z'] = bilby.core.prior.ConditionalUniform(condition_func=condition_func_
 likelihood = ZeroLikelihood(parameters=dict(x=0, y=0, z=0))
 
 # Sample the prior distribution
-res = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=5000, walks=100,
+res = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', nlive=5000,
                         label='conditional_prior', outdir='outdir', resume=False, clean=True)
 res.plot_corner()
