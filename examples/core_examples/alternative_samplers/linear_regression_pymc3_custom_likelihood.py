@@ -8,15 +8,16 @@ would give equivalent results as using the pre-defined 'Gaussian Likelihood'
 
 """
 
-import bilby
-import numpy as np
-import matplotlib.pyplot as plt
 import inspect
+
+import bilby
+import matplotlib.pyplot as plt
+import numpy as np
 import pymc3 as pm
 
 # A few simple setup steps
-label = 'linear_regression_pymc3_custom_likelihood'
-outdir = 'outdir'
+label = "linear_regression_pymc3_custom_likelihood"
+outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 
@@ -41,18 +42,17 @@ data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()
-ax.plot(time, data, 'o', label='data')
-ax.plot(time, model(time, **injection_parameters), '--r', label='signal')
-ax.set_xlabel('time')
-ax.set_ylabel('y')
+ax.plot(time, data, "o", label="data")
+ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
+ax.set_xlabel("time")
+ax.set_ylabel("y")
 ax.legend()
-fig.savefig('{}/{}_data.png'.format(outdir, label))
+fig.savefig("{}/{}_data.png".format(outdir, label))
 
 
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
 # our model.
 class GaussianLikelihoodPyMC3(bilby.Likelihood):
-
     def __init__(self, x, y, sigma, function):
         """
         A general Gaussian likelihood - the parameters are inferred from the
@@ -95,17 +95,17 @@ class GaussianLikelihoodPyMC3(bilby.Likelihood):
         if not isinstance(sampler, Pymc3):
             raise ValueError("Sampler is not a bilby Pymc3 sampler object")
 
-        if not hasattr(sampler, 'pymc3_model'):
+        if not hasattr(sampler, "pymc3_model"):
             raise AttributeError("Sampler has not PyMC3 model attribute")
 
         with sampler.pymc3_model:
-            mdist = sampler.pymc3_priors['m']
-            cdist = sampler.pymc3_priors['c']
+            mdist = sampler.pymc3_priors["m"]
+            cdist = sampler.pymc3_priors["c"]
 
             mu = model(time, mdist, cdist)
 
             # set the likelihood distribution
-            pm.Normal('likelihood', mu=mu, sd=self.sigma, observed=self.y)
+            pm.Normal("likelihood", mu=mu, sd=self.sigma, observed=self.y)
 
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
@@ -120,9 +120,9 @@ class PriorPyMC3(bilby.core.prior.Prior):
         Uniform prior with bounds (should be equivalent to bilby.prior.Uniform)
         """
 
-        bilby.core.prior.Prior.__init__(self, name, latex_label,
-                                        minimum=minimum,
-                                        maximum=maximum)
+        bilby.core.prior.Prior.__init__(
+            self, name, latex_label, minimum=minimum, maximum=maximum
+        )
 
     def ln_prob(self, sampler=None):
         """
@@ -135,19 +135,25 @@ class PriorPyMC3(bilby.core.prior.Prior):
         if not isinstance(sampler, Pymc3):
             raise ValueError("Sampler is not a bilby Pymc3 sampler object")
 
-        return pm.Uniform(self.name, lower=self.minimum,
-                          upper=self.maximum)
+        return pm.Uniform(self.name, lower=self.minimum, upper=self.maximum)
 
 
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
 priors = dict()
-priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
-priors['c'] = PriorPyMC3(-2, 2, 'c')
+priors["m"] = bilby.core.prior.Uniform(0, 5, "m")
+priors["c"] = PriorPyMC3(-2, 2, "c")
 
 # And run sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='pymc3', draws=1000,
-    tune=1000, discard_tuned_samples=True,
-    injection_parameters=injection_parameters, outdir=outdir, label=label)
+    likelihood=likelihood,
+    priors=priors,
+    sampler="pymc3",
+    draws=1000,
+    tune=1000,
+    discard_tuned_samples=True,
+    injection_parameters=injection_parameters,
+    outdir=outdir,
+    label=label,
+)
 result.plot_corner()

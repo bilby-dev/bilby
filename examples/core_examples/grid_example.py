@@ -6,12 +6,12 @@ data with background Gaussian noise
 
 """
 import bilby
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # A few simple setup steps
-label = 'linear_regression_grid'
-outdir = 'outdir'
+label = "linear_regression_grid"
+outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 
@@ -36,12 +36,12 @@ data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()
-ax.plot(time, data, 'o', label='data')
-ax.plot(time, model(time, **injection_parameters), '--r', label='signal')
-ax.set_xlabel('time')
-ax.set_ylabel('y')
+ax.plot(time, data, "o", label="data")
+ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
+ax.set_xlabel("time")
+ax.set_ylabel("y")
 ax.legend()
-fig.savefig('{}/{}_data.png'.format(outdir, label))
+fig.savefig("{}/{}_data.png".format(outdir, label))
 plt.close()
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
@@ -51,7 +51,7 @@ likelihood = bilby.likelihood.GaussianLikelihood(time, data, model, sigma)
 # From hereon, the syntax is exactly equivalent to other bilby examples
 # We make a prior
 priors = dict()
-priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
-priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
+priors["m"] = bilby.core.prior.Uniform(0, 5, "m")
+priors["c"] = bilby.core.prior.Uniform(-2, 2, "c")
 
 grid = bilby.core.grid.Grid(likelihood=likelihood, priors=priors)
