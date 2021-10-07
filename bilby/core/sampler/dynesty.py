@@ -148,7 +148,8 @@ class Dynesty(NestedSampler):
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False, skip_import_verification=False,
                  check_point=True, check_point_plot=True, n_check_point=None,
-                 check_point_delta_t=600, resume=True, exit_code=130, **kwargs):
+                 check_point_delta_t=600, resume=True, nestcheck=False, exit_code=130, **kwargs):
+
         super(Dynesty, self).__init__(likelihood=likelihood, priors=priors,
                                       outdir=outdir, label=label, use_ratio=use_ratio,
                                       plot=plot, skip_import_verification=skip_import_verification,
@@ -161,6 +162,8 @@ class Dynesty(NestedSampler):
         self._periodic = list()
         self._reflective = list()
         self._apply_dynesty_boundaries()
+
+        self.nestcheck = nestcheck
 
         if self.n_check_point is None:
             self.n_check_point = 1000
@@ -302,6 +305,14 @@ class Dynesty(NestedSampler):
         self.kwargs["periodic"] = self._periodic
         self.kwargs["reflective"] = self._reflective
 
+    def nestcheck_data(self, out_file):
+        import nestcheck.data_processing
+        import pickle
+        ns_run = nestcheck.data_processing.process_dynesty_run(out_file)
+        nestcheck_result = "{}/{}_nestcheck.pickle".format(self.outdir, self.label)
+        with open(nestcheck_result, 'wb') as file_nest:
+            pickle.dump(ns_run, file_nest)
+
     def _setup_pool(self):
         if self.kwargs["pool"] is not None:
             logger.info("Using user defined pool.")
@@ -396,6 +407,10 @@ class Dynesty(NestedSampler):
             print("")
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
+
+        if self.nestcheck:
+            self.nestcheck_data(out)
+
         dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
         with open(dynesty_result, 'wb') as file:
             dill.dump(out, file)
