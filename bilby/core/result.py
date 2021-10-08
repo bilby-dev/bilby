@@ -1429,20 +1429,19 @@ class Result(object):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        try:
-            data_frame = self.posterior
-        except ValueError:
-            data_frame = pd.DataFrame(
-                self.samples, columns=self.search_parameter_keys)
-            data_frame = self._add_prior_fixed_values_to_posterior(
-                data_frame, priors)
-            data_frame['log_likelihood'] = getattr(
-                self, 'log_likelihood_evaluations', np.nan)
-            if self.log_prior_evaluations is None and priors is not None:
-                data_frame['log_prior'] = priors.ln_prob(
-                    dict(data_frame[self.search_parameter_keys]), axis=0)
-            else:
-                data_frame['log_prior'] = self.log_prior_evaluations
+
+        data_frame = pd.DataFrame(
+            self.samples, columns=self.search_parameter_keys)
+        data_frame = self._add_prior_fixed_values_to_posterior(
+            data_frame, priors)
+        data_frame['log_likelihood'] = getattr(
+            self, 'log_likelihood_evaluations', np.nan)
+        if self.log_prior_evaluations is None and priors is not None:
+            data_frame['log_prior'] = priors.ln_prob(
+                dict(data_frame[self.search_parameter_keys]), axis=0)
+        else:
+            data_frame['log_prior'] = self.log_prior_evaluations
+
         if conversion_function is not None:
             if "npool" in inspect.getargspec(conversion_function).args:
                 data_frame = conversion_function(data_frame, likelihood, priors, npool=npool)

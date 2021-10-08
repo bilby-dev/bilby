@@ -505,14 +505,15 @@ class Sampler(object):
 
         logger.debug("Checking cached data")
         if self.cached_result:
-            check_keys = ['search_parameter_keys', 'fixed_parameter_keys',
-                          'kwargs']
+            check_keys = ['search_parameter_keys', 'fixed_parameter_keys']
             use_cache = True
             for key in check_keys:
                 if self.cached_result._check_attribute_match_to_other_object(
                         key, self) is False:
                     logger.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
+            if self.meta_data["likelihood"] != self.cached_result.meta_data["likelihood"]:
+                use_cache = False
             if use_cache is False:
                 self.cached_result = None
 
