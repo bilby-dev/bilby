@@ -1,5 +1,25 @@
 # All notable changes will be documented in this file
 
+## [1.1.4] 2021-10-08
+Version 1.1.4 release of bilby
+
+### Added
+- Version of dynesty pinned to less than v1.1 to anticipate breaking changes (!1020)
+- Pool to computation of SNR (!1013)
+- Ability to load results produced with custom priors (!1010)
+- The nestcheck test (!1005)
+- Bilby-mcmc guide to docs (!1001)
+- Codespell pre-commit (!996)
+- MBGravitationalWaveTransient (!972)
+- Zeus MCMC sampler support (!962)
+- Option to use print rather than tqdm (!937)
+
+### Changes
+- Updates citation guide (!1030)
+- Minor bug fixes (!1029, !1025, !1022, !1016, !1018, !1014, !1007, !1004)
+- Typo fix in eart light crossing (!1003)
+- Fix zero spin conversion (!1002)
+
 ## [1.1.3] 2021-07-02
 Version 1.1.3 release of bilby
 
