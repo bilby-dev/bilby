@@ -1,11 +1,13 @@
+import os
 import sys
 import multiprocessing
+import pickle
 
 import numpy as np
 from pandas import DataFrame
 
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
-from ..core.utils import logger, solar_mass
+from ..core.utils import logger, solar_mass, command_line_args
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
@@ -1201,7 +1203,7 @@ def _compute_snrs(args):
 
 
 def generate_posterior_samples_from_marginalized_likelihood(
-        samples, likelihood, npool=1):
+        samples, likelihood, npool=1, block=10, use_cache=True):
     """
     Reconstruct the distance posterior from a run which used a likelihood which
     explicitly marginalised over time/distance/phase.
@@ -1216,6 +1218,11 @@ def generate_posterior_samples_from_marginalized_likelihood(
         Likelihood used during sampling.
     npool: int, (default=1)
         If given, perform generation (where possible) using a multiprocessing pool
+    block: int, (default=10)
+        Size of the blocks to use in multiprocessing
+    use_cache: bool, (default=True)
+        If true, cache the generation so that reconstuction can begin from the
+        cache on restart.
 
     Returns
     =======
@@ -1237,23 +1244,82 @@ def generate_posterior_samples_from_marginalized_likelihood(
 
     logger.info('Reconstructing marginalised parameters.')
 
-    fill_args = [(ii, row, likelihood) for ii, row in samples.iterrows()]
+    try:
+        cache_filename = f"{likelihood.outdir}/.{likelihood.label}_generate_posterior_cache.pickle"
+    except AttributeError:
+        logger.warning("Likelihood has no outdir and label attribute: caching disabled")
+        use_cache = False
+
+    if use_cache and os.path.exists(cache_filename) and not command_line_args.clean:
+        with open(cache_filename, "rb") as f:
+            cached_samples_dict = pickle.load(f)
+
+        # Check the samples are identical between the cache and current
+        if cached_samples_dict["_samples"].equals(samples):
+            # Calculate reconstruction percentage and print a log message
+            nsamples_converted = np.sum(
+                [len(val) for key, val in cached_samples_dict.items() if key != "_samples"]
+            )
+            perc = 100 * nsamples_converted / len(cached_samples_dict["_samples"])
+            logger.info(f'Using cached reconstruction with {perc:0.1f}% converted.')
+        else:
+            logger.info("Cached samples dict out of date, ignoring")
+            cached_samples_dict = dict(_samples=samples)
+
+    else:
+        # Initialize cache dict
+        cached_samples_dict = dict()
+
+        # Store samples to convert for checking
+        cached_samples_dict["_samples"] = samples
+
+    # Set up the multiprocessing
     if npool > 1:
         pool = multiprocessing.Pool(processes=npool)
         logger.info(
             "Using a pool with size {} for nsamples={}"
             .format(npool, len(samples))
         )
-        new_samples = np.array(pool.map(fill_sample, tqdm(fill_args, file=sys.stdout)))
-        pool.close()
     else:
-        new_samples = np.array([fill_sample(xx) for xx in tqdm(fill_args, file=sys.stdout)])
+        pool = None
+
+    fill_args = [(ii, row, likelihood) for ii, row in samples.iterrows()]
+    ii = 0
+    pbar = tqdm(total=len(samples), file=sys.stdout)
+    while ii < len(samples):
+        if ii in cached_samples_dict:
+            ii += block
+            pbar.update(block)
+            continue
+
+        if pool is not None:
+            subset_samples = pool.map(fill_sample, fill_args[ii: ii + block])
+        else:
+            subset_samples = [list(fill_sample(xx)) for xx in fill_args[ii: ii + block]]
+
+        cached_samples_dict[ii] = subset_samples
+
+        if use_cache:
+            with open(cache_filename, "wb") as f:
+                pickle.dump(cached_samples_dict, f)
+
+        ii += block
+        pbar.update(len(subset_samples))
+    pbar.close()
+
+    if pool is not None:
+        pool.close()
+
+    new_samples = np.concatenate(
+        [np.array(val) for key, val in cached_samples_dict.items() if key != "_samples"]
+    )
 
     samples['geocent_time'] = new_samples[:, 0]
     samples['luminosity_distance'] = new_samples[:, 1]
     samples['phase'] = new_samples[:, 2]
     if likelihood.calibration_marginalization:
         samples['recalib_index'] = new_samples[:, 3]
+
     return samples
 
 

@@ -610,6 +610,11 @@ class Dynesty(NestedSampler):
         from ... import __version__ as bilby_version
         from dynesty import __version__ as dynesty_version
         import dill
+
+        if getattr(self, "sampler", None) is None:
+            # Sampler not initialized, not able to write current state
+            return
+
         check_directory_exists_and_if_not_mkdir(self.outdir)
         end_time = datetime.datetime.now()
         if hasattr(self, 'start_time'):

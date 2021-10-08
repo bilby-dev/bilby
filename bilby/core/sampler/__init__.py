@@ -173,7 +173,9 @@ def run_sampler(
     # Generate the meta-data if not given and append the likelihood meta_data
     if meta_data is None:
         meta_data = dict()
-    meta_data["likelihood"] = likelihood.meta_data
+    likelihood.label = label
+    likelihood.outdir = outdir
+    meta_data['likelihood'] = likelihood.meta_data
     meta_data["loaded_modules"] = loaded_modules_dict()
 
     if command_line_args.bilby_zero_likelihood_mode:
@@ -223,45 +225,52 @@ def run_sampler(
 
     if sampler.cached_result:
         logger.warning("Using cached result")
-        return sampler.cached_result
-
-    start_time = datetime.datetime.now()
-    if command_line_args.bilby_test_mode:
-        result = sampler._run_test()
+        result = sampler.cached_result
     else:
-        result = sampler.run_sampler()
-    end_time = datetime.datetime.now()
+        # Run the sampler
+        start_time = datetime.datetime.now()
+        if command_line_args.bilby_test_mode:
+            result = sampler._run_test()
+        else:
+            result = sampler.run_sampler()
+        end_time = datetime.datetime.now()
 
-    # Some samplers calculate the sampling time internally
-    if result.sampling_time is None:
-        result.sampling_time = end_time - start_time
-    elif isinstance(result.sampling_time, float):
-        result.sampling_time = datetime.timedelta(result.sampling_time)
-    logger.info("Sampling time: {}".format(result.sampling_time))
-    # Convert sampling time into seconds
-    result.sampling_time = result.sampling_time.total_seconds()
+        # Some samplers calculate the sampling time internally
+        if result.sampling_time is None:
+            result.sampling_time = end_time - start_time
+        elif isinstance(result.sampling_time, (float, int)):
+            result.sampling_time = datetime.timedelta(result.sampling_time)
 
-    if sampler.use_ratio:
-        result.log_noise_evidence = likelihood.noise_log_likelihood()
-        result.log_bayes_factor = result.log_evidence
-        result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
-    else:
-        result.log_noise_evidence = likelihood.noise_log_likelihood()
-        result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
+        logger.info('Sampling time: {}'.format(result.sampling_time))
+        # Convert sampling time into seconds
+        result.sampling_time = result.sampling_time.total_seconds()
 
-    # Initial save of the sampler in case of failure in post-processing
-    if save:
-        result.save_to_file(extension=save, gzip=gzip)
+        if sampler.use_ratio:
+            result.log_noise_evidence = likelihood.noise_log_likelihood()
+            result.log_bayes_factor = result.log_evidence
+            result.log_evidence = \
+                result.log_bayes_factor + result.log_noise_evidence
+        else:
+            result.log_noise_evidence = likelihood.noise_log_likelihood()
+            result.log_bayes_factor = \
+                result.log_evidence - result.log_noise_evidence
+
+        if None not in [result.injection_parameters, conversion_function]:
+            result.injection_parameters = conversion_function(
+                result.injection_parameters)
+
+        # Initial save of the sampler in case of failure in samples_to_posterior
+        if save:
+            result.save_to_file(extension=save, gzip=gzip)
 
     if None not in [result.injection_parameters, conversion_function]:
         result.injection_parameters = conversion_function(result.injection_parameters)
 
-    result.samples_to_posterior(
-        likelihood=likelihood,
-        priors=result.priors,
-        conversion_function=conversion_function,
-        npool=npool,
-    )
+    # Check if the posterior has already been created
+    if getattr(result, "_posterior", None) is None:
+        result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
+                                    conversion_function=conversion_function,
+                                    npool=npool)
 
     if save:
         # The overwrite here ensures we overwrite the initially stored data
