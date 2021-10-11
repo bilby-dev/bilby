@@ -538,10 +538,17 @@ class Result(object):
     @classmethod
     @docstring(_load_doctstring.format(format="json"))
     def from_json(cls, filename=None, outdir=None, label=None, gzip=False):
+        from json.decoder import JSONDecodeError
+
         filename = _determine_file_name(filename, outdir, label, 'json', gzip)
 
         if os.path.isfile(filename):
-            dictionary = load_json(filename, gzip)
+            try:
+                dictionary = load_json(filename, gzip)
+            except JSONDecodeError as e:
+                raise IOError(
+                    "JSON failed to decode {} with message {}".format(filename, e)
+                )
             try:
                 return cls(**dictionary)
             except TypeError as e:
