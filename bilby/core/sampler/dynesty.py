@@ -246,6 +246,12 @@ class Dynesty(NestedSampler):
             else:
                 self._last_print_time = _time
 
+                # Add time in current run to overall sampling time
+                total_time = self.sampling_time + _time - self.start_time
+
+                # Remove fractional seconds
+                total_time_str = str(total_time).split('.')[0]
+
         # Extract results at the current iteration.
         (worst, ustar, vstar, loglstar, logvol, logwt,
          logz, logzvar, h, nc, worst_it, boundidx, bounditer,
@@ -281,12 +287,11 @@ class Dynesty(NestedSampler):
             self.pbar.set_postfix_str(" ".join(string), refresh=False)
             self.pbar.update(niter - self.pbar.n)
         elif "interval" in self.kwargs["print_method"]:
-            formatted = " ".join([str(_time - self.start_time)] + string)
-            print("{}it [{}]".format(niter, formatted), file=sys.stdout)
+            formatted = " ".join([total_time_str] + string)
+            print("{}it [{}]".format(niter, formatted), file=sys.stdout, flush=True)
         else:
-            _time = datetime.datetime.now()
-            formatted = " ".join([str(_time - self.start_time)] + string)
-            print("{}it [{}]".format(niter, formatted), file=sys.stdout)
+            formatted = " ".join([total_time_str] + string)
+            print("{}it [{}]".format(niter, formatted), file=sys.stdout, flush=True)
 
     def _apply_dynesty_boundaries(self):
         self._periodic = list()
