@@ -27,6 +27,7 @@ Gregory Ashton
 Hector Estelles
 Ignacio Magaña Hernandez
 Isobel Marguarethe Romero-Shaw
+Jack Heinzel
 Jade Powell
 James A Clark
 Jeremy G Baier
