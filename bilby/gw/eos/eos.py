@@ -17,7 +17,7 @@ conversion_dict = {'pressure': {'cgs': C_SI ** 4. / G_SI * 10., 'si': C_SI ** 4.
                    'pseudo_enthalpy': {'dimensionless': 1.},
                    'mass': {'g': C_SI ** 2. / G_SI * 1000, 'kg': C_SI ** 2. / G_SI, 'geom': 1.,
                             'm_sol': C_SI ** 2. / G_SI / MSUN_SI},
-                   'radius': {'cm': 100., 'mass': 1., 'km': .001},
+                   'radius': {'cm': 100., 'm': 1., 'km': .001},
                    'tidal_deformability': {'geom': 1.}}
 
 
