@@ -512,7 +512,13 @@ class Sampler(object):
                         key, self) is False:
                     logger.debug("Cached value {} is unmatched".format(key))
                     use_cache = False
-            if self.meta_data["likelihood"] != self.cached_result.meta_data["likelihood"]:
+            try:
+                # Recursive check the dictionaries allowing for numpy arrays
+                np.testing.assert_equal(
+                    self.meta_data["likelihood"],
+                    self.cached_result.meta_data["likelihood"]
+                )
+            except AssertionError:
                 use_cache = False
             if use_cache is False:
                 self.cached_result = None
