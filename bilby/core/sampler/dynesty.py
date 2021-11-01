@@ -639,8 +639,6 @@ class Dynesty(NestedSampler):
         if self.sampler.pool is not None:
             self.sampler.M = self.sampler.pool.map
 
-        self.dump_samples_to_dat()
-
     def dump_samples_to_dat(self):
         sampler = self.sampler
         ln_weights = sampler.saved_logwt - sampler.saved_logz[-1]
