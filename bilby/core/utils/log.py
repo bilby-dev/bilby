@@ -73,6 +73,6 @@ def loaded_modules_dict():
     module_names = list(sys.modules.keys())
     vdict = {}
     for key in module_names:
-        if "." not in key:
+        if "." not in str(key):
             vdict[key] = str(getattr(sys.modules[key], "__version__", "N/A"))
     return vdict
