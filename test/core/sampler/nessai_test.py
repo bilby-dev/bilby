@@ -22,53 +22,8 @@ class TestNessai(unittest.TestCase):
             plot=False,
             skip_import_verification=True,
         )
-        self.expected = dict(
-            output="outdir/label_nessai/",
-            nlive=1000,
-            stopping=0.1,
-            resume=True,
-            max_iteration=None,
-            checkpointing=True,
-            seed=1234,
-            acceptance_threshold=0.01,
-            analytic_priors=False,
-            maximum_uninformed=1000,
-            uninformed_proposal=None,
-            uninformed_proposal_kwargs=None,
-            flow_class=None,
-            flow_config=None,
-            training_frequency=None,
-            reset_weights=False,
-            reset_permutations=False,
-            reset_acceptance=False,
-            train_on_empty=True,
-            cooldown=100,
-            memory=False,
-            poolsize=None,
-            drawsize=None,
-            max_poolsize_scale=10,
-            update_poolsize=False,
-            latent_prior='truncated_gaussian',
-            draw_latent_kwargs=None,
-            compute_radius_with_all=False,
-            min_radius=False,
-            max_radius=50,
-            check_acceptance=False,
-            fuzz=1.0,
-            expansion_fraction=1.0,
-            rescale_parameters=True,
-            rescale_bounds=[-1, 1],
-            update_bounds=False,
-            boundary_inversion=False,
-            inversion_type='split', detect_edges=False,
-            detect_edges_kwargs=None,
-            reparameterisations=None,
-            n_pool=None,
-            max_threads=1,
-            pytorch_threads=None,
-            plot=False,
-            proposal_plots=False
-        )
+        self.expected = self.sampler.default_kwargs
+        self.expected['output'] = 'outdir/label_nessai/'
 
     def tearDown(self):
         del self.likelihood
@@ -76,16 +31,16 @@ class TestNessai(unittest.TestCase):
         del self.sampler
         del self.expected
 
-    def test_default_kwargs(self):
-        expected = self.expected.copy()
-        self.assertDictEqual(expected, self.sampler.kwargs)
-
     def test_translate_kwargs_nlive(self):
         expected = self.expected.copy()
+        # nlive in the default kwargs is not a fixed but depends on the
+        # version of nessai, so get the value here and use it when setting
+        # the equivalent kwargs.
+        nlive = expected["nlive"]
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs["nlive"]
-            new_kwargs[equiv] = 1000
+            new_kwargs[equiv] = nlive
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
 
@@ -117,10 +72,10 @@ class TestNessai(unittest.TestCase):
         self.sampler.kwargs = new_kwargs
         self.assertDictEqual(expected, self.sampler.kwargs)
 
-    @patch("builtins.open", mock_open(read_data='{"nlive": 2000}'))
+    @patch("builtins.open", mock_open(read_data='{"nlive": 4000}'))
     def test_update_from_config_file(self):
         expected = self.expected.copy()
-        expected["nlive"] = 2000
+        expected["nlive"] = 4000
         new_kwargs = self.expected.copy()
         new_kwargs["config_file"] = "config_file.json"
         self.sampler.kwargs = new_kwargs
