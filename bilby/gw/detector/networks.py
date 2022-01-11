@@ -109,7 +109,13 @@ class InterferometerList(list):
                                                            duration=duration,
                                                            start_time=start_time)
 
-    def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
+    def inject_signal(
+        self,
+        parameters=None,
+        injection_polarizations=None,
+        waveform_generator=None,
+        raise_error=True,
+    ):
         """ Inject a signal into noise in each of the three detectors.
 
         Parameters
@@ -124,6 +130,9 @@ class InterferometerList(list):
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
+        raise_error: bool
+            Whether to raise an error if the injected signal does not fit in
+            the segment.
 
         Notes
         ==========
@@ -148,7 +157,12 @@ class InterferometerList(list):
         all_injection_polarizations = list()
         for interferometer in self:
             all_injection_polarizations.append(
-                interferometer.inject_signal(parameters=parameters, injection_polarizations=injection_polarizations))
+                interferometer.inject_signal(
+                    parameters=parameters,
+                    injection_polarizations=injection_polarizations,
+                    raise_error=raise_error,
+                )
+            )
 
         return all_injection_polarizations
 

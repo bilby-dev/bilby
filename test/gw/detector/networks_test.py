@@ -240,8 +240,8 @@ class TestInterferometerList(unittest.TestCase):
 
     @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_with_inj_pol(self, m):
-        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
-        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
+        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1), raise_error=False)
+        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1), raise_error=False)
         self.assertEqual(len(self.ifo_list), m.call_count)
 
     @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
