@@ -28,11 +28,13 @@ RUN pip install --upgrade setuptools coverage-badge parameterized
 RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
 
 # Install dependencies and samplers
-RUN pip install corner theano healpy cython tables
+RUN pip install corner healpy cython tables
 RUN conda install -n ${conda_env} -c conda-forge dynesty emcee nestle ptemcee
 RUN conda install -n ${conda_env} -c conda-forge pymultinest ultranest
-RUN conda install -n ${conda_env} -c conda-forge cpnest pymc3 kombine dnest4 zeus-mcmc
+RUN conda install -n ${conda_env} -c conda-forge cpnest kombine dnest4 zeus-mcmc
 RUN conda install -n ${conda_env} -c conda-forge pytorch
+RUN conda install -n ${conda_env} -c conda-forge theano-pymc
+RUN conda install -n ${conda_env} -c conda-forge pymc3
 RUN pip install nessai
 
 # Install Polychord
