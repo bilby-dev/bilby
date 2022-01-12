@@ -15,3 +15,5 @@ longitude = 137 + 18 / 60 + 21.44171 / 3600
 elevation = 414.181
 xarm_azimuth = 90 - 60.39623489157727
 yarm_azimuth = 90 + 29.60357629670688
+xarm_tilt = 0.0031414
+yarm_tilt = -0.0036270

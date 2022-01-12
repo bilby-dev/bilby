@@ -148,7 +148,8 @@ class Dynesty(NestedSampler):
     def __init__(self, likelihood, priors, outdir='outdir', label='label',
                  use_ratio=False, plot=False, skip_import_verification=False,
                  check_point=True, check_point_plot=True, n_check_point=None,
-                 check_point_delta_t=600, resume=True, exit_code=130, **kwargs):
+                 check_point_delta_t=600, resume=True, nestcheck=False, exit_code=130, **kwargs):
+
         super(Dynesty, self).__init__(likelihood=likelihood, priors=priors,
                                       outdir=outdir, label=label, use_ratio=use_ratio,
                                       plot=plot, skip_import_verification=skip_import_verification,
@@ -161,6 +162,8 @@ class Dynesty(NestedSampler):
         self._periodic = list()
         self._reflective = list()
         self._apply_dynesty_boundaries()
+
+        self.nestcheck = nestcheck
 
         if self.n_check_point is None:
             self.n_check_point = 1000
@@ -243,6 +246,12 @@ class Dynesty(NestedSampler):
             else:
                 self._last_print_time = _time
 
+                # Add time in current run to overall sampling time
+                total_time = self.sampling_time + _time - self.start_time
+
+                # Remove fractional seconds
+                total_time_str = str(total_time).split('.')[0]
+
         # Extract results at the current iteration.
         (worst, ustar, vstar, loglstar, logvol, logwt,
          logz, logzvar, h, nc, worst_it, boundidx, bounditer,
@@ -278,12 +287,11 @@ class Dynesty(NestedSampler):
             self.pbar.set_postfix_str(" ".join(string), refresh=False)
             self.pbar.update(niter - self.pbar.n)
         elif "interval" in self.kwargs["print_method"]:
-            formatted = " ".join([str(_time - self.start_time)] + string)
-            print("{}it [{}]".format(niter, formatted), file=sys.stdout)
+            formatted = " ".join([total_time_str] + string)
+            print("{}it [{}]".format(niter, formatted), file=sys.stdout, flush=True)
         else:
-            _time = datetime.datetime.now()
-            formatted = " ".join([str(_time - self.start_time)] + string)
-            print("{}it [{}]".format(niter, formatted), file=sys.stdout)
+            formatted = " ".join([total_time_str] + string)
+            print("{}it [{}]".format(niter, formatted), file=sys.stdout, flush=True)
 
     def _apply_dynesty_boundaries(self):
         self._periodic = list()
@@ -301,6 +309,14 @@ class Dynesty(NestedSampler):
         # these are then handled in the prior_transform
         self.kwargs["periodic"] = self._periodic
         self.kwargs["reflective"] = self._reflective
+
+    def nestcheck_data(self, out_file):
+        import nestcheck.data_processing
+        import pickle
+        ns_run = nestcheck.data_processing.process_dynesty_run(out_file)
+        nestcheck_result = "{}/{}_nestcheck.pickle".format(self.outdir, self.label)
+        with open(nestcheck_result, 'wb') as file_nest:
+            pickle.dump(ns_run, file_nest)
 
     def _setup_pool(self):
         if self.kwargs["pool"] is not None:
@@ -396,6 +412,10 @@ class Dynesty(NestedSampler):
             print("")
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
+
+        if self.nestcheck:
+            self.nestcheck_data(out)
+
         dynesty_result = "{}/{}_dynesty.pickle".format(self.outdir, self.label)
         with open(dynesty_result, 'wb') as file:
             dill.dump(out, file)
@@ -595,6 +615,11 @@ class Dynesty(NestedSampler):
         from ... import __version__ as bilby_version
         from dynesty import __version__ as dynesty_version
         import dill
+
+        if getattr(self, "sampler", None) is None:
+            # Sampler not initialized, not able to write current state
+            return
+
         check_directory_exists_and_if_not_mkdir(self.outdir)
         end_time = datetime.datetime.now()
         if hasattr(self, 'start_time'):
@@ -618,8 +643,6 @@ class Dynesty(NestedSampler):
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
             self.sampler.M = self.sampler.pool.map
-
-        self.dump_samples_to_dat()
 
     def dump_samples_to_dat(self):
         sampler = self.sampler

@@ -45,11 +45,15 @@ containers:
   script:
     - python -m pip install .
     - python -c "import bilby"
+    - python -c "import bilby.bilby_mcmc"
     - python -c "import bilby.core"
     - python -c "import bilby.core.prior"
     - python -c "import bilby.core.sampler"
+    - python -c "import bilby.core.utils"
     - python -c "import bilby.gw"
     - python -c "import bilby.gw.detector"
+    - python -c "import bilby.gw.eos"
+    - python -c "import bilby.gw.likelihood"
     - python -c "import bilby.gw.sampler"
     - python -c "import bilby.hyper"
     - python -c "import cli_bilby"
@@ -204,7 +208,19 @@ plotting-python-3.7:
     - schedules
   script:
     - python -m pip install .
-    - python -m pip install ligo.skymap
+    - python -m pip install "ligo.skymap>=0.5.3"
+    - pytest test/gw/plot_test.py
+
+
+plotting-python-3.9:
+  stage: test
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python37
+  needs: ["basic-3.9", "precommits-py3.9"]
+  only:
+    - schedules
+  script:
+    - python -m pip install .
+    - python -m pip install "ligo.skymap>=0.5.3"
     - pytest test/gw/plot_test.py
 
 

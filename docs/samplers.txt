@@ -70,6 +70,7 @@ MCMC samplers
 - emcee :code:`bilby.core.sampler.emcee.Emcee`
 - ptemcee :code:`bilby.core.sampler.ptemcee.Ptemcee`
 - pymc3 :code:`bilby.core.sampler.pymc3.Pymc3`
+- zeus :code:`bilby.core.sampler.zeus.Zeus`
 
 
 -------------------

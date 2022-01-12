@@ -27,6 +27,7 @@ Gregory Ashton
 Hector Estelles
 Ignacio Magaña Hernandez
 Isobel Marguarethe Romero-Shaw
+Jack Heinzel
 Jade Powell
 James A Clark
 Jeremy G Baier
@@ -69,6 +70,7 @@ Sharan Banagiri
 Shichao Wu
 Simon Stevenson
 Soichiro Morisaki
+Stephen R Green
 Sumeet Kulkarni
 Sylvia Biscoveanu
 Tathagata Ghosh

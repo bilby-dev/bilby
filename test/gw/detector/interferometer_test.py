@@ -1,5 +1,8 @@
 import sys
 import unittest
+
+import lal
+import lalsimulation
 import pytest
 from packaging import version
 from shutil import rmtree
@@ -550,6 +553,47 @@ class TestInterferometerEquals(unittest.TestCase):
             frequency_array=self.frequency_array, frequency_domain_strain=self.strain
         )
         self.assertNotEqual(self.ifo_1, self.ifo_2)
+
+
+class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
+    def setUp(self):
+        self.name = "name"
+        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'GEO600', 'ET']
+        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'GEO600': 'G1', 'ET': 'E1'}
+        self.polarizations = ['plus', 'cross', 'breathing', 'longitudinal', 'x', 'y']
+        self.ifos = bilby.gw.detector.InterferometerList(self.ifo_names)
+        self.gpstime = 1305303144
+        self.trial = 100
+
+    def tearDown(self):
+        del self.name
+        del self.ifo_names
+        del self.lal_prefixes
+        del self.polarizations
+        del self.ifos
+        del self.gpstime
+        del self.trial
+
+    def test_antenna_pattern_vs_lal(self):
+        gmst = lal.GreenwichMeanSiderealTime(self.gpstime)
+        f_bilby = np.zeros((self.trial, 6))
+        f_lal = np.zeros((self.trial, 6))
+
+        for n, ifo_name in enumerate(self.ifo_names):
+            response = lalsimulation.DetectorPrefixToLALDetector(self.lal_prefixes[ifo_name]).response
+            ifo = self.ifos[n]
+            for i in range(self.trial):
+                ra = 2. * np.pi * np.random.uniform()
+                dec = np.pi * np.random.uniform() - np.pi / 2.
+                psi = np.pi * np.random.uniform()
+                f_lal[i] = lal.ComputeDetAMResponseExtraModes(response, ra, dec, psi, gmst)
+                for m, pol in enumerate(self.polarizations):
+                    f_bilby[i, m] = ifo.antenna_response(ra, dec, self.gpstime, psi, pol)
+
+            std = np.std(f_bilby - f_lal, axis=0)
+            for m, pol in enumerate(self.polarizations):
+                with self.subTest(':'.join((ifo_name, pol))):
+                    self.assertAlmostEqual(std[m], 0.0, places=7)
 
 
 if __name__ == "__main__":
