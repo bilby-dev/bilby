@@ -20,7 +20,7 @@ from .conversion import (
     generate_all_bbh_parameters,
     chirp_mass_and_mass_ratio_to_total_mass,
     total_mass_and_mass_ratio_to_component_masses)
-from .cosmology import get_cosmology
+from .cosmology import get_cosmology, z_at_value
 from .source import PARAMETER_SETS
 from .utils import calculate_time_to_merger
 
@@ -170,7 +170,6 @@ class Cosmological(Interped):
         recalculate_array: boolean
             Determines if the distance arrays are recalculated
         """
-        from astropy.cosmology import z_at_value
         cosmology = get_cosmology(self.cosmology)
         limit_dict[self.name] = value
         if self.name == 'redshift':

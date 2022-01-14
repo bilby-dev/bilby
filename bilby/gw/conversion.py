@@ -11,7 +11,7 @@ from ..core.utils import logger, solar_mass, command_line_args
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
-from .cosmology import get_cosmology
+from .cosmology import get_cosmology, z_at_value
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -27,7 +27,6 @@ def redshift_to_comoving_distance(redshift, cosmology=None):
 @np.vectorize
 def luminosity_distance_to_redshift(distance, cosmology=None):
     from astropy import units
-    from astropy.cosmology import z_at_value
     cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.luminosity_distance, distance * units.Mpc)
 
@@ -35,7 +34,6 @@ def luminosity_distance_to_redshift(distance, cosmology=None):
 @np.vectorize
 def comoving_distance_to_redshift(distance, cosmology=None):
     from astropy import units
-    from astropy.cosmology import z_at_value
     cosmology = get_cosmology(cosmology)
     return z_at_value(cosmology.comoving_distance, distance * units.Mpc)
 
