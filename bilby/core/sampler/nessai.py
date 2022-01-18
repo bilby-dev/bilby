@@ -70,7 +70,7 @@ class Nessai(NestedSampler):
     def run_sampler(self):
         from nessai.flowsampler import FlowSampler
         from nessai.model import Model as BaseModel
-        from nessai.livepoint import dict_to_live_points
+        from nessai.livepoint import dict_to_live_points, live_points_to_array
         from nessai.posterior import compute_weights
         from nessai.utils import setup_logger
 
@@ -136,11 +136,12 @@ class Nessai(NestedSampler):
         # Manually set likelihood evaluations because parallelisation breaks the counter
         self.result.num_likelihood_evaluations = out.ns.likelihood_evaluations[-1]
 
-        self.result.posterior = DataFrame(out.posterior_samples)
+        self.result.samples = live_points_to_array(
+            out.posterior_samples, self.search_parameter_keys
+        )
+        self.result.log_likelihood_evaluations = out.posterior_samples['logL']
         self.result.nested_samples = DataFrame(out.nested_samples)
         self.result.nested_samples.rename(
-            columns=dict(logL='log_likelihood', logP='log_prior'), inplace=True)
-        self.result.posterior.rename(
             columns=dict(logL='log_likelihood', logP='log_prior'), inplace=True)
         _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
                                          np.array(out.ns.state.nlive))
