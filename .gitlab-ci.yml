@@ -327,4 +327,4 @@ pypi-release:
   script:
     - twine upload dist/*
   only:
-  - tags
+    - tags
