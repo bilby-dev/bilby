@@ -100,7 +100,7 @@ class TestPrior(unittest.TestCase):
     def test_default_label_assignment(self):
         self.prior.name = "chirp_mass"
         self.prior.latex_label = None
-        self.assertEqual(self.prior.latex_label, "$\mathcal{M}$")
+        self.assertEqual(self.prior.latex_label, r"$\mathcal{M}$")
 
     def test_default_label_assignment_default(self):
         self.assertTrue(self.prior.latex_label, self.prior.name)

@@ -651,7 +651,7 @@ class GravitationalWaveTransient(Likelihood):
 
     def generate_phase_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
-        """
+        r"""
         Generate a single sample from the posterior distribution for phase when
         using a likelihood which explicitly marginalises over phase.
 

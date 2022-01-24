@@ -216,7 +216,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
     @maximum_banding_frequency.setter
     def maximum_banding_frequency(self, maximum_banding_frequency):
-        """
+        r"""
         This sets the upper limit on a starting frequency of a band. The default value is the frequency at
         which f - 1 / \sqrt(- d\tau / df) starts to decrease, because the bisection search of the starting
         frequency does not work from that frequency. The stationary phase approximation is not valid at such
@@ -341,7 +341,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         return f, 1. / np.sqrt(-self._dtaudf(f))
 
     def _setup_frequency_bands(self):
-        """Set up frequency bands. The durations of bands geometrically decrease T, T/2. T/4, ..., where T is the
+        r"""Set up frequency bands. The durations of bands geometrically decrease T, T/2. T/4, ..., where T is the
         original duration. This sets the following instance variables.
 
         durations: durations of bands (T^(b) in the paper)

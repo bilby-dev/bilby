@@ -185,7 +185,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             if len(amp_params) > 0:
                 amplitude = 100 * np.column_stack([posterior[param] for param in amp_params])
                 plot_spline_pos(logfreqs, amplitude, color=color, level=level,
-                                label="{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)))
+                                label=r"{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)))
 
             # Phase calibration model
             plt.sca(ax2)
@@ -194,7 +194,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             if len(phase_params) > 0:
                 phase = np.column_stack([posterior[param] for param in phase_params])
                 plot_spline_pos(logfreqs, phase, color=color, level=level,
-                                label="{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)),
+                                label=r"{0} (mean, {1}$\%$)".format(ifo.upper(), int(level * 100)),
                                 xform=spline_angle_xform)
 
         ax1.tick_params(labelsize=.75 * font_size)
@@ -204,7 +204,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
         ax2.set_xscale('log')
 
         ax2.set_xlabel('Frequency [Hz]', fontsize=font_size)
-        ax1.set_ylabel('Amplitude [$\%$]', fontsize=font_size)
+        ax1.set_ylabel(r'Amplitude [$\%$]', fontsize=font_size)
         ax2.set_ylabel('Phase [deg]', fontsize=font_size)
 
         filename = os.path.join(outdir, self.label + '_calibration.' + format)
@@ -585,7 +585,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 plot_frequencies,
                 np.percentile(fd_waveforms, lower_percentile, axis=0),
                 np.percentile(fd_waveforms, upper_percentile, axis=0),
-                color=WAVEFORM_COLOR, label='{}\% credible interval'.format(
+                color=WAVEFORM_COLOR, label=r'{}\% credible interval'.format(
                     int(upper_percentile - lower_percentile)),
                 alpha=0.3)
             axs[1].plot(

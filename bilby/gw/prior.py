@@ -68,7 +68,7 @@ def convert_to_flat_in_component_mass_prior(result, fraction=0.25):
         priors[key] = Constraint(priors[key].minimum, priors[key].maximum, key, latex_label=priors[key].latex_label)
     for key in ['mass_1', 'mass_2']:
         priors[key] = Uniform(priors[key].minimum, priors[key].maximum, key, latex_label=priors[key].latex_label,
-                              unit="$M_{\odot}$")
+                              unit=r"$M_{\odot}$")
 
     weights = np.array(result.get_weights_by_new_prior(old_priors, priors,
                                                        prior_names=['chirp_mass', 'mass_ratio', 'mass_1', 'mass_2']))
@@ -276,7 +276,7 @@ class UniformComovingVolume(Cosmological):
 
 
 class UniformSourceFrame(Cosmological):
-    """
+    r"""
     Prior for redshift which is uniform in comoving volume and source frame
     time.
 
@@ -294,7 +294,7 @@ class UniformSourceFrame(Cosmological):
 class UniformInComponentsChirpMass(PowerLaw):
 
     def __init__(self, minimum, maximum, name='chirp_mass',
-                 latex_label='$\mathcal{M}$', unit=None, boundary=None):
+                 latex_label=r'$\mathcal{M}$', unit=None, boundary=None):
         """
         Prior distribution for chirp mass which is uniform in component masses.
 
@@ -924,36 +924,36 @@ Prior._default_latex_labels = {
     'mass_1': '$m_1$',
     'mass_2': '$m_2$',
     'total_mass': '$M$',
-    'chirp_mass': '$\mathcal{M}$',
+    'chirp_mass': r'$\mathcal{M}$',
     'mass_ratio': '$q$',
-    'symmetric_mass_ratio': '$\eta$',
+    'symmetric_mass_ratio': r'$\eta$',
     'a_1': '$a_1$',
     'a_2': '$a_2$',
-    'tilt_1': '$\\theta_1$',
-    'tilt_2': '$\\theta_2$',
-    'cos_tilt_1': '$\cos\\theta_1$',
-    'cos_tilt_2': '$\cos\\theta_2$',
-    'phi_12': '$\Delta\phi$',
-    'phi_jl': '$\phi_{JL}$',
+    'tilt_1': r'$\theta_1$',
+    'tilt_2': r'$\theta_2$',
+    'cos_tilt_1': r'$\cos\theta_1$',
+    'cos_tilt_2': r'$\cos\theta_2$',
+    'phi_12': r'$\Delta\phi$',
+    'phi_jl': r'$\phi_{JL}$',
     'luminosity_distance': '$d_L$',
-    'dec': '$\mathrm{DEC}$',
-    'ra': '$\mathrm{RA}$',
-    'iota': '$\iota$',
-    'cos_iota': '$\cos\iota$',
-    'theta_jn': '$\\theta_{JN}$',
-    'cos_theta_jn': '$\cos\\theta_{JN}$',
-    'psi': '$\psi$',
-    'phase': '$\phi$',
+    'dec': r'$\mathrm{DEC}$',
+    'ra': r'$\mathrm{RA}$',
+    'iota': r'$\iota$',
+    'cos_iota': r'$\cos\iota$',
+    'theta_jn': r'$\theta_{JN}$',
+    'cos_theta_jn': r'$\cos\theta_{JN}$',
+    'psi': r'$\psi$',
+    'phase': r'$\phi$',
     'geocent_time': '$t_c$',
     'time_jitter': '$t_j$',
-    'lambda_1': '$\\Lambda_1$',
-    'lambda_2': '$\\Lambda_2$',
-    'lambda_tilde': '$\\tilde{\\Lambda}$',
-    'delta_lambda_tilde': '$\\delta\\tilde{\\Lambda}$',
-    'chi_1': '$\\chi_1$',
-    'chi_2': '$\\chi_2$',
-    'chi_1_in_plane': '$\\chi_{1, \perp}$',
-    'chi_2_in_plane': '$\\chi_{2, \perp}$',
+    'lambda_1': r'$\Lambda_1$',
+    'lambda_2': r'$\Lambda_2$',
+    'lambda_tilde': r'$\tilde{\Lambda}$',
+    'delta_lambda_tilde': r'$\delta\tilde{\Lambda}$',
+    'chi_1': r'$\chi_1$',
+    'chi_2': r'$\chi_2$',
+    'chi_1_in_plane': r'$\chi_{1, \perp}$',
+    'chi_2_in_plane': r'$\chi_{2, \perp}$',
 }
 
 
@@ -1056,7 +1056,7 @@ class CalibrationPriorDict(PriorDict):
                                    boundary=boundary)
         for ii in range(n_nodes):
             name = "recalib_{}_phase_{}".format(label, ii)
-            latex_label = "$\\phi^{}_{}$".format(label, ii)
+            latex_label = r"$\phi^{}_{}$".format(label, ii)
             prior[name] = Gaussian(mu=phase_mean_nodes[ii],
                                    sigma=phase_sigma_nodes[ii],
                                    name=name, latex_label=latex_label,
@@ -1117,7 +1117,7 @@ class CalibrationPriorDict(PriorDict):
                                    boundary='reflective')
         for ii in range(n_nodes):
             name = "recalib_{}_phase_{}".format(label, ii)
-            latex_label = "$\\phi^{}_{}$".format(label, ii)
+            latex_label = r"$\phi^{}_{}$".format(label, ii)
             prior[name] = Gaussian(mu=phase_mean_nodes[ii],
                                    sigma=phase_sigma_nodes[ii],
                                    name=name, latex_label=latex_label,

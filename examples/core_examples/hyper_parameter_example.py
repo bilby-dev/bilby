@@ -76,8 +76,8 @@ hp_likelihood = HyperparameterLikelihood(
     posteriors=samples, hyper_prior=hyper_prior,
     sampling_prior=run_prior, log_evidences=evidences, max_samples=500)
 
-hp_priors = dict(mu=Uniform(-10, 10, 'mu', '$\mu_{c0}$'),
-                 sigma=Uniform(0, 10, 'sigma', '$\sigma_{c0}$'))
+hp_priors = dict(mu=Uniform(-10, 10, 'mu', r'$\mu_{c0}$'),
+                 sigma=Uniform(0, 10, 'sigma', r'$\sigma_{c0}$'))
 
 # And run sampler
 result = run_sampler(
