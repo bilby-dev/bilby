@@ -34,8 +34,8 @@ class TestRunningSamplers(unittest.TestCase):
     @staticmethod
     def conversion_function(parameters, likelihood, prior):
         converted = parameters.copy()
-        if 'derived' not in converted:
-            converted['derived'] = converted['m'] * converted['c']
+        if "derived" not in converted:
+            converted["derived"] = converted["m"] * converted["c"]
         return converted
 
     def tearDown(self):
@@ -52,9 +52,9 @@ class TestRunningSamplers(unittest.TestCase):
             sampler="cpnest",
             nlive=100,
             resume=False,
-            **self.kwargs
+            **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_dnest4(self):
@@ -71,7 +71,7 @@ class TestRunningSamplers(unittest.TestCase):
             num_particles=50,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_dynesty(self):
@@ -83,7 +83,7 @@ class TestRunningSamplers(unittest.TestCase):
             nlive=100,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_dynamic_dynesty(self):
@@ -100,7 +100,7 @@ class TestRunningSamplers(unittest.TestCase):
             bound="single",
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_emcee(self):
@@ -113,7 +113,7 @@ class TestRunningSamplers(unittest.TestCase):
             nwalkers=10,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_kombine(self):
@@ -127,7 +127,7 @@ class TestRunningSamplers(unittest.TestCase):
             autoburnin=False,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_nestle(self):
@@ -139,7 +139,7 @@ class TestRunningSamplers(unittest.TestCase):
             nlive=100,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_nessai(self):
@@ -153,7 +153,7 @@ class TestRunningSamplers(unittest.TestCase):
             max_iteration=1000,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_pypolychord(self):
@@ -165,7 +165,7 @@ class TestRunningSamplers(unittest.TestCase):
             nlive=100,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_ptemcee(self):
@@ -181,10 +181,14 @@ class TestRunningSamplers(unittest.TestCase):
             frac_threshold=0.5,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     @pytest.mark.skipif(sys.version_info[1] <= 6, reason="pymc3 is broken in py36")
+    @pytest.mark.xfail(
+        raises=AttributeError,
+        reason="Dependency issue with pymc3 causes attribute error on import",
+    )
     def test_run_pymc3(self):
         pytest.importorskip("pymc3")
         res = bilby.run_sampler(
@@ -196,7 +200,7 @@ class TestRunningSamplers(unittest.TestCase):
             n_init=250,
             **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_pymultinest(self):
@@ -206,9 +210,9 @@ class TestRunningSamplers(unittest.TestCase):
             priors=self.priors,
             sampler="pymultinest",
             nlive=100,
-            **self.kwargs
+            **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_PTMCMCSampler(self):
@@ -220,36 +224,44 @@ class TestRunningSamplers(unittest.TestCase):
             Niter=101,
             burn=2,
             isave=100,
-            **self.kwargs
+            **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_ultranest(self):
         pytest.importorskip("ultranest")
         # run using NestedSampler (with nlive specified)
         res = bilby.run_sampler(
-            likelihood=self.likelihood, priors=self.priors,
-            sampler="ultranest", nlive=100, **self.kwargs,
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="ultranest",
+            nlive=100,
+            **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
         # run using ReactiveNestedSampler (with no nlive given)
         res = bilby.run_sampler(
-            likelihood=self.likelihood, priors=self.priors,
-            sampler='ultranest', **self.kwargs,
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="ultranest",
+            **self.kwargs,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
     def test_run_bilby_mcmc(self):
         res = bilby.run_sampler(
-            likelihood=self.likelihood, priors=self.priors,
-            sampler="bilby_mcmc", nsamples=200, **self.kwargs,
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="bilby_mcmc",
+            nsamples=200,
+            **self.kwargs,
             printdt=1,
         )
-        assert 'derived' in res.posterior
+        assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
 
