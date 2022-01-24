@@ -134,6 +134,25 @@ class TestResult(unittest.TestCase):
         with self.assertRaises(IOError):
             bilby.core.result.read_in_result(filename="not/a/file.json")
 
+        with self.assertRaises(IOError):
+            incomplete_json = """
+{
+  "label": "label",
+  "outdir": "outdir",
+  "sampler": "dynesty",
+  "log_evidence": 0,
+  "log_evidence_err": 0,
+  "log_noise_evidence": 0,
+  "log_bayes_factor": 0,
+  "priors": {
+    "chirp_mass": {
+"""
+            with open("{}/incomplete.json".format(self.result.outdir), "wb") as ff:
+                ff.write(incomplete_json)
+            bilby.core.result.read_in_result(
+                filename="{}/incomplete.json".format(self.result.outdir)
+            )
+
     def test_unset_priors(self):
         result = bilby.core.result.Result(
             label="label",

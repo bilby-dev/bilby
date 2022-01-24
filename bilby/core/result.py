@@ -538,10 +538,17 @@ class Result(object):
     @classmethod
     @docstring(_load_doctstring.format(format="json"))
     def from_json(cls, filename=None, outdir=None, label=None, gzip=False):
+        from json.decoder import JSONDecodeError
+
         filename = _determine_file_name(filename, outdir, label, 'json', gzip)
 
         if os.path.isfile(filename):
-            dictionary = load_json(filename, gzip)
+            try:
+                dictionary = load_json(filename, gzip)
+            except JSONDecodeError as e:
+                raise IOError(
+                    "JSON failed to decode {} with message {}".format(filename, e)
+                )
             try:
                 return cls(**dictionary)
             except TypeError as e:
@@ -1429,20 +1436,19 @@ class Result(object):
             Function which adds in extra parameters to the data frame,
             should take the data_frame, likelihood and prior as arguments.
         """
-        try:
-            data_frame = self.posterior
-        except ValueError:
-            data_frame = pd.DataFrame(
-                self.samples, columns=self.search_parameter_keys)
-            data_frame = self._add_prior_fixed_values_to_posterior(
-                data_frame, priors)
-            data_frame['log_likelihood'] = getattr(
-                self, 'log_likelihood_evaluations', np.nan)
-            if self.log_prior_evaluations is None and priors is not None:
-                data_frame['log_prior'] = priors.ln_prob(
-                    dict(data_frame[self.search_parameter_keys]), axis=0)
-            else:
-                data_frame['log_prior'] = self.log_prior_evaluations
+
+        data_frame = pd.DataFrame(
+            self.samples, columns=self.search_parameter_keys)
+        data_frame = self._add_prior_fixed_values_to_posterior(
+            data_frame, priors)
+        data_frame['log_likelihood'] = getattr(
+            self, 'log_likelihood_evaluations', np.nan)
+        if self.log_prior_evaluations is None and priors is not None:
+            data_frame['log_prior'] = priors.ln_prob(
+                dict(data_frame[self.search_parameter_keys]), axis=0)
+        else:
+            data_frame['log_prior'] = self.log_prior_evaluations
+
         if conversion_function is not None:
             if "npool" in inspect.getargspec(conversion_function).args:
                 data_frame = conversion_function(data_frame, likelihood, priors, npool=npool)
@@ -1988,9 +1994,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
-            template = ' $\mathrm{{ln}}(Z)={lnz:1.3g}$'
+            template = r' $\mathrm{{ln}}(Z)={lnz:1.3g}$'
         else:
-            template = ' $\mathrm{{ln}}(B)={lnbf:1.3g}$'
+            template = r' $\mathrm{{ln}}(B)={lnbf:1.3g}$'
         labels = [template.format(lnz=result.log_evidence,
                                   lnbf=result.log_bayes_factor)
                   for ii, result in enumerate(results)]

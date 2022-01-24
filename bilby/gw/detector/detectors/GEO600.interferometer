@@ -9,5 +9,5 @@ length = 0.6
 latitude = 52 + 14. / 60 + 42.528 / 3600
 longitude = 9 + 48. / 60 + 25.894 / 3600
 elevation = 114.425
-xarm_azimuth = 115.9431
-yarm_azimuth = 21.6117
+xarm_azimuth = 21.6117
+yarm_azimuth = 115.9431

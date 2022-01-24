@@ -4,6 +4,7 @@ An example of how to use bilby to perform parameter estimation for hyper params
 """
 import matplotlib.pyplot as plt
 import numpy as np
+
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.prior import Uniform
 from bilby.core.result import make_pp_plot
@@ -97,8 +98,8 @@ hp_likelihood = HyperparameterLikelihood(
 )
 
 hp_priors = dict(
-    mu=Uniform(-10, 10, "mu", "$\mu_{c0}$"),
-    sigma=Uniform(0, 10, "sigma", "$\sigma_{c0}$"),
+    mu=Uniform(-10, 10, "mu", r"$\mu_{c0}$"),
+    sigma=Uniform(0, 10, "sigma", r"$\sigma_{c0}$"),
 )
 
 # And run sampler

@@ -4,6 +4,7 @@ import os
 import shutil
 from importlib import import_module
 from pathlib import Path
+from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -76,6 +77,12 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 "__module__": obj.__module__,
                 "__name__": obj.__name__,
             }
+        if isinstance(obj, (timedelta)):
+            return {
+                "__timedelta__": True,
+                "__total_seconds__": obj.total_seconds()
+            }
+            return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
 
@@ -171,6 +178,8 @@ def decode_bilby_json(dct):
     if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
         return getattr(import_module(dct["__module__"]), dct["__name__"], default)
+    if dct.get("__timedelta__", False):
+        return timedelta(seconds=dct["__total_seconds__"])
     return dct
 
 

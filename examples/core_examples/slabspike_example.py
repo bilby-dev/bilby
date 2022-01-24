@@ -7,9 +7,10 @@ up to three Gaussians.
 
 """
 
-import bilby
 import matplotlib.pyplot as plt
 import numpy as np
+
+import bilby
 
 outdir = "outdir"
 label = "slabspike"
@@ -102,22 +103,22 @@ priors["amplitude_2"] = bilby.core.prior.SlabSpikePrior(
 # See e.g. https://github.com/GregoryAshton/kookaburra/blob/master/src/priors.py#L72 for an implementation.
 # We resolve this by not letting the priors overlap in this case.
 priors["mu_0"] = bilby.core.prior.Uniform(
-    minimum=-5, maximum=-2, name="mu_0", latex_label="$\mu_0$"
+    minimum=-5, maximum=-2, name="mu_0", latex_label=r"$\mu_0$"
 )
 priors["mu_1"] = bilby.core.prior.Uniform(
-    minimum=-2, maximum=2, name="mu_1", latex_label="$\mu_1$"
+    minimum=-2, maximum=2, name="mu_1", latex_label=r"$\mu_1$"
 )
 priors["mu_2"] = bilby.core.prior.Uniform(
-    minimum=2, maximum=5, name="mu_2", latex_label="$\mu_2$"
+    minimum=2, maximum=5, name="mu_2", latex_label=r"$\mu_2$"
 )
 priors["sigma_0"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_0", latex_label="$\sigma_0$"
+    minimum=0.01, maximum=10, name="sigma_0", latex_label=r"$\sigma_0$"
 )
 priors["sigma_1"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_1", latex_label="$\sigma_1$"
+    minimum=0.01, maximum=10, name="sigma_1", latex_label=r"$\sigma_1$"
 )
 priors["sigma_2"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_2", latex_label="$\sigma_2$"
+    minimum=0.01, maximum=10, name="sigma_2", latex_label=r"$\sigma_2$"
 )
 
 # Setting up the likelihood and running the samplers works the same as elsewhere.

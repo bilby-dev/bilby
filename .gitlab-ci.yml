@@ -44,12 +44,17 @@ containers:
     - apt-get -yqq install libhdf5-dev
   script:
     - python -m pip install .
+    - python -m pip list installed
     - python -c "import bilby"
+    - python -c "import bilby.bilby_mcmc"
     - python -c "import bilby.core"
     - python -c "import bilby.core.prior"
     - python -c "import bilby.core.sampler"
+    - python -c "import bilby.core.utils"
     - python -c "import bilby.gw"
     - python -c "import bilby.gw.detector"
+    - python -c "import bilby.gw.eos"
+    - python -c "import bilby.gw.likelihood"
     - python -c "import bilby.gw.sampler"
     - python -c "import bilby.hyper"
     - python -c "import cli_bilby"
@@ -122,6 +127,7 @@ python-3.7:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python37
   script:
     - python -m pip install .
+    - python -m pip list installed
 
     # Run pyflakes
     - flake8 .
@@ -143,6 +149,7 @@ python-3.8:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
   script:
     - python -m pip install .
+    - python -m pip list installed
     - pytest
 
 # test example on python 3.9
@@ -152,6 +159,7 @@ python-3.9:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
   script:
     - python -m pip install .
+    - python -m pip list installed
     - pytest
 
 
@@ -162,6 +170,7 @@ python-3.7-samplers:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python37
   script:
     - python -m pip install .
+    - python -m pip list installed
 
     - pytest test/integration/sampler_run_test.py --durations 10
 
@@ -172,6 +181,7 @@ python-3.8-samplers:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
   script:
     - python -m pip install .
+    - python -m pip list installed
 
     - pytest test/integration/sampler_run_test.py --durations 10
 
@@ -182,6 +192,7 @@ python-3.9-samplers:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
   script:
     - python -m pip install .
+    - python -m pip list installed
 
     - pytest test/integration/sampler_run_test.py --durations 10
 
@@ -193,6 +204,7 @@ integration-tests-python-3.7:
     - schedules
   script:
     - python -m pip install .
+    - python -m pip list installed
     # Run tests which are only done on schedule
     - pytest test/integration/example_test.py
 
@@ -204,7 +216,21 @@ plotting-python-3.7:
     - schedules
   script:
     - python -m pip install .
-    - python -m pip install ligo.skymap
+    - python -m pip install "ligo.skymap>=0.5.3"
+    - python -m pip list installed
+    - pytest test/gw/plot_test.py
+
+
+plotting-python-3.9:
+  stage: test
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python37
+  needs: ["basic-3.9", "precommits-py3.9"]
+  only:
+    - schedules
+  script:
+    - python -m pip install .
+    - python -m pip install "ligo.skymap>=0.5.3"
+    - python -m pip list installed
     - pytest test/gw/plot_test.py
 
 
@@ -301,4 +327,4 @@ pypi-release:
   script:
     - twine upload dist/*
   only:
-  - tags
+    - tags

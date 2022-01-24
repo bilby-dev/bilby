@@ -551,23 +551,13 @@ class Pymc3(MCMCSampler):
 
         with self.pymc3_model:
             # perform the sampling
-            trace = pymc3.sample(**self.kwargs)
+            trace = pymc3.sample(**self.kwargs, return_inferencedata=True)
 
-        nparams = len([key for key in self.priors.keys() if not isinstance(self.priors[key], DeltaFunction)])
-        nsamples = len(trace) * self.chains
-
-        self.result.samples = np.zeros((nsamples, nparams))
-        count = 0
-        for key in self.priors.keys():
-            if not isinstance(self.priors[key], DeltaFunction):  # ignore DeltaFunction variables
-                if not isinstance(self.priors[key], MultivariateGaussian):
-                    self.result.samples[:, count] = trace[key]
-                else:
-                    # get multivariate Gaussian samples
-                    priorset = self.multivariate_normal_sets[key]['set']
-                    index = self.multivariate_normal_sets[key]['index']
-                    self.result.samples[:, count] = trace[priorset][:, index]
-                count += 1
+        posterior = trace.posterior.to_dataframe().reset_index()
+        self.result.samples = posterior[self.search_parameter_keys]
+        self.result.log_likelihood_evaluations = np.sum(
+            trace.log_likelihood.likelihood.values, axis=-1
+        ).flatten()
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(self.result.samples)
         self.result.log_evidence = np.nan

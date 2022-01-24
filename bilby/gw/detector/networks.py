@@ -11,10 +11,10 @@ from .psd import PowerSpectralDensity
 
 
 class InterferometerList(list):
-    """ A list of Interferometer objects """
+    """A list of Interferometer objects"""
 
     def __init__(self, interferometers):
-        """ Instantiate a InterferometerList
+        """Instantiate a InterferometerList
 
         The InterferometerList is a list of Interferometer objects, each
         object has the data used in evaluating the likelihood
@@ -32,7 +32,9 @@ class InterferometerList(list):
             if type(ifo) == str:
                 ifo = get_empty_interferometer(ifo)
             if type(ifo) not in [Interferometer, TriangularInterferometer]:
-                raise TypeError("Input list of interferometers are not all Interferometer objects")
+                raise TypeError(
+                    "Input list of interferometers are not all Interferometer objects"
+                )
             else:
                 self.append(ifo)
         self._check_interferometers()
@@ -45,28 +47,37 @@ class InterferometerList(list):
 
         If both checks fail, then a ValueError is raised.
         """
-        consistent_attributes = ['duration', 'start_time', 'sampling_frequency']
+        consistent_attributes = ["duration", "start_time", "sampling_frequency"]
         for attribute in consistent_attributes:
-            x = [getattr(interferometer.strain_data, attribute)
-                 for interferometer in self]
+            x = [
+                getattr(interferometer.strain_data, attribute)
+                for interferometer in self
+            ]
             try:
                 if not all(y == x[0] for y in x):
-                    ifo_strs = ["{ifo}[{attribute}]={value}".format(
-                        ifo=ifo.name,
-                        attribute=attribute,
-                        value=getattr(ifo.strain_data, attribute))
-                        for ifo in self]
+                    ifo_strs = [
+                        "{ifo}[{attribute}]={value}".format(
+                            ifo=ifo.name,
+                            attribute=attribute,
+                            value=getattr(ifo.strain_data, attribute),
+                        )
+                        for ifo in self
+                    ]
                     raise ValueError(
                         "The {} of all interferometers are not the same: {}".format(
-                            attribute, ', '.join(ifo_strs)))
+                            attribute, ", ".join(ifo_strs)
+                        )
+                    )
             except ValueError as e:
                 if not all(math.isclose(y, x[0], abs_tol=1e-5) for y in x):
                     raise ValueError(e)
                 else:
                     logger.warning(e)
 
-    def set_strain_data_from_power_spectral_densities(self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` from the power spectral densities of the detectors
+    def set_strain_data_from_power_spectral_densities(
+        self, sampling_frequency, duration, start_time=0
+    ):
+        """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
@@ -83,12 +94,16 @@ class InterferometerList(list):
 
         """
         for interferometer in self:
-            interferometer.set_strain_data_from_power_spectral_density(sampling_frequency=sampling_frequency,
-                                                                       duration=duration,
-                                                                       start_time=start_time)
+            interferometer.set_strain_data_from_power_spectral_density(
+                sampling_frequency=sampling_frequency,
+                duration=duration,
+                start_time=start_time,
+            )
 
-    def set_strain_data_from_zero_noise(self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` from the power spectral densities of the detectors
+    def set_strain_data_from_zero_noise(
+        self, sampling_frequency, duration, start_time=0
+    ):
+        """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to zero noise. See
@@ -105,11 +120,19 @@ class InterferometerList(list):
 
         """
         for interferometer in self:
-            interferometer.set_strain_data_from_zero_noise(sampling_frequency=sampling_frequency,
-                                                           duration=duration,
-                                                           start_time=start_time)
+            interferometer.set_strain_data_from_zero_noise(
+                sampling_frequency=sampling_frequency,
+                duration=duration,
+                start_time=start_time,
+            )
 
-    def inject_signal(self, parameters=None, injection_polarizations=None, waveform_generator=None):
+    def inject_signal(
+        self,
+        parameters=None,
+        injection_polarizations=None,
+        waveform_generator=None,
+        raise_error=True,
+    ):
         """ Inject a signal into noise in each of the three detectors.
 
         Parameters
@@ -124,6 +147,9 @@ class InterferometerList(list):
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
+        raise_error: bool
+            Whether to raise an error if the injected signal does not fit in
+            the segment.
 
         Notes
         ==========
@@ -138,22 +164,29 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations = \
-                    waveform_generator.frequency_domain_strain(parameters)
+                injection_polarizations = waveform_generator.frequency_domain_strain(
+                    parameters
+                )
             else:
                 raise ValueError(
                     "inject_signal needs one of waveform_generator or "
-                    "injection_polarizations.")
+                    "injection_polarizations."
+                )
 
         all_injection_polarizations = list()
         for interferometer in self:
             all_injection_polarizations.append(
-                interferometer.inject_signal(parameters=parameters, injection_polarizations=injection_polarizations))
+                interferometer.inject_signal(
+                    parameters=parameters,
+                    injection_polarizations=injection_polarizations,
+                    raise_error=raise_error,
+                )
+            )
 
         return all_injection_polarizations
 
     def save_data(self, outdir, label=None):
-        """ Creates a save file for the data in plain text format
+        """Creates a save file for the data in plain text format
 
         Parameters
         ==========
@@ -165,7 +198,7 @@ class InterferometerList(list):
         for interferometer in self:
             interferometer.save_data(outdir=outdir, label=label)
 
-    def plot_data(self, signal=None, outdir='.', label=None):
+    def plot_data(self, signal=None, outdir=".", label=None):
         if utils.command_line_args.bilby_test_mode:
             return
 
@@ -209,13 +242,14 @@ class InterferometerList(list):
 
     @property
     def meta_data(self):
-        """ Dictionary of the per-interferometer meta_data """
-        return {interferometer.name: interferometer.meta_data
-                for interferometer in self}
+        """Dictionary of the per-interferometer meta_data"""
+        return {
+            interferometer.name: interferometer.meta_data for interferometer in self
+        }
 
     @staticmethod
     def _filename_from_outdir_label_extension(outdir, label, extension="h5"):
-        return os.path.join(outdir, label + f'.{extension}')
+        return os.path.join(outdir, label + f".{extension}")
 
     _save_docstring = """ Saves the object to a {format} file
 
@@ -239,53 +273,66 @@ class InterferometerList(list):
 
     """
 
-    def to_hdf5(self, outdir='outdir', label='ifo_list'):
+    def to_hdf5(self, outdir="outdir", label="ifo_list"):
         import deepdish
+
         if sys.version_info[0] < 3:
-            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
-                                      'Use Python 3 instead.')
-        label = label + '_' + ''.join(ifo.name for ifo in self)
+            raise NotImplementedError(
+                "Pickling of InterferometerList is not supported in Python 2."
+                "Use Python 3 instead."
+            )
+        label = label + "_" + "".join(ifo.name for ifo in self)
         utils.check_directory_exists_and_if_not_mkdir(outdir)
         try:
             filename = self._filename_from_outdir_label_extension(outdir, label, "h5")
             deepdish.io.save(filename, self)
         except AttributeError:
-            logger.warning("Saving to hdf5 using deepdish failed. Pickle dumping instead.")
+            logger.warning(
+                "Saving to hdf5 using deepdish failed. Pickle dumping instead."
+            )
             self.to_pickle(outdir=outdir, label=label)
 
     @classmethod
     def from_hdf5(cls, filename=None):
         import deepdish
+
         if sys.version_info[0] < 3:
-            raise NotImplementedError('Pickling of InterferometerList is not supported in Python 2.'
-                                      'Use Python 3 instead.')
+            raise NotImplementedError(
+                "Pickling of InterferometerList is not supported in Python 2."
+                "Use Python 3 instead."
+            )
         res = deepdish.io.load(filename)
         if res.__class__ == list:
             res = cls(res)
         if res.__class__ != cls:
-            raise TypeError('The loaded object is not a InterferometerList')
+            raise TypeError("The loaded object is not a InterferometerList")
         return res
 
     def to_pickle(self, outdir="outdir", label="ifo_list"):
         import dill
-        utils.check_directory_exists_and_if_not_mkdir('outdir')
-        label = label + '_' + ''.join(ifo.name for ifo in self)
-        filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
+
+        utils.check_directory_exists_and_if_not_mkdir("outdir")
+        label = label + "_" + "".join(ifo.name for ifo in self)
+        filename = self._filename_from_outdir_label_extension(
+            outdir, label, extension="pkl"
+        )
         with open(filename, "wb") as ff:
             dill.dump(self, ff)
 
     @classmethod
     def from_pickle(cls, filename=None):
         import dill
+
         with open(filename, "rb") as ff:
             res = dill.load(ff)
         if res.__class__ != cls:
-            raise TypeError('The loaded object is not an InterferometerList')
+            raise TypeError("The loaded object is not an InterferometerList")
         return res
 
     to_hdf5.__doc__ = _save_docstring.format(
-        format="hdf5", extra=""".. deprecated:: 1.1.0
-    Use :func:`to_pickle` instead."""
+        format="hdf5",
+        extra=""".. deprecated:: 1.1.0
+    Use :func:`to_pickle` instead.""",
     )
     to_pickle.__doc__ = _save_docstring.format(
         format="pickle", extra=".. versionadded:: 1.1.0"
@@ -295,10 +342,21 @@ class InterferometerList(list):
 
 
 class TriangularInterferometer(InterferometerList):
-
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency,
-                 length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0.):
+    def __init__(
+        self,
+        name,
+        power_spectral_density,
+        minimum_frequency,
+        maximum_frequency,
+        length,
+        latitude,
+        longitude,
+        elevation,
+        xarm_azimuth,
+        yarm_azimuth,
+        xarm_tilt=0.0,
+        yarm_tilt=0.0,
+    ):
         super(TriangularInterferometer, self).__init__([])
         self.name = name
         # for attr in ['power_spectral_density', 'minimum_frequency', 'maximum_frequency']:
@@ -310,15 +368,46 @@ class TriangularInterferometer(InterferometerList):
             maximum_frequency = [maximum_frequency] * 3
 
         for ii in range(3):
-            self.append(Interferometer(
-                '{}{}'.format(name, ii + 1), power_spectral_density[ii], minimum_frequency[ii], maximum_frequency[ii],
-                length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt))
+            self.append(
+                Interferometer(
+                    "{}{}".format(name, ii + 1),
+                    power_spectral_density[ii],
+                    minimum_frequency[ii],
+                    maximum_frequency[ii],
+                    length,
+                    latitude,
+                    longitude,
+                    elevation,
+                    xarm_azimuth,
+                    yarm_azimuth,
+                    xarm_tilt,
+                    yarm_tilt,
+                )
+            )
 
             xarm_azimuth += 240
             yarm_azimuth += 240
 
-            latitude += np.arctan(length * np.sin(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
-            longitude += np.arctan(length * np.cos(xarm_azimuth * np.pi / 180) * 1e3 / utils.radius_of_earth)
+            latitude += (
+                np.arctan(
+                    length
+                    * np.sin(xarm_azimuth * np.pi / 180)
+                    * 1e3
+                    / utils.radius_of_earth
+                )
+                * 180
+                / np.pi
+            )
+            longitude += (
+                np.arctan(
+                    length
+                    * np.cos(xarm_azimuth * np.pi / 180)
+                    * 1e3
+                    / utils.radius_of_earth
+                )
+                * 180
+                / np.pi
+            )
 
 
 def get_empty_interferometer(name):
@@ -351,34 +440,38 @@ def get_empty_interferometer(name):
     interferometer: Interferometer
         Interferometer instance
     """
-    filename = os.path.join(os.path.dirname(__file__), 'detectors', '{}.interferometer'.format(name))
+    filename = os.path.join(
+        os.path.dirname(__file__), "detectors", "{}.interferometer".format(name)
+    )
     try:
         return load_interferometer(filename)
     except OSError:
-        raise ValueError('Interferometer {} not implemented'.format(name))
+        raise ValueError("Interferometer {} not implemented".format(name))
 
 
 def load_interferometer(filename):
     """Load an interferometer from a file."""
     parameters = dict()
-    with open(filename, 'r') as parameter_file:
+    with open(filename, "r") as parameter_file:
         lines = parameter_file.readlines()
         for line in lines:
-            if line[0] == '#' or line[0] == '\n':
+            if line[0] == "#" or line[0] == "\n":
                 continue
-            split_line = line.split('=')
+            split_line = line.split("=")
             key = split_line[0].strip()
-            value = eval('='.join(split_line[1:]))
+            value = eval("=".join(split_line[1:]))
             parameters[key] = value
-    if 'shape' not in parameters.keys():
+    if "shape" not in parameters.keys():
         ifo = Interferometer(**parameters)
-        logger.debug('Assuming L shape for {}'.format('name'))
-    elif parameters['shape'].lower() in ['l', 'ligo']:
-        parameters.pop('shape')
+        logger.debug("Assuming L shape for {}".format("name"))
+    elif parameters["shape"].lower() in ["l", "ligo"]:
+        parameters.pop("shape")
         ifo = Interferometer(**parameters)
-    elif parameters['shape'].lower() in ['triangular', 'triangle']:
-        parameters.pop('shape')
+    elif parameters["shape"].lower() in ["triangular", "triangle"]:
+        parameters.pop("shape")
         ifo = TriangularInterferometer(**parameters)
     else:
-        raise IOError("{} could not be loaded. Invalid parameter 'shape'.".format(filename))
+        raise IOError(
+            "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
+        )
     return ifo

@@ -3,6 +3,7 @@ import array
 import copy
 
 import numpy as np
+from numpy.lib.recfunctions import structured_to_unstructured
 from pandas import DataFrame
 
 from .base_sampler import NestedSampler
@@ -121,11 +122,12 @@ class Cpnest(NestedSampler):
             out.plot()
 
         self.calc_likelihood_count()
-        self.result.posterior = DataFrame(out.posterior_samples)
+        self.result.samples = structured_to_unstructured(
+            out.posterior_samples[self.search_parameter_keys]
+        )
+        self.result.log_likelihood_evaluations = out.posterior_samples['logL']
         self.result.nested_samples = DataFrame(out.get_nested_samples(filename=''))
         self.result.nested_samples.rename(columns=dict(logL='log_likelihood'), inplace=True)
-        self.result.posterior.rename(columns=dict(logL='log_likelihood', logPrior='log_prior'),
-                                     inplace=True)
         _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
                                          np.array(out.NS.state.nlive))
         self.result.nested_samples['weights'] = np.exp(log_weights)

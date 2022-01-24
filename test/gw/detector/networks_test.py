@@ -3,6 +3,7 @@ import unittest
 import pytest
 from shutil import rmtree
 from packaging import version
+from itertools import combinations
 
 import deepdish as dd
 import mock
@@ -119,7 +120,7 @@ class TestInterferometerList(unittest.TestCase):
             bilby.gw.detector.InterferometerList("string")
 
     def test_init_with_string_list(self):
-        """ Merely checks if this ends up in the right bracket """
+        """Merely checks if this ends up in the right bracket"""
         with mock.patch("bilby.gw.detector.networks.get_empty_interferometer") as m:
             m.side_effect = TypeError
             with self.assertRaises(TypeError):
@@ -240,8 +241,12 @@ class TestInterferometerList(unittest.TestCase):
 
     @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_with_inj_pol(self, m):
-        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1))
-        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1))
+        self.ifo_list.inject_signal(
+            injection_polarizations=dict(plus=1), raise_error=False
+        )
+        m.assert_called_with(
+            parameters=None, injection_polarizations=dict(plus=1), raise_error=False
+        )
         self.assertEqual(len(self.ifo_list), m.call_count)
 
     @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
@@ -337,7 +342,9 @@ class TestInterferometerList(unittest.TestCase):
             recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
             self.assertListEqual(self.ifo_list, recovered_ifo)
 
-    @pytest.mark.skipif(pandas_version_test or sys.version_info[0] < 3, reason=skip_reason)
+    @pytest.mark.skipif(
+        pandas_version_test or sys.version_info[0] < 3, reason=skip_reason
+    )
     def test_to_and_from_hdf5_wrong_class(self):
         dd.io.save("./outdir/psd.h5", self.ifo_list[0].power_spectral_density)
         filename = self.ifo_list._filename_from_outdir_label_extension(
@@ -354,6 +361,7 @@ class TestInterferometerList(unittest.TestCase):
 
     def test_to_and_from_pkl_wrong_class(self):
         import dill
+
         with open("./outdir/psd.pkl", "wb") as ff:
             dill.dump(self.ifo_list[0].power_spectral_density, ff)
         filename = self.ifo_list._filename_from_outdir_label_extension(
@@ -370,6 +378,41 @@ class TestInterferometerList(unittest.TestCase):
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
         ifos.set_strain_data_from_power_spectral_densities(2048, 4)
         ifos.plot_data(outdir=self.outdir)
+
+
+class TriangularInterferometerTest(unittest.TestCase):
+    def setUp(self):
+        self.triangular_ifo = bilby.gw.detector.get_empty_interferometer("ET")
+
+    def tearDown(self):
+        del self.triangular_ifo
+
+    def test_individual_positions(self):
+        """
+        Check that the distances between the vertices of the three
+        individual interferometers is approximately equal to the
+        length of the arms of the detector.
+        Calculation following:
+        https://www.movable-type.co.uk/scripts/latlong.html
+        Angles must be in radians
+        """
+
+        def a(delta_lat, delta_long, lat_1, lat_2):
+            return (
+                np.sin(delta_lat / 2) ** 2
+                + np.cos(lat_1) * np.cos(lat_2) * np.sin(delta_long / 2) ** 2
+            )
+
+        def c(a):
+            return 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+
+        for pair in list(combinations(self.triangular_ifo, 2)):
+            delta_lat = np.radians(pair[1].latitude - pair[0].latitude)
+            delta_long = np.radians(pair[1].longitude - pair[0].longitude)
+            pair_a = a(delta_lat, delta_long, pair[0].latitude, pair[1].latitude)
+            pair_c = c(pair_a)
+            distance = bilby.core.utils.radius_of_earth * pair_c
+            self.assertAlmostEqual(distance / 1000, pair[0].length, delta=1)
 
 
 if __name__ == "__main__":

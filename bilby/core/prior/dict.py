@@ -423,27 +423,38 @@ class PriorDict(dict):
             }
             return all_samples
 
-    def normalize_constraint_factor(self, keys):
+    def normalize_constraint_factor(self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10):
         if keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
         else:
-            min_accept = 1000
-            sampling_chunk = 5000
+            factor_estimates = [
+                self._estimate_normalization(keys, min_accept, sampling_chunk)
+                for _ in range(nrepeats)
+            ]
+            factor = np.mean(factor_estimates)
+            if np.std(factor_estimates) > 0:
+                decimals = int(-np.floor(np.log10(3 * np.std(factor_estimates))))
+                factor_rounded = np.round(factor, decimals)
+            else:
+                factor_rounded = factor
+            self._cached_normalizations[keys] = factor_rounded
+            return factor_rounded
+
+    def _estimate_normalization(self, keys, min_accept, sampling_chunk):
+        samples = self.sample_subset(keys=keys, size=sampling_chunk)
+        keep = np.atleast_1d(self.evaluate_constraints(samples))
+        if len(keep) == 1:
+            self._cached_normalizations[keys] = 1
+            return 1
+        all_samples = {key: np.array([]) for key in keys}
+        while np.count_nonzero(keep) < min_accept:
             samples = self.sample_subset(keys=keys, size=sampling_chunk)
-            keep = np.atleast_1d(self.evaluate_constraints(samples))
-            if len(keep) == 1:
-                self._cached_normalizations[keys] = 1
-                return 1
-            all_samples = {key: np.array([]) for key in keys}
-            while np.count_nonzero(keep) < min_accept:
-                samples = self.sample_subset(keys=keys, size=sampling_chunk)
-                for key in samples:
-                    all_samples[key] = np.hstack(
-                        [all_samples[key], samples[key].flatten()])
-                keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
-            factor = len(keep) / np.count_nonzero(keep)
-            self._cached_normalizations[keys] = factor
-            return factor
+            for key in samples:
+                all_samples[key] = np.hstack(
+                    [all_samples[key], samples[key].flatten()])
+            keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
+        factor = len(keep) / np.count_nonzero(keep)
+        return factor
 
     def prob(self, sample, **kwargs):
         """
@@ -468,11 +479,11 @@ class PriorDict(dict):
     def check_prob(self, sample, prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(prob == 0.):
-            return prob
+            return prob * ratio
         else:
             if isinstance(prob, float):
                 if self.evaluate_constraints(sample):
-                    return prob
+                    return prob * ratio
                 else:
                     return 0.
             else:
@@ -508,7 +519,7 @@ class PriorDict(dict):
         else:
             if isinstance(ln_prob, float):
                 if self.evaluate_constraints(sample):
-                    return ln_prob
+                    return ln_prob + np.log(ratio)
                 else:
                     return -np.inf
             else:
