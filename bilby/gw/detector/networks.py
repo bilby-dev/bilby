@@ -1,5 +1,4 @@
 import os
-import sys
 
 import numpy as np
 import math
@@ -276,11 +275,6 @@ class InterferometerList(list):
     def to_hdf5(self, outdir="outdir", label="ifo_list"):
         import deepdish
 
-        if sys.version_info[0] < 3:
-            raise NotImplementedError(
-                "Pickling of InterferometerList is not supported in Python 2."
-                "Use Python 3 instead."
-            )
         label = label + "_" + "".join(ifo.name for ifo in self)
         utils.check_directory_exists_and_if_not_mkdir(outdir)
         try:
@@ -296,11 +290,6 @@ class InterferometerList(list):
     def from_hdf5(cls, filename=None):
         import deepdish
 
-        if sys.version_info[0] < 3:
-            raise NotImplementedError(
-                "Pickling of InterferometerList is not supported in Python 2."
-                "Use Python 3 instead."
-            )
         res = deepdish.io.load(filename)
         if res.__class__ == list:
             res = cls(res)

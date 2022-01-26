@@ -36,7 +36,7 @@ def decay_rate(delta_t, halflife, n_init):
     halflife: float
         Halflife of atom in minutes
     n_init: int, float
-        Initial nummber of atoms
+        Initial number of atoms
     """
 
     times = np.cumsum(delta_t)

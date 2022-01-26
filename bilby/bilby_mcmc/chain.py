@@ -253,7 +253,7 @@ class Chain(object):
 
     @property
     def tau(self):
-        """ The maximum ACT over all parameters """
+        """The maximum ACT over all parameters"""
 
         if self.position in self.max_tau_dict:
             # If we have the ACT at the current position, return it
@@ -272,7 +272,7 @@ class Chain(object):
 
     @property
     def tau_nocache(self):
-        """ Calculate tau forcing a recalculation (no cached tau) """
+        """Calculate tau forcing a recalculation (no cached tau)"""
         tau = max(self.tau_dict.values())
         self.max_tau_dict[self.position] = tau
         self.cached_tau_count = 0
@@ -280,7 +280,7 @@ class Chain(object):
 
     @property
     def tau_last(self):
-        """ Return the last-calculated tau if it exists, else inf """
+        """Return the last-calculated tau if it exists, else inf"""
         if len(self.max_tau_dict) > 0:
             return list(self.max_tau_dict.values())[-1]
         else:
@@ -288,7 +288,7 @@ class Chain(object):
 
     @property
     def _tau_for_full_chain(self):
-        """ The maximum ACT over all parameters """
+        """The maximum ACT over all parameters"""
         return max(self._tau_dict_for_full_chain.values())
 
     @property
@@ -297,11 +297,11 @@ class Chain(object):
 
     @property
     def tau_dict(self):
-        """ Calculate a dictionary of tau (ACT) for every parameter """
+        """Calculate a dictionary of tau (ACT) for every parameter"""
         return self._calculate_tau_dict(self.minimum_index)
 
     def _calculate_tau_dict(self, minimum_index):
-        """ Calculate a dictionary of tau (ACT) for every parameter """
+        """Calculate a dictionary of tau (ACT) for every parameter"""
         logger.debug(f"Calculating tau_dict {self}")
 
         # If there are too few samples to calculate tau

@@ -5,13 +5,13 @@ repos:
     -   id: check-merge-conflict # prevent committing files with merge conflicts
     -   id: flake8 # checks for flake8 errors
 -   repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 21.12b0
     hooks:
       - id: black
         language_version: python3
         files: ^bilby/bilby_mcmc/
 -   repo: https://github.com/codespell-project/codespell
-    rev: v1.16.0
+    rev: v2.1.0
     hooks:
     -   id: codespell
         args: [--ignore-words=.dictionary.txt]
