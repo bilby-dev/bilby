@@ -1,13 +1,11 @@
 import unittest
 import pytest
-import sys
 
 from mock import MagicMock
 
 import bilby
 
 
-@pytest.mark.skipif(sys.version_info[1] <= 6, reason="pymc3 is broken in py36")
 @pytest.mark.xfail(
     raises=AttributeError,
     reason="Dependency issue with pymc3 causes attribute error on import",

@@ -1,4 +1,3 @@
-import sys
 import unittest
 import pytest
 from shutil import rmtree
@@ -333,18 +332,12 @@ class TestInterferometerList(unittest.TestCase):
 
     @pytest.mark.skipif(pandas_version_test, reason=skip_reason)
     def test_to_and_from_hdf5_loading(self):
-        if sys.version_info[0] < 3:
-            with self.assertRaises(NotImplementedError):
-                self.ifo_list.to_hdf5(outdir="outdir", label="test")
-        else:
-            self.ifo_list.to_hdf5(outdir="outdir", label="test")
-            filename = "outdir/test_name1name2.h5"
-            recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
-            self.assertListEqual(self.ifo_list, recovered_ifo)
+        self.ifo_list.to_hdf5(outdir="outdir", label="test")
+        filename = "outdir/test_name1name2.h5"
+        recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
+        self.assertListEqual(self.ifo_list, recovered_ifo)
 
-    @pytest.mark.skipif(
-        pandas_version_test or sys.version_info[0] < 3, reason=skip_reason
-    )
+    @pytest.mark.skipif(pandas_version_test, reason=skip_reason)
     def test_to_and_from_hdf5_wrong_class(self):
         dd.io.save("./outdir/psd.h5", self.ifo_list[0].power_spectral_density)
         filename = self.ifo_list._filename_from_outdir_label_extension(
