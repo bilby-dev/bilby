@@ -123,21 +123,20 @@ python-3.8:
   <<: *unit-test
   needs: ["basic-3.8", "precommits-py3.8"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-  after_script:
-    - coverage html
-    - coverage xml
-    - coverage-badge -o coverage_badge.svg -f
-
-  artifacts:
-    reports:
-      cobertura: coverage.xml
-    paths:
-      - htmlcov/
 
 python-3.9:
   <<: *unit-test
   needs: ["basic-3.9", "precommits-py3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  after_script:
+    - coverage html
+    - coverage xml
+  artifacts:
+    reports:
+      cobertura: coverage.xml
+    paths:
+      - htmlcov/
+    expire_in: 30 days
 
 # add back when 3.10 image is available
 #python-3.10:
@@ -211,7 +210,6 @@ plotting-python-3.9:
 
 docs:
   stage: docs
-  needs: ["python-3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
   script:
     # Make the documentation
@@ -235,11 +233,10 @@ docs:
 
 deploy-docs:
   stage: deploy
-  needs: ["docs"]
+  needs: ["docs", "python-3.9"]
   script:
     - mkdir public/
     - mv htmlcov/ public/
-    - mv coverage_badge.svg public/
     - mv docs/_build/html/* public/
   artifacts:
     paths:
