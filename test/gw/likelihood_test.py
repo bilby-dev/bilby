@@ -428,6 +428,9 @@ class TestMarginalizations(unittest.TestCase):
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
 
+    lookup_phase = "distance_lookup_phase.npz"
+    lookup_no_phase = "distance_lookup_no_phase.npz"
+
     def setUp(self):
         np.random.seed(500)
         self.duration = 4
@@ -482,6 +485,13 @@ class TestMarginalizations(unittest.TestCase):
         del self.waveform_generator
         del self.priors
 
+    @classmethod
+    def tearDownClass(cls):
+        # remove lookup tables so that they are not used accidentally in subsequent tests
+        for filename in [cls.lookup_phase, cls.lookup_no_phase]:
+            if os.path.exists(filename):
+                os.remove(filename)
+
     def get_likelihood(
         self,
         time_marginalization=False,
@@ -492,9 +502,9 @@ class TestMarginalizations(unittest.TestCase):
         if priors is None:
             priors = self.priors.copy()
         if distance_marginalization and phase_marginalization:
-            lookup = "distance_lookup_phase.npz"
+            lookup = TestMarginalizations.lookup_phase
         elif distance_marginalization:
-            lookup = "distance_lookup_no_phase.npz"
+            lookup = TestMarginalizations.lookup_no_phase
         else:
             lookup = None
         like = bilby.gw.likelihood.GravitationalWaveTransient(
@@ -642,6 +652,174 @@ class TestMarginalizations(unittest.TestCase):
             values=self.waveform_generator.time_array,
             prior=prior,
         )
+
+
+class TestMarginalizationsROQ(TestMarginalizations):
+
+    lookup_phase = "distance_lookup_phase.npz"
+    lookup_no_phase = "distance_lookup_no_phase.npz"
+    path_to_roq_weights = "weights.npz"
+
+    def setUp(self):
+        np.random.seed(500)
+        self.duration = 4
+        self.sampling_frequency = 2048
+        self.parameters = dict(
+            mass_1=31.0,
+            mass_2=29.0,
+            a_1=0.4,
+            a_2=0.3,
+            tilt_1=0.0,
+            tilt_2=0.0,
+            phi_12=1.7,
+            phi_jl=0.3,
+            luminosity_distance=4000.0,
+            theta_jn=0.4,
+            psi=2.659,
+            phase=1.3,
+            geocent_time=1126259642.413,
+            ra=1.375,
+            dec=-1.2108,
+            time_jitter=0,
+        )
+
+        self.interferometers = bilby.gw.detector.InterferometerList(["H1"])
+        self.interferometers.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            start_time=1126259640,
+        )
+
+        waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                minimum_frequency=20.0,
+                approximant="IMRPhenomPv2"
+            )
+        )
+        self.interferometers.inject_signal(
+            parameters=self.parameters, waveform_generator=waveform_generator
+        )
+
+        self.priors = bilby.gw.prior.BBHPriorDict()
+        # prior range should be a part of segment since ROQ likelihood can not
+        # calculate values at samples close to edges
+        self.priors["geocent_time"] = bilby.prior.Uniform(
+            minimum=self.parameters["geocent_time"] - 0.1,
+            maximum=self.parameters["geocent_time"] + 0.1
+        )
+
+        # Possible locations for the ROQ: in the docker image, local, or on CIT
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        roq_dir = None
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                roq_dir = path
+                break
+        if roq_dir is None:
+            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                minimum_frequency=20.0,
+                approximant="IMRPhenomPv2",
+                frequency_nodes_linear=np.load("{}/fnodes_linear.npy".format(roq_dir)),
+                frequency_nodes_quadratic=np.load("{}/fnodes_quadratic.npy".format(roq_dir)),
+            )
+        )
+        self.roq_linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
+        self.roq_quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        for filename in [cls.lookup_phase, cls.lookup_no_phase, cls.path_to_roq_weights]:
+            if os.path.exists(filename):
+                os.remove(filename)
+
+    def get_likelihood(
+        self,
+        time_marginalization=False,
+        phase_marginalization=False,
+        distance_marginalization=False,
+        priors=None
+    ):
+        if priors is None:
+            priors = self.priors.copy()
+        if distance_marginalization and phase_marginalization:
+            lookup = TestMarginalizationsROQ.lookup_phase
+        elif distance_marginalization:
+            lookup = TestMarginalizationsROQ.lookup_no_phase
+        else:
+            lookup = None
+        kwargs = dict(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+            distance_marginalization=distance_marginalization,
+            phase_marginalization=phase_marginalization,
+            time_marginalization=time_marginalization,
+            distance_marginalization_lookup_table=lookup,
+            priors=priors
+        )
+        if os.path.exists(TestMarginalizationsROQ.path_to_roq_weights):
+            kwargs.update(dict(weights=TestMarginalizationsROQ.path_to_roq_weights))
+            like = bilby.gw.likelihood.ROQGravitationalWaveTransient(**kwargs)
+        else:
+            kwargs.update(
+                dict(
+                    linear_matrix=self.roq_linear_matrix_file,
+                    quadratic_matrix=self.roq_quadratic_matrix_file
+                )
+            )
+            like = bilby.gw.likelihood.ROQGravitationalWaveTransient(**kwargs)
+            like.save_weights(TestMarginalizationsROQ.path_to_roq_weights)
+        like.parameters = self.parameters.copy()
+        if time_marginalization:
+            like.parameters["geocent_time"] = self.interferometers.start_time
+        return like
+
+    def test_time_marginalisation(self):
+        self._template(
+            self.get_likelihood(time_marginalization=True),
+            self.get_likelihood(),
+            key="geocent_time",
+        )
+
+    def test_time_distance_marginalisation(self):
+        self._template(
+            self.get_likelihood(time_marginalization=True, distance_marginalization=True),
+            self.get_likelihood(distance_marginalization=True),
+            key="geocent_time",
+        )
+
+    def test_time_phase_marginalisation(self):
+        self._template(
+            self.get_likelihood(time_marginalization=True, phase_marginalization=True),
+            self.get_likelihood(phase_marginalization=True),
+            key="geocent_time",
+        )
+
+    def test_time_distance_phase_marginalisation(self):
+        self._template(
+            self.get_likelihood(time_marginalization=True, phase_marginalization=True, distance_marginalization=True),
+            self.get_likelihood(phase_marginalization=True, distance_marginalization=True),
+            key="geocent_time",
+        )
+
+    def test_time_marginalisation_partial_segment(self):
+        pass
 
 
 class TestROQLikelihood(unittest.TestCase):

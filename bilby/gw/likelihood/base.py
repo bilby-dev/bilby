@@ -378,9 +378,7 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization:
             if self.jitter_time:
                 self.parameters['geocent_time'] += self.parameters['time_jitter']
-            d_inner_h_array = np.zeros(
-                len(self.interferometers.frequency_array[0:-1]),
-                dtype=np.complex128)
+            d_inner_h_array = np.zeros(len(self._times), dtype=np.complex128)
 
         elif self.calibration_marginalization:
             d_inner_h_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)

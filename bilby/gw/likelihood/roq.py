@@ -44,6 +44,20 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         A dictionary of priors containing at least the geocent_time prior
         Warning: when using marginalisation the dict is overwritten which will change the
         the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
+    time_marginalization: bool, optional
+        If true, marginalize over time in the likelihood.
+        The spacing of time samples can be specified through delta_tc.
+        If using time marginalisation and jitter_time is True a "jitter"
+        parameter is added to the prior which modifies the position of the
+        grid of times.
+    jitter_time: bool, optional
+        Whether to introduce a `time_jitter` parameter. This avoids either
+        missing the likelihood peak, or introducing biases in the
+        reconstructed time posterior due to an insufficient sampling frequency.
+        Default is False, however using this parameter is strongly encouraged.
+    delta_tc: float, optional
+        The spacing of time samples for time marginalization. If not specified,
+        it is determined based on the signal-to-noise ratio of signal.
     distance_marginalization_lookup_table: (dict, str), optional
         If a dict, dictionary containing the lookup_table, distance_array,
         (distance) prior_array, and reference_distance used to construct
@@ -71,18 +85,20 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             weights=None, linear_matrix=None, quadratic_matrix=None,
             roq_params=None, roq_params_check=True, roq_scale_factor=1,
             distance_marginalization=False, phase_marginalization=False,
+            time_marginalization=False, jitter_time=True, delta_tc=None,
             distance_marginalization_lookup_table=None,
             reference_frame="sky", time_reference="geocenter"
 
     ):
+        self._delta_tc = delta_tc
         super(ROQGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator, priors=priors,
             distance_marginalization=distance_marginalization,
             phase_marginalization=phase_marginalization,
-            time_marginalization=False,
+            time_marginalization=time_marginalization,
             distance_marginalization_lookup_table=distance_marginalization_lookup_table,
-            jitter_time=False,
+            jitter_time=jitter_time,
             reference_frame=reference_frame,
             time_reference=time_reference
         )
@@ -117,6 +133,19 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self.frequency_nodes_quadratic = \
             waveform_generator.waveform_arguments['frequency_nodes_quadratic']
 
+    def _setup_time_marginalization(self):
+        if self._delta_tc is None:
+            self._delta_tc = self._get_time_resolution()
+        tcmin = self.priors['geocent_time'].minimum
+        tcmax = self.priors['geocent_time'].maximum
+        number_of_time_samples = int(np.ceil((tcmax - tcmin) / self._delta_tc))
+        # adjust delta tc so that the last time sample has an equal weight
+        self._delta_tc = (tcmax - tcmin) / number_of_time_samples
+        logger.info(
+            "delta tc for time marginalization = {} seconds.".format(self._delta_tc))
+        self._times = tcmin + self._delta_tc / 2. + np.arange(number_of_time_samples) * self._delta_tc
+        self._beam_pattern_reference_time = (tcmin + tcmax) / 2.
+
     def calculate_snrs(self, waveform_polarizations, interferometer):
         """
         Compute the snrs for ROQ
@@ -128,18 +157,21 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
 
-        f_plus = interferometer.antenna_response(
-            self.parameters['ra'], self.parameters['dec'],
-            self.parameters['geocent_time'], self.parameters['psi'], 'plus')
-        f_cross = interferometer.antenna_response(
-            self.parameters['ra'], self.parameters['dec'],
-            self.parameters['geocent_time'], self.parameters['psi'], 'cross')
+        if self.time_marginalization:
+            time_ref = self._beam_pattern_reference_time
+        else:
+            time_ref = self.parameters['geocent_time']
 
-        dt = interferometer.time_delay_from_geocenter(
-            self.parameters['ra'], self.parameters['dec'],
-            self.parameters['geocent_time'])
-        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
-        ifo_time = dt_geocent + dt
+        h_linear = np.zeros(len(self.frequency_nodes_linear), dtype=complex)
+        h_quadratic = np.zeros(len(self.frequency_nodes_quadratic), dtype=complex)
+        for mode in waveform_polarizations['linear']:
+            response = interferometer.antenna_response(
+                self.parameters['ra'], self.parameters['dec'],
+                self.parameters['geocent_time'], self.parameters['psi'],
+                mode
+            )
+            h_linear += waveform_polarizations['linear'][mode] * response
+            h_quadratic += waveform_polarizations['quadratic'][mode] * response
 
         calib_linear = interferometer.calibration_model.get_calibration_factor(
             self.frequency_nodes_linear,
@@ -148,46 +180,56 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             self.frequency_nodes_quadratic,
             prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
 
-        h_plus_linear = f_plus * waveform_polarizations['linear']['plus'] * calib_linear
-        h_cross_linear = f_cross * waveform_polarizations['linear']['cross'] * calib_linear
-        h_plus_quadratic = (
-            f_plus * waveform_polarizations['quadratic']['plus'] * calib_quadratic
-        )
-        h_cross_quadratic = (
-            f_cross * waveform_polarizations['quadratic']['cross'] * calib_quadratic
-        )
-
-        indices, in_bounds = self._closest_time_indices(
-            ifo_time, self.weights['time_samples'])
-        if not in_bounds:
-            logger.debug("SNR calculation error: requested time at edge of ROQ time samples")
-            return self._CalculatedSNRs(
-                d_inner_h=np.nan_to_num(-np.inf), optimal_snr_squared=0,
-                complex_matched_filter_snr=np.nan_to_num(-np.inf),
-                d_inner_h_squared_tc_array=None,
-                d_inner_h_array=None,
-                optimal_snr_squared_array=None)
-
-        d_inner_h_tc_array = np.einsum(
-            'i,ji->j', np.conjugate(h_plus_linear + h_cross_linear),
-            self.weights[interferometer.name + '_linear'][indices])
-
-        d_inner_h = self._interp_five_samples(
-            self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
+        h_linear *= calib_linear
+        h_quadratic *= calib_quadratic
 
         optimal_snr_squared = \
-            np.vdot(np.abs(h_plus_quadratic + h_cross_quadratic)**2,
-                    self.weights[interferometer.name + '_quadratic'])
+            np.vdot(np.abs(h_quadratic)**2, self.weights[interferometer.name + '_quadratic'])
 
-        with np.errstate(invalid="ignore"):
-            complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
-        d_inner_h_squared_tc_array = None
+        dt = interferometer.time_delay_from_geocenter(
+            self.parameters['ra'], self.parameters['dec'], time_ref)
+
+        if not self.time_marginalization:
+            dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
+            ifo_time = dt_geocent + dt
+
+            indices, in_bounds = self._closest_time_indices(
+                ifo_time, self.weights['time_samples'])
+            if not in_bounds:
+                logger.debug("SNR calculation error: requested time at edge of ROQ time samples")
+                return self._CalculatedSNRs(
+                    d_inner_h=np.nan_to_num(-np.inf), optimal_snr_squared=0,
+                    complex_matched_filter_snr=np.nan_to_num(-np.inf),
+                    d_inner_h_squared_tc_array=None,
+                    d_inner_h_array=None,
+                    optimal_snr_squared_array=None)
+
+            d_inner_h_tc_array = np.einsum(
+                'i,ji->j', np.conjugate(h_linear),
+                self.weights[interferometer.name + '_linear'][indices])
+
+            d_inner_h = self._interp_five_samples(
+                self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
+
+            with np.errstate(invalid="ignore"):
+                complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
+
+            d_inner_h_array = None
+
+        else:
+            ifo_times = self._times - interferometer.strain_data.start_time + dt
+            if self.jitter_time:
+                ifo_times += self.parameters['time_jitter']
+            d_inner_h_array = self._calculate_d_inner_h_array(ifo_times, h_linear, interferometer.name)
+
+            d_inner_h = 0.
+            complex_matched_filter_snr = 0.
 
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_squared_tc_array=d_inner_h_squared_tc_array,
-            d_inner_h_array=None,
+            d_inner_h_squared_tc_array=None,
+            d_inner_h_array=d_inner_h_array,
             optimal_snr_squared_array=None)
 
     @staticmethod
@@ -241,6 +283,53 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         c = (a**3. - a) / 6.
         d = (b**3. - b) / 6.
         return a * values[2] + b * values[3] + c * r1 + d * r2
+
+    def _calculate_d_inner_h_array(self, times, h_linear, ifo_name):
+        """
+        Calculate d_inner_h at regularly-spaced time samples. Each value is
+        interpolated from the nearest 5 samples with the algorithm explained in
+        https://dcc.ligo.org/T2100224.
+
+        Parameters
+        ==========
+        times: array-like
+            Regularly-spaced time samples at which d_inner_h are calculated.
+        h_linear: array-like
+            Waveforms at linear frequency nodes
+        ifo_name: str
+
+        Returns
+        =======
+        d_inner_h_array: array-like
+        """
+        roq_time_space = self.weights['time_samples'][1] - self.weights['time_samples'][0]
+        times_per_roq_time_space = (times - self.weights['time_samples'][0]) / roq_time_space
+        closest_idxs = np.floor(times_per_roq_time_space).astype(int)
+        # Get the nearest 5 samples of d_inner_h. Calculate only the required d_inner_h values if the time
+        # spacing is larger than 5 times the ROQ time spacing.
+        weights_linear = self.weights[ifo_name + '_linear']
+        h_linear_conj = np.conjugate(h_linear)
+        if (times[1] - times[0]) / roq_time_space > 5:
+            d_inner_h_m2 = np.dot(weights_linear[closest_idxs - 2], h_linear_conj)
+            d_inner_h_m1 = np.dot(weights_linear[closest_idxs - 1], h_linear_conj)
+            d_inner_h_0 = np.dot(weights_linear[closest_idxs], h_linear_conj)
+            d_inner_h_p1 = np.dot(weights_linear[closest_idxs + 1], h_linear_conj)
+            d_inner_h_p2 = np.dot(weights_linear[closest_idxs + 2], h_linear_conj)
+        else:
+            d_inner_h_at_roq_time_samples = np.dot(weights_linear, h_linear_conj)
+            d_inner_h_m2 = d_inner_h_at_roq_time_samples[closest_idxs - 2]
+            d_inner_h_m1 = d_inner_h_at_roq_time_samples[closest_idxs - 1]
+            d_inner_h_0 = d_inner_h_at_roq_time_samples[closest_idxs]
+            d_inner_h_p1 = d_inner_h_at_roq_time_samples[closest_idxs + 1]
+            d_inner_h_p2 = d_inner_h_at_roq_time_samples[closest_idxs + 2]
+        # quantities required for spline interpolation
+        b = times_per_roq_time_space - closest_idxs
+        a = 1. - b
+        c = (a**3. - a) / 6.
+        d = (b**3. - b) / 6.
+        r1 = (-d_inner_h_m2 + 8. * d_inner_h_m1 - 14. * d_inner_h_0 + 8. * d_inner_h_p1 - d_inner_h_p2) / 4.
+        r2 = d_inner_h_0 - 2. * d_inner_h_p1 + d_inner_h_p2
+        return a * d_inner_h_0 + b * d_inner_h_p1 + c * r1 + d * r2
 
     def perform_roq_params_check(self, ifo=None):
         """ Perform checking that the prior and data are valid for the ROQ
