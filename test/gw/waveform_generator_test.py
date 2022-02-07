@@ -1,8 +1,7 @@
 import unittest
+from unittest import mock
 import bilby
 import numpy as np
-import mock
-from mock import MagicMock
 
 
 def dummy_func_array_return_value(
@@ -259,7 +258,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         del self.simulation_parameters
 
     def test_parameter_conversion_is_called(self):
-        self.waveform_generator.parameter_conversion = MagicMock(
+        self.waveform_generator.parameter_conversion = mock.MagicMock(
             side_effect=KeyError("test")
         )
         with self.assertRaises(KeyError):
@@ -328,7 +327,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             )
 
     def test_key_popping(self):
-        self.waveform_generator.parameter_conversion = MagicMock(
+        self.waveform_generator.parameter_conversion = mock.MagicMock(
             return_value=(
                 dict(
                     amplitude=1e-21,
@@ -465,7 +464,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         del self.simulation_parameters
 
     def test_parameter_conversion_is_called(self):
-        self.waveform_generator.parameter_conversion = MagicMock(
+        self.waveform_generator.parameter_conversion = mock.MagicMock(
             side_effect=KeyError("test")
         )
         with self.assertRaises(KeyError):
@@ -538,7 +537,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
             )
 
     def test_key_popping(self):
-        self.waveform_generator.parameter_conversion = MagicMock(
+        self.waveform_generator.parameter_conversion = mock.MagicMock(
             return_value=(
                 dict(
                     amplitude=1e-2,

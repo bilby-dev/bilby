@@ -1,7 +1,7 @@
 import unittest
-import pytest
+from unittest.mock import MagicMock
 
-from mock import MagicMock
+import pytest
 
 import bilby
 

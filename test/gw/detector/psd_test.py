@@ -1,10 +1,9 @@
 import logging
 import os
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
-from mock import MagicMock
 
 import bilby
 
@@ -199,28 +198,28 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
 
     def test_check_file_psd_file_set_to_asd_file(self):
         logger = logging.getLogger("bilby")
-        m = MagicMock()
+        m = mock.MagicMock()
         logger.warning = m
         _ = bilby.gw.detector.PowerSpectralDensity(psd_file=self.asd_file)
         self.assertEqual(4, m.call_count)
 
     def test_check_file_not_called_psd_file_set_to_psd_file(self):
         logger = logging.getLogger("bilby")
-        m = MagicMock()
+        m = mock.MagicMock()
         logger.warning = m
         _ = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
         self.assertEqual(0, m.call_count)
 
     def test_check_file_asd_file_set_to_psd_file(self):
         logger = logging.getLogger("bilby")
-        m = MagicMock()
+        m = mock.MagicMock()
         logger.warning = m
         _ = bilby.gw.detector.PowerSpectralDensity(asd_file=self.psd_file)
         self.assertEqual(4, m.call_count)
 
     def test_check_file_not_called_asd_file_set_to_asd_file(self):
         logger = logging.getLogger("bilby")
-        m = MagicMock()
+        m = mock.MagicMock()
         logger.warning = m
         _ = bilby.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
         self.assertEqual(0, m.call_count)
