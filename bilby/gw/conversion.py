@@ -174,7 +174,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 chirp_mass_and_total_mass_to_symmetric_mass_ratio(
                     converted_parameters['chirp_mass'],
                     converted_parameters['total_mass'])
-        if 'symmetric_mass_ratio' in converted_parameters.keys():
+        if 'symmetric_mass_ratio' in converted_parameters.keys() and "mass_ratio" not in converted_parameters:
             converted_parameters['mass_ratio'] =\
                 symmetric_mass_ratio_to_mass_ratio(
                     converted_parameters['symmetric_mass_ratio'])
