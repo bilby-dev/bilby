@@ -1,6 +1,5 @@
 import unittest
-from mock import MagicMock
-import mock
+from unittest import mock
 import numpy as np
 from bilby.core.likelihood import (
     Likelihood,
@@ -657,9 +656,9 @@ class TestJointLikelihood(unittest.TestCase):
         )
 
     def test_log_noise_likelihood(self):
-        self.first_likelihood.noise_log_likelihood = MagicMock(return_value=1)
-        self.second_likelihood.noise_log_likelihood = MagicMock(return_value=2)
-        self.third_likelihood.noise_log_likelihood = MagicMock(return_value=3)
+        self.first_likelihood.noise_log_likelihood = mock.MagicMock(return_value=1)
+        self.second_likelihood.noise_log_likelihood = mock.MagicMock(return_value=2)
+        self.third_likelihood.noise_log_likelihood = mock.MagicMock(return_value=3)
         self.joint_likelihood = JointLikelihood(
             self.first_likelihood, self.second_likelihood, self.third_likelihood
         )

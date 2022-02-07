@@ -1,9 +1,8 @@
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
 import scipy.signal
-from mock import patch
 
 import bilby
 
@@ -198,7 +197,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd._time_domain_strain = expected_strain
         self.assertEqual(expected_strain, self.ifosd.time_domain_strain)
 
-    @patch("bilby.core.utils.infft")
+    @mock.patch("bilby.core.utils.infft")
     def test_time_domain_strain_from_frequency_domain_strain(self, m):
         m.return_value = 5
         self.ifosd.sampling_frequency = 200
@@ -222,7 +221,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             np.array_equal(expected_strain, self.ifosd.frequency_domain_strain)
         )
 
-    @patch("bilby.core.utils.nfft")
+    @mock.patch("bilby.core.utils.nfft")
     def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
         self.ifosd.start_time = 0
         self.ifosd.duration = 4

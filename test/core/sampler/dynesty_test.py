@@ -1,7 +1,7 @@
 import unittest
+from unittest.mock import MagicMock
 
 import numpy as np
-from mock import MagicMock
 
 import bilby
 

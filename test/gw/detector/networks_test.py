@@ -1,13 +1,12 @@
 import unittest
+from unittest import mock
 import pytest
 from shutil import rmtree
 from packaging import version
 from itertools import combinations
 
 import deepdish as dd
-import mock
 import numpy as np
-from mock import patch, MagicMock
 import pandas
 
 import bilby
@@ -183,7 +182,7 @@ class TestInterferometerList(unittest.TestCase):
         with self.assertRaises(ValueError):
             bilby.gw.detector.InterferometerList([self.ifo1, self.ifo2])
 
-    @patch.object(bilby.gw.detector.networks.logger, "warning")
+    @mock.patch.object(bilby.gw.detector.networks.logger, "warning")
     def test_check_interferometers_relative_tolerance(self, mock_warning):
         # Value larger than relative tolerance -- not tolerated
         self.ifo2.strain_data.start_time = self.ifo1.strain_data.start_time + 1e-4
@@ -201,7 +200,7 @@ class TestInterferometerList(unittest.TestCase):
             "The start_time of all interferometers are not the same:" in warning_log_str
         )
 
-    @patch.object(
+    @mock.patch.object(
         bilby.gw.detector.Interferometer, "set_strain_data_from_power_spectral_density"
     )
     def test_set_strain_data_from_power_spectral_density(self, m):
@@ -224,21 +223,21 @@ class TestInterferometerList(unittest.TestCase):
         meta_data = {ifo.name: ifo.meta_data for ifo in ifos_list}
         self.assertEqual(ifos.meta_data, meta_data)
 
-    @patch.object(
+    @mock.patch.object(
         bilby.gw.waveform_generator.WaveformGenerator, "frequency_domain_strain"
     )
     def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
         waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=lambda x, y, z: x
         )
-        self.ifo1.inject_signal = MagicMock(return_value=None)
-        self.ifo2.inject_signal = MagicMock(return_value=None)
+        self.ifo1.inject_signal = mock.MagicMock(return_value=None)
+        self.ifo2.inject_signal = mock.MagicMock(return_value=None)
         self.ifo_list.inject_signal(
             parameters=None, waveform_generator=waveform_generator
         )
         self.assertTrue(m.called)
 
-    @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
+    @mock.patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_with_inj_pol(self, m):
         self.ifo_list.inject_signal(
             injection_polarizations=dict(plus=1), raise_error=False
@@ -248,7 +247,7 @@ class TestInterferometerList(unittest.TestCase):
         )
         self.assertEqual(len(self.ifo_list), m.call_count)
 
-    @patch.object(bilby.gw.detector.Interferometer, "inject_signal")
+    @mock.patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_returns_expected_polarisations(self, m):
         m.return_value = dict(plus=1, cross=2)
         injection_polarizations = dict(plus=1, cross=2)
@@ -264,7 +263,7 @@ class TestInterferometerList(unittest.TestCase):
             ifos_pol[1],
         )
 
-    @patch.object(bilby.gw.detector.Interferometer, "save_data")
+    @mock.patch.object(bilby.gw.detector.Interferometer, "save_data")
     def test_save_data(self, m):
         self.ifo_list.save_data(outdir="test_outdir", label="test_outdir")
         m.assert_called_with(outdir="test_outdir", label="test_outdir")
