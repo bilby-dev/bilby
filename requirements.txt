@@ -5,7 +5,6 @@ numpy
 matplotlib>=2.1
 scipy>=1.5
 pandas
-mock
 dill
 tqdm
 h5py

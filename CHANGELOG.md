@@ -1,5 +1,23 @@
 # All notable changes will be documented in this file
 
+## [1.1.5] 2022-01-14
+Version 1.1.5 release of bilby
+
+### Added
+- Option to enforce that a GW signal fits into the segment duration (!1041)
+- Remove the save `.dat` samples file with `dynesty` (!1028)
+- Catch corrupted `json` result result files being passed (!1034)
+
+### Changes
+- Fixes to conversion function for `nessai` and `cpnest` (!1055)
+- Workaround for `astropy` v5 (!1054)
+- Various fixes to testing system (!1038, !1044, !1045, !1048)
+- Updated defaults for `nessai` (!1042)
+- Small bug fixes (!1032, !1036, !1039, !1046, !1052)
+- Bug fix in the definition of some standard interferometers (!1037)
+- Improvements to the multi-banded GWT likelihood (!1026)
+- Improve meta data comparison (!1035)
+
 ## [1.1.4] 2021-10-08
 Version 1.1.4 release of bilby
 

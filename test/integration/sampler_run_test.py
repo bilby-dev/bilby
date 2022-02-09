@@ -1,7 +1,6 @@
 import unittest
 import pytest
 import shutil
-import sys
 
 import bilby
 import numpy as np
@@ -184,7 +183,6 @@ class TestRunningSamplers(unittest.TestCase):
         assert "derived" in res.posterior
         assert res.log_likelihood_evaluations is not None
 
-    @pytest.mark.skipif(sys.version_info[1] <= 6, reason="pymc3 is broken in py36")
     @pytest.mark.xfail(
         raises=AttributeError,
         reason="Dependency issue with pymc3 causes attribute error on import",

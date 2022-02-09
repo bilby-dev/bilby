@@ -5,10 +5,9 @@ import subprocess
 import sys
 import os
 
-# check that python version is 3.7 or above
 python_version = sys.version_info
-if python_version < (3, 7):
-    sys.exit("Python < 3.7 is not supported, aborting setup")
+if python_version < (3, 8):
+    sys.exit("Python < 3.8 is not supported, aborting setup")
 
 
 def write_version_file(version):
@@ -70,7 +69,7 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '1.1.4'
+VERSION = '1.1.5'
 version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
@@ -106,7 +105,7 @@ setup(
         "bilby.gw.eos": ["eos_tables/*.dat"],
         "bilby": [version_file],
     },
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=get_requirements(),
     entry_points={
         "console_scripts": [
@@ -115,7 +114,6 @@ setup(
         ]
     },
     classifiers=[
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: MIT License",

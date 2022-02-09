@@ -930,7 +930,7 @@ def _stretch_move(sample, complement, scale, ndim, parameters):
 
 
 class EnsembleProposal(BaseProposal):
-    """ Base EnsembleProposal class for ensemble-based swap proposals """
+    """Base EnsembleProposal class for ensemble-based swap proposals"""
 
     def __init__(self, priors, weight=1):
         super(EnsembleProposal, self).__init__(priors, weight)

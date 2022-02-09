@@ -73,7 +73,7 @@ as requested in their associated documentation.
 
 .. |pipeline status| image:: https://git.ligo.org/lscsoft/bilby/badges/master/pipeline.svg
    :target: https://git.ligo.org/lscsoft/bilby/commits/master
-.. |coverage report| image:: https://lscsoft.docs.ligo.org/bilby/coverage_badge.svg
+.. |coverage report| image:: https://git.ligo.org/lscsoft/bilby/badges/master/coverage.svg
    :target: https://lscsoft.docs.ligo.org/bilby/htmlcov/
 .. |pypi| image:: https://badge.fury.io/py/bilby.svg
    :target: https://pypi.org/project/bilby/

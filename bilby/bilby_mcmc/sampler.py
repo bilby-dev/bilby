@@ -653,7 +653,7 @@ class BilbyPTMCMCSampler(object):
 
     @property
     def sampler_list(self):
-        """ A list of all individual samplers """
+        """A list of all individual samplers"""
         return [s for item in self.sampler_dictionary.values() for s in item]
 
     @sampler_list.setter
