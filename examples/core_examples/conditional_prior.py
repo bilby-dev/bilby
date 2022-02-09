@@ -17,14 +17,14 @@ class ZeroLikelihood(bilby.core.likelihood.Likelihood):
 
 
 def condition_func_y(reference_params, x):
-    """ Condition function for our p(y|x) prior."""
+    """Condition function for our p(y|x) prior."""
     radius = 0.5 * (reference_params["maximum"] - reference_params["minimum"])
     y_max = np.sqrt(radius ** 2 - x ** 2)
     return dict(minimum=-y_max, maximum=y_max)
 
 
 def condition_func_z(reference_params, x, y):
-    """ Condition function for our p(z|x, y) prior."""
+    """Condition function for our p(z|x, y) prior."""
     radius = 0.5 * (reference_params["maximum"] - reference_params["minimum"])
     z_max = np.sqrt(radius ** 2 - x ** 2 - y ** 2)
     return dict(minimum=-z_max, maximum=z_max)
