@@ -1,7 +1,26 @@
 import unittest
 import numpy as np
 import pandas as pd
+from parameterized import parameterized
+
 import bilby.hyper as hyp
+
+
+def _toy_function(data, dataset, self, cls, a, b, c):
+    return a
+
+
+class _ToyClassNoVariableNames:
+    def __call__(self, a, b, c):
+        return a
+
+
+class _ToyClassVariableNames:
+
+    variable_names = ["a", "b", "c"]
+
+    def __call__(self, **kwargs):
+        return kwargs.get("a", 1)
 
 
 class TestHyperLikelihood(unittest.TestCase):
@@ -37,6 +56,18 @@ class TestHyperLikelihood(unittest.TestCase):
             self.posteriors, self.model, self.sampling_model
         )
         self.assertTrue(np.isnan(like.evidence_factor))
+
+    @parameterized.expand([
+        ("func", _toy_function),
+        ("class_no_names", _ToyClassNoVariableNames()),
+        ("class_with_names", _ToyClassVariableNames()),
+    ])
+    def test_get_function_parameters(self, _, model):
+        expected = dict(a=1, b=2, c=3)
+        model = hyp.model.Model([model])
+        model.parameters.update(expected)
+        result = model._get_function_parameters(model.models[0])
+        self.assertDictEqual(expected, result)
 
     def test_len_samples_with_max_samples(self):
         like = hyp.likelihood.HyperparameterLikelihood(
