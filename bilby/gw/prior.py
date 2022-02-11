@@ -695,10 +695,18 @@ class CBCPriorDict(ConditionalPriorDict):
             The minimum frequency in Hz of the analysis
         N: int
             The number of samples to draw when checking
+        error: bool
+            Whether to raise a ValueError on failure.
+        warning: bool
+            Whether to log a warning on failure.
+
+        Returns
+        =======
+        bool: whether the template will fit within the segment duration
         """
         samples = self.sample(N)
         samples = generate_all_bbh_parameters(samples)
-        deltaT = np.array([
+        durations = np.array([
             calculate_time_to_merger(
                 frequency=minimum_frequency,
                 mass_1=mass_1,
@@ -706,19 +714,19 @@ class CBCPriorDict(ConditionalPriorDict):
             )
             for (mass_1, mass_2) in zip(samples["mass_1"], samples["mass_2"])
         ])
-        if np.all(deltaT < duration):
+        longest_duration = max(durations)
+        if longest_duration < duration:
             return True
+        message = (
+            "Prior contains regions of parameter space in which the signal"
+            f" is longer than the data duration {duration}s."
+            f" Maximum estimated duration = {longest_duration:.1f}s."
+        )
         if warning:
-            logger.warning(
-                "Prior contains regions of parameter space in which the signal"
-                f" is longer than the data duration {duration}s"
-            )
+            logger.warning(message)
             return False
         if error:
-            raise ValueError(
-                "Prior contains regions of parameter space in which the signal"
-                f" is longer than the data duration {duration}s"
-            )
+            raise ValueError(message)
 
 
 class BBHPriorDict(CBCPriorDict):
