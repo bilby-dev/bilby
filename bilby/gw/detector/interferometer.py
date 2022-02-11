@@ -772,32 +772,6 @@ class Interferometer(object):
     """
 
     @docstring(_save_ifo_docstring.format(
-        format="hdf5", extra=""".. deprecated:: 1.1.0
-    Use :func:`to_pickle` instead."""
-    ))
-    def to_hdf5(self, outdir='outdir', label=None):
-        import deepdish
-        if label is None:
-            label = self.name
-        utils.check_directory_exists_and_if_not_mkdir('outdir')
-        try:
-            filename = self._filename_from_outdir_label_extension(outdir, label, "h5")
-            deepdish.io.save(filename, self)
-        except AttributeError:
-            logger.warning("Saving to hdf5 using deepdish failed. Pickle dumping instead.")
-            self.to_pickle(outdir=outdir, label=label)
-
-    @classmethod
-    @docstring(_load_docstring.format(format="hdf5"))
-    def from_hdf5(cls, filename=None):
-        import deepdish
-
-        res = deepdish.io.load(filename)
-        if res.__class__ != cls:
-            raise TypeError('The loaded object is not an Interferometer')
-        return res
-
-    @docstring(_save_ifo_docstring.format(
         format="pickle", extra=".. versionadded:: 1.1.0"
     ))
     def to_pickle(self, outdir="outdir", label=None):

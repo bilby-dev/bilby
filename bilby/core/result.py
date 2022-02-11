@@ -422,65 +422,6 @@ class Result(object):
         self.prior_values = None
         self._kde = None
 
-    @classmethod
-    def _from_hdf5_old(cls, filename=None, outdir=None, label=None):
-        """ Read in a saved .h5 data file in the old format.
-
-        Parameters
-        ==========
-        filename: str
-            If given, try to load from this filename
-        outdir, label: str
-            If given, use the default naming convention for saved results file
-
-        Returns
-        =======
-        result: bilby.core.result.Result
-
-        Raises
-        =======
-        ValueError: If no filename is given and either outdir or label is None
-                    If no bilby.core.result.Result is found in the path
-
-        """
-        import deepdish
-        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
-
-        if os.path.isfile(filename):
-            dictionary = deepdish.io.load(filename)
-            # Some versions of deepdish/pytables return the dictionary as
-            # a dictionary with a key 'data'
-            if len(dictionary) == 1 and 'data' in dictionary:
-                dictionary = dictionary['data']
-
-            if "priors" in dictionary:
-                # parse priors from JSON string (allowing for backwards
-                # compatibility)
-                if not isinstance(dictionary["priors"], PriorDict):
-                    try:
-                        priordict = PriorDict()
-                        for key, value in dictionary["priors"].items():
-                            if key not in ["__module__", "__name__", "__prior_dict__"]:
-                                try:
-                                    priordict[key] = decode_bilby_json(value)
-                                except AttributeError:
-                                    continue
-                        dictionary["priors"] = priordict
-                    except Exception as e:
-                        raise IOError(
-                            "Unable to parse priors from '{}':\n{}".format(
-                                filename, e,
-                            )
-                        )
-            try:
-                if isinstance(dictionary.get('posterior', None), dict):
-                    dictionary['posterior'] = pd.DataFrame(dictionary['posterior'])
-                return cls(**dictionary)
-            except TypeError as e:
-                raise IOError("Unable to load dictionary, error={}".format(e))
-        else:
-            raise IOError("No result '{}' found".format(filename))
-
     _load_doctstring = """ Read in a saved .{format} data file
 
     Parameters
@@ -516,8 +457,6 @@ class Result(object):
         filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
         with h5py.File(filename, "r") as ff:
             data = recursively_load_dict_contents_from_group(ff, '/')
-        if list(data.keys()) == ["data"]:
-            return cls._from_hdf5_old(filename=filename)
         data["posterior"] = pd.DataFrame(data["posterior"])
         data["priors"] = PriorDict._get_from_json_dict(
             json.loads(data["priors"], object_hook=decode_bilby_json)

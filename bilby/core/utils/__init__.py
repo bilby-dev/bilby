@@ -9,7 +9,6 @@ from .introspection import *
 from .io import *
 from .log import *
 from .plotting import *
-from .progress import *
 from .samples import *
 from .series import *
 

@@ -1,13 +1,9 @@
 import unittest
 from unittest import mock
-import pytest
 from shutil import rmtree
-from packaging import version
 from itertools import combinations
 
-import deepdish as dd
 import numpy as np
-import pandas
 
 import bilby
 
@@ -325,25 +321,6 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo_list.insert(1, new_ifo)
         names = [ifo.name for ifo in self.ifo_list]
         self.assertListEqual([self.ifo1.name, new_ifo.name, self.ifo2.name], names)
-
-    pandas_version_test = version.parse(pandas.__version__) >= version.parse("1.2.0")
-    skip_reason = "Deepdish requires pandas < 1.2"
-
-    @pytest.mark.skipif(pandas_version_test, reason=skip_reason)
-    def test_to_and_from_hdf5_loading(self):
-        self.ifo_list.to_hdf5(outdir="outdir", label="test")
-        filename = "outdir/test_name1name2.h5"
-        recovered_ifo = bilby.gw.detector.InterferometerList.from_hdf5(filename)
-        self.assertListEqual(self.ifo_list, recovered_ifo)
-
-    @pytest.mark.skipif(pandas_version_test, reason=skip_reason)
-    def test_to_and_from_hdf5_wrong_class(self):
-        dd.io.save("./outdir/psd.h5", self.ifo_list[0].power_spectral_density)
-        filename = self.ifo_list._filename_from_outdir_label_extension(
-            outdir="outdir", label="psd", extension="h5"
-        )
-        with self.assertRaises(TypeError):
-            bilby.gw.detector.InterferometerList.from_hdf5(filename)
 
     def test_to_and_from_pkl_loading(self):
         self.ifo_list.to_pickle(outdir="outdir", label="test")
