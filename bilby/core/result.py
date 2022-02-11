@@ -2,7 +2,7 @@ import datetime
 import inspect
 import json
 import os
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from copy import copy
 from importlib import import_module
 from itertools import product
@@ -724,7 +724,7 @@ class Result(object):
             'num_likelihood_evaluations', 'samples', 'nested_samples',
             'walkers', 'nburn', 'parameter_labels', 'parameter_labels_with_unit',
             'version']
-        dictionary = OrderedDict()
+        dictionary = dict()
         for attr in save_attrs:
             try:
                 dictionary[attr] = getattr(self, attr)
@@ -1397,7 +1397,7 @@ class Result(object):
             ax.set_ylabel(ylabel)
 
         handles, labels = plt.gca().get_legend_handles_labels()
-        by_label = OrderedDict(zip(labels, handles))
+        by_label = dict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys())
         ax.legend(numpoints=3)
         fig.tight_layout()
