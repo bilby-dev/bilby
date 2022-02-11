@@ -125,7 +125,6 @@ class Recalibrate(object):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        self.set_calibration_parameters(**params)
         return np.ones_like(frequency_array)
 
     def set_calibration_parameters(self, **params):
