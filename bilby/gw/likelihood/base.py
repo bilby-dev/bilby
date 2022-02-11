@@ -936,15 +936,6 @@ class GravitationalWaveTransient(Likelihood):
             "to use bilby.gw.utils.ln_i0"
         )
 
-    @staticmethod
-    def _bessel_function_interped(xx):
-        logger.warning(
-            "The _bessel_function_interped method is deprecated and will be removed, "
-            "please update the implementation of phase marginalization "
-            "to use bilby.gw.utils.ln_i0"
-        )
-        return ln_i0(xx) + xx
-
     def _setup_time_marginalization(self):
         self._delta_tc = 2 / self.waveform_generator.sampling_frequency
         self._times = \

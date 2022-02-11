@@ -272,31 +272,6 @@ class InterferometerList(list):
 
     """
 
-    def to_hdf5(self, outdir="outdir", label="ifo_list"):
-        import deepdish
-
-        label = label + "_" + "".join(ifo.name for ifo in self)
-        utils.check_directory_exists_and_if_not_mkdir(outdir)
-        try:
-            filename = self._filename_from_outdir_label_extension(outdir, label, "h5")
-            deepdish.io.save(filename, self)
-        except AttributeError:
-            logger.warning(
-                "Saving to hdf5 using deepdish failed. Pickle dumping instead."
-            )
-            self.to_pickle(outdir=outdir, label=label)
-
-    @classmethod
-    def from_hdf5(cls, filename=None):
-        import deepdish
-
-        res = deepdish.io.load(filename)
-        if res.__class__ == list:
-            res = cls(res)
-        if res.__class__ != cls:
-            raise TypeError("The loaded object is not a InterferometerList")
-        return res
-
     def to_pickle(self, outdir="outdir", label="ifo_list"):
         import dill
 
@@ -318,15 +293,9 @@ class InterferometerList(list):
             raise TypeError("The loaded object is not an InterferometerList")
         return res
 
-    to_hdf5.__doc__ = _save_docstring.format(
-        format="hdf5",
-        extra=""".. deprecated:: 1.1.0
-    Use :func:`to_pickle` instead.""",
-    )
     to_pickle.__doc__ = _save_docstring.format(
         format="pickle", extra=".. versionadded:: 1.1.0"
     )
-    from_hdf5.__doc__ = _load_docstring.format(format="hdf5")
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
 
