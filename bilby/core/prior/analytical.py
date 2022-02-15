@@ -1430,8 +1430,8 @@ class Categorical(Prior):
                  unit=None, boundary="periodic"):
         """ An equal-weighted Categorical prior
 
-        Parameters:
-        -----------
+        Parameters
+        ==========
         ncategories: int
             The number of available categories. The prior mass support is then
             integers [0, ncategories - 1].

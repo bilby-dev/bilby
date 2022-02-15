@@ -651,7 +651,7 @@ def lambda_1_lambda_2_to_lambda_tilde(lambda_1, lambda_2, mass_1, mass_2):
         Mass of less massive neutron star.
 
     Returns
-    ======
+    =======
     lambda_tilde: float
         Dominant tidal term.
     """

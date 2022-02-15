@@ -381,7 +381,7 @@ class Result(object):
             this information is generated when the result object is initialized
 
         Notes
-        =========
+        =====
         All sampling output parameters, e.g. the samples themselves are
         typically not given at initialisation, but set at a later stage.
 
@@ -436,7 +436,7 @@ class Result(object):
     result: bilby.core.result.Result
 
     Raises
-    =======
+    ======
     ValueError: If no filename is given and either outdir or label is None
                 If no bilby.core.result.Result is found in the path
 
@@ -1097,7 +1097,7 @@ class Result(object):
             to override the outdir set by the absolute path of the result object.
 
         Notes
-        -----
+        =====
             The generation of the corner plot themselves is done by the corner
             python module, see https://corner.readthedocs.io for more
             information.

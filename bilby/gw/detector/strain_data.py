@@ -179,7 +179,7 @@ class InterferometerStrainData(object):
             into windowed part
 
         Returns
-        ======
+        =======
         window: array
             Window function over time array
         """
