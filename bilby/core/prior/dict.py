@@ -686,7 +686,7 @@ class ConditionalPriorDict(PriorDict):
             Name of the key that we want to know the required variables for
 
         Returns
-        ==========
+        =======
         dict: key/value pairs of the required variables
         """
         return {k: self[k].least_recently_sampled for k in getattr(self[key], 'required_variables', [])}
@@ -857,7 +857,7 @@ def create_default_prior(name, default_priors_file=None):
         If given, a file containing the default priors.
 
     Returns
-    ======
+    =======
     prior: Prior
         Default prior distribution for that parameter, if unknown None is
         returned.

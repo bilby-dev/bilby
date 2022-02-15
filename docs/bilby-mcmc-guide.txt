@@ -7,6 +7,7 @@ Bilby MCMC Guide
 Bilby MCMC is a native sampler built directly in :code:`bilby` and described in
 `Ashton & Talbot (2021) <https://ui.adsabs.harvard.edu/abs/2021arXiv210608730A/abstract>`_.
 Here, we describe how to use it.
+For detailed API information see the API section.
 
 
 Quickstart and output
@@ -41,7 +42,7 @@ Configuration
 
 We now describe the configuration of the sampler. First, we will present a
 detailed look at some commonly-used parameters. But, please refer to the
-full API at the end of this page for an exhaustive list.
+full API for an exhaustive list.
 
 Here, we provide a code snippet to run :code:`bilby-mcmc` with
 parallel-tempering, and set the :code:`thin_by_nact` parameter. Note that,
@@ -150,8 +151,3 @@ Note that the prior here is the prior as passed in to :code:`run_sampler`.
 
 
 New proposals can also be created by subclassing existing proposals.
-
-Full API
---------
-
-.. autoclass:: bilby.bilby_mcmc.sampler.Bilby_MCMC

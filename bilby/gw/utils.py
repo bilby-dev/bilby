@@ -210,7 +210,7 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
         duration of the data
 
     Returns
-    ======
+    =======
     Noise-weighted inner product.
     """
 

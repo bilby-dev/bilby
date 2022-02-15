@@ -151,7 +151,7 @@ class InterferometerList(list):
             the segment.
 
         Notes
-        ==========
+        =====
         if your signal takes a substantial amount of time to generate, or
         you experience buggy behaviour. It is preferable to provide the
         injection_polarizations directly.

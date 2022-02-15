@@ -800,7 +800,7 @@ class BBHPriorDict(CBCPriorDict):
             Disable logging in this function call. Default is False.
 
         Returns
-        ======
+        =======
         redundant: bool
             Whether the key is redundant or not
         """

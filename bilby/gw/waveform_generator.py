@@ -117,7 +117,7 @@ class WaveformGenerator(object):
         array_like: The frequency domain strain for the given set of parameters
 
         Raises
-        =======
+        ======
         RuntimeError: If no source model is given
 
         """
@@ -147,7 +147,7 @@ class WaveformGenerator(object):
         array_like: The time domain strain for the given set of parameters
 
         Raises
-        =======
+        ======
         RuntimeError: If no source model is given
 
         """

@@ -436,7 +436,7 @@ class Grid(object):
         grid: bilby.core.grid.Grid
 
         Raises
-        =======
+        ======
         ValueError: If no filename is given and either outdir or label is None
                     If no bilby.core.grid.Grid is found in the path
 
