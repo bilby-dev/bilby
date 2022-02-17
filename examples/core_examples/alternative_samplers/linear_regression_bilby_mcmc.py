@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # A few simple setup steps
-label = "linear_regression"
+label = "linear_regression_bilby_mcmc"
 outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
@@ -57,8 +57,12 @@ priors["c"] = bilby.core.prior.Uniform(-2, 2, "c")
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
-    sampler="dynesty",
-    nlive=250,
+    sampler="bilby_mcmc",
+    nsamples=10000,
+    ntemps=1,
+    nensemble=1,
+    L1steps=1,
+    print_dt=5,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
