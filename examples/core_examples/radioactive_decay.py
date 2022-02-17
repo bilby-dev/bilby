@@ -5,15 +5,14 @@ non-gravitational wave data. In this case, fitting the half-life and
 initial radionuclide number for Polonium 214.
 """
 import bilby
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from bilby.core.likelihood import PoissonLikelihood
 from bilby.core.prior import LogUniform
 
 # A few simple setup steps
-label = 'radioactive_decay'
-outdir = 'outdir'
+label = "radioactive_decay"
+outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 # generate a set of counts per minute for n_init atoms of
@@ -44,8 +43,14 @@ def decay_rate(delta_t, halflife, n_init):
 
     n_atoms = n_init * atto * n_avogadro
 
-    rates = (np.exp(-np.log(2) * (times[:-1] / halflife)) -
-             np.exp(- np.log(2) * (times[1:] / halflife))) * n_atoms / delta_t
+    rates = (
+        (
+            np.exp(-np.log(2) * (times[:-1] / halflife))
+            - np.exp(-np.log(2) * (times[1:] / halflife))
+        )
+        * n_atoms
+        / delta_t
+    )
 
     return rates
 
@@ -67,12 +72,12 @@ theoretical = decay_rate(delta_t, **injection_parameters)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()
-ax.semilogy(time[:-1], counts, 'o', label='data')
-ax.semilogy(time[:-1], theoretical, '--r', label='signal')
-ax.set_xlabel('time')
-ax.set_ylabel('counts')
+ax.semilogy(time[:-1], counts, "o", label="data")
+ax.semilogy(time[:-1], theoretical, "--r", label="signal")
+ax.set_xlabel("time")
+ax.set_ylabel("counts")
 ax.legend()
-fig.savefig('{}/{}_data.png'.format(outdir, label))
+fig.savefig("{}/{}_data.png".format(outdir, label))
 
 # Now lets instantiate a version of the Poisson Likelihood, giving it
 # the time intervals, counts and rate model
@@ -80,14 +85,19 @@ likelihood = PoissonLikelihood(delta_t, counts, decay_rate)
 
 # Make the prior
 priors = dict()
-priors['halflife'] = LogUniform(
-    1e-5, 1e5, latex_label='$t_{1/2}$', unit='min')
-priors['n_init'] = LogUniform(
-    1e-25 / atto, 1e-10 / atto, latex_label='$N_0$', unit='attomole')
+priors["halflife"] = LogUniform(1e-5, 1e5, latex_label="$t_{1/2}$", unit="min")
+priors["n_init"] = LogUniform(
+    1e-25 / atto, 1e-10 / atto, latex_label="$N_0$", unit="attomole"
+)
 
 # And run sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty',
-    nlive=1000, sample='unif', injection_parameters=injection_parameters,
-    outdir=outdir, label=label)
+    likelihood=likelihood,
+    priors=priors,
+    sampler="dynesty",
+    nlive=1000,
+    injection_parameters=injection_parameters,
+    outdir=outdir,
+    label=label,
+)
 result.plot_corner()

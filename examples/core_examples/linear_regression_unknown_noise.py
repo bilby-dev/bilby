@@ -6,12 +6,12 @@ data with background Gaussian noise with unknown variance.
 
 """
 import bilby
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # A few simple setup steps
-label = 'linear_regression_unknown_noise'
-outdir = 'outdir'
+label = "linear_regression_unknown_noise"
+outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 
@@ -36,12 +36,12 @@ data = model(time, **injection_parameters) + np.random.normal(0, sigma, N)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()
-ax.plot(time, data, 'o', label='data')
-ax.plot(time, model(time, **injection_parameters), '--r', label='signal')
-ax.set_xlabel('time')
-ax.set_ylabel('y')
+ax.plot(time, data, "o", label="data")
+ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
+ax.set_xlabel("time")
+ax.set_ylabel("y")
 ax.legend()
-fig.savefig('{}/{}_data.png'.format(outdir, label))
+fig.savefig("{}/{}_data.png".format(outdir, label))
 
 injection_parameters.update(dict(sigma=1))
 
@@ -51,13 +51,20 @@ injection_parameters.update(dict(sigma=1))
 likelihood = bilby.core.likelihood.GaussianLikelihood(time, data, model)
 
 priors = dict()
-priors['m'] = bilby.core.prior.Uniform(0, 5, 'm')
-priors['c'] = bilby.core.prior.Uniform(-2, 2, 'c')
-priors['sigma'] = bilby.core.prior.Uniform(0, 10, 'sigma')
+priors["m"] = bilby.core.prior.Uniform(0, 5, "m")
+priors["c"] = bilby.core.prior.Uniform(-2, 2, "c")
+priors["sigma"] = bilby.core.prior.Uniform(0, 10, "sigma")
 
 # And run sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
-    sample='unif', injection_parameters=injection_parameters, outdir=outdir,
-    label=label)
+    likelihood=likelihood,
+    priors=priors,
+    sampler="dynesty",
+    npoints=250,
+    injection_parameters=injection_parameters,
+    outdir=outdir,
+    label=label,
+)
+
+# Finally plot a corner plot: all outputs are stored in outdir
 result.plot_corner()

@@ -7,8 +7,8 @@ import bilby
 import numpy as np
 
 # A few simple setup steps
-label = 'gaussian_example'
-outdir = 'outdir'
+label = "gaussian_example"
+outdir = "outdir"
 
 # Here is minimum requirement for a Likelihood class to run with bilby. In this
 # case, we setup a GaussianLikelihood, which needs to have a log_likelihood
@@ -30,24 +30,32 @@ class SimpleGaussianLikelihood(bilby.Likelihood):
         data: array_like
             The data to analyse
         """
-        super().__init__(parameters={'mu': None, 'sigma': None})
+        super().__init__(parameters={"mu": None, "sigma": None})
         self.data = data
         self.N = len(data)
 
     def log_likelihood(self):
-        mu = self.parameters['mu']
-        sigma = self.parameters['sigma']
+        mu = self.parameters["mu"]
+        sigma = self.parameters["sigma"]
         res = self.data - mu
-        return -0.5 * (np.sum((res / sigma)**2) +
-                       self.N * np.log(2 * np.pi * sigma**2))
+        return -0.5 * (
+            np.sum((res / sigma) ** 2) + self.N * np.log(2 * np.pi * sigma ** 2)
+        )
 
 
 likelihood = SimpleGaussianLikelihood(data)
-priors = dict(mu=bilby.core.prior.Uniform(0, 5, 'mu'),
-              sigma=bilby.core.prior.Uniform(0, 10, 'sigma'))
+priors = dict(
+    mu=bilby.core.prior.Uniform(0, 5, "mu"),
+    sigma=bilby.core.prior.Uniform(0, 10, "sigma"),
+)
 
 # And run sampler
 result = bilby.run_sampler(
-    likelihood=likelihood, priors=priors, sampler='dynesty', npoints=500,
-    walks=10, outdir=outdir, label=label)
+    likelihood=likelihood,
+    priors=priors,
+    sampler="dynesty",
+    nlive=1000,
+    outdir=outdir,
+    label=label,
+)
 result.plot_corner()
