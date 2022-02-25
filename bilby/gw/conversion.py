@@ -1167,6 +1167,7 @@ def compute_snrs(sample, likelihood, npool=1):
                 )
                 new_samples = pool.map(_compute_snrs, tqdm(fill_args, file=sys.stdout))
                 pool.close()
+                pool.join()
             else:
                 new_samples = [_compute_snrs(xx) for xx in tqdm(fill_args, file=sys.stdout)]
 
@@ -1307,6 +1308,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
 
     if pool is not None:
         pool.close()
+        pool.join()
 
     new_samples = np.concatenate(
         [np.array(val) for key, val in cached_samples_dict.items() if key != "_samples"]
