@@ -363,7 +363,7 @@ class Result(object):
             The number of times the likelihood function is called
         log_prior_evaluations: array_like
             The evaluations of the prior for each sample point
-        sampling_time: (datetime.timedelta, float)
+        sampling_time: datetime.timedelta, float
             The time taken to complete the sampling
         nburn: int
             The number of burn-in steps discarded for MCMC samplers

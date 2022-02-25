@@ -1,3 +1,4 @@
+import datetime
 import inspect
 import json
 import os
@@ -301,6 +302,8 @@ def encode_for_hdf5(key, item):
         output = item.copy()
     elif isinstance(item, tuple):
         output = {str(ii): elem for ii, elem in enumerate(item)}
+    elif isinstance(item, datetime.timedelta):
+        output = item.total_seconds()
     else:
         raise ValueError(f'Cannot save {key}: {type(item)} type')
     return output
