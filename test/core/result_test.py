@@ -69,6 +69,7 @@ class TestResult(unittest.TestCase):
             sampler_kwargs=dict(test="test", func=lambda x: x),
             injection_parameters=dict(x=0.5, y=0.5),
             meta_data=dict(test="test"),
+            sampling_time=100.0,
         )
 
         n = 100
@@ -254,6 +255,7 @@ class TestResult(unittest.TestCase):
         self.assertEqual(self.result.priors["y"], loaded_result.priors["y"])
         self.assertEqual(self.result.priors["c"], loaded_result.priors["c"])
         self.assertEqual(self.result.priors["d"], loaded_result.priors["d"])
+        self.assertEqual(self.result.sampling_time, loaded_result.sampling_time)
 
     def test_save_and_dont_overwrite_json(self):
         self._save_and_dont_overwrite_test(extension='json')
