@@ -64,7 +64,7 @@ class Ptemcee(MCMCSampler):
     autocorr_c: int, (5)
         The step size for the window search used by emcee.autocorr.integrated_time
     safety: int, (1)
-        A multiplicitive factor for the estimated autocorrelation. Useful for
+        A multiplicative factor for the estimated autocorrelation. Useful for
         cases where non-convergence can be observed by eye but the automated
         tools are failing.
     autocorr_tau: int, (1)
@@ -92,14 +92,18 @@ class Ptemcee(MCMCSampler):
         is not recommended for cases where tau is large.
     ignore_keys_for_tau: str
         A pattern used to ignore keys in estimating the autocorrelation time.
-    pos0: str, list, np.ndarray
+    pos0: str, list, np.ndarray, dict
         If a string, one of "prior" or "minimize". For "prior", the initial
         positions of the sampler are drawn from the sampler. If "minimize",
         a scipy.optimize step is applied to all parameters a number of times.
         The walkers are then initialized from the range of values obtained.
         If a list, for the keys in the list the optimization step is applied,
-        otherwise the initial points are drawn from the prior. If a numpy array
-        the shape should be (ntemps, nwalkers, ndim).
+        otherwise the initial points are drawn from the prior.
+        If a :code:`numpy` array the shape should be
+        :code:`(ntemps, nwalkers, ndim)`.
+        If a :code:`dict`, this should be a dictionary with keys matching the
+        :code:`search_parameter_keys`. Each entry should be an array with
+        shape :code:`(ntemps, nwalkers)`.
 
     niterations_per_check: int (5)
         The number of iteration steps to take before checking ACT. This
@@ -284,13 +288,13 @@ class Ptemcee(MCMCSampler):
 
         """
         logger.info("Generating pos0 samples")
-        return [
+        return np.array([
             [
                 self.get_random_draw_from_prior()
                 for _ in range(self.nwalkers)
             ]
             for _ in range(self.kwargs["ntemps"])
-        ]
+        ])
 
     def get_pos0_from_minimize(self, minimize_list=None):
         """ Draw the initial positions using an initial minimization step
@@ -378,6 +382,18 @@ class Ptemcee(MCMCSampler):
         else:
             return self.pos0
 
+    def get_pos0_from_dict(self):
+        """
+        Initialize the starting points from a passed dictionary.
+
+        The :code:`pos0` passed to the :code:`Sampler` should be a dictionary
+        with keys matching the :code:`search_parameter_keys`.
+        Each entry should have shape :code:`(ntemps, nwalkers)`.
+        """
+        pos0 = np.array([self.pos0[key] for key in self.search_parameter_keys])
+        self.pos0 = np.moveaxis(pos0, 0, -1)
+        return self.get_pos0_from_array()
+
     def setup_sampler(self):
         """ Either initialize the sampler or read in the resume file """
         import ptemcee
@@ -463,6 +479,8 @@ class Ptemcee(MCMCSampler):
             return self.get_pos0_from_minimize(minimize_list=self.pos0)
         elif isinstance(self.pos0, np.ndarray):
             return self.get_pos0_from_array()
+        elif isinstance(self.pos0, dict):
+            return self.get_pos0_from_dict()
         else:
             raise SamplerError("pos0={} not implemented".format(self.pos0))
 
