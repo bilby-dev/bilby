@@ -48,7 +48,7 @@ templates_path = ['templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = ['.rst', '.md', '.txt', '.ipynb']
+source_suffix = ['.rst', '.md', '.txt']
 
 # The master toctree document.
 master_doc = 'index'

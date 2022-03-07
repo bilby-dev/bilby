@@ -110,7 +110,7 @@ class Ptemcee(MCMCSampler):
 
 
     Other Parameters
-    ------==========
+    ================
     nwalkers: int, (200)
         The number of walkers
     nsteps: int, (100)
@@ -168,6 +168,7 @@ class Ptemcee(MCMCSampler):
         pos0="prior",
         niterations_per_check=5,
         log10beta_min=None,
+        verbose=True,
         **kwargs
     ):
         super(Ptemcee, self).__init__(
@@ -249,6 +250,7 @@ class Ptemcee(MCMCSampler):
             betas = np.logspace(0, self.log10beta_min, self.ntemps)
             logger.warning("Using betas {}".format(betas))
             self.kwargs["betas"] = betas
+        self.verbose = verbose
 
     @property
     def sampler_function_kwargs(self):
@@ -555,6 +557,7 @@ class Ptemcee(MCMCSampler):
                 self.tau_list_n,
                 self.Q_list,
                 self.mean_log_posterior,
+                verbose=self.verbose,
             )
 
             if stop:
@@ -705,6 +708,7 @@ def check_iteration(
     tau_list_n,
     Q_list,
     mean_log_posterior,
+    verbose=True,
 ):
     """ Per-iteration logic to calculate the convergence check
 
@@ -716,6 +720,8 @@ def check_iteration(
         A list of the search parameter keys
     time_per_check, tau_list, tau_list_n: list
         Lists used for tracking the run
+    verbose: bool
+        Whether to print the output
 
     Returns
     =======
@@ -754,10 +760,11 @@ def check_iteration(
     Q_list.append(Q)
 
     if np.isnan(tau) or np.isinf(tau):
-        print_progress(
-            iteration, sampler, time_per_check, np.nan, np.nan,
-            np.nan, np.nan, np.nan, False, convergence_inputs, Q,
-        )
+        if verbose:
+            print_progress(
+                iteration, sampler, time_per_check, np.nan, np.nan,
+                np.nan, np.nan, np.nan, False, convergence_inputs, Q,
+            )
         return False, np.nan, np.nan, np.nan, np.nan
 
     # Convert to an integer
@@ -827,19 +834,20 @@ def check_iteration(
         tau_usable = False
 
     # Print an update on the progress
-    print_progress(
-        iteration,
-        sampler,
-        time_per_check,
-        nsamples_effective,
-        samples_per_check,
-        tau_int,
-        gradient_tau,
-        gradient_mean_log_posterior,
-        tau_usable,
-        convergence_inputs,
-        Q
-    )
+    if verbose:
+        print_progress(
+            iteration,
+            sampler,
+            time_per_check,
+            nsamples_effective,
+            samples_per_check,
+            tau_int,
+            gradient_tau,
+            gradient_mean_log_posterior,
+            tau_usable,
+            convergence_inputs,
+            Q
+        )
     stop = converged and tau_usable
     return stop, nburn, thin, tau_int, nsamples_effective
 
@@ -1145,6 +1153,7 @@ def compute_evidence(sampler, log_likelihood_array, outdir, label, discard, nbur
         ax2.set_xlabel(r"$\beta_{min}$")
         plt.tight_layout()
         fig.savefig("{}/{}_beta_lnl.png".format(outdir, label))
+        plt.close(fig)
 
     return lnZ, lnZerr
 

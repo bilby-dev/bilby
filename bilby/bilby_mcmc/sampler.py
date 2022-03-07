@@ -108,6 +108,8 @@ class Bilby_MCMC(MCMCSampler):
     evidence_method: str, [stepping_stone, thermodynamic]
         The evidence calculation method to use. Defaults to stepping_stone, but
         the results of all available methods are stored in the ln_z_dict.
+    verbose: bool
+        Whether to print diagnostic output during the run.
 
     """
 
@@ -152,6 +154,7 @@ class Bilby_MCMC(MCMCSampler):
         diagnostic=False,
         resume=True,
         exit_code=130,
+        verbose=False,
         **kwargs,
     ):
 
@@ -189,6 +192,7 @@ class Bilby_MCMC(MCMCSampler):
         self.resume_file = "{}/{}_resume.pickle".format(self.outdir, self.label)
 
         self.verify_configuration()
+        self.verbose = verbose
 
         try:
             signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
@@ -486,7 +490,8 @@ class Bilby_MCMC(MCMCSampler):
             rse = 100 * count / nsamples
             msg += f"|rse={rse:0.2f}%"
 
-        print(msg, flush=True)
+        if self.verbose:
+            print(msg, flush=True)
 
     def print_per_proposal(self):
         logger.info("Zero-temperature proposals:")

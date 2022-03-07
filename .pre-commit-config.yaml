@@ -21,3 +21,22 @@ repos:
     -   id: isort # sort imports alphabetically and separates import into sections
         args: [-w=88, -m=3, -tc, -sp=setup.cfg ]
         files: '(^bilby/bilby_mcmc/|^examples/core_examples/examples/gw_examples/data_examples)'
+-   repo: https://github.com/datarootsio/databooks
+    rev: 0.1.14
+    hooks:
+      - id: databooks
+        name: databooks
+        description:
+          "Remove notebook metadata using `databooks`."
+        entry: databooks meta
+        language: python
+        minimum_pre_commit_version: 2.9.2
+        types: [ jupyter ]
+        args: [-w]
+-   repo: local
+    hooks:
+      - id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        files: \.ipynb$
+        language: system
+        entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace

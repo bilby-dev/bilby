@@ -27,6 +27,7 @@ class TestRunningSamplers(unittest.TestCase):
         self.kwargs = dict(
             save=False,
             conversion_function=self.conversion_function,
+            verbose=True,
         )
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
 
