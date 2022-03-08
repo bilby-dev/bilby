@@ -108,13 +108,14 @@ class Analytical1DLikelihood(Likelihood):
         value is given).
     """
 
-    def __init__(self, x, y, func):
+    def __init__(self, x, y, func, **kwargs):
         parameters = infer_parameters_from_function(func)
-        super(Analytical1DLikelihood, self).__init__(dict.fromkeys(parameters))
+        super(Analytical1DLikelihood, self).__init__(dict())
         self.x = x
         self.y = y
         self._func = func
-        self._function_keys = list(self.parameters.keys())
+        self._function_keys = [key for key in parameters if key not in kwargs]
+        self.kwargs = kwargs
 
     def __repr__(self):
         return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
@@ -164,11 +165,11 @@ class Analytical1DLikelihood(Likelihood):
     @property
     def residual(self):
         """ Residual of the function against the data. """
-        return self.y - self.func(self.x, **self.model_parameters)
+        return self.y - self.func(self.x, **self.model_parameters, **self.kwargs)
 
 
 class GaussianLikelihood(Analytical1DLikelihood):
-    def __init__(self, x, y, func, sigma=None):
+    def __init__(self, x, y, func, sigma=None, **kwargs):
         """
         A general Gaussian likelihood for known or unknown noise - the model
         parameters are inferred from the arguments of function
@@ -190,7 +191,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
             to that for `x` and `y`.
         """
 
-        super(GaussianLikelihood, self).__init__(x=x, y=y, func=func)
+        super(GaussianLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
         self.sigma = sigma
 
         # Check if sigma was provided, if not it is a parameter
@@ -229,7 +230,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
-    def __init__(self, x, y, func):
+    def __init__(self, x, y, func, **kwargs):
         """
         A general Poisson likelihood for a rate - the model parameters are
         inferred from the arguments of function, which provides a rate.
@@ -251,10 +252,10 @@ class PoissonLikelihood(Analytical1DLikelihood):
             fixed value is given).
         """
 
-        super(PoissonLikelihood, self).__init__(x=x, y=y, func=func)
+        super(PoissonLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
     def log_likelihood(self):
-        rate = self.func(self.x, **self.model_parameters)
+        rate = self.func(self.x, **self.model_parameters, **self.kwargs)
         if not isinstance(rate, np.ndarray):
             raise ValueError(
                 "Poisson rate function returns wrong value type! "
@@ -286,7 +287,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
-    def __init__(self, x, y, func):
+    def __init__(self, x, y, func, **kwargs):
         """
         An exponential likelihood function.
 
@@ -302,10 +303,10 @@ class ExponentialLikelihood(Analytical1DLikelihood):
             value is given). The model should return the expected mean of
             the exponential distribution for each data point.
         """
-        super(ExponentialLikelihood, self).__init__(x=x, y=y, func=func)
+        super(ExponentialLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
     def log_likelihood(self):
-        mu = self.func(self.x, **self.model_parameters)
+        mu = self.func(self.x, **self.model_parameters, **self.kwargs)
         if np.any(mu < 0.):
             return -np.inf
         return -np.sum(np.log(mu) + (self.y / mu))
@@ -328,7 +329,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
 
 class StudentTLikelihood(Analytical1DLikelihood):
-    def __init__(self, x, y, func, nu=None, sigma=1.):
+    def __init__(self, x, y, func, nu=None, sigma=1, **kwargs):
         """
         A general Student's t-likelihood for known or unknown number of degrees
         of freedom, and known or unknown scale (which tends toward the standard
@@ -357,7 +358,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
             Set the scale of the distribution. If not given then this defaults
             to 1, which specifies a standard (central) Student's t-distribution
         """
-        super(StudentTLikelihood, self).__init__(x=x, y=y, func=func)
+        super(StudentTLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
         self.nu = nu
         self.sigma = sigma
