@@ -5,6 +5,12 @@ In this example we look at a simple example with the sum
 of two Gaussian distributions, and we try to fit with
 up to three Gaussians.
 
+We will use the `PyMultiNest` sampler which is fast but can be unreliable when
+significant correlations exist in the likelihood.
+
+To install `PyMultiNest` call
+
+$ conda install -c conda-forge pymultinest
 """
 
 import matplotlib.pyplot as plt
@@ -130,7 +136,7 @@ result = bilby.run_sampler(
     priors=priors,
     outdir=outdir,
     label=label,
-    sampler="dynesty",
+    sampler="pymultinest",
     nlive=400,
 )
 

@@ -1,21 +1,35 @@
 import matplotlib
 
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # noqa
 
+import glob
+import importlib.util
 import unittest
 import os
+import parameterized
+import pytest
 import shutil
 import logging
 
-# Required to run the tests
-from past.builtins import execfile
 import bilby.core.utils
 
-# Imported to ensure the examples run
-import numpy as np  # noqa: F401
-import inspect  # noqa: F401
+bilby.core.utils.command_line_args.clean = True
+core_examples = glob.glob("examples/core_examples/*.py")
+core_examples += glob.glob("examples/core_examples/*/*.py")
+core_args = [(fname.split("/")[-1][:-3], fname) for fname in core_examples]
 
-bilby.core.utils.command_line_args.bilby_test_mode = True
+gw_examples = [
+    "examples/gw_examples/injection_examples/fast_tutorial.py",
+    "examples/gw_examples/data_examples/GW150914.py",
+]
+gw_args = [(fname.split("/")[-1][:-3], fname) for fname in gw_examples]
+
+
+def _execute_file(name, fname):
+    print("Running {}".format(fname))
+    spec = importlib.util.spec_from_file_location(name, fname)
+    foo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(foo)
 
 
 class ExampleTest(unittest.TestCase):
@@ -39,25 +53,20 @@ class ExampleTest(unittest.TestCase):
             except OSError:
                 logging.warning("{} not removed prior to tests".format(cls.outdir))
 
-    def test_examples(self):
+    @parameterized.parameterized.expand(core_args)
+    def test_core_examples(self, name, fname):
         """ Loop over examples to check they run """
-        examples = [
-            "examples/core_examples/linear_regression.py",
-            "examples/core_examples/linear_regression_unknown_noise.py",
-        ]
-        for filename in examples:
-            print("Testing {}".format(filename))
-            execfile(filename)
+        bilby.core.utils.command_line_args.bilby_test_mode = False
+        ignore = ["15d_gaussian"]
+        if any([item in fname for item in ignore]):
+            pytest.skip()
+        _execute_file(name, fname)
 
-    def test_gw_examples(self):
+    @parameterized.parameterized.expand(gw_args)
+    def test_gw_examples(self, name, fname):
         """ Loop over examples to check they run """
-        examples = [
-            "examples/gw_examples/injection_examples/fast_tutorial.py",
-            "examples/gw_examples/data_examples/GW150914.py",
-        ]
-        for filename in examples:
-            print("Testing {}".format(filename))
-            execfile(filename)
+        bilby.core.utils.command_line_args.bilby_test_mode = True
+        _execute_file(name, fname)
 
 
 if __name__ == "__main__":

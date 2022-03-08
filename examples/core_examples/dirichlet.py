@@ -15,7 +15,7 @@ injection_parameters = dict(
 )
 data = [injection_parameters[label + str(ii)] * 1000 for ii in range(n_dim)]
 
-likelihood = Multinomial(data=data, n_dimensions=n_dim, label=label)
+likelihood = Multinomial(data=data, n_dimensions=n_dim, base=label)
 
 result = run_sampler(
     likelihood=likelihood,

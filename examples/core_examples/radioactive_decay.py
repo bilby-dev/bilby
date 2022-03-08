@@ -42,15 +42,9 @@ def decay_rate(delta_t, halflife, n_init):
     times = np.insert(times, 0, 0.0)
 
     n_atoms = n_init * atto * n_avogadro
+    counts = np.exp(-np.log(2) * times / halflife)
 
-    rates = (
-        (
-            np.exp(-np.log(2) * (times[:-1] / halflife))
-            - np.exp(-np.log(2) * (times[1:] / halflife))
-        )
-        * n_atoms
-        / delta_t
-    )
+    rates = (counts[:-1] - counts[1:]) * n_atoms / delta_t
 
     return rates
 
@@ -95,6 +89,7 @@ result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
     sampler="dynesty",
+    sample="unif",
     nlive=1000,
     injection_parameters=injection_parameters,
     outdir=outdir,

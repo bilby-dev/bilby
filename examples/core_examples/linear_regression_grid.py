@@ -75,12 +75,12 @@ grid_evidence = grid.log_evidence
 axes = fig.get_axes()
 axes[0].plot(
     grid.sample_points["c"],
-    np.exp(grid.marginalize_ln_posterior(not_parameter="c") - grid_evidence),
+    np.exp(grid.marginalize_ln_posterior(not_parameters="c") - grid_evidence),
     "k--",
 )
 axes[3].plot(
     grid.sample_points["m"],
-    np.exp(grid.marginalize_ln_posterior(not_parameter="m") - grid_evidence),
+    np.exp(grid.marginalize_ln_posterior(not_parameters="m") - grid_evidence),
     "k--",
 )
 axes[2].contour(
