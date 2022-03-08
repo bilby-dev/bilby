@@ -406,7 +406,7 @@ class Multinomial(Likelihood):
     Likelihood for system with N discrete possibilities.
     """
 
-    def __init__(self, data, n_dimensions, label="parameter_"):
+    def __init__(self, data, n_dimensions, base="parameter_"):
         """
 
         Parameters
@@ -415,19 +415,21 @@ class Multinomial(Likelihood):
             The number of objects in each class
         n_dimensions: int
             The number of classes
+        base: str
+            The base of the parameter labels
         """
         self.data = np.array(data)
         self._total = np.sum(self.data)
         super(Multinomial, self).__init__(dict())
         self.n = n_dimensions
-        self.label = label
+        self.base = base
         self._nll = None
 
     def log_likelihood(self):
         """
         Since n - 1 parameters are sampled, the last parameter is 1 - the rest
         """
-        probs = [self.parameters[self.label + str(ii)]
+        probs = [self.parameters[self.base + str(ii)]
                  for ii in range(self.n - 1)]
         probs.append(1 - sum(probs))
         return self._multinomial_ln_pdf(probs=probs)

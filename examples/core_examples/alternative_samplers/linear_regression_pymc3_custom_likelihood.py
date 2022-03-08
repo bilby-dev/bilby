@@ -8,8 +8,6 @@ would give equivalent results as using the pre-defined 'Gaussian Likelihood'
 
 """
 
-import inspect
-
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,8 +50,8 @@ fig.savefig("{}/{}_data.png".format(outdir, label))
 
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
 # our model.
-class GaussianLikelihoodPyMC3(bilby.Likelihood):
-    def __init__(self, x, y, sigma, function):
+class GaussianLikelihoodPyMC3(bilby.core.likelihood.GaussianLikelihood):
+    def __init__(self, x, y, sigma, func):
         """
         A general Gaussian likelihood - the parameters are inferred from the
         arguments of function
@@ -64,22 +62,13 @@ class GaussianLikelihoodPyMC3(bilby.Likelihood):
             The data to analyse
         sigma: float
             The standard deviation of the noise
-        function:
+        func:
             The python function to fit to the data. Note, this must take the
             dependent variable as its first argument. The other arguments are
             will require a prior and will be sampled over (unless a fixed
             value is given).
         """
-        self.x = x
-        self.y = y
-        self.sigma = sigma
-        self.N = len(x)
-        self.function = function
-
-        # These lines of code infer the parameters from the provided function
-        parameters = inspect.getargspec(function).args
-        parameters.pop(0)
-        self.parameters = dict.fromkeys(parameters)
+        super(GaussianLikelihoodPyMC3, self).__init__(x=x, y=y, func=func, sigma=sigma)
 
     def log_likelihood(self, sampler=None):
         """
@@ -88,12 +77,15 @@ class GaussianLikelihoodPyMC3(bilby.Likelihood):
         sampler: :class:`bilby.core.sampler.Pymc3`
             A Sampler object must be passed containing the prior distributions
             and PyMC3 :class:`~pymc3.Model` to use as a context manager.
+            If this is not passed, the super class is called and the regular
+            likelihood is evaluated.
         """
 
         from bilby.core.sampler import Pymc3
 
         if not isinstance(sampler, Pymc3):
-            raise ValueError("Sampler is not a bilby Pymc3 sampler object")
+            print(sampler, type(sampler))
+            return super(GaussianLikelihoodPyMC3, self).log_likelihood()
 
         if not hasattr(sampler, "pymc3_model"):
             raise AttributeError("Sampler has not PyMC3 model attribute")
@@ -114,12 +106,11 @@ likelihood = GaussianLikelihoodPyMC3(time, data, sigma, model)
 
 
 # Define a custom prior for one of the parameter for use with PyMC3
-class PriorPyMC3(bilby.core.prior.Prior):
+class PyMC3UniformPrior(bilby.core.prior.Uniform):
     def __init__(self, minimum, maximum, name=None, latex_label=None):
         """
         Uniform prior with bounds (should be equivalent to bilby.prior.Uniform)
         """
-
         bilby.core.prior.Prior.__init__(
             self, name, latex_label, minimum=minimum, maximum=maximum
         )
@@ -128,12 +119,15 @@ class PriorPyMC3(bilby.core.prior.Prior):
         """
         Change ln_prob method to take in a Sampler and return a PyMC3
         distribution.
+
+        If the passed argument is not a `Pymc3` sampler, assume that it is a
+        float or array to be passed to the superclass.
         """
 
         from bilby.core.sampler import Pymc3
 
         if not isinstance(sampler, Pymc3):
-            raise ValueError("Sampler is not a bilby Pymc3 sampler object")
+            return super(PyMC3UniformPrior, self).ln_prob(sampler)
 
         return pm.Uniform(self.name, lower=self.minimum, upper=self.maximum)
 
@@ -142,7 +136,7 @@ class PriorPyMC3(bilby.core.prior.Prior):
 # We make a prior
 priors = dict()
 priors["m"] = bilby.core.prior.Uniform(0, 5, "m")
-priors["c"] = PriorPyMC3(-2, 2, "c")
+priors["c"] = PyMC3UniformPrior(-2, 2, "c")
 
 # And run sampler
 result = bilby.run_sampler(

@@ -83,16 +83,13 @@ def hyper_prior(dataset, mu, sigma):
     )
 
 
-def run_prior(dataset):
-    return 1 / 20
-
-
 samples = [result.posterior for result in results]
+for sample in samples:
+    sample["prior"] = 1 / 20
 evidences = [result.log_evidence for result in results]
 hp_likelihood = HyperparameterLikelihood(
     posteriors=samples,
     hyper_prior=hyper_prior,
-    sampling_prior=run_prior,
     log_evidences=evidences,
     max_samples=500,
 )
@@ -107,6 +104,8 @@ result = run_sampler(
     likelihood=hp_likelihood,
     priors=hp_priors,
     sampler="dynesty",
+    walks=10,
+    nact=3,
     nlive=1000,
     use_ratio=False,
     outdir=outdir,

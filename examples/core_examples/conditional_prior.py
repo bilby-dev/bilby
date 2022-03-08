@@ -1,11 +1,15 @@
+"""
+This tutorial demonstrates how we can sample a prior in the shape of a ball.
+Note that this will not end up sampling uniformly in that space, constraint
+priors are more suitable for that.
+This implementation will draw a value for the x-coordinate from p(x), and
+given that draw a value for the
+y-coordinate from p(y|x), and given that draw a value for the z-coordinate
+from p(z|x,y).
+Only the x-coordinate will end up being uniform for this
+"""
 import bilby
 import numpy as np
-
-# This tutorial demonstrates how we can sample a prior in the shape of a ball
-# Note that this will not end up sampling uniformly in that space, constraint priors are more suitable for that.
-# This implementation will draw a value for the x-coordinate from p(x), and given that draw a value for the
-# y-coordinate from p(y|x), and given that draw a value for the z-coordinate from p(z|x,y).
-# Only the x-coordinate will end up being uniform for this
 
 
 class ZeroLikelihood(bilby.core.likelihood.Likelihood):

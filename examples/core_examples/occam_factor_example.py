@@ -99,7 +99,7 @@ def fit(n):
     result = bilby.run_sampler(
         likelihood=likelihood,
         priors=priors,
-        nlive=1000,
+        nlive=100,
         outdir=outdir,
         label=label,
         sampler="nestle",
