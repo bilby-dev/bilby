@@ -517,10 +517,8 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
 
     Returns
     =======
-    mass_1: float
-        Mass of the heavier object
-    mass_2: float
-        Mass of the lighter object
+    total_mass: float
+        Total mass of the binary
     """
 
     with np.errstate(invalid="ignore"):
