@@ -230,7 +230,7 @@ docs:
 
 # ------------------- Deploy stage -------------------------------------------
 
-deploy-docs:
+pages:
   stage: deploy
   needs: ["docs", "python-3.9"]
   script:
