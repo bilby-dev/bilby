@@ -15,7 +15,7 @@ RUN python --version
 
 # Install conda-installable programs
 RUN conda install -n ${{conda_env}} -y matplotlib numpy scipy pandas astropy flake8
-RUN conda install -n ${{conda_env}} -c anaconda coverage configargparse future
+RUN conda install -n ${{conda_env}} -c anaconda coverage configargparse future dill
 RUN conda install -n ${{conda_env}} -c conda-forge black pytest-cov deepdish arviz
 
 # Install pip-requirements
@@ -24,6 +24,9 @@ RUN pip install --upgrade setuptools coverage-badge parameterized
 
 # Install documentation requirements
 RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
+
+# Install testing requirements
+RUN conda install -n ${{conda_env}} -c conda-forge scikit-image celerite george
 
 # Install dependencies and samplers
 RUN pip install corner healpy cython tables
@@ -52,7 +55,7 @@ RUN git clone https://github.com/jellis18/PTMCMCSampler.git \
 
 # Install GW packages
 RUN conda install -n ${{conda_env}} -c conda-forge python-lalsimulation
-RUN pip install ligo-gracedb gwpy ligo.skymap
+RUN pip install ligo-gracedb gwpy ligo.skymap bilby.cython
 
 # Add the ROQ data to the image
 RUN mkdir roq_basis \
