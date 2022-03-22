@@ -162,7 +162,7 @@ Installing lalsuite
 -------------------
 
 For many gravitational-wave related examples you'll need access to the
-`lalsuite <https://wiki.ligo.org/DASWG/LALSuite>`_ tool set. These should be
+`lalsuite <https://wiki.ligo.org/Computing/LALSuiteInstall>`_ tool set. These should be
 installed by default in the requirements. However, if you have problems with
 your installation, you can first try to install the simple way:
 
