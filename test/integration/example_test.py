@@ -26,10 +26,14 @@ gw_args = [(fname.split("/")[-1][:-3], fname) for fname in gw_examples]
 
 
 def _execute_file(name, fname):
-    print("Running {}".format(fname))
+    dname, fname = os.path.split(fname)
+    old_directory = os.getcwd()
+    os.chdir(dname)
+    print(f"Running {fname} from {dname}")
     spec = importlib.util.spec_from_file_location(name, fname)
     foo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(foo)
+    os.chdir(old_directory)
 
 
 class ExampleTest(unittest.TestCase):

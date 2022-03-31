@@ -5,7 +5,7 @@ repos:
     -   id: check-merge-conflict # prevent committing files with merge conflicts
     -   id: flake8 # checks for flake8 errors
 -   repo: https://github.com/psf/black
-    rev: 21.12b0
+    rev: 22.3.0
     hooks:
       - id: black
         language_version: python3

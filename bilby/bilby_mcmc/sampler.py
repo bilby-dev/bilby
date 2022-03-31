@@ -614,7 +614,7 @@ class BilbyPTMCMCSampler(object):
         elif pt_inputs.Tmax_from_SNR is not None:
             ndim = len(_priors.non_fixed_keys)
             target_hot_likelihood = ndim / 2
-            Tmax = pt_inputs.Tmax_from_SNR ** 2 / (2 * target_hot_likelihood)
+            Tmax = pt_inputs.Tmax_from_SNR**2 / (2 * target_hot_likelihood)
             betas = np.logspace(0, -np.log10(Tmax), pt_inputs.ntemps)
         else:
             raise SamplerError("Unable to set temperature ladder from inputs")
