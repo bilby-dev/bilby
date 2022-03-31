@@ -213,7 +213,7 @@ docs:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
   before_script:
     - conda install -c conda-forge pandoc -y
-    - python -m pip install ipykernel ipython jupyter
+    - python -m pip install --upgrade ipykernel ipython jupyter nbconvert
     - python -m ipykernel install
   script:
     # Make the documentation

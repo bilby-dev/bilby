@@ -78,8 +78,8 @@ fig2.savefig("outdir/hyper_parameter_combined_posteriors.png")
 
 def hyper_prior(dataset, mu, sigma):
     return (
-        np.exp(-((dataset["c0"] - mu) ** 2) / (2 * sigma ** 2))
-        / (2 * np.pi * sigma ** 2) ** 0.5
+        np.exp(-((dataset["c0"] - mu) ** 2) / (2 * sigma**2))
+        / (2 * np.pi * sigma**2) ** 0.5
     )
 
 
