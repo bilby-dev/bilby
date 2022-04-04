@@ -7,6 +7,11 @@ from .conversion import convert_to_lal_binary_black_hole_parameters
 
 
 class WaveformGenerator(object):
+    """
+    The base waveform generator class.
+
+    Waveform generators provide a unified method to call disparate source models.
+    """
 
     duration = PropertyAccessor('_times_and_frequencies', 'duration')
     sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
@@ -18,37 +23,38 @@ class WaveformGenerator(object):
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
                  waveform_arguments=None):
-        """ A waveform generator
+        """
+        The base waveform generator class.
 
-    Parameters
-    ==========
-    sampling_frequency: float, optional
-        The sampling frequency
-    duration: float, optional
-        Time duration of data
-    start_time: float, optional
-        Starting time of the time array
-    frequency_domain_source_model: func, optional
-        A python function taking some arguments and returning the frequency
-        domain strain. Note the first argument must be the frequencies at
-        which to compute the strain
-    time_domain_source_model: func, optional
-        A python function taking some arguments and returning the time
-        domain strain. Note the first argument must be the times at
-        which to compute the strain
-    parameters: dict, optional
-        Initial values for the parameters
-    parameter_conversion: func, optional
-        Function to convert from sampled parameters to parameters of the
-        waveform generator. Default value is the identity, i.e. it leaves
-        the parameters unaffected.
-    waveform_arguments: dict, optional
-        A dictionary of fixed keyword arguments to pass to either
-        `frequency_domain_source_model` or `time_domain_source_model`.
+        Parameters
+        ==========
+        sampling_frequency: float, optional
+            The sampling frequency
+        duration: float, optional
+            Time duration of data
+        start_time: float, optional
+            Starting time of the time array
+        frequency_domain_source_model: func, optional
+            A python function taking some arguments and returning the frequency
+            domain strain. Note the first argument must be the frequencies at
+            which to compute the strain
+        time_domain_source_model: func, optional
+            A python function taking some arguments and returning the time
+            domain strain. Note the first argument must be the times at
+            which to compute the strain
+        parameters: dict, optional
+            Initial values for the parameters
+        parameter_conversion: func, optional
+            Function to convert from sampled parameters to parameters of the
+            waveform generator. Default value is the identity, i.e. it leaves
+            the parameters unaffected.
+        waveform_arguments: dict, optional
+            A dictionary of fixed keyword arguments to pass to either
+            `frequency_domain_source_model` or `time_domain_source_model`.
 
-        Note: the arguments of frequency_domain_source_model (except the first,
-        which is the frequencies at which to compute the strain) will be added to
-        the WaveformGenerator object and initialised to `None`.
+            Note: the arguments of frequency_domain_source_model (except the first,
+            which is the frequencies at which to compute the strain) will be added to
+            the WaveformGenerator object and initialised to `None`.
 
         """
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,

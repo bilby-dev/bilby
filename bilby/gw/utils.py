@@ -251,6 +251,9 @@ def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, 
 
 def optimal_snr_squared(signal, power_spectral_density, duration):
     """
+    Compute the square of the optimal matched filter SNR for the provided
+    signal.
+
 
     Parameters
     ==========
@@ -271,6 +274,34 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
 
 def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=None,
             lower_cut_off=None, upper_cut_off=None, norm_a=None, norm_b=None):
+    r"""
+    Compute the overlap between two signals
+
+    .. math::
+
+        {\cal O} = \frac{4 \Delta f}{N_{a} N_{b}} \sum_{i} \frac{h^{*}_{a,i} h_{b,i}}{S_{i}}
+
+    Parameters
+    ----------
+    signal_a: array-like
+    signal_b: array-like
+    power_spectral_density : array-like
+    delta_frequency: float
+        Frequency spacing of the signals
+    lower_cut_off: float
+        Minimum frequency for the integral
+    upper_cut_off: float
+        Maximum frequency for the integral
+    norm_a: float
+        Normalizing factor for signal_a
+    norm_b: float
+        Normalizing factor for signal_b
+
+    Returns
+    -------
+    float
+        The overlap
+    """
     low_index = int(lower_cut_off / delta_frequency)
     up_index = int(upper_cut_off / delta_frequency)
     integrand = np.conj(signal_a) * signal_b
@@ -536,6 +567,34 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
 
 
 def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None, server=None):
+    """
+    Download information about a trigger from GraceDb and create cache files
+    for finding gravitational-wave strain data.
+
+    Parameters
+    ----------
+    gracedb: str
+        The GraceDb ID of the trigger.
+    outdir: str
+        Directory to write output.
+    duration: int
+        Duration of data to find about the trigger time (units: :code:`s`).
+    calibration: int
+        Calibration label of the data, should be one of :code:`1, 2`.
+    detectors: list
+        The detectors to look for data for.
+    query_types: str
+        The LDR query type
+    server: str
+        The LIGO datafind server to look for data on.
+
+    Returns
+    -------
+    candidate: dict
+        Information downloaded from GraceDb about the trigger.
+    cache_files: list
+        List of cache filenames, one per interferometer.
+    """
     candidate = gracedb_to_json(gracedb, outdir=outdir)
     trigger_time = candidate['gpstime']
     gps_start_time = trigger_time - duration
@@ -608,7 +667,7 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
         The start time in gps to look for data
     duration: int
         The duration (integer) in s
-    calibrartion: int {1, 2}
+    calibration: int {1, 2}
         Use C01 or C02 calibration
     outdir: string
         A path to the directory where output is stored
@@ -966,6 +1025,21 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
 
 
 def greenwich_mean_sidereal_time(time):
+    """
+    Compute the greenwich mean sidereal time from a GPS time.
+
+    This is just a wrapper around :code:`lal.GreenwichMeanSiderealTime` .
+
+    Parameters
+    ----------
+    time: float
+        The GPS time to convert.
+
+    Returns
+    -------
+    float
+        The sidereal time.
+    """
     from lal import GreenwichMeanSiderealTime
     time = float(time)
     return GreenwichMeanSiderealTime(time)

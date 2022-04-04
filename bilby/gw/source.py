@@ -828,6 +828,44 @@ def _base_waveform_frequency_sequence(
 
 
 def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
+    r"""
+    A frequency-domain sine-Gaussian burst source model.
+
+    .. math::
+
+        \tau &= \frac{Q}{\sqrt{2}\pi f_{0}} \\
+        \alpha &= \frac{Q}{4\sqrt{\pi} f_{0}} \\
+        h_{+} &=
+            \frac{h_{\rm rss}\sqrt{\pi}\tau}{2\sqrt{\alpha (1 + e^{-Q^2})}}
+            \left(
+                e^{-\pi^2 \tau^2 (f + f_{0})^2}
+                + e^{-\pi^2 \tau^2 (f - f_{0})^2}
+            \right) \\
+        h_{\times} &=
+            \frac{i h_{\rm rss}\sqrt{\pi}\tau}{2\sqrt{\alpha (1 - e^{-Q^2})}}
+            \left(
+                e^{-\pi^2 \tau^2 (f + f_{0})^2}
+                - e^{-\pi^2 \tau^2 (f - f_{0})^2}
+            \right)
+
+    Parameters
+    ----------
+    frequency_array: array-like
+        The frequencies at which to compute the model.
+    hrss: float
+        The amplitude of the signal.
+    Q: float
+        The quality factor of the burst, determines the decay time.
+    frequency: float
+        The peak frequency of the burst.
+    kwargs: dict
+        UNUSED
+
+    Returns
+    -------
+    dict:
+        Dictionary containing the plus and cross components of the strain.
+    """
     tau = Q / (np.sqrt(2.0) * np.pi * frequency)
     temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
     fm = frequency_array - frequency
@@ -848,7 +886,33 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
 
 def supernova(
         frequency_array, realPCs, imagPCs, file_path, luminosity_distance, **kwargs):
-    """ A supernova NR simulation for injections """
+    """
+    A source model that reads a simulation from a text file.
+
+    This was originally intended for use with supernova simulations, but can
+    be applied to any source class.
+
+    Parameters
+    ----------
+    frequency_array: array-like
+        Unused
+    realPCs: UNUSED
+    imagPCs: UNUSED
+    file_path: str
+        Path to the file containing the NR simulation. The format of this file
+        should be readable by :code:`numpy.loadtxt` and have four columns
+        containing the real and imaginary components of the plus and cross
+        polarizations.
+    luminosity_distance: float
+        The distance to the source in kpc, this scales the amplitude of the
+        signal. The simulation is assumed to be at 10kpc.
+    kwargs: UNUSED
+
+    Returns
+    -------
+    dict:
+        A dictionary containing the plus and cross components of the signal.
+    """
 
     realhplus, imaghplus, realhcross, imaghcross = np.loadtxt(
         file_path, usecols=(0, 1, 2, 3), unpack=True)
@@ -864,7 +928,42 @@ def supernova(
 def supernova_pca_model(
         frequency_array, pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5,
         luminosity_distance, **kwargs):
-    """ Supernova signal model """
+    r"""
+    Signal model based on a five-component principal component decomposition
+    of a model.
+
+    While this was initially intended for modelling supernova signal, it is
+    applicable to any situation using such a principal component decomposition.
+
+    .. math::
+
+        h_{A} = \frac{10^{-22}}{d_{L}} \sum_{i=1}^{5} c_{i} h_{i}
+
+    Parameters
+    ----------
+    frequency_array: UNUSED
+    pc_coeff1: float
+        The first principal component coefficient.
+    pc_coeff2: float
+        The second principal component coefficient.
+    pc_coeff3: float
+        The third principal component coefficient.
+    pc_coeff4: float
+        The fourth principal component coefficient.
+    pc_coeff5: float
+        The fifth principal component coefficient.
+    luminosity_distance: float
+        The distance to the source, the amplitude is scaled such that the
+        amplitude at 10 kpc is 1e-23.
+    kwargs: dict
+        Dictionary containing numpy arrays with the real and imaginary
+        components of the principal component decomposition.
+
+    Returns
+    -------
+    dict:
+        The plus and cross polarizations of the signal
+    """
 
     realPCs = kwargs['realPCs']
     imagPCs = kwargs['imagPCs']
