@@ -1,3 +1,7 @@
+"""
+Wrappers to :code:`Astropy` functionality for specifying the cosmology to use.
+"""
+
 DEFAULT_COSMOLOGY = None
 COSMOLOGY = [None, str(None)]
 
@@ -11,16 +15,6 @@ def _set_default_cosmology():
 
 
 def get_cosmology(cosmology=None):
-    from astropy import cosmology as cosmo
-    _set_default_cosmology()
-    if cosmology is None:
-        cosmology = DEFAULT_COSMOLOGY
-    elif isinstance(cosmology, str):
-        cosmology = cosmo.__dict__[cosmology]
-    return cosmology
-
-
-def set_cosmology(cosmology=None):
     """
     Get an instance of a astropy.cosmology.FLRW subclass.
 
@@ -34,13 +28,35 @@ def set_cosmology(cosmology=None):
             None - Use DEFAULT_COSMOLOGY
             Instance of astropy.cosmology.FLRW subclass
             String with name of known Astropy cosmology, e.g., "Planck13"
-            Dictionary with arguments required to instantiate the cosmology
-            class.
 
     Returns
     =======
     cosmo: astropy.cosmology.FLRW
         Cosmology instance
+    """
+    from astropy import cosmology as cosmo
+    _set_default_cosmology()
+    if cosmology is None:
+        cosmology = DEFAULT_COSMOLOGY
+    elif isinstance(cosmology, str):
+        cosmology = cosmo.__dict__[cosmology]
+    return cosmology
+
+
+def set_cosmology(cosmology=None):
+    """
+    Set an instance of a astropy.cosmology.FLRW subclass as the default
+    cosmology.
+
+    Parameters
+    ==========
+    cosmology: astropy.cosmology.FLRW, str, dict
+        Description of cosmology, one of:
+            None - Use DEFAULT_COSMOLOGY
+            Instance of astropy.cosmology.FLRW subclass
+            String with name of known Astropy cosmology, e.g., "Planck13"
+            Dictionary with arguments required to instantiate the cosmology
+            class.
     """
     from astropy import cosmology as cosmo
     _set_default_cosmology()
@@ -74,4 +90,4 @@ def z_at_value(func, fval, **kwargs):
     for detailed documentation.
     """
     from astropy.cosmology import z_at_value
-    return float(z_at_value(func=func, fval=fval, **kwargs))
+    return z_at_value(func=func, fval=fval, **kwargs).value

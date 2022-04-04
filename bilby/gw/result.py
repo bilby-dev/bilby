@@ -14,6 +14,10 @@ from .detector import get_empty_interferometer, Interferometer
 
 
 class CompactBinaryCoalescenceResult(CoreResult):
+    """
+    Result class with additional methods and attributes specific to analyses
+    of compact binaries.
+    """
     def __init__(self, **kwargs):
         super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
