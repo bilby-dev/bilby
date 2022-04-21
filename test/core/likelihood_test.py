@@ -1,6 +1,9 @@
 import unittest
 from unittest import mock
+
 import numpy as np
+
+import bilby.core.likelihood
 from bilby.core.likelihood import (
     Likelihood,
     GaussianLikelihood,
@@ -691,6 +694,159 @@ class TestJointLikelihood(unittest.TestCase):
     #     joint_likelihood = bilby.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
     #     joint_likelihood.likelihoods.append(self.third_likelihood)
     #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
+
+
+class TestGPLikelihood(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.t = [1, 2, 3]
+        self.y = [4, 5, 6]
+        self.yerr = [0.4, 0.5, 0.6]
+        self.kernel = mock.MagicMock()
+        self.mean_model = mock.MagicMock()
+        self.gp_mock = mock.MagicMock()
+        self.gp_mock.compute = mock.MagicMock()
+        self.parameter_dict = dict(a=1, b=2)
+        self.gp_mock.get_parameter_dict = mock.MagicMock(return_value=dict(self.parameter_dict))
+        self.gp_class = mock.MagicMock(return_value=self.gp_mock)
+        self.celerite_likelihood = bilby.core.likelihood._GPLikelihood(
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr, gp_class=self.gp_class)
+
+    def tearDown(self) -> None:
+        del self.t
+        del self.y
+        del self.yerr
+        del self.kernel
+        del self.mean_model
+        del self.parameter_dict
+        del self.gp_class
+        del self.gp_mock
+        del self.celerite_likelihood
+
+    def test_t(self):
+        self.assertIsInstance(self.celerite_likelihood.t, np.ndarray)
+        self.assertTrue(np.array_equal(self.t, self.celerite_likelihood.t))
+
+    def test_y(self):
+        self.assertIsInstance(self.celerite_likelihood.y, np.ndarray)
+        self.assertTrue(np.array_equal(self.y, self.celerite_likelihood.y))
+
+    def test_yerr(self):
+        self.assertIsInstance(self.celerite_likelihood.yerr, np.ndarray)
+        self.assertTrue(np.array_equal(self.yerr, self.celerite_likelihood.yerr))
+
+    def test_gp_class(self):
+        self.assertEqual(self.gp_class, self.celerite_likelihood.GPClass)
+
+    def test_gp_instantiation(self):
+        self.celerite_likelihood.GPClass.assert_called_once_with(
+            kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True)
+
+    def test_gp_mock(self):
+        self.celerite_likelihood.gp.compute.assert_called_once_with(
+            self.celerite_likelihood.t, yerr=self.celerite_likelihood.yerr)
+
+    def test_parameters(self):
+        self.assertDictEqual(self.parameter_dict, self.celerite_likelihood.parameters)
+
+    def test_set_parameters_no_exceptions(self):
+        self.celerite_likelihood.gp.set_parameter = mock.MagicMock()
+        self.celerite_likelihood.mean_model.set_parameter = mock.MagicMock()
+        expected_a = 5
+        self.celerite_likelihood.set_parameters(dict(a=expected_a))
+        self.celerite_likelihood.gp.set_parameter.assert_called_once_with(name="a", value=5)
+        self.assertEqual(expected_a, self.celerite_likelihood.parameters["a"])
+
+
+class TestFunctionMeanModel(unittest.TestCase):
+
+    def test_function_to_celerite_mean_model(self):
+        def func(x, a, b, c):
+            return a * x ** 2 + b * x + c
+
+        mean_model = bilby.core.likelihood.function_to_celerite_mean_model(func=func)
+        self.assertListEqual(["a", "b", "c"], list(mean_model.parameter_names))
+
+    def test_function_to_george_mean_model(self):
+        def func(x, a, b, c):
+            return a * x ** 2 + b * x + c
+
+        mean_model = bilby.core.likelihood.function_to_celerite_mean_model(func=func)
+        self.assertListEqual(["a", "b", "c"], list(mean_model.parameter_names))
+
+
+class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
+
+    def setUp(self) -> None:
+        import celerite
+
+        def func(x, a):
+            return a * x
+
+        self.t = [0, 1, 2]
+        self.y = [0, 1, 2]
+        self.yerr = [0.4, 0.5, 0.6]
+        self.parameters = {"kernel:log_S0": 0, "kernel:log_Q": 0, "kernel:log_omega0": 0, "mean:a": 1}
+        self.kernel = celerite.terms.SHOTerm(log_S0=0, log_Q=0, log_omega0=0)
+
+        self.MeanModel = bilby.likelihood.function_to_celerite_mean_model(func=func)
+        self.mean_model = self.MeanModel(a=1)
+        self.celerite_likelihood = bilby.core.likelihood.CeleriteLikelihood(
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr)
+        self.celerite_likelihood.parameters = self.parameters
+
+    def tearDown(self) -> None:
+        del self.t
+        del self.y
+        del self.yerr
+        del self.parameters
+        del self.kernel
+        del self.MeanModel
+        del self.mean_model
+        del self.celerite_likelihood
+
+    def test_log_l_evalutation(self):
+        log_l = self.celerite_likelihood.log_likelihood()
+        expected = -2.0390312696885102
+        self.assertEqual(expected, log_l)
+
+    def test_set_parameters(self):
+        combined_params = {"kernel:log_S0": 2, "kernel:log_Q": 2, "kernel:log_omega0": 2, "mean:a": 2}
+        self.celerite_likelihood.set_parameters(combined_params)
+        self.assertDictEqual(combined_params, self.celerite_likelihood.parameters)
+
+
+class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
+
+    def setUp(self) -> None:
+        import george
+
+        def func(x, a):
+            return a * x
+
+        self.t = [0, 1, 2]
+        self.y = [0, 1, 2]
+        self.yerr = [0.4, 0.5, 0.6]
+        self.parameters = {}
+        self.kernel = 2.0 * george.kernels.Matern32Kernel(metric=5.0)
+
+        self.MeanModel = bilby.likelihood.function_to_celerite_mean_model(func=func)
+        self.mean_model = self.MeanModel(a=1)
+        self.george_likelihood = bilby.core.likelihood.GeorgeLikelihood(
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr)
+
+    def tearDown(self) -> None:
+        pass
+
+    def test_likelihood_value(self):
+        log_l = self.george_likelihood.log_likelihood()
+        expected = -3.2212751203208403
+        self.assertEqual(expected, log_l)
+
+    def test_set_parameters(self):
+        combined_params = {"kernel:k1:log_constant": 2, "kernel:k2:metric:log_M_0_0": 2, "mean:a": 2}
+        self.george_likelihood.set_parameters(combined_params)
+        self.assertDictEqual(combined_params, self.george_likelihood.parameters)
 
 
 if __name__ == "__main__":

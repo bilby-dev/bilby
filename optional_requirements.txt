@@ -1,5 +1,7 @@
 astropy
+celerite
 lalsuite
+george
 gwpy
 theano
 plotly
