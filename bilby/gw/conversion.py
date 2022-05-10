@@ -9,7 +9,7 @@ import multiprocessing
 import pickle
 
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass, command_line_args
@@ -32,12 +32,16 @@ def redshift_to_comoving_distance(redshift, cosmology=None):
 def luminosity_distance_to_redshift(distance, cosmology=None):
     from astropy import units
     cosmology = get_cosmology(cosmology)
+    if isinstance(distance, Series):
+        distance = distance.values
     return z_at_value(cosmology.luminosity_distance, distance * units.Mpc)
 
 
 def comoving_distance_to_redshift(distance, cosmology=None):
     from astropy import units
     cosmology = get_cosmology(cosmology)
+    if isinstance(distance, Series):
+        distance = distance.values
     return z_at_value(cosmology.comoving_distance, distance * units.Mpc)
 
 

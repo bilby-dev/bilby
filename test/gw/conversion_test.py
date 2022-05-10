@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import pandas as pd
 
 import bilby
 from bilby.gw import conversion
@@ -442,20 +443,27 @@ class TestGenerateAllParameters(unittest.TestCase):
             "lambda_tilde",
             "delta_lambda_tilde",
         ]
+        self.data_frame = pd.DataFrame({
+            key: [value] * 100 for key, value in self.parameters.items()
+        })
 
     def test_generate_all_bbh_parameters(self):
-        new_parameters = bilby.gw.conversion.generate_all_bbh_parameters(
-            self.parameters
+        self._generate(
+            bilby.gw.conversion.generate_all_bbh_parameters,
+            self.expected_bbh_keys,
         )
-        for key in self.expected_bbh_keys:
-            self.assertIn(key, new_parameters)
 
     def test_generate_all_bns_parameters(self):
-        new_parameters = bilby.gw.conversion.generate_all_bns_parameters(
-            self.parameters
+        self._generate(
+            bilby.gw.conversion.generate_all_bns_parameters,
+            self.expected_bbh_keys + self.expected_tidal_keys,
         )
-        for key in self.expected_bbh_keys + self.expected_tidal_keys:
-            self.assertIn(key, new_parameters)
+
+    def _generate(self, func, expected):
+        for values in [self.parameters, self.data_frame]:
+            new_parameters = func(values)
+            for key in expected:
+                self.assertIn(key, new_parameters)
 
 
 class TestDistanceTransformations(unittest.TestCase):
