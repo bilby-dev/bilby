@@ -309,7 +309,8 @@ def _base_lal_cbc_fd_waveform(
 
     if pn_amplitude_order != 0:
         start_frequency = lalsim.SimInspiralfLow2fStart(
-            minimum_frequency, int(pn_amplitude_order), approximant)
+            float(minimum_frequency), int(pn_amplitude_order), approximant
+        )
     else:
         start_frequency = minimum_frequency
 
@@ -339,9 +340,9 @@ def _base_lal_cbc_fd_waveform(
     lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
         waveform_dictionary, int(pn_amplitude_order))
     lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
+        waveform_dictionary, float(lambda_1))
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2)
+        waveform_dictionary, float(lambda_2))
 
     for key, value in waveform_kwargs.items():
         func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
@@ -772,9 +773,9 @@ def _base_waveform_frequency_sequence(
     lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
         waveform_dictionary, int(pn_amplitude_order))
     lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
+        waveform_dictionary, float(lambda_1))
     lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2)
+        waveform_dictionary, float(lambda_2))
 
     for key, value in waveform_kwargs.items():
         func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
