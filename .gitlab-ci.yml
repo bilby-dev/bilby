@@ -38,10 +38,6 @@ containers:
 .test-python: &test-python
   stage: initial
   image: python
-  before_script:
-    # this is required because pytables doesn't use a wheel on py37
-    - apt-get -yqq update
-    - apt-get -yqq install libhdf5-dev
   script:
     - python -m pip install .
     - python -m pip list installed
@@ -108,6 +104,15 @@ precommits-py3.9:
 #  variables:
 #    CACHE_DIR: ".pip310"
 #    PYVERSION: "python310"
+
+install:
+  stage: initial
+  parallel:
+    matrix:
+      - EXTRA: [gw, mcmc, all]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  script:
+    - pip install .[$EXTRA]
 
 # ------------------- Test stage -------------------------------------------
 

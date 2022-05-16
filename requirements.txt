@@ -8,6 +8,4 @@ pandas
 dill
 tqdm
 h5py
-tables
-astropy
 attrs
