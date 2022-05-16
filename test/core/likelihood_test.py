@@ -808,7 +808,7 @@ class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
     def test_log_l_evalutation(self):
         log_l = self.celerite_likelihood.log_likelihood()
         expected = -2.0390312696885102
-        self.assertEqual(expected, log_l)
+        self.assertAlmostEqual(expected, log_l, places=5)
 
     def test_set_parameters(self):
         combined_params = {"kernel:log_S0": 2, "kernel:log_Q": 2, "kernel:log_omega0": 2, "mean:a": 2}
@@ -841,7 +841,7 @@ class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
     def test_likelihood_value(self):
         log_l = self.george_likelihood.log_likelihood()
         expected = -3.2212751203208403
-        self.assertEqual(expected, log_l)
+        self.assertAlmostEqual(expected, log_l, places=5)
 
     def test_set_parameters(self):
         combined_params = {"kernel:k1:log_constant": 2, "kernel:k2:metric:log_M_0_0": 2, "mean:a": 2}
