@@ -39,6 +39,7 @@ Karl Wette
 Katerina Chatziioannou
 Kaylee de Soto
 Khun Sang Phukon
+Kruthi Krishna
 Kshipraa Athar
 Leslie Wade
 Liting Xiao
