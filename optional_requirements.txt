@@ -1,11 +1,3 @@
-astropy
 celerite
-lalsuite
 george
-gwpy
-theano
 plotly
-tables
-pyfftw
-scikit-learn
-nflows

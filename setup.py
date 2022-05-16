@@ -56,8 +56,12 @@ def get_long_description():
     return long_description
 
 
-def get_requirements():
-    with open("requirements.txt", "r") as ff:
+def get_requirements(kind=None):
+    if kind is None:
+        fname = "requirements.txt"
+    else:
+        fname = f"{kind}_requirements.txt"
+    with open(fname, "r") as ff:
         requirements = ff.readlines()
     return requirements
 
@@ -107,6 +111,16 @@ setup(
     },
     python_requires=">=3.8",
     install_requires=get_requirements(),
+    extras_require={
+        "gw": get_requirements("gw"),
+        "mcmc": get_requirements("mcmc"),
+        "all": (
+            get_requirements("sampler")
+            + get_requirements("gw")
+            + get_requirements("mcmc")
+            + get_requirements("optional")
+        ),
+    },
     entry_points={
         "console_scripts": [
             "bilby_plot=cli_bilby.plot_multiple_posteriors:main",
