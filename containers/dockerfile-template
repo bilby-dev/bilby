@@ -64,4 +64,6 @@ RUN mkdir roq_basis \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
     && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
-    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
+    && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis.hdf5 \
+    && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis_multiband.hdf5
