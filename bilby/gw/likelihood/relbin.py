@@ -442,7 +442,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         Generate a single sample from the posterior distribution for coalescence
         time when using a likelihood which explicitly marginalises over time.
 
-        In order to resolve the posterior we artifically upsample to 16kHz.
+        In order to resolve the posterior we artificially upsample to 16kHz.
 
         See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
@@ -610,7 +610,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         Notes
         -----
-        This is only valid when assumes that mu(phi) \propto exp(-2i phi).
+        This is only valid when assumes that mu(phi) propto exp(-2i phi).
         """
         self.parameters.update(self.get_sky_frame_parameters())
         if waveform_ratio is None:
