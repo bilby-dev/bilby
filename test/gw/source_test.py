@@ -517,7 +517,7 @@ class TestRelbinBBH(unittest.TestCase):
             )
 
     def test_relbin_bbh_fails_without_fiducial_option(self):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(TypeError):
             bilby.gw.source.lal_binary_black_hole_relativebinning(
                 self.frequency_array, **self.parameters
             )
@@ -593,7 +593,7 @@ class TestRelbinBNS(unittest.TestCase):
         )
 
     def test_relbin_bns_fails_without_fiducial_option(self):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(TypeError):
             bilby.gw.source.lal_binary_neutron_star_relativebinning(
                 self.frequency_array, **self.parameters
             )
