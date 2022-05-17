@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from importlib import import_module
 from io import open as ioopen
 
@@ -8,13 +9,17 @@ import numpy as np
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
 from .joint import JointPrior
-from ..utils import logger, check_directory_exists_and_if_not_mkdir, BilbyJsonEncoder, decode_bilby_json
+from ..utils import (
+    logger,
+    check_directory_exists_and_if_not_mkdir,
+    BilbyJsonEncoder,
+    decode_bilby_json,
+)
 
 
 class PriorDict(dict):
-    def __init__(self, dictionary=None, filename=None,
-                 conversion_function=None):
-        """ A dictionary of priors
+    def __init__(self, dictionary=None, filename=None, conversion_function=None):
+        """A dictionary of priors
 
         Parameters
         ==========
@@ -30,8 +35,10 @@ class PriorDict(dict):
         if isinstance(dictionary, dict):
             self.from_dictionary(dictionary)
         elif type(dictionary) is str:
-            logger.debug('Argument "dictionary" is a string.' +
-                         ' Assuming it is intended as a file name.')
+            logger.debug(
+                'Argument "dictionary" is a string.'
+                + " Assuming it is intended as a file name."
+            )
             self.from_file(dictionary)
         elif type(filename) is str:
             self.from_file(filename)
@@ -71,7 +78,7 @@ class PriorDict(dict):
         return sample
 
     def to_file(self, outdir, label):
-        """ Write the prior distribution to file.
+        """Write the prior distribution to file.
 
         Parameters
         ==========
@@ -88,19 +95,19 @@ class PriorDict(dict):
         with open(prior_file, "w") as outfile:
             for key in self.keys():
                 if JointPrior in self[key].__class__.__mro__:
-                    distname = '_'.join(self[key].dist.names) + '_{}'.format(self[key].dist.distname)
+                    distname = "_".join(self[key].dist.names) + "_{}".format(
+                        self[key].dist.distname
+                    )
                     if distname not in joint_dists:
                         joint_dists.append(distname)
-                        outfile.write(
-                            "{} = {}\n".format(distname, self[key].dist))
+                        outfile.write("{} = {}\n".format(distname, self[key].dist))
                     diststr = repr(self[key].dist)
                     priorstr = repr(self[key])
                     outfile.write(
-                        "{} = {}\n".format(key, priorstr.replace(diststr,
-                                                                 distname)))
+                        "{} = {}\n".format(key, priorstr.replace(diststr, distname))
+                    )
                 else:
-                    outfile.write(
-                        "{} = {}\n".format(key, self[key]))
+                    outfile.write("{} = {}\n".format(key, self[key]))
 
     def _get_json_dict(self):
         self.convert_floats_to_delta_functions()
@@ -115,11 +122,10 @@ class PriorDict(dict):
         prior_file = os.path.join(outdir, "{}_prior.json".format(label))
         logger.debug("Writing priors to {}".format(prior_file))
         with open(prior_file, "w") as outfile:
-            json.dump(self._get_json_dict(), outfile, cls=BilbyJsonEncoder,
-                      indent=2)
+            json.dump(self._get_json_dict(), outfile, cls=BilbyJsonEncoder, indent=2)
 
     def from_file(self, filename):
-        """ Reads in a prior from a file specification
+        """Reads in a prior from a file specification
 
         Parameters
         ==========
@@ -138,16 +144,16 @@ class PriorDict(dict):
 
         """
 
-        comments = ['#', '\n']
+        comments = ["#", "\n"]
         prior = dict()
-        with ioopen(filename, 'r', encoding='unicode_escape') as f:
+        with ioopen(filename, "r", encoding="unicode_escape") as f:
             for line in f:
                 if line[0] in comments:
                     continue
-                line.replace(' ', '')
-                elements = line.split('=')
-                key = elements[0].replace(' ', '')
-                val = '='.join(elements[1:]).strip()
+                line.replace(" ", "")
+                elements = line.split("=")
+                key = elements[0].replace(" ", "")
+                val = "=".join(elements[1:]).strip()
                 prior[key] = val
         self.from_dictionary(prior)
 
@@ -155,12 +161,14 @@ class PriorDict(dict):
     def _get_from_json_dict(cls, prior_dict):
         try:
             class_ = getattr(
-                import_module(prior_dict["__module__"]),
-                prior_dict["__name__"])
+                import_module(prior_dict["__module__"]), prior_dict["__name__"]
+            )
         except ImportError:
-            logger.debug("Cannot import prior module {}.{}".format(
-                prior_dict["__module__"], prior_dict["__name__"]
-            ))
+            logger.debug(
+                "Cannot import prior module {}.{}".format(
+                    prior_dict["__module__"], prior_dict["__name__"]
+                )
+            )
             class_ = cls
         except KeyError:
             logger.debug("Cannot find module name to load")
@@ -173,7 +181,7 @@ class PriorDict(dict):
 
     @classmethod
     def from_json(cls, filename):
-        """ Reads in a prior from a json file
+        """Reads in a prior from a json file
 
         Parameters
         ==========
@@ -182,18 +190,32 @@ class PriorDict(dict):
         """
         with open(filename, "r") as ff:
             obj = json.load(ff, object_hook=decode_bilby_json)
+
+        # make sure priors containing JointDists are properly handled and point
+        # to the same object when required
+        jointdists = {}
+        for key in obj:
+            if isinstance(obj[key], JointPrior):
+                for name in obj[key].dist.names:
+                    jointdists[name] = obj[key].dist
+        # set dist for joint values so that they point to the same object
+        for key in obj:
+            if isinstance(obj[key], JointPrior):
+                obj[key].dist = jointdists[key]
+
         return obj
 
     def from_dictionary(self, dictionary):
-        eval_dict = dict(inf=np.inf)
-        for key, val in dictionary.items():
+        mvgkwargs = {}
+        for key in list(dictionary.keys()):
+            val = dictionary[key]
             if isinstance(val, Prior):
                 continue
             elif isinstance(val, (int, float)):
                 dictionary[key] = DeltaFunction(peak=val)
             elif isinstance(val, str):
-                cls = val.split('(')[0]
-                args = '('.join(val.split('(')[1:])[:-1]
+                cls = val.split("(")[0]
+                args = "(".join(val.split("(")[1:])[:-1]
                 try:
                     dictionary[key] = DeltaFunction(peak=float(cls))
                     logger.debug("{} converted to DeltaFunction prior".format(key))
@@ -201,11 +223,11 @@ class PriorDict(dict):
                 except ValueError:
                     pass
                 if "." in cls:
-                    module = '.'.join(cls.split('.')[:-1])
-                    cls = cls.split('.')[-1]
+                    module = ".".join(cls.split(".")[:-1])
+                    cls = cls.split(".")[-1]
                 else:
                     module = __name__.replace(
-                        '.' + os.path.basename(__file__).replace('.py', ''), ''
+                        "." + os.path.basename(__file__).replace(".py", ""), ""
                     )
                 try:
                     cls = getattr(import_module(module), cls, cls)
@@ -223,13 +245,35 @@ class PriorDict(dict):
                         raise TypeError("Unable to parse prior class {}".format(cls))
                     else:
                         continue
-                elif (cls.__name__ in ['MultivariateGaussianDist',
-                                       'MultivariateNormalDist']):
-                    if key not in eval_dict:
-                        eval_dict[key] = eval(val, None, eval_dict)
-                elif (cls.__name__ in ['MultivariateGaussian',
-                                       'MultivariateNormal']):
-                    dictionary[key] = eval(val, None, eval_dict)
+                elif cls.__name__ in [
+                    "MultivariateGaussianDist",
+                    "MultivariateNormalDist",
+                ]:
+                    dictionary.pop(key)
+                    if key not in mvgkwargs:
+                        mvgkwargs[key] = cls.from_repr(args)
+                elif cls.__name__ in ["MultivariateGaussian", "MultivariateNormal"]:
+                    mgkwargs = {
+                        item[0].strip(): cls._parse_argument_string(item[1])
+                        for item in cls._split_repr(
+                            ", ".join(
+                                [arg for arg in args.split(",") if "dist=" not in arg]
+                            )
+                        ).items()
+                    }
+                    keymatch = re.match(r"dist=(?P<distkey>\S+),", args)
+                    if keymatch is None:
+                        raise ValueError(
+                            "'dist' argument for MultivariateGaussian is not specified"
+                        )
+
+                    if keymatch["distkey"] not in mvgkwargs:
+                        raise ValueError(
+                            f"MultivariateGaussianDist {keymatch['distkey']} must be defined before {cls.__name__}"
+                        )
+
+                    mgkwargs["dist"] = mvgkwargs[keymatch["distkey"]]
+                    dictionary[key] = cls(**mgkwargs)
                 else:
                     try:
                         dictionary[key] = cls.from_repr(args)
@@ -242,15 +286,19 @@ class PriorDict(dict):
                 try:
                     _class = getattr(
                         import_module(val.get("__module__", "none")),
-                        val.get("__name__", "none"))
+                        val.get("__name__", "none"),
+                    )
                     dictionary[key] = _class(**val.get("kwargs", dict()))
                 except ImportError:
-                    logger.debug("Cannot import prior module {}.{}".format(
-                        val.get("__module__", "none"), val.get("__name__", "none")
-                    ))
+                    logger.debug(
+                        "Cannot import prior module {}.{}".format(
+                            val.get("__module__", "none"), val.get("__name__", "none")
+                        )
+                    )
                     logger.warning(
-                        'Cannot convert {} into a prior object. '
-                        'Leaving as dictionary.'.format(key))
+                        "Cannot convert {} into a prior object. "
+                        "Leaving as dictionary.".format(key)
+                    )
                     continue
             else:
                 raise TypeError(
@@ -260,18 +308,17 @@ class PriorDict(dict):
         self.update(dictionary)
 
     def convert_floats_to_delta_functions(self):
-        """ Convert all float parameters to delta functions """
+        """Convert all float parameters to delta functions"""
         for key in self:
             if isinstance(self[key], Prior):
                 continue
             elif isinstance(self[key], float) or isinstance(self[key], int):
                 self[key] = DeltaFunction(self[key])
-                logger.debug(
-                    "{} converted to delta function prior.".format(key))
+                logger.debug("{} converted to delta function prior.".format(key))
             else:
                 logger.debug(
-                    "{} cannot be converted to delta function prior."
-                    .format(key))
+                    "{} cannot be converted to delta function prior.".format(key)
+                )
 
     def fill_priors(self, likelihood, default_priors_file=None):
         """
@@ -309,8 +356,10 @@ class PriorDict(dict):
                     set_val = likelihood.parameters[missing_key]
                     logger.warning(
                         "Parameter {} has no default prior and is set to {}, this"
-                        " will not be sampled and may cause an error."
-                        .format(missing_key, set_val))
+                        " will not be sampled and may cause an error.".format(
+                            missing_key, set_val
+                        )
+                    )
                 else:
                     self[missing_key] = default_prior
 
@@ -332,7 +381,7 @@ class PriorDict(dict):
         return self.sample_subset_constrained(keys=list(self.keys()), size=size)
 
     def sample_subset_constrained_as_array(self, keys=iter([]), size=None):
-        """ Return an array of samples
+        """Return an array of samples
 
         Parameters
         ==========
@@ -373,7 +422,7 @@ class PriorDict(dict):
             elif isinstance(self[key], Prior):
                 samples[key] = self[key].sample(size=size)
             else:
-                logger.debug('{} not a known prior.'.format(key))
+                logger.debug("{} not a known prior.".format(key))
         return samples
 
     @property
@@ -387,16 +436,12 @@ class PriorDict(dict):
     @property
     def fixed_keys(self):
         return [
-            k for k, p in self.items()
-            if (p.is_fixed and k not in self.constraint_keys)
+            k for k, p in self.items() if (p.is_fixed and k not in self.constraint_keys)
         ]
 
     @property
     def constraint_keys(self):
-        return [
-            k for k, p in self.items()
-            if isinstance(p, Constraint)
-        ]
+        return [k for k, p in self.items() if isinstance(p, Constraint)]
 
     def sample_subset_constrained(self, keys=iter([]), size=None):
         if size is None or size == 1:
@@ -415,15 +460,17 @@ class PriorDict(dict):
                 samples = self.sample_subset(keys=keys, size=needed)
                 keep = np.array(self.evaluate_constraints(samples), dtype=bool)
                 for key in keys:
-                    all_samples[key] = np.hstack([
-                        all_samples[key], samples[key][keep].flatten()
-                    ])
+                    all_samples[key] = np.hstack(
+                        [all_samples[key], samples[key][keep].flatten()]
+                    )
             all_samples = {
                 key: np.reshape(all_samples[key][:needed], size) for key in keys
             }
             return all_samples
 
-    def normalize_constraint_factor(self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10):
+    def normalize_constraint_factor(
+        self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
+    ):
         if keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
         else:
@@ -450,8 +497,7 @@ class PriorDict(dict):
         while np.count_nonzero(keep) < min_accept:
             samples = self.sample_subset(keys=keys, size=sampling_chunk)
             for key in samples:
-                all_samples[key] = np.hstack(
-                    [all_samples[key], samples[key].flatten()])
+                all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
             keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
         factor = len(keep) / np.count_nonzero(keep)
         return factor
@@ -471,21 +517,20 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.product([self[key].prob(sample[key])
-                           for key in sample], **kwargs)
+        prob = np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
 
         return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
-        if np.all(prob == 0.):
+        if np.all(prob == 0.0):
             return prob * ratio
         else:
             if isinstance(prob, float):
                 if self.evaluate_constraints(sample):
                     return prob * ratio
                 else:
-                    return 0.
+                    return 0.0
             else:
                 constrained_prob = np.zeros_like(prob)
                 keep = np.array(self.evaluate_constraints(sample), dtype=bool)
@@ -508,8 +553,7 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        ln_prob = np.sum([self[key].ln_prob(sample[key])
-                          for key in sample], axis=axis)
+        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
         return self.check_ln_prob(sample, ln_prob)
 
     def check_ln_prob(self, sample, ln_prob):
@@ -541,7 +585,9 @@ class PriorDict(dict):
         dict, pandas.DataFrame: Dictionary containing the CDF values
 
         """
-        return sample.__class__({key: self[key].cdf(sample) for key, sample in sample.items()})
+        return sample.__class__(
+            {key: self[key].cdf(sample) for key, sample in sample.items()}
+        )
 
     def rescale(self, keys, theta):
         """Rescale samples from unit cube to prior
@@ -558,7 +604,10 @@ class PriorDict(dict):
         list: List of floats containing the rescaled sample
         """
         from matplotlib.cbook import flatten
-        return list(flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)]))
+
+        return list(
+            flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)])
+        )
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -579,8 +628,11 @@ class PriorDict(dict):
             temp = self.copy()
             del temp[key]
             if temp.test_redundancy(key, disable_logging=True):
-                logger.warning('{} is a redundant key in this {}.'
-                               .format(key, self.__class__.__name__))
+                logger.warning(
+                    "{} is a redundant key in this {}.".format(
+                        key, self.__class__.__name__
+                    )
+                )
                 redundant = True
         return redundant
 
@@ -593,11 +645,10 @@ class PriorDict(dict):
 
 
 class PriorDictException(Exception):
-    """ General base class for all prior dict exceptions """
+    """General base class for all prior dict exceptions"""
 
 
 class ConditionalPriorDict(PriorDict):
-
     def __init__(self, dictionary=None, filename=None, conversion_function=None):
         """
 
@@ -614,8 +665,9 @@ class ConditionalPriorDict(PriorDict):
         self._rescale_indexes = []
         self._least_recently_rescaled_keys = []
         super(ConditionalPriorDict, self).__init__(
-            dictionary=dictionary, filename=filename,
-            conversion_function=conversion_function
+            dictionary=dictionary,
+            filename=filename,
+            conversion_function=conversion_function,
         )
         self._resolved = False
         self._resolve_conditions()
@@ -632,8 +684,12 @@ class ConditionalPriorDict(PriorDict):
         4. We set the `self._resolved` flag to True if all conditional
         priors were added in the right order
         """
-        self._unconditional_keys = [key for key in self.keys() if not hasattr(self[key], 'condition_func')]
-        conditional_keys_unsorted = [key for key in self.keys() if hasattr(self[key], 'condition_func')]
+        self._unconditional_keys = [
+            key for key in self.keys() if not hasattr(self[key], "condition_func")
+        ]
+        conditional_keys_unsorted = [
+            key for key in self.keys() if hasattr(self[key], "condition_func")
+        ]
         self._conditional_keys = []
         for _ in range(len(self)):
             for key in conditional_keys_unsorted[:]:
@@ -646,7 +702,7 @@ class ConditionalPriorDict(PriorDict):
             self._resolved = False
 
     def _check_conditions_resolved(self, key, sampled_keys):
-        """ Checks if all required variables have already been sampled so we can sample this key """
+        """Checks if all required variables have already been sampled so we can sample this key"""
         conditions_resolved = True
         for k in self[key].required_variables:
             if k not in sampled_keys:
@@ -657,28 +713,34 @@ class ConditionalPriorDict(PriorDict):
         self.convert_floats_to_delta_functions()
         subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
         if not subset_dict._resolved:
-            raise IllegalConditionsException("The current set of priors contains unresolvable conditions.")
+            raise IllegalConditionsException(
+                "The current set of priors contains unresolvable conditions."
+            )
         samples = dict()
         for key in subset_dict.sorted_keys:
             if isinstance(self[key], Constraint):
                 continue
             elif isinstance(self[key], Prior):
                 try:
-                    samples[key] = subset_dict[key].sample(size=size, **subset_dict.get_required_variables(key))
+                    samples[key] = subset_dict[key].sample(
+                        size=size, **subset_dict.get_required_variables(key)
+                    )
                 except ValueError:
                     # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
                     # If that is the case, we sample each sample individually.
                     required_variables = subset_dict.get_required_variables(key)
                     samples[key] = np.zeros(size)
                     for i in range(size):
-                        rvars = {key: value[i] for key, value in required_variables.items()}
+                        rvars = {
+                            key: value[i] for key, value in required_variables.items()
+                        }
                         samples[key][i] = subset_dict[key].sample(**rvars)
             else:
-                logger.debug('{} not a known prior.'.format(key))
+                logger.debug("{} not a known prior.".format(key))
         return samples
 
     def get_required_variables(self, key):
-        """ Returns the required variables to sample a given conditional key.
+        """Returns the required variables to sample a given conditional key.
 
         Parameters
         ==========
@@ -689,7 +751,10 @@ class ConditionalPriorDict(PriorDict):
         =======
         dict: key/value pairs of the required variables
         """
-        return {k: self[k].least_recently_sampled for k in getattr(self[key], 'required_variables', [])}
+        return {
+            k: self[k].least_recently_sampled
+            for k in getattr(self[key], "required_variables", [])
+        }
 
     def prob(self, sample, **kwargs):
         """
@@ -707,7 +772,10 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [self[key].prob(sample[key], **self.get_required_variables(key)) for key in sample]
+        res = [
+            self[key].prob(sample[key], **self.get_required_variables(key))
+            for key in sample
+        ]
         prob = np.product(res, **kwargs)
         return self.check_prob(sample, prob)
 
@@ -727,13 +795,19 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [self[key].ln_prob(sample[key], **self.get_required_variables(key)) for key in sample]
+        res = [
+            self[key].ln_prob(sample[key], **self.get_required_variables(key))
+            for key in sample
+        ]
         ln_prob = np.sum(res, axis=axis)
         return self.check_ln_prob(sample, ln_prob)
 
     def cdf(self, sample):
         self._prepare_evaluation(*zip(*sample.items()))
-        res = {key: self[key].cdf(sample[key], **self.get_required_variables(key)) for key in sample}
+        res = {
+            key: self[key].cdf(sample[key], **self.get_required_variables(key))
+            for key in sample
+        }
         return sample.__class__(res)
 
     def rescale(self, keys, theta):
@@ -755,14 +829,21 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
-        for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
-            result[key] = self[key].rescale(theta[index], **self.get_required_variables(key))
+        for key, index in zip(
+            self.sorted_keys_without_fixed_parameters, self._rescale_indexes
+        ):
+            result[key] = self[key].rescale(
+                theta[index], **self.get_required_variables(key)
+            )
             self[key].least_recently_sampled = result[key]
         return [result[key] for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
-            self._rescale_indexes = [keys.index(element) for element in self.sorted_keys_without_fixed_parameters]
+            self._rescale_indexes = [
+                keys.index(element)
+                for element in self.sorted_keys_without_fixed_parameters
+            ]
             self._least_recently_rescaled_keys = keys
 
     def _prepare_evaluation(self, keys, theta):
@@ -772,7 +853,9 @@ class ConditionalPriorDict(PriorDict):
 
     def _check_resolved(self):
         if not self._resolved:
-            raise IllegalConditionsException("The current set of priors contains unresolveable conditions.")
+            raise IllegalConditionsException(
+                "The current set of priors contains unresolveable conditions."
+            )
 
     @property
     def conditional_keys(self):
@@ -788,7 +871,11 @@ class ConditionalPriorDict(PriorDict):
 
     @property
     def sorted_keys_without_fixed_parameters(self):
-        return [key for key in self.sorted_keys if not isinstance(self[key], (DeltaFunction, Constraint))]
+        return [
+            key
+            for key in self.sorted_keys
+            if not isinstance(self[key], (DeltaFunction, Constraint))
+        ]
 
     def __setitem__(self, key, value):
         super(ConditionalPriorDict, self).__setitem__(key, value)
@@ -800,9 +887,9 @@ class ConditionalPriorDict(PriorDict):
 
 
 class DirichletPriorDict(ConditionalPriorDict):
-
     def __init__(self, n_dim=None, label="dirichlet_"):
         from .conditional import DirichletElement
+
         self.n_dim = n_dim
         self.label = label
         super(DirichletPriorDict, self).__init__(dictionary=dict())
@@ -827,12 +914,14 @@ class DirichletPriorDict(ConditionalPriorDict):
     def _get_from_json_dict(cls, prior_dict):
         try:
             cls == getattr(
-                import_module(prior_dict["__module__"]),
-                prior_dict["__name__"])
+                import_module(prior_dict["__module__"]), prior_dict["__name__"]
+            )
         except ImportError:
-            logger.debug("Cannot import prior module {}.{}".format(
-                prior_dict["__module__"], prior_dict["__name__"]
-            ))
+            logger.debug(
+                "Cannot import prior module {}.{}".format(
+                    prior_dict["__module__"], prior_dict["__name__"]
+                )
+            )
         except KeyError:
             logger.debug("Cannot find module name to load")
         for key in ["__module__", "__name__", "__prior_dict__"]:
@@ -843,7 +932,7 @@ class DirichletPriorDict(ConditionalPriorDict):
 
 
 class ConditionalPriorDictException(PriorDictException):
-    """ General base class for all conditional prior dict exceptions """
+    """General base class for all conditional prior dict exceptions"""
 
 
 def create_default_prior(name, default_priors_file=None):
@@ -864,19 +953,17 @@ def create_default_prior(name, default_priors_file=None):
     """
 
     if default_priors_file is None:
-        logger.debug(
-            "No prior file given.")
+        logger.debug("No prior file given.")
         prior = None
     else:
         default_priors = PriorDict(filename=default_priors_file)
         if name in default_priors.keys():
             prior = default_priors[name]
         else:
-            logger.debug(
-                "No default prior found for variable {}.".format(name))
+            logger.debug("No default prior found for variable {}.".format(name))
             prior = None
     return prior
 
 
 class IllegalConditionsException(ConditionalPriorDictException):
-    """ Exception class to handle prior dicts that contain unresolvable conditions. """
+    """Exception class to handle prior dicts that contain unresolvable conditions."""
