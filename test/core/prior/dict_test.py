@@ -326,7 +326,7 @@ class TestJsonIO(unittest.TestCase):
             weights=1.0,
         )
         mvn = bilby.core.prior.MultivariateGaussianDist(
-            names=["testa", "testb"],
+            names=["testA", "testB"],
             mus=[1, 1],
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
             weights=1.0,
@@ -339,7 +339,7 @@ class TestJsonIO(unittest.TestCase):
             hp_map_file, names=["testra", "testdec"]
         )
         hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
+            hp_map_file, names=["testRA", "testDEC", "testdistance"], distance=True
         )
 
         self.priors = bilby.core.prior.PriorDict(
@@ -401,31 +401,31 @@ class TestJsonIO(unittest.TestCase):
                 a_=bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
                 ab=bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
                 ac=bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
-                ad=bilby.core.prior.MultivariateGaussian(
+                testa=bilby.core.prior.MultivariateGaussian(
                     dist=mvg, name="testa", unit="unit"
                 ),
-                ae=bilby.core.prior.MultivariateGaussian(
+                testb=bilby.core.prior.MultivariateGaussian(
                     dist=mvg, name="testb", unit="unit"
                 ),
-                af=bilby.core.prior.MultivariateNormal(
-                    dist=mvn, name="testa", unit="unit"
+                testA=bilby.core.prior.MultivariateNormal(
+                    dist=mvn, name="testA", unit="unit"
                 ),
-                ag=bilby.core.prior.MultivariateNormal(
-                    dist=mvn, name="testb", unit="unit"
+                testB=bilby.core.prior.MultivariateNormal(
+                    dist=mvn, name="testB", unit="unit"
                 ),
-                ah=bilby.gw.prior.HealPixPrior(
+                testra=bilby.gw.prior.HealPixPrior(
                     dist=hp_dist, name="testra", unit="unit"
                 ),
-                ai=bilby.gw.prior.HealPixPrior(
+                testdec=bilby.gw.prior.HealPixPrior(
                     dist=hp_dist, name="testdec", unit="unit"
                 ),
-                aj=bilby.gw.prior.HealPixPrior(
-                    dist=hp_3d_dist, name="testra", unit="unit"
+                testRA=bilby.gw.prior.HealPixPrior(
+                    dist=hp_3d_dist, name="testRA", unit="unit"
                 ),
-                ak=bilby.gw.prior.HealPixPrior(
-                    dist=hp_3d_dist, name="testdec", unit="unit"
+                testDEC=bilby.gw.prior.HealPixPrior(
+                    dist=hp_3d_dist, name="testDEC", unit="unit"
                 ),
-                al=bilby.gw.prior.HealPixPrior(
+                testdistance=bilby.gw.prior.HealPixPrior(
                     dist=hp_3d_dist, name="testdistance", unit="unit"
                 ),
             )
@@ -442,6 +442,7 @@ class TestJsonIO(unittest.TestCase):
         self.assertDictEqual(self.priors, new_priors)
         self.assertLess(max(abs(old_interped.xx - new_interped.xx)), 1e-15)
         self.assertLess(max(abs(old_interped.yy - new_interped.yy)), 1e-15)
+        self.assertTrue(id(new_priors["testa"].dist) == id(new_priors["testb"].dist))
 
 
 class TestLoadPrior(unittest.TestCase):

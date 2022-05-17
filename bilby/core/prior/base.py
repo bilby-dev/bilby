@@ -333,7 +333,7 @@ class Prior(object):
 
     @classmethod
     def from_repr(cls, string):
-        """Generate the prior from it's __repr__"""
+        """Generate the prior from its __repr__"""
         return cls._from_repr(string)
 
     @classmethod
@@ -429,9 +429,9 @@ class Prior(object):
             val = None
         elif re.sub(r'\'.*\'', '', val) in ['r', 'u']:
             val = val[2:-1]
-        elif "'" in val:
+        elif val.startswith("'") and val.endswith("'"):
             val = val.strip("'")
-        elif '(' in val:
+        elif '(' in val and not val.startswith(("[", "{")):
             other_cls = val.split('(')[0]
             vals = '('.join(val.split('(')[1:])[:-1]
             if "." in other_cls:
