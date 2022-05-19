@@ -9,7 +9,6 @@ from ...core.utils import (
     logger, create_frequency_series, speed_of_light, radius_of_earth
 )
 from ..prior import CBCPriorDict
-from ..utils import build_roq_weights
 
 
 class ROQGravitationalWaveTransient(GravitationalWaveTransient):
@@ -40,6 +39,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         valid for the ROQ
     roq_scale_factor: float
         The ROQ scale factor used.
+    parameter_conversion: func, optional
+        Function to update self.parameters before bases are selected based on
+        the values of self.parameters. This enables a user to switch bases
+        based on the values of parameters which are not directly used for
+        sampling.
     priors: dict, bilby.prior.PriorDict
         A dictionary of priors containing at least the geocent_time prior
         Warning: when using marginalisation the dict is overwritten which will change the
@@ -87,7 +91,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             distance_marginalization=False, phase_marginalization=False,
             time_marginalization=False, jitter_time=True, delta_tc=None,
             distance_marginalization_lookup_table=None,
-            reference_frame="sky", time_reference="geocenter"
+            reference_frame="sky", time_reference="geocenter",
+            parameter_conversion=None
 
     ):
         self._delta_tc = delta_tc
@@ -117,21 +122,96 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         elif isinstance(weights, str):
             self.weights = self.load_weights(weights)
         else:
+            is_hdf5_linear = isinstance(linear_matrix, str) and linear_matrix.endswith('.hdf5')
+            linear_matrix = self._parse_basis(linear_matrix, 'linear')
+            is_hdf5_quadratic = isinstance(quadratic_matrix, str) and quadratic_matrix.endswith('.hdf5')
+            quadratic_matrix = self._parse_basis(quadratic_matrix, 'quadratic')
+            # retrieve roq params from a basis file if it is .hdf5
+            if self.roq_params is None:
+                if is_hdf5_linear:
+                    self.roq_params = np.array(
+                        [(linear_matrix['minimum_frequency_hz'][()],
+                          linear_matrix['maximum_frequency_hz'][()],
+                          linear_matrix['duration_s'][()])],
+                        dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
+                    )
+                elif is_hdf5_quadratic:
+                    self.roq_params = np.array(
+                        [(quadratic_matrix['minimum_frequency_hz'][()],
+                          quadratic_matrix['maximum_frequency_hz'][()],
+                          quadratic_matrix['duration_s'][()])],
+                        dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
+                    )
             self.weights = dict()
-            if isinstance(linear_matrix, str):
-                logger.info(
-                    "Loading linear matrix from {}".format(linear_matrix))
-                linear_matrix = np.load(linear_matrix).T
-            if isinstance(quadratic_matrix, str):
-                logger.info(
-                    "Loading quadratic_matrix from {}".format(quadratic_matrix))
-                quadratic_matrix = np.load(quadratic_matrix).T
-            self._set_weights(linear_matrix=linear_matrix,
-                              quadratic_matrix=quadratic_matrix)
-        self.frequency_nodes_linear = \
-            waveform_generator.waveform_arguments['frequency_nodes_linear']
-        self.frequency_nodes_quadratic = \
-            waveform_generator.waveform_arguments['frequency_nodes_quadratic']
+            self._set_weights(linear_matrix=linear_matrix, quadratic_matrix=quadratic_matrix)
+            if is_hdf5_linear:
+                linear_matrix.close()
+            if is_hdf5_quadratic:
+                quadratic_matrix.close()
+
+        self.number_of_bases_linear = len(self.weights[f'{self.interferometers[0].name}_linear'])
+        self.number_of_bases_quadratic = len(self.weights[f'{self.interferometers[0].name}_quadratic'])
+        self._cache = dict(parameters=None, basis_number_linear=None, basis_number_quadratic=None)
+        self.parameter_conversion = parameter_conversion
+
+        for basis_type in ['linear', 'quadratic']:
+            number_of_bases = getattr(self, f'number_of_bases_{basis_type}')
+            if number_of_bases > 1:
+                self._verify_prior_ranges_and_frequency_nodes(basis_type)
+            else:
+                self._check_frequency_nodes_exist(basis_type)
+
+    def _verify_prior_ranges_and_frequency_nodes(self, basis_type):
+        """
+        Check if self.weights contains lists of prior ranges and frequency nodes, and their sizes are equal to the
+        number of bases.
+
+        Parameters
+        ==========
+        basis_type: str
+
+        """
+        number_of_bases = getattr(self, f'number_of_bases_{basis_type}')
+        key = f'prior_range_{basis_type}'
+        try:
+            prior_ranges = self.weights[key]
+        except KeyError:
+            raise AttributeError(
+                f'For the use of multiple {basis_type} ROQ bases, weights should contain "{key}".')
+        else:
+            for param_name in prior_ranges:
+                if len(prior_ranges[param_name]) != number_of_bases:
+                    raise ValueError(
+                        f'The number of prior ranges for "{param_name}" does not '
+                        f'match the number of {basis_type} bases')
+        key = f'frequency_nodes_{basis_type}'
+        try:
+            frequency_nodes = self.weights[key]
+        except KeyError:
+            raise AttributeError(
+                f'For the use of multiple {basis_type} ROQ bases, weights should contain "{key}".')
+        else:
+            if len(frequency_nodes) != number_of_bases:
+                raise ValueError(
+                    f'The number of arrays of frequency nodes does not match the number of {basis_type} bases')
+
+    def _check_frequency_nodes_exist(self, basis_type):
+        """
+        Check if self._waveform_generator.waveform_arguments contains frequency nodes. If not, they are retrieved from
+        self.weights. If self.weights neither, raise AttributeError.
+
+        Parameters
+        ==========
+        basis_type: str
+
+        """
+        key = f'frequency_nodes_{basis_type}'
+        if key not in self._waveform_generator.waveform_arguments:
+            try:
+                self._waveform_generator.waveform_arguments[key] = self.weights[key][0]
+            except KeyError:
+                raise AttributeError(
+                    f'{key} should be contained in weights or waveform arguments.')
 
     def _setup_time_marginalization(self):
         if self._delta_tc is None:
@@ -146,6 +226,136 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self._times = tcmin + self._delta_tc / 2. + np.arange(number_of_time_samples) * self._delta_tc
         self._beam_pattern_reference_time = (tcmin + tcmax) / 2.
 
+    @staticmethod
+    def _parse_basis(basis, basis_type):
+        """
+        Parse basis and format it to an hdf5-like object
+
+        Parameters
+        ----------
+        basis : array-like or str
+            array-like basis or path to file
+        basis_type : str
+            'linear' or 'quadratic'
+
+        Returns
+        -------
+        basis : hdf5-like object
+
+        """
+        if basis_type not in ['linear', 'quadratic']:
+            raise ValueError(f'basis_type {basis_type} not recognized')
+        if isinstance(basis, str):
+            logger.info(f'Loading {basis_type}_matrix from {basis}')
+            format = basis.split('.')[-1]
+            if format == 'npy':
+                basis = {f'basis_{basis_type}': {'0': {'basis': np.load(basis)}}}
+            elif format == 'hdf5':
+                import h5py
+                basis = h5py.File(basis, 'r')
+            else:
+                raise IOError(f'Format {format} not recognized.')
+        elif isinstance(basis, np.ndarray):
+            basis = {f'basis_{basis_type}': {'0': {'basis': basis.T}}}
+        else:
+            raise TypeError('basis needs to be str or np.ndarray')
+        return basis
+
+    def _select_prior_ranges(self, prior_ranges):
+        """
+        Select prior ranges which have intersection with self.priors
+
+        Parameters
+        ----------
+        prior_ranges : dict
+            dictionary whose keys are parameter names and values are ndarray of
+            their prior ranges
+
+        Returns
+        -------
+        idxs_in_prior_range : ndarray
+            indexes of selected prior ranges
+        selected_prior_ranges : dict
+
+        """
+        param_names = list(prior_ranges.keys())
+        number_of_prior_ranges = len(prior_ranges[param_names[0]])
+        in_prior_range = np.ones(number_of_prior_ranges, dtype=bool)
+        for param_name in param_names:
+            try:
+                prior = self.priors[param_name]
+            except KeyError:
+                continue
+            prior_ranges_of_this_param = prior_ranges[param_name]
+            in_prior_range *= \
+                (prior_ranges_of_this_param[:, 1] >= prior.minimum) * \
+                (prior_ranges_of_this_param[:, 0] <= prior.maximum)
+        idxs_in_prior_range = np.arange(number_of_prior_ranges)[in_prior_range]
+        return idxs_in_prior_range, \
+            dict((param_name, prior_ranges[param_name][idxs_in_prior_range])
+                 for param_name in param_names)
+
+    def _update_basis(self):
+        """
+        Update basis and frequency nodes depending on the curret values of parameters
+
+        This updates
+        - self._cache
+        - frequency_nodes_linear/quadratic in self._waveform_generator.waveform_arguments
+
+        """
+        parameters = self.parameters.copy()
+        if self.parameter_conversion is not None:
+            parameters = self.parameter_conversion(parameters)
+        for basis_type, number_of_bases in zip(
+            ['linear', 'quadratic'], [self.number_of_bases_linear, self.number_of_bases_quadratic]
+        ):
+            if number_of_bases == 1:
+                continue
+            in_prior_range = np.ones(number_of_bases, dtype=bool)
+            prior_range_key = f'prior_range_{basis_type}'
+            for param_name in self.weights[prior_range_key]:
+                if param_name not in parameters:
+                    continue
+                in_prior_range *= \
+                    (self.weights[prior_range_key][param_name][:, 0] <= parameters[param_name]) * \
+                    (self.weights[prior_range_key][param_name][:, 1] >= parameters[param_name])
+            basis_number_key = f'basis_number_{basis_type}'
+            self._cache[basis_number_key] = np.arange(number_of_bases)[in_prior_range][0]
+            frequency_nodes_key = f'frequency_nodes_{basis_type}'
+            self._waveform_generator.waveform_arguments[frequency_nodes_key] = \
+                self.weights[frequency_nodes_key][self._cache[basis_number_key]]
+        self._cache['parameters'] = self.parameters.copy()
+
+    @property
+    def basis_number_linear(self):
+        if self.number_of_bases_linear > 1:
+            if self.parameters != self._cache['parameters']:
+                self._update_basis()
+            return self._cache['basis_number_linear']
+        else:
+            return 0
+
+    @property
+    def basis_number_quadratic(self):
+        if self.number_of_bases_quadratic > 1:
+            if self.parameters != self._cache['parameters']:
+                self._update_basis()
+            return self._cache['basis_number_quadratic']
+        else:
+            return 0
+
+    @property
+    def waveform_generator(self):
+        if getattr(self, 'number_of_bases_linear', 1) > 1 or getattr(self, 'number_of_bases_quadratic', 1) > 1:
+            if self.parameters != self._cache['parameters']:
+                self._update_basis()
+        return self._waveform_generator
+
+    @waveform_generator.setter
+    def waveform_generator(self, waveform_generator):
+        self._waveform_generator = waveform_generator
+
     def calculate_snrs(self, waveform_polarizations, interferometer):
         """
         Compute the snrs for ROQ
@@ -156,14 +366,15 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         interferometer: bilby.gw.detector.Interferometer
 
         """
-
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
         else:
             time_ref = self.parameters['geocent_time']
 
-        h_linear = np.zeros(len(self.frequency_nodes_linear), dtype=complex)
-        h_quadratic = np.zeros(len(self.frequency_nodes_quadratic), dtype=complex)
+        size_linear = len(self.waveform_generator.waveform_arguments['frequency_nodes_linear'])
+        size_quadratic = len(self.waveform_generator.waveform_arguments['frequency_nodes_quadratic'])
+        h_linear = np.zeros(size_linear, dtype=complex)
+        h_quadratic = np.zeros(size_quadratic, dtype=complex)
         for mode in waveform_polarizations['linear']:
             response = interferometer.antenna_response(
                 self.parameters['ra'], self.parameters['dec'],
@@ -174,17 +385,17 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             h_quadratic += waveform_polarizations['quadratic'][mode] * response
 
         calib_linear = interferometer.calibration_model.get_calibration_factor(
-            self.frequency_nodes_linear,
-            prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+            size_linear, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
         calib_quadratic = interferometer.calibration_model.get_calibration_factor(
-            self.frequency_nodes_quadratic,
-            prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+            size_quadratic, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
 
         h_linear *= calib_linear
         h_quadratic *= calib_quadratic
 
-        optimal_snr_squared = \
-            np.vdot(np.abs(h_quadratic)**2, self.weights[interferometer.name + '_quadratic'])
+        optimal_snr_squared = np.vdot(
+            np.abs(h_quadratic)**2,
+            self.weights[interferometer.name + '_quadratic'][self.basis_number_quadratic]
+        )
 
         dt = interferometer.time_delay_from_geocenter(
             self.parameters['ra'], self.parameters['dec'], time_ref)
@@ -206,7 +417,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
             d_inner_h_tc_array = np.einsum(
                 'i,ji->j', np.conjugate(h_linear),
-                self.weights[interferometer.name + '_linear'][indices])
+                self.weights[interferometer.name + '_linear'][self.basis_number_linear][indices])
 
             d_inner_h = self._interp_five_samples(
                 self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
@@ -307,7 +518,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         closest_idxs = np.floor(times_per_roq_time_space).astype(int)
         # Get the nearest 5 samples of d_inner_h. Calculate only the required d_inner_h values if the time
         # spacing is larger than 5 times the ROQ time spacing.
-        weights_linear = self.weights[ifo_name + '_linear']
+        weights_linear = self.weights[ifo_name + '_linear'][self.basis_number_linear]
         h_linear_conj = np.conjugate(h_linear)
         if (times[1] - times[0]) / roq_time_space > 5:
             d_inner_h_m2 = np.dot(weights_linear[closest_idxs - 2], h_linear_conj)
@@ -355,9 +566,18 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         roq_minimum_frequency = roq_params['flow'] * self.roq_scale_factor
         roq_maximum_frequency = roq_params['fhigh'] * self.roq_scale_factor
         roq_segment_length = roq_params['seglen'] / self.roq_scale_factor
-        roq_minimum_chirp_mass = roq_params['chirpmassmin'] / self.roq_scale_factor
-        roq_maximum_chirp_mass = roq_params['chirpmassmax'] / self.roq_scale_factor
-        roq_minimum_component_mass = roq_params['compmin'] / self.roq_scale_factor
+        try:
+            roq_minimum_chirp_mass = roq_params['chirpmassmin'] / self.roq_scale_factor
+        except ValueError:
+            roq_minimum_chirp_mass = None
+        try:
+            roq_maximum_chirp_mass = roq_params['chirpmassmax'] / self.roq_scale_factor
+        except ValueError:
+            roq_maximum_chirp_mass = None
+        try:
+            roq_minimum_component_mass = roq_params['compmin'] / self.roq_scale_factor
+        except ValueError:
+            roq_minimum_component_mass = None
 
         if ifo.maximum_frequency > roq_maximum_frequency:
             raise BilbyROQParamsRangeError(
@@ -378,54 +598,45 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             logger.warning("Unable to check ROQ parameter bounds: priors not understood")
             return
 
-        if priors.minimum_chirp_mass is None:
-            logger.warning("Unable to check minimum chirp mass ROQ bounds")
-        elif priors.minimum_chirp_mass < roq_minimum_chirp_mass:
-            raise BilbyROQParamsRangeError(
-                "Prior minimum chirp mass {} less than ROQ basis bound {}"
-                .format(priors.minimum_chirp_mass, roq_minimum_chirp_mass)
-            )
+        if roq_minimum_chirp_mass is not None:
+            if priors.minimum_chirp_mass is None:
+                logger.warning("Unable to check minimum chirp mass ROQ bounds")
+            elif priors.minimum_chirp_mass < roq_minimum_chirp_mass:
+                raise BilbyROQParamsRangeError(
+                    "Prior minimum chirp mass {} less than ROQ basis bound {}"
+                    .format(priors.minimum_chirp_mass, roq_minimum_chirp_mass)
+                )
 
-        if priors.maximum_chirp_mass is None:
-            logger.warning("Unable to check maximum_chirp mass ROQ bounds")
-        elif priors.maximum_chirp_mass > roq_maximum_chirp_mass:
-            raise BilbyROQParamsRangeError(
-                "Prior maximum chirp mass {} greater than ROQ basis bound {}"
-                .format(priors.maximum_chirp_mass, roq_maximum_chirp_mass)
-            )
+        if roq_maximum_chirp_mass is not None:
+            if priors.maximum_chirp_mass is None:
+                logger.warning("Unable to check maximum_chirp mass ROQ bounds")
+            elif priors.maximum_chirp_mass > roq_maximum_chirp_mass:
+                raise BilbyROQParamsRangeError(
+                    "Prior maximum chirp mass {} greater than ROQ basis bound {}"
+                    .format(priors.maximum_chirp_mass, roq_maximum_chirp_mass)
+                )
 
-        if priors.minimum_component_mass is None:
-            logger.warning("Unable to check minimum component mass ROQ bounds")
-        elif priors.minimum_component_mass < roq_minimum_component_mass:
-            raise BilbyROQParamsRangeError(
-                "Prior minimum component mass {} less than ROQ basis bound {}"
-                .format(priors.minimum_component_mass, roq_minimum_component_mass)
-            )
+        if roq_minimum_component_mass is not None:
+            if priors.minimum_component_mass is None:
+                logger.warning("Unable to check minimum component mass ROQ bounds")
+            elif priors.minimum_component_mass < roq_minimum_component_mass:
+                raise BilbyROQParamsRangeError(
+                    "Prior minimum component mass {} less than ROQ basis bound {}"
+                    .format(priors.minimum_component_mass, roq_minimum_component_mass)
+                )
 
     def _set_weights(self, linear_matrix, quadratic_matrix):
         """
         Setup the time-dependent ROQ weights.
-        See https://dcc.ligo.org/LIGO-T2100125 for the detail of how to compute them.
 
         Parameters
         ==========
-        linear_matrix, quadratic_matrix: array_like
-            Arrays of the linear and quadratic basis
+        linear_matrix, quadratic_matrix: dictionary or h5py.File
+            linear and quadratic basis
 
         """
-
         time_space = self._get_time_resolution()
         number_of_time_samples = int(self.interferometers.duration / time_space)
-        try:
-            import pyfftw
-            ifft_input = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
-            ifft_output = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
-            ifft = pyfftw.FFTW(ifft_input, ifft_output, direction='FFTW_BACKWARD')
-        except ImportError:
-            pyfftw = None
-            logger.warning("You do not have pyfftw installed, falling back to numpy.fft.")
-            ifft_input = np.zeros(number_of_time_samples, dtype=complex)
-            ifft = np.fft.ifft
         earth_light_crossing_time = 2 * radius_of_earth / speed_of_light + 5 * time_space
         start_idx = max(
             0,
@@ -446,83 +657,366 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self.weights['time_samples'] = np.arange(start_idx, end_idx + 1) * time_space
         logger.info("Using {} ROQ time samples".format(len(self.weights['time_samples'])))
 
-        for ifo in self.interferometers:
-            if self.roq_params is not None:
-                self.perform_roq_params_check(ifo)
-                # Get scaled ROQ quantities
-                roq_scaled_minimum_frequency = self.roq_params['flow'] * self.roq_scale_factor
-                roq_scaled_maximum_frequency = self.roq_params['fhigh'] * self.roq_scale_factor
-                roq_scaled_segment_length = self.roq_params['seglen'] / self.roq_scale_factor
-                # Generate frequencies for the ROQ
-                roq_frequencies = create_frequency_series(
-                    sampling_frequency=roq_scaled_maximum_frequency * 2,
-                    duration=roq_scaled_segment_length)
-                roq_mask = roq_frequencies >= roq_scaled_minimum_frequency
-                roq_frequencies = roq_frequencies[roq_mask]
-                overlap_frequencies, ifo_idxs, roq_idxs = np.intersect1d(
-                    ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
-                    return_indices=True)
+        # select bases to be used, set prior ranges and frequency nodes if exist
+        idxs_in_prior_range = dict()
+        for basis_type, matrix in zip(['linear', 'quadratic'], [linear_matrix, quadratic_matrix]):
+            key = f'prior_range_{basis_type}'
+            if key in matrix:
+                prior_ranges = {}
+                for param_name in matrix[key]:
+                    if 'roq_scale_power' in matrix[key][param_name].attrs:
+                        roq_scale_factor = self.roq_scale_factor**matrix[key][param_name].attrs['roq_scale_power']
+                    else:
+                        roq_scale_factor = 1.
+                    prior_ranges[param_name] = matrix[key][param_name][()] * roq_scale_factor
+                selected_idxs, selected_prior_ranges = self._select_prior_ranges(prior_ranges)
+                self.weights[key] = selected_prior_ranges
+                idxs_in_prior_range[basis_type] = selected_idxs
             else:
-                overlap_frequencies = ifo.frequency_array[ifo.frequency_mask]
-                roq_idxs = np.arange(linear_matrix.shape[0], dtype=int)
-                ifo_idxs = np.arange(sum(ifo.frequency_mask))
-                if len(ifo_idxs) != len(roq_idxs):
-                    raise ValueError(
-                        "Mismatch between ROQ basis and frequency array for "
-                        "{}".format(ifo.name))
-            logger.info(
-                "Building ROQ weights for {} with {} frequencies between {} "
-                "and {}.".format(
-                    ifo.name, len(overlap_frequencies),
-                    min(overlap_frequencies), max(overlap_frequencies)))
+                idxs_in_prior_range[basis_type] = [0]
+            if 'frequency_nodes' in matrix[f'basis_{basis_type}'][str(idxs_in_prior_range[basis_type][0])]:
+                self.weights[f'frequency_nodes_{basis_type}'] = [
+                    matrix[f'basis_{basis_type}'][str(i)]['frequency_nodes'][()] * self.roq_scale_factor
+                    for i in idxs_in_prior_range[basis_type]]
 
-            ifft_input[:] *= 0.
-            self.weights[ifo.name + '_linear'] = \
-                np.zeros((len(self.weights['time_samples']), linear_matrix.shape[1]), dtype=complex)
-            data_over_psd = (
-                ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs]
-                / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs]
-            )
-            nonzero_idxs = ifo_idxs + int(ifo.frequency_array[ifo.frequency_mask][0] * self.interferometers.duration)
-            for i, basis_element in enumerate(linear_matrix[roq_idxs].T):
-                ifft_input[nonzero_idxs] = data_over_psd * np.conj(basis_element)
-                self.weights[ifo.name + '_linear'][:, i] = ifft(ifft_input)[start_idx:end_idx + 1]
-            self.weights[ifo.name + '_linear'] *= 4. * number_of_time_samples / self.interferometers.duration
+        if 'multiband_linear' in linear_matrix:
+            multiband_linear = linear_matrix['multiband_linear'][()]
+        else:
+            multiband_linear = False
+        if 'multiband_quadratic' in quadratic_matrix:
+            multiband_quadratic = quadratic_matrix['multiband_quadratic'][()]
+        else:
+            multiband_quadratic = False
 
-            self.weights[ifo.name + '_quadratic'] = build_roq_weights(
-                1 /
-                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs],
-                quadratic_matrix[roq_idxs].real,
-                1 / ifo.strain_data.duration)
+        # Get intersection between ifo and ROQ frequency samples. Required only for non-multibanded basis.
+        if not (multiband_linear and multiband_quadratic):
+            roq_idxs = {}
+            ifo_idxs = {}
+            for ifo in self.interferometers:
+                if self.roq_params is not None:
+                    self.perform_roq_params_check(ifo)
+                    # Get scaled ROQ quantities
+                    roq_scaled_minimum_frequency = self.roq_params['flow'] * self.roq_scale_factor
+                    roq_scaled_maximum_frequency = self.roq_params['fhigh'] * self.roq_scale_factor
+                    roq_scaled_segment_length = self.roq_params['seglen'] / self.roq_scale_factor
+                    # Generate frequencies for the ROQ
+                    roq_frequencies = create_frequency_series(
+                        sampling_frequency=roq_scaled_maximum_frequency * 2,
+                        duration=roq_scaled_segment_length)
+                    roq_mask = roq_frequencies >= roq_scaled_minimum_frequency
+                    roq_frequencies = roq_frequencies[roq_mask]
+                    overlap_frequencies, ifo_idxs_this_ifo, roq_idxs_this_ifo = np.intersect1d(
+                        ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
+                        return_indices=True)
+                else:
+                    overlap_frequencies = ifo.frequency_array[ifo.frequency_mask]
+                    roq_idxs_this_ifo = np.arange(
+                        linear_matrix['basis_linear'][str(idxs_in_prior_range['linear'][0])]['basis'].shape[1],
+                        dtype=int)
+                    ifo_idxs_this_ifo = np.arange(sum(ifo.frequency_mask))
+                    if len(ifo_idxs_this_ifo) != len(roq_idxs_this_ifo):
+                        raise ValueError(
+                            "Mismatch between ROQ basis and frequency array for "
+                            "{}".format(ifo.name))
+                logger.info(
+                    "Building ROQ weights for {} with {} frequencies between {} "
+                    "and {}.".format(
+                        ifo.name, len(overlap_frequencies),
+                        min(overlap_frequencies), max(overlap_frequencies)))
+                roq_idxs[ifo.name] = roq_idxs_this_ifo
+                ifo_idxs[ifo.name] = ifo_idxs_this_ifo
 
-            logger.info("Finished building weights for {}".format(ifo.name))
+        if multiband_linear:
+            self._set_weights_linear_multiband(linear_matrix, idxs_in_prior_range['linear'])
+        else:
+            self._set_weights_linear(linear_matrix, idxs_in_prior_range['linear'], roq_idxs, ifo_idxs)
 
+        if multiband_quadratic:
+            self._set_weights_quadratic_multiband(quadratic_matrix, idxs_in_prior_range['quadratic'])
+        else:
+            self._set_weights_quadratic(quadratic_matrix, idxs_in_prior_range['quadratic'], roq_idxs, ifo_idxs)
+
+    def _set_weights_linear(self, linear_matrix, basis_idxs, roq_idxs, ifo_idxs):
+        """
+        Setup the time-dependent linear ROQ weights. See https://dcc.ligo.org/LIGO-T2100125 for the detail of how to
+        compute them.
+
+        Parameters
+        ==========
+        linear_matrix : dictionary or h5py.File
+            linear basis
+        basis_idxs : array-like
+            indexes of bases used for a run
+        roq_idxs : dictionary
+            dictionary whose keys are interferometer names and values are indexes of basis components intersecting
+            frequency-domain data
+        ifo_idxs : dictionary
+            dictionary whose keys are interferometer names and values are indexes of frequency-domain data intersecting
+            basis components
+
+        """
+        for ifo in self.interferometers:
+            self.weights[ifo.name + '_linear'] = []
+        time_space = self.weights['time_samples'][1] - self.weights['time_samples'][0]
+        number_of_time_samples = int(self.interferometers.duration / time_space)
+        start_idx = int(self.weights['time_samples'][0] / time_space)
+        end_idx = int(self.weights['time_samples'][-1] / time_space)
+        nonzero_idxs = {}
+        data_over_psd = {}
+        for ifo in self.interferometers:
+            nonzero_idxs[ifo.name] = ifo_idxs[ifo.name] + int(
+                ifo.frequency_array[ifo.frequency_mask][0] * self.interferometers.duration)
+            data_over_psd[ifo.name] = ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs[ifo.name]] / \
+                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]]
+        try:
+            import pyfftw
+            ifft_input = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
+            ifft_output = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
+            ifft = pyfftw.FFTW(ifft_input, ifft_output, direction='FFTW_BACKWARD')
+        except ImportError:
+            pyfftw = None
+            logger.warning("You do not have pyfftw installed, falling back to numpy.fft.")
+            ifft_input = np.zeros(number_of_time_samples, dtype=complex)
+            ifft = np.fft.ifft
+        for basis_idx in basis_idxs:
+            logger.info(f"Building linear ROQ weights for the {basis_idx}-th basis.")
+            linear_matrix_single = linear_matrix['basis_linear'][str(basis_idx)]['basis']
+            basis_size = linear_matrix_single.shape[0]
+            for ifo in self.interferometers:
+                ifft_input[:] *= 0.
+                linear_weights = \
+                    np.zeros((len(self.weights['time_samples']), basis_size), dtype=complex)
+                for i in range(basis_size):
+                    basis_element = linear_matrix_single[i][roq_idxs[ifo.name]]
+                    ifft_input[nonzero_idxs[ifo.name]] = data_over_psd[ifo.name] * np.conj(basis_element)
+                    linear_weights[:, i] = ifft(ifft_input)[start_idx:end_idx + 1]
+                linear_weights *= 4. * number_of_time_samples / self.interferometers.duration
+                self.weights[ifo.name + '_linear'].append(linear_weights)
         if pyfftw is not None:
             pyfftw.forget_wisdom()
 
+    def _set_weights_linear_multiband(self, linear_matrix, basis_idxs):
+        """
+        Setup the time-dependent linear ROQ weights from multibanded basis
+
+        Parameters
+        ==========
+        linear_matrix : dictionary or h5py.File
+            linear basis
+        basis_idxs : array-like
+            indexes of bases used for a run
+
+        """
+        for ifo in self.interferometers:
+            self.weights[ifo.name + '_linear'] = []
+        Tbs = linear_matrix['durations_s_linear'][()] / self.roq_scale_factor
+        start_end_frequency_bins = linear_matrix['start_end_frequency_bins_linear'][()]
+        basis_dimension = np.sum(start_end_frequency_bins[:, 1] - start_end_frequency_bins[:, 0] + 1)
+        fhigh_basis = np.max(start_end_frequency_bins[:, 1] / Tbs)
+        # prepare time-shifted data, which is multiplied by basis
+        tc_shifted_data = dict()
+        for ifo in self.interferometers:
+            over_whitened_frequency_data = np.zeros(int(fhigh_basis * ifo.duration) + 1, dtype=complex)
+            over_whitened_frequency_data[np.arange(len(ifo.frequency_domain_strain))[ifo.frequency_mask]] = \
+                ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask]
+            over_whitened_time_data = np.fft.irfft(over_whitened_frequency_data)
+            tc_shifted_data[ifo.name] = np.zeros((basis_dimension, len(self.weights['time_samples'])), dtype=complex)
+            start_idx_of_band = 0
+            for b, Tb in enumerate(Tbs):
+                start_frequency_bin, end_frequency_bin = start_end_frequency_bins[b]
+                fs = np.arange(start_frequency_bin, end_frequency_bin + 1) / Tb
+                Db = np.fft.rfft(
+                    over_whitened_time_data[-int(2. * fhigh_basis * Tb):]
+                )[start_frequency_bin:end_frequency_bin + 1]
+                start_idx_of_next_band = start_idx_of_band + end_frequency_bin - start_frequency_bin + 1
+                tc_shifted_data[ifo.name][start_idx_of_band:start_idx_of_next_band] = 4. / Tb * Db[:, None] * np.exp(
+                    2. * np.pi * 1j * fs[:, None] * (self.weights['time_samples'][None, :] - ifo.duration + Tb))
+                start_idx_of_band = start_idx_of_next_band
+        # compute inner products
+        for basis_idx in basis_idxs:
+            logger.info(f"Building linear ROQ weights for the {basis_idx}-th basis.")
+            linear_matrix_single = linear_matrix['basis_linear'][str(basis_idx)]['basis'][()]
+            for ifo in self.interferometers:
+                self.weights[ifo.name + '_linear'].append(
+                    np.dot(np.conj(linear_matrix_single), tc_shifted_data[ifo.name]).T)
+
+    def _set_weights_quadratic(self, quadratic_matrix, basis_idxs, roq_idxs, ifo_idxs):
+        """
+        Setup the quadratic ROQ weights
+
+        Parameters
+        ==========
+        quadratic_matrix : dictionary or h5py.File
+            quadratic basis
+        basis_idxs : array-like
+            indexes of bases used for a run
+        roq_idxs : dictionary
+            dictionary whose keys are interferometer names and values are indexes of basis components intersecting
+            frequency-domain data
+        ifo_idxs : dictionary
+            dictionary whose keys are interferometer names and values are indexes of frequency-domain data intersecting
+            basis components
+
+        """
+        for ifo in self.interferometers:
+            self.weights[ifo.name + '_quadratic'] = []
+        for basis_idx in basis_idxs:
+            logger.info(f"Building quadratic ROQ weights for the {basis_idx}-th basis.")
+            quadratic_matrix_single = quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real
+            for ifo in self.interferometers:
+                self.weights[ifo.name + '_quadratic'].append(
+                    4. / ifo.strain_data.duration * np.dot(
+                        quadratic_matrix_single[:, roq_idxs[ifo.name]],
+                        1 / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]]))
+            del quadratic_matrix_single
+
+    def _set_weights_quadratic_multiband(self, quadratic_matrix, basis_idxs):
+        """
+        Setup the quadratic ROQ weights from multibanded basis
+
+        Parameters
+        ==========
+        quadratic_matrix : dictionary or h5py.File
+            quadratic basis
+        basis_idxs : array-like
+            indexes of bases used for a run
+
+        """
+        for ifo in self.interferometers:
+            self.weights[ifo.name + '_quadratic'] = []
+        Tbs = quadratic_matrix['durations_s_quadratic'][()] / self.roq_scale_factor
+        start_end_frequency_bins = quadratic_matrix['start_end_frequency_bins_quadratic'][()]
+        basis_dimension = np.sum(start_end_frequency_bins[:, 1] - start_end_frequency_bins[:, 0] + 1)
+        fhigh_basis = np.max(start_end_frequency_bins[:, 1] / Tbs)
+        # prepare coefficients multiplied by basis
+        multibanded_inverse_psd = dict()
+        for ifo in self.interferometers:
+            inverse_psd_frequency = np.zeros(int(fhigh_basis * ifo.duration) + 1)
+            inverse_psd_frequency[np.arange(len(ifo.power_spectral_density_array))[ifo.frequency_mask]] = \
+                1. / ifo.power_spectral_density_array[ifo.frequency_mask]
+            inverse_psd_time = np.fft.irfft(inverse_psd_frequency)
+            multibanded_inverse_psd[ifo.name] = np.zeros(basis_dimension)
+            start_idx_of_band = 0
+            for b, Tb in enumerate(Tbs):
+                start_frequency_bin, end_frequency_bin = start_end_frequency_bins[b]
+                number_of_samples_half = int(fhigh_basis * Tb)
+                start_idx_of_next_band = start_idx_of_band + end_frequency_bin - start_frequency_bin + 1
+                multibanded_inverse_psd[ifo.name][start_idx_of_band:start_idx_of_next_band] = 4. / Tb * np.fft.rfft(
+                    np.append(inverse_psd_time[:number_of_samples_half], inverse_psd_time[-number_of_samples_half:])
+                )[start_frequency_bin:end_frequency_bin + 1].real
+                start_idx_of_band = start_idx_of_next_band
+        # compute inner products
+        for basis_idx in basis_idxs:
+            logger.info(f"Building quadratic ROQ weights for the {basis_idx}-th basis.")
+            quadratic_matrix_single = quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real
+            for ifo in self.interferometers:
+                self.weights[ifo.name + '_quadratic'].append(
+                    np.dot(quadratic_matrix_single, multibanded_inverse_psd[ifo.name]))
+
     def save_weights(self, filename, format='npz'):
+        """
+        Save ROQ weights into a single file. format should be json, npz, or hdf5. For weights from multiple bases, hdf5
+        is only the possible option.
+
+        Parameters
+        ==========
+        filename : str
+        format : str
+
+        """
+        if format not in ['json', 'npz', 'hdf5']:
+            raise IOError(f"Format {format} not recognized.")
         if format not in filename:
             filename += "." + format
-        logger.info("Saving ROQ weights to {}".format(filename))
-        if format == 'json':
-            with open(filename, 'w') as file:
-                json.dump(self.weights, file, indent=2, cls=BilbyJsonEncoder)
-        elif format == 'npz':
-            np.savez(filename, **self.weights)
+        logger.info(f"Saving ROQ weights to {filename}")
+        if format == 'json' or format == 'npz':
+            if self.number_of_bases_linear > 1 or self.number_of_bases_quadratic > 1:
+                raise ValueError(f'Format {format} not compatible with multiple bases')
+            weights = dict()
+            weights['time_samples'] = self.weights['time_samples']
+            for basis_type in ['linear', 'quadratic']:
+                for ifo in self.interferometers:
+                    key = f'{ifo.name}_{basis_type}'
+                    weights[key] = self.weights[key][0]
+            if format == 'json':
+                with open(filename, 'w') as file:
+                    json.dump(weights, file, indent=2, cls=BilbyJsonEncoder)
+            else:
+                np.savez(filename, **weights)
+        else:
+            import h5py
+            with h5py.File(filename, 'w') as f:
+                f.create_dataset('time_samples',
+                                 data=self.weights['time_samples'])
+                for basis_type in ['linear', 'quadratic']:
+                    key = f'prior_range_{basis_type}'
+                    if key in self.weights:
+                        grp = f.create_group(key)
+                        for param_name in self.weights[key]:
+                            grp.create_dataset(
+                                param_name, data=self.weights[key][param_name])
+                    key = f'frequency_nodes_{basis_type}'
+                    if key in self.weights:
+                        grp = f.create_group(key)
+                        for i in range(len(self.weights[key])):
+                            grp.create_dataset(
+                                str(i), data=self.weights[key][i])
+                    for ifo in self.interferometers:
+                        key = f"{ifo.name}_{basis_type}"
+                        grp = f.create_group(key)
+                        for i in range(len(self.weights[key])):
+                            grp.create_dataset(
+                                str(i), data=self.weights[key][i])
 
-    @staticmethod
-    def load_weights(filename, format=None):
+    def load_weights(self, filename, format=None):
+        """
+        Load ROQ weights. format should be json, npz, or hdf5. json or npz file is assumed to contain weights from a
+        single basis
+
+        Parameters
+        ==========
+        filename : str
+        format : str
+
+        """
         if format is None:
             format = filename.split(".")[-1]
-        if format not in ["json", "npz"]:
-            raise IOError("Format {} not recognized.".format(format))
-        logger.info("Loading ROQ weights from {}".format(filename))
-        if format == "json":
-            with open(filename, 'r') as file:
-                weights = json.load(file, object_hook=decode_bilby_json)
-        elif format == "npz":
-            # Wrap in dict to load data into memory
-            weights = dict(np.load(filename))
+        if format not in ["json", "npz", "hdf5"]:
+            raise IOError(f"Format {format} not recognized.")
+        logger.info(f"Loading ROQ weights from {filename}")
+        if format == "json" or format == "npz":
+            # Old file format assumed to contain only a single basis
+            if format == "json":
+                with open(filename, 'r') as file:
+                    weights = json.load(file, object_hook=decode_bilby_json)
+            else:
+                # Wrap in dict to load data into memory
+                weights = dict(np.load(filename))
+            for basis_type in ['linear', 'quadratic']:
+                for ifo in self.interferometers:
+                    key = f'{ifo.name}_{basis_type}'
+                    weights[key] = [weights[key]]
+        else:
+            weights = dict()
+            import h5py
+            with h5py.File(filename, 'r') as f:
+                weights['time_samples'] = f['time_samples'][()]
+                for basis_type in ['linear', 'quadratic']:
+                    key = f'prior_range_{basis_type}'
+                    if key in f:
+                        idxs_in_prior_range, selected_prior_ranges = \
+                            self._select_prior_ranges(f[key])
+                        weights[key] = selected_prior_ranges
+                    else:
+                        idxs_in_prior_range = [0]
+                    key = f'frequency_nodes_{basis_type}'
+                    if key in f:
+                        weights[key] = [f[key][str(i)][()]
+                                        for i in idxs_in_prior_range]
+                    for ifo in self.interferometers:
+                        key = f"{ifo.name}_{basis_type}"
+                        weights[key] = [f[key][str(i)][()]
+                                        for i in idxs_in_prior_range]
         return weights
 
     def _get_time_resolution(self):

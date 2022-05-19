@@ -1213,9 +1213,9 @@ def compute_snrs(sample, likelihood, npool=1):
     """
     if likelihood is not None:
         if isinstance(sample, dict):
+            likelihood.parameters.update(sample)
             signal_polarizations =\
                 likelihood.waveform_generator.frequency_domain_strain(sample)
-            likelihood.parameters.update(sample)
             for ifo in likelihood.interferometers:
                 per_detector_snr = likelihood.calculate_snrs(
                     signal_polarizations, ifo)
@@ -1259,10 +1259,10 @@ def _compute_snrs(args):
     """A wrapper of computing the SNRs to enable multiprocessing"""
     ii, sample, likelihood = args
     sample = dict(sample).copy()
+    likelihood.parameters.update(sample)
     signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(
         sample
     )
-    likelihood.parameters.update(sample)
     snrs = list()
     for ifo in likelihood.interferometers:
         snrs.append(likelihood.calculate_snrs(signal_polarizations, ifo))
