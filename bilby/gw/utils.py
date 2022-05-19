@@ -721,25 +721,6 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
     return output_cache_file
 
 
-def build_roq_weights(data, basis, deltaF):
-
-    """
-    For a data array and reduced basis compute roq weights
-
-    Parameters
-    ==========
-    data: array-like
-        data set
-    basis: array-like
-        (reduced basis element)*invV (the inverse Vandermonde matrix)
-    deltaF: float
-        integration element df
-
-    """
-    weights = np.dot(data, np.conjugate(basis)) * deltaF * 4.
-    return weights
-
-
 def convert_args_list_to_float(*args_list):
     """ Converts inputs to floats, returns a list in the same order as the input"""
     try:
