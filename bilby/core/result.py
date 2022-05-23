@@ -1998,11 +1998,13 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     if weight_list is None:
         weight_list = [None] * len(results)
 
-    credible_levels = pd.DataFrame()
+    credible_levels = list()
     for i, result in enumerate(results):
-        credible_levels = credible_levels.append(
+        credible_levels.append(
             result.get_all_injection_credible_levels(keys, weights=weight_list[i]),
-            ignore_index=True)
+            ignore_index=True,
+        )
+    credible_levels = pd.DataFrame(credible_levels)
 
     if lines is None:
         colors = ["C{}".format(i) for i in range(8)]
