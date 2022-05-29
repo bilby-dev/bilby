@@ -1977,6 +1977,8 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
         The font size for the legend
     keys: list
         A list of keys to use, if None defaults to search_parameter_keys
+    title: bool
+        Whether to add the number of results and total p-value as a plot title
     confidence_interval_alpha: float, list, optional
         The transparency for the background condifence interval
     weight_list: list, optional
@@ -2001,8 +2003,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     credible_levels = list()
     for i, result in enumerate(results):
         credible_levels.append(
-            result.get_all_injection_credible_levels(keys, weights=weight_list[i]),
-            ignore_index=True,
+            result.get_all_injection_credible_levels(keys, weights=weight_list[i])
         )
     credible_levels = pd.DataFrame(credible_levels)
 
