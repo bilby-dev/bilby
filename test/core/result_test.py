@@ -678,5 +678,38 @@ class TestMiscResults(unittest.TestCase):
         self.assertEqual(labels_checked, ["a", "$a$", "a-1", "$a_1$"])
 
 
+class TestPPPlots(unittest.TestCase):
+
+    def setUp(self):
+        priors = bilby.core.prior.PriorDict(dict(
+            a=bilby.core.prior.Uniform(0, 1, latex_label="$a$"),
+            b=bilby.core.prior.Uniform(0, 1, latex_label="$b$"),
+        ))
+        self.results = [
+            bilby.core.result.Result(
+                label=str(ii),
+                outdir='.',
+                search_parameter_keys=list(priors.keys()),
+                priors=priors,
+                injection_parameters=priors.sample(),
+                posterior=pd.DataFrame(priors.sample(500)),
+            )
+            for ii in range(10)
+        ]
+
+    def test_make_pp_plot(self):
+        _ = bilby.core.result.make_pp_plot(self.results, save=False)
+
+    def test_pp_plot_raises_error_with_wrong_number_of_lines(self):
+        with self.assertRaises(ValueError):
+            _ = bilby.core.result.make_pp_plot(self.results, save=False, lines=["-"])
+
+    def test_pp_plot_raises_error_with_wrong_number_of_confidence_intervals(self):
+        with self.assertRaises(ValueError):
+            _ = bilby.core.result.make_pp_plot(
+                self.results, save=False, confidence_interval_alpha=[0.1]
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
