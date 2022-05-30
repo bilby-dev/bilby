@@ -39,7 +39,7 @@ def get_cosmology(cosmology=None):
     if cosmology is None:
         cosmology = DEFAULT_COSMOLOGY
     elif isinstance(cosmology, str):
-        cosmology = cosmo.__dict__[cosmology]
+        cosmology = getattr(cosmo, cosmology)
     return cosmology
 
 
@@ -65,7 +65,7 @@ def set_cosmology(cosmology=None):
     elif isinstance(cosmology, cosmo.FLRW):
         cosmology = cosmology
     elif isinstance(cosmology, str):
-        cosmology = cosmo.__dict__[cosmology]
+        cosmology = getattr(cosmo, cosmology)
     elif isinstance(cosmology, dict):
         if 'Ode0' in cosmology.keys():
             if 'w0' in cosmology.keys():
