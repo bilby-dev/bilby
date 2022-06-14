@@ -1849,7 +1849,7 @@ class ResultList(list):
             raise ResultListError("Inconsistent parameters between results")
 
     def check_consistent_data(self):
-        if not np.all([res.log_noise_evidence == self[0].log_noise_evidence for res in self])\
+        if not np.allclose([res.log_noise_evidence for res in self], self[0].log_noise_evidence, atol=1e-8, rtol=0.0)\
                 and not np.all([np.isnan(res.log_noise_evidence) for res in self]):
             raise ResultListError("Inconsistent data between results")
 
