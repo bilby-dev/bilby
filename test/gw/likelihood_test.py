@@ -1542,6 +1542,24 @@ class TestMBLikelihood(unittest.TestCase):
         for ifo in ifos:
             ifo.minimum_frequency = fmin
 
+        spline_calibration_nodes = 10
+        self.calibration_parameters = {}
+        for ifo in ifos:
+            ifo.calibration_model = bilby.gw.calibration.CubicSpline(
+                prefix=f"recalib_{ifo.name}_",
+                minimum_frequency=ifo.minimum_frequency,
+                maximum_frequency=ifo.maximum_frequency,
+                n_points=spline_calibration_nodes
+            )
+            for i in range(spline_calibration_nodes):
+                self.test_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = 0
+                self.test_parameters[f"recalib_{ifo.name}_phase_{i}"] = 0
+                # Calibration errors of 5% in amplitude and 5 degrees in phase
+                self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = \
+                    np.random.normal(loc=0, scale=0.05)
+                self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = \
+                    np.random.normal(loc=0, scale=5 * np.pi / 180)
+
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
         priors.pop("mass_2")
@@ -1625,32 +1643,44 @@ class TestMBLikelihood(unittest.TestCase):
             self.mb_more_accurate
         )
 
-    def test_matches_non_mb(self):
+    @parameterized.expand([(False, ), (True, )])
+    def test_matches_non_mb(self, add_cal_errors):
         self.non_mb_22.parameters.update(self.test_parameters)
         self.mb_22.parameters.update(self.test_parameters)
+        if add_cal_errors:
+            self.non_mb_22.parameters.update(self.calibration_parameters)
+            self.mb_22.parameters.update(self.calibration_parameters)
         self.assertLess(
             abs(self.non_mb_22.log_likelihood_ratio() - self.mb_22.log_likelihood_ratio()),
-            1e-2
+            1.5e-2
         )
 
-    def test_ifft_fft(self):
+    @parameterized.expand([(False, ), (True, )])
+    def test_ifft_fft(self, add_cal_errors):
         """
         Check if multi-banding likelihood with (h, h) computed with the
         IFFT-FFT algorithm matches the original likelihood.
         """
         self.non_mb_22.parameters.update(self.test_parameters)
         self.mb_ifftfft_22.parameters.update(self.test_parameters)
+        if add_cal_errors:
+            self.non_mb_22.parameters.update(self.calibration_parameters)
+            self.mb_ifftfft_22.parameters.update(self.calibration_parameters)
         self.assertLess(
             abs(self.non_mb_22.log_likelihood_ratio() - self.mb_ifftfft_22.log_likelihood_ratio()),
-            5e-3
+            6e-3
         )
 
-    def test_homs(self):
+    @parameterized.expand([(False, ), (True, )])
+    def test_homs(self, add_cal_errors):
         """
         Check if multi-banding likelihood matches the original likelihood for higher-order moments.
         """
         self.non_mb_homs.parameters.update(self.test_parameters)
         self.mb_homs.parameters.update(self.test_parameters)
+        if add_cal_errors:
+            self.non_mb_homs.parameters.update(self.calibration_parameters)
+            self.mb_homs.parameters.update(self.calibration_parameters)
         self.assertLess(
             abs(self.non_mb_homs.log_likelihood_ratio() - self.mb_homs.log_likelihood_ratio()),
             1e-3

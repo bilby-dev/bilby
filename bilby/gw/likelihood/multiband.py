@@ -570,7 +570,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             self.banded_frequency_points, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
 
         strain *= np.exp(-1j * 2. * np.pi * self.banded_frequency_points * ifo_time)
-        strain *= np.conjugate(calib_factor)
+        strain *= calib_factor
 
         d_inner_h = np.dot(strain, self.linear_coeffs[interferometer.name])
 
