@@ -563,6 +563,25 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
                 with self.subTest(':'.join((ifo_name, pol))):
                     self.assertAlmostEqual(std[m], 0.0, places=7)
 
+    def test_time_delay_vs_lal(self):
+        delays = np.zeros(self.trial)
+
+        for n, ifo_name in enumerate(self.ifo_names):
+            ifo = self.ifos[n]
+            det = lal.cached_detector_by_prefix[self.lal_prefixes[ifo_name]]
+            for i in range(self.trial):
+                gpstime = np.random.uniform(1205303144, 1405303144)
+                ra = 2. * np.pi * np.random.uniform()
+                dec = np.pi * np.random.uniform() - np.pi / 2.
+                delays[i] = (
+                    lal.TimeDelayFromEarthCenter(det.location, ra, dec, gpstime)
+                    - ifo.time_delay_from_geocenter(ra, dec, gpstime)
+                )
+
+            std = max(abs(delays))
+            with self.subTest(ifo_name):
+                self.assertAlmostEqual(std, 0.0, places=10)
+
 
 if __name__ == "__main__":
     unittest.main()
