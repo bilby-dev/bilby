@@ -4,7 +4,6 @@ An example of how to use bilby to perform parameter estimation for hyper params
 """
 import matplotlib.pyplot as plt
 import numpy as np
-
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.prior import Uniform
 from bilby.core.result import make_pp_plot
