@@ -885,8 +885,7 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     return{'plus': h_plus, 'cross': h_cross}
 
 
-def supernova(
-        frequency_array, realPCs, imagPCs, file_path, luminosity_distance, **kwargs):
+def supernova(frequency_array, luminosity_distance, **kwargs):
     """
     A source model that reads a simulation from a text file.
 
@@ -897,8 +896,6 @@ def supernova(
     ----------
     frequency_array: array-like
         Unused
-    realPCs: UNUSED
-    imagPCs: UNUSED
     file_path: str
         Path to the file containing the NR simulation. The format of this file
         should be readable by :code:`numpy.loadtxt` and have four columns
@@ -907,7 +904,8 @@ def supernova(
     luminosity_distance: float
         The distance to the source in kpc, this scales the amplitude of the
         signal. The simulation is assumed to be at 10kpc.
-    kwargs: UNUSED
+    kwargs:
+        extra keyword arguments, this should include the :code:`file_path`
 
     Returns
     -------
@@ -915,20 +913,20 @@ def supernova(
         A dictionary containing the plus and cross components of the signal.
     """
 
-    realhplus, imaghplus, realhcross, imaghcross = np.loadtxt(
-        file_path, usecols=(0, 1, 2, 3), unpack=True)
+    file_path = kwargs["file_path"]
+    data = np.genfromtxt(file_path)
 
     # waveform in file at 10kpc
     scaling = 1e-3 * (10.0 / luminosity_distance)
 
-    h_plus = scaling * (realhplus + 1.0j * imaghplus)
-    h_cross = scaling * (realhcross + 1.0j * imaghcross)
+    h_plus = scaling * (data[:, 0] + 1j * data[:, 1])
+    h_cross = scaling * (data[:, 2] + 1j * data[:, 3])
     return {'plus': h_plus, 'cross': h_cross}
 
 
 def supernova_pca_model(
-        frequency_array, pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5,
-        luminosity_distance, **kwargs):
+        frequency_array, pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5, luminosity_distance, **kwargs
+):
     r"""
     Signal model based on a five-component principal component decomposition
     of a model.
@@ -966,22 +964,19 @@ def supernova_pca_model(
         The plus and cross polarizations of the signal
     """
 
-    realPCs = kwargs['realPCs']
-    imagPCs = kwargs['imagPCs']
+    principal_components = kwargs["realPCs"] + 1j * kwargs["imagPCs"]
+    coefficients = [pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5]
 
-    pc1 = realPCs[:, 0] + 1.0j * imagPCs[:, 0]
-    pc2 = realPCs[:, 1] + 1.0j * imagPCs[:, 1]
-    pc3 = realPCs[:, 2] + 1.0j * imagPCs[:, 2]
-    pc4 = realPCs[:, 3] + 1.0j * imagPCs[:, 3]
-    pc5 = realPCs[:, 4] + 1.0j * imagPCs[:, 5]
+    strain = np.sum(
+        [coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)],
+        axis=0
+    )
 
     # file at 10kpc
     scaling = 1e-23 * (10.0 / luminosity_distance)
 
-    h_plus = scaling * (pc_coeff1 * pc1 + pc_coeff2 * pc2 + pc_coeff3 * pc3 +
-                        pc_coeff4 * pc4 + pc_coeff5 * pc5)
-    h_cross = scaling * (pc_coeff1 * pc1 + pc_coeff2 * pc2 + pc_coeff3 * pc3 +
-                         pc_coeff4 * pc4 + pc_coeff5 * pc5)
+    h_plus = scaling * strain
+    h_cross = scaling * strain
 
     return {'plus': h_plus, 'cross': h_cross}
 

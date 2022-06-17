@@ -13,10 +13,9 @@ To install `PyMultiNest` call
 $ conda install -c conda-forge pymultinest
 """
 
+import bilby
 import matplotlib.pyplot as plt
 import numpy as np
-
-import bilby
 
 outdir = "outdir"
 label = "slabspike"

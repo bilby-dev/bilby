@@ -1,12 +1,10 @@
-import matplotlib.pyplot as plt
-import numpy as np
 from pathlib import Path
 
-import celerite.terms
-
 import bilby
+import celerite.terms
+import matplotlib.pyplot as plt
+import numpy as np
 from bilby.core.prior import Uniform
-
 
 # In this example we show how we can use the `celerite` package within `bilby`.
 # We begin by synthesizing some data and then use a simple Gaussian Process
