@@ -371,8 +371,10 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         else:
             time_ref = self.parameters['geocent_time']
 
-        size_linear = len(self.waveform_generator.waveform_arguments['frequency_nodes_linear'])
-        size_quadratic = len(self.waveform_generator.waveform_arguments['frequency_nodes_quadratic'])
+        frequency_nodes_linear = self.waveform_generator.waveform_arguments['frequency_nodes_linear']
+        frequency_nodes_quadratic = self.waveform_generator.waveform_arguments['frequency_nodes_quadratic']
+        size_linear = len(frequency_nodes_linear)
+        size_quadratic = len(frequency_nodes_quadratic)
         h_linear = np.zeros(size_linear, dtype=complex)
         h_quadratic = np.zeros(size_quadratic, dtype=complex)
         for mode in waveform_polarizations['linear']:
@@ -385,9 +387,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             h_quadratic += waveform_polarizations['quadratic'][mode] * response
 
         calib_linear = interferometer.calibration_model.get_calibration_factor(
-            size_linear, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+            frequency_nodes_linear, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
         calib_quadratic = interferometer.calibration_model.get_calibration_factor(
-            size_quadratic, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+            frequency_nodes_quadratic, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
 
         h_linear *= calib_linear
         h_quadratic *= calib_quadratic
