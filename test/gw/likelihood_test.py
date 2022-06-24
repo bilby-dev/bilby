@@ -1,3 +1,4 @@
+import itertools
 import os
 import pytest
 import unittest
@@ -647,6 +648,43 @@ class TestMarginalizations(unittest.TestCase):
             values=self.waveform_generator.time_array,
             prior=prior,
         )
+
+    @parameterized.expand(
+        itertools.product(["regular", "roq"], *itertools.repeat([True, False], 3)),
+        name_func=lambda func, num, param: (
+            f"{func.__name__}_{num}__{param.args[0]}_" + "_".join([
+                ["D", "P", "T"][ii] for ii, val
+                in enumerate(param.args[1:]) if val
+            ])
+        )
+    )
+    def test_marginalization_reconstruction(self, kind, distance, phase, time):
+        if time and kind == "roq":
+            pytest.skip("Time reconstruction not supported for ROQ likelihood")
+        marginalizations = dict(
+            geocent_time=time,
+            luminosity_distance=distance,
+            phase=phase,
+        )
+        like = self.get_likelihood(
+            kind=kind,
+            distance_marginalization=distance,
+            time_marginalization=time,
+            phase_marginalization=phase,
+        )
+        params = self.parameters.copy()
+        reference_values = dict(
+            luminosity_distance=self.priors["luminosity_distance"].rescale(0.5),
+            geocent_time=self.interferometers.start_time,
+            phase=0.0,
+        )
+        for key in marginalizations:
+            if marginalizations[key]:
+                params[key] = reference_values[key]
+        like.parameters.update(params)
+        output = like.generate_posterior_sample_from_marginalized_likelihood()
+        for key in marginalizations:
+            self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
 
 
 class TestROQLikelihood(unittest.TestCase):

@@ -448,8 +448,7 @@ class GravitationalWaveTransient(Likelihood):
         This involves a deepcopy of the signal to avoid issues with waveform
         caching, as the signal is overwritten in place.
         """
-        if any([self.phase_marginalization, self.distance_marginalization,
-                self.time_marginalization, self.calibration_marginalization]):
+        if len(self._marginalized_parameters) > 0:
             signal_polarizations = copy.deepcopy(
                 self.waveform_generator.frequency_domain_strain(
                     self.parameters))
