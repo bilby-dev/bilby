@@ -838,12 +838,8 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
-        if (
-                hasattr(likelihood, 'phase_marginalization') or
-                hasattr(likelihood, 'time_marginalization') or
-                hasattr(likelihood, 'distance_marginalization') or
-                hasattr(likelihood, 'calibration_marginalization')
-        ):
+        marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
+        if len(marginalized_parameters) > 0:
             try:
                 generate_posterior_samples_from_marginalized_likelihood(
                     samples=output_sample, likelihood=likelihood, npool=npool)
@@ -854,10 +850,17 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     "interpretation.".format(e)
                 )
         if priors is not None:
-            for par, name in zip(
-                    ['distance', 'phase', 'time'],
-                    ['luminosity_distance', 'phase', 'geocent_time']):
-                if getattr(likelihood, '{}_marginalization'.format(par), False):
+            misnamed_marginalizations = dict(
+                distance="luminosity_distance",
+                time="geocent_time",
+                calibration="recalib_index",
+            )
+            for par in marginalized_parameters:
+                name = misnamed_marginalizations.get(par, par)
+                if (
+                    getattr(likelihood, f'{par}_marginalization', False)
+                    and name in likelihood.priors
+                ):
                     priors[name] = likelihood.priors[name]
 
         if (
@@ -1296,10 +1299,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
     sample: DataFrame
         Returns the posterior with new samples.
     """
-    if not any([likelihood.phase_marginalization,
-                likelihood.distance_marginalization,
-                likelihood.time_marginalization,
-                likelihood.calibration_marginalization]):
+    marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
+    if len(marginalized_parameters) == 0:
         return samples
 
     # pass through a dictionary
@@ -1382,11 +1383,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
         [np.array(val) for key, val in cached_samples_dict.items() if key != "_samples"]
     )
 
-    samples['geocent_time'] = new_samples[:, 0]
-    samples['luminosity_distance'] = new_samples[:, 1]
-    samples['phase'] = new_samples[:, 2]
-    if likelihood.calibration_marginalization:
-        samples['recalib_index'] = new_samples[:, 3]
+    for ii, key in enumerate(marginalized_parameters):
+        samples[key] = new_samples[:, ii]
 
     return samples
 
@@ -1413,13 +1411,8 @@ def generate_sky_frame_parameters(samples, likelihood):
 
 def fill_sample(args):
     ii, sample, likelihood = args
+    marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
     sample = dict(sample).copy()
     likelihood.parameters.update(dict(sample).copy())
     new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
-
-    if not likelihood.calibration_marginalization:
-        return new_sample["geocent_time"], new_sample["luminosity_distance"],\
-            new_sample["phase"]
-    else:
-        return new_sample["geocent_time"], new_sample["luminosity_distance"],\
-            new_sample["phase"], new_sample['recalib_index']
+    return (new_sample[key] for key in marginalized_parameters)

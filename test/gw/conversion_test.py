@@ -465,6 +465,39 @@ class TestGenerateAllParameters(unittest.TestCase):
             for key in expected:
                 self.assertIn(key, new_parameters)
 
+    def test_generate_bbh_paramters_with_likelihood(self):
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors["geocent_time"] = bilby.core.prior.Uniform(0.4, 0.6)
+        ifos = bilby.gw.detector.InterferometerList(["H1"])
+        ifos.set_strain_data_from_power_spectral_densities(duration=1, sampling_frequency=256)
+        wfg = bilby.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole
+        )
+        likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos,
+            waveform_generator=wfg,
+            priors=priors,
+            phase_marginalization=True,
+            time_marginalization=True,
+            reference_frame="H1L1",
+        )
+        self.parameters["zenith"] = 0.0
+        self.parameters["azimuth"] = 0.0
+        del self.parameters["ra"], self.parameters["dec"]
+        converted = bilby.gw.conversion.generate_all_bbh_parameters(
+            sample=self.parameters, likelihood=likelihood, priors=priors
+        )
+        extra_expected = [
+            "geocent_time",
+            "phase",
+            "H1_optimal_snr",
+            "H1_matched_filter_snr",
+            "ra",
+            "dec",
+        ]
+        for key in extra_expected:
+            self.assertIn(key, converted)
+
 
 class TestDistanceTransformations(unittest.TestCase):
     def setUp(self):
