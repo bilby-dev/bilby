@@ -154,7 +154,7 @@ class Bilby_MCMC(MCMCSampler):
         diagnostic=False,
         resume=True,
         exit_code=130,
-        verbose=False,
+        verbose=True,
         **kwargs,
     ):
 
