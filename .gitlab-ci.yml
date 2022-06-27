@@ -136,11 +136,12 @@ python-3.9:
   after_script:
     - coverage html
     - coverage xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: coverage/cobertura-coverage.xml
+        path: coverage.xml
     paths:
       - htmlcov/
     expire_in: 30 days
