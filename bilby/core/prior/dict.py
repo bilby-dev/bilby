@@ -824,6 +824,8 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        from matplotlib.cbook import flatten
+
         keys = list(keys)
         theta = list(theta)
         self._check_resolved()
@@ -836,7 +838,7 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        return [result[key] for key in keys]
+        return list(flatten([result[key] for key in keys]))
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
