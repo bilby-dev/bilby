@@ -98,7 +98,7 @@ def infer_args_from_function_except_n_args(func, n=1):
         parameters = inspect.getfullargspec(func).args
     except AttributeError:
         parameters = inspect.getargspec(func).args
-    del(parameters[:n])
+    del parameters[:n]
     return parameters
 
 

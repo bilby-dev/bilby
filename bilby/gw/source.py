@@ -882,7 +882,7 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
                (np.exp(-fm**2 * np.pi**2 * tau**2) -
                np.exp(-fp**2 * np.pi**2 * tau**2)))
 
-    return{'plus': h_plus, 'cross': h_cross}
+    return {'plus': h_plus, 'cross': h_cross}
 
 
 def supernova(frequency_array, luminosity_distance, **kwargs):

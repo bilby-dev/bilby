@@ -1435,8 +1435,11 @@ class Result(object):
         if keys is None:
             keys = self.search_parameter_keys
         if self.injection_parameters is None:
-            raise(TypeError, "Result object has no 'injection_parameters'. "
-                             "Cannot compute credible levels.")
+            raise (
+                TypeError,
+                "Result object has no 'injection_parameters'. "
+                "Cannot compute credible levels."
+            )
         credible_levels = {key: self.get_injection_credible_level(key, weights=weights)
                            for key in keys
                            if isinstance(self.injection_parameters.get(key, None), float)}
@@ -1462,8 +1465,11 @@ class Result(object):
         float: credible level
         """
         if self.injection_parameters is None:
-            raise(TypeError, "Result object has no 'injection_parameters'. "
-                             "Cannot copmute credible levels.")
+            raise (
+                TypeError,
+                "Result object has no 'injection_parameters'. "
+                "Cannot copmute credible levels."
+            )
 
         if weights is None:
             weights = np.ones(len(self.posterior))
