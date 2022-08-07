@@ -26,7 +26,7 @@ def remove_accents(raw_text):
     raw_text = re.sub(u"[ß]", 'ss', raw_text)
     raw_text = re.sub(u"[ñ]", 'n', raw_text)
 
-    return(raw_text)
+    return raw_text
 
 
 fail_test = False

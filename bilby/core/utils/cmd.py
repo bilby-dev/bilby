@@ -111,7 +111,7 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
             else:
                 out = 0
         os.system('\n')
-        return(out)
+        return out
     else:
         process = subprocess.Popen(cl, shell=True)
         process.communicate()
