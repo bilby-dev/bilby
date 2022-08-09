@@ -673,7 +673,7 @@ class TestPriorClasses(unittest.TestCase):
                     "bilby.core.prior.MultivariateGaussianDist",
                 )
             elif isinstance(prior, bilby.gw.prior.HealPixPrior):
-                repr_prior_string = "bilby.gw.prior." + repr(prior)
+                repr_prior_string = repr(prior)
                 repr_prior_string = repr_prior_string.replace(
                     "HealPixMapPriorDist", "bilby.gw.prior.HealPixMapPriorDist"
                 )
