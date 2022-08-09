@@ -214,10 +214,13 @@ class Prior(object):
 
         """
         prior_name = self.__class__.__name__
+        prior_module = self.__class__.__module__
         instantiation_dict = self.get_instantiation_dict()
-        args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
-                          for key in instantiation_dict])
-        return "{}({})".format(prior_name, args)
+        args = ', '.join([f'{key}={repr(instantiation_dict[key])}' for key in instantiation_dict])
+        if "bilby.core.prior" in prior_module:
+            return f"{prior_name}({args})"
+        else:
+            return f"{prior_module}.{prior_name}({args})"
 
     @property
     def _repr_dict(self):
