@@ -1,18 +1,111 @@
 import datetime
 import distutils.dir_util
-import numpy as np
 import os
+import shutil
+import signal
+import sys
 import tempfile
+import time
 
+import attr
+import numpy as np
 from pandas import DataFrame
 
-from ..utils import logger, check_directory_exists_and_if_not_mkdir, command_line_args, Counter
-from ..prior import Prior, PriorDict, DeltaFunction, Constraint
+from ..prior import Constraint, DeltaFunction, Prior, PriorDict
 from ..result import Result, read_in_result
+from ..utils import (
+    Counter,
+    check_directory_exists_and_if_not_mkdir,
+    command_line_args,
+    logger,
+)
+
+
+@attr.s
+class _SamplingContainer:
+    """
+    A container class for objects that are stored independently in each thread
+    for some samplers.
+
+    A single instance of this will appear in this module that can be access
+    by the individual samplers.
+
+    This includes the:
+
+    - likelihood (bilby.core.likelihood.Likelihood)
+    - priors (bilby.core.prior.PriorDict)
+    - search_parameter_keys (list)
+    - use_ratio (bool)
+    """
+
+    likelihood = attr.ib(default=None)
+    priors = attr.ib(default=None)
+    search_parameter_keys = attr.ib(default=None)
+    use_ratio = attr.ib(default=False)
+
+
+_sampling_convenience_dump = _SamplingContainer()
+
+
+def _initialize_global_variables(
+    likelihood,
+    priors,
+    search_parameter_keys,
+    use_ratio,
+):
+    """
+    Store a global copy of the likelihood, priors, and search keys for
+    multiprocessing.
+    """
+    global _sampling_convenience_dump
+    _sampling_convenience_dump.likelihood = likelihood
+    _sampling_convenience_dump.priors = priors
+    _sampling_convenience_dump.search_parameter_keys = search_parameter_keys
+    _sampling_convenience_dump.use_ratio = use_ratio
+
+
+def signal_wrapper(method):
+    """
+    Decorator to wrap a method of a class to set system signals before running
+    and reset them after.
+
+    Parameters
+    ==========
+    method: callable
+        The method to call, this assumes the first argument is `self`
+        and that `self` has a `write_current_state_and_exit` method.
+
+    Returns
+    =======
+    output: callable
+        The wrapped method.
+    """
+
+    def wrapped(self, *args, **kwargs):
+        try:
+            old_term = signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
+            old_int = signal.signal(signal.SIGINT, self.write_current_state_and_exit)
+            old_alarm = signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
+            _set = True
+        except (AttributeError, ValueError):
+            _set = False
+            logger.debug(
+                "Setting signal attributes unavailable on this system. "
+                "This is likely the case if you are running on a Windows machine "
+                "and can be safely ignored."
+            )
+        output = method(self, *args, **kwargs)
+        if _set:
+            signal.signal(signal.SIGTERM, old_term)
+            signal.signal(signal.SIGINT, old_int)
+            signal.signal(signal.SIGALRM, old_alarm)
+        return output
+
+    return wrapped
 
 
 class Sampler(object):
-    """ A sampler object to aid in setting up an inference run
+    """A sampler object to aid in setting up an inference run
 
     Parameters
     ==========
@@ -76,6 +169,10 @@ class Sampler(object):
         System exit code to return on interrupt
     kwargs: dict
         Dictionary of keyword arguments that can be used in the external sampler
+    hard_exit: bool
+        Whether the implemented sampler exits hard (:code:`os._exit` rather
+        than :code:`sys.exit`). The latter can be escaped as :code:`SystemExit`.
+        The former cannot.
 
     Raises
     ======
@@ -89,15 +186,36 @@ class Sampler(object):
         If some of the priors can't be sampled
 
     """
+
     default_kwargs = dict()
-    npool_equiv_kwargs = ['queue_size', 'threads', 'nthreads', 'npool']
+    npool_equiv_kwargs = [
+        "npool",
+        "queue_size",
+        "threads",
+        "nthreads",
+        "cores",
+        "n_pool",
+    ]
+    hard_exit = False
 
     def __init__(
-            self, likelihood, priors, outdir='outdir', label='label',
-            use_ratio=False, plot=False, skip_import_verification=False,
-            injection_parameters=None, meta_data=None, result_class=None,
-            likelihood_benchmark=False, soft_init=False, exit_code=130,
-            **kwargs):
+        self,
+        likelihood,
+        priors,
+        outdir="outdir",
+        label="label",
+        use_ratio=False,
+        plot=False,
+        skip_import_verification=False,
+        injection_parameters=None,
+        meta_data=None,
+        result_class=None,
+        likelihood_benchmark=False,
+        soft_init=False,
+        exit_code=130,
+        npool=1,
+        **kwargs,
+    ):
         self.likelihood = likelihood
         if isinstance(priors, PriorDict):
             self.priors = priors
@@ -108,6 +226,7 @@ class Sampler(object):
         self.injection_parameters = injection_parameters
         self.meta_data = meta_data
         self.use_ratio = use_ratio
+        self._npool = npool
         if not skip_import_verification:
             self._verify_external_sampler()
         self.external_sampler_function = None
@@ -159,7 +278,7 @@ class Sampler(object):
 
     @property
     def kwargs(self):
-        """dict: Container for the kwargs. Has more sophisticated logic in subclasses """
+        """dict: Container for the kwargs. Has more sophisticated logic in subclasses"""
         return self._kwargs
 
     @kwargs.setter
@@ -170,7 +289,7 @@ class Sampler(object):
         self._verify_kwargs_against_default_kwargs()
 
     def _translate_kwargs(self, kwargs):
-        """ Template for child classes """
+        """Template for child classes"""
         pass
 
     @property
@@ -180,10 +299,11 @@ class Sampler(object):
     def _verify_external_sampler(self):
         external_sampler_name = self.external_sampler_name
         try:
-            self.external_sampler = __import__(external_sampler_name)
+            __import__(external_sampler_name)
         except (ImportError, SystemExit):
             raise SamplerNotInstalledError(
-                "Sampler {} is not installed on this system".format(external_sampler_name))
+                f"Sampler {external_sampler_name} is not installed on this system"
+            )
 
     def _verify_kwargs_against_default_kwargs(self):
         """
@@ -195,8 +315,8 @@ class Sampler(object):
         for user_input in self.kwargs.keys():
             if user_input not in args:
                 logger.warning(
-                    "Supplied argument '{}' not an argument of '{}', removing."
-                    .format(user_input, self.__class__.__name__))
+                    f"Supplied argument '{user_input}' not an argument of '{self.__class__.__name__}', removing."
+                )
                 bad_keys.append(user_input)
         for key in bad_keys:
             self.kwargs.pop(key)
@@ -208,8 +328,10 @@ class Sampler(object):
         the respective parameter is fixed.
         """
         for key in self.priors:
-            if isinstance(self.priors[key], Prior) \
-                    and self.priors[key].is_fixed is False:
+            if (
+                isinstance(self.priors[key], Prior)
+                and self.priors[key].is_fixed is False
+            ):
                 self._search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Constraint):
                 self._constraint_parameter_keys.append(key)
@@ -219,9 +341,9 @@ class Sampler(object):
 
         logger.info("Search parameters:")
         for key in self._search_parameter_keys + self._constraint_parameter_keys:
-            logger.info('  {} = {}'.format(key, self.priors[key]))
+            logger.info(f"  {key} = {self.priors[key]}")
         for key in self._fixed_parameter_keys:
-            logger.info('  {} = {}'.format(key, self.priors[key].peak))
+            logger.info(f"  {key} = {self.priors[key].peak}")
 
     def _initialise_result(self, result_class):
         """
@@ -231,27 +353,30 @@ class Sampler(object):
 
         """
         result_kwargs = dict(
-            label=self.label, outdir=self.outdir,
+            label=self.label,
+            outdir=self.outdir,
             sampler=self.__class__.__name__.lower(),
             search_parameter_keys=self._search_parameter_keys,
             fixed_parameter_keys=self._fixed_parameter_keys,
             constraint_parameter_keys=self._constraint_parameter_keys,
-            priors=self.priors, meta_data=self.meta_data,
+            priors=self.priors,
+            meta_data=self.meta_data,
             injection_parameters=self.injection_parameters,
-            sampler_kwargs=self.kwargs, use_ratio=self.use_ratio)
+            sampler_kwargs=self.kwargs,
+            use_ratio=self.use_ratio,
+        )
 
         if result_class is None:
             result = Result(**result_kwargs)
         elif issubclass(result_class, Result):
             result = result_class(**result_kwargs)
         else:
-            raise ValueError(
-                "Input result_class={} not understood".format(result_class))
+            raise ValueError(f"Input result_class={result_class} not understood")
 
         return result
 
     def _verify_parameters(self):
-        """ Evaluate a set of parameters drawn from the prior
+        """Evaluate a set of parameters drawn from the prior
 
         Tests if the likelihood evaluation passes
 
@@ -264,20 +389,22 @@ class Sampler(object):
 
         if self.priors.test_has_redundant_keys():
             raise IllegalSamplingSetError(
-                "Your sampling set contains redundant parameters.")
+                "Your sampling set contains redundant parameters."
+            )
 
         theta = self.priors.sample_subset_constrained_as_array(
-            self.search_parameter_keys, size=1)[:, 0]
+            self.search_parameter_keys, size=1
+        )[:, 0]
         try:
             self.log_likelihood(theta)
         except TypeError as e:
             raise TypeError(
-                "Likelihood evaluation failed with message: \n'{}'\n"
-                "Have you specified all the parameters:\n{}"
-                .format(e, self.likelihood.parameters))
+                f"Likelihood evaluation failed with message: \n'{e}'\n"
+                f"Have you specified all the parameters:\n{self.likelihood.parameters}"
+            )
 
     def _time_likelihood(self, n_evaluations=100):
-        """ Times the likelihood evaluation and print an info message
+        """Times the likelihood evaluation and print an info message
 
         Parameters
         ==========
@@ -289,7 +416,8 @@ class Sampler(object):
         t1 = datetime.datetime.now()
         for _ in range(n_evaluations):
             theta = self.priors.sample_subset_constrained_as_array(
-                self._search_parameter_keys, size=1)[:, 0]
+                self._search_parameter_keys, size=1
+            )[:, 0]
             self.log_likelihood(theta)
         total_time = (datetime.datetime.now() - t1).total_seconds()
         self._log_likelihood_eval_time = total_time / n_evaluations
@@ -298,8 +426,9 @@ class Sampler(object):
             self._log_likelihood_eval_time = np.nan
             logger.info("Unable to measure single likelihood time")
         else:
-            logger.info("Single likelihood evaluation took {:.3e} s"
-                        .format(self._log_likelihood_eval_time))
+            logger.info(
+                f"Single likelihood evaluation took {self._log_likelihood_eval_time:.3e} s"
+            )
 
     def _verify_use_ratio(self):
         """
@@ -309,9 +438,9 @@ class Sampler(object):
         try:
             self.priors.sample_subset(self.search_parameter_keys)
         except (KeyError, AttributeError):
-            logger.error("Cannot sample from priors with keys: {}.".format(
-                self.search_parameter_keys
-            ))
+            logger.error(
+                f"Cannot sample from priors with keys: {self.search_parameter_keys}."
+            )
             raise
         if self.use_ratio is False:
             logger.debug("use_ratio set to False")
@@ -322,14 +451,14 @@ class Sampler(object):
         if self.use_ratio is True and ratio_is_nan:
             logger.warning(
                 "You have requested to use the loglikelihood_ratio, but it "
-                " returns a NaN")
+                " returns a NaN"
+            )
         elif self.use_ratio is None and not ratio_is_nan:
-            logger.debug(
-                "use_ratio not spec. but gives valid answer, setting True")
+            logger.debug("use_ratio not spec. but gives valid answer, setting True")
             self.use_ratio = True
 
     def prior_transform(self, theta):
-        """ Prior transform method that is passed into the external sampler.
+        """Prior transform method that is passed into the external sampler.
 
         Parameters
         ==========
@@ -355,8 +484,7 @@ class Sampler(object):
         float: Joint ln prior probability of theta
 
         """
-        params = {
-            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        params = {key: t for key, t in zip(self._search_parameter_keys, theta)}
         return self.priors.ln_prob(params)
 
     def log_likelihood(self, theta):
@@ -378,8 +506,7 @@ class Sampler(object):
                 self.likelihood_count.increment()
             except AttributeError:
                 pass
-        params = {
-            key: t for key, t in zip(self._search_parameter_keys, theta)}
+        params = {key: t for key, t in zip(self._search_parameter_keys, theta)}
         self.likelihood.parameters.update(params)
         if self.use_ratio:
             return self.likelihood.log_likelihood_ratio()
@@ -387,7 +514,7 @@ class Sampler(object):
             return self.likelihood.log_likelihood()
 
     def get_random_draw_from_prior(self):
-        """ Get a random draw from the prior distribution
+        """Get a random draw from the prior distribution
 
         Returns
         =======
@@ -397,13 +524,12 @@ class Sampler(object):
 
         """
         new_sample = self.priors.sample()
-        draw = np.array(list(new_sample[key]
-                             for key in self._search_parameter_keys))
+        draw = np.array(list(new_sample[key] for key in self._search_parameter_keys))
         self.check_draw(draw)
         return draw
 
     def get_initial_points_from_prior(self, npoints=1):
-        """ Method to draw a set of live points from the prior
+        """Method to draw a set of live points from the prior
 
         This iterates over draws from the prior until all the samples have a
         finite prior and likelihood (relevant for constrained priors).
@@ -457,9 +583,11 @@ class Sampler(object):
         """
         log_p = self.log_prior(theta)
         log_l = self.log_likelihood(theta)
-        return \
-            self._check_bad_value(val=log_p, warning=warning, theta=theta, label='prior') and \
-            self._check_bad_value(val=log_l, warning=warning, theta=theta, label='likelihood')
+        return self._check_bad_value(
+            val=log_p, warning=warning, theta=theta, label="prior"
+        ) and self._check_bad_value(
+            val=log_l, warning=warning, theta=theta, label="likelihood"
+        )
 
     @staticmethod
     def _check_bad_value(val, warning, theta, label):
@@ -467,7 +595,7 @@ class Sampler(object):
         bad_values = [np.inf, np.nan_to_num(np.inf)]
         if val in bad_values or np.isnan(val):
             if warning:
-                logger.warning(f'Prior draw {theta} has inf {label}')
+                logger.warning(f"Prior draw {theta} has inf {label}")
             return False
         return True
 
@@ -485,7 +613,7 @@ class Sampler(object):
         raise ValueError("Method not yet implemented")
 
     def _check_cached_result(self):
-        """ Check if the cached data file exists and can be used """
+        """Check if the cached data file exists and can be used"""
 
         if command_line_args.clean:
             logger.debug("Command line argument clean given, forcing rerun")
@@ -493,30 +621,30 @@ class Sampler(object):
             return
 
         try:
-            self.cached_result = read_in_result(
-                outdir=self.outdir, label=self.label)
+            self.cached_result = read_in_result(outdir=self.outdir, label=self.label)
         except IOError:
             self.cached_result = None
 
         if command_line_args.use_cached:
-            logger.debug(
-                "Command line argument cached given, no cache check performed")
+            logger.debug("Command line argument cached given, no cache check performed")
             return
 
         logger.debug("Checking cached data")
         if self.cached_result:
-            check_keys = ['search_parameter_keys', 'fixed_parameter_keys']
+            check_keys = ["search_parameter_keys", "fixed_parameter_keys"]
             use_cache = True
             for key in check_keys:
-                if self.cached_result._check_attribute_match_to_other_object(
-                        key, self) is False:
-                    logger.debug("Cached value {} is unmatched".format(key))
+                if (
+                    self.cached_result._check_attribute_match_to_other_object(key, self)
+                    is False
+                ):
+                    logger.debug(f"Cached value {key} is unmatched")
                     use_cache = False
             try:
                 # Recursive check the dictionaries allowing for numpy arrays
                 np.testing.assert_equal(
                     self.meta_data["likelihood"],
-                    self.cached_result.meta_data["likelihood"]
+                    self.cached_result.meta_data["likelihood"],
                 )
             except AssertionError:
                 use_cache = False
@@ -531,13 +659,12 @@ class Sampler(object):
                 if type(kwargs_print[k]) in (list, np.ndarray):
                     array_repr = np.array(kwargs_print[k])
                     if array_repr.size > 10:
-                        kwargs_print[k] = ('array_like, shape={}'
-                                           .format(array_repr.shape))
+                        kwargs_print[k] = f"array_like, shape={array_repr.shape}"
                 elif type(kwargs_print[k]) == DataFrame:
-                    kwargs_print[k] = ('DataFrame, shape={}'
-                                       .format(kwargs_print[k].shape))
-            logger.info("Using sampler {} with kwargs {}".format(
-                self.__class__.__name__, kwargs_print))
+                    kwargs_print[k] = f"DataFrame, shape={kwargs_print[k].shape}"
+            logger.info(
+                f"Using sampler {self.__class__.__name__} with kwargs {kwargs_print}"
+            )
 
     def calc_likelihood_count(self):
         if self.likelihood_benchmark:
@@ -545,15 +672,100 @@ class Sampler(object):
         else:
             return None
 
+    @property
+    def npool(self):
+        for key in self.npool_equiv_kwargs:
+            if key in self.kwargs:
+                return self.kwargs[key]
+        return self._npool
+
+    def _log_interruption(self, signum=None):
+        if signum == 14:
+            logger.info(
+                f"Run interrupted by alarm signal {signum}: checkpoint and exit on {self.exit_code}"
+            )
+        else:
+            logger.info(
+                f"Run interrupted by signal {signum}: checkpoint and exit on {self.exit_code}"
+            )
+
+    def write_current_state_and_exit(self, signum=None, frame=None):
+        """
+        Make sure that if a pool of jobs is running only the parent tries to
+        checkpoint and exit. Only the parent has a 'pool' attribute.
+
+        For samplers that must hard exit (typically due to non-Python process)
+        use :code:`os._exit` that cannot be excepted. Other samplers exiting
+        can be caught as a :code:`SystemExit`.
+        """
+        if self.npool in (1, None) or getattr(self, "pool", None) is not None:
+            self._log_interruption(signum=signum)
+            self.write_current_state()
+            self._close_pool()
+            if self.hard_exit:
+                os._exit(self.exit_code)
+            else:
+                sys.exit(self.exit_code)
+
+    def _close_pool(self):
+        if getattr(self, "pool", None) is not None:
+            logger.info("Starting to close worker pool.")
+            self.pool.close()
+            self.pool.join()
+            self.pool = None
+            self.kwargs["pool"] = self.pool
+            logger.info("Finished closing worker pool.")
+
+    def _setup_pool(self):
+        if self.kwargs.get("pool", None) is not None:
+            logger.info("Using user defined pool.")
+            self.pool = self.kwargs["pool"]
+        elif self.npool is not None and self.npool > 1:
+            logger.info(f"Setting up multiproccesing pool with {self.npool} processes")
+            import multiprocessing
+
+            self.pool = multiprocessing.Pool(
+                processes=self.npool,
+                initializer=_initialize_global_variables,
+                initargs=(
+                    self.likelihood,
+                    self.priors,
+                    self._search_parameter_keys,
+                    self.use_ratio,
+                ),
+            )
+        else:
+            self.pool = None
+        _initialize_global_variables(
+            likelihood=self.likelihood,
+            priors=self.priors,
+            search_parameter_keys=self._search_parameter_keys,
+            use_ratio=self.use_ratio,
+        )
+        self.kwargs["pool"] = self.pool
+
+    def write_current_state(self):
+        raise NotImplementedError()
+
 
 class NestedSampler(Sampler):
-    npoints_equiv_kwargs = ['nlive', 'nlives', 'n_live_points', 'npoints',
-                            'npoint', 'Nlive', 'num_live_points', 'num_particles']
-    walks_equiv_kwargs = ['walks', 'steps', 'nmcmc']
+    npoints_equiv_kwargs = [
+        "nlive",
+        "nlives",
+        "n_live_points",
+        "npoints",
+        "npoint",
+        "Nlive",
+        "num_live_points",
+        "num_particles",
+    ]
+    walks_equiv_kwargs = ["walks", "steps", "nmcmc"]
 
-    def reorder_loglikelihoods(self, unsorted_loglikelihoods, unsorted_samples,
-                               sorted_samples):
-        """ Reorders the stored log-likelihood after they have been reweighted
+    @staticmethod
+    def reorder_loglikelihoods(
+        unsorted_loglikelihoods, unsorted_samples, sorted_samples
+    ):
+        """Reorders the stored log-likelihood after they have been reweighted
 
         This creates a sorting index by matching the reweights `result.samples`
         against the raw samples, then uses this index to sort the
@@ -578,12 +790,12 @@ class NestedSampler(Sampler):
 
         idxs = []
         for ii in range(len(unsorted_loglikelihoods)):
-            idx = np.where(np.all(sorted_samples[ii] == unsorted_samples,
-                                  axis=1))[0]
+            idx = np.where(np.all(sorted_samples[ii] == unsorted_samples, axis=1))[0]
             if len(idx) > 1:
                 logger.warning(
                     "Multiple likelihood matches found between sorted and "
-                    "unsorted samples. Taking the first match.")
+                    "unsorted samples. Taking the first match."
+                )
             idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
 
@@ -601,52 +813,34 @@ class NestedSampler(Sampler):
         =======
         float: log_likelihood
         """
-        if self.priors.evaluate_constraints({
-                key: theta[ii] for ii, key in
-                enumerate(self.search_parameter_keys)}):
+        if self.priors.evaluate_constraints(
+            {key: theta[ii] for ii, key in enumerate(self.search_parameter_keys)}
+        ):
             return Sampler.log_likelihood(self, theta)
         else:
             return np.nan_to_num(-np.inf)
 
-    def _setup_run_directory(self):
-        """
-        If using a temporary directory, the output directory is moved to the
-        temporary directory.
-        Used for Dnest4, Pymultinest, and Ultranest.
-        """
-        if self.use_temporary_directory:
-            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
-            self.temporary_outputfiles_basename = temporary_outputfiles_basename
-
-            if os.path.exists(self.outputfiles_basename):
-                distutils.dir_util.copy_tree(self.outputfiles_basename, self.temporary_outputfiles_basename)
-            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
-
-            self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
-            logger.info("Using temporary file {}".format(temporary_outputfiles_basename))
-        else:
-            check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
-            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
-            logger.info("Using output file {}".format(self.outputfiles_basename))
-
 
 class MCMCSampler(Sampler):
-    nwalkers_equiv_kwargs = ['nwalker', 'nwalkers', 'draws', 'Niter']
-    nburn_equiv_kwargs = ['burn', 'nburn']
+    nwalkers_equiv_kwargs = ["nwalker", "nwalkers", "draws", "Niter"]
+    nburn_equiv_kwargs = ["burn", "nburn"]
 
     def print_nburn_logging_info(self):
-        """ Prints logging info as to how nburn was calculated """
+        """Prints logging info as to how nburn was calculated"""
         if type(self.nburn) in [float, int]:
-            logger.info("Discarding {} steps for burn-in".format(self.nburn))
+            logger.info(f"Discarding {self.nburn} steps for burn-in")
         elif self.result.max_autocorrelation_time is None:
-            logger.info("Autocorrelation time not calculated, discarding {} "
-                        " steps for burn-in".format(self.nburn))
+            logger.info(
+                f"Autocorrelation time not calculated, discarding "
+                f"{self.nburn} steps for burn-in"
+            )
         else:
-            logger.info("Discarding {} steps for burn-in, estimated from "
-                        "autocorr".format(self.nburn))
+            logger.info(
+                f"Discarding {self.nburn} steps for burn-in, estimated from autocorr"
+            )
 
     def calculate_autocorrelation(self, samples, c=3):
-        """ Uses the `emcee.autocorr` module to estimate the autocorrelation
+        """Uses the `emcee.autocorr` module to estimate the autocorrelation
 
         Parameters
         ==========
@@ -657,35 +851,155 @@ class MCMCSampler(Sampler):
             estimate (default: `3`). See `emcee.autocorr.integrated_time`.
         """
         import emcee
+
         try:
-            self.result.max_autocorrelation_time = int(np.max(
-                emcee.autocorr.integrated_time(samples, c=c)))
-            logger.info("Max autocorr time = {}".format(
-                self.result.max_autocorrelation_time))
+            self.result.max_autocorrelation_time = int(
+                np.max(emcee.autocorr.integrated_time(samples, c=c))
+            )
+            logger.info(f"Max autocorr time = {self.result.max_autocorrelation_time}")
         except emcee.autocorr.AutocorrError as e:
             self.result.max_autocorrelation_time = None
-            logger.info("Unable to calculate autocorr time: {}".format(e))
+            logger.info(f"Unable to calculate autocorr time: {e}")
+
+
+class _TemporaryFileSamplerMixin:
+    """
+    A mixin class to handle storing sampler intermediate products in a temporary
+    location. See, e.g., `this SO <https://stackoverflow.com/a/547714>` for a
+    basic background on mixins.
+
+    This class makes sure that any subclasses can seamlessly use the temporary
+    file functionality.
+    """
+
+    short_name = ""
+
+    def __init__(self, temporary_directory, **kwargs):
+        super(_TemporaryFileSamplerMixin, self).__init__(**kwargs)
+        self.use_temporary_directory = temporary_directory
+        self._outputfiles_basename = None
+        self._temporary_outputfiles_basename = None
+
+    def _check_and_load_sampling_time_file(self):
+        if os.path.exists(self.time_file_path):
+            with open(self.time_file_path, "r") as time_file:
+                self.total_sampling_time = float(time_file.readline())
+        else:
+            self.total_sampling_time = 0
+
+    def _calculate_and_save_sampling_time(self):
+        current_time = time.time()
+        new_sampling_time = current_time - self.start_time
+        self.total_sampling_time += new_sampling_time
+
+        with open(self.time_file_path, "w") as time_file:
+            time_file.write(str(self.total_sampling_time))
+
+        self.start_time = current_time
+
+    def _clean_up_run_directory(self):
+        if self.use_temporary_directory:
+            self._move_temporary_directory_to_proper_path()
+            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
+
+    @property
+    def outputfiles_basename(self):
+        return self._outputfiles_basename
+
+    @outputfiles_basename.setter
+    def outputfiles_basename(self, outputfiles_basename):
+        if outputfiles_basename is None:
+            outputfiles_basename = f"{self.outdir}/{self.short_name}_{self.label}/"
+        if not outputfiles_basename.endswith("/"):
+            outputfiles_basename += "/"
+        check_directory_exists_and_if_not_mkdir(self.outdir)
+        self._outputfiles_basename = outputfiles_basename
+
+    @property
+    def temporary_outputfiles_basename(self):
+        return self._temporary_outputfiles_basename
+
+    @temporary_outputfiles_basename.setter
+    def temporary_outputfiles_basename(self, temporary_outputfiles_basename):
+        if not temporary_outputfiles_basename.endswith("/"):
+            temporary_outputfiles_basename += "/"
+        self._temporary_outputfiles_basename = temporary_outputfiles_basename
+        if os.path.exists(self.outputfiles_basename):
+            shutil.copytree(
+                self.outputfiles_basename, self.temporary_outputfiles_basename
+            )
+
+    def write_current_state(self):
+        self._calculate_and_save_sampling_time()
+        if self.use_temporary_directory:
+            self._move_temporary_directory_to_proper_path()
+
+    def _move_temporary_directory_to_proper_path(self):
+        """
+        Move the temporary back to the proper path
+
+        Anything in the proper path at this point is removed including links
+        """
+        self._copy_temporary_directory_contents_to_proper_path()
+        shutil.rmtree(self.temporary_outputfiles_basename)
+
+    def _copy_temporary_directory_contents_to_proper_path(self):
+        """
+        Copy the temporary back to the proper path.
+        Do not delete the temporary directory.
+        """
+        logger.info(
+            f"Overwriting {self.outputfiles_basename} with {self.temporary_outputfiles_basename}"
+        )
+        outputfiles_basename_stripped = self.outputfiles_basename.rstrip("/")
+        distutils.dir_util.copy_tree(
+            self.temporary_outputfiles_basename, outputfiles_basename_stripped
+        )
+
+    def _setup_run_directory(self):
+        """
+        If using a temporary directory, the output directory is moved to the
+        temporary directory.
+        Used for Dnest4, Pymultinest, and Ultranest.
+        """
+        check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
+        if self.use_temporary_directory:
+            temporary_outputfiles_basename = tempfile.TemporaryDirectory().name
+            self.temporary_outputfiles_basename = temporary_outputfiles_basename
+
+            if os.path.exists(self.outputfiles_basename):
+                distutils.dir_util.copy_tree(
+                    self.outputfiles_basename, self.temporary_outputfiles_basename
+                )
+            check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
+
+            self.kwargs["outputfiles_basename"] = self.temporary_outputfiles_basename
+            logger.info(f"Using temporary file {temporary_outputfiles_basename}")
+        else:
+            self.kwargs["outputfiles_basename"] = self.outputfiles_basename
+            logger.info(f"Using output file {self.outputfiles_basename}")
+        self.time_file_path = self.kwargs["outputfiles_basename"] + "/sampling_time.dat"
 
 
 class Error(Exception):
-    """ Base class for all exceptions raised by this module """
+    """Base class for all exceptions raised by this module"""
 
 
 class SamplerError(Error):
-    """ Base class for Error related to samplers in this module """
+    """Base class for Error related to samplers in this module"""
 
 
 class ResumeError(Error):
-    """ Class for errors arising from resuming runs """
+    """Class for errors arising from resuming runs"""
 
 
 class SamplerNotInstalledError(SamplerError):
-    """ Base class for Error raised by not installed samplers """
+    """Base class for Error raised by not installed samplers"""
 
 
 class IllegalSamplingSetError(Error):
-    """ Class for illegal sets of sampling parameters """
+    """Class for illegal sets of sampling parameters"""
 
 
 class SamplingMarginalisedParameterError(IllegalSamplingSetError):
-    """ Class for errors that occur when sampling over marginalized parameters """
+    """Class for errors that occur when sampling over marginalized parameters"""

@@ -1,8 +1,7 @@
-
 import numpy as np
 
-from .base_sampler import Sampler
 from ..result import read_in_result
+from .base_sampler import Sampler
 
 
 class FakeSampler(Sampler):
@@ -17,17 +16,38 @@ class FakeSampler(Sampler):
     sample_file: str
         A string pointing to the posterior data file to be loaded.
     """
-    default_kwargs = dict(verbose=True, logl_args=None, logl_kwargs=None,
-                          print_progress=True)
 
-    def __init__(self, likelihood, priors, sample_file, outdir='outdir',
-                 label='label', use_ratio=False, plot=False,
-                 injection_parameters=None, meta_data=None, result_class=None,
-                 **kwargs):
-        super(FakeSampler, self).__init__(likelihood=likelihood, priors=priors, outdir=outdir, label=label,
-                                          use_ratio=False, plot=False, skip_import_verification=True,
-                                          injection_parameters=None, meta_data=None, result_class=None,
-                                          **kwargs)
+    default_kwargs = dict(
+        verbose=True, logl_args=None, logl_kwargs=None, print_progress=True
+    )
+
+    def __init__(
+        self,
+        likelihood,
+        priors,
+        sample_file,
+        outdir="outdir",
+        label="label",
+        use_ratio=False,
+        plot=False,
+        injection_parameters=None,
+        meta_data=None,
+        result_class=None,
+        **kwargs
+    ):
+        super(FakeSampler, self).__init__(
+            likelihood=likelihood,
+            priors=priors,
+            outdir=outdir,
+            label=label,
+            use_ratio=False,
+            plot=False,
+            skip_import_verification=True,
+            injection_parameters=None,
+            meta_data=None,
+            result_class=None,
+            **kwargs
+        )
         self._read_parameter_list_from_file(sample_file)
         self.result.outdir = outdir
         self.result.label = label
@@ -41,7 +61,7 @@ class FakeSampler(Sampler):
 
     def run_sampler(self):
         """Compute the likelihood for the list of parameter space points."""
-        self.sampler = 'fake_sampler'
+        self.sampler = "fake_sampler"
 
         # Flushes the output to force a line break
         if self.kwargs["verbose"]:
@@ -59,8 +79,12 @@ class FakeSampler(Sampler):
             likelihood_ratios.append(logl)
 
             if self.kwargs["verbose"]:
-                print(self.likelihood.parameters['log_likelihood'], likelihood_ratios[-1],
-                      self.likelihood.parameters['log_likelihood'] - likelihood_ratios[-1])
+                print(
+                    self.likelihood.parameters["log_likelihood"],
+                    likelihood_ratios[-1],
+                    self.likelihood.parameters["log_likelihood"]
+                    - likelihood_ratios[-1],
+                )
 
         self.result.log_likelihood_evaluations = np.array(likelihood_ratios)
 

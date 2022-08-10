@@ -1,7 +1,9 @@
 import copy
 import os
+import shutil
 import unittest
 from unittest.mock import MagicMock
+from parameterized import parameterized
 
 import numpy as np
 
@@ -102,22 +104,100 @@ class TestSampler(unittest.TestCase):
         self.sampler._check_bad_value(val=np.nan, warning=False, theta=None, label=None)
 
     def test_bad_value_np_abs_nan(self):
-        self.sampler._check_bad_value(val=np.abs(np.nan), warning=False, theta=None, label=None)
+        self.sampler._check_bad_value(
+            val=np.abs(np.nan), warning=False, theta=None, label=None
+        )
 
     def test_bad_value_abs_nan(self):
-        self.sampler._check_bad_value(val=abs(np.nan), warning=False, theta=None, label=None)
+        self.sampler._check_bad_value(
+            val=abs(np.nan), warning=False, theta=None, label=None
+        )
 
     def test_bad_value_pos_inf(self):
         self.sampler._check_bad_value(val=np.inf, warning=False, theta=None, label=None)
 
     def test_bad_value_neg_inf(self):
-        self.sampler._check_bad_value(val=-np.inf, warning=False, theta=None, label=None)
+        self.sampler._check_bad_value(
+            val=-np.inf, warning=False, theta=None, label=None
+        )
 
     def test_bad_value_pos_inf_nan_to_num(self):
-        self.sampler._check_bad_value(val=np.nan_to_num(np.inf), warning=False, theta=None, label=None)
+        self.sampler._check_bad_value(
+            val=np.nan_to_num(np.inf), warning=False, theta=None, label=None
+        )
 
     def test_bad_value_neg_inf_nan_to_num(self):
-        self.sampler._check_bad_value(val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None)
+        self.sampler._check_bad_value(
+            val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None
+        )
+
+
+samplers = [
+    "bilby_mcmc",
+    "dynamic_dynesty",
+    "dynesty",
+    "emcee",
+    "kombine",
+    "ptemcee",
+    "zeus",
+]
+
+
+class GenericSamplerTest(unittest.TestCase):
+    def setUp(self):
+        self.likelihood = bilby.core.likelihood.Likelihood(dict())
+        self.priors = bilby.core.prior.PriorDict(
+            dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
+        )
+
+    def tearDown(self):
+        if os.path.isdir("outdir"):
+            shutil.rmtree("outdir")
+
+    @parameterized.expand(samplers)
+    def test_pool_creates_properly_no_pool(self, sampler_name):
+        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler_name](
+            self.likelihood, self.priors
+        )
+        sampler._setup_pool()
+        if sampler_name == "kombine":
+            from kombine import SerialPool
+
+            self.assertIsInstance(sampler.pool, SerialPool)
+            pass
+        else:
+            self.assertIsNone(sampler.pool)
+
+    @parameterized.expand(samplers)
+    def test_pool_creates_properly_pool(self, sampler):
+        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler](
+            self.likelihood, self.priors, npool=2
+        )
+        sampler._setup_pool()
+        if hasattr(sampler, "setup_sampler"):
+            sampler.setup_sampler()
+        self.assertEqual(sampler.pool._processes, 2)
+        sampler._close_pool()
+
+
+class ReorderLikelihoodsTest(unittest.TestCase):
+    def setUp(self):
+        self.unsorted_ln_likelihoods = np.array([1, 5, 2, 5, 1])
+        self.unsorted_samples = np.array([[0, 1], [1, 1], [1, 0], [0, 0], [0, 1]])
+        self.sorted_samples = np.array([[0, 1], [0, 1], [1, 0], [1, 1], [0, 0]])
+        self.sorted_ln_likelihoods = np.array([1, 1, 2, 5, 5])
+
+    def tearDown(self):
+        pass
+
+    def test_ordering(self):
+        func = bilby.core.sampler.base_sampler.NestedSampler.reorder_loglikelihoods
+        sorted_ln_likelihoods = func(
+            self.unsorted_ln_likelihoods, self.unsorted_samples, self.sorted_samples
+        )
+        self.assertTrue(
+            np.array_equal(sorted_ln_likelihoods, self.sorted_ln_likelihoods)
+        )
 
 
 if __name__ == "__main__":

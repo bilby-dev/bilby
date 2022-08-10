@@ -2,17 +2,19 @@ import copy
 import datetime
 import logging
 import os
-import signal
-import sys
 import time
 from collections import namedtuple
 
 import numpy as np
 import pandas as pd
 
-from ..utils import logger, check_directory_exists_and_if_not_mkdir
-from .base_sampler import SamplerError, MCMCSampler
-
+from ..utils import check_directory_exists_and_if_not_mkdir, logger
+from .base_sampler import (
+    MCMCSampler,
+    SamplerError,
+    _sampling_convenience_dump,
+    signal_wrapper,
+)
 
 ConvergenceInputs = namedtuple(
     "ConvergenceInputs",
@@ -81,7 +83,7 @@ class Ptemcee(MCMCSampler):
         the Gelman-Rubin statistic).
     min_tau: int, (1)
         A minimum tau (autocorrelation time) to accept.
-    check_point_deltaT: float, (600)
+    check_point_delta_t: float, (600)
         The period with which to checkpoint (in seconds).
     threads: int, (1)
         If threads > 1, a MultiPool object is setup and used.
@@ -163,7 +165,7 @@ class Ptemcee(MCMCSampler):
         gradient_mean_log_posterior=0.1,
         Q_tol=1.02,
         min_tau=1,
-        check_point_deltaT=600,
+        check_point_delta_t=600,
         threads=1,
         exit_code=77,
         plot=False,
@@ -173,7 +175,7 @@ class Ptemcee(MCMCSampler):
         niterations_per_check=5,
         log10beta_min=None,
         verbose=True,
-        **kwargs
+        **kwargs,
     ):
         super(Ptemcee, self).__init__(
             likelihood=likelihood,
@@ -184,25 +186,18 @@ class Ptemcee(MCMCSampler):
             plot=plot,
             skip_import_verification=skip_import_verification,
             exit_code=exit_code,
-            **kwargs
+            **kwargs,
         )
 
         self.nwalkers = self.sampler_init_kwargs["nwalkers"]
         self.ntemps = self.sampler_init_kwargs["ntemps"]
         self.max_steps = 500
 
-        # Setup up signal handling
-        signal.signal(signal.SIGTERM, self.write_current_state_and_exit)
-        signal.signal(signal.SIGINT, self.write_current_state_and_exit)
-        signal.signal(signal.SIGALRM, self.write_current_state_and_exit)
-
         # Checkpointing inputs
         self.resume = resume
-        self.check_point_deltaT = check_point_deltaT
+        self.check_point_delta_t = check_point_delta_t
         self.check_point_plot = check_point_plot
-        self.resume_file = "{}/{}_checkpoint_resume.pickle".format(
-            self.outdir, self.label
-        )
+        self.resume_file = f"{self.outdir}/{self.label}_checkpoint_resume.pickle"
 
         # Store convergence checking inputs in a named tuple
         convergence_inputs_dict = dict(
@@ -223,7 +218,7 @@ class Ptemcee(MCMCSampler):
             niterations_per_check=niterations_per_check,
         )
         self.convergence_inputs = ConvergenceInputs(**convergence_inputs_dict)
-        logger.info("Using convergence inputs: {}".format(self.convergence_inputs))
+        logger.info(f"Using convergence inputs: {self.convergence_inputs}")
 
         # Check if threads was given as an equivalent arg
         if threads == 1:
@@ -239,32 +234,50 @@ class Ptemcee(MCMCSampler):
         self.pos0 = pos0
 
         self._periodic = [
-            self.priors[key].boundary == "periodic" for key in self.search_parameter_keys
+            self.priors[key].boundary == "periodic"
+            for key in self.search_parameter_keys
         ]
         self.priors.sample()
-        self._minima = np.array([
-            self.priors[key].minimum for key in self.search_parameter_keys
-        ])
-        self._range = np.array([
-            self.priors[key].maximum for key in self.search_parameter_keys
-        ]) - self._minima
+        self._minima = np.array(
+            [self.priors[key].minimum for key in self.search_parameter_keys]
+        )
+        self._range = (
+            np.array([self.priors[key].maximum for key in self.search_parameter_keys])
+            - self._minima
+        )
 
         self.log10beta_min = log10beta_min
         if self.log10beta_min is not None:
             betas = np.logspace(0, self.log10beta_min, self.ntemps)
-            logger.warning("Using betas {}".format(betas))
+            logger.warning(f"Using betas {betas}")
             self.kwargs["betas"] = betas
         self.verbose = verbose
 
+        self.iteration = 0
+        self.chain_array = self.get_zero_chain_array()
+        self.log_likelihood_array = self.get_zero_array()
+        self.log_posterior_array = self.get_zero_array()
+        self.beta_list = list()
+        self.tau_list = list()
+        self.tau_list_n = list()
+        self.Q_list = list()
+        self.time_per_check = list()
+
+        self.nburn = np.nan
+        self.thin = np.nan
+        self.tau_int = np.nan
+        self.nsamples_effective = 0
+        self.discard = 0
+
     @property
     def sampler_function_kwargs(self):
-        """ Kwargs passed to samper.sampler() """
+        """Kwargs passed to samper.sampler()"""
         keys = ["adapt", "swap_ratios"]
         return {key: self.kwargs[key] for key in keys}
 
     @property
     def sampler_init_kwargs(self):
-        """ Kwargs passed to initialize ptemcee.Sampler() """
+        """Kwargs passed to initialize ptemcee.Sampler()"""
         return {
             key: value
             for key, value in self.kwargs.items()
@@ -272,14 +285,14 @@ class Ptemcee(MCMCSampler):
         }
 
     def _translate_kwargs(self, kwargs):
-        """ Translate kwargs """
+        """Translate kwargs"""
         if "nwalkers" not in kwargs:
             for equiv in self.nwalkers_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs["nwalkers"] = kwargs.pop(equiv)
 
     def get_pos0_from_prior(self):
-        """ Draw the initial positions from the prior
+        """Draw the initial positions from the prior
 
         Returns
         =======
@@ -288,16 +301,15 @@ class Ptemcee(MCMCSampler):
 
         """
         logger.info("Generating pos0 samples")
-        return np.array([
+        return np.array(
             [
-                self.get_random_draw_from_prior()
-                for _ in range(self.nwalkers)
+                [self.get_random_draw_from_prior() for _ in range(self.nwalkers)]
+                for _ in range(self.kwargs["ntemps"])
             ]
-            for _ in range(self.kwargs["ntemps"])
-        ])
+        )
 
     def get_pos0_from_minimize(self, minimize_list=None):
-        """ Draw the initial positions using an initial minimization step
+        """Draw the initial positions using an initial minimization step
 
         See pos0 in the class initialization for details.
 
@@ -318,12 +330,12 @@ class Ptemcee(MCMCSampler):
         else:
             pos0 = np.array(self.get_pos0_from_prior())
 
-        logger.info("Attempting to set pos0 for {} from minimize".format(minimize_list))
+        logger.info(f"Attempting to set pos0 for {minimize_list} from minimize")
 
         likelihood_copy = copy.copy(self.likelihood)
 
         def neg_log_like(params):
-            """ Internal function to minimize """
+            """Internal function to minimize"""
             likelihood_copy.parameters.update(
                 {key: val for key, val in zip(minimize_list, params)}
             )
@@ -360,9 +372,7 @@ class Ptemcee(MCMCSampler):
         for i, key in enumerate(minimize_list):
             pos0_min = np.min(success[:, i])
             pos0_max = np.max(success[:, i])
-            logger.info(
-                "Initialize {} walkers from {}->{}".format(key, pos0_min, pos0_max)
-            )
+            logger.info(f"Initialize {key} walkers from {pos0_min}->{pos0_max}")
             j = self.search_parameter_keys.index(key)
             pos0[:, :, j] = np.random.uniform(
                 pos0_min,
@@ -375,9 +385,8 @@ class Ptemcee(MCMCSampler):
         if self.pos0.shape != (self.ntemps, self.nwalkers, self.ndim):
             raise ValueError(
                 "Shape of starting array should be (ntemps, nwalkers, ndim). "
-                "In this case that is ({}, {}, {}), got {}".format(
-                    self.ntemps, self.nwalkers, self.ndim, self.pos0.shape
-                )
+                f"In this case that is ({self.ntemps}, {self.nwalkers}, "
+                f"{self.ndim}), got {self.pos0.shape}"
             )
         else:
             return self.pos0
@@ -395,12 +404,13 @@ class Ptemcee(MCMCSampler):
         return self.get_pos0_from_array()
 
     def setup_sampler(self):
-        """ Either initialize the sampler or read in the resume file """
+        """Either initialize the sampler or read in the resume file"""
         import ptemcee
 
         if os.path.isfile(self.resume_file) and self.resume is True:
             import dill
-            logger.info("Resume data {} found".format(self.resume_file))
+
+            logger.info(f"Resume data {self.resume_file} found")
             with open(self.resume_file, "rb") as file:
                 data = dill.load(file)
 
@@ -422,9 +432,7 @@ class Ptemcee(MCMCSampler):
             self.sampler.pool = self.pool
             self.sampler.threads = self.threads
 
-            logger.info(
-                "Resuming from previous run with time={}".format(self.iteration)
-            )
+            logger.info(f"Resuming from previous run with time={self.iteration}")
 
         else:
             # Initialize the PTSampler
@@ -433,32 +441,29 @@ class Ptemcee(MCMCSampler):
                     dim=self.ndim,
                     logl=self.log_likelihood,
                     logp=self.log_prior,
-                    **self.sampler_init_kwargs
+                    **self.sampler_init_kwargs,
                 )
             else:
                 self.sampler = ptemcee.Sampler(
                     dim=self.ndim,
                     logl=do_nothing_function,
                     logp=do_nothing_function,
-                    pool=self.pool,
                     threads=self.threads,
-                    **self.sampler_init_kwargs
+                    **self.sampler_init_kwargs,
                 )
 
-                self.sampler._likeprior = LikePriorEvaluator(
-                    self.search_parameter_keys, use_ratio=self.use_ratio
-                )
+            self.sampler._likeprior = LikePriorEvaluator()
 
             # Initialize storing results
             self.iteration = 0
             self.chain_array = self.get_zero_chain_array()
             self.log_likelihood_array = self.get_zero_array()
             self.log_posterior_array = self.get_zero_array()
-            self.beta_list = []
-            self.tau_list = []
-            self.tau_list_n = []
-            self.Q_list = []
-            self.time_per_check = []
+            self.beta_list = list()
+            self.tau_list = list()
+            self.tau_list_n = list()
+            self.Q_list = list()
+            self.time_per_check = list()
             self.pos0 = self.get_pos0()
 
         return self.sampler
@@ -470,7 +475,7 @@ class Ptemcee(MCMCSampler):
         return np.zeros((self.ntemps, self.nwalkers, self.max_steps))
 
     def get_pos0(self):
-        """ Master logic for setting pos0 """
+        """Master logic for setting pos0"""
         if isinstance(self.pos0, str) and self.pos0.lower() == "prior":
             return self.get_pos0_from_prior()
         elif isinstance(self.pos0, str) and self.pos0.lower() == "minimize":
@@ -482,52 +487,55 @@ class Ptemcee(MCMCSampler):
         elif isinstance(self.pos0, dict):
             return self.get_pos0_from_dict()
         else:
-            raise SamplerError("pos0={} not implemented".format(self.pos0))
+            raise SamplerError(f"pos0={self.pos0} not implemented")
 
-    def setup_pool(self):
-        """ If threads > 1, setup a MultiPool, else run in serial mode """
-        if self.threads > 1:
-            import schwimmbad
+    def _close_pool(self):
+        if getattr(self.sampler, "pool", None) is not None:
+            self.sampler.pool = None
+        if "pool" in self.result.sampler_kwargs:
+            del self.result.sampler_kwargs["pool"]
+        super(Ptemcee, self)._close_pool()
 
-            logger.info("Creating MultiPool with {} processes".format(self.threads))
-            self.pool = schwimmbad.MultiPool(
-                self.threads, initializer=init, initargs=(self.likelihood, self.priors)
-            )
-        else:
-            self.pool = None
-
+    @signal_wrapper
     def run_sampler(self):
-        self.setup_pool()
+        self._setup_pool()
         sampler = self.setup_sampler()
 
         t0 = datetime.datetime.now()
         logger.info("Starting to sample")
         while True:
             for (pos0, log_posterior, log_likelihood) in sampler.sample(
-                    self.pos0, storechain=False,
-                    iterations=self.convergence_inputs.niterations_per_check,
-                    **self.sampler_function_kwargs):
-                pos0[:, :, self._periodic] = np.mod(
-                    pos0[:, :, self._periodic] - self._minima[self._periodic],
-                    self._range[self._periodic]
-                ) + self._minima[self._periodic]
+                self.pos0,
+                storechain=False,
+                iterations=self.convergence_inputs.niterations_per_check,
+                **self.sampler_function_kwargs,
+            ):
+                pos0[:, :, self._periodic] = (
+                    np.mod(
+                        pos0[:, :, self._periodic] - self._minima[self._periodic],
+                        self._range[self._periodic],
+                    )
+                    + self._minima[self._periodic]
+                )
 
             if self.iteration == self.chain_array.shape[1]:
-                self.chain_array = np.concatenate((
-                    self.chain_array, self.get_zero_chain_array()), axis=1)
-                self.log_likelihood_array = np.concatenate((
-                    self.log_likelihood_array, self.get_zero_array()),
-                    axis=2)
-                self.log_posterior_array = np.concatenate((
-                    self.log_posterior_array, self.get_zero_array()),
-                    axis=2)
+                self.chain_array = np.concatenate(
+                    (self.chain_array, self.get_zero_chain_array()), axis=1
+                )
+                self.log_likelihood_array = np.concatenate(
+                    (self.log_likelihood_array, self.get_zero_array()), axis=2
+                )
+                self.log_posterior_array = np.concatenate(
+                    (self.log_posterior_array, self.get_zero_array()), axis=2
+                )
 
             self.pos0 = pos0
             self.chain_array[:, self.iteration, :] = pos0[0, :, :]
             self.log_likelihood_array[:, :, self.iteration] = log_likelihood
             self.log_posterior_array[:, :, self.iteration] = log_posterior
             self.mean_log_posterior = np.mean(
-                self.log_posterior_array[:, :, :self. iteration], axis=1)
+                self.log_posterior_array[:, :, : self.iteration], axis=1
+            )
 
             # Calculate time per iteration
             self.time_per_check.append((datetime.datetime.now() - t0).total_seconds())
@@ -537,15 +545,13 @@ class Ptemcee(MCMCSampler):
 
             # Calculate minimum iteration step to discard
             minimum_iteration = get_minimum_stable_itertion(
-                self.mean_log_posterior,
-                frac=self.convergence_inputs.mean_logl_frac
+                self.mean_log_posterior, frac=self.convergence_inputs.mean_logl_frac
             )
-            logger.debug("Minimum iteration = {}".format(minimum_iteration))
+            logger.debug(f"Minimum iteration = {minimum_iteration}")
 
             # Calculate the maximum discard number
             discard_max = np.max(
-                [self.convergence_inputs.burn_in_fixed_discard,
-                 minimum_iteration]
+                [self.convergence_inputs.burn_in_fixed_discard, minimum_iteration]
             )
 
             if self.iteration > discard_max + self.nwalkers:
@@ -565,7 +571,7 @@ class Ptemcee(MCMCSampler):
                 self.nsamples_effective,
             ) = check_iteration(
                 self.iteration,
-                self.chain_array[:, self.discard:self.iteration, :],
+                self.chain_array[:, self.discard : self.iteration, :],
                 sampler,
                 self.convergence_inputs,
                 self.search_parameter_keys,
@@ -588,7 +594,7 @@ class Ptemcee(MCMCSampler):
             else:
                 last_checkpoint_s = np.sum(self.time_per_check)
 
-            if last_checkpoint_s > self.check_point_deltaT:
+            if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state(plot=self.check_point_plot)
 
         # Run a final checkpoint to update the plots and samples
@@ -609,9 +615,14 @@ class Ptemcee(MCMCSampler):
         self.result.discard = self.discard
 
         log_evidence, log_evidence_err = compute_evidence(
-            sampler, self.log_likelihood_array, self.outdir,
-            self.label, self.discard, self.nburn,
-            self.thin, self.iteration,
+            sampler,
+            self.log_likelihood_array,
+            self.outdir,
+            self.label,
+            self.discard,
+            self.nburn,
+            self.thin,
+            self.iteration,
         )
         self.result.log_evidence = log_evidence
         self.result.log_evidence_err = log_evidence_err
@@ -620,20 +631,9 @@ class Ptemcee(MCMCSampler):
             seconds=np.sum(self.time_per_check)
         )
 
-        if self.pool:
-            self.pool.close()
+        self._close_pool()
 
         return self.result
-
-    def write_current_state_and_exit(self, signum=None, frame=None):
-        logger.warning("Run terminated with signal {}".format(signum))
-        if getattr(self, "pool", None) or self.threads == 1:
-            self.write_current_state(plot=False)
-        if getattr(self, "pool", None):
-            logger.info("Closing pool")
-            self.pool.close()
-        logger.info("Exit on signal {}".format(self.exit_code))
-        sys.exit(self.exit_code)
 
     def write_current_state(self, plot=True):
         check_directory_exists_and_if_not_mkdir(self.outdir)
@@ -672,7 +672,7 @@ class Ptemcee(MCMCSampler):
                     self.discard,
                 )
             except Exception as e:
-                logger.info("Walkers plot failed with exception {}".format(e))
+                logger.info(f"Walkers plot failed with exception {e}")
 
             try:
                 # Generate the tau plot diagnostic if DEBUG
@@ -687,7 +687,7 @@ class Ptemcee(MCMCSampler):
                         self.convergence_inputs.autocorr_tau,
                     )
             except Exception as e:
-                logger.info("tau plot failed with exception {}".format(e))
+                logger.info(f"tau plot failed with exception {e}")
 
             try:
                 plot_mean_log_posterior(
@@ -696,7 +696,7 @@ class Ptemcee(MCMCSampler):
                     self.label,
                 )
             except Exception as e:
-                logger.info("mean_logl plot failed with exception {}".format(e))
+                logger.info(f"mean_logl plot failed with exception {e}")
 
 
 def get_minimum_stable_itertion(mean_array, frac, nsteps_min=10):
@@ -728,7 +728,7 @@ def check_iteration(
     mean_log_posterior,
     verbose=True,
 ):
-    """ Per-iteration logic to calculate the convergence check
+    """Per-iteration logic to calculate the convergence check
 
     Parameters
     ==========
@@ -780,8 +780,17 @@ def check_iteration(
     if np.isnan(tau) or np.isinf(tau):
         if verbose:
             print_progress(
-                iteration, sampler, time_per_check, np.nan, np.nan,
-                np.nan, np.nan, np.nan, False, convergence_inputs, Q,
+                iteration,
+                sampler,
+                time_per_check,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                False,
+                convergence_inputs,
+                Q,
             )
         return False, np.nan, np.nan, np.nan, np.nan
 
@@ -796,45 +805,47 @@ def check_iteration(
 
     # Calculate convergence boolean
     converged = Q < ci.Q_tol and ci.nsamples < nsamples_effective
-    logger.debug("Convergence: Q<Q_tol={}, nsamples<nsamples_effective={}"
-                 .format(Q < ci.Q_tol, ci.nsamples < nsamples_effective))
+    logger.debug(
+        f"Convergence: Q<Q_tol={Q < ci.Q_tol}, "
+        f"nsamples<nsamples_effective={ci.nsamples < nsamples_effective}"
+    )
 
     GRAD_WINDOW_LENGTH = nwalkers + 1
     nsteps_to_check = ci.autocorr_tau * np.max([2 * GRAD_WINDOW_LENGTH, tau_int])
     lower_tau_index = np.max([0, len(tau_list) - nsteps_to_check])
-    check_taus = np.array(tau_list[lower_tau_index :])
+    check_taus = np.array(tau_list[lower_tau_index:])
     if not np.any(np.isnan(check_taus)) and check_taus.shape[0] > GRAD_WINDOW_LENGTH:
-        gradient_tau = get_max_gradient(
-            check_taus, axis=0, window_length=11)
+        gradient_tau = get_max_gradient(check_taus, axis=0, window_length=11)
 
         if gradient_tau < ci.gradient_tau:
             logger.debug(
-                "tau usable as {} < gradient_tau={}"
-                .format(gradient_tau, ci.gradient_tau)
+                f"tau usable as {gradient_tau} < gradient_tau={ci.gradient_tau}"
             )
             tau_usable = True
         else:
             logger.debug(
-                "tau not usable as {} > gradient_tau={}"
-                .format(gradient_tau, ci.gradient_tau)
+                f"tau not usable as {gradient_tau} > gradient_tau={ci.gradient_tau}"
             )
             tau_usable = False
 
         check_mean_log_posterior = mean_log_posterior[:, -nsteps_to_check:]
         gradient_mean_log_posterior = get_max_gradient(
-            check_mean_log_posterior, axis=1, window_length=GRAD_WINDOW_LENGTH,
-            smooth=True)
+            check_mean_log_posterior,
+            axis=1,
+            window_length=GRAD_WINDOW_LENGTH,
+            smooth=True,
+        )
 
         if gradient_mean_log_posterior < ci.gradient_mean_log_posterior:
             logger.debug(
-                "tau usable as {} < gradient_mean_log_posterior={}"
-                .format(gradient_mean_log_posterior, ci.gradient_mean_log_posterior)
+                f"tau usable as {gradient_mean_log_posterior} < "
+                f"gradient_mean_log_posterior={ci.gradient_mean_log_posterior}"
             )
             tau_usable *= True
         else:
             logger.debug(
-                "tau not usable as {} > gradient_mean_log_posterior={}"
-                .format(gradient_mean_log_posterior, ci.gradient_mean_log_posterior)
+                f"tau not usable as {gradient_mean_log_posterior} > "
+                f"gradient_mean_log_posterior={ci.gradient_mean_log_posterior}"
             )
             tau_usable = False
 
@@ -864,7 +875,7 @@ def check_iteration(
             gradient_mean_log_posterior,
             tau_usable,
             convergence_inputs,
-            Q
+            Q,
         )
     stop = converged and tau_usable
     return stop, nburn, thin, tau_int, nsamples_effective
@@ -872,13 +883,14 @@ def check_iteration(
 
 def get_max_gradient(x, axis=0, window_length=11, polyorder=2, smooth=False):
     from scipy.signal import savgol_filter
+
     if smooth:
-        x = savgol_filter(
-            x, axis=axis, window_length=window_length, polyorder=3
+        x = savgol_filter(x, axis=axis, window_length=window_length, polyorder=3)
+    return np.max(
+        savgol_filter(
+            x, axis=axis, window_length=window_length, polyorder=polyorder, deriv=1
         )
-    return np.max(savgol_filter(
-        x, axis=axis, window_length=window_length, polyorder=polyorder,
-        deriv=1))
+    )
 
 
 def get_Q_convergence(samples):
@@ -887,7 +899,7 @@ def get_Q_convergence(samples):
         W = np.mean(np.var(samples, axis=1), axis=0)
         per_walker_mean = np.mean(samples, axis=1)
         mean = np.mean(per_walker_mean, axis=0)
-        B = nsteps / (nwalkers - 1.) * np.sum((per_walker_mean - mean)**2, axis=0)
+        B = nsteps / (nwalkers - 1.0) * np.sum((per_walker_mean - mean) ** 2, axis=0)
         Vhat = (nsteps - 1) / nsteps * W + (nwalkers + 1) / (nwalkers * nsteps) * B
         Q_per_dim = np.sqrt(Vhat / W)
         return np.max(Q_per_dim)
@@ -910,16 +922,18 @@ def print_progress(
 ):
     # Setup acceptance string
     acceptance = sampler.acceptance_fraction[0, :]
-    acceptance_str = "{:1.2f}-{:1.2f}".format(np.min(acceptance), np.max(acceptance))
+    acceptance_str = f"{np.min(acceptance):1.2f}-{np.max(acceptance):1.2f}"
 
     # Setup tswap acceptance string
     tswap_acceptance_fraction = sampler.tswap_acceptance_fraction
-    tswap_acceptance_str = "{:1.2f}-{:1.2f}".format(
-        np.min(tswap_acceptance_fraction), np.max(tswap_acceptance_fraction)
-    )
+    tswap_acceptance_str = f"{np.min(tswap_acceptance_fraction):1.2f}-{np.max(tswap_acceptance_fraction):1.2f}"
 
     ave_time_per_check = np.mean(time_per_check[-3:])
-    time_left = (convergence_inputs.nsamples - nsamples_effective) * ave_time_per_check / samples_per_check
+    time_left = (
+        (convergence_inputs.nsamples - nsamples_effective)
+        * ave_time_per_check
+        / samples_per_check
+    )
     if time_left > 0:
         time_left = str(datetime.timedelta(seconds=int(time_left)))
     else:
@@ -927,46 +941,44 @@ def print_progress(
 
     sampling_time = datetime.timedelta(seconds=np.sum(time_per_check))
 
-    tau_str = "{}(+{:0.2f},+{:0.2f})".format(
-        tau_int, gradient_tau, gradient_mean_log_posterior
-    )
+    tau_str = f"{tau_int}(+{gradient_tau:0.2f},+{gradient_mean_log_posterior:0.2f})"
 
     if tau_usable:
-        tau_str = "={}".format(tau_str)
+        tau_str = f"={tau_str}"
     else:
-        tau_str = "!{}".format(tau_str)
+        tau_str = f"!{tau_str}"
 
-    Q_str = "{:0.2f}".format(Q)
+    Q_str = f"{Q:0.2f}"
 
-    evals_per_check = sampler.nwalkers * sampler.ntemps * convergence_inputs.niterations_per_check
+    evals_per_check = (
+        sampler.nwalkers * sampler.ntemps * convergence_inputs.niterations_per_check
+    )
 
-    ncalls = "{:1.1e}".format(
-        convergence_inputs.niterations_per_check * iteration * sampler.nwalkers * sampler.ntemps)
-    eval_timing = "{:1.2f}ms/ev".format(1e3 * ave_time_per_check / evals_per_check)
+    approximate_ncalls = (
+        convergence_inputs.niterations_per_check
+        * iteration
+        * sampler.nwalkers
+        * sampler.ntemps
+    )
+    ncalls = f"{approximate_ncalls:1.1e}"
+    eval_timing = f"{1000.0 * ave_time_per_check / evals_per_check:1.2f}ms/ev"
 
     try:
         print(
-            "{}|{}|nc:{}|a0:{}|swp:{}|n:{}<{}|t{}|q:{}|{}".format(
-                iteration,
-                str(sampling_time).split(".")[0],
-                ncalls,
-                acceptance_str,
-                tswap_acceptance_str,
-                nsamples_effective,
-                convergence_inputs.nsamples,
-                tau_str,
-                Q_str,
-                eval_timing,
-            ),
+            f"{iteration}|{str(sampling_time).split('.')[0]}|nc:{ncalls}|"
+            f"a0:{acceptance_str}|swp:{tswap_acceptance_str}|"
+            f"n:{nsamples_effective}<{convergence_inputs.nsamples}|t{tau_str}|"
+            f"q:{Q_str}|{eval_timing}",
             flush=True,
         )
     except OSError as e:
-        logger.debug("Failed to print iteration due to :{}".format(e))
+        logger.debug(f"Failed to print iteration due to :{e}")
 
 
 def calculate_tau_array(samples, search_parameter_keys, ci):
-    """ Compute ACT tau for 0-temperature chains """
+    """Compute ACT tau for 0-temperature chains"""
     import emcee
+
     nwalkers, nsteps, ndim = samples.shape
     tau_array = np.zeros((nwalkers, ndim)) + np.inf
     if nsteps > 1:
@@ -976,7 +988,8 @@ def calculate_tau_array(samples, search_parameter_keys, ci):
                     continue
                 try:
                     tau_array[ii, jj] = emcee.autocorr.integrated_time(
-                        samples[ii, :, jj], c=ci.autocorr_c, tol=0)[0]
+                        samples[ii, :, jj], c=ci.autocorr_c, tol=0
+                    )[0]
                 except emcee.autocorr.AutocorrError:
                     tau_array[ii, jj] = np.inf
     return tau_array
@@ -1004,21 +1017,24 @@ def checkpoint(
     time_per_check,
 ):
     import dill
+
     logger.info("Writing checkpoint and diagnostics")
     ndim = sampler.dim
 
     # Store the samples if possible
     if nsamples_effective > 0:
-        filename = "{}/{}_samples.txt".format(outdir, label)
-        samples = np.array(chain_array)[:, discard + nburn : iteration : thin, :].reshape(
-            (-1, ndim)
-        )
+        filename = f"{outdir}/{label}_samples.txt"
+        samples = np.array(chain_array)[
+            :, discard + nburn : iteration : thin, :
+        ].reshape((-1, ndim))
         df = pd.DataFrame(samples, columns=search_parameter_keys)
         df.to_csv(filename, index=False, header=True, sep=" ")
 
     # Pickle the resume artefacts
-    sampler_copy = copy.copy(sampler)
-    del sampler_copy.pool
+    pool = sampler.pool
+    sampler.pool = None
+    sampler_copy = copy.deepcopy(sampler)
+    sampler.pool = pool
 
     data = dict(
         iteration=iteration,
@@ -1040,10 +1056,10 @@ def checkpoint(
     logger.info("Finished writing checkpoint")
 
 
-def plot_walkers(walkers, nburn, thin, parameter_labels, outdir, label,
-                 discard=0):
-    """ Method to plot the trace of the walkers in an ensemble MCMC plot """
+def plot_walkers(walkers, nburn, thin, parameter_labels, outdir, label, discard=0):
+    """Method to plot the trace of the walkers in an ensemble MCMC plot"""
     import matplotlib.pyplot as plt
+
     nwalkers, nsteps, ndim = walkers.shape
     if np.isnan(nburn):
         nburn = nsteps
@@ -1051,51 +1067,65 @@ def plot_walkers(walkers, nburn, thin, parameter_labels, outdir, label,
         thin = 1
     idxs = np.arange(nsteps)
     fig, axes = plt.subplots(nrows=ndim, ncols=2, figsize=(8, 3 * ndim))
-    scatter_kwargs = dict(lw=0, marker="o", markersize=1, alpha=0.1,)
+    scatter_kwargs = dict(
+        lw=0,
+        marker="o",
+        markersize=1,
+        alpha=0.1,
+    )
 
     # Plot the fixed burn-in
     if discard > 0:
         for i, (ax, axh) in enumerate(axes):
             ax.plot(
-                idxs[: discard],
-                walkers[:, : discard, i].T,
+                idxs[:discard],
+                walkers[:, :discard, i].T,
                 color="gray",
-                **scatter_kwargs
+                **scatter_kwargs,
             )
 
     # Plot the burn-in
     for i, (ax, axh) in enumerate(axes):
         ax.plot(
-            idxs[discard: discard + nburn + 1],
-            walkers[:, discard: discard + nburn + 1, i].T,
+            idxs[discard : discard + nburn + 1],
+            walkers[:, discard : discard + nburn + 1, i].T,
             color="C1",
-            **scatter_kwargs
+            **scatter_kwargs,
         )
 
     # Plot the thinned posterior samples
     for i, (ax, axh) in enumerate(axes):
         ax.plot(
-            idxs[discard + nburn::thin],
-            walkers[:, discard + nburn::thin, i].T,
+            idxs[discard + nburn :: thin],
+            walkers[:, discard + nburn :: thin, i].T,
             color="C0",
-            **scatter_kwargs
+            **scatter_kwargs,
         )
-        axh.hist(walkers[:, discard + nburn::thin, i].reshape((-1)), bins=50, alpha=0.8)
+        axh.hist(
+            walkers[:, discard + nburn :: thin, i].reshape((-1)), bins=50, alpha=0.8
+        )
 
     for i, (ax, axh) in enumerate(axes):
         axh.set_xlabel(parameter_labels[i])
         ax.set_ylabel(parameter_labels[i])
 
     fig.tight_layout()
-    filename = "{}/{}_checkpoint_trace.png".format(outdir, label)
+    filename = f"{outdir}/{label}_checkpoint_trace.png"
     fig.savefig(filename)
     plt.close(fig)
 
 
 def plot_tau(
-    tau_list_n, tau_list, search_parameter_keys, outdir, label, tau, autocorr_tau,
+    tau_list_n,
+    tau_list,
+    search_parameter_keys,
+    outdir,
+    label,
+    tau,
+    autocorr_tau,
 ):
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
     for i, key in enumerate(search_parameter_keys):
         ax.plot(tau_list_n, np.array(tau_list)[:, i], label=key)
@@ -1103,7 +1133,7 @@ def plot_tau(
     ax.set_ylabel(r"$\langle \tau \rangle$")
     ax.legend()
     fig.tight_layout()
-    fig.savefig("{}/{}_checkpoint_tau.png".format(outdir, label))
+    fig.savefig(f"{outdir}/{label}_checkpoint_tau.png")
     plt.close(fig)
 
 
@@ -1119,17 +1149,30 @@ def plot_mean_log_posterior(mean_log_posterior, outdir, label):
     fig, ax = plt.subplots()
     idxs = np.arange(nsteps)
     ax.plot(idxs, mean_log_posterior.T)
-    ax.set(xlabel="Iteration", ylabel=r"$\langle\mathrm{log-posterior}\rangle$",
-           ylim=(ymin, ymax))
+    ax.set(
+        xlabel="Iteration",
+        ylabel=r"$\langle\mathrm{log-posterior}\rangle$",
+        ylim=(ymin, ymax),
+    )
     fig.tight_layout()
-    fig.savefig("{}/{}_checkpoint_meanlogposterior.png".format(outdir, label))
+    fig.savefig(f"{outdir}/{label}_checkpoint_meanlogposterior.png")
     plt.close(fig)
 
 
-def compute_evidence(sampler, log_likelihood_array, outdir, label, discard, nburn, thin,
-                     iteration, make_plots=True):
-    """ Computes the evidence using thermodynamic integration """
+def compute_evidence(
+    sampler,
+    log_likelihood_array,
+    outdir,
+    label,
+    discard,
+    nburn,
+    thin,
+    iteration,
+    make_plots=True,
+):
+    """Computes the evidence using thermodynamic integration"""
     import matplotlib.pyplot as plt
+
     betas = sampler.betas
     # We compute the evidence without the burnin samples, but we do not thin
     lnlike = log_likelihood_array[:, :, discard + nburn : iteration]
@@ -1141,7 +1184,7 @@ def compute_evidence(sampler, log_likelihood_array, outdir, label, discard, nbur
     if any(np.isinf(mean_lnlikes)):
         logger.warning(
             "mean_lnlikes contains inf: recalculating without"
-            " the {} infs".format(len(betas[np.isinf(mean_lnlikes)]))
+            f" the {len(betas[np.isinf(mean_lnlikes)])} infs"
         )
         idxs = np.isinf(mean_lnlikes)
         mean_lnlikes = mean_lnlikes[~idxs]
@@ -1165,31 +1208,21 @@ def compute_evidence(sampler, log_likelihood_array, outdir, label, discard, nbur
 
         ax2.semilogx(min_betas, evidence, "-o")
         ax2.set_ylabel(
-            r"$\int_{\beta_{min}}^{\beta=1}" + r"\langle \log(\mathcal{L})\rangle d\beta$",
+            r"$\int_{\beta_{min}}^{\beta=1}"
+            + r"\langle \log(\mathcal{L})\rangle d\beta$",
             size=16,
         )
         ax2.set_xlabel(r"$\beta_{min}$")
         plt.tight_layout()
-        fig.savefig("{}/{}_beta_lnl.png".format(outdir, label))
+        fig.savefig(f"{outdir}/{label}_beta_lnl.png")
         plt.close(fig)
 
     return lnZ, lnZerr
 
 
 def do_nothing_function():
-    """ This is a do-nothing function, we overwrite the likelihood and prior elsewhere """
+    """This is a do-nothing function, we overwrite the likelihood and prior elsewhere"""
     pass
-
-
-likelihood = None
-priors = None
-
-
-def init(likelihood_in, priors_in):
-    global likelihood
-    global priors
-    likelihood = likelihood_in
-    priors = priors_in
 
 
 class LikePriorEvaluator(object):
@@ -1203,38 +1236,43 @@ class LikePriorEvaluator(object):
 
     """
 
-    def __init__(self, search_parameter_keys, use_ratio=False):
-        self.search_parameter_keys = search_parameter_keys
-        self.use_ratio = use_ratio
+    def __init__(self):
         self.periodic_set = False
 
     def _setup_periodic(self):
+        priors = _sampling_convenience_dump.priors
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
         self._periodic = [
-            priors[key].boundary == "periodic" for key in self.search_parameter_keys
+            priors[key].boundary == "periodic" for key in search_parameter_keys
         ]
         priors.sample()
-        self._minima = np.array([
-            priors[key].minimum for key in self.search_parameter_keys
-        ])
-        self._range = np.array([
-            priors[key].maximum for key in self.search_parameter_keys
-        ]) - self._minima
+        self._minima = np.array([priors[key].minimum for key in search_parameter_keys])
+        self._range = (
+            np.array([priors[key].maximum for key in search_parameter_keys])
+            - self._minima
+        )
         self.periodic_set = True
 
     def _wrap_periodic(self, array):
         if not self.periodic_set:
             self._setup_periodic()
-        array[self._periodic] = np.mod(
-            array[self._periodic] - self._minima[self._periodic],
-            self._range[self._periodic]
-        ) + self._minima[self._periodic]
+        array[self._periodic] = (
+            np.mod(
+                array[self._periodic] - self._minima[self._periodic],
+                self._range[self._periodic],
+            )
+            + self._minima[self._periodic]
+        )
         return array
 
     def logl(self, v_array):
-        parameters = {key: v for key, v in zip(self.search_parameter_keys, v_array)}
+        priors = _sampling_convenience_dump.priors
+        likelihood = _sampling_convenience_dump.likelihood
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
+        parameters = {key: v for key, v in zip(search_parameter_keys, v_array)}
         if priors.evaluate_constraints(parameters) > 0:
             likelihood.parameters.update(parameters)
-            if self.use_ratio:
+            if _sampling_convenience_dump.use_ratio:
                 return likelihood.log_likelihood() - likelihood.noise_log_likelihood()
             else:
                 return likelihood.log_likelihood()
@@ -1242,8 +1280,14 @@ class LikePriorEvaluator(object):
             return np.nan_to_num(-np.inf)
 
     def logp(self, v_array):
-        params = {key: t for key, t in zip(self.search_parameter_keys, v_array)}
+        priors = _sampling_convenience_dump.priors
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
+        params = {key: t for key, t in zip(search_parameter_keys, v_array)}
         return priors.ln_prob(params)
+
+    def call_emcee(self, theta):
+        ll, lp = self.__call__(theta)
+        return ll + lp, [ll, lp]
 
     def __call__(self, x):
         lp = self.logp(x)

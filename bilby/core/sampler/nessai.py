@@ -1,9 +1,10 @@
-import numpy as np
 import os
+
+import numpy as np
 from pandas import DataFrame
 
+from ..utils import check_directory_exists_and_if_not_mkdir, load_json, logger
 from .base_sampler import NestedSampler
-from ..utils import logger, check_directory_exists_and_if_not_mkdir, load_json
 
 
 class Nessai(NestedSampler):
@@ -16,8 +17,9 @@ class Nessai(NestedSampler):
 
     Documentation: https://nessai.readthedocs.io/
     """
+
     _default_kwargs = None
-    seed_equiv_kwargs = ['sampling_seed']
+    seed_equiv_kwargs = ["sampling_seed"]
 
     @property
     def default_kwargs(self):
@@ -29,6 +31,7 @@ class Nessai(NestedSampler):
         """
         if not self._default_kwargs:
             from inspect import signature
+
             from nessai.flowsampler import FlowSampler
             from nessai.nestedsampler import NestedSampler
             from nessai.proposal import AugmentedFlowProposal, FlowProposal
@@ -42,12 +45,14 @@ class Nessai(NestedSampler):
             ]
             for c in classes:
                 kwargs.update(
-                    {k: v.default for k, v in signature(c).parameters.items() if v.default is not v.empty}
+                    {
+                        k: v.default
+                        for k, v in signature(c).parameters.items()
+                        if v.default is not v.empty
+                    }
                 )
             # Defaults for bilby that will override nessai defaults
-            bilby_defaults = dict(
-                output=None,
-            )
+            bilby_defaults = dict(output=None, exit_code=self.exit_code)
             kwargs.update(bilby_defaults)
             self._default_kwargs = kwargs
         return self._default_kwargs
@@ -69,8 +74,8 @@ class Nessai(NestedSampler):
 
     def run_sampler(self):
         from nessai.flowsampler import FlowSampler
-        from nessai.model import Model as BaseModel
         from nessai.livepoint import dict_to_live_points, live_points_to_array
+        from nessai.model import Model as BaseModel
         from nessai.posterior import compute_weights
         from nessai.utils import setup_logger
 
@@ -85,6 +90,7 @@ class Nessai(NestedSampler):
                 Priors to use for sampling. Needed for the bounds and the
                 `sample` method.
             """
+
             def __init__(self, names, priors):
                 self.names = names
                 self.priors = priors
@@ -103,8 +109,10 @@ class Nessai(NestedSampler):
                 return self.log_prior(theta)
 
             def _update_bounds(self):
-                self.bounds = {key: [self.priors[key].minimum, self.priors[key].maximum]
-                               for key in self.names}
+                self.bounds = {
+                    key: [self.priors[key].minimum, self.priors[key].maximum]
+                    for key in self.names
+                }
 
             def new_point(self, N=1):
                 """Draw a point from the prior"""
@@ -117,20 +125,22 @@ class Nessai(NestedSampler):
                 return self.log_prior(x)
 
         # Setup the logger for nessai using the same settings as the bilby logger
-        setup_logger(self.outdir, label=self.label,
-                     log_level=logger.getEffectiveLevel())
+        setup_logger(
+            self.outdir, label=self.label, log_level=logger.getEffectiveLevel()
+        )
         model = Model(self.search_parameter_keys, self.priors)
-        out = None
-        while out is None:
-            try:
-                out = FlowSampler(model, **self.kwargs)
-            except TypeError as e:
-                raise TypeError("Unable to initialise nessai sampler with error: {}".format(e))
         try:
+            out = FlowSampler(model, **self.kwargs)
             out.run(save=True, plot=self.plot)
-        except SystemExit as e:
+        except TypeError as e:
+            raise TypeError(f"Unable to initialise nessai sampler with error: {e}")
+        except (SystemExit, KeyboardInterrupt) as e:
             import sys
-            logger.info("Caught exit code {}, exiting with signal {}".format(e.args[0], self.exit_code))
+
+            logger.info(
+                f"Caught {type(e).__name__} with args {e.args}, "
+                f"exiting with signal {self.exit_code}"
+            )
             sys.exit(self.exit_code)
 
         # Manually set likelihood evaluations because parallelisation breaks the counter
@@ -139,53 +149,61 @@ class Nessai(NestedSampler):
         self.result.samples = live_points_to_array(
             out.posterior_samples, self.search_parameter_keys
         )
-        self.result.log_likelihood_evaluations = out.posterior_samples['logL']
+        self.result.log_likelihood_evaluations = out.posterior_samples["logL"]
         self.result.nested_samples = DataFrame(out.nested_samples)
         self.result.nested_samples.rename(
-            columns=dict(logL='log_likelihood', logP='log_prior'), inplace=True)
-        _, log_weights = compute_weights(np.array(self.result.nested_samples.log_likelihood),
-                                         np.array(out.ns.state.nlive))
-        self.result.nested_samples['weights'] = np.exp(log_weights)
+            columns=dict(logL="log_likelihood", logP="log_prior"), inplace=True
+        )
+        _, log_weights = compute_weights(
+            np.array(self.result.nested_samples.log_likelihood),
+            np.array(out.ns.state.nlive),
+        )
+        self.result.nested_samples["weights"] = np.exp(log_weights)
         self.result.log_evidence = out.ns.log_evidence
         self.result.log_evidence_err = np.sqrt(out.ns.information / out.ns.nlive)
 
         return self.result
 
     def _translate_kwargs(self, kwargs):
-        if 'nlive' not in kwargs:
+        if "nlive" not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
-                    kwargs['nlive'] = kwargs.pop(equiv)
-        if 'n_pool' not in kwargs:
+                    kwargs["nlive"] = kwargs.pop(equiv)
+        if "n_pool" not in kwargs:
             for equiv in self.npool_equiv_kwargs:
                 if equiv in kwargs:
-                    kwargs['n_pool'] = kwargs.pop(equiv)
-        if 'seed' not in kwargs:
+                    kwargs["n_pool"] = kwargs.pop(equiv)
+            if "n_pool" not in kwargs:
+                kwargs["n_pool"] = self._npool
+        if "seed" not in kwargs:
             for equiv in self.seed_equiv_kwargs:
                 if equiv in kwargs:
-                    kwargs['seed'] = kwargs.pop(equiv)
+                    kwargs["seed"] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
         """
         Set the directory where the output will be written
         and check resume and checkpoint status.
         """
-        if 'config_file' in self.kwargs:
-            d = load_json(self.kwargs['config_file'], None)
+        if "config_file" in self.kwargs:
+            d = load_json(self.kwargs["config_file"], None)
             self.kwargs.update(d)
-            self.kwargs.pop('config_file')
+            self.kwargs.pop("config_file")
 
-        if not self.kwargs['plot']:
-            self.kwargs['plot'] = self.plot
+        if not self.kwargs["plot"]:
+            self.kwargs["plot"] = self.plot
 
-        if self.kwargs['n_pool'] == 1 and self.kwargs['max_threads'] == 1:
-            logger.warning('Setting pool to None (n_pool=1 & max_threads=1)')
-            self.kwargs['n_pool'] = None
+        if self.kwargs["n_pool"] == 1 and self.kwargs["max_threads"] == 1:
+            logger.warning("Setting pool to None (n_pool=1 & max_threads=1)")
+            self.kwargs["n_pool"] = None
 
-        if not self.kwargs['output']:
-            self.kwargs['output'] = os.path.join(
-                self.outdir, '{}_nessai'.format(self.label), ''
+        if not self.kwargs["output"]:
+            self.kwargs["output"] = os.path.join(
+                self.outdir, f"{self.label}_nessai", ""
             )
 
-        check_directory_exists_and_if_not_mkdir(self.kwargs['output'])
+        check_directory_exists_and_if_not_mkdir(self.kwargs["output"])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
+
+    def _setup_pool(self):
+        pass

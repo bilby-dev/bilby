@@ -28,7 +28,7 @@ class TestUltranest(unittest.TestCase):
 
     def test_default_kwargs(self):
         expected = dict(
-            resume=True,
+            resume="overwrite",
             show_status=True,
             num_live_points=None,
             wrapped_params=None,
@@ -63,7 +63,7 @@ class TestUltranest(unittest.TestCase):
 
     def test_translate_kwargs(self):
         expected = dict(
-            resume=True,
+            resume="overwrite",
             show_status=True,
             num_live_points=123,
             wrapped_params=None,
