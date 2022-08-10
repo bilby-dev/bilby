@@ -1,15 +1,20 @@
+import datetime
 import inspect
 import sys
-import datetime
 
 import bilby
-from ..utils import command_line_args, logger, loaded_modules_dict
-from ..prior import PriorDict, DeltaFunction
+from bilby.bilby_mcmc import Bilby_MCMC
+
+from ..prior import DeltaFunction, PriorDict
+from ..utils import command_line_args, loaded_modules_dict, logger
+from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 from .cpnest import Cpnest
+from .dnest4 import DNest4
 from .dynamic_dynesty import DynamicDynesty
 from .dynesty import Dynesty
 from .emcee import Emcee
+from .fake_sampler import FakeSampler
 from .kombine import Kombine
 from .nessai import Nessai
 from .nestle import Nestle
@@ -19,11 +24,7 @@ from .ptmcmc import PTMCMCSampler
 from .pymc3 import Pymc3
 from .pymultinest import Pymultinest
 from .ultranest import Ultranest
-from .fake_sampler import FakeSampler
-from .dnest4 import DNest4
 from .zeus import Zeus
-from bilby.bilby_mcmc import Bilby_MCMC
-from . import proposal
 
 IMPLEMENTED_SAMPLERS = {
     "bilby_mcmc": Bilby_MCMC,
@@ -49,7 +50,7 @@ if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
     if sampler in IMPLEMENTED_SAMPLERS:
         sampler_class = IMPLEMENTED_SAMPLERS[sampler]
-        print('Help for sampler "{}":'.format(sampler))
+        print(f'Help for sampler "{sampler}":')
         print(sampler_class.__doc__)
     else:
         if sampler == "None":
@@ -58,8 +59,8 @@ if command_line_args.sampler_help:
                 "the name of the sampler"
             )
         else:
-            print("Requested sampler {} not implemented".format(sampler))
-        print("Available samplers = {}".format(IMPLEMENTED_SAMPLERS))
+            print(f"Requested sampler {sampler} not implemented")
+        print(f"Available samplers = {IMPLEMENTED_SAMPLERS}")
 
     sys.exit()
 
@@ -81,7 +82,7 @@ def run_sampler(
     gzip=False,
     result_class=None,
     npool=1,
-    **kwargs
+    **kwargs,
 ):
     """
     The primary interface to easy parameter estimation
@@ -144,9 +145,7 @@ def run_sampler(
         An object containing the results
     """
 
-    logger.info(
-        "Running for label '{}', output will be saved to '{}'".format(label, outdir)
-    )
+    logger.info(f"Running for label '{label}', output will be saved to '{outdir}'")
 
     if clean:
         command_line_args.clean = clean
@@ -174,7 +173,7 @@ def run_sampler(
         meta_data = dict()
     likelihood.label = label
     likelihood.outdir = outdir
-    meta_data['likelihood'] = likelihood.meta_data
+    meta_data["likelihood"] = likelihood.meta_data
     meta_data["loaded_modules"] = loaded_modules_dict()
 
     if command_line_args.bilby_zero_likelihood_mode:
@@ -198,11 +197,11 @@ def run_sampler(
                 plot=plot,
                 result_class=result_class,
                 npool=npool,
-                **kwargs
+                **kwargs,
             )
         else:
             print(IMPLEMENTED_SAMPLERS)
-            raise ValueError("Sampler {} not yet implemented".format(sampler))
+            raise ValueError(f"Sampler {sampler} not yet implemented")
     elif inspect.isclass(sampler):
         sampler = sampler.__init__(
             likelihood,
@@ -214,12 +213,12 @@ def run_sampler(
             injection_parameters=injection_parameters,
             meta_data=meta_data,
             npool=npool,
-            **kwargs
+            **kwargs,
         )
     else:
         raise ValueError(
             "Provided sampler should be a Sampler object or name of a known "
-            "sampler: {}.".format(", ".join(IMPLEMENTED_SAMPLERS.keys()))
+            f"sampler: {', '.join(IMPLEMENTED_SAMPLERS.keys())}."
         )
 
     if sampler.cached_result:
@@ -240,23 +239,22 @@ def run_sampler(
         elif isinstance(result.sampling_time, (float, int)):
             result.sampling_time = datetime.timedelta(result.sampling_time)
 
-        logger.info('Sampling time: {}'.format(result.sampling_time))
+        logger.info(f"Sampling time: {result.sampling_time}")
         # Convert sampling time into seconds
         result.sampling_time = result.sampling_time.total_seconds()
 
         if sampler.use_ratio:
             result.log_noise_evidence = likelihood.noise_log_likelihood()
             result.log_bayes_factor = result.log_evidence
-            result.log_evidence = \
-                result.log_bayes_factor + result.log_noise_evidence
+            result.log_evidence = result.log_bayes_factor + result.log_noise_evidence
         else:
             result.log_noise_evidence = likelihood.noise_log_likelihood()
-            result.log_bayes_factor = \
-                result.log_evidence - result.log_noise_evidence
+            result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
         if None not in [result.injection_parameters, conversion_function]:
             result.injection_parameters = conversion_function(
-                result.injection_parameters)
+                result.injection_parameters
+            )
 
         # Initial save of the sampler in case of failure in samples_to_posterior
         if save:
@@ -267,9 +265,12 @@ def run_sampler(
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
-        result.samples_to_posterior(likelihood=likelihood, priors=result.priors,
-                                    conversion_function=conversion_function,
-                                    npool=npool)
+        result.samples_to_posterior(
+            likelihood=likelihood,
+            priors=result.priors,
+            conversion_function=conversion_function,
+            npool=npool,
+        )
 
     if save:
         # The overwrite here ensures we overwrite the initially stored data
@@ -277,7 +278,7 @@ def run_sampler(
 
     if plot:
         result.plot_corner()
-    logger.info("Summary of results:\n{}".format(result))
+    logger.info(f"Summary of results:\n{result}")
     return result
 
 
@@ -286,7 +287,5 @@ def _check_marginalized_parameters_not_sampled(likelihood, priors):
         if key in priors:
             if not isinstance(priors[key], (float, DeltaFunction)):
                 raise SamplingMarginalisedParameterError(
-                    "Likelihood is {} marginalized but you are trying to sample in {}. ".format(
-                        key, key
-                    )
+                    f"Likelihood is {key} marginalized but you are trying to sample in {key}. "
                 )

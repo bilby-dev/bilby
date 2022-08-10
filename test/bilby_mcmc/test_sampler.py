@@ -3,7 +3,7 @@ import shutil
 import unittest
 
 import bilby
-from bilby.bilby_mcmc.sampler import Bilby_MCMC, BilbyMCMCSampler, _initialize_global_variables
+from bilby.bilby_mcmc.sampler import Bilby_MCMC, BilbyMCMCSampler
 from bilby.bilby_mcmc.utils import ConvergenceInputs
 from bilby.core.sampler.base_sampler import SamplerError
 import numpy as np
@@ -44,7 +44,12 @@ class TestBilbyMCMCSampler(unittest.TestCase):
         search_parameter_keys = ['m', 'c']
         use_ratio = False
 
-        _initialize_global_variables(likelihood, priors, search_parameter_keys, use_ratio)
+        bilby.core.sampler.base_sampler._initialize_global_variables(
+            likelihood,
+            priors,
+            search_parameter_keys,
+            use_ratio,
+        )
 
     def tearDown(self):
         if os.path.isdir(self.outdir):
