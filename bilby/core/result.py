@@ -1939,12 +1939,17 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
-            template = r' $\mathrm{{ln}}(Z)={lnz:1.3g}$'
+            template = r'{label} $\mathrm{{ln}}(Z)={lnz:1.3g}$'
         else:
-            template = r' $\mathrm{{ln}}(B)={lnbf:1.3g}$'
-        labels = [template.format(lnz=result.log_evidence,
-                                  lnbf=result.log_bayes_factor)
-                  for ii, result in enumerate(results)]
+            template = r'{label} $\mathrm{{ln}}(B)={lnbf:1.3g}$'
+        labels = [
+            template.format(
+                label=label,
+                lnz=result.log_evidence,
+                lnbf=result.log_bayes_factor,
+            )
+            for label, result in zip(labels, results)
+        ]
 
     axes = fig.get_axes()
     ndim = int(np.sqrt(len(axes)))
