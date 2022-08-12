@@ -1566,4 +1566,4 @@ def fill_sample(args):
     sample = dict(sample).copy()
     likelihood.parameters.update(dict(sample).copy())
     new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
-    return (new_sample[key] for key in marginalized_parameters)
+    return tuple((new_sample[key] for key in marginalized_parameters))
