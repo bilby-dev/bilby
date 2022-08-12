@@ -1048,8 +1048,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
 
     """
 
-    _path_to_basis = "/roq_basis/basis.hdf5"
-    _path_to_basis_mb = "/roq_basis/basis_multiband.hdf5"
+    _path_to_basis = "/roq_basis/basis_addcal.hdf5"
+    _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
 
     def setUp(self):
         self.minimum_frequency = 20
@@ -1152,11 +1152,12 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         product(
             [_path_to_basis, _path_to_basis_mb],
             [_path_to_basis, _path_to_basis_mb],
-            [(8, 9), (8, 10.5), (8, 11.5), (8, 12.5), (8, 14)],
-            [1, 2]
+            [(8, 9), (8, 14)],
+            [1, 2],
+            [False, True]
         )
     )
-    def test_likelihood_accuracy(self, basis_linear, basis_quadratic, mc_range, roq_scale_factor):
+    def test_likelihood_accuracy(self, basis_linear, basis_quadratic, mc_range, roq_scale_factor, add_cal_errors):
         "Compare with log likelihood ratios computed by the non-ROQ likelihood"
         self.minimum_frequency *= roq_scale_factor
         self.sampling_frequency *= roq_scale_factor
@@ -1177,6 +1178,25 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             duration=self.duration,
             start_time=self.injection_parameters["geocent_time"] - self.duration + 1
         )
+
+        if add_cal_errors:
+            spline_calibration_nodes = 10
+            np.random.seed(170817)
+            for ifo in interferometers:
+                prefix = f"recalib_{ifo.name}_"
+                ifo.calibration_model = bilby.gw.calibration.CubicSpline(
+                    prefix=prefix,
+                    minimum_frequency=ifo.minimum_frequency,
+                    maximum_frequency=ifo.maximum_frequency,
+                    n_points=spline_calibration_nodes
+                )
+                for i in range(spline_calibration_nodes):
+                    # 5% in amplitude, 5deg in phase
+                    self.injection_parameters[f"{prefix}amplitude_{i}"] = \
+                        np.random.normal(loc=0, scale=0.05)
+                    self.injection_parameters[f"{prefix}phase_{i}"] = \
+                        np.random.normal(loc=0, scale=5 * np.pi / 180)
+
         waveform_generator = bilby.gw.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -1214,9 +1234,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         # The maximum error of log likelihood ratio. It is set to be larger for roq_scale_factor=1 as the injected SNR
         # is higher.
         if roq_scale_factor == 1:
-            max_llr_error = 1e-1
+            max_llr_error = 5e-1
         elif roq_scale_factor == 2:
-            max_llr_error = 1e-2
+            max_llr_error = 5e-2
         else:
             raise
         for mc in np.linspace(self.priors["chirp_mass"].minimum, self.priors["chirp_mass"].maximum, 11):
@@ -1238,8 +1258,8 @@ class TestCreateROQLikelihood(unittest.TestCase):
 
     """
 
-    _path_to_basis = "/roq_basis/basis.hdf5"
-    _path_to_basis_mb = "/roq_basis/basis_multiband.hdf5"
+    _path_to_basis = "/roq_basis/basis_addcal.hdf5"
+    _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
 
     @parameterized.expand(product([_path_to_basis, _path_to_basis_mb], [_path_to_basis, _path_to_basis_mb]))
     def test_from_hdf5(self, basis_linear, basis_quadratic):
@@ -1525,9 +1545,9 @@ class TestInOutROQWeights(unittest.TestCase):
         )
 
         if multiband:
-            path_to_basis = "/roq_basis/basis_multiband.hdf5"
+            path_to_basis = "/roq_basis/basis_multiband_addcal.hdf5"
         else:
-            path_to_basis = "/roq_basis/basis.hdf5"
+            path_to_basis = "/roq_basis/basis_addcal.hdf5"
         return bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=interferometers,
             priors=priors,
