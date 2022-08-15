@@ -1,7 +1,38 @@
 # All notable changes will be documented in this file
 
+## [1.2.0] 2022-08-15
+Version 1.2.0 release of Bilby
+
+This is the first release that drops support for `Python<3.8`.
+
+This release involves major refactoring, especially of the sampler implementations.
+
+Additionally, there are a range of improvements to how information is passed
+with multiprocessing.
+
+### Added
+- Time marginalized ROQ likelihood (!1040)
+- Multiple and multi-banded ROQ likelihood (!1093)
+- Gaussian process likelihoods (!1086)
+- `CBCWaveformGenerator` added with CBC specific defaults (!1080)
+
+### Changes
+- Fixes and improvements to multi-processing (!1084, !1043, !1096)
+- Major refactoring of sampler implementations (!1043)
+- Fixes for reading/writing priors (!1103, !1127, !1128)
+- Fixes/updates to exmample scripts (!1050, !1031, !1076, !1081, !1074)
+- Fixes to calibration correction in GW likelihoods (!1114, !1120, !1119)
+
+### Deprecated/removed
+- Require `Python>=3.8`
+- Require `astropy>=5`
+- `bilby.core.utils.conversion.gps_time_to_gmst`
+- `bilby.core.utils.spherical_to_cartesian`
+- `bilby.core.utils.progress`
+- Deepdish IO for `Result`, `Interferometer`, and `InterferometerList`
+
 ## [1.1.5] 2022-01-14
-Version 1.1.5 release of bilby
+Version 1.1.5 release of Bilby
 
 ### Added
 - Option to enforce that a GW signal fits into the segment duration (!1041)
