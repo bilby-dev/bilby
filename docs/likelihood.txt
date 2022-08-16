@@ -128,9 +128,7 @@ In :code:`bilby`, we can code this up as a likelihood in the following way::
            self.function = function
 
            # These lines of code infer the parameters from the provided function
-           parameters = inspect.getargspec(function).args
-           parameters.pop(0)
-           super().__init__(parameters=dict.fromkeys(parameters))
+           super().__init__(parameters=dict())
 
 
        def log_likelihood(self):
@@ -197,10 +195,10 @@ instantiating the likelihood::
           self.function = function
 
           # These lines of code infer the parameters from the provided function
-          parameters = inspect.getargspec(function).args
-          parameters.pop(0)
+          parameters = inspect.getfullargspec(function).args
+          del parameters[0]
           super().__init__(parameters=dict.fromkeys(parameters))
-                    self.parameters = dict.fromkeys(parameters)
+          self.parameters = dict.fromkeys(parameters)
 
           self.function_keys = self.parameters.keys()
           if self.sigma is None:

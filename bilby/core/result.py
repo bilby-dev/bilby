@@ -298,7 +298,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
 
     if conversion_function is not None:
         data_frame = result.posterior
-        if "npool" in inspect.getargspec(conversion_function).args:
+        if "npool" in inspect.signature(conversion_function).parameters:
             data_frame = conversion_function(data_frame, new_likelihood, new_prior, npool=npool)
         else:
             data_frame = conversion_function(data_frame, new_likelihood, new_prior)
@@ -1389,7 +1389,7 @@ class Result(object):
             data_frame['log_prior'] = self.log_prior_evaluations
 
         if conversion_function is not None:
-            if "npool" in inspect.getargspec(conversion_function).args:
+            if "npool" in inspect.signature(conversion_function).parameters:
                 data_frame = conversion_function(data_frame, likelihood, priors, npool=npool)
             else:
                 data_frame = conversion_function(data_frame, likelihood, priors)
