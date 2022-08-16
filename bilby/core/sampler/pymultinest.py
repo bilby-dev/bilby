@@ -62,6 +62,7 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
     )
     short_name = "pm"
     hard_exit = True
+    sampling_seed_key = "seed"
 
     def __init__(
         self,
@@ -104,6 +105,7 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
         self.use_temporary_directory = temporary_directory and not using_mpi
 
     def _translate_kwargs(self, kwargs):
+        kwargs = super()._translate_kwargs(kwargs)
         if "n_live_points" not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:

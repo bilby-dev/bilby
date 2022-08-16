@@ -114,6 +114,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
     )
     short_name = "dn4"
     hard_exit = True
+    sampling_seed_key = "seed"
 
     def __init__(
         self,
@@ -254,6 +255,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         return self.result
 
     def _translate_kwargs(self, kwargs):
+        kwargs = super()._translate_kwargs(kwargs)
         if "num_steps" not in kwargs:
             for equiv in self.walks_equiv_kwargs:
                 if equiv in kwargs:

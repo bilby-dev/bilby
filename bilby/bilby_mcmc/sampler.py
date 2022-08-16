@@ -202,6 +202,7 @@ class Bilby_MCMC(MCMCSampler):
             logger.warning("Burn-in inefficiency fraction greater than 10%")
 
     def _translate_kwargs(self, kwargs):
+        kwargs = super()._translate_kwargs(kwargs)
         if "printdt" not in kwargs:
             for equiv in ["print_dt", "print_update"]:
                 if equiv in kwargs:

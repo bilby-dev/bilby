@@ -286,6 +286,7 @@ class Ptemcee(MCMCSampler):
 
     def _translate_kwargs(self, kwargs):
         """Translate kwargs"""
+        kwargs = super()._translate_kwargs(kwargs)
         if "nwalkers" not in kwargs:
             for equiv in self.nwalkers_equiv_kwargs:
                 if equiv in kwargs:

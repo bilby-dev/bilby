@@ -91,6 +91,8 @@ class Pymc3(MCMCSampler):
 
     default_kwargs.update(default_nuts_kwargs)
 
+    sampling_seed_key = "random_seed"
+
     def __init__(
         self,
         likelihood,
