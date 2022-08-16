@@ -37,6 +37,7 @@ RUN conda install -n ${{conda_env}} -c conda-forge ptmcmcsampler
 RUN conda install -n ${{conda_env}} -c conda-forge pytorch
 RUN conda install -n ${{conda_env}} -c conda-forge theano-pymc
 RUN conda install -n ${{conda_env}} -c conda-forge pymc3
+RUN conda install -n ${{conda_env}} -c conda-forge pymc pymc-base
 RUN pip install nessai
 
 # Install Polychord
