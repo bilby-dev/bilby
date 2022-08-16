@@ -50,6 +50,7 @@ class PyPolyChord(NestedSampler):
         nlives={},
     )
     hard_exit = True
+    sampling_seed_key = "seed"
 
     @signal_wrapper
     def run_sampler(self):
@@ -100,6 +101,7 @@ class PyPolyChord(NestedSampler):
             self.kwargs["num_repeats"] = self.ndim * 5
 
     def _translate_kwargs(self, kwargs):
+        kwargs = super()._translate_kwargs(kwargs)
         if "nlive" not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:

@@ -19,7 +19,7 @@ class Nessai(NestedSampler):
     """
 
     _default_kwargs = None
-    seed_equiv_kwargs = ["sampling_seed"]
+    sampling_seed_key = "seed"
 
     @property
     def default_kwargs(self):
@@ -165,6 +165,7 @@ class Nessai(NestedSampler):
         return self.result
 
     def _translate_kwargs(self, kwargs):
+        super()._translate_kwargs(kwargs)
         if "nlive" not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
                 if equiv in kwargs:
@@ -175,10 +176,6 @@ class Nessai(NestedSampler):
                     kwargs["n_pool"] = kwargs.pop(equiv)
             if "n_pool" not in kwargs:
                 kwargs["n_pool"] = self._npool
-        if "seed" not in kwargs:
-            for equiv in self.seed_equiv_kwargs:
-                if equiv in kwargs:
-                    kwargs["seed"] = kwargs.pop(equiv)
 
     def _verify_kwargs_against_default_kwargs(self):
         """

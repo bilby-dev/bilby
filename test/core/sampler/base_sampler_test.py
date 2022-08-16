@@ -62,6 +62,15 @@ class TestSampler(unittest.TestCase):
     def test_label(self):
         self.assertEqual(self.sampler.label, "label")
 
+    @parameterized.expand(["sampling_seed", "seed", "random_seed"])
+    def test_translate_kwargs(self, key):
+        self.sampler.sampling_seed_key = key
+        for k in self.sampler.sampling_seed_equiv_kwargs:
+            kwargs = {k: 1234}
+            updated_kwargs = self.sampler._translate_kwargs(kwargs)
+            self.assertDictEqual(updated_kwargs, {key: 1234})
+        self.sampler.sampling_seed_key = None
+
     def test_prior_transform_transforms_search_parameter_keys(self):
         self.sampler.prior_transform([0])
         expected_prior = prior.Uniform(0, 1)

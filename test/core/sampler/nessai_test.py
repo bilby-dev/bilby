@@ -20,9 +20,11 @@ class TestNessai(unittest.TestCase):
             use_ratio=False,
             plot=False,
             skip_import_verification=True,
+            sampling_seed=150914,
         )
         self.expected = self.sampler.default_kwargs
         self.expected['output'] = 'outdir/label_nessai/'
+        self.expected['seed'] = 150914
 
     def tearDown(self):
         del self.likelihood
@@ -54,14 +56,7 @@ class TestNessai(unittest.TestCase):
             self.assertDictEqual(expected, self.sampler.kwargs)
 
     def test_translate_kwargs_seed(self):
-        expected = self.expected.copy()
-        expected["seed"] = 150914
-        for equiv in bilby.core.sampler.nessai.Nessai.seed_equiv_kwargs:
-            new_kwargs = self.sampler.kwargs.copy()
-            del new_kwargs["seed"]
-            new_kwargs[equiv] = 150914
-            self.sampler.kwargs = new_kwargs
-            self.assertDictEqual(expected, self.sampler.kwargs)
+        assert self.expected["seed"] == 150914
 
     def test_npool_max_threads(self):
         expected = self.expected.copy()

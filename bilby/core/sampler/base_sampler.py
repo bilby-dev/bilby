@@ -196,7 +196,13 @@ class Sampler(object):
         "cores",
         "n_pool",
     ]
+    sampling_seed_equiv_kwargs = ["sampling_seed", "seed", "random_seed"]
     hard_exit = False
+    sampling_seed_key = None
+    """Name of keyword argument for setting the sampling for the specific sampler.
+    If a specific sampler does not have a sampling seed option, then it should be
+    left as None.
+    """
 
     def __init__(
         self,
@@ -289,8 +295,16 @@ class Sampler(object):
         self._verify_kwargs_against_default_kwargs()
 
     def _translate_kwargs(self, kwargs):
-        """Template for child classes"""
-        pass
+        """Translate keyword arguments.
+
+        Default only translates the sampling seed if the sampler has
+        :code:`sampling_seed_key` set.
+        """
+        if self.sampling_seed_key and self.sampling_seed_key not in kwargs:
+            for equiv in self.sampling_seed_equiv_kwargs:
+                if equiv in kwargs:
+                    kwargs[self.sampling_seed_key] = kwargs.pop(equiv)
+        return kwargs
 
     @property
     def external_sampler_name(self):
