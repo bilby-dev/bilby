@@ -75,6 +75,7 @@ Stephen R Green
 Sumeet Kulkarni
 Sylvia Biscoveanu
 Tathagata Ghosh
+Tomasz Baka
 Virginia d'Emilio
 Vivien Raymond
 Ka-Lok Lo
