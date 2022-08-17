@@ -1479,11 +1479,15 @@ def generate_posterior_samples_from_marginalized_likelihood(
         use_cache = False
 
     if use_cache and os.path.exists(cache_filename) and not command_line_args.clean:
-        with open(cache_filename, "rb") as f:
-            cached_samples_dict = pickle.load(f)
+        try:
+            with open(cache_filename, "rb") as f:
+                cached_samples_dict = pickle.load(f)
+        except EOFError:
+            logger.warning("Cache file is empty")
+            cached_samples_dict = None
 
         # Check the samples are identical between the cache and current
-        if cached_samples_dict["_samples"].equals(samples):
+        if (cached_samples_dict is not None) and (cached_samples_dict["_samples"].equals(samples)):
             # Calculate reconstruction percentage and print a log message
             nsamples_converted = np.sum(
                 [len(val) for key, val in cached_samples_dict.items() if key != "_samples"]
