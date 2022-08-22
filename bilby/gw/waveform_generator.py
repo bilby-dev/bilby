@@ -258,14 +258,16 @@ class WaveformGenerator(object):
 
 class LALCBCWaveformGenerator(WaveformGenerator):
     """ A waveform generator with specific checks for LAL CBC waveforms """
+    LAL_SIM_INSPIRAL_SPINS_FLOW = 1
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.validate_reference_frequency()
 
     def validate_reference_frequency(self):
-        from lalsimulation import SimInspiralGetSpinFreqFromApproximant, LAL_SIM_INSPIRAL_SPINS_FLOW
+        from lalsimulation import SimInspiralGetSpinFreqFromApproximant
         waveform_approximant = self.waveform_arguments["waveform_approximant"]
         waveform_approximant_number = lalsim_GetApproximantFromString(waveform_approximant)
-        if SimInspiralGetSpinFreqFromApproximant(waveform_approximant_number) == LAL_SIM_INSPIRAL_SPINS_FLOW:
+        if SimInspiralGetSpinFreqFromApproximant(waveform_approximant_number) == self.LAL_SIM_INSPIRAL_SPINS_FLOW:
             if self.waveform_arguments["reference_frequency"] != self.waveform_arguments["minimum_frequency"]:
                 raise ValueError(f"For {waveform_approximant}, reference_frequency must equal minimum_frequency")

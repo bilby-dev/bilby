@@ -1,6 +1,8 @@
 import unittest
 from unittest import mock
+
 import bilby
+import lalsimulation
 import numpy as np
 
 
@@ -157,6 +159,69 @@ class TestWaveformArgumentsSetting(unittest.TestCase):
             self.waveform_generator.waveform_arguments,
             dict(test="test", arguments="arguments"),
         )
+
+
+class TestLALCBCWaveformArgumentsSetting(unittest.TestCase):
+    def setUp(self):
+        self.kwargs = dict(
+            duration=4,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            sampling_frequency=2048,
+        )
+
+    def tearDown(self):
+        del self.kwargs
+
+    def test_spin_reference_enumeration(self):
+        """
+        Verify that the value of the reference enumerator hasn't changed by comparing
+        against a known approximant.
+        """
+        self.assertEqual(
+            lalsimulation.SimInspiralGetSpinFreqFromApproximant(lalsimulation.SEOBNRv3),
+            bilby.gw.waveform_generator.LALCBCWaveformGenerator.LAL_SIM_INSPIRAL_SPINS_FLOW,
+        )
+
+    def test_create_waveform_generator_non_precessing(self):
+        self.kwargs["waveform_arguments"] = dict(
+            minimum_frequency=20.0,
+            reference_frequency=50.0,
+            waveform_approximant="TaylorF2",
+        )
+        wfg = bilby.gw.waveform_generator.LALCBCWaveformGenerator(**self.kwargs)
+        self.assertDictEqual(
+            wfg.waveform_arguments,
+            dict(
+                minimum_frequency=20.0,
+                reference_frequency=50.0,
+                waveform_approximant="TaylorF2",
+            ),
+        )
+
+    def test_create_waveform_generator_eob_succeeds(self):
+        self.kwargs["waveform_arguments"] = dict(
+            minimum_frequency=20.0,
+            reference_frequency=20.0,
+            waveform_approximant="SEOBNRv3",
+        )
+        wfg = bilby.gw.waveform_generator.LALCBCWaveformGenerator(**self.kwargs)
+        self.assertDictEqual(
+            wfg.waveform_arguments,
+            dict(
+                minimum_frequency=20.0,
+                reference_frequency=20.0,
+                waveform_approximant="SEOBNRv3",
+            ),
+        )
+
+    def test_create_waveform_generator_eob_fails(self):
+        self.kwargs["waveform_arguments"] = dict(
+            minimum_frequency=20.0,
+            reference_frequency=50.0,
+            waveform_approximant="SEOBNRv3",
+        )
+        with self.assertRaises(ValueError):
+            _ = bilby.gw.waveform_generator.LALCBCWaveformGenerator(**self.kwargs)
 
 
 class TestSetters(unittest.TestCase):
