@@ -1076,9 +1076,6 @@ class BilbyMCMCSampler(object):
         Eindex=0,
         use_ratio=False,
     ):
-        from ..core.sampler.base_sampler import _sampling_convenience_dump
-
-        self._sampling_helper = _sampling_convenience_dump
         self.beta = beta
         self.Tindex = Tindex
         self.Eindex = Eindex
