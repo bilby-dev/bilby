@@ -1,51 +1,12 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-import subprocess
 import sys
 import os
 
 python_version = sys.version_info
 if python_version < (3, 8):
     sys.exit("Python < 3.8 is not supported, aborting setup")
-
-
-def write_version_file(version):
-    """Writes a file with version information to be used at run time
-
-    Parameters
-    ----------
-    version: str
-        A string containing the current version information
-
-    Returns
-    -------
-    version_file: str
-        A path to the version file
-
-    """
-    try:
-        git_log = subprocess.check_output(
-            ["git", "log", "-1", "--pretty=%h %ai"]
-        ).decode("utf-8")
-        git_diff = (
-            subprocess.check_output(["git", "diff", "."])
-            + subprocess.check_output(["git", "diff", "--cached", "."])
-        ).decode("utf-8")
-        if git_diff == "":
-            git_status = "(CLEAN) " + git_log
-        else:
-            git_status = "(UNCLEAN) " + git_log
-    except Exception as e:
-        print("Unable to obtain git version information, exception: {}".format(e))
-        git_status = "release"
-
-    version_file = ".version"
-    if os.path.isfile(version_file) is False:
-        with open("bilby/" + version_file, "w+") as f:
-            f.write("{}: {}".format(version, git_status))
-
-    return version_file
 
 
 def get_long_description():
@@ -73,8 +34,6 @@ def readfile(filename):
     return filecontents
 
 
-VERSION = '1.2.0'
-version_file = write_version_file(VERSION)
 long_description = get_long_description()
 
 setup(
@@ -86,7 +45,6 @@ setup(
     author="Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot",
     author_email="paul.lasky@monash.edu",
     license="MIT",
-    version=VERSION,
     packages=[
         "bilby",
         "bilby.bilby_mcmc",
@@ -107,7 +65,6 @@ setup(
         "bilby.gw": ["prior_files/*"],
         "bilby.gw.detector": ["noise_curves/*.txt", "detectors/*"],
         "bilby.gw.eos": ["eos_tables/*.dat"],
-        "bilby": [version_file],
     },
     python_requires=">=3.8",
     install_requires=get_requirements(),
