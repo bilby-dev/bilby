@@ -24,6 +24,7 @@ Eric Thrane
 Ethan Payne
 Francisco Javier Hernandez
 Gregory Ashton
+Hank Hua
 Hector Estelles
 Ignacio Magaña Hernandez
 Isobel Marguarethe Romero-Shaw
@@ -34,6 +35,7 @@ Jeremy G Baier
 John Veitch
 Joshua Brandt
 Josh Willis
+Karl Wette
 Katerina Chatziioannou
 Kaylee de Soto
 Khun Sang Phukon
