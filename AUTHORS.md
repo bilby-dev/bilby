@@ -76,6 +76,7 @@ Sumeet Kulkarni
 Sylvia Biscoveanu
 Tathagata Ghosh
 Tomasz Baka
+Will M. Farr
 Virginia d'Emilio
 Vivien Raymond
 Ka-Lok Lo
