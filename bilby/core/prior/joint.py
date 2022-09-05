@@ -382,6 +382,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         self.covs = []
         self.corrcoefs = []
         self.sigmas = []
+        self.logprodsigmas = []   # log of product of sigmas, needed for "standard" multivariate normal
         self.weights = []
         self.eigvalues = []
         self.eigvectors = []
@@ -528,6 +529,9 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             self.covs.append(np.eye(self.num_vars))
             self.sigmas.append(np.ones(self.num_vars))
 
+        # compute log of product of sigmas, needed for "standard" multivariate normal
+        self.logprodsigmas.append(np.log(np.prod(self.sigmas[-1])))
+
         # get eigen values and vectors
         try:
             evals, evecs = np.linalg.eig(self.corrcoefs[-1])
@@ -557,9 +561,16 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         # add the mode
         self.nmodes += 1
 
-        # add multivariate Gaussian
+        # add "standard" multivariate normal distribution
+        # - when the typical scales of the parameters are very different,
+        #   multivariate_normal() may complain that the covariance matrix is singular
+        # - instead pass zero means and correlation matrix instead of covariance matrix
+        #   to get the equivalent of a standard normal distribution in higher dimensions
+        # - this modifies the multivariate normal PDF as follows:
+        #     multivariate_normal(mean=mus, cov=cov).logpdf(x)
+        #     = multivariate_normal(mean=0, cov=corrcoefs).logpdf((x - mus)/sigmas) - logprodsigmas
         self.mvn.append(
-            scipy.stats.multivariate_normal(mean=self.mus[-1], cov=self.covs[-1])
+            scipy.stats.multivariate_normal(mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1])
         )
 
     def _rescale(self, samp, **kwargs):
@@ -630,7 +641,9 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         for j in range(samp.shape[0]):
             # loop over the modes and sum the probabilities
             for i in range(self.nmodes):
-                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(samp[j]))
+                # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
+                z = (samp[j] - self.mus[i]) / self.sigmas[i]
+                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
 
         # set out-of-bounds values to -inf
         lnprob[outbounds] = -np.inf
