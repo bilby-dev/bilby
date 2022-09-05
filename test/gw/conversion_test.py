@@ -537,17 +537,25 @@ class TestGenerateMassParameters(unittest.TestCase):
                                 'mass_2': 1.0,
                                 'chirp_mass': 1.2167286837864113,
                                 'total_mass': 3.0,
+                                'mass_1_source': 4.0,
+                                'mass_2_source': 2.0,
+                                'chirp_mass_source': 2.433457367572823,
+                                'total_mass_source': 6,
                                 'symmetric_mass_ratio': 0.2222222222222222,
                                 'mass_ratio': 0.5}
 
-    def helper_generation_from_keys(self, keys, expected_values,):
+    def helper_generation_from_keys(self, keys, expected_values, source=False):
         # Explicitly test the helper generate_component_masses
         local_test_vars = \
             {key: expected_values[key] for key in keys}
         local_test_vars_with_component_masses = \
-            conversion.generate_component_masses(local_test_vars)
-        self.assertTrue("mass_1" in local_test_vars_with_component_masses.keys())
-        self.assertTrue("mass_2" in local_test_vars_with_component_masses.keys())
+            conversion.generate_component_masses(local_test_vars, source=source)
+        if source:
+            self.assertTrue("mass_1_source" in local_test_vars_with_component_masses.keys())
+            self.assertTrue("mass_2_source" in local_test_vars_with_component_masses.keys())
+        else:
+            self.assertTrue("mass_1" in local_test_vars_with_component_masses.keys())
+            self.assertTrue("mass_2" in local_test_vars_with_component_masses.keys())
         for key in local_test_vars_with_component_masses.keys():
             self.assertAlmostEqual(
                 local_test_vars_with_component_masses[key],
@@ -555,10 +563,32 @@ class TestGenerateMassParameters(unittest.TestCase):
 
         # Test the function more generally
         local_all_mass_parameters = \
-            conversion.generate_mass_parameters(local_test_vars)
-        self.assertEqual(local_all_mass_parameters.keys(),
-                         self.expected_values.keys())
-        for key in expected_values.keys():
+            conversion.generate_mass_parameters(local_test_vars, source=source)
+        if source:
+            self.assertEqual(
+                set(local_all_mass_parameters.keys()),
+                set(["mass_1_source",
+                     "mass_2_source",
+                     "chirp_mass_source",
+                     "total_mass_source",
+                     "symmetric_mass_ratio",
+                     "mass_ratio",
+                     ]
+                    )
+            )
+        else:
+            self.assertEqual(
+                set(local_all_mass_parameters.keys()),
+                set(["mass_1",
+                     "mass_2",
+                     "chirp_mass",
+                     "total_mass",
+                     "symmetric_mass_ratio",
+                     "mass_ratio",
+                     ]
+                    )
+            )
+        for key in local_all_mass_parameters.keys():
             self.assertAlmostEqual(expected_values[key], local_all_mass_parameters[key])
 
     def test_from_mass_1_and_mass_2(self):
@@ -592,6 +622,38 @@ class TestGenerateMassParameters(unittest.TestCase):
     def test_from_chirp_mass_and_symmetric_mass_2(self):
         self.helper_generation_from_keys(["chirp_mass", "mass_2"],
                                          self.expected_values)
+
+    def test_from_mass_1_source_and_mass_2_source(self):
+        self.helper_generation_from_keys(["mass_1_source", "mass_2_source"],
+                                         self.expected_values, source=True)
+
+    def test_from_mass_1_source_and_mass_ratio(self):
+        self.helper_generation_from_keys(["mass_1_source", "mass_ratio"],
+                                         self.expected_values, source=True)
+
+    def test_from_mass_2_source_and_mass_ratio(self):
+        self.helper_generation_from_keys(["mass_2_source", "mass_ratio"],
+                                         self.expected_values, source=True)
+
+    def test_from_mass_1_source_and_total_mass(self):
+        self.helper_generation_from_keys(["mass_2_source", "total_mass_source"],
+                                         self.expected_values, source=True)
+
+    def test_from_chirp_mass_source_and_mass_ratio(self):
+        self.helper_generation_from_keys(["chirp_mass_source", "mass_ratio"],
+                                         self.expected_values, source=True)
+
+    def test_from_chirp_mass_source_and_symmetric_mass_ratio(self):
+        self.helper_generation_from_keys(["chirp_mass_source", "symmetric_mass_ratio"],
+                                         self.expected_values, source=True)
+
+    def test_from_chirp_mass_source_and_symmetric_mass_1(self):
+        self.helper_generation_from_keys(["chirp_mass_source", "mass_1_source"],
+                                         self.expected_values, source=True)
+
+    def test_from_chirp_mass_source_and_symmetric_mass_2(self):
+        self.helper_generation_from_keys(["chirp_mass_source", "mass_2_source"],
+                                         self.expected_values, source=True)
 
 
 if __name__ == "__main__":
