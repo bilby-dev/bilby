@@ -61,7 +61,7 @@ Paul Easter
 Paul Lasky
 Philip Relton
 Rhys Green
-R. Udall
+Richard Udall
 Rico Lo
 Roberto Cotesta
 Rory Smith
