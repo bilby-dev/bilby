@@ -3,3 +3,4 @@ omit =
     test/integration/example_test.py
     test/integration/noise_realisation_test.py
     test/integration/other_test.py
+    bilby/_version.py

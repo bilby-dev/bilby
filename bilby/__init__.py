@@ -24,7 +24,10 @@ from .core import utils, likelihood, prior, result, sampler
 from .core.sampler import run_sampler
 from .core.likelihood import Likelihood
 
-__version__ = utils.get_version_information()
+try:
+    from ._version import version as __version__
+except ModuleNotFoundError:  # development mode
+    __version__ = 'unknown'
 
 
 if sys.version_info < (3,):
