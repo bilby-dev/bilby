@@ -1,5 +1,23 @@
 # All notable changes will be documented in this file
 
+## [1.2.1] 2022-09-05
+Version 1.2.1 release of Bilby
+
+This release contains a few bug fixes following 1.2.0.
+
+### Changes
+- Improve how sampling seed is handled across samplers (!1134)
+- Make sure labels are included when evidences are in corner plot legend (!1135)
+- Remove calls to `getargspec` (!1136)
+- Make sure parameter reconstruction cache is not mangled when reading (!1126)
+- Enable the constant uncertainty calibration spline to have a specifiable boundary condition (!1137)
+- Fix a bug in checkpointing for `bilby_mcmc` (!1141)
+- Fix the `LALCBCWaveformGenerator` (!1140)
+- Switch to automatic versioning with `setuptools_scm` (!1125)
+- Improve the stability of the multivariate normal prior (!1142)
+- Extend mass conversions to include source-frame parameters (!1131)
+- Fix prior ranges for GW150914 example (!1129)
+
 ## [1.2.0] 2022-08-15
 Version 1.2.0 release of Bilby
 
