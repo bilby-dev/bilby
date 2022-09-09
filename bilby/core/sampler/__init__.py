@@ -21,7 +21,7 @@ from .nestle import Nestle
 from .polychord import PyPolyChord
 from .ptemcee import Ptemcee
 from .ptmcmc import PTMCMCSampler
-from .pymc3 import Pymc3
+from .pymc import Pymc
 from .pymultinest import Pymultinest
 from .ultranest import Ultranest
 from .zeus import Zeus
@@ -38,7 +38,7 @@ IMPLEMENTED_SAMPLERS = {
     "nestle": Nestle,
     "ptemcee": Ptemcee,
     "ptmcmcsampler": PTMCMCSampler,
-    "pymc3": Pymc3,
+    "pymc": Pymc,
     "pymultinest": Pymultinest,
     "pypolychord": PyPolyChord,
     "ultranest": Ultranest,
