@@ -243,6 +243,7 @@ class Sampler(object):
         self._fixed_parameter_keys = list()
         self._constraint_parameter_keys = list()
         self._initialise_parameters()
+        self._log_information_about_priors_and_likelihood()
 
         self.exit_code = exit_code
 
@@ -353,11 +354,16 @@ class Sampler(object):
                 self.likelihood.parameters[key] = self.priors[key].sample()
                 self._fixed_parameter_keys.append(key)
 
-        logger.info("Search parameters:")
+    def _log_information_about_priors_and_likelihood(self):
+        logger.info("Analysis priors:")
         for key in self._search_parameter_keys + self._constraint_parameter_keys:
-            logger.info(f"  {key} = {self.priors[key]}")
+            logger.info(f"{key}={self.priors[key]}")
         for key in self._fixed_parameter_keys:
-            logger.info(f"  {key} = {self.priors[key].peak}")
+            logger.info(f"{key}={self.priors[key].peak}")
+        logger.info(f"Analysis likelihood class: {self.likelihood.__class__}")
+        logger.info(
+            f"Analysis likelihood noise evidence: {self.likelihood.noise_log_likelihood()}"
+        )
 
     def _initialise_result(self, result_class):
         """
