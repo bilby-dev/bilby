@@ -36,34 +36,6 @@ class TestGWUtils(unittest.TestCase):
         psd = gwutils.psd_from_freq_series(freq_data, df)
         self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
 
-    def test_time_delay_from_geocenter(self):
-        """
-        The difference in the two detector case is due to rounding error.
-        Different hardware gives different numbers in the last decimal place.
-        """
-        det1 = np.array([0.1, 0.2, 0.3])
-        det2 = np.array([0.1, 0.2, 0.5])
-        ra = 0.5
-        dec = 0.2
-        time = 10
-        self.assertEqual(gwutils.time_delay_geocentric(det1, det1, ra, dec, time), 0)
-        self.assertAlmostEqual(
-            gwutils.time_delay_geocentric(det1, det2, ra, dec, time),
-            1.3253791114055397e-10,
-            14,
-        )
-
-    def test_get_polarization_tensor(self):
-        ra = 1
-        dec = 2.0
-        time = 10
-        psi = 0.1
-        for mode in ["plus", "cross", "breathing", "longitudinal", "x", "y"]:
-            p = gwutils.get_polarization_tensor(ra, dec, time, psi, mode)
-            self.assertEqual(p.shape, (3, 3))
-        with self.assertRaises(ValueError):
-            gwutils.get_polarization_tensor(ra, dec, time, psi, "not-a-mode")
-
     def test_inner_product(self):
         aa = np.array([1, 2, 3])
         bb = np.array([5, 6, 7])

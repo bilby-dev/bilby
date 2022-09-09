@@ -1,4 +1,5 @@
 import numpy as np
+from bilby_cython.geometry import calculate_arm, detector_tensor
 
 from .. import utils as gwutils
 
@@ -263,7 +264,7 @@ class InterferometerGeometry(object):
         if not self._x_updated or not self._y_updated:
             _, _ = self.x, self.y  # noqa
         if not self._detector_tensor_updated:
-            self._detector_tensor = 0.5 * (np.einsum('i,j->ij', self.x, self.x) - np.einsum('i,j->ij', self.y, self.y))
+            self._detector_tensor = detector_tensor(x=self.x, y=self.y)
             self._detector_tensor_updated = True
         return self._detector_tensor
 
@@ -288,19 +289,18 @@ class InterferometerGeometry(object):
 
         """
         if arm == 'x':
-            return self._calculate_arm(self._xarm_tilt, self._xarm_azimuth)
+            return calculate_arm(
+                arm_tilt=self._xarm_tilt,
+                arm_azimuth=self._xarm_azimuth,
+                longitude=self._longitude,
+                latitude=self._latitude
+            )
         elif arm == 'y':
-            return self._calculate_arm(self._yarm_tilt, self._yarm_azimuth)
+            return calculate_arm(
+                arm_tilt=self._yarm_tilt,
+                arm_azimuth=self._yarm_azimuth,
+                longitude=self._longitude,
+                latitude=self._latitude
+            )
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")
-
-    def _calculate_arm(self, arm_tilt, arm_azimuth):
-        e_long = np.array([-np.sin(self._longitude), np.cos(self._longitude), 0])
-        e_lat = np.array([-np.sin(self._latitude) * np.cos(self._longitude),
-                          -np.sin(self._latitude) * np.sin(self._longitude), np.cos(self._latitude)])
-        e_h = np.array([np.cos(self._latitude) * np.cos(self._longitude),
-                        np.cos(self._latitude) * np.sin(self._longitude), np.sin(self._latitude)])
-
-        return (np.cos(arm_tilt) * np.cos(arm_azimuth) * e_long +
-                np.cos(arm_tilt) * np.sin(arm_azimuth) * e_lat +
-                np.sin(arm_tilt) * e_h)

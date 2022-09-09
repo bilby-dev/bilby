@@ -1,3 +1,4 @@
+bilby.cython>=0.3.0
 dynesty<1.1
 emcee
 corner

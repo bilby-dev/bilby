@@ -97,21 +97,6 @@ class TestInterferometer(unittest.TestCase):
     def test_max_freq_setting(self):
         self.assertEqual(self.ifo.strain_data.maximum_frequency, self.maximum_frequency)
 
-    def test_antenna_response_default(self):
-        with mock.patch("bilby.gw.utils.get_polarization_tensor") as m:
-            with mock.patch("numpy.einsum") as n:
-                m.return_value = 0
-                n.return_value = 1
-                self.assertEqual(self.ifo.antenna_response(234, 52, 54, 76, "plus"), 1)
-
-    def test_antenna_response_einsum(self):
-        with mock.patch("bilby.gw.utils.get_polarization_tensor") as m:
-            m.return_value = np.ones((3, 3))
-            self.assertAlmostEqual(
-                self.ifo.antenna_response(234, 52, 54, 76, "plus"),
-                self.ifo.detector_tensor.sum(),
-            )
-
     def test_get_detector_response_default_behaviour(self):
         self.ifo.antenna_response = mock.MagicMock(return_value=1)
         self.ifo.time_delay_from_geocenter = mock.MagicMock(return_value=0)
@@ -314,16 +299,6 @@ class TestInterferometer(unittest.TestCase):
     def test_inject_signal_raises_value_error(self):
         with self.assertRaises(ValueError):
             self.ifo.inject_signal(injection_polarizations=None, parameters=None)
-
-    def test_time_delay_from_geocenter(self):
-        with mock.patch("bilby.gw.utils.time_delay_geocentric") as m:
-            m.return_value = 1
-            self.assertEqual(self.ifo.time_delay_from_geocenter(1, 2, 3), 1)
-
-    def test_vertex_position_geocentric(self):
-        with mock.patch("bilby.gw.utils.get_vertex_position_geocentric") as m:
-            m.return_value = 1
-            self.assertEqual(self.ifo.vertex_position_geocentric(), 1)
 
     def test_optimal_snr_squared(self):
         """
