@@ -3,7 +3,7 @@ dynesty
 emcee
 nestle
 ptemcee
-pymc3>=3.6
+pymc>=4.0.0
 pymultinest
 kombine
 ultranest>=3.0.0

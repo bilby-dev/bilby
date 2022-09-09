@@ -1,22 +1,16 @@
 import unittest
 from unittest.mock import MagicMock
 
-import pytest
-
 import bilby
 
 
-@pytest.mark.xfail(
-    raises=AttributeError,
-    reason="Dependency issue with pymc3 causes attribute error on import",
-)
-class TestPyMC3(unittest.TestCase):
+class TestPyMC(unittest.TestCase):
     def setUp(self):
         self.likelihood = MagicMock()
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Pymc3(
+        self.sampler = bilby.core.sampler.Pymc(
             self.likelihood,
             self.priors,
             outdir="outdir",
@@ -37,7 +31,7 @@ class TestPyMC3(unittest.TestCase):
             step=None,
             init="auto",
             n_init=200000,
-            start=None,
+            initvals=None,
             trace=None,
             chain_idx=0,
             chains=2,
@@ -61,7 +55,7 @@ class TestPyMC3(unittest.TestCase):
             step=None,
             init="auto",
             n_init=200000,
-            start=None,
+            initvals=None,
             trace=None,
             chain_idx=0,
             chains=2,

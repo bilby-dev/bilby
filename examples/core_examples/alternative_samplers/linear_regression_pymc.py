@@ -11,7 +11,7 @@ import numpy as np
 from bilby.core.likelihood import GaussianLikelihood
 
 # A few simple setup steps
-label = "linear_regression_pymc3"
+label = "linear_regression_pymc"
 outdir = "outdir"
 bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
@@ -58,7 +58,7 @@ priors["c"] = bilby.core.prior.Uniform(-2, 2, "c")
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
-    sampler="pymc3",
+    sampler="pymc",
     injection_parameters=injection_parameters,
     outdir=outdir,
     draws=2000,
