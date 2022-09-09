@@ -138,81 +138,56 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.assertTrue(np.array_equal(self.geometry.y, np.array([1])))
 
-    def test_detector_tensor_without_update(self):
-        _ = self.geometry.detector_tensor
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            expected = np.array(
-                [
-                    [-9.24529394e-06, 1.02425803e-04, 3.24550668e-04],
-                    [1.02425803e-04, 1.37390844e-03, -8.61137566e-03],
-                    [3.24550668e-04, -8.61137566e-03, -1.36466315e-03],
-                ]
-            )
-            self.assertTrue(np.allclose(expected, self.geometry.detector_tensor))
-
     def test_detector_tensor_with_x_azimuth_update(self):
-        _ = self.geometry.detector_tensor
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            self.geometry.xarm_azimuth = 1
-            self.assertEqual(0, self.geometry.detector_tensor)
+        original = self.geometry.detector_tensor
+        self.geometry.xarm_azimuth += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_detector_tensor_with_y_azimuth_update(self):
-        _ = self.geometry.detector_tensor
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            self.geometry.yarm_azimuth = 1
-            self.assertEqual(0, self.geometry.detector_tensor)
+        original = self.geometry.detector_tensor
+        self.geometry.yarm_azimuth += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_detector_tensor_with_x_tilt_update(self):
-        _ = self.geometry.detector_tensor
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            self.geometry.xarm_tilt = 1
-            self.assertEqual(0, self.geometry.detector_tensor)
+        original = self.geometry.detector_tensor
+        self.geometry.xarm_tilt += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_detector_tensor_with_y_tilt_update(self):
-        _ = self.geometry.detector_tensor
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            self.geometry.yarm_tilt = 1
-            self.assertEqual(0, self.geometry.detector_tensor)
+        original = self.geometry.detector_tensor
+        self.geometry.yarm_tilt += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_detector_tensor_with_longitude_update(self):
-        with mock.patch("numpy.einsum") as m:
-            m.return_value = 1
-            self.geometry.longitude = 1
-            self.assertEqual(0, self.geometry.detector_tensor)
+        original = self.geometry.detector_tensor
+        self.geometry.longitude += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_detector_tensor_with_latitude_update(self):
-        with mock.patch("numpy.einsum") as m:
-            _ = self.geometry.detector_tensor
-            m.return_value = 1
-            self.geometry.latitude = 1
-            self.assertEqual(self.geometry.detector_tensor, 0)
+        original = self.geometry.detector_tensor
+        self.geometry.latitude += 1
+        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
 
     def test_unit_vector_along_arm_default(self):
         with self.assertRaises(ValueError):
             self.geometry.unit_vector_along_arm("z")
 
     def test_unit_vector_along_arm_x(self):
-        with mock.patch("numpy.array") as m:
-            m.return_value = 1
-            self.geometry.xarm_tilt = 0
-            self.geometry.xarm_azimuth = 0
-            self.geometry.yarm_tilt = 0
-            self.geometry.yarm_azimuth = 90
-            self.assertAlmostEqual(self.geometry.unit_vector_along_arm("x"), 1)
+        self.geometry.longitude = 0
+        self.geometry.latitude = 0
+        self.geometry.xarm_tilt = 0
+        self.geometry.xarm_azimuth = 0
+        arm = self.geometry.unit_vector_along_arm("x")
+        self.assertTrue(np.allclose(arm, np.array([0, 1, 0])))
 
     def test_unit_vector_along_arm_y(self):
-        with mock.patch("numpy.array") as m:
-            m.return_value = 1
-            self.geometry.xarm_tilt = 0
-            self.geometry.xarm_azimuth = 90
-            self.geometry.yarm_tilt = 0
-            self.geometry.yarm_azimuth = 180
-            self.assertAlmostEqual(self.geometry.unit_vector_along_arm("y"), -1)
+        self.geometry.longitude = 0
+        self.geometry.latitude = 0
+        self.geometry.yarm_tilt = 0
+        self.geometry.yarm_azimuth = 90
+        arm = self.geometry.unit_vector_along_arm("y")
+        print(arm)
+        self.assertTrue(np.allclose(arm, np.array([0, 0, 1])))
 
     def test_repr(self):
         expected = (

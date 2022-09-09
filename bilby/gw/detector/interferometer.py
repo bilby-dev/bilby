@@ -1,6 +1,11 @@
 import os
 
 import numpy as np
+from bilby_cython.geometry import (
+    get_polarization_tensor,
+    three_by_three_matrix_contraction,
+    time_delay_from_geocenter,
+)
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor
@@ -268,11 +273,11 @@ class Interferometer(object):
 
         Returns
         =======
-        array_like: A 3x3 array representation of the antenna response for the specified mode
+        float: The antenna response for the specified mode and time/location
 
         """
-        polarization_tensor = gwutils.get_polarization_tensor(ra, dec, time, psi, mode)
-        return np.einsum('ij,ij->', self.geometry.detector_tensor, polarization_tensor)
+        polarization_tensor = get_polarization_tensor(ra, dec, time, psi, mode)
+        return three_by_three_matrix_contraction(self.geometry.detector_tensor, polarization_tensor)
 
     def get_detector_response(self, waveform_polarizations, parameters):
         """ Get the detector response for a particular waveform
@@ -527,7 +532,7 @@ class Interferometer(object):
         =======
         float: The time delay from geocenter in seconds
         """
-        return gwutils.time_delay_geocentric(self.geometry.vertex, np.array([0, 0, 0]), ra, dec, time)
+        return time_delay_from_geocenter(self.geometry.vertex, ra, dec, time)
 
     def vertex_position_geocentric(self):
         """
