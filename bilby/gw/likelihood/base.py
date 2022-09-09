@@ -897,8 +897,9 @@ class GravitationalWaveTransient(Likelihood):
         for key in pairs:
             if key not in loaded_file:
                 return False, key
-            elif not np.array_equal(np.atleast_1d(loaded_file[key]),
-                                    np.atleast_1d(pairs[key])):
+            elif not np.allclose(np.atleast_1d(loaded_file[key]),
+                                 np.atleast_1d(pairs[key]),
+                                 rtol=1e-15):
                 return False, key
         return True, None
 
