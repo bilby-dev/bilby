@@ -388,7 +388,7 @@ class Bilby_MCMC(MCMCSampler):
             logger.info("Written checkpoint file {}".format(self.resume_file))
         else:
             logger.warning(
-                "Cannot write pickle resume file! " "Job may not resume if interrupted."
+                "Cannot write pickle resume file! Job may not resume if interrupted."
             )
             # Touch the file to postpone next check-point attempt
             Path(self.resume_file).touch(exist_ok=True)
