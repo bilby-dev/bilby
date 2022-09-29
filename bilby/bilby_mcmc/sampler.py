@@ -2,6 +2,7 @@ import datetime
 import os
 import time
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -387,9 +388,10 @@ class Bilby_MCMC(MCMCSampler):
             logger.info("Written checkpoint file {}".format(self.resume_file))
         else:
             logger.warning(
-                "Cannot write pickle resume file! "
-                "Job will not resume if interrupted."
+                "Cannot write pickle resume file! Job may not resume if interrupted."
             )
+            # Touch the file to postpone next check-point attempt
+            Path(self.resume_file).touch(exist_ok=True)
         self.ptsampler.pool = _pool
 
     def print_long_progress(self):
