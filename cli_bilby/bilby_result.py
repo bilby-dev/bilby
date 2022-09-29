@@ -90,6 +90,11 @@ def setup_command_line_args():
         help="Merge the set of runs, output saved using the outdir and label",
     )
     action_parser.add_argument(
+        "--ignore-inconsistent",
+        action="store_true",
+        help="If true, ignore inconsistency errors in the merge process, but print a warning",
+    )
+    action_parser.add_argument(
         "-b", "--bayes", action="store_true", help="Print all Bayes factors."
     )
     action_parser.add_argument(
@@ -208,7 +213,11 @@ def main():
             save(result, args)
 
     if args.merge:
-        result = results_list.combine()
+        if args.ignore_inconsistent:
+            consistency_level = "warning"
+        else:
+            consistency_level = "error"
+        result = results_list.combine(consistency_level=consistency_level)
         if args.label is not None:
             result.label = args.label
         if args.outdir is not None:
