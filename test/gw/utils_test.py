@@ -104,7 +104,7 @@ class TestGWUtils(unittest.TestCase):
         strain = gwutils.read_frame_file(
             filename, start_time=None, end_time=None, channel=channel
         )
-        self.assertEqual(strain.channel.name, channel)
+        self.assertEqual(strain.name, channel)
         self.assertTrue(np.all(strain.value == data[:-1]))
 
         # Check reading with time limits
