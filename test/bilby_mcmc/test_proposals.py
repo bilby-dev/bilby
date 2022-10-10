@@ -165,29 +165,33 @@ class TestProposals(TestBaseProposals):
     def test_NF_proposal(self):
         priors = self.create_priors()
         chain = self.create_chain(10000)
-        prop = proposals.NormalizingFlowProposal(priors, first_fit=10000)
-        prop.steps_since_refit = 9999
-        start = time.time()
-        p, w = prop(chain)
-        dt = time.time() - start
-        print(f"Training for {prop.__class__.__name__} took dt~{dt:0.2g} [s]")
-        self.assertTrue(prop.trained)
-
-        self.proposal_check(prop)
+        if proposals.NormalizingFlowProposal.check_dependencies():
+            prop = proposals.NormalizingFlowProposal(priors, first_fit=10000)
+            prop.steps_since_refit = 9999
+            start = time.time()
+            p, w = prop(chain)
+            dt = time.time() - start
+            print(f"Training for {prop.__class__.__name__} took dt~{dt:0.2g} [s]")
+            self.assertTrue(prop.trained)
+            self.proposal_check(prop)
+        else:
+            print("nflows not installed, unable to test NormalizingFlowProposal")
 
     def test_NF_proposal_15D(self):
         ndim = 15
         priors = self.create_priors(ndim)
         chain = self.create_chain(10000, ndim=ndim)
-        prop = proposals.NormalizingFlowProposal(priors, first_fit=10000)
-        prop.steps_since_refit = 9999
-        start = time.time()
-        p, w = prop(chain)
-        dt = time.time() - start
-        print(f"Training for {prop.__class__.__name__} took dt~{dt:0.2g} [s]")
-        self.assertTrue(prop.trained)
-
-        self.proposal_check(prop, ndim=ndim)
+        if proposals.NormalizingFlowProposal.check_dependencies():
+            prop = proposals.NormalizingFlowProposal(priors, first_fit=10000)
+            prop.steps_since_refit = 9999
+            start = time.time()
+            p, w = prop(chain)
+            dt = time.time() - start
+            print(f"Training for {prop.__class__.__name__} took dt~{dt:0.2g} [s]")
+            self.assertTrue(prop.trained)
+            self.proposal_check(prop, ndim=ndim)
+        else:
+            print("nflows not installed, unable to test NormalizingFlowProposal")
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ class TestNessai(unittest.TestCase):
             plot=False,
             skip_import_verification=True,
             sampling_seed=150914,
+            npool=None,  # TODO: remove when support for nessai<0.7.0 is dropped
         )
         self.expected = self.sampler.default_kwargs
         self.expected['output'] = 'outdir/label_nessai/'
@@ -59,10 +60,13 @@ class TestNessai(unittest.TestCase):
         assert self.expected["seed"] == 150914
 
     def test_npool_max_threads(self):
+        # TODO: remove when support for nessai<0.7.0 is dropped
         expected = self.expected.copy()
         expected["n_pool"] = None
+        expected["max_threads"] = 1
         new_kwargs = self.sampler.kwargs.copy()
         new_kwargs["n_pool"] = 1
+        new_kwargs["max_threads"] = 1
         self.sampler.kwargs = new_kwargs
         self.assertDictEqual(expected, self.sampler.kwargs)
 
