@@ -97,13 +97,12 @@ precommits-py3.9:
     CACHE_DIR: ".pip39"
     PYVERSION: "python39"
 
-# FIXME: when image builds for 3.10 change this back.
-#precommits-py3.10:
-#  <<: *precommits
-#  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
-#  variables:
-#    CACHE_DIR: ".pip310"
-#    PYVERSION: "python310"
+precommits-py3.10:
+  <<: *precommits
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+  variables:
+    CACHE_DIR: ".pip310"
+    PYVERSION: "python310"
 
 install:
   stage: initial
@@ -146,19 +145,16 @@ python-3.9:
       - htmlcov/
     expire_in: 30 days
 
-# add back when 3.10 image is available
-#python-3.10:
-#  <<: *unit-test
-#  needs: ["basic-3.10", "precommits-py3.10"]
-#  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+python-3.10:
+  <<: *unit-test
+  needs: ["basic-3.10", "precommits-py3.10"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
 
 .test-sampler: &test-sampler
   stage: test
   script:
     - python -m pip install .
-    - python -m pip install schwimmbad
     - python -m pip list installed
-
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
 python-3.8-samplers:
@@ -171,11 +167,10 @@ python-3.9-samplers:
   needs: ["basic-3.9", "precommits-py3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
-# add back when 3.10 image is available
-#python-3.10-samplers:
-#  <<: *test-sampler
-#  needs: ["basic-3.10", "precommits-py3.10"]
-#  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+python-3.10-samplers:
+  <<: *test-sampler
+  needs: ["basic-3.10", "precommits-py3.10"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
 
 integration-tests-python-3.9:
   stage: test
@@ -209,11 +204,10 @@ plotting-python-3.9:
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
   needs: ["basic-3.9", "precommits-py3.9"]
 
-# add back when 3.10 image is available
-#plotting-python-3.10:
-#  <<: *plotting
-#  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
-#  needs: ["basic-3.10", "precommits-py3.10"]
+plotting-python-3.10:
+  <<: *plotting
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+  needs: ["basic-3.10", "precommits-py3.10"]
 
 # ------------------- Docs stage -------------------------------------------
 
@@ -276,11 +270,10 @@ build-python39-container:
   variables:
     PYVERSION: "python39"
 
-# add back when 3.10 image is available
-#build-python310-container:
-#  <<: *build-container
-#  variables:
-#    PYVERSION: "python310"
+build-python310-container:
+  <<: *build-container
+  variables:
+    PYVERSION: "python310"
 
 pypi-release:
   stage: deploy

@@ -61,7 +61,6 @@ class Pymc(MCMCSampler):
         n_init=200000,
         initvals=None,
         trace=None,
-        chain_idx=0,
         chains=2,
         cores=1,
         tune=500,
