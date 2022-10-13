@@ -10,7 +10,7 @@ Installation
 
           $ conda install -c conda-forge bilby
 
-      Supported python versions: 3.6+.
+      Supported python versions: 3.8-3.10.
 
    .. tab:: Pip
 
@@ -18,7 +18,7 @@ Installation
 
           $ pip install bilby
 
-      Supported python versions: 3.6+.
+      Supported python versions: 3.8-3.10.
 
 
 This will install all requirements for running :code:`bilby` for general
@@ -47,7 +47,7 @@ wave inference, please additionally run the following commands.
 Install bilby from source
 -------------------------
 
-:code:`bilby` is developed and tested with Python 3.6+. In the
+:code:`bilby` is developed and tested with Python 3.8-3.10. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our
@@ -116,7 +116,7 @@ file, you can do this from the link above, or run the command
 
    $ wget https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh
 
-this will download an installer for python 3.6, for other versions check
+this will download a linux installer for python, for other versions check
 the `anaconda page <https://www.anaconda.com/download/#linux>`_.
 Then, `run the command
 <https://conda.io/docs/user-guide/install/linux.html>`_
