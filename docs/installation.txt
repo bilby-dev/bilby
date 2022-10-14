@@ -66,6 +66,15 @@ Once you have run these steps, you have :code:`bilby` installed. You can now
 try to run the examples.
 
 .. note::
+   The bilby version is determined by the tags in the git repository. Therefore, you may need to run
+
+   .. code-block:: console
+
+      git fetch --all --tags
+
+   to fetch the tags so that when you install from source your version information is up to date. 
+
+.. note::
    If you do not have a git.ligo account, and receive an error message:
 
    .. code-block:: console
