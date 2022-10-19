@@ -251,8 +251,11 @@ pages:
   stage: deploy
   image: docker:20.10.12
   needs: ["containers"]
-  only:
-    - schedules
+  except:
+    refs:
+      - schedules
+    changes:
+      - containers/*
   script:
     - cd containers
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
