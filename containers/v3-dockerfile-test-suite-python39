@@ -32,7 +32,7 @@ RUN conda install -n ${conda_env} -c conda-forge scikit-image celerite george
 
 # Install dependencies and samplers
 RUN pip install corner healpy cython tables
-RUN conda install -n ${conda_env} dynesty emcee nestle ptemcee pymultinest ultranest cpnest kombine dnest4 zeus-mcmc pytorch pymc nessai -c conda-forge -c pytorch
+RUN conda install -n ${conda_env} dynesty emcee nestle ptemcee pymultinest ultranest cpnest kombine dnest4 zeus-mcmc pytorch pymc nessai ptmcmcsampler -c conda-forge -c pytorch
 
 # Install Polychord
 RUN apt-get update --allow-releaseinfo-change

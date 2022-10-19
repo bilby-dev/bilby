@@ -10,17 +10,17 @@ conda_sampler_dict = dict(
     python38=[
         "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
         "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai",
+        "pytorch", "pymc", "nessai", "ptmcmcsampler",
     ],
     python39=[
         "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
         "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai",
+        "pytorch", "pymc", "nessai", "ptmcmcsampler",
     ],
     python310=[
         "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
         "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai",
+        "pytorch", "pymc", "nessai", "ptmcmcsampler",
     ]
 )
 
