@@ -1,3 +1,8 @@
+"""
+Tests the number of packages imported with a top-level :code:`import bilby`
+statement.
+"""
+
 import sys
 
 import bilby  # noqa
