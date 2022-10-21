@@ -192,14 +192,14 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
 
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
-
-    if 'redshift' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] = \
-            redshift_to_luminosity_distance(parameters['redshift'])
-    elif 'comoving_distance' in converted_parameters.keys():
-        converted_parameters['luminosity_distance'] = \
-            comoving_distance_to_luminosity_distance(
-                parameters['comoving_distance'])
+    if 'luminosity_distance' not in original_keys:
+        if 'redshift' in converted_parameters.keys():
+            converted_parameters['luminosity_distance'] = \
+                redshift_to_luminosity_distance(parameters['redshift'])
+        elif 'comoving_distance' in converted_parameters.keys():
+            converted_parameters['luminosity_distance'] = \
+                comoving_distance_to_luminosity_distance(
+                    parameters['comoving_distance'])
 
     for key in original_keys:
         if key[-7:] == '_source':
