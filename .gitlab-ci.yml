@@ -71,6 +71,25 @@ basic-3.10:
   <<: *test-python
   image: python:3.10
 
+.test-samplers-import: &test-samplers-import
+  stage: initial
+  script:
+    - python -m pip install .
+    - python -m pip list installed
+    - python test/test_samplers_import.py
+
+import-samplers-3.8:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+
+import-samplers-3.9:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+
+import-samplers-3.10:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+
 .precommits: &precommits
   stage: initial
   script:
@@ -251,8 +270,11 @@ pages:
   stage: deploy
   image: docker:20.10.12
   needs: ["containers"]
-  only:
-    - schedules
+  except:
+    refs:
+      - schedules
+    changes:
+      - containers/*
   script:
     - cd containers
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY

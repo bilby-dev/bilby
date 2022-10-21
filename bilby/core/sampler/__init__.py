@@ -6,7 +6,7 @@ import bilby
 from bilby.bilby_mcmc import Bilby_MCMC
 
 from ..prior import DeltaFunction, PriorDict
-from ..utils import command_line_args, loaded_modules_dict, logger
+from ..utils import command_line_args, env_package_list, loaded_modules_dict, logger
 from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 from .cpnest import Cpnest
@@ -175,6 +175,7 @@ def run_sampler(
     likelihood.outdir = outdir
     meta_data["likelihood"] = likelihood.meta_data
     meta_data["loaded_modules"] = loaded_modules_dict()
+    meta_data["environment_packages"] = env_package_list(as_dataframe=True)
 
     if command_line_args.bilby_zero_likelihood_mode:
         from bilby.core.likelihood import ZeroLikelihood
