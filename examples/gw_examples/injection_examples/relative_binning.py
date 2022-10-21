@@ -14,13 +14,13 @@ from tqdm.auto import trange
 
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
-duration = 16.0
+duration = 4.0
 sampling_frequency = 2048.0
 minimum_frequency = 20
 
 # Specify the output directory and the name of the simulation.
 outdir = "outdir"
-label = "fast_tutorial"
+label = "relative"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 # Set up a random seed for result reproducibility.  This is optional!
@@ -128,6 +128,7 @@ result = bilby.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
+    conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
 )
 
 alt_waveform_generator = bilby.gw.WaveformGenerator(
@@ -148,9 +149,14 @@ for ii in trange(len(result.posterior)):
     parameters = dict(result.posterior.iloc[ii])
     likelihood.parameters.update(parameters)
     alt_likelihood.parameters.update(parameters)
-    weights.append(alt_likelihood.log_likelihood_ratio() - likelihood.log_likelihood_ratio())
+    weights.append(
+        alt_likelihood.log_likelihood_ratio() - likelihood.log_likelihood_ratio()
+    )
 weights = np.exp(weights)
-print(f"Reweighting efficiency is {np.mean(weights)**2 / np.mean(weights**2) * 100:.2f}%")
+print(
+    f"Reweighting efficiency is {np.mean(weights)**2 / np.mean(weights**2) * 100:.2f}%"
+)
+print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 
 # Make a corner plot.
 # result.plot_corner()
