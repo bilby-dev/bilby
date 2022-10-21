@@ -6,7 +6,6 @@ from ...core.utils import logger
 from ...core.prior.base import Constraint
 from ...core.prior import DeltaFunction
 from ..utils import noise_weighted_inner_product
-from ..source import _base_lal_cbc_fd_waveform, _base_waveform_frequency_sequence
 
 
 class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
@@ -187,7 +186,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.waveform_generator.waveform_arguments["frequency_bin_edges"] = self.bin_freqs[interferometer.name]
             self.bin_widths[name] = self.bin_freqs[name][1:] - self.bin_freqs[name][:-1]
             self.bin_centers[name] = (self.bin_freqs[name][1:] + self.bin_freqs[name][:-1]) / 2
-            self.per_detector_fiducial_waveform_points[name] = self.per_detector_fiducial_waveforms[name][self.bin_inds[name]]
+            self.per_detector_fiducial_waveform_points[name] = (
+                self.per_detector_fiducial_waveforms[name][self.bin_inds[name]]
+            )
         return
 
     def set_fiducial_waveforms(self, parameters):
@@ -409,31 +410,3 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_array=None, optimal_snr_squared_array=None,
             d_inner_h_squared_tc_array=d_inner_h_squared_tc_array)
-
-
-def lal_binary_black_hole_relativebinning(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, fiducial, **kwargs):
-
-    waveform_kwargs = dict(
-        waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
-        minimum_frequency=20.0, maximum_frequency=frequency_array[-1],
-        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
-        pn_phase_order=-1, pn_amplitude_order=0)
-    waveform_kwargs.update(kwargs)
-
-    if fiducial == 1:
-        return _base_lal_cbc_fd_waveform(
-            frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
-            luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
-            a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
-            phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
-
-    else:
-        waveform_kwargs["frequencies"] = waveform_kwargs.pop("frequency_bin_edges")
-        return _base_waveform_frequency_sequence(
-            frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
-            luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
-            a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
-            phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
-
