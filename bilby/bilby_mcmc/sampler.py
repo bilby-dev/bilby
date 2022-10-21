@@ -251,8 +251,8 @@ class Bilby_MCMC(MCMCSampler):
     @staticmethod
     def add_data_to_result(result, ptsampler, outdir, label, make_plots):
         result.samples = ptsampler.samples
-        result.log_likelihood_evaluations = result.samples[LOGLKEY]
-        result.log_prior_evaluations = result.samples[LOGPKEY]
+        result.log_likelihood_evaluations = result.samples[LOGLKEY].to_numpy()
+        result.log_prior_evaluations = result.samples[LOGPKEY].to_numpy()
         ptsampler.compute_evidence(
             outdir=outdir,
             label=label,

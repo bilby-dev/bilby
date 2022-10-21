@@ -292,8 +292,6 @@ def encode_for_hdf5(key, item):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
         output = item.to_dict(orient="list")
-    elif isinstance(item, pd.Series):
-        output = item.to_dict()
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
