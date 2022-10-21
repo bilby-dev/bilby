@@ -646,6 +646,9 @@ class GravitationalWaveTransient(Likelihood):
             h_inner_h += per_detector_snr.optimal_snr_squared
         return d_inner_h, h_inner_h
 
+    def _compute_full_waveform(self, signal_polarizations, interferometer):
+        return interferometer.get_detector_response(signal_polarizations, self.parameters)
+
     def generate_phase_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
         r"""
