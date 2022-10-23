@@ -3,7 +3,7 @@
 import re
 import subprocess
 
-special_cases = ["plasky", "thomas", "mj-will"]
+special_cases = ["plasky", "thomas", "mj-will", "richard"]
 AUTHORS_list = []
 with open("AUTHORS.md", "r") as f:
     AUTHORS_list = " ".join([line for line in f]).lower()
