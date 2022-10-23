@@ -1089,6 +1089,7 @@ class GravitationalWaveTransient(Likelihood):
             waveform_generator_class=self.waveform_generator.__class__,
             waveform_arguments=self.waveform_generator.waveform_arguments,
             frequency_domain_source_model=self.waveform_generator.frequency_domain_source_model,
+            time_domain_source_model=self.waveform_generator.time_domain_source_model,
             parameter_conversion=self.waveform_generator.parameter_conversion,
             sampling_frequency=self.waveform_generator.sampling_frequency,
             duration=self.waveform_generator.duration,
