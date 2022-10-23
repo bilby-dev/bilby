@@ -269,15 +269,21 @@ class Interferometer(object):
         psi: float
             binary polarisation angle counter-clockwise about the direction of propagation
         mode: str
-            polarisation mode (e.g. 'plus', 'cross')
+            polarisation mode (e.g. 'plus', 'cross') or the name of a specific detector.
+            If mode == self.name, return 1
 
         Returns
         =======
         float: The antenna response for the specified mode and time/location
 
         """
-        polarization_tensor = get_polarization_tensor(ra, dec, time, psi, mode)
-        return three_by_three_matrix_contraction(self.geometry.detector_tensor, polarization_tensor)
+        if mode in ["plus", "cross", "x", "y", "breathing", "longitudinal"]:
+            polarization_tensor = get_polarization_tensor(ra, dec, time, psi, mode)
+            return three_by_three_matrix_contraction(self.geometry.detector_tensor, polarization_tensor)
+        elif mode == self.name:
+            return 1
+        else:
+            return 0
 
     def get_detector_response(self, waveform_polarizations, parameters):
         """ Get the detector response for a particular waveform
