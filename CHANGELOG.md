@@ -1,5 +1,29 @@
 # All notable changes will be documented in this file
 
+## [1.3.0] 2022-10-23
+Version 1.3.0 release of Bilby
+
+This release has a major change to a sampler interface, `pymc3` is no longer supported, users should switch to `pymc>=4`.
+This release also adds a new top-level dependency, `bilby-cython`.
+
+This release also contains various documentation improvements.
+
+### Added
+- Improved logging of likelihood information when starting sampling (!1148)
+- Switch some geometric calculations to use optimized bilby-cython package (!1053)
+- Directly specify the starting point for `bilby_mcmc` (!1155)
+- Allow a signal to be specified to only be present in a specific `Interferometer` (!1164)
+- Store time domain model function in CBCResult metadata (!1165)
+
+### Changes
+- Switch from `pymc3` to `pymc` (!1117)
+- Relax equality check for distance marginalization lookup to allow cross-platform use (!1150)
+- Fix to deal with non-checkpointing `bilby_mcmc` analyses (!1151)
+- Allow result objects with different analysis configurations to be combined (!1153)
+- Improve the storing of environment information (!166)
+- Fix issue when specifying distance and redshfit independently (!1154)
+- Fix a bug in the storage of likelihood/prior samples for `bilby_mcmc` (!1156)
+
 ## [1.2.1] 2022-09-05
 Version 1.2.1 release of Bilby
 
