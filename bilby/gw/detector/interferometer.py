@@ -308,9 +308,7 @@ class Interferometer(object):
                 parameters['psi'], mode)
 
             signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values())
-
-        signal_ifo *= self.strain_data.frequency_mask
+        signal_ifo = sum(signal.values()) * mask
 
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])

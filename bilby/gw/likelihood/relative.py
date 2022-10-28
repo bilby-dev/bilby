@@ -172,7 +172,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             d_phi_from_start = d_phi - d_phi[0]
             self.number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
             self.bin_freqs[name] = np.zeros(self.number_of_bins + 1)
-            self.bin_inds[name] = np.zeros(self.number_of_bins + 1, dtype=np.int)
+            self.bin_inds[name] = np.zeros(self.number_of_bins + 1, dtype=int)
 
             for i in range(self.number_of_bins + 1):
                 bin_index = np.where(d_phi_from_start >= ((i / self.number_of_bins) * d_phi_from_start[-1]))[0][0]
@@ -268,7 +268,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             masked_strain = interferometer.frequency_domain_strain[mask]
             masked_h0 = self.per_detector_fiducial_waveforms[interferometer.name][mask]
             masked_psd = interferometer.power_spectral_density_array[mask]
-            a0, b0, a1, b1 = np.zeros((4, self.number_of_bins), dtype=np.complex)
+            a0, b0, a1, b1 = np.zeros((4, self.number_of_bins), dtype=complex)
 
             for i in range(self.number_of_bins):
 
@@ -307,40 +307,12 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         self.summary_data = summary_data
 
-    def _detector_response(self, waveform_polarizations, interferometer):
-        signal = dict()
-        for mode in waveform_polarizations.keys():
-            det_response = interferometer.antenna_response(
-                self.parameters['ra'],
-                self.parameters['dec'],
-                self.parameters['geocent_time'],
-                self.parameters['psi'], mode)
-
-            signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values())
-
-        time_shift = interferometer.time_delay_from_geocenter(
-            self.parameters['ra'], self.parameters['dec'], self.parameters['geocent_time'])
-
-        # Be careful to first subtract the two GPS times which are ~1e9 sec.
-        # And then add the time_shift which varies at ~1e-5 sec
-        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
-        dt = dt_geocent + time_shift
-
-        frequencies = self.bin_freqs[interferometer.name]
-        signal_ifo = signal_ifo * np.exp(-1j * 2 * np.pi * dt * frequencies)
-
-        signal_ifo *= interferometer.calibration_model.get_calibration_factor(
-            frequencies, prefix='recalib_{}_'.format(interferometer.name),
-            **self.parameters)
-
-        return signal_ifo
-
     def compute_waveform_ratio_per_interferometer(self, waveform_polarizations, interferometer):
         name = interferometer.name
-        strain = self._detector_response(
+        strain = interferometer.get_detector_response(
             waveform_polarizations=waveform_polarizations,
-            interferometer=interferometer,
+            parameters=self.parameters,
+            frequencies=self.bin_freqs[interferometer.name],
         )
         reference_strain = self.per_detector_fiducial_waveform_points[name]
         waveform_ratio = strain / reference_strain
@@ -367,7 +339,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         )
         ind = self.bin_inds[interferometer.name]
         f = interferometer.frequency_array
-        duplicated_r0, duplicated_r1, duplicated_fm = np.zeros((3, f.shape[0]), dtype=np.complex)
+        duplicated_r0, duplicated_r1, duplicated_fm = np.zeros((3, f.shape[0]), dtype=complex)
 
         for i in range(self.number_of_bins):
             fm = self.bin_centers[interferometer.name]
@@ -397,16 +369,16 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 signal_polarizations=waveform_polarizations,
                 interferometer=interferometer,
             )
-            d_inner_h_squared_tc_array = 4 / self.waveform_generator.duration * np.fft.fft(
+            d_inner_h_array = 4 / self.waveform_generator.duration * np.fft.fft(
                 full_waveform[0:-1]
                 * interferometer.frequency_domain_strain.conjugate()[0:-1]
                 / interferometer.power_spectral_density_array[0:-1])
 
         else:
-            d_inner_h_squared_tc_array = None
+            d_inner_h_array = None
 
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_array=None, optimal_snr_squared_array=None,
-            d_inner_h_squared_tc_array=d_inner_h_squared_tc_array)
+            d_inner_h_array=d_inner_h_array, optimal_snr_squared_array=None,
+            d_inner_h_squared_tc_array=None)

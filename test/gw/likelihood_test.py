@@ -433,7 +433,7 @@ class TestMarginalizations(unittest.TestCase):
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
     _parameters = product(
-        ["regular", "roq"],
+        ["regular", "roq", "relbin"],
         ["luminosity_distance", "geocent_time", "phase"],
         [True, False],
         [True, False],
@@ -465,6 +465,7 @@ class TestMarginalizations(unittest.TestCase):
             ra=1.375,
             dec=-1.2108,
             time_jitter=0,
+            fiducial=0,
         )
 
         self.interferometers = bilby.gw.detector.InterferometerList(["H1"])
@@ -524,6 +525,18 @@ class TestMarginalizations(unittest.TestCase):
         self.roq_linear_matrix_file = f"{roq_dir}/B_linear.npy"
         self.roq_quadratic_matrix_file = f"{roq_dir}/B_quadratic.npy"
 
+        self.relbin_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relativebinning,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                minimum_frequency=20.0,
+                approximant="IMRPhenomPv2",
+            )
+        )
+
     def tearDown(self):
         del self.duration
         del self.sampling_frequency
@@ -566,6 +579,9 @@ class TestMarginalizations(unittest.TestCase):
             ))
             if os.path.exists(self.__class__.path_to_roq_weights):
                 kwargs["weights"] = self.__class__.path_to_roq_weights
+        elif kind == "relbin":
+            kwargs["fiducial_parameters"] = self.parameters.copy()
+            kwargs["waveform_generator"] = self.relbin_waveform_generator
         return kwargs
 
     def get_likelihood(
@@ -583,6 +599,9 @@ class TestMarginalizations(unittest.TestCase):
             cls_ = bilby.gw.likelihood.GravitationalWaveTransient
         elif kind == "roq":
             cls_ = bilby.gw.likelihood.ROQGravitationalWaveTransient
+        elif kind == "relbin":
+            cls_ = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient
+            self.parameters["fiducial"] = 0
         else:
             raise ValueError(f"kind {kind} not understood")
         like = cls_(**kwargs)
@@ -613,6 +632,8 @@ class TestMarginalizations(unittest.TestCase):
     @parameterized.expand(_parameters)
     def test_marginalisation(self, kind, key, distance, time, phase):
         if all([distance, time, phase]):
+            pytest.skip()
+        if key == "geocent_time" and kind == "relbin":
             pytest.skip()
         tested_args = dict(
             distance_marginalization=distance,
