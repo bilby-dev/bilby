@@ -132,6 +132,6 @@ class TestMBLikelihood(unittest.TestCase):
             1.5e-2
         )
 
+
 if __name__ == "__main__":
     unittest.main()
-
