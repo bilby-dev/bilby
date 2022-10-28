@@ -189,7 +189,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.per_detector_fiducial_waveform_points[name] = (
                 self.per_detector_fiducial_waveforms[name][self.bin_inds[name]]
             )
-        return
 
     def set_fiducial_waveforms(self, parameters):
         parameters["fiducial"] = 1
@@ -213,10 +212,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 interferometer.get_detector_response(
                     self.fiducial_polarizations, parameters))
         parameters["fiducial"] = 0
-        return
-
-    def log_likelihood(self):
-        return self.log_likelihood_ratio() + self.noise_log_likelihood()
 
     def find_maximum_likelihood_parameters(self, parameter_bounds,
                                            iterations=1, maximization_kwargs=None):
