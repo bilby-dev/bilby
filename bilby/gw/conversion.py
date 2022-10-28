@@ -1006,6 +1006,8 @@ def generate_component_masses(sample, require_add=False, source=False):
     Add the component masses to the dataframe/dictionary
     We add:
         mass_1, mass_2
+    Or if source=True
+        mass_1_source, mass_2_source
     We also add any other masses which may be necessary for
     intermediate steps, i.e. typically the  total mass is necessary, along
     with the mass ratio, so these will usually be added to the dictionary
@@ -1167,7 +1169,9 @@ def generate_mass_parameters(sample, source=False):
     not recompute keys already present in the dictionary
 
     We add, potentially:
-        chirp mass, total mass, symmetric mass ratio, mass ratio, mass_1, mass_2
+        chirp_mass, total_mass, symmetric_mass_ratio, mass_ratio, mass_1, mass_2
+    Or if source=True:
+        chirp_mass_source, total_mass_source, symmetric_mass_ratio, mass_ratio, mass_1_source, mass_2_source
 
     Parameters
     ==========
@@ -1175,6 +1179,10 @@ def generate_mass_parameters(sample, source=False):
         The input dictionary with two "spanning" mass parameters
         e.g. (mass_1, mass_2), or (chirp_mass, mass_ratio), but not e.g. only
         (mass_ratio, symmetric_mass_ratio)
+    source : bool, default False
+        If True, then perform the conversions for source mass parameters
+        i.e. mass_1_source instead of mass_1
+
     Returns
     =======
     dict: The updated dictionary
@@ -1394,6 +1402,9 @@ def compute_snrs(sample, likelihood, npool=1):
 
     """
     if likelihood is not None:
+        if likelihood.__class__.__name__ == "RelativeBinningGravitationalWaveTransient":
+            logger.info("Relative Binning Likelihood; Calculating SNRs from Summary Data")
+
         if isinstance(sample, dict):
             signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(sample)
             likelihood.parameters.update(sample)
