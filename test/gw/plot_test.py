@@ -19,6 +19,7 @@ class TestCBCResult(unittest.TestCase):
                 distance_marginalization=False,
                 time_marginalization=True,
                 frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+                time_domain_source_model=None,
                 waveform_arguments=dict(
                     reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"
                 ),
