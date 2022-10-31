@@ -116,11 +116,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             time_reference=time_reference)
 
         if fiducial_parameters is None:
-            fiducial_parameters = dict()
+            logger.info("Drawing fiducial parameters from prior.")
+            fiducial_parameters = priors.sample()
+        fiducial_parameters["fiducial"] = 0
         self.fiducial_parameters = fiducial_parameters
         self.chi = chi
         self.epsilon = epsilon
         self.gamma = np.array([-5 / 3, -2 / 3, 1, 5 / 3, 7 / 3])
+        self.maximum_frequency = waveform_generator.frequency_array[-1]
         self.fiducial_waveform_obtained = False
         self.check_if_bins_are_setup = False
         self.fiducial_polarizations = None
@@ -139,16 +142,18 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         if update_fiducial_parameters:
             # write a check to make sure prior is not None
             logger.info("Using scipy optimization to find maximum likelihood parameters.")
-            self.parameters_to_be_updated = [key for key in self.priors if not isinstance(
-                self.priors[key], (DeltaFunction, Constraint))]
-            logger.info("Parameters over which likelihood is maximized: {}".format(self.parameters_to_be_updated))
+            self.parameters_to_be_updated = [key for key in priors if not isinstance(
+                priors[key], (DeltaFunction, Constraint, float, int))]
+            logger.info(f"Parameters over which likelihood is maximized: {self.parameters_to_be_updated}")
             if parameter_bounds is None:
                 logger.info("No parameter bounds were given. Using priors instead.")
-                self.parameter_bounds = self.get_bounds_from_priors(self.priors)
+                self.parameter_bounds = self.get_bounds_from_priors(priors)
             else:
                 self.parameter_bounds = self.get_parameter_list_from_dictionary(parameter_bounds)
             self.fiducial_parameters = self.find_maximum_likelihood_parameters(
                 self.parameter_bounds, maximization_kwargs=maximization_kwargs)
+        self.parameters.update(self.fiducial_parameters)
+        logger.info(f"Fiducial likelihood: {self.log_likelihood_ratio():.2f}")
 
     def __repr__(self):
         return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\fiducial_parameters={},' \
@@ -159,13 +164,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         gamma = self.gamma
         for interferometer in self.interferometers:
             name = interferometer.name
+            maximum_frequency = min(self.maximum_frequency, interferometer.maximum_frequency)
             frequency_array_useful = frequency_array[np.intersect1d(
                 np.where(frequency_array >= interferometer.minimum_frequency),
-                np.where(frequency_array <= interferometer.maximum_frequency))]
+                np.where(frequency_array <= maximum_frequency))]
 
             d_alpha = self.chi * 2 * np.pi / np.abs(
                 (interferometer.minimum_frequency ** gamma) * np.heaviside(
-                    -gamma, 1) - (interferometer.maximum_frequency ** gamma) * np.heaviside(
+                    -gamma, 1) - (maximum_frequency ** gamma) * np.heaviside(
                     gamma, 1))
             d_phi = np.sum(np.array([np.sign(gamma[i]) * d_alpha[i] * (
                 frequency_array_useful ** gamma[i]) for i in range(len(gamma))]), axis=0)
@@ -180,9 +186,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 self.bin_freqs[interferometer.name][i] = bin_freq
                 self.bin_inds[interferometer.name][i] = np.where(frequency_array >= bin_freq)[0][0]
 
-            logger.info("Set up {} bins for {} between {} Hz and {} Hz".format(
-                self.number_of_bins, interferometer.name, interferometer.minimum_frequency,
-                interferometer.maximum_frequency))
+            logger.debug(
+                f"Set up {self.number_of_bins} bins for {interferometer.name} "
+                f"between {interferometer.minimum_frequency} Hz and {maximum_frequency} Hz"
+            )
             self.waveform_generator.waveform_arguments["frequency_bin_edges"] = self.bin_freqs[interferometer.name]
             self.bin_widths[name] = self.bin_freqs[name][1:] - self.bin_freqs[name][:-1]
             self.bin_centers[name] = (self.bin_freqs[name][1:] + self.bin_freqs[name][:-1]) / 2
@@ -191,47 +198,63 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             )
 
     def set_fiducial_waveforms(self, parameters):
+        _fiducial = parameters["fiducial"]
         parameters["fiducial"] = 1
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
 
         maximum_nonzero_index = np.where(self.fiducial_polarizations["plus"] != 0j)[0][-1]
-        logger.info("Maximum Nonzero Index is {}".format(maximum_nonzero_index))
+        logger.debug(f"Maximum Nonzero Index is {maximum_nonzero_index}")
         maximum_nonzero_frequency = self.waveform_generator.frequency_array[maximum_nonzero_index]
-        logger.info("Maximum Nonzero Frequency is {}".format(maximum_nonzero_frequency))
+        logger.debug(f"Maximum Nonzero Frequency is {maximum_nonzero_frequency}")
+        self.maximum_frequency = maximum_nonzero_frequency
 
         if self.fiducial_polarizations is None:
-            return np.nan_to_num(-np.inf)
+            raise ValueError(f"Cannot compute fiducial waveforms for {parameters}")
 
         for interferometer in self.interferometers:
-            logger.info("Maximum Frequency is {}".format(interferometer.maximum_frequency))
-            if interferometer.maximum_frequency > maximum_nonzero_frequency:
-                interferometer.maximum_frequency = maximum_nonzero_frequency
+            logger.debug(f"Maximum Frequency is {interferometer.maximum_frequency}")
+            wf = interferometer.get_detector_response(self.fiducial_polarizations, parameters)
+            wf[interferometer.frequency_array > self.maximum_frequency] = 0
+            self.per_detector_fiducial_waveforms[interferometer.name] = wf
 
-            self.per_detector_fiducial_waveforms[interferometer.name] = (
-                interferometer.get_detector_response(
-                    self.fiducial_polarizations, parameters))
-        parameters["fiducial"] = 0
+        parameters["fiducial"] = _fiducial
 
     def find_maximum_likelihood_parameters(self, parameter_bounds,
-                                           iterations=1, maximization_kwargs=None):
+                                           iterations=5, maximization_kwargs=None):
         if maximization_kwargs is None:
             maximization_kwargs = dict()
-        for i in range(iterations):
-            logger.info("Optimizing fiducial parameters. Iteration : {}".format(i + 1))
-            output = differential_evolution(self.lnlike_scipy_maximize,
-                                            bounds=parameter_bounds, **maximization_kwargs)
+        self.parameters.update(self.fiducial_parameters)
+        self.parameters["fiducial"] = 0
+        updated_parameters_list = self.get_parameter_list_from_dictionary(self.fiducial_parameters)
+        old_fiducial_ln_likelihood = self.log_likelihood_ratio()
+        logger.info(f"Fiducial ln likelihood ratio: {old_fiducial_ln_likelihood:.2f}")
+        for it in range(iterations):
+            logger.info(f"Optimizing fiducial parameters. Iteration : {it + 1}")
+            output = differential_evolution(
+                self.lnlike_scipy_maximize,
+                bounds=parameter_bounds,
+                x0=updated_parameters_list,
+                **maximization_kwargs,
+            )
             updated_parameters_list = output['x']
             updated_parameters = self.get_parameter_dictionary_from_list(updated_parameters_list)
+            self.parameters.update(updated_parameters)
             self.set_fiducial_waveforms(updated_parameters)
+            self.setup_bins()
             self.compute_summary_data()
+            new_fiducial_ln_likelihood = self.log_likelihood_ratio()
+            logger.info(f"Fiducial ln likelihood ratio: {new_fiducial_ln_likelihood:.2f}")
+            if new_fiducial_ln_likelihood - old_fiducial_ln_likelihood < 0.1:
+                break
+            old_fiducial_ln_likelihood = new_fiducial_ln_likelihood
 
         logger.info("Fiducial waveforms updated")
         logger.info("Summary Data updated")
         return updated_parameters
 
     def lnlike_scipy_maximize(self, parameter_list):
-        self.parameters = self.get_parameter_dictionary_from_list(parameter_list)
+        self.parameters.update(self.get_parameter_dictionary_from_list(parameter_list))
         return -self.log_likelihood_ratio()
 
     def get_parameter_dictionary_from_list(self, parameter_list):
