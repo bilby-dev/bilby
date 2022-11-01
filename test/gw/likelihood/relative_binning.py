@@ -8,11 +8,11 @@ from parameterized import parameterized
 
 class TestMBLikelihood(unittest.TestCase):
     def setUp(self):
-        duration = 256
+        duration = 16
         fmin = 20
         sampling_frequency = 8192
         self.test_parameters = dict(
-            chirp_mass=1.3,
+            chirp_mass=13,
             mass_ratio=0.5,
             a_1=0.3,
             a_2=0.4,
@@ -20,7 +20,7 @@ class TestMBLikelihood(unittest.TestCase):
             tilt_2=0.2,
             phi_12=1.0,
             phi_jl=2.0,
-            luminosity_distance=200.0,
+            luminosity_distance=2000.0,
             theta_jn=0.4,
             psi=0.659,
             phase=1.3,
@@ -59,7 +59,8 @@ class TestMBLikelihood(unittest.TestCase):
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
         priors.pop("mass_2")
-        priors["chirp_mass"] = bilby.core.prior.Uniform(1.29, 1.31)
+        # priors["chirp_mass"] = bilby.core.prior.Uniform(1.29, 1.31)
+        priors["chirp_mass"] = bilby.core.prior.Uniform(12, 14)
         priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
         priors["geocent_time"] = bilby.core.prior.Uniform(
             self.test_parameters['geocent_time'] - 0.1,
@@ -81,8 +82,11 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=fmin, approximant=approximant, minimum_frequency=fmin)
         )
         ifos.inject_signal(
-            parameters=self.test_parameters, waveform_generator=non_bin_wfg
+            parameters=self.test_parameters,
+            waveform_generator=non_bin_wfg,
+            raise_error=False,
         )
+        self.ifos = ifos
 
         self.non_bin = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=ifos, waveform_generator=deepcopy(non_bin_wfg),
@@ -97,7 +101,8 @@ class TestMBLikelihood(unittest.TestCase):
         )
         self.non_bin.parameters.update(self.test_parameters)
         self.reference_ln_l = self.non_bin.log_likelihood_ratio()
-        print(self.binned.bin_freqs)
+        self.bin_wfg = bin_wfg
+        self.priors = priors
 
     def tearDown(self):
         del (
@@ -128,6 +133,30 @@ class TestMBLikelihood(unittest.TestCase):
             self.binned.parameters.update(self.calibration_parameters)
         self.assertLess(
             abs(self.non_bin.log_likelihood_ratio() - self.binned.log_likelihood_ratio())
+            / self.reference_ln_l,
+            1.5e-2
+        )
+
+    def test_optimization_gives_good_match(self):
+        fiducial_parameters = self.test_parameters.copy()
+        fiducial_parameters["chirp_mass"] *= 0.99
+        priors = self.priors.copy()
+        for key in [
+            "ra", "dec", "geocent_time", "phase", "psi", "theta_jn", "luminosity_distance",
+            "a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl",
+        ]:
+            priors[key] = self.test_parameters[key]
+        binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=deepcopy(self.bin_wfg),
+            priors=priors,
+            fiducial_parameters=fiducial_parameters,
+            epsilon=0.05,
+            update_fiducial_parameters=True,
+        )
+        self.non_bin.parameters.update(self.test_parameters)
+        binned.parameters.update(self.test_parameters)
+        self.assertLess(
+            abs(self.non_bin.log_likelihood_ratio() - binned.log_likelihood_ratio())
             / self.reference_ln_l,
             1.5e-2
         )
