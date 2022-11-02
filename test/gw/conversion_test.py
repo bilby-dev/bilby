@@ -489,9 +489,11 @@ class TestGenerateAllParameters(unittest.TestCase):
             time_marginalization=True,
             reference_frame="H1L1",
         )
-        self.parameters["zenith"] = 0.0
-        self.parameters["azimuth"] = 0.0
+        self.parameters["zenith"] = 0
+        self.parameters["azimuth"] = 0
+        self.parameters["time_jitter"] = 0
         del self.parameters["ra"], self.parameters["dec"]
+        self.parameters = pd.DataFrame(self.parameters, index=range(1))
         converted = bilby.gw.conversion.generate_all_bbh_parameters(
             sample=self.parameters, likelihood=likelihood, priors=priors
         )
