@@ -635,10 +635,15 @@ class TestResultListError(unittest.TestCase):
         with self.assertRaises(bilby.result.ResultListError):
             self.nested_results.combine()
 
-    def test_combine_inconsistent_data_nan(self):
+    def test_combine_data_all_nan_consistent(self):
         self.nested_results[0].log_noise_evidence = np.nan
         self.nested_results[1].log_noise_evidence = np.nan
         self.nested_results.combine()
+
+    def test_combine_inconsistent_data_one_nan(self):
+        self.nested_results[0].log_noise_evidence = np.nan
+        with self.assertRaises(bilby.result.ResultListError):
+            self.nested_results.combine()
 
     def test_combine_inconsistent_sampling_data(self):
         result = bilby.core.result.Result(
