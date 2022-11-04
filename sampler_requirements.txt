@@ -2,6 +2,7 @@ cpnest>=0.9.4
 dynesty
 emcee
 nestle
+ptmcmcsampler!=2.1.0,!=0.0.0
 ptemcee
 pymc>=4.0.0
 pymultinest
