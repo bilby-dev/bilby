@@ -77,7 +77,7 @@ class TestMBLikelihood(unittest.TestCase):
         )
         bin_wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=duration, sampling_frequency=sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relativebinning,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
             waveform_arguments=dict(
                 reference_frequency=fmin, approximant=approximant, minimum_frequency=fmin)
         )

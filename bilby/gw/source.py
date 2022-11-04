@@ -444,7 +444,7 @@ def binary_neutron_star_roq(
         phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
 
 
-def lal_binary_black_hole_relativebinning(
+def lal_binary_black_hole_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, fiducial, **kwargs):
 
@@ -471,7 +471,7 @@ def lal_binary_black_hole_relativebinning(
             phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
 
 
-def lal_binary_neutron_star_relativebinning(
+def lal_binary_neutron_star_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
         fiducial, **kwargs):

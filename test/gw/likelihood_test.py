@@ -529,7 +529,7 @@ class TestMarginalizations(unittest.TestCase):
         self.relbin_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relativebinning,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
             start_time=1126259640,
             waveform_arguments=dict(
                 reference_frequency=20.0,

@@ -467,7 +467,7 @@ class TestRelbinBBH(unittest.TestCase):
     def test_relbin_fiducial_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **self.parameters
             ),
             dict,
@@ -476,7 +476,7 @@ class TestRelbinBBH(unittest.TestCase):
     def test_relbin_binned_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_binned)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **self.parameters
             ),
             dict,
@@ -485,7 +485,7 @@ class TestRelbinBBH(unittest.TestCase):
     def test_waveform_error_catching_fiducial(self):
         self.bad_parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **self.bad_parameters
             )
         )
@@ -493,7 +493,7 @@ class TestRelbinBBH(unittest.TestCase):
     def test_waveform_error_catching_binned(self):
         self.bad_parameters.update(self.waveform_kwargs_binned)
         self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **self.bad_parameters
             )
         )
@@ -503,7 +503,7 @@ class TestRelbinBBH(unittest.TestCase):
         raise_error_parameters.update(self.waveform_kwargs_fiducial)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **raise_error_parameters
             )
 
@@ -512,13 +512,13 @@ class TestRelbinBBH(unittest.TestCase):
         raise_error_parameters.update(self.waveform_kwargs_binned)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **raise_error_parameters
             )
 
     def test_relbin_bbh_fails_without_fiducial_option(self):
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_black_hole_relativebinning(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
                 self.frequency_array, **self.parameters
             )
 
@@ -577,7 +577,7 @@ class TestRelbinBNS(unittest.TestCase):
     def test_relbin_fiducial_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star_relativebinning(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             ),
             dict,
@@ -586,7 +586,7 @@ class TestRelbinBNS(unittest.TestCase):
     def test_relbin_binned_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_binned)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star_relativebinning(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             ),
             dict,
@@ -594,7 +594,7 @@ class TestRelbinBNS(unittest.TestCase):
 
     def test_relbin_bns_fails_without_fiducial_option(self):
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star_relativebinning(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             )
 
@@ -603,7 +603,7 @@ class TestRelbinBNS(unittest.TestCase):
         self.parameters.pop("lambda_2")
         self.parameters.update(self.waveform_kwargs_fiducial)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star_relativebinning(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             )
 
@@ -612,7 +612,7 @@ class TestRelbinBNS(unittest.TestCase):
         self.parameters.pop("lambda_2")
         self.parameters.update(self.waveform_kwargs_binned)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star_relativebinning(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             )
 

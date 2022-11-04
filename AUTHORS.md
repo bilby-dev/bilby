@@ -9,6 +9,7 @@ Aditya Vijaykumar
 Andrew Kim
 Andrew Miller
 Antoni Ramos-Buades
+Apratim Ganguly
 Avi Vajpeyi
 Bruce Edelman
 Carl-Johan Haster

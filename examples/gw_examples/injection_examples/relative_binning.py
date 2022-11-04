@@ -61,7 +61,7 @@ waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     # frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relativebinning,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments,
 )
@@ -135,7 +135,7 @@ alt_waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    # frequency_domain_source_model=lal_binary_black_hole_relativebinning,
+    # frequency_domain_source_model=lal_binary_black_hole_relative_binning,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments,
 )
