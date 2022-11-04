@@ -113,7 +113,7 @@ likelihood = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
     time_marginalization=False,
     phase_marginalization=True,
     distance_marginalization=True,
-    fiducial_parameters=fiducial_parameters
+    fiducial_parameters=fiducial_parameters,
 )
 
 # Finally, we run the sampler. This function takes the likelihood and prior
