@@ -1402,9 +1402,6 @@ def compute_snrs(sample, likelihood, npool=1):
 
     """
     if likelihood is not None:
-        if likelihood.__class__.__name__ == "RelativeBinningGravitationalWaveTransient":
-            logger.info("Relative Binning Likelihood; Calculating SNRs from Summary Data")
-
         if isinstance(sample, dict):
             signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(sample)
             likelihood.parameters.update(sample)
