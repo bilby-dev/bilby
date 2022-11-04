@@ -172,7 +172,7 @@ python-3.10:
 .test-sampler: &test-sampler
   stage: test
   script:
-    - python -m pip install .
+    - python -m pip install .[all]
     - python -m pip list installed
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
