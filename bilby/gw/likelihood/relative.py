@@ -161,40 +161,48 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def setup_bins(self):
         frequency_array = self.waveform_generator.frequency_array
-        gamma = self.gamma
+        gamma = self.gamma[:, np.newaxis]
+        maximum_frequency = frequency_array[0]
+        minimum_frequency = frequency_array[-1]
+        for interferometer in self.interferometers:
+            maximum_frequency = max(maximum_frequency, interferometer.maximum_frequency)
+            minimum_frequency = min(minimum_frequency, interferometer.minimum_frequency)
+        maximum_frequency = min(maximum_frequency, self.maximum_frequency)
+        frequency_array_useful = frequency_array[
+            (frequency_array >= minimum_frequency)
+            & (frequency_array <= maximum_frequency)
+        ]
+
+        d_alpha = self.chi * 2 * np.pi / np.abs(
+            (minimum_frequency ** gamma) * np.heaviside(-gamma, 1)
+            - (maximum_frequency ** gamma) * np.heaviside(gamma, 1)
+        )
+        d_phi = np.sum(
+            np.sign(gamma) * d_alpha * frequency_array_useful ** gamma,
+            axis=0
+        )
+        d_phi_from_start = d_phi - d_phi[0]
+        self.number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
+        self.bin_freqs = np.zeros(self.number_of_bins + 1)
+        self.bin_inds = np.zeros(self.number_of_bins + 1, dtype=int)
+
+        for i in range(self.number_of_bins + 1):
+            bin_index = np.where(d_phi_from_start >= ((i / self.number_of_bins) * d_phi_from_start[-1]))[0][0]
+            bin_freq = frequency_array_useful[bin_index]
+            self.bin_freqs[i] = bin_freq
+            self.bin_inds[i] = np.where(frequency_array >= bin_freq)[0][0]
+
+        logger.debug(
+            f"Set up {self.number_of_bins} bins "
+            f"between {minimum_frequency} Hz and {maximum_frequency} Hz"
+        )
+        self.waveform_generator.waveform_arguments["frequency_bin_edges"] = self.bin_freqs
+        self.bin_widths = self.bin_freqs[1:] - self.bin_freqs[:-1]
+        self.bin_centers = (self.bin_freqs[1:] + self.bin_freqs[:-1]) / 2
         for interferometer in self.interferometers:
             name = interferometer.name
-            maximum_frequency = min(self.maximum_frequency, interferometer.maximum_frequency)
-            frequency_array_useful = frequency_array[np.intersect1d(
-                np.where(frequency_array >= interferometer.minimum_frequency),
-                np.where(frequency_array <= maximum_frequency))]
-
-            d_alpha = self.chi * 2 * np.pi / np.abs(
-                (interferometer.minimum_frequency ** gamma) * np.heaviside(
-                    -gamma, 1) - (maximum_frequency ** gamma) * np.heaviside(
-                    gamma, 1))
-            d_phi = np.sum(np.array([np.sign(gamma[i]) * d_alpha[i] * (
-                frequency_array_useful ** gamma[i]) for i in range(len(gamma))]), axis=0)
-            d_phi_from_start = d_phi - d_phi[0]
-            self.number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
-            self.bin_freqs[name] = np.zeros(self.number_of_bins + 1)
-            self.bin_inds[name] = np.zeros(self.number_of_bins + 1, dtype=int)
-
-            for i in range(self.number_of_bins + 1):
-                bin_index = np.where(d_phi_from_start >= ((i / self.number_of_bins) * d_phi_from_start[-1]))[0][0]
-                bin_freq = frequency_array_useful[bin_index]
-                self.bin_freqs[interferometer.name][i] = bin_freq
-                self.bin_inds[interferometer.name][i] = np.where(frequency_array >= bin_freq)[0][0]
-
-            logger.debug(
-                f"Set up {self.number_of_bins} bins for {interferometer.name} "
-                f"between {interferometer.minimum_frequency} Hz and {maximum_frequency} Hz"
-            )
-            self.waveform_generator.waveform_arguments["frequency_bin_edges"] = self.bin_freqs[interferometer.name]
-            self.bin_widths[name] = self.bin_freqs[name][1:] - self.bin_freqs[name][:-1]
-            self.bin_centers[name] = (self.bin_freqs[name][1:] + self.bin_freqs[name][:-1]) / 2
             self.per_detector_fiducial_waveform_points[name] = (
-                self.per_detector_fiducial_waveforms[name][self.bin_inds[name]]
+                self.per_detector_fiducial_waveforms[name][self.bin_inds]
             )
 
     def set_fiducial_waveforms(self, parameters):
@@ -280,46 +288,34 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             mask = interferometer.frequency_mask
             masked_frequency_array = interferometer.frequency_array[mask]
             masked_bin_inds = []
-            for edge in self.bin_freqs[interferometer.name]:
+            for edge in self.bin_freqs:
                 index = np.where(masked_frequency_array == edge)[0][0]
                 masked_bin_inds.append(index)
             masked_strain = interferometer.frequency_domain_strain[mask]
             masked_h0 = self.per_detector_fiducial_waveforms[interferometer.name][mask]
             masked_psd = interferometer.power_spectral_density_array[mask]
+            duration = interferometer.duration
             a0, b0, a1, b1 = np.zeros((4, self.number_of_bins), dtype=complex)
 
             for i in range(self.number_of_bins):
+                start_idx = masked_bin_inds[i]
+                end_idx = masked_bin_inds[i + 1]
+                start = masked_frequency_array[start_idx]
+                stop = masked_frequency_array[end_idx]
+                idxs = slice(start_idx, end_idx)
 
-                central_frequency_i = 0.5 * \
-                    (masked_frequency_array[masked_bin_inds[i]] + masked_frequency_array[masked_bin_inds[i + 1]])
-                masked_strain_i = masked_strain[masked_bin_inds[i]:masked_bin_inds[i + 1]]
-                masked_h0_i = masked_h0[masked_bin_inds[i]:masked_bin_inds[i + 1]]
-                masked_psd_i = masked_psd[masked_bin_inds[i]:masked_bin_inds[i + 1]]
-                masked_frequency_i = masked_frequency_array[masked_bin_inds[i]:masked_bin_inds[i + 1]]
+                strain = masked_strain[idxs]
+                h0 = masked_h0[idxs]
+                psd = masked_psd[idxs]
 
-                a0[i] = noise_weighted_inner_product(
-                    masked_h0_i,
-                    masked_strain_i,
-                    masked_psd_i,
-                    self.waveform_generator.duration)
+                frequencies = masked_frequency_array[idxs]
+                central_frequency = (start + stop) / 2
+                delta_frequency = frequencies - central_frequency
 
-                b0[i] = noise_weighted_inner_product(
-                    masked_h0_i,
-                    masked_h0_i,
-                    masked_psd_i,
-                    self.waveform_generator.duration)
-
-                a1[i] = noise_weighted_inner_product(
-                    masked_h0_i,
-                    masked_strain_i * (masked_frequency_i - central_frequency_i),
-                    masked_psd_i,
-                    self.waveform_generator.duration)
-
-                b1[i] = noise_weighted_inner_product(
-                    masked_h0_i,
-                    masked_h0_i * (masked_frequency_i - central_frequency_i),
-                    masked_psd_i,
-                    self.waveform_generator.duration)
+                a0[i] = noise_weighted_inner_product(h0, strain, psd, duration)
+                b0[i] = noise_weighted_inner_product(h0, h0, psd, duration)
+                a1[i] = noise_weighted_inner_product(h0, strain * delta_frequency, psd, duration)
+                b1[i] = noise_weighted_inner_product(h0, h0 * delta_frequency, psd, duration)
 
             summary_data[interferometer.name] = (a0, a1, b0, b1)
 
@@ -330,24 +326,15 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         strain = interferometer.get_detector_response(
             waveform_polarizations=waveform_polarizations,
             parameters=self.parameters,
-            frequencies=self.bin_freqs[interferometer.name],
+            frequencies=self.bin_freqs,
         )
         reference_strain = self.per_detector_fiducial_waveform_points[name]
         waveform_ratio = strain / reference_strain
 
         r0 = (waveform_ratio[1:] + waveform_ratio[:-1]) / 2
-        r1 = (waveform_ratio[1:] - waveform_ratio[:-1]) / self.bin_widths[name]
+        r1 = (waveform_ratio[1:] - waveform_ratio[:-1]) / self.bin_widths
 
         return [r0, r1]
-
-    def compute_waveform_ratio(self, waveform_polarizations):
-        waveform_ratio = dict()
-        for interferometer in self.interferometers:
-            waveform_ratio[interferometer.name] = self.compute_waveform_ratio_per_interferometer(
-                waveform_polarizations=waveform_polarizations,
-                interferometer=interferometer,
-            )
-        return waveform_ratio
 
     def _compute_full_waveform(self, signal_polarizations, interferometer):
         fiducial_waveform = self.per_detector_fiducial_waveforms[interferometer.name]
@@ -355,15 +342,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             waveform_polarizations=signal_polarizations,
             interferometer=interferometer,
         )
-        ind = self.bin_inds[interferometer.name]
         f = interferometer.frequency_array
         duplicated_r0, duplicated_r1, duplicated_fm = np.zeros((3, f.shape[0]), dtype=complex)
 
         for i in range(self.number_of_bins):
-            fm = self.bin_centers[interferometer.name]
-            duplicated_fm[ind[i]:ind[i + 1]] = fm[i]
-            duplicated_r0[ind[i]:ind[i + 1]] = r0[i]
-            duplicated_r1[ind[i]:ind[i + 1]] = r1[i]
+            idxs = slice(self.bin_inds[i], self.bin_inds[i + 1])
+            duplicated_fm[idxs] = self.bin_centers[i]
+            duplicated_r0[idxs] = r0[i]
+            duplicated_r1[idxs] = r1[i]
 
         full_waveform_ratio = duplicated_r0 + duplicated_r1 * (f - duplicated_fm)
         return fiducial_waveform * full_waveform_ratio
