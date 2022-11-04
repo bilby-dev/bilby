@@ -145,6 +145,8 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
 
         self._setup_run_directory()
         self._check_and_load_sampling_time_file()
+        if not self.kwargs["resume"]:
+            self.total_sampling_time = 0.0
 
         # Overwrite pymultinest's signal handling function
         pm_run = importlib.import_module("pymultinest.run")
