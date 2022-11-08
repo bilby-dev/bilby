@@ -132,6 +132,7 @@ class GravitationalWaveTransient(Likelihood):
         self.calibration_marginalization = calibration_marginalization
         self.priors = priors
         self._check_set_duration_and_sampling_frequency_of_waveform_generator()
+        self._noise_log_likelihood_value = None
         self.jitter_time = jitter_time
         self.reference_frame = reference_frame
         if "geocent" not in time_reference:
@@ -342,7 +343,7 @@ class GravitationalWaveTransient(Likelihood):
         else:
             self._prior = None
 
-    def noise_log_likelihood(self):
+    def _calculate_noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
             mask = interferometer.frequency_mask
@@ -352,6 +353,12 @@ class GravitationalWaveTransient(Likelihood):
                 interferometer.power_spectral_density_array[mask],
                 self.waveform_generator.duration) / 2
         return float(np.real(log_l))
+
+    def noise_log_likelihood(self):
+        # only compute likelihood if called for the 1st time
+        if self._noise_log_likelihood_value is None:
+            self._noise_log_likelihood_value = self._calculate_noise_log_likelihood()
+        return self._noise_log_likelihood_value
 
     def log_likelihood_ratio(self):
         waveform_polarizations = \
