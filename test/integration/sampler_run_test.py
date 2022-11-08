@@ -53,7 +53,7 @@ _sampler_kwargs = dict(
         ntemps=1,
         frac_threshold=0.5,
     ),
-    PTMCMCSampler=dict(Niter=101, burn=2, isave=100),
+    PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
     pymc=dict(draws=50, tune=50, n_init=250),
     pymultinest=dict(nlive=100),
     pypolychord=dict(nlive=100),
