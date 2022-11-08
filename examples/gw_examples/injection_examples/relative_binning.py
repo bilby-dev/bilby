@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Tutorial to demonstrate running parameter estimation on a reduced parameter
-space for an injected signal.
+space for an injected signal, using the relative binning likelihood.
 
 This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance

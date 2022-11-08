@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-Tutorial to demonstrate running parameter estimation on GW190425
+Tutorial to demonstrate running parameter estimation on GW190425.
 
 This example estimates all 17 parameters of the binary neutron star system using
-commonly used prior distributions. This will take several hours to run. The
-data is obtained using gwpy, see [1] for information on how to access data on
-the LIGO Data Grid instead.
+commonly used prior distributions. We shall use the relative binning likelihood.
+This will take around an hour to run. The data is obtained using gwpy,
+see [1] for information on how to access data on the LIGO Data Grid instead.
 
 [1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
 """
@@ -16,7 +16,7 @@ logger = bilby.core.utils.logger
 outdir = "outdir"
 label = "GW190425"
 
-# Note you can get trigger times using the gwosc package, e.g.:
+# Note you can get trigger times using the gwosc package, e.g.
 # > from gwosc import datasets
 # > datasets.event_gps("GW190425")
 trigger_time = 1240215503.0
@@ -29,6 +29,29 @@ post_trigger_duration = 2  # Time between trigger time and end of segment
 end_time = trigger_time + post_trigger_duration
 start_time = end_time - duration
 
+# The fiducial parameters are taken to me the max likelihood sample from the
+# posterior sample release of LIGO-Virgo
+# https://www.gw-openscience.org/eventapi/html/O3_Discovery_Papers/GW190425/
+
+fiducial_parameters = {
+    "a_1": 0.018,
+    "a_2": 0.016,
+    "chirp_mass": 1.48658,
+    "dec": 0.438,
+    "geocent_time": 1240215503.039,
+    "lambda_1": 446.941,
+    "lambda_2": 43.386,
+    "luminosity_distance": 206.751,
+    "mass_ratio": 0.8955,
+    "phase": 3.0136566567608765,
+    "phi_12": 4.319,
+    "phi_jl": 5.07,
+    "psi": 0.281,
+    "ra": 4.2,
+    "theta_jn": 0.185,
+    "tilt_1": 0.879,
+    "tilt_2": 0.514,
+}
 psd_duration = 1024
 psd_start_time = start_time - psd_duration
 psd_end_time = start_time
@@ -64,6 +87,7 @@ ifo_list.plot_data(outdir=outdir, label=label)
 # You can overwrite this using the syntax below in the file,
 # or choose a fixed value by just providing a float value as the prior.
 priors = bilby.gw.prior.BBHPriorDict(filename="GW190425.prior")
+priors["fiducial"] = 0
 
 # Add the geocent time prior
 priors["geocent_time"] = bilby.core.prior.Uniform(
@@ -76,7 +100,7 @@ priors["geocent_time"] = bilby.core.prior.Uniform(
 # the waveform approximant and reference frequency and a parameter conversion
 # which allows us to sample in chirp mass and ratio rather than component mass
 waveform_generator = bilby.gw.WaveformGenerator(
-    frequency_domain_source_model=bilby.gw.source.lal_binary_neutron_star,
+    frequency_domain_source_model=bilby.gw.source.lal_binary_neutron_star_relative_binning,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_neutron_star_parameters,
     waveform_arguments={
         "waveform_approximant": "IMRPhenomPv2_NRTidalv2",
@@ -87,13 +111,14 @@ waveform_generator = bilby.gw.WaveformGenerator(
 # In this step, we define the likelihood. Here we use the standard likelihood
 # function, passing it the data and the waveform generator.
 # Note, phase_marginalization is formally invalid with a precessing waveform such as IMRPhenomPv2
-likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+likelihood = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
     ifo_list,
     waveform_generator,
     priors=priors,
-    time_marginalization=True,
-    phase_marginalization=False,
+    time_marginalization=False,
+    phase_marginalization=True,
     distance_marginalization=True,
+    fiducial_parameters=fiducial_parameters,
 )
 
 # Finally, we run the sampler. This function takes the likelihood and prior
@@ -108,6 +133,6 @@ result = bilby.run_sampler(
     check_point_delta_t=600,
     check_point_plot=True,
     npool=1,
-    conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+    conversion_function=bilby.gw.conversion.generate_all_bns_parameters,
 )
 result.plot_corner()
