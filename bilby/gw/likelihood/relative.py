@@ -10,8 +10,8 @@ from ..utils import noise_weighted_inner_product
 
 class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     """A gravitational-wave transient likelihood object which uses the relative
-    binning procedure to calculate a fast likelihood. See IAS paper:
-
+    binning procedure to calculate a fast likelihood. See Zackay et al.
+    arXiv1806.08792
 
     Parameters
     ----------
