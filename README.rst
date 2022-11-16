@@ -53,6 +53,7 @@ as requested in their associated documentation.
 * `pymultinest <https://github.com/JohannesBuchner/PyMultiNest>`__
 * `cpnest <https://github.com/johnveitch/cpnest>`__
 * `emcee <https://github.com/dfm/emcee>`__
+* `nessai <https://github.com/mj-will/nessai>`_
 * `ptemcee <https://github.com/willvousden/ptemcee>`__
 * `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
 * `pypolychord <https://github.com/PolyChord/PolyChordLite>`__
