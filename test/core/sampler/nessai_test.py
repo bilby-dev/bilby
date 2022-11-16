@@ -21,9 +21,9 @@ class TestNessai(unittest.TestCase):
             plot=False,
             skip_import_verification=True,
             sampling_seed=150914,
-            npool=None,  # TODO: remove when support for nessai<0.7.0 is dropped
         )
         self.expected = self.sampler.default_kwargs
+        self.expected["n_pool"] = 1  # Because npool=1 by default
         self.expected['output'] = 'outdir/label_nessai/'
         self.expected['seed'] = 150914
 
@@ -48,27 +48,30 @@ class TestNessai(unittest.TestCase):
 
     def test_translate_kwargs_npool(self):
         expected = self.expected.copy()
-        expected["n_pool"] = None
+        expected["n_pool"] = 2
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npool_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
             del new_kwargs["n_pool"]
-            new_kwargs[equiv] = None
+            new_kwargs[equiv] = 2
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
 
-    def test_translate_kwargs_seed(self):
-        assert self.expected["seed"] == 150914
+    def test_split_kwargs(self):
+        kwargs, run_kwargs = self.sampler.split_kwargs()
+        assert "save" not in run_kwargs
+        assert "plot" in run_kwargs
 
-    def test_npool_max_threads(self):
-        # TODO: remove when support for nessai<0.7.0 is dropped
+    def test_translate_kwargs_no_npool(self):
         expected = self.expected.copy()
-        expected["n_pool"] = None
-        expected["max_threads"] = 1
+        expected["n_pool"] = 3
         new_kwargs = self.sampler.kwargs.copy()
-        new_kwargs["n_pool"] = 1
-        new_kwargs["max_threads"] = 1
+        del new_kwargs["n_pool"]
+        self.sampler._npool = 3
         self.sampler.kwargs = new_kwargs
         self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_translate_kwargs_seed(self):
+        assert self.expected["seed"] == 150914
 
     @patch("builtins.open", mock_open(read_data='{"nlive": 4000}'))
     def test_update_from_config_file(self):

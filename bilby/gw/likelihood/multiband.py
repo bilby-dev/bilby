@@ -8,6 +8,7 @@ from ...core.utils import (
     logger, speed_of_light, solar_mass, radius_of_earth,
     gravitational_constant, round_up_to_power_of_two
 )
+from ..prior import CBCPriorDict
 
 
 class MBGravitationalWaveTransient(GravitationalWaveTransient):
@@ -21,8 +22,9 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         A list of `bilby.detector.Interferometer` instances - contains the detector data and power spectral densities
     waveform_generator: `bilby.waveform_generator.WaveformGenerator`
         An object which computes the frequency-domain strain of the signal, given some set of parameters
-    reference_chirp_mass: float
-        A reference chirp mass for determining the frequency banding
+    reference_chirp_mass: float, optional
+        A reference chirp mass for determining the frequency banding. This is set to prior minimum of chirp mass if
+        not specified. Hence a CBCPriorDict object needs to be passed to priors when this parameter is not specified.
     highest_mode: int, optional
         The maximum magnetic number of gravitational-wave moments. Default is 2
     linear_interpolation: bool, optional
@@ -72,10 +74,11 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
     """
     def __init__(
-            self, interferometers, waveform_generator, reference_chirp_mass, highest_mode=2, linear_interpolation=True,
-            accuracy_factor=5, time_offset=None, delta_f_end=None, maximum_banding_frequency=None,
-            minimum_banding_duration=0., distance_marginalization=False, phase_marginalization=False, priors=None,
-            distance_marginalization_lookup_table=None, reference_frame="sky", time_reference="geocenter"
+            self, interferometers, waveform_generator, reference_chirp_mass=None, highest_mode=2,
+            linear_interpolation=True, accuracy_factor=5, time_offset=None, delta_f_end=None,
+            maximum_banding_frequency=None, minimum_banding_duration=0., distance_marginalization=False,
+            phase_marginalization=False, priors=None, distance_marginalization_lookup_table=None,
+            reference_frame="sky", time_reference="geocenter"
     ):
         super(MBGravitationalWaveTransient, self).__init__(
             interferometers=interferometers, waveform_generator=waveform_generator, priors=priors,
@@ -108,7 +111,24 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         if isinstance(reference_chirp_mass, int) or isinstance(reference_chirp_mass, float):
             self._reference_chirp_mass = reference_chirp_mass
         else:
-            raise TypeError("reference_chirp_mass must be a number")
+            logger.info(
+                "No int or float number has been passed to reference_chirp_mass. "
+                "Checking prior minimum of chirp mass ..."
+            )
+            if not isinstance(self.priors, CBCPriorDict):
+                raise TypeError(
+                    f"priors: {self.priors} is not CBCPriorDict. Prior minimum of chirp mass can not be obtained."
+                )
+            self._reference_chirp_mass = self.priors.minimum_chirp_mass
+            if self._reference_chirp_mass is None:
+                raise Exception(
+                    "Prior minimum of chirp mass can not be determined as priors does not contain necessary mass "
+                    "parameters."
+                )
+            logger.info(
+                "reference_chirp_mass is automatically set to prior minimum of chirp mass: "
+                f"{self._reference_chirp_mass}."
+            )
 
     @property
     def highest_mode(self):
