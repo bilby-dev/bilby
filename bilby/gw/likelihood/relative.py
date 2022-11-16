@@ -355,14 +355,11 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return fiducial_waveform * full_waveform_ratio
 
     def calculate_snrs(self, waveform_polarizations, interferometer):
-        waveform_ratio_per_detector = self.compute_waveform_ratio_per_interferometer(
+        r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=waveform_polarizations,
             interferometer=interferometer,
         )
         a0, a1, b0, b1 = self.summary_data[interferometer.name]
-
-        r0, r1 = waveform_ratio_per_detector
-
         d_inner_h = np.sum(a0 * np.conjugate(r0) + a1 * np.conjugate(r1))
         h_inner_h = np.sum(b0 * np.abs(r0) ** 2 + 2 * b1 * np.real(r0 * np.conjugate(r1)))
         optimal_snr_squared = h_inner_h
