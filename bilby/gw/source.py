@@ -447,6 +447,15 @@ def binary_neutron_star_roq(
 def lal_binary_black_hole_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, fiducial, **kwargs):
+    """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
+
+    All parameters are the same as in the usual source models, except `fiducial`
+
+    fiducial: float
+        If fiducial=1, waveform evaluated on the full frequency grid is returned.
+        If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
+        is returned.
+    """
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
@@ -475,6 +484,15 @@ def lal_binary_neutron_star_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
         fiducial, **kwargs):
+    """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
+
+    All parameters are the same as in the usual source models, except `fiducial`
+
+    fiducial: float
+        If fiducial=1, waveform evaluated on the full frequency grid is returned.
+        If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
+        is returned.
+    """
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
