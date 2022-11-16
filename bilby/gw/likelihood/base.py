@@ -235,8 +235,10 @@ class GravitationalWaveTransient(Likelihood):
             The bilby interferometer object
 
         """
-        signal = interferometer.get_detector_response(
-            waveform_polarizations, self.parameters)
+        signal = self._compute_full_waveform(
+            signal_polarizations=waveform_polarizations,
+            interferometer=interferometer,
+        )
         _mask = interferometer.frequency_mask
 
         if 'recalib_index' in self.parameters:
@@ -564,8 +566,11 @@ class GravitationalWaveTransient(Likelihood):
         for ifo in self.interferometers:
             ifo_length = len(ifo.frequency_domain_strain)
             mask = ifo.frequency_mask
+            signal = self._compute_full_waveform(
+                signal_polarizations=waveform_polarizations,
+                interferometer=interferometer,
+            )
             signal = ifo.get_detector_response(
-                signal_polarizations, self.parameters)
             signal_long[:ifo_length] = signal
             data[:ifo_length] = np.conj(ifo.frequency_domain_strain)
             psd[:ifo_length][mask] = ifo.power_spectral_density_array[mask]
@@ -654,6 +659,19 @@ class GravitationalWaveTransient(Likelihood):
         return d_inner_h, h_inner_h
 
     def _compute_full_waveform(self, signal_polarizations, interferometer):
+    """
+    Project the waveform polarizations against the interferometer
+    response. This is useful for likelihood classes that don't
+    use the full frequency array, e.g., the relative binning
+    likelihood.
+
+    Parameters:
+    signal_polarizations: dict
+        Dictionary containing the waveform evaluated at
+        :code:`interferometer.frequency_array`.
+    interferometer: bilby.gw.detector.Interferometer
+        Interferometer to compute the response with respect to.
+    """
         return interferometer.get_detector_response(signal_polarizations, self.parameters)
 
     def generate_phase_sample_from_marginalized_likelihood(

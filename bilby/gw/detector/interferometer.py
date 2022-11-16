@@ -294,7 +294,11 @@ class Interferometer(object):
             polarizations of the waveform
         parameters: dict
             parameters describing position and time of arrival of the signal
-
+        frequencies: array-like, optional
+        The frequency values to evaluate the response at. If
+        not provided, the response is computed using
+        :code:`self.frequency_array`. If the frequencies are
+        specified, no frequency masking is performed.
         Returns
         =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
