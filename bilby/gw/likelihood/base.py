@@ -736,7 +736,7 @@ class GravitationalWaveTransient(Likelihood):
     interferometer: bilby.gw.detector.Interferometer
         Interferometer to compute the response with respect to.
     """
-        return interferometer.get_detector_response(signal_polarizations, self.parameters)
+    return interferometer.get_detector_response(signal_polarizations, self.parameters)
 
     def generate_phase_sample_from_marginalized_likelihood(
             self, signal_polarizations=None):
