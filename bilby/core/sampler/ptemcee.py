@@ -47,7 +47,7 @@ class Ptemcee(MCMCSampler):
     list commonly used kwargs and the bilby defaults.
 
     Parameters
-    ==========
+    ----------
     nsamples: int, (5000)
         The requested number of samples. Note, in cases where the
         autocorrelation parameter is difficult to measure, it is possible to
@@ -116,7 +116,7 @@ class Ptemcee(MCMCSampler):
 
 
     Other Parameters
-    ================
+    ----------------
     nwalkers: int, (200)
         The number of walkers
     nsteps: int, (100)
@@ -296,7 +296,7 @@ class Ptemcee(MCMCSampler):
         """Draw the initial positions from the prior
 
         Returns
-        =======
+        -------
         pos0: list
             The initial postitions of the walkers, with shape (ntemps, nwalkers, ndim)
 
@@ -315,7 +315,7 @@ class Ptemcee(MCMCSampler):
         See pos0 in the class initialization for details.
 
         Returns
-        =======
+        -------
         pos0: list
             The initial postitions of the walkers, with shape (ntemps, nwalkers, ndim)
 
@@ -504,6 +504,7 @@ class Ptemcee(MCMCSampler):
 
         t0 = datetime.datetime.now()
         logger.info("Starting to sample")
+
         while True:
             for (pos0, log_posterior, log_likelihood) in sampler.sample(
                 self.pos0,
@@ -531,12 +532,16 @@ class Ptemcee(MCMCSampler):
                 )
 
             self.pos0 = pos0
+
             self.chain_array[:, self.iteration, :] = pos0[0, :, :]
             self.log_likelihood_array[:, :, self.iteration] = log_likelihood
             self.log_posterior_array[:, :, self.iteration] = log_posterior
             self.mean_log_posterior = np.mean(
                 self.log_posterior_array[:, :, : self.iteration], axis=1
             )
+
+            # (nwalkers, ntemps, iterations)
+            # so mean_log_posterior is shaped (nwalkers, iterations)
 
             # Calculate time per iteration
             self.time_per_check.append((datetime.datetime.now() - t0).total_seconds())
@@ -725,25 +730,87 @@ def check_iteration(
     beta_list,
     tau_list,
     tau_list_n,
-    Q_list,
+    gelman_rubin_list,
     mean_log_posterior,
     verbose=True,
 ):
-    """Per-iteration logic to calculate the convergence check
+    """Per-iteration logic to calculate the convergence check.
+
+    To check convergence, this function does the following:
+    1. Calculate the autocorrelation time (tau) for each dimension for each walker,
+       corresponding to those dimensions in search_parameter_keys that aren't
+       specifically excluded in ci.ignore_keys_for_tau.
+        a. Store the average tau for each dimension, averaged over each walker.
+    2. Calculate the Gelman-Rubin statistic (see `get_Q_convergence`), measuring
+       the convergence of the ensemble of walkers.
+    3. Calculate the number of effective samples; we aggregate the total number
+       of burned-in samples (amongst all walkers), divided by a multiple of the
+       current maximum average autocorrelation time. Tuned by `ci.burn_in_nact`
+       and `ci.thin_by_nact`.
+    4. If the Gelman-Rubin statistic < `ci.Q_tol` and `ci.nsamples` < the
+       number of effective samples, we say that our ensemble is converged,
+       setting `converged = True`.
+    5. For some number of the latest steps (set by the autocorrelation time
+       and the GRAD_WINDOW_LENGTH parameter), we find the maxmium gradient
+       of the autocorrelation time over all of our dimensions, over all walkers
+       (autocorrelation time is already averaged over walkers) and the maximum
+       value of the gradient of the mean log posterior over iterations, over
+       all walkers.
+    6. If the maximum gradient in tau is less than `ci.gradient_tau` and the
+       maximum gradient in the mean log posterior is less than
+       `ci.gradient_mean_log_posterior`, we set `tau_usable = True`.
+    7. If both `converged` and `tau_usable` are true, we return `stop = True`,
+       indicating that our ensemble is converged + burnt in on this
+       iteration.
+    8. Also prints progress! (see `print_progress`)
+
+    Notes
+    -----
+    The gradient of tau is computed with a Savgol-Filter, over windows in
+    sample number of length `GRAD_WINDOW_LENGTH`. This value must be an odd integer.
+    For `ndim > 3`, we calculate this as the nearest odd integer to ndim.
+    For `ndim <= 3`, we calculate this as the nearest odd integer to nwalkers, as
+    typically a much larger window length than polynomial order (default 2) leads
+    to more stable smoothing.
 
     Parameters
-    ==========
+    ----------
+    iteration: int
+        Number indexing the current iteration, at which we are checking
+        convergence.
+    samples: np.ndarray
+        Array of ensemble MCMC samples, shaped like (number of walkers, number
+        of MCMC steps, number of dimensions).
+    sampler: bilby.core.sampler.Ptemcee
+        Bilby Ptemcee sampler object; in particular, this function uses the list
+        of walker temperatures stored in `sampler.betas`.
     convergence_inputs: bilby.core.sampler.ptemcee.ConvergenceInputs
         A named tuple of the convergence checking inputs
     search_parameter_keys: list
         A list of the search parameter keys
     time_per_check, tau_list, tau_list_n: list
         Lists used for tracking the run
+    beta_list: list
+        List of floats storing the walker inverse temperatures.
+    tau_list: list
+        List of average autocorrelation times for each dimension, averaged
+        over walkers, at each checked iteration. So, an effective shape
+        of (number of iterations so far, number of dimensions).
+    tau_list_n: list
+        List of iteration numbers, enumerating the first "axis" of tau_list.
+        E.g. if tau_list_n[1] = 5, this means that the list found at
+        tau_list[1] was calculated on iteration number 5.
+    gelman_rubin_list: list (floats)
+        list of values of the Gelman-Rubin statistic; the value calculated
+        in this call of check_iteration is appended to the gelman_rubin_list.
+    mean_log_posterior: np.ndarray
+        Float array shaped like (number of walkers, number of MCMC steps),
+        with the log of the posterior, averaged over the dimensions.
     verbose: bool
         Whether to print the output
 
     Returns
-    =======
+    -------
     stop: bool
         A boolean flag, True if the stopping criteria has been met
     burn: int
@@ -757,14 +824,9 @@ def check_iteration(
     """
 
     ci = convergence_inputs
-    # Note: nsteps is the number of steps in the samples while iterations is
-    # the current iteration number. So iteration > nsteps by the number of
-    # of discards
+
     nwalkers, nsteps, ndim = samples.shape
-
     tau_array = calculate_tau_array(samples, search_parameter_keys, ci)
-
-    # Maximum over parameters, mean over walkers
     tau = np.max(np.mean(tau_array, axis=0))
 
     # Apply multiplicitive safety factor
@@ -775,8 +837,8 @@ def check_iteration(
     tau_list.append(list(np.mean(tau_array, axis=0)))
     tau_list_n.append(iteration)
 
-    Q = get_Q_convergence(samples)
-    Q_list.append(Q)
+    gelman_rubin_statistic = get_Q_convergence(samples)
+    gelman_rubin_list.append(gelman_rubin_statistic)
 
     if np.isnan(tau) or np.isinf(tau):
         if verbose:
@@ -791,7 +853,7 @@ def check_iteration(
                 np.nan,
                 False,
                 convergence_inputs,
-                Q,
+                gelman_rubin_statistic,
             )
         return False, np.nan, np.nan, np.nan, np.nan
 
@@ -805,18 +867,24 @@ def check_iteration(
     nsamples_effective = int(nwalkers * (nsteps - nburn) / thin)
 
     # Calculate convergence boolean
-    converged = Q < ci.Q_tol and ci.nsamples < nsamples_effective
+    converged = gelman_rubin_statistic < ci.Q_tol and ci.nsamples < nsamples_effective
     logger.debug(
-        f"Convergence: Q<Q_tol={Q < ci.Q_tol}, "
-        f"nsamples<nsamples_effective={ci.nsamples < nsamples_effective}"
+        "Convergence: Q<Q_tol={}, nsamples<nsamples_effective={}".format(
+            gelman_rubin_statistic < ci.Q_tol, ci.nsamples < nsamples_effective
+        )
     )
 
-    GRAD_WINDOW_LENGTH = nwalkers + 1
+    GRAD_WINDOW_LENGTH = 2 * ((ndim + 1) // 2) + 1
+    if GRAD_WINDOW_LENGTH <= 3:
+        GRAD_WINDOW_LENGTH = 2 * (nwalkers // 2) + 1
+
     nsteps_to_check = ci.autocorr_tau * np.max([2 * GRAD_WINDOW_LENGTH, tau_int])
     lower_tau_index = np.max([0, len(tau_list) - nsteps_to_check])
     check_taus = np.array(tau_list[lower_tau_index:])
     if not np.any(np.isnan(check_taus)) and check_taus.shape[0] > GRAD_WINDOW_LENGTH:
-        gradient_tau = get_max_gradient(check_taus, axis=0, window_length=11)
+        gradient_tau = get_max_gradient(
+            check_taus, axis=0, window_length=GRAD_WINDOW_LENGTH
+        )
 
         if gradient_tau < ci.gradient_tau:
             logger.debug(
@@ -876,13 +944,51 @@ def check_iteration(
             gradient_mean_log_posterior,
             tau_usable,
             convergence_inputs,
-            Q,
+            gelman_rubin_statistic,
         )
+
     stop = converged and tau_usable
     return stop, nburn, thin, tau_int, nsamples_effective
 
 
 def get_max_gradient(x, axis=0, window_length=11, polyorder=2, smooth=False):
+    """Calculate the maximum value of the gradient in the input data.
+
+    Applies a Savitzky-Golay filter (`scipy.signal.savgol_filter`) to the input
+    data x, along a particular axis. This filter smooths the data and, as configured
+    in this function, simultaneously calculates the derivative of the smoothed data.
+    If smooth=True is provided, it will apply a Savitzky-Golay filter with a
+    polynomial order of 3 to the input data before applying this filter a second
+    time and calculating the derivative. This function will return the maximum value
+    of the derivative returned by the filter.
+
+    See https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
+    for more information on the Savitzky-Golay filter that we use. Some parameter
+    documentation has been borrowed from this source.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of input data (can be int or float, as `savgol_filter` casts to float).
+    axis : int, default = 0
+        The axis of the input array x over which to calculate the gradient.
+    window_length : int, default = 11
+        The length of the filter window (i.e., the number of coefficients to use
+        in approximating the data).
+    polyorder : int, default = 2
+        The order of the polynomial used to fit the samples. polyorder must be less
+        than window_length.
+    smooth : bool, default = False
+        If true, this will smooth the data with a Savitzky-Golay filter before
+        providing it to the Savitzky-Golay filter for calculating the derviative.
+        Probably useful if you think your input data is especially noisy.
+
+    Returns
+    -------
+    max_gradient : float
+        Maximum value of the gradient.
+    """
+
     from scipy.signal import savgol_filter
 
     if smooth:
@@ -895,12 +1001,54 @@ def get_max_gradient(x, axis=0, window_length=11, polyorder=2, smooth=False):
 
 
 def get_Q_convergence(samples):
+    """Calculate the Gelman-Rubin statistic as an estimate of convergence for
+    an ensemble of MCMC walkers.
+
+    Calculates the Gelman-Rubin statistic, from Gelman and Rubin (1992).
+    See section 2.2 of Gelman and Rubin (1992), at
+    https://doi.org/10.1214/ss/1177011136.
+
+    There is also a good description of this statistic in section 7.4.2
+    of "Advanced Statistical Computing" (Peng 2021), in-progress course notes,
+    currently found at
+    https://bookdown.org/rdpeng/advstatcomp/monitoring-convergence.html.
+    As of this writing, L in this resource refers to the number of sampling
+    steps remaining after some have been discarded to achieve burn-in,
+    equivalent to nsteps here. Paraphrasing, we compare the variance between
+    our walkers (chains) to the variance within each walker (compare
+    inter-walker vs. intra-walker variance). We do this because our walkers
+    should be indistinguishable from one another when they reach a steady-state,
+    i.e. convergence. Looking at V-hat in the definition of this function, we
+    can see that as nsteps -> infinity, B (inter-chain variance) -> 0,
+    R -> 1; so, R >~ 1 is a good condition for the convergence of our ensemble.
+
+    In practice, this function calculates the Gelman-Rubin statistic for
+    each dimension, and then returns the largest of these values. This
+    means that we can be sure that, once the walker with the largest such value
+    achieves a Gelman-Rubin statistic of >~ 1, the others have as well.
+
+    Parameters
+    ----------
+    samples: np.ndarray
+        Array of ensemble MCMC samples, shaped like (number of walkers, number
+        of MCMC steps, number of dimensions).
+
+    Returns
+    -------
+    Q: float
+        The largest value of the Gelman-Rubin statistic, from those values
+        calculated for each dimension. If only one step is represented in
+        samples, this returns np.inf.
+    """
+
     nwalkers, nsteps, ndim = samples.shape
     if nsteps > 1:
         W = np.mean(np.var(samples, axis=1), axis=0)
+
         per_walker_mean = np.mean(samples, axis=1)
         mean = np.mean(per_walker_mean, axis=0)
         B = nsteps / (nwalkers - 1.0) * np.sum((per_walker_mean - mean) ** 2, axis=0)
+
         Vhat = (nsteps - 1) / nsteps * W + (nwalkers + 1) / (nwalkers * nsteps) * B
         Q_per_dim = np.sqrt(Vhat / W)
         return np.max(Q_per_dim)
@@ -977,7 +1125,31 @@ def print_progress(
 
 
 def calculate_tau_array(samples, search_parameter_keys, ci):
-    """Compute ACT tau for 0-temperature chains"""
+    """Calculate the autocorrelation time for zero-temperature chains.
+
+    Calculates the autocorrelation time for each chain, for those parameters/
+    dimensions that are not explicitly excluded in ci.ignore_keys_for_tau.
+
+    Parameters
+    ----------
+    samples: np.ndarray
+        Array of ensemble MCMC samples, shaped like (number of walkers, number
+        of MCMC steps, number of dimensions).
+    search_parameter_keys: list
+        A list of the search parameter keys
+    ci : collections.namedtuple
+        Collection of settings for convergence tests, including autocorrelation
+        calculation. If a value in search_parameter_keys is included in
+        ci.ignore_keys_for_tau, this function will not calculate an
+        autocorrelation time for any walker along that particular dimension.
+
+    Returns
+    -------
+    tau_array: np.ndarray
+        Float array shaped like (nwalkers, ndim) (with all np.inf for any
+        dimension that is excluded by ci.ignore_keys_for_tau).
+    """
+
     import emcee
 
     nwalkers, nsteps, ndim = samples.shape
@@ -1141,9 +1313,11 @@ def plot_tau(
 def plot_mean_log_posterior(mean_log_posterior, outdir, label):
     import matplotlib.pyplot as plt
 
+    mean_log_posterior[mean_log_posterior < -1e100] = np.nan
+
     ntemps, nsteps = mean_log_posterior.shape
-    ymax = np.max(mean_log_posterior)
-    ymin = np.min(mean_log_posterior[:, -100:])
+    ymax = np.nanmax(mean_log_posterior)
+    ymin = np.nanmin(mean_log_posterior[:, -100:])
     ymax += 0.1 * (ymax - ymin)
     ymin -= 0.1 * (ymax - ymin)
 

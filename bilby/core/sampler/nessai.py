@@ -1,10 +1,12 @@
 import os
+import sys
 
 import numpy as np
 from pandas import DataFrame
+from scipy.special import logsumexp
 
 from ..utils import check_directory_exists_and_if_not_mkdir, load_json, logger
-from .base_sampler import NestedSampler
+from .base_sampler import NestedSampler, signal_wrapper
 
 
 class Nessai(NestedSampler):
@@ -19,7 +21,21 @@ class Nessai(NestedSampler):
     """
 
     _default_kwargs = None
+    _run_kwargs_list = None
     sampling_seed_key = "seed"
+
+    @property
+    def run_kwargs_list(self):
+        """List of kwargs used in the run method of :code:`FlowSampler`"""
+        if not self._run_kwargs_list:
+            from nessai.utils.bilbyutils import get_run_kwargs_list
+
+            self._run_kwargs_list = get_run_kwargs_list()
+            ignored_kwargs = ["save"]
+            for ik in ignored_kwargs:
+                if ik in self._run_kwargs_list:
+                    self._run_kwargs_list.remove(ik)
+        return self._run_kwargs_list
 
     @property
     def default_kwargs(self):
@@ -28,32 +44,38 @@ class Nessai(NestedSampler):
         Retrieves default values from nessai directly and then includes any
         bilby specific defaults. This avoids the need to update bilby when the
         defaults change or new kwargs are added to nessai.
+
+        Includes the following kwargs that are specific to bilby:
+
+        - :code:`nessai_log_level`: allows setting the logging level in nessai
+        - :code:`nessai_logging_stream`: allows setting the logging stream
+        - :code:`nessai_plot`: allows toggling the plotting in FlowSampler.run
         """
         if not self._default_kwargs:
-            from inspect import signature
+            from nessai.utils.bilbyutils import get_all_kwargs
 
-            from nessai.flowsampler import FlowSampler
-            from nessai.nestedsampler import NestedSampler
-            from nessai.proposal import AugmentedFlowProposal, FlowProposal
+            kwargs = get_all_kwargs()
 
-            kwargs = {}
-            classes = [
-                AugmentedFlowProposal,
-                FlowProposal,
-                NestedSampler,
-                FlowSampler,
-            ]
-            for c in classes:
-                kwargs.update(
-                    {
-                        k: v.default
-                        for k, v in signature(c).parameters.items()
-                        if v.default is not v.empty
-                    }
-                )
             # Defaults for bilby that will override nessai defaults
-            bilby_defaults = dict(output=None, exit_code=self.exit_code)
+            bilby_defaults = dict(
+                output=None,
+                exit_code=self.exit_code,
+                nessai_log_level=None,
+                nessai_logging_stream="stdout",
+                nessai_plot=True,
+                plot_posterior=False,  # bilby already produces a posterior plot
+                log_on_iteration=False,  # Use periodic logging by default
+                logging_interval=60,  # Log every 60 seconds
+            )
             kwargs.update(bilby_defaults)
+            # Kwargs that cannot be set in bilby
+            remove = [
+                "save",
+                "signal_handling",
+            ]
+            for k in remove:
+                if k in kwargs:
+                    kwargs.pop(k)
             self._default_kwargs = kwargs
         return self._default_kwargs
 
@@ -72,12 +94,10 @@ class Nessai(NestedSampler):
         """
         return self.priors.ln_prob(theta, axis=0)
 
-    def run_sampler(self):
-        from nessai.flowsampler import FlowSampler
-        from nessai.livepoint import dict_to_live_points, live_points_to_array
+    def get_nessai_model(self):
+        """Get the model for nessai."""
+        from nessai.livepoint import dict_to_live_points
         from nessai.model import Model as BaseModel
-        from nessai.posterior import compute_weights
-        from nessai.utils import setup_logger
 
         class Model(BaseModel):
             """A wrapper class to pass our log_likelihood and priors into nessai
@@ -124,47 +144,115 @@ class Nessai(NestedSampler):
                 """Proposal probability for new the point"""
                 return self.log_prior(x)
 
-        # Setup the logger for nessai using the same settings as the bilby logger
-        setup_logger(
-            self.outdir, label=self.label, log_level=logger.getEffectiveLevel()
-        )
-        model = Model(self.search_parameter_keys, self.priors)
-        try:
-            out = FlowSampler(model, **self.kwargs)
-            out.run(save=True, plot=self.plot)
-        except TypeError as e:
-            raise TypeError(f"Unable to initialise nessai sampler with error: {e}")
-        except (SystemExit, KeyboardInterrupt) as e:
-            import sys
+            @staticmethod
+            def from_unit_hypercube(x):
+                """Map samples from the unit hypercube to the prior."""
+                theta = {}
+                for n in self._search_parameter_keys:
+                    theta[n] = self.priors[n].rescale(x[n])
+                return dict_to_live_points(theta)
 
-            logger.info(
-                f"Caught {type(e).__name__} with args {e.args}, "
-                f"exiting with signal {self.exit_code}"
-            )
-            sys.exit(self.exit_code)
+            @staticmethod
+            def to_unit_hypercube(x):
+                """Map samples from the prior to the unit hypercube."""
+                theta = {n: x[n] for n in self._search_parameter_keys}
+                return dict_to_live_points(self.priors.cdf(theta))
+
+        model = Model(self.search_parameter_keys, self.priors)
+        return model
+
+    def split_kwargs(self):
+        """Split kwargs into configuration and run time kwargs"""
+        kwargs = self.kwargs.copy()
+        run_kwargs = {}
+        for k in self.run_kwargs_list:
+            run_kwargs[k] = kwargs.pop(k)
+        run_kwargs["plot"] = kwargs.pop("nessai_plot")
+        return kwargs, run_kwargs
+
+    def get_posterior_weights(self):
+        """Get the posterior weights for the nested samples"""
+        from nessai.posterior import compute_weights
+
+        _, log_weights = compute_weights(
+            np.array(self.fs.nested_samples["logL"]),
+            np.array(self.fs.ns.state.nlive),
+        )
+        w = np.exp(log_weights - logsumexp(log_weights))
+        return w
+
+    def get_nested_samples(self):
+        """Get the nested samples dataframe"""
+        ns = DataFrame(self.fs.nested_samples)
+        ns.rename(
+            columns=dict(logL="log_likelihood", logP="log_prior", it="iteration"),
+            inplace=True,
+        )
+        return ns
+
+    def update_result(self):
+        """Update the result object."""
+        from nessai.livepoint import live_points_to_array
 
         # Manually set likelihood evaluations because parallelisation breaks the counter
-        self.result.num_likelihood_evaluations = out.ns.likelihood_evaluations[-1]
+        self.result.num_likelihood_evaluations = self.fs.ns.total_likelihood_evaluations
 
         self.result.samples = live_points_to_array(
-            out.posterior_samples, self.search_parameter_keys
+            self.fs.posterior_samples, self.search_parameter_keys
         )
-        self.result.log_likelihood_evaluations = out.posterior_samples["logL"]
-        self.result.nested_samples = DataFrame(out.nested_samples)
-        self.result.nested_samples.rename(
-            columns=dict(logL="log_likelihood", logP="log_prior"), inplace=True
+        self.result.log_likelihood_evaluations = self.fs.posterior_samples["logL"]
+        self.result.nested_samples = self.get_nested_samples()
+        self.result.nested_samples["weights"] = self.get_posterior_weights()
+        self.result.log_evidence = self.fs.log_evidence
+        self.result.log_evidence_err = self.fs.log_evidence_error
+
+    @signal_wrapper
+    def run_sampler(self):
+        """Run the sampler.
+
+        Nessai is designed to be ran in two stages, initialise the sampler
+        and then call the run method with additional configuration. This means
+        there are effectively two sets of keyword arguments: one for
+        initializing the sampler and the other for the run function.
+        """
+        from nessai.flowsampler import FlowSampler
+        from nessai.utils import setup_logger
+
+        kwargs, run_kwargs = self.split_kwargs()
+
+        # Setup the logger for nessai, use nessai_log_level if specified, else use
+        # the level of the bilby logger.
+        nessai_log_level = kwargs.pop("nessai_log_level")
+        if nessai_log_level is None or nessai_log_level == "bilby":
+            nessai_log_level = logger.getEffectiveLevel()
+        nessai_logging_stream = kwargs.pop("nessai_logging_stream")
+
+        setup_logger(
+            self.outdir,
+            label=self.label,
+            log_level=nessai_log_level,
+            stream=nessai_logging_stream,
         )
-        _, log_weights = compute_weights(
-            np.array(self.result.nested_samples.log_likelihood),
-            np.array(out.ns.state.nlive),
+
+        # Get the nessai model
+        model = self.get_nessai_model()
+
+        # Configure the sampler
+        self.fs = FlowSampler(
+            model,
+            signal_handling=False,  # Disable signal handling so it can be handled by bilby
+            **kwargs,
         )
-        self.result.nested_samples["weights"] = np.exp(log_weights)
-        self.result.log_evidence = out.ns.log_evidence
-        self.result.log_evidence_err = np.sqrt(out.ns.information / out.ns.nlive)
+        # Run the sampler
+        self.fs.run(**run_kwargs)
+
+        # Update the result
+        self.update_result()
 
         return self.result
 
     def _translate_kwargs(self, kwargs):
+        """Translate the keyword arguments"""
         super()._translate_kwargs(kwargs)
         if "nlive" not in kwargs:
             for equiv in self.npoints_equiv_kwargs:
@@ -178,10 +266,7 @@ class Nessai(NestedSampler):
                 kwargs["n_pool"] = self._npool
 
     def _verify_kwargs_against_default_kwargs(self):
-        """
-        Set the directory where the output will be written
-        and check resume and checkpoint status.
-        """
+        """Verify the keyword arguments"""
         if "config_file" in self.kwargs:
             d = load_json(self.kwargs["config_file"], None)
             self.kwargs.update(d)
@@ -190,10 +275,6 @@ class Nessai(NestedSampler):
         if not self.kwargs["plot"]:
             self.kwargs["plot"] = self.plot
 
-        if self.kwargs["n_pool"] == 1 and self.kwargs["max_threads"] == 1:
-            logger.warning("Setting pool to None (n_pool=1 & max_threads=1)")
-            self.kwargs["n_pool"] = None
-
         if not self.kwargs["output"]:
             self.kwargs["output"] = os.path.join(
                 self.outdir, f"{self.label}_nessai", ""
@@ -201,6 +282,22 @@ class Nessai(NestedSampler):
 
         check_directory_exists_and_if_not_mkdir(self.kwargs["output"])
         NestedSampler._verify_kwargs_against_default_kwargs(self)
+
+    def write_current_state(self):
+        """Write the current state of the sampler"""
+        self.fs.ns.checkpoint()
+
+    def write_current_state_and_exit(self, signum=None, frame=None):
+        """
+        Overwrites the base class to make sure that :code:`Nessai` terminates
+        properly.
+        """
+        if hasattr(self, "fs"):
+            self.fs.terminate_run(code=signum)
+        else:
+            logger.warning("Sampler is not initialized")
+        self._log_interruption(signum=signum)
+        sys.exit(self.exit_code)
 
     def _setup_pool(self):
         pass
