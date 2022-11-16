@@ -473,7 +473,7 @@ class TestGenerateAllParameters(unittest.TestCase):
             for key in expected:
                 self.assertIn(key, new_parameters)
 
-    def test_generate_bbh_paramters_with_likelihood(self):
+    def test_generate_bbh_parameters_with_likelihood(self):
         priors = bilby.gw.prior.BBHPriorDict()
         priors["geocent_time"] = bilby.core.prior.Uniform(0.4, 0.6)
         ifos = bilby.gw.detector.InterferometerList(["H1"])
@@ -491,7 +491,9 @@ class TestGenerateAllParameters(unittest.TestCase):
         )
         self.parameters["zenith"] = 0.0
         self.parameters["azimuth"] = 0.0
+        self.parameters["time_jitter"] = 0.0
         del self.parameters["ra"], self.parameters["dec"]
+        self.parameters = pd.DataFrame(self.parameters, index=range(1))
         converted = bilby.gw.conversion.generate_all_bbh_parameters(
             sample=self.parameters, likelihood=likelihood, priors=priors
         )

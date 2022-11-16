@@ -115,6 +115,36 @@ class GravitationalWaveTransient(Likelihood):
         optimal_snr_squared_array = attr.ib()
         d_inner_h_squared_tc_array = attr.ib()
 
+        def __add__(self, other_snr):
+
+            total_d_inner_h = self.d_inner_h + other_snr.d_inner_h
+            total_optimal_snr_squared = self.optimal_snr_squared + \
+                np.real(other_snr.optimal_snr_squared)
+            total_complex_matched_filter_snr = self.complex_matched_filter_snr + \
+                other_snr.complex_matched_filter_snr
+
+            total_d_inner_h_array = self.d_inner_h_array
+            if other_snr.d_inner_h_array is not None \
+                    and self.d_inner_h_array is not None:
+                total_d_inner_h_array += other_snr.d_inner_h_array
+
+            total_optimal_snr_squared_array = self.optimal_snr_squared_array
+            if other_snr.optimal_snr_squared_array is not None \
+                    and self.optimal_snr_squared_array is not None:
+                total_optimal_snr_squared_array += other_snr.optimal_snr_squared_array
+
+            total_d_inner_h_squared_tc_array = self.d_inner_h_squared_tc_array
+            if other_snr.d_inner_h_squared_tc_array is not None \
+                    and self.d_inner_h_squared_tc_array is not None:
+                total_d_inner_h_squared_tc_array += other_snr.d_inner_h_squared_tc_array
+
+            return self.__class__(d_inner_h=total_d_inner_h,
+                                  optimal_snr_squared=total_optimal_snr_squared,
+                                  complex_matched_filter_snr=total_complex_matched_filter_snr,
+                                  d_inner_h_array=total_d_inner_h_array,
+                                  optimal_snr_squared_array=total_optimal_snr_squared_array,
+                                  d_inner_h_squared_tc_array=total_d_inner_h_squared_tc_array)
+
     def __init__(
             self, interferometers, waveform_generator, time_marginalization=False,
             distance_marginalization=False, phase_marginalization=False, calibration_marginalization=False, priors=None,
@@ -364,79 +394,99 @@ class GravitationalWaveTransient(Likelihood):
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
 
+        if self.time_marginalization and self.jitter_time:
+            self.parameters['geocent_time'] += self.parameters['time_jitter']
+
         self.parameters.update(self.get_sky_frame_parameters())
 
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
 
-        d_inner_h = 0.
-        optimal_snr_squared = 0.
-        complex_matched_filter_snr = 0.
+        total_snrs = self._CalculatedSNRs(
+            d_inner_h=0., optimal_snr_squared=0., complex_matched_filter_snr=0.,
+            d_inner_h_array=None, optimal_snr_squared_array=None, d_inner_h_squared_tc_array=None)
 
         if self.time_marginalization and self.calibration_marginalization:
-            if self.jitter_time:
-                self.parameters['geocent_time'] += self.parameters['time_jitter']
-
-            d_inner_h_array = np.zeros(
+            total_snrs.d_inner_h_array = np.zeros(
                 (self.number_of_response_curves, len(self.interferometers.frequency_array[0:-1])),
                 dtype=np.complex128)
-            optimal_snr_squared_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)
+            total_snrs.optimal_snr_squared_array = \
+                np.zeros(self.number_of_response_curves, dtype=np.complex128)
 
         elif self.time_marginalization:
-            if self.jitter_time:
-                self.parameters['geocent_time'] += self.parameters['time_jitter']
-            d_inner_h_array = np.zeros(len(self._times), dtype=np.complex128)
+            total_snrs.d_inner_h_array = np.zeros(len(self._times), dtype=np.complex128)
 
         elif self.calibration_marginalization:
-            d_inner_h_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)
-            optimal_snr_squared_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)
+            total_snrs.d_inner_h_array = \
+                np.zeros(self.number_of_response_curves, dtype=np.complex128)
+            total_snrs.optimal_snr_squared_array = \
+                np.zeros(self.number_of_response_curves, dtype=np.complex128)
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(
                 waveform_polarizations=waveform_polarizations,
                 interferometer=interferometer)
 
-            d_inner_h += per_detector_snr.d_inner_h
-            optimal_snr_squared += np.real(per_detector_snr.optimal_snr_squared)
-            complex_matched_filter_snr += per_detector_snr.complex_matched_filter_snr
+            total_snrs += per_detector_snr
 
-            if self.time_marginalization or self.calibration_marginalization:
-                d_inner_h_array += per_detector_snr.d_inner_h_array
+        log_l = self.compute_log_likelihood_from_snrs(total_snrs)
 
-            if self.calibration_marginalization:
-                optimal_snr_squared_array += per_detector_snr.optimal_snr_squared_array
+        if self.time_marginalization and self.jitter_time:
+            self.parameters['geocent_time'] -= self.parameters['time_jitter']
+
+        return float(log_l.real)
+
+    def compute_log_likelihood_from_snrs(self, total_snrs):
 
         if self.calibration_marginalization and self.time_marginalization:
             log_l = self.time_and_calibration_marginalized_likelihood(
-                d_inner_h_array=d_inner_h_array,
-                h_inner_h=optimal_snr_squared_array)
-            if self.jitter_time:
-                self.parameters['geocent_time'] -= self.parameters['time_jitter']
+                d_inner_h_array=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared_array)
 
         elif self.calibration_marginalization:
             log_l = self.calibration_marginalized_likelihood(
-                d_inner_h_calibration_array=d_inner_h_array,
-                h_inner_h=optimal_snr_squared_array)
+                d_inner_h_calibration_array=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared_array)
 
         elif self.time_marginalization:
             log_l = self.time_marginalized_likelihood(
-                d_inner_h_tc_array=d_inner_h_array,
-                h_inner_h=optimal_snr_squared)
-            if self.jitter_time:
-                self.parameters['geocent_time'] -= self.parameters['time_jitter']
+                d_inner_h_tc_array=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared)
 
         elif self.distance_marginalization:
             log_l = self.distance_marginalized_likelihood(
-                d_inner_h=d_inner_h, h_inner_h=optimal_snr_squared)
+                d_inner_h=total_snrs.d_inner_h, h_inner_h=total_snrs.optimal_snr_squared)
 
         elif self.phase_marginalization:
             log_l = self.phase_marginalized_likelihood(
-                d_inner_h=d_inner_h, h_inner_h=optimal_snr_squared)
+                d_inner_h=total_snrs.d_inner_h, h_inner_h=total_snrs.optimal_snr_squared)
 
         else:
-            log_l = np.real(d_inner_h) - optimal_snr_squared / 2
+            log_l = np.real(total_snrs.d_inner_h) - total_snrs.optimal_snr_squared / 2
 
-        return float(log_l.real)
+        return log_l
+
+    def compute_per_detector_log_likelihood(self):
+        waveform_polarizations = \
+            self.waveform_generator.frequency_domain_strain(self.parameters)
+
+        if self.time_marginalization and self.jitter_time:
+            self.parameters['geocent_time'] += self.parameters['time_jitter']
+
+        self.parameters.update(self.get_sky_frame_parameters())
+
+        for interferometer in self.interferometers:
+            per_detector_snr = self.calculate_snrs(
+                waveform_polarizations=waveform_polarizations,
+                interferometer=interferometer)
+
+            self.parameters['{}_log_likelihood'.format(interferometer.name)] = \
+                self.compute_log_likelihood_from_snrs(per_detector_snr)
+
+        if self.time_marginalization and self.jitter_time:
+            self.parameters['geocent_time'] -= self.parameters['time_jitter']
+
+        return self.parameters.copy()
 
     def generate_posterior_sample_from_marginalized_likelihood(self):
         """
@@ -756,32 +806,29 @@ class GravitationalWaveTransient(Likelihood):
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
 
-        d_inner_h = 0.
-        optimal_snr_squared = 0.
-        complex_matched_filter_snr = 0.
-        d_inner_h_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)
-        optimal_snr_squared_array = np.zeros(self.number_of_response_curves, dtype=np.complex128)
+        total_snrs = self._CalculatedSNRs(
+            d_inner_h=0., optimal_snr_squared=0., complex_matched_filter_snr=0.,
+            d_inner_h_array=np.zeros(self.number_of_response_curves, dtype=np.complex128),
+            optimal_snr_squared_array=np.zeros(self.number_of_response_curves, dtype=np.complex128))
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(
                 waveform_polarizations=signal_polarizations,
                 interferometer=interferometer)
 
-            d_inner_h += per_detector_snr.d_inner_h
-            optimal_snr_squared += np.real(per_detector_snr.optimal_snr_squared)
-            complex_matched_filter_snr += per_detector_snr.complex_matched_filter_snr
-            d_inner_h_array += per_detector_snr.d_inner_h_array
-            optimal_snr_squared_array += per_detector_snr.optimal_snr_squared_array
+            total_snrs += per_detector_snr
 
         if self.distance_marginalization:
             log_l_cal_array = self.distance_marginalized_likelihood(
-                d_inner_h=d_inner_h_array, h_inner_h=optimal_snr_squared_array)
+                d_inner_h=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared_array)
         elif self.phase_marginalization:
             log_l_cal_array = self.phase_marginalized_likelihood(
-                d_inner_h=d_inner_h_array,
-                h_inner_h=optimal_snr_squared_array)
+                d_inner_h=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared_array)
         else:
-            log_l_cal_array = np.real(d_inner_h_array - optimal_snr_squared_array / 2)
+            log_l_cal_array = \
+                np.real(total_snrs.d_inner_h_array - total_snrs.optimal_snr_squared_array / 2)
 
         return log_l_cal_array
 
