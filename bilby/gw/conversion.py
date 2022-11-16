@@ -830,6 +830,9 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
+        compute_per_detector_log_likelihoods(
+            samples=output_sample, likelihood=likelihood, npool=npool)
+
         marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
         if len(marginalized_parameters) > 0:
             try:
@@ -1466,6 +1469,117 @@ def _compute_snrs(args):
     for ifo in likelihood.interferometers:
         snrs.append(likelihood.calculate_snrs(signal_polarizations, ifo))
     return snrs
+
+
+def compute_per_detector_log_likelihoods(samples, likelihood, npool=1, block=10):
+    """
+    Calculate the log likelihoods in each detector.
+
+    Parameters
+    ==========
+    samples: DataFrame
+        Posterior from run with a marginalised likelihood.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient
+        Likelihood used during sampling.
+    npool: int, (default=1)
+        If given, perform generation (where possible) using a multiprocessing pool
+    block: int, (default=10)
+        Size of the blocks to use in multiprocessing
+
+    Returns
+    =======
+    sample: DataFrame
+        Returns the posterior with new samples.
+    """
+    if likelihood is not None:
+        if not callable(likelihood.compute_per_detector_log_likelihood):
+            logger.debug('Not computing per-detector log likelihoods.')
+            return samples
+
+        if isinstance(samples, dict):
+            likelihood.parameters.update(samples)
+            samples = likelihood.compute_per_detector_log_likelihood()
+            return samples
+
+        elif not isinstance(samples, DataFrame):
+            raise ValueError("Unable to handle input samples of type {}".format(type(samples)))
+        from tqdm.auto import tqdm
+
+        logger.info('Computing per-detector log likelihoods.')
+
+        # Initialize cache dict
+        cached_samples_dict = dict()
+
+        # Store samples to convert for checking
+        cached_samples_dict["_samples"] = samples
+
+        # Set up the multiprocessing
+        if npool > 1:
+            from ..core.sampler.base_sampler import _initialize_global_variables
+            pool = multiprocessing.Pool(
+                processes=npool,
+                initializer=_initialize_global_variables,
+                initargs=(likelihood, None, None, False),
+            )
+            logger.info(
+                "Using a pool with size {} for nsamples={}"
+                .format(npool, len(samples))
+            )
+        else:
+            from ..core.sampler.base_sampler import _sampling_convenience_dump
+            _sampling_convenience_dump.likelihood = likelihood
+            pool = None
+
+        fill_args = [(ii, row) for ii, row in samples.iterrows()]
+        ii = 0
+        pbar = tqdm(total=len(samples), file=sys.stdout)
+        while ii < len(samples):
+            if ii in cached_samples_dict:
+                ii += block
+                pbar.update(block)
+                continue
+
+            if pool is not None:
+                subset_samples = pool.map(_compute_per_detector_log_likelihoods,
+                                          fill_args[ii: ii + block])
+            else:
+                subset_samples = [list(_compute_per_detector_log_likelihoods(xx))
+                                  for xx in fill_args[ii: ii + block]]
+
+            cached_samples_dict[ii] = subset_samples
+
+            ii += block
+            pbar.update(len(subset_samples))
+        pbar.close()
+
+        if pool is not None:
+            pool.close()
+            pool.join()
+
+        new_samples = np.concatenate(
+            [np.array(val) for key, val in cached_samples_dict.items() if key != "_samples"]
+        )
+
+        for ii, key in \
+                enumerate([f'{ifo.name}_log_likelihood' for ifo in likelihood.interferometers]):
+            samples[key] = new_samples[:, ii]
+
+        return samples
+
+    else:
+        logger.debug('Not computing per-detector log likelihoods.')
+
+
+def _compute_per_detector_log_likelihoods(args):
+    """A wrapper of computing the per-detector log likelihoods to enable multiprocessing"""
+    from ..core.sampler.base_sampler import _sampling_convenience_dump
+    likelihood = _sampling_convenience_dump.likelihood
+    ii, sample = args
+    sample = dict(sample).copy()
+    likelihood.parameters.update(dict(sample).copy())
+    new_sample = likelihood.compute_per_detector_log_likelihood()
+    return tuple((new_sample[key] for key in
+                  [f'{ifo.name}_log_likelihood' for ifo in likelihood.interferometers]))
 
 
 def generate_posterior_samples_from_marginalized_likelihood(
