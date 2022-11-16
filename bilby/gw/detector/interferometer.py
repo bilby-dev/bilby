@@ -620,7 +620,12 @@ class Interferometer(object):
         return self.strain_data.frequency_domain_strain / self.amplitude_spectral_density_array
 
     def save_data(self, outdir, label=None):
-        """ Creates a save file for the data in plain text format
+        """ Creates save files for interferometer data in plain text format.
+
+        Saves two files: the frequency domain strain data with three columns [f, real part of h(f),
+        imaginary part of h(f)], and the amplitude spectral density with two columns [f, ASD(f)].
+
+        Note that in v1.3.0 and below, the ASD was saved in a file called *_psd.dat.
 
         Parameters
         ==========
@@ -631,10 +636,10 @@ class Interferometer(object):
         """
 
         if label is None:
-            filename_psd = '{}/{}_psd.dat'.format(outdir, self.name)
+            filename_asd = '{}/{}_asd.dat'.format(outdir, self.name)
             filename_data = '{}/{}_frequency_domain_data.dat'.format(outdir, self.name)
         else:
-            filename_psd = '{}/{}_{}_psd.dat'.format(outdir, self.name, label)
+            filename_asd = '{}/{}_{}_asd.dat'.format(outdir, self.name, label)
             filename_data = '{}/{}_{}_frequency_domain_data.dat'.format(outdir, self.name, label)
         np.savetxt(filename_data,
                    np.array(
@@ -642,7 +647,7 @@ class Interferometer(object):
                         self.strain_data.frequency_domain_strain.real,
                         self.strain_data.frequency_domain_strain.imag]).T,
                    header='f real_h(f) imag_h(f)')
-        np.savetxt(filename_psd,
+        np.savetxt(filename_asd,
                    np.array(
                        [self.strain_data.frequency_array,
                         self.amplitude_spectral_density_array]).T,
