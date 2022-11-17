@@ -84,6 +84,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     Likelihood: `bilby.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters.
+
+    Notes
+    -----
+    The relative binning likelihood does not currently support calibration marginalization.
     """
 
     def __init__(self, interferometers,
@@ -119,6 +123,12 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             logger.info("Drawing fiducial parameters from prior.")
             fiducial_parameters = priors.sample()
         fiducial_parameters["fiducial"] = 0
+        if self.time_marginalization:
+            fiducial_parameters["geocent_time"] = interferometers.start_time
+        if self.distance_marginalization:
+            fiducial_parameters["luminosity_distance"] = self._ref_dist
+        if self.phase_marginalization:
+            fiducial_parameters["phase"] = 0.0
         self.fiducial_parameters = fiducial_parameters
         self.chi = chi
         self.epsilon = epsilon

@@ -6,7 +6,7 @@ import numpy as np
 from parameterized import parameterized
 
 
-class TestMBLikelihood(unittest.TestCase):
+class TestRelativeBinningLikelihood(unittest.TestCase):
     def setUp(self):
         duration = 16
         fmin = 20
