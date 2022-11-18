@@ -408,6 +408,10 @@ class Prior(object):
             The string is interpreted as a call to instantiate another prior
             class, Bilby will attempt to recursively construct that prior,
             e.g., Uniform(minimum=0, maximum=1), my.custom.PriorClass(**kwargs).
+        - Else If the string contains a ".":
+            It is treated as a path to a Python function and imported, e.g.,
+            "some_module.some_function" returns
+            :code:`import some_module; return some_module.some_function`
         - Else:
             Try to evaluate the string using `eval`. Only built-in functions
             and numpy methods can be used, e.g., np.pi / 2, 1.57.
@@ -448,10 +452,17 @@ class Prior(object):
             try:
                 val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi))
             except NameError:
-                raise TypeError(
-                    "Cannot evaluate prior, "
-                    "failed to parse argument {}".format(val)
-                )
+                if "." in val:
+                    module = '.'.join(val.split('.')[:-1])
+                    func = val.split('.')[-1]
+                    new_val = getattr(import_module(module), func, val)
+                    if val == new_val:
+                        raise TypeError(
+                            "Cannot evaluate prior, "
+                            f"failed to parse argument {val}"
+                        )
+                    else:
+                        val = new_val
         return val
 
 
