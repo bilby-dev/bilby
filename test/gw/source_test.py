@@ -423,5 +423,199 @@ class TestBNSfreqseq(unittest.TestCase):
             self.assertLess(diff / norm, 1e-5)
 
 
+class TestRelbinBBH(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            tilt_1=0.2,
+            phi_12=1.0,
+            a_2=0.8,
+            tilt_2=2.7,
+            phi_jl=2.9,
+            theta_jn=0.3,
+            phase=0.0,
+        )
+        self.waveform_kwargs_fiducial = dict(
+            waveform_approximant="IMRPhenomPv2",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+            fiducial=True,
+        )
+        self.waveform_kwargs_binned = dict(
+            waveform_approximant="IMRPhenomPv2",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+            fiducial=False,
+            frequency_bin_edges=np.arange(20, 1500, 50)
+        )
+        self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
+        self.bad_parameters = copy(self.parameters)
+        self.bad_parameters["mass_1"] = -30.0
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs_fiducial
+        del self.waveform_kwargs_binned
+        del self.frequency_array
+        del self.bad_parameters
+
+    def test_relbin_fiducial_bbh_works_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
+    def test_relbin_binned_bbh_works_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_binned)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
+    def test_waveform_error_catching_fiducial(self):
+        self.bad_parameters.update(self.waveform_kwargs_fiducial)
+        self.assertIsNone(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.bad_parameters
+            )
+        )
+
+    def test_waveform_error_catching_binned(self):
+        self.bad_parameters.update(self.waveform_kwargs_binned)
+        self.assertIsNone(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.bad_parameters
+            )
+        )
+
+    def test_waveform_error_raising_fiducial(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs_fiducial)
+        raise_error_parameters["catch_waveform_errors"] = False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **raise_error_parameters
+            )
+
+    def test_waveform_error_raising_binned(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs_binned)
+        raise_error_parameters["catch_waveform_errors"] = False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **raise_error_parameters
+            )
+
+    def test_relbin_bbh_fails_without_fiducial_option(self):
+        with self.assertRaises(TypeError):
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.parameters
+            )
+
+    def test_relbin_bbh_xpprecession_version(self):
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["waveform_approximant"] = "IMRPhenomXP"
+
+        # Test that we can modify the XP precession version
+        out_v223 = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, PhenomXPrecVersion=223, **self.parameters
+        )
+        out_v102 = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, PhenomXPrecVersion=102, **self.parameters
+        )
+        self.assertFalse(np.all(out_v223["plus"] == out_v102["plus"]))
+
+
+class TestRelbinBNS(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=1.4,
+            mass_2=1.4,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            a_2=0.3,
+            tilt_1=0.2,
+            tilt_2=1.7,
+            phi_jl=0.2,
+            phi_12=0.9,
+            theta_jn=1.7,
+            phase=0.0,
+            lambda_1=100.0,
+            lambda_2=100.0,
+        )
+        self.waveform_kwargs_fiducial = dict(
+            waveform_approximant="IMRPhenomPv2_NRTidal",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            fiducial=True,
+        )
+        self.waveform_kwargs_binned = dict(
+            waveform_approximant="IMRPhenomPv2_NRTidal",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            fiducial=False,
+            frequency_bin_edges=np.arange(20, 1500, 50),
+        )
+        self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs_fiducial
+        del self.waveform_kwargs_binned
+        del self.frequency_array
+
+    def test_relbin_fiducial_bns_runs_with_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
+    def test_relbin_binned_bns_runs_with_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_binned)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
+    def test_relbin_bns_fails_without_fiducial_option(self):
+        with self.assertRaises(TypeError):
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
+            )
+
+    def test_fiducial_fails_without_tidal_parameters(self):
+        self.parameters.pop("lambda_1")
+        self.parameters.pop("lambda_2")
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        with self.assertRaises(TypeError):
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
+            )
+
+    def test_binned_fails_without_tidal_parameters(self):
+        self.parameters.pop("lambda_1")
+        self.parameters.pop("lambda_2")
+        self.parameters.update(self.waveform_kwargs_binned)
+        with self.assertRaises(TypeError):
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

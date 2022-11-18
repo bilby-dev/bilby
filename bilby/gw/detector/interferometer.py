@@ -285,7 +285,7 @@ class Interferometer(object):
         else:
             return 0
 
-    def get_detector_response(self, waveform_polarizations, parameters):
+    def get_detector_response(self, waveform_polarizations, parameters, frequencies=None):
         """ Get the detector response for a particular waveform
 
         Parameters
@@ -294,11 +294,21 @@ class Interferometer(object):
             polarizations of the waveform
         parameters: dict
             parameters describing position and time of arrival of the signal
-
+        frequencies: array-like, optional
+        The frequency values to evaluate the response at. If
+        not provided, the response is computed using
+        :code:`self.frequency_array`. If the frequencies are
+        specified, no frequency masking is performed.
         Returns
         =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
+        if frequencies is None:
+            frequencies = self.frequency_array[self.frequency_mask]
+            mask = self.frequency_mask
+        else:
+            mask = np.ones(len(frequencies), dtype=bool)
+
         signal = {}
         for mode in waveform_polarizations.keys():
             det_response = self.antenna_response(
@@ -308,9 +318,7 @@ class Interferometer(object):
                 parameters['psi'], mode)
 
             signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values())
-
-        signal_ifo *= self.strain_data.frequency_mask
+        signal_ifo = sum(signal.values()) * mask
 
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
@@ -320,12 +328,11 @@ class Interferometer(object):
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
-        signal_ifo[self.strain_data.frequency_mask] = signal_ifo[self.strain_data.frequency_mask] * np.exp(
-            -1j * 2 * np.pi * dt * self.strain_data.frequency_array[self.strain_data.frequency_mask])
+        signal_ifo[mask] = signal_ifo[mask] * np.exp(-1j * 2 * np.pi * dt * frequencies)
 
-        signal_ifo[self.strain_data.frequency_mask] *= self.calibration_model.get_calibration_factor(
-            self.strain_data.frequency_array[self.strain_data.frequency_mask],
-            prefix='recalib_{}_'.format(self.name), **parameters)
+        signal_ifo[mask] *= self.calibration_model.get_calibration_factor(
+            frequencies, prefix='recalib_{}_'.format(self.name), **parameters
+        )
 
         return signal_ifo
 
