@@ -464,6 +464,17 @@ class TestLoadPrior(unittest.TestCase):
         prior = bilby.core.prior.PriorDict(filename)
         self.assertTrue(isinstance(prior["logA"], bilby.core.prior.Uniform))
 
+    def test_load_prior_with_function(self):
+        filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "prior_files/prior_with_function.prior",
+        )
+        prior = bilby.core.prior.ConditionalPriorDict(filename)
+        self.assertTrue("mass_1" in prior)
+        self.assertTrue("mass_2" in prior)
+        samples = prior.sample(10000)
+        self.assertTrue(all(samples["mass_1"] > samples["mass_2"]))
+
 
 class TestCreateDefaultPrior(unittest.TestCase):
     def test_none_behaviour(self):

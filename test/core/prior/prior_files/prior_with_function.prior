@@ -1,0 +1,2 @@
+mass_1 = Uniform(name='mass_1', minimum=5, maximum=100, unit='$M_{\odot}$', boundary=None)
+mass_2 = ConditionalUniform(name="mass_1", minimum=5, maximum=100, condition_func="bilby.gw.prior.secondary_mass_condition_function")
