@@ -1,5 +1,27 @@
 # All notable changes will be documented in this file
 
+## [1.4.0] 2022-11-18
+Version 1.4.0 release of Bilby
+
+The main changes in this release are support for more recent versions of `dynesty` (!1138)
+and `nessai` (!1161) and adding the
+`RelativeBinningGravitationalWaveTransientLikelihood` (!1105)
+(see [arXiv:1806.08792](https://arxiv.org/abs/1806.08792)) for details.
+
+### Added
+- Per-detector likelihood calculations (!1149)
+- `bilby.gw.likelihood.relative.RelativeBinningGravitationalWaveTransient` (!1105)
+
+### Changes
+- Reset the timer for `PyMultiNest` when overwriting an existing checkpoint directory (!1163)
+- Cache the computed the noise log likelihood for the `GravitationalWaveTransient` (!1179)
+- Set the reference chirp mass for the multi banded likelihood from the prior when not specified (!1169)
+- Bugfix in the name of the saved ASD file in `Interferometer.save_data` (!1176)
+- Modify the window length for stationarity tests for `ptemcee` (!1146)
+- Explicit support for `nessai>=0.7.0` (!1161)
+- Allow prior arguments read from a string to be functions (!1144)
+- Support `dynesty>=1.1.0` (!1138)
+
 ## [1.3.0] 2022-10-23
 Version 1.3.0 release of Bilby
 
