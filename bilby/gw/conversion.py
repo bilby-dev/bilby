@@ -597,7 +597,7 @@ def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
         Symmetric mass ratio of the binary
     """
 
-    return (mass_1 * mass_2) / (mass_1 + mass_2) ** 2
+    return np.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, 1 / 4)
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):
