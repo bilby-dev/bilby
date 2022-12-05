@@ -216,8 +216,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             )
 
     def set_fiducial_waveforms(self, parameters):
-        _fiducial = parameters["fiducial"]
+        parameters = parameters.copy()
         parameters["fiducial"] = 1
+        parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
 
@@ -235,8 +236,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             wf = interferometer.get_detector_response(self.fiducial_polarizations, parameters)
             wf[interferometer.frequency_array > self.maximum_frequency] = 0
             self.per_detector_fiducial_waveforms[interferometer.name] = wf
-
-        parameters["fiducial"] = _fiducial
 
     def find_maximum_likelihood_parameters(self, parameter_bounds,
                                            iterations=5, maximization_kwargs=None):

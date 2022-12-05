@@ -1112,21 +1112,55 @@ class GravitationalWaveTransient(Likelihood):
         else:
             raise ValueError("Unable to parse reference frame {}".format(frame))
 
-    def get_sky_frame_parameters(self):
-        time = self.parameters['{}_time'.format(self.time_reference)]
+    def get_sky_frame_parameters(self, parameters=None):
+        """
+        Generate ra, dec, and geocenter time for :code:`parameters`
+
+        This method will attempt to convert from the reference time and sky
+        parameters, but if they are not present it will fall back to ra and dec.
+
+        Parameters
+        ==========
+        parameters: dict, optional
+            The parameters to be converted.
+            If not specified :code:`self.parameters` will be used.
+
+        Returns
+        =======
+        dict: dictionary containing ra, dec, and geocent_time
+        """
+        if parameters is None:
+            parameters = self.parameters
+        time = parameters.get(f'{self.time_reference}_time', None)
+        if time is None and "geocent_time" in parameters:
+            logger.warning(
+                f"Cannot find {self.time_reference}_time in parameters. "
+                "Falling back to geocent time"
+            )
         if not self.reference_frame == "sky":
-            ra, dec = zenith_azimuth_to_ra_dec(
-                self.parameters['zenith'], self.parameters['azimuth'],
-                time, self.reference_frame)
+            try:
+                ra, dec = zenith_azimuth_to_ra_dec(
+                    parameters['zenith'], parameters['azimuth'],
+                    time, self.reference_frame)
+            except KeyError:
+                if "ra" in parameters and "dec" in parameters:
+                    ra = parameters["ra"]
+                    dec = parameters["dec"]
+                    logger.warning(
+                        "Cannot convert from zenith/azimuth to ra/dec falling "
+                        "back to provided ra/dec"
+                    )
+                else:
+                    raise
         else:
-            ra = self.parameters["ra"]
-            dec = self.parameters["dec"]
-        if "geocent" not in self.time_reference:
+            ra = parameters["ra"]
+            dec = parameters["dec"]
+        if "geocent" not in self.time_reference and f"{self.time_reference}_time" in parameters:
             geocent_time = time - self.reference_ifo.time_delay_from_geocenter(
                 ra=ra, dec=dec, time=time
             )
         else:
-            geocent_time = self.parameters["geocent_time"]
+            geocent_time = parameters["geocent_time"]
         return dict(ra=ra, dec=dec, geocent_time=geocent_time)
 
     @property
