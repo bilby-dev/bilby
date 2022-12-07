@@ -42,7 +42,7 @@ def lal_binary_black_hole(
     theta_jn: float
         Angle between the total binary angular momentum and the line of sight
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
         Optional keyword arguments
         Supported arguments:
@@ -125,7 +125,7 @@ def lal_binary_neutron_star(
     theta_jn: float
         Orbital inclination
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     lambda_1: float
         Dimensionless tidal deformability of mass_1
     lambda_2: float
@@ -197,7 +197,7 @@ def lal_eccentric_binary_black_hole_no_spins(
     theta_jn: float
         Orbital inclination
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
         Optional keyword arguments
         Supported arguments:
@@ -275,7 +275,7 @@ def _base_lal_cbc_fd_waveform(
     theta_jn: float
         Orbital inclination
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     eccentricity: float
         Binary eccentricity
     lambda_1: float
@@ -548,7 +548,7 @@ def _base_roq_waveform(
     theta_jn: float
         Orbital inclination
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
 
     Waveform arguments
     ===================
@@ -649,7 +649,7 @@ def binary_black_hole_frequency_sequence(
     theta_jn: float
         Angle between the total binary angular momentum and the line of sight
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
         Required keyword arguments
         - frequencies:
@@ -735,7 +735,7 @@ def binary_neutron_star_frequency_sequence(
     theta_jn: float
         Angle between the total binary angular momentum and the line of sight
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
         Required keyword arguments
         - frequencies:
@@ -811,7 +811,7 @@ def _base_waveform_frequency_sequence(
     theta_jn: float
         Orbital inclination
     phase: float
-        The phase at coalescence
+        The phase at reference frequency or peak amplitude (depends on waveform)
     waveform_kwargs: dict
         Optional keyword arguments
 
