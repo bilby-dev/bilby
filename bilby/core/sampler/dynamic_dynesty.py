@@ -17,7 +17,16 @@ class DynamicDynesty(Dynesty):
 
     @property
     def nlive(self):
-        return self.kwargs["nlive_init"]
+        """
+        Users can either specify :code:`nlive_init` or :code:`nlive` (with
+        that precedence) or specify no value, in which case 500 is used.
+        """
+        if self.kwargs["nlive_init"] is not None:
+            return self.kwargs["nlive_init"]
+        elif self.kwargs["nlive"] is not None:
+            return self.kwargs["nlive"]
+        else:
+            return 500
 
     @property
     def sampler_init(self):
