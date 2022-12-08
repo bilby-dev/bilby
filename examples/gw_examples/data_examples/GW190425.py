@@ -32,6 +32,10 @@ start_time = end_time - duration
 # The fiducial parameters are taken to me the max likelihood sample from the
 # posterior sample release of LIGO-Virgo
 # https://www.gw-openscience.org/eventapi/html/O3_Discovery_Papers/GW190425/
+# The fiducial parameters should always be in provided in the same basis as
+# the sampling basis. For example, if sampling in  `mass_1` and `mass_2` instead of
+# `chirp_mass` and `mass_ratio`, the fiducial parameters should also be provided in
+# `mass_1` and `mass_2` below.
 
 fiducial_parameters = {
     "a_1": 0.018,

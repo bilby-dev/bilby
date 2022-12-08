@@ -23,7 +23,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         given some set of parameters
     fiducial_parameters: dict, optional
         A starting guess for initial parameters of the event for finding the
-        maximum likelihood (fiducial) waveform.
+        maximum likelihood (fiducial) waveform. These should be specified in
+        the same parameter basis as the one that sampling is carried out in.
+        For example, if sampling in `mass_1` and `mass_2`, the fiducial
+        parameters should also be provided in `mass_1` and `mass_2.`
     parameter_bounds: dict, optional
         Dictionary of bounds (lists) for the initial parameters when finding
         the initial maximum likelihood (fiducial) waveform.
