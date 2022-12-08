@@ -725,7 +725,7 @@ class Dynesty(NestedSampler):
     def _run_test(self):
         import pandas as pd
 
-        self.sampler = self.sampler_class(
+        self.sampler = self.sampler_init(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
             ndim=self.ndim,
@@ -734,7 +734,14 @@ class Dynesty(NestedSampler):
         sampler_kwargs = self.sampler_function_kwargs.copy()
         sampler_kwargs["maxiter"] = 2
 
+        if self.print_method == "tqdm" and self.kwargs["print_progress"]:
+            from tqdm.auto import tqdm
+
+            self.pbar = tqdm(file=sys.stdout, initial=self.sampler.it)
         self.sampler.run_nested(**sampler_kwargs)
+        if self.pbar is not None:
+            self.pbar = self.pbar.close()
+            print("")
         N = 100
         self.result.samples = pd.DataFrame(self.priors.sample(N))[
             self.search_parameter_keys

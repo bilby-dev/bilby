@@ -7,6 +7,7 @@ This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance
 between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
+from copy import deepcopy
 
 import bilby
 import numpy as np
@@ -109,6 +110,17 @@ priors["fiducial"] = 0
 # Perform a check that the prior does not extend to a parameter space longer than the data
 priors.validate_prior(duration, minimum_frequency)
 
+# Set up the fiducial parameters for the relative binning likelihood to be the
+# injected parameters. Note that because we sample in chirp mass and mass ratio
+# but injected with mass_1 and mass_2, we need to convert the mass parameters
+fiducial_parameters = injection_parameters.copy()
+m1 = fiducial_parameters.pop("mass_1")
+m2 = fiducial_parameters.pop("mass_2")
+fiducial_parameters["chirp_mass"] = bilby.gw.conversion.component_masses_to_chirp_mass(
+    m1, m2
+)
+fiducial_parameters["mass_ratio"] = m2 / m1
+
 # Initialise the likelihood by passing in the interferometer data (ifos) and
 # the waveform generator
 likelihood = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
@@ -116,15 +128,15 @@ likelihood = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
     waveform_generator=waveform_generator,
     priors=priors,
     distance_marginalization=True,
-    fiducial_parameters=injection_parameters,
+    fiducial_parameters=fiducial_parameters,
 )
 
-# Run sampler.  In this case we're going to use the `dynesty` sampler
+# Run sampler.  In this case, we're going to use the `nestle` sampler
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
     sampler="nestle",
-    npoints=100,
+    npoints=1000,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
@@ -158,5 +170,15 @@ print(
 )
 print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 
-# Make a corner plot.
-# result.plot_corner()
+# Generate result object with the posterior for the regular likelihood using
+# rejection sampling
+alt_result = deepcopy(result)
+keep = weights > np.random.uniform(0, max(weights), len(weights))
+alt_result.posterior = result.posterior.iloc[keep]
+
+# Make a comparison corner plot.
+bilby.core.result.plot_multiple(
+    [result, alt_result],
+    labels=["Binned", "Reweighted"],
+    filename=f"{outdir}/{label}_corner.png",
+)
