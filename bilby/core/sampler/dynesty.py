@@ -669,10 +669,14 @@ class Dynesty(NestedSampler):
                 np.linalg.linalg.LinAlgError,
                 ValueError,
                 OverflowError,
-                Exception,
             ) as e:
                 logger.warning(e)
                 logger.warning("Failed to create dynesty state plot at checkpoint")
+            except Exception as e:
+                logger.warning(
+                    f"Unexpected error {e} in dynesty plotting. "
+                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                )
             finally:
                 plt.close("all")
             try:
@@ -691,34 +695,53 @@ class Dynesty(NestedSampler):
                 np.linalg.linalg.LinAlgError,
                 ValueError,
                 OverflowError,
-                Exception,
             ) as e:
                 logger.warning(e)
                 logger.warning("Failed to create dynesty unit state plot at checkpoint")
+            except Exception as e:
+                logger.warning(
+                    f"Unexpected error {e} in dynesty plotting. "
+                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                )
             finally:
                 plt.close("all")
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_run.png"
-                fig, axs = dyplot.runplot(
+                fig, _ = dyplot.runplot(
                     self.sampler.results, logplot=False, use_math_text=False
                 )
                 fig.tight_layout()
                 plt.savefig(filename)
-            except (RuntimeError, np.linalg.linalg.LinAlgError, ValueError) as e:
+            except (
+                RuntimeError,
+                np.linalg.linalg.LinAlgError,
+                ValueError,
+                OverflowError,
+            ) as e:
                 logger.warning(e)
                 logger.warning("Failed to create dynesty run plot at checkpoint")
+            except Exception as e:
+                logger.warning(
+                    f"Unexpected error {e} in dynesty plotting. "
+                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                )
             finally:
                 plt.close("all")
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_stats.png"
-                fig, axs = dynesty_stats_plot(self.sampler)
+                fig, _ = dynesty_stats_plot(self.sampler)
                 fig.tight_layout()
                 plt.savefig(filename)
-            except (RuntimeError, ValueError) as e:
+            except (RuntimeError, ValueError, OverflowError) as e:
                 logger.warning(e)
                 logger.warning("Failed to create dynesty stats plot at checkpoint")
             except DynestySetupError:
                 logger.debug("Cannot create Dynesty stats plot with dynamic sampler.")
+            except Exception as e:
+                logger.warning(
+                    f"Unexpected error {e} in dynesty plotting. "
+                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                )
             finally:
                 plt.close("all")
 
