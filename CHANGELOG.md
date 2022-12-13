@@ -1,5 +1,19 @@
 # All notable changes will be documented in this file
 
+## [1.4.1] 2022-12-07
+Version 1.4.1 release of Bilby
+
+This is a bugfix release to address some minor issues identified after v1.4.0.
+
+### Changes
+- Documentation updates (!1181, !1183)
+- Fix some of the examples in the repository (!1182)
+- Make sure conversion to symmetric mass ratio always returns a valid value (!1184)
+- Provide a default nlive for dynamic dynesty (!1185)
+- Enable the relative binning likelihood to be initialized with ra/dec when sampling in a different sky parameterization (!1186)
+- Make sure that all dumping pickle files is done safely (!1189)
+- Make error catching for `dynesty` checkpointing more robust (!1190)
+
 ## [1.4.0] 2022-11-18
 Version 1.4.0 release of Bilby
 
