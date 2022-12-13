@@ -7,7 +7,7 @@ import numpy as np
 from ..core.result import Result as CoreResult
 from ..core.utils import (
     infft, logger, check_directory_exists_and_if_not_mkdir,
-    latex_plot_format, safe_save_figure
+    latex_plot_format, safe_file_dump, safe_save_figure,
 )
 from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
 from .detector import get_empty_interferometer, Interferometer
@@ -781,8 +781,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
             logger.info('Initialising skymap class')
             skypost = confidence_levels(pts, trials=trials, jobs=jobs)
             logger.info('Pickling skymap to {}'.format(default_obj_filename))
-            with open(default_obj_filename, 'wb') as out:
-                pickle.dump(skypost, out)
+            safe_file_dump(skypost, default_obj_filename, "pickle")
 
         else:
             if isinstance(load_pickle, str):

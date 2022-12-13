@@ -8,7 +8,7 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 
-from ..utils import check_directory_exists_and_if_not_mkdir, logger
+from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
 from .base_sampler import (
     MCMCSampler,
     SamplerError,
@@ -1189,8 +1189,6 @@ def checkpoint(
     Q_list,
     time_per_check,
 ):
-    import dill
-
     logger.info("Writing checkpoint and diagnostics")
     ndim = sampler.dim
 
@@ -1223,8 +1221,7 @@ def checkpoint(
         pos0=pos0,
     )
 
-    with open(resume_file, "wb") as file:
-        dill.dump(data, file, protocol=4)
+    safe_file_dump(data, resume_file, "dill")
     del data, sampler_copy
     logger.info("Finished writing checkpoint")
 

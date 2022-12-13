@@ -343,14 +343,11 @@ class Dynesty(NestedSampler):
         self.kwargs[key] = selected
 
     def nestcheck_data(self, out_file):
-        import pickle
-
         import nestcheck.data_processing
 
         ns_run = nestcheck.data_processing.process_dynesty_run(out_file)
         nestcheck_result = f"{self.outdir}/{self.label}_nestcheck.pickle"
-        with open(nestcheck_result, "wb") as file_nest:
-            pickle.dump(ns_run, file_nest)
+        safe_file_dump(ns_run, nestcheck_result, "pickle")
 
     @property
     def nlive(self):
@@ -370,7 +367,6 @@ class Dynesty(NestedSampler):
 
     @signal_wrapper
     def run_sampler(self):
-        import dill
         import dynesty
 
         logger.info(f"Using dynesty version {dynesty.__version__}")
@@ -436,8 +432,7 @@ class Dynesty(NestedSampler):
             self.nestcheck_data(out)
 
         dynesty_result = f"{self.outdir}/{self.label}_dynesty.pickle"
-        with open(dynesty_result, "wb") as file:
-            dill.dump(out, file)
+        safe_file_dump(out, dynesty_result, "dill")
 
         self._generate_result(out)
         self.result.sampling_time = self.sampling_time
