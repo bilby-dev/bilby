@@ -8,7 +8,7 @@ from bilby_cython.geometry import (
 )
 
 from ...core import utils
-from ...core.utils import docstring, logger, PropertyAccessor
+from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
 from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
@@ -798,11 +798,9 @@ class Interferometer(object):
         format="pickle", extra=".. versionadded:: 1.1.0"
     ))
     def to_pickle(self, outdir="outdir", label=None):
-        import dill
         utils.check_directory_exists_and_if_not_mkdir('outdir')
         filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
-        with open(filename, "wb") as ff:
-            dill.dump(self, ff)
+        safe_file_dump(self, filename, "dill")
 
     @classmethod
     @docstring(_load_docstring.format(format="pickle"))

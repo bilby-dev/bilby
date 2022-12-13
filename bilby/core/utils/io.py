@@ -370,10 +370,11 @@ def safe_file_dump(data, filename, module):
         data to dump
     filename: str
         The file to dump to
-    module: pickle, dill
-        The python module to use
+    module: pickle, dill, str
+        The python module to use. If a string, the module will be imported
     """
-
+    if isinstance(module, str):
+        module = import_module(module)
     temp_filename = filename + ".temp"
     with open(temp_filename, "wb") as file:
         module.dump(data, file)

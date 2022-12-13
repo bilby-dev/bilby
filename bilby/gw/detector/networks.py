@@ -4,7 +4,7 @@ import numpy as np
 import math
 
 from ...core import utils
-from ...core.utils import logger
+from ...core.utils import logger, safe_file_dump
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 
@@ -273,15 +273,12 @@ class InterferometerList(list):
     """
 
     def to_pickle(self, outdir="outdir", label="ifo_list"):
-        import dill
-
         utils.check_directory_exists_and_if_not_mkdir("outdir")
         label = label + "_" + "".join(ifo.name for ifo in self)
         filename = self._filename_from_outdir_label_extension(
             outdir, label, extension="pkl"
         )
-        with open(filename, "wb") as ff:
-            dill.dump(self, ff)
+        safe_file_dump(self, filename, "dill")
 
     @classmethod
     def from_pickle(cls, filename=None):

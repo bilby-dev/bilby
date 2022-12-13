@@ -12,7 +12,7 @@ import numpy as np
 from pandas import DataFrame, Series
 
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
-from ..core.utils import logger, solar_mass, command_line_args
+from ..core.utils import logger, solar_mass, command_line_args, safe_file_dump
 from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import SpectralDecompositionEOS, EOSFamily, IntegrateTOV
@@ -1687,8 +1687,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
         cached_samples_dict[ii] = subset_samples
 
         if use_cache:
-            with open(cache_filename, "wb") as f:
-                pickle.dump(cached_samples_dict, f)
+            safe_file_dump(cached_samples_dict, cache_filename, "pickle")
 
         ii += block
         pbar.update(len(subset_samples))

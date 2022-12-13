@@ -22,6 +22,7 @@ from .utils import (
     recursively_save_dict_contents_to_group,
     recursively_load_dict_contents_from_group,
     recursively_decode_bilby_json,
+    safe_file_dump,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
@@ -735,16 +736,12 @@ class Result(object):
                 with h5py.File(filename, 'w') as h5file:
                     recursively_save_dict_contents_to_group(h5file, '/', dictionary)
             elif extension == 'pkl':
-                import dill
-                with open(filename, "wb") as ff:
-                    dill.dump(self, ff)
+                safe_file_dump(self, filename, "dill")
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
         except Exception as e:
-            import dill
             filename = ".".join(filename.split(".")[:-1]) + ".pkl"
-            with open(filename, "wb") as ff:
-                dill.dump(self, ff)
+            safe_file_dump(self, filename, "dill")
             logger.error(
                 "\n\nSaving the data has failed with the following message:\n"
                 "{}\nData has been dumped to {}.\n\n".format(e, filename)

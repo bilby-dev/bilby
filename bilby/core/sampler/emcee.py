@@ -7,7 +7,7 @@ from shutil import copyfile
 import numpy as np
 from pandas import DataFrame
 
-from ..utils import check_directory_exists_and_if_not_mkdir, logger
+from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
 from .base_sampler import MCMCSampler, SamplerError, signal_wrapper
 from .ptemcee import LikePriorEvaluator
 
@@ -285,20 +285,20 @@ class Emcee(MCMCSampler):
         return self.sampler.chain[:, :nsteps, :]
 
     def write_current_state(self):
-        """Writes a pickle file of the sampler to disk using dill"""
-        import dill
+        """
+        Writes a pickle file of the sampler to disk using dill
 
+        Overwrites the stored sampler chain with one that is truncated
+        to only the completed steps
+        """
         logger.info(
             f"Checkpointing sampler to file {self.checkpoint_info.sampler_file}"
         )
-        with open(self.checkpoint_info.sampler_file, "wb") as f:
-            # Overwrites the stored sampler chain with one that is truncated
-            # to only the completed steps
-            self.sampler._chain = self.sampler_chain
-            _pool = self.sampler.pool
-            self.sampler.pool = None
-            dill.dump(self._sampler, f)
-            self.sampler.pool = _pool
+        self.sampler._chain = self.sampler_chain
+        _pool = self.sampler.pool
+        self.sampler.pool = None
+        safe_file_dump(self._sampler, self.checkpoint_info.sampler_file, "dill")
+        self.sampler.pool = _pool
 
     def _initialise_sampler(self):
         from emcee import EnsembleSampler
