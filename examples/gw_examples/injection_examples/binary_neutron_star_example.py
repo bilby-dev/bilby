@@ -28,7 +28,7 @@ np.random.seed(88170235)
 injection_parameters = dict(
     mass_1=1.5, mass_2=1.3, chi_1=0.02, chi_2=0.02, luminosity_distance=50.,
     theta_jn=0.4, psi=2.659, phase=1.3, geocent_time=1126259642.413,
-    ra=1.375, dec=-1.2108, lambda_1=400, lambda_2=450)
+    ra=1.375, dec=-1.2108, lambda_1=545, lambda_2=1346)
 
 # Set the duration and sampling frequency of the data segment that we're going
 # to inject the signal into. For the
@@ -78,7 +78,11 @@ priors['symmetric_mass_ratio'] = bilby.core.prior.Uniform(
     0.1, 0.25, name='symmetric_mass_ratio')
 priors['lambda_tilde'] = bilby.core.prior.Uniform(0, 5000, name='lambda_tilde')
 priors['delta_lambda'] = bilby.core.prior.Uniform(
-    -5000, 5000, name='delta_lambda')
+    -500, 1000, name='delta_lambda')
+
+priors["lambda_1"] = bilby.core.prior.Constraint(name='lambda_1', minimum=0,maximum=10000)
+priors["lambda_2"] = bilby.core.prior.Constraint(name='lambda_2', minimum=0,maximum=10000)
+
 
 # Initialise the likelihood by passing in the interferometer data (IFOs)
 # and the waveform generator
