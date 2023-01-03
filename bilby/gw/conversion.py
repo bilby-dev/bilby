@@ -846,17 +846,17 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                 )
         if priors is not None:
             misnamed_marginalizations = dict(
-                distance="luminosity_distance",
-                time="geocent_time",
-                calibration="recalib_index",
+                luminosity_distance="distance",
+                geocent_time="time",
+                recalib_index="calibration",
             )
             for par in marginalized_parameters:
                 name = misnamed_marginalizations.get(par, par)
                 if (
-                    getattr(likelihood, f'{par}_marginalization', False)
-                    and name in likelihood.priors
+                    getattr(likelihood, f'{name}_marginalization', False)
+                    and par in likelihood.priors
                 ):
-                    priors[name] = likelihood.priors[name]
+                    priors[par] = likelihood.priors[par]
 
         if (
             not getattr(likelihood, "reference_frame", "sky") == "sky"
