@@ -99,16 +99,21 @@ def env_package_list(as_dataframe=False):
 
     # if a conda-meta directory exists, this is a conda environment, so
     # use conda to print the package list
-    if (Path(prefix) / "conda-meta").is_dir():
-        pkgs = json.loads(subprocess.check_output([
-            "conda",
-            "list",
-            "--prefix", prefix,
-            "--json"
-        ]))
+    conda_detected = (Path(prefix) / "conda-meta").is_dir()
+    if conda_detected:
+        try:
+            pkgs = json.loads(subprocess.check_output([
+                "conda",
+                "list",
+                "--prefix", prefix,
+                "--json"
+            ]))
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            # When a conda env is in use but conda is unavailable
+            conda_detected = False
 
     # otherwise try and use Pip
-    else:
+    if not conda_detected:
         try:
             import pip  # noqa: F401
         except ModuleNotFoundError:  # no pip?
