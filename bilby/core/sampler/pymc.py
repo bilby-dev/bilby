@@ -1,5 +1,3 @@
-from distutils.version import StrictVersion
-
 import numpy as np
 
 from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
@@ -631,23 +629,13 @@ class Pymc(MCMCSampler):
                         self.kwargs["step"] = pymc.__dict__[step_methods[curmethod]](
                             **args
                         )
-                    else:
-                        # re-add step_kwargs if no step methods are set
-                        if len(step_kwargs) > 0 and StrictVersion(
-                            pymc.__version__
-                        ) < StrictVersion("3.7"):
-                            self.kwargs["step_kwargs"] = step_kwargs
 
         # check whether only NUTS step method has been assigned
         if np.all([sm.lower() == "nuts" for sm in methodslist]):
             # in this case we can let PyMC autoinitialise NUTS, so remove the step methods and re-add nuts_kwargs
             self.kwargs["step"] = None
 
-            if len(nuts_kwargs) > 0 and StrictVersion(pymc.__version__) < StrictVersion(
-                "3.7"
-            ):
-                self.kwargs["nuts_kwargs"] = nuts_kwargs
-            elif len(nuts_kwargs) > 0:
+            if len(nuts_kwargs) > 0:
                 # add NUTS kwargs to standard kwargs
                 self.kwargs.update(nuts_kwargs)
 
@@ -706,10 +694,6 @@ class Pymc(MCMCSampler):
         else:
             args = {}
         return args, nuts_kwargs
-
-    def _pymc_version(self):
-        pymc, _, _ = self._import_external_sampler()
-        return pymc.__version__
 
     def set_prior(self):
         """

@@ -1,6 +1,6 @@
 import functools
 import os
-from distutils.spawn import find_executable
+import shutil
 
 from .log import logger
 
@@ -53,7 +53,7 @@ def latex_plot_format(func):
             _old_tex = rcParams["text.usetex"]
             _old_serif = rcParams["font.serif"]
             _old_family = rcParams["font.family"]
-            if find_executable("latex"):
+            if shutil.which("latex"):
                 rcParams["text.usetex"] = True
             else:
                 rcParams["text.usetex"] = False
