@@ -1,5 +1,4 @@
 import datetime
-import distutils.dir_util
 import os
 import shutil
 import signal
@@ -972,8 +971,10 @@ class _TemporaryFileSamplerMixin:
             f"Overwriting {self.outputfiles_basename} with {self.temporary_outputfiles_basename}"
         )
         outputfiles_basename_stripped = self.outputfiles_basename.rstrip("/")
-        distutils.dir_util.copy_tree(
-            self.temporary_outputfiles_basename, outputfiles_basename_stripped
+        shutil.copytree(
+            self.temporary_outputfiles_basename,
+            outputfiles_basename_stripped,
+            dirs_exist_ok=True,
         )
 
     def _setup_run_directory(self):
@@ -988,8 +989,10 @@ class _TemporaryFileSamplerMixin:
             self.temporary_outputfiles_basename = temporary_outputfiles_basename
 
             if os.path.exists(self.outputfiles_basename):
-                distutils.dir_util.copy_tree(
-                    self.outputfiles_basename, self.temporary_outputfiles_basename
+                shutil.copytree(
+                    self.outputfiles_basename,
+                    self.temporary_outputfiles_basename,
+                    dirs_exist_ok=True,
                 )
             check_directory_exists_and_if_not_mkdir(temporary_outputfiles_basename)
 

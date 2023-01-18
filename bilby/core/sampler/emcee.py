@@ -1,10 +1,10 @@
 import os
 import shutil
 from collections import namedtuple
-from distutils.version import LooseVersion
 from shutil import copyfile
 
 import numpy as np
+from packaging import version
 from pandas import DataFrame
 
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
@@ -79,12 +79,7 @@ class Emcee(MCMCSampler):
         burn_in_act=3,
         **kwargs,
     ):
-        import emcee
-
-        if LooseVersion(emcee.__version__) > LooseVersion("2.2.1"):
-            self.prerelease = True
-        else:
-            self.prerelease = False
+        self._check_version()
         super(Emcee, self).__init__(
             likelihood=likelihood,
             priors=priors,
@@ -95,7 +90,6 @@ class Emcee(MCMCSampler):
             skip_import_verification=skip_import_verification,
             **kwargs,
         )
-        self._check_version()
         self.resume = resume
         self.pos0 = pos0
         self.nburn = nburn
@@ -106,11 +100,10 @@ class Emcee(MCMCSampler):
     def _check_version(self):
         import emcee
 
-        if LooseVersion(emcee.__version__) > LooseVersion("2.2.1"):
-            self.prerelease = True
-        else:
+        if version.parse(emcee.__version__) < version.parse("3"):
             self.prerelease = False
-        return emcee
+        else:
+            self.prerelease = True
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)

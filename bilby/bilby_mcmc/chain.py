@@ -1,7 +1,6 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pandas as pd
+from packaging import version
 
 from ..core.sampler.base_sampler import SamplerError
 from ..core.utils import logger
@@ -512,7 +511,7 @@ class Sample(object):
 def calculate_tau(x, autocorr_c=5):
     import emcee
 
-    if LooseVersion(emcee.__version__) < LooseVersion("3"):
+    if version.parse(emcee.__version__) < version.parse("3"):
         raise SamplerError("bilby-mcmc requires emcee > 3.0 for autocorr analysis")
 
     if np.all(np.diff(x) == 0):
