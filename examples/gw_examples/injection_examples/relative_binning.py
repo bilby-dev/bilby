@@ -105,7 +105,6 @@ for key in [
     "phase",
 ]:
     priors[key] = injection_parameters[key]
-priors["fiducial"] = 0
 
 # Perform a check that the prior does not extend to a parameter space longer than the data
 priors.validate_prior(duration, minimum_frequency)
