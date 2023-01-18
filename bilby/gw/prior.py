@@ -1325,11 +1325,11 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                 bounds.append([0, np.inf])
             self.distance = True
             self.prob, self.distmu, self.distsigma, self.distnorm = self.hp.read_map(
-                hp_file, verbose=False, field=range(4)
+                hp_file, field=range(4)
             )
         else:
             self.distance = False
-            self.prob = self.hp.read_map(hp_file, verbose=False)
+            self.prob = self.hp.read_map(hp_file)
 
         super(HealPixMapPriorDist, self).__init__(names=names, bounds=bounds)
         self.distname = "hpmap"
@@ -1341,7 +1341,6 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         self._all_interped = interp1d(x=self.pix_xx, y=self.prob, bounds_error=False, fill_value=0)
         self.inverse_cdf = None
         self.distance_pdf = None
-        self.distance_dist = None
         self.distance_icdf = None
         self._build_attributes()
         name = self.names[-1]
@@ -1429,14 +1428,6 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         ).pdf(r)
         pdfs = self.rs ** 2 * norm(loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]).pdf(self.rs)
         cdfs = np.cumsum(pdfs) / np.sum(pdfs)
-
-        def sample_distance(n):
-            gaussian = norm(loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]).rvs(size=100 * n)
-            probs = self._check_norm(gaussian[gaussian > 0] ** 2)
-            ds = np.random.choice(gaussian[gaussian > 0], p=probs, size=n, replace=True)
-            return ds
-
-        self.distance_dist = sample_distance
         self.distance_icdf = interp1d(cdfs, self.rs)
 
     @staticmethod
@@ -1512,7 +1503,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
             return 0
-        dist = self.distance_dist(1)
+        dist = self.distance_icdf(np.random.uniform(0, 1))
         name = self.names[-1]
         if (dist > self.bounds[name][1]) | (dist < self.bounds[name][0]):
             self.draw_distance(pix)
@@ -1605,7 +1596,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         return lnprob
 
     def __eq__(self, other):
-        skip_keys = ["_all_interped", "inverse_cdf", "distance_pdf", "distance_dist", "distance_icdf"]
+        skip_keys = ["_all_interped", "inverse_cdf", "distance_pdf", "distance_icdf"]
         if self.__class__ != other.__class__:
             return False
         if sorted(self.__dict__.keys()) != sorted(other.__dict__.keys()):
