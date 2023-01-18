@@ -1,4 +1,3 @@
-import numpy as np
 from pandas import DataFrame
 
 from .base_sampler import NestedSampler, signal_wrapper
@@ -71,6 +70,11 @@ class Nestle(NestedSampler):
         """
         import nestle
 
+        if nestle.__version__ == "0.2.0":
+            # This is a very ugly hack to support numpy>=1.24
+            nestle.np.float = float
+            nestle.np.int = int
+
         out = nestle.sample(
             loglikelihood=self.log_likelihood,
             prior_transform=self.prior_transform,
@@ -107,21 +111,8 @@ class Nestle(NestedSampler):
         bilby.core.result.Result: Dummy container for sampling results.
 
         """
-        import nestle
-
-        kwargs = self.kwargs.copy()
-        kwargs["maxiter"] = 2
-        nestle.sample(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim,
-            **kwargs
-        )
-        self.result.samples = np.random.uniform(0, 1, (100, self.ndim))
-        self.result.log_evidence = np.nan
-        self.result.log_evidence_err = np.nan
-        self.calc_likelihood_count()
-        return self.result
+        self.kwargs["maxiter"] = 2
+        return self.run_sampler()
 
     def write_current_state(self):
         """

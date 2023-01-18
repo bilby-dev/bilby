@@ -408,6 +408,10 @@ class Ptemcee(MCMCSampler):
         """Either initialize the sampler or read in the resume file"""
         import ptemcee
 
+        if ptemcee.__version__ == "1.0.0":
+            # This is a very ugly hack to support numpy>=1.24
+            ptemcee.sampler.np.float = float
+
         if os.path.isfile(self.resume_file) and self.resume is True:
             import dill
 
