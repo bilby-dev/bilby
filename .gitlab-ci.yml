@@ -304,8 +304,8 @@ pypi-release:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
   before_script:
-    - pip install twine setuptools_scm
-    - python setup.py sdist
+    - python -m pip install twine setuptools_scm build
+    - python -m build --sdist --wheel --outdir dist/ .
   script:
     - twine upload dist/*
   only:
