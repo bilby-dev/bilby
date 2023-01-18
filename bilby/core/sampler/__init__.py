@@ -259,7 +259,7 @@ def run_sampler(
 
         # Initial save of the sampler in case of failure in samples_to_posterior
         if save:
-            result.save_to_file(extension=save, gzip=gzip)
+            result.save_to_file(extension=save, gzip=gzip, outdir=outdir)
 
     if None not in [result.injection_parameters, conversion_function]:
         result.injection_parameters = conversion_function(result.injection_parameters)
@@ -275,7 +275,7 @@ def run_sampler(
 
     if save:
         # The overwrite here ensures we overwrite the initially stored data
-        result.save_to_file(overwrite=True, extension=save, gzip=gzip)
+        result.save_to_file(overwrite=True, extension=save, gzip=gzip, outdir=outdir)
 
     if plot:
         result.plot_corner()
