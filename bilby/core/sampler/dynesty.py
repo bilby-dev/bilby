@@ -105,6 +105,11 @@ class Dynesty(NestedSampler):
         The number of "autocorrelation" times to continue the MCMC for.
         Note that this is a very poor approximation to the true ACT and should
         be interpreted very loosely.
+    rejection_sample_posterior: bool
+        Whether to form the posterior by rejection sampling the nested samples.
+        If False, the nested samples are resampled with repetition. This was
+        the default behaviour in :code:`Bilby<=1.4.1` and leads to
+        non-independent samples being produced.
 
     Other Parameters
     ================
@@ -180,6 +185,7 @@ class Dynesty(NestedSampler):
         print_method="tqdm",
         maxmcmc=5000,
         nact=5,
+        rejection_sample_posterior=True,
         **kwargs,
     ):
         _SamplingContainer.maxmcmc = maxmcmc
@@ -201,6 +207,7 @@ class Dynesty(NestedSampler):
         self.check_point = check_point
         self.check_point_plot = check_point_plot
         self.resume = resume
+        self.rejection_sample_posterior = rejection_sample_posterior
         self._apply_dynesty_boundaries("periodic")
         self._apply_dynesty_boundaries("reflective")
 
@@ -448,13 +455,22 @@ class Dynesty(NestedSampler):
         nested_samples = DataFrame(out.samples, columns=self.search_parameter_keys)
         nested_samples["weights"] = weights
         nested_samples["log_likelihood"] = out.logl
-        self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
         self.result.nested_samples = nested_samples
-        self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
-            unsorted_loglikelihoods=out.logl,
-            unsorted_samples=out.samples,
-            sorted_samples=self.result.samples,
-        )
+        if self.rejection_sample_posterior:
+            keep = weights > np.random.uniform(0, max(weights), len(weights))
+            self.result.samples = out.samples[keep]
+            self.result.log_likelihood_evaluations = out.logl[keep]
+            logger.info(
+                f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples"
+            )
+        else:
+            self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+            self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
+                unsorted_loglikelihoods=out.logl,
+                unsorted_samples=out.samples,
+                sorted_samples=self.result.samples,
+            )
+            logger.info("Resampling nested samples to posterior samples in place.")
         self.result.log_evidence = out.logz[-1]
         self.result.log_evidence_err = out.logzerr[-1]
         self.result.information_gain = out.information[-1]
