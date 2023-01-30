@@ -268,13 +268,16 @@ pages:
 
 .build-container: &build-container
   stage: deploy
-  image: docker:20.10.12
+  image: docker:20.10.23
   needs: ["containers"]
-  except:
-    refs:
-      - schedules
-    changes:
-      - containers/*
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        compare_to: 'refs/heads/main'
+        paths:
+          - containers/*
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - cd containers
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY

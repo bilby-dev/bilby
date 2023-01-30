@@ -6,23 +6,11 @@ with open("dockerfile-template", "r") as ff:
 python_versions = [(3, 8), (3, 9), (3, 10)]
 today = date.today().strftime("%Y%m%d")
 
-conda_sampler_dict = dict(
-    python38=[
-        "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
-        "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai", "ptmcmcsampler",
-    ],
-    python39=[
-        "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
-        "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai", "ptmcmcsampler",
-    ],
-    python310=[
-        "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
-        "cpnest", "kombine", "dnest4", "zeus-mcmc",
-        "pytorch", "pymc", "nessai", "ptmcmcsampler",
-    ]
-)
+samplers = [
+    "dynesty", "emcee", "nestle", "ptemcee", "pymultinest", "ultranest",
+    "cpnest", "kombine", "dnest4", "zeus-mcmc",
+    "pytorch", "'pymc>=4'", "nessai", "ptmcmcsampler",
+]
 
 for python_major_version, python_minor_version in python_versions:
     key = f"python{python_major_version}{python_minor_version}"
@@ -38,5 +26,5 @@ for python_major_version, python_minor_version in python_versions:
             date=today,
             python_major_version=python_major_version,
             python_minor_version=python_minor_version,
-            conda_samplers=" ".join(conda_sampler_dict[key])
+            conda_samplers=" ".join(samplers)
         ))
