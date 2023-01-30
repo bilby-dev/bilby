@@ -362,7 +362,7 @@ def get_open_strain_data(
     return strain
 
 
-def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0, **kwargs):
+def read_frame_file(file_name, start_time, end_time, resample=None, channel=None, buffer_time=0, **kwargs):
     """ A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
@@ -379,6 +379,8 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
     channel: str
         The name of the channel being searched for, some standard channel names are attempted
         if channel is not specified or if specified channel is not found.
+    resample: float
+        The sampling frequency to use for the TimeSeries in Hz
     **kwargs:
         Passed to `gwpy.timeseries.TimeSeries.fetch_open_data`
 
@@ -420,6 +422,8 @@ def read_frame_file(file_name, start_time, end_time, channel=None, buffer_time=0
                     pass
 
     if loaded:
+        if resample and (strain.sample_rate.value != resample):
+            strain.resample(resample)
         return strain
     else:
         logger.warning('No data loaded.')
