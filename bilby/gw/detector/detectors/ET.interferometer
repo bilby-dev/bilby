@@ -2,7 +2,7 @@
 # LIGO-T980044-10
 # https://dcc.ligo.org/LIGO-P1600143/public
 name = 'ET'
-power_spectral_density = PowerSpectralDensity(psd_file='ET_B_psd.txt')
+power_spectral_density = PowerSpectralDensity(psd_file='ET_D_psd.txt')
 length = 10
 minimum_frequency = 10
 maximum_frequency = 2048
