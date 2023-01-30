@@ -2,6 +2,7 @@ import itertools
 import os
 import pytest
 import unittest
+import tempfile
 from copy import deepcopy
 from itertools import product
 from parameterized import parameterized
@@ -1793,6 +1794,113 @@ class TestMBLikelihood(unittest.TestCase):
             bilby.gw.likelihood.MBGravitationalWaveTransient(
                 interferometers=self.ifos, waveform_generator=wfg_mb, priors=self.priors
             )
+
+    @parameterized.expand([(True, ), (False, )])
+    def test_inout_weights(self, linear_interpolation):
+        """
+        Check if multiband weights can be saved as a file, and a likelihood object constructed from the weights file
+        produces the same likelihood value.
+        """
+        approximant = "IMRPhenomD"
+        wfg = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=self.fmin, approximant=approximant
+            )
+        )
+        self.ifos.inject_signal(
+            parameters=self.test_parameters, waveform_generator=wfg
+        )
+
+        wfg_mb = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            waveform_arguments=dict(
+                reference_frequency=self.fmin, approximant=approximant
+            )
+        )
+        likelihood_mb = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=wfg_mb,
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            linear_interpolation=linear_interpolation,
+        )
+        likelihood_mb.parameters.update(self.test_parameters)
+        llr = likelihood_mb.log_likelihood_ratio()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # check if weights can be saved as a file
+            filepath = os.path.join(tmpdirname, "weights.hdf5")
+            likelihood_mb.save_weights(filepath)
+            self.assertTrue(os.path.exists(filepath))
+
+            # reset waveform generator to check if likelihood recovered from the weights file properly adds banded
+            # frequency points to waveform arguments
+            wfg_mb = bilby.gw.WaveformGenerator(
+                duration=self.duration, sampling_frequency=self.sampling_frequency,
+                frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+                waveform_arguments=dict(
+                    reference_frequency=self.fmin, approximant=approximant
+                )
+            )
+            likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
+                interferometers=self.ifos, waveform_generator=wfg_mb, weights=filepath
+            )
+
+        likelihood_mb_from_weights.parameters.update(self.test_parameters)
+        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio()
+
+        self.assertAlmostEqual(llr, llr_from_weights)
+
+    @parameterized.expand([(True, ), (False, )])
+    def test_from_dict_weights(self, linear_interpolation):
+        """
+        Check if a likelihood object constructed from dictionary-like weights produce the same likelihood value
+        """
+        approximant = "IMRPhenomD"
+        wfg = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=self.fmin, approximant=approximant
+            )
+        )
+        self.ifos.inject_signal(
+            parameters=self.test_parameters, waveform_generator=wfg
+        )
+
+        wfg_mb = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            waveform_arguments=dict(
+                reference_frequency=self.fmin, approximant=approximant
+            )
+        )
+        likelihood_mb = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=wfg_mb,
+            reference_chirp_mass=self.test_parameters['chirp_mass'],
+            linear_interpolation=linear_interpolation,
+        )
+        likelihood_mb.parameters.update(self.test_parameters)
+        llr = likelihood_mb.log_likelihood_ratio()
+
+        # reset waveform generator to check if likelihood recovered from the weights properly adds banded
+        # frequency points to waveform arguments
+        wfg_mb = bilby.gw.WaveformGenerator(
+            duration=self.duration, sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            waveform_arguments=dict(
+                reference_frequency=self.fmin, approximant=approximant
+            )
+        )
+        weights = likelihood_mb.weights
+        likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=wfg_mb, weights=weights
+        )
+        likelihood_mb_from_weights.parameters.update(self.test_parameters)
+        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio()
+
+        self.assertAlmostEqual(llr, llr_from_weights)
 
 
 if __name__ == "__main__":
