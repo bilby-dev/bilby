@@ -282,8 +282,7 @@ class Bilby_MCMC(MCMCSampler):
         return result
 
     def setup_chain_set(self):
-        if os.path.isfile(self.resume_file) and self.resume is True:
-            self.read_current_state()
+        if self.read_current_state() and self.resume is True:
             self.ptsampler.pool = self.pool
         else:
             self.init_ptsampler()
@@ -366,10 +365,24 @@ class Bilby_MCMC(MCMCSampler):
             os.remove(self.resume_file)
 
     def read_current_state(self):
+        """Read the existing resume file
+
+        Returns
+        -------
+        success: boolean
+            If true, resume file was successfully loaded, otherwise false
+
+        """
+        if os.path.isfile(self.resume_file) is False:
+            return False
         import dill
 
         with open(self.resume_file, "rb") as file:
-            self.ptsampler = dill.load(file)
+            ptsampler = dill.load(file)
+            if type(ptsampler) != BilbyPTMCMCSampler:
+                logger.debug("Malformed resume file, ignoring")
+                return False
+            self.ptsampler = ptsampler
             if self.ptsampler.pt_inputs != self.pt_inputs:
                 msg = (
                     f"pt_inputs has changed: {self.ptsampler.pt_inputs} "
@@ -385,6 +398,7 @@ class Bilby_MCMC(MCMCSampler):
             f"with {self.ptsampler.position} steps "
             f"setup:\n{self.get_setup_string()}"
         )
+        return True
 
     def write_current_state(self):
         import dill
