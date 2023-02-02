@@ -106,44 +106,28 @@ class GravitationalWaveTransient(Likelihood):
 
     """
 
-    @attr.s
+    @attr.s(slots=True, weakref_slot=False)
     class _CalculatedSNRs:
-        d_inner_h = attr.ib()
-        optimal_snr_squared = attr.ib()
-        complex_matched_filter_snr = attr.ib()
-        d_inner_h_array = attr.ib()
-        optimal_snr_squared_array = attr.ib()
-        d_inner_h_squared_tc_array = attr.ib()
+        d_inner_h = attr.ib(default=0j, converter=complex)
+        optimal_snr_squared = attr.ib(default=0, converter=float)
+        complex_matched_filter_snr = attr.ib(default=0j, converter=complex)
+        d_inner_h_array = attr.ib(default=None)
+        optimal_snr_squared_array = attr.ib(default=None)
 
         def __add__(self, other_snr):
+            new = copy.deepcopy(self)
+            new += other_snr
+            return new
 
-            total_d_inner_h = self.d_inner_h + other_snr.d_inner_h
-            total_optimal_snr_squared = self.optimal_snr_squared + \
-                np.real(other_snr.optimal_snr_squared)
-            total_complex_matched_filter_snr = self.complex_matched_filter_snr + \
-                other_snr.complex_matched_filter_snr
-
-            total_d_inner_h_array = self.d_inner_h_array
-            if other_snr.d_inner_h_array is not None \
-                    and self.d_inner_h_array is not None:
-                total_d_inner_h_array += other_snr.d_inner_h_array
-
-            total_optimal_snr_squared_array = self.optimal_snr_squared_array
-            if other_snr.optimal_snr_squared_array is not None \
-                    and self.optimal_snr_squared_array is not None:
-                total_optimal_snr_squared_array += other_snr.optimal_snr_squared_array
-
-            total_d_inner_h_squared_tc_array = self.d_inner_h_squared_tc_array
-            if other_snr.d_inner_h_squared_tc_array is not None \
-                    and self.d_inner_h_squared_tc_array is not None:
-                total_d_inner_h_squared_tc_array += other_snr.d_inner_h_squared_tc_array
-
-            return self.__class__(d_inner_h=total_d_inner_h,
-                                  optimal_snr_squared=total_optimal_snr_squared,
-                                  complex_matched_filter_snr=total_complex_matched_filter_snr,
-                                  d_inner_h_array=total_d_inner_h_array,
-                                  optimal_snr_squared_array=total_optimal_snr_squared_array,
-                                  d_inner_h_squared_tc_array=total_d_inner_h_squared_tc_array)
+        def __iadd__(self, other_snr):
+            for key in self.__slots__:
+                this = getattr(self, key)
+                other = getattr(other_snr, key)
+                if this is not None and other is not None:
+                    setattr(self, key, this + other)
+                elif this is None:
+                    setattr(self, key, other)
+            return self
 
     def __init__(
             self, interferometers, waveform_generator, time_marginalization=False,
@@ -331,7 +315,7 @@ class GravitationalWaveTransient(Likelihood):
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_array=d_inner_h_array,
             optimal_snr_squared_array=optimal_snr_squared_array,
-            d_inner_h_squared_tc_array=None)
+        )
 
     def _check_marginalized_prior_is_set(self, key):
         if key in self.priors and self.priors[key].is_fixed:
@@ -395,34 +379,15 @@ class GravitationalWaveTransient(Likelihood):
     def log_likelihood_ratio(self):
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
+        if waveform_polarizations is None:
+            return np.nan_to_num(-np.inf)
 
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
 
         self.parameters.update(self.get_sky_frame_parameters())
 
-        if waveform_polarizations is None:
-            return np.nan_to_num(-np.inf)
-
-        total_snrs = self._CalculatedSNRs(
-            d_inner_h=0., optimal_snr_squared=0., complex_matched_filter_snr=0.,
-            d_inner_h_array=None, optimal_snr_squared_array=None, d_inner_h_squared_tc_array=None)
-
-        if self.time_marginalization and self.calibration_marginalization:
-            total_snrs.d_inner_h_array = np.zeros(
-                (self.number_of_response_curves, len(self.interferometers.frequency_array[0:-1])),
-                dtype=np.complex128)
-            total_snrs.optimal_snr_squared_array = \
-                np.zeros(self.number_of_response_curves, dtype=np.complex128)
-
-        elif self.time_marginalization:
-            total_snrs.d_inner_h_array = np.zeros(len(self._times), dtype=np.complex128)
-
-        elif self.calibration_marginalization:
-            total_snrs.d_inner_h_array = \
-                np.zeros(self.number_of_response_curves, dtype=np.complex128)
-            total_snrs.optimal_snr_squared_array = \
-                np.zeros(self.number_of_response_curves, dtype=np.complex128)
+        total_snrs = self._CalculatedSNRs()
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(
@@ -827,10 +792,7 @@ class GravitationalWaveTransient(Likelihood):
             signal_polarizations = \
                 self.waveform_generator.frequency_domain_strain(self.parameters)
 
-        total_snrs = self._CalculatedSNRs(
-            d_inner_h=0., optimal_snr_squared=0., complex_matched_filter_snr=0.,
-            d_inner_h_array=np.zeros(self.number_of_response_curves, dtype=np.complex128),
-            optimal_snr_squared_array=np.zeros(self.number_of_response_curves, dtype=np.complex128))
+        total_snrs = self._CalculatedSNRs()
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(

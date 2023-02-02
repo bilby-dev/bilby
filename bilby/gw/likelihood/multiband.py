@@ -760,9 +760,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_squared_tc_array=None,
-            d_inner_h_array=None,
-            optimal_snr_squared_array=None)
+        )
 
     def _rescale_signal(self, signal, new_distance):
         for mode in signal:
