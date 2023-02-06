@@ -679,7 +679,7 @@ class Result(object):
 
         Writes the Result to a file.
 
-        Supported formats are: `json`, `hdf5`, `arviz`, `pickle`
+        Supported formats are: `json`, `hdf5`, `pickle`
 
         Parameters
         ==========
