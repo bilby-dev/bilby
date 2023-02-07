@@ -36,8 +36,8 @@ injection_parameters = dict(
     geocent_time=1126259642.413,
     ra=1.375,
     dec=-1.2108,
-    lambda_1=400,
-    lambda_2=450,
+    lambda_1=545,
+    lambda_2=1346,
 )
 
 # Set the duration and sampling frequency of the data segment that we're going
@@ -102,7 +102,15 @@ priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(
     0.1, 0.25, name="symmetric_mass_ratio"
 )
 priors["lambda_tilde"] = bilby.core.prior.Uniform(0, 5000, name="lambda_tilde")
-priors["delta_lambda"] = bilby.core.prior.Uniform(-5000, 5000, name="delta_lambda")
+priors["delta_lambda"] = bilby.core.prior.Uniform(-500, 1000, name="delta_lambda")
+
+priors["lambda_1"] = bilby.core.prior.Constraint(
+    name="lambda_1", minimum=0, maximum=10000
+)
+priors["lambda_2"] = bilby.core.prior.Constraint(
+    name="lambda_2", minimum=0, maximum=10000
+)
+
 
 # Initialise the likelihood by passing in the interferometer data (IFOs)
 # and the waveform generator
