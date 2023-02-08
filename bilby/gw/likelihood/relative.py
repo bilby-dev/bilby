@@ -125,14 +125,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         if fiducial_parameters is None:
             logger.info("Drawing fiducial parameters from prior.")
             fiducial_parameters = priors.sample()
-        fiducial_parameters["fiducial"] = 0
+        self.fiducial_parameters = fiducial_parameters.copy()
+        self.fiducial_parameters["fiducial"] = 0
         if self.time_marginalization:
-            fiducial_parameters["geocent_time"] = interferometers.start_time
+            self.fiducial_parameters["geocent_time"] = interferometers.start_time
         if self.distance_marginalization:
-            fiducial_parameters["luminosity_distance"] = self._ref_dist
+            self.fiducial_parameters["luminosity_distance"] = self._ref_dist
         if self.phase_marginalization:
-            fiducial_parameters["phase"] = 0.0
-        self.fiducial_parameters = fiducial_parameters
+            self.fiducial_parameters["phase"] = 0.0
         self.chi = chi
         self.epsilon = epsilon
         self.gamma = np.array([-5 / 3, -2 / 3, 1, 5 / 3, 7 / 3])
@@ -167,12 +167,21 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 self.parameter_bounds, maximization_kwargs=maximization_kwargs)
         self.parameters.update(self.fiducial_parameters)
         logger.info(f"Fiducial likelihood: {self.log_likelihood_ratio():.2f}")
+        self.parameters = dict(fiducial=0)
 
     def __repr__(self):
         return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\fiducial_parameters={},' \
             .format(self.interferometers, self.waveform_generator, self.fiducial_parameters)
 
     def setup_bins(self):
+        """
+        Setup the frequency bins following the method in
+        https://arxiv.org/abs/1806.08792.
+
+        If :code:`epsilon` is too small, the naive bins can be smaller than
+        the frequency spacing of the data. We require that bins are at least
+        as wide as this spacing.
+        """
         frequency_array = self.waveform_generator.frequency_array
         gamma = self.gamma[:, np.newaxis]
         maximum_frequency = frequency_array[0]
@@ -195,16 +204,23 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             axis=0
         )
         d_phi_from_start = d_phi - d_phi[0]
-        self.number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
-        self.bin_freqs = np.zeros(self.number_of_bins + 1)
-        self.bin_inds = np.zeros(self.number_of_bins + 1, dtype=int)
+        number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
+        bin_inds = list()
+        bin_freqs = list()
 
-        for i in range(self.number_of_bins + 1):
-            bin_index = np.where(d_phi_from_start >= ((i / self.number_of_bins) * d_phi_from_start[-1]))[0][0]
+        last_index = -1
+        for i in range(number_of_bins + 1):
+            bin_index = np.where(d_phi_from_start >= ((i / number_of_bins) * d_phi_from_start[-1]))[0][0]
+            if bin_index == last_index:
+                continue
             bin_freq = frequency_array_useful[bin_index]
-            self.bin_freqs[i] = bin_freq
-            self.bin_inds[i] = np.where(frequency_array >= bin_freq)[0][0]
-
+            last_index = bin_index
+            bin_index = np.where(frequency_array >= bin_freq)[0][0]
+            bin_inds.append(bin_index)
+            bin_freqs.append(bin_freq)
+        self.bin_inds = np.array(bin_inds, dtype=int)
+        self.bin_freqs = np.array(bin_freqs)
+        self.number_of_bins = len(self.bin_inds) - 1
         logger.debug(
             f"Set up {self.number_of_bins} bins "
             f"between {minimum_frequency} Hz and {maximum_frequency} Hz"
