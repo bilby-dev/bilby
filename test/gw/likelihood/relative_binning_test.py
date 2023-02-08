@@ -11,6 +11,11 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         duration = 16
         fmin = 20
         sampling_frequency = 8192
+        chirp_mass = 13
+        mass_ratio = 0.5
+        mass_1, mass_2 = bilby.gw.conversion.chirp_mass_and_mass_ratio_to_component_masses(
+            chirp_mass=chirp_mass, mass_ratio=mass_ratio
+        )
         self.test_parameters = dict(
             chirp_mass=13,
             mass_ratio=0.5,
@@ -28,9 +33,12 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             ra=1.3,
             dec=-1.2,
         )
+        self.fiducial_parameters = self.test_parameters.copy()
+        del self.fiducial_parameters["chirp_mass"], self.fiducial_parameters["mass_ratio"]
+        self.fiducial_parameters["mass_1"] = mass_1
+        self.fiducial_parameters["mass_2"] = mass_2
 
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
-        # np.random.seed(170817)
         ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=sampling_frequency, duration=duration,
             start_time=self.test_parameters['geocent_time'] - duration + 2.
@@ -59,7 +67,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
         priors.pop("mass_2")
-        # priors["chirp_mass"] = bilby.core.prior.Uniform(1.29, 1.31)
         priors["chirp_mass"] = bilby.core.prior.Uniform(12, 14)
         priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
         priors["geocent_time"] = bilby.core.prior.Uniform(
@@ -94,10 +101,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         )
         self.binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
             interferometers=ifos, waveform_generator=deepcopy(bin_wfg),
-            fiducial_parameters=self.test_parameters,
+            fiducial_parameters=self.fiducial_parameters,
             priors=priors.copy(),
             epsilon=0.05,
-            # chi=0.2,
         )
         self.non_bin.parameters.update(self.test_parameters)
         self.reference_ln_l = self.non_bin.log_likelihood_ratio()
@@ -112,16 +118,15 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
 
     def test_matches_non_binned_many(self):
         for _ in range(100):
-            self.non_bin.parameters.update(self.priors.sample())
-            self.binned.parameters.update(self.priors.sample())
+            parameters = self.priors.sample()
+            self.non_bin.parameters.update(parameters)
+            self.binned.parameters.update(parameters)
             regular_ln_l = self.non_bin.log_likelihood_ratio()
             binned_ln_l = self.binned.log_likelihood_ratio()
-            if regular_ln_l - self.reference_ln_l < -20:
-                continue
             self.assertLess(
                 abs(regular_ln_l - binned_ln_l)
-                / self.reference_ln_l,
-                1.5e-2
+                / abs(self.reference_ln_l - regular_ln_l),
+                0.3
             )
 
     @parameterized.expand([(False, ), (True, )])
@@ -131,11 +136,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         if add_cal_errors:
             self.non_bin.parameters.update(self.calibration_parameters)
             self.binned.parameters.update(self.calibration_parameters)
-        self.assertLess(
-            abs(self.non_bin.log_likelihood_ratio() - self.binned.log_likelihood_ratio())
-            / self.reference_ln_l,
-            1.5e-2
-        )
+        regular_ln_l = self.non_bin.log_likelihood_ratio()
+        binned_ln_l = self.binned.log_likelihood_ratio()
+        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
     def test_optimization_gives_good_match(self):
         fiducial_parameters = self.test_parameters.copy()
@@ -155,11 +158,23 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         )
         self.non_bin.parameters.update(self.test_parameters)
         binned.parameters.update(self.test_parameters)
-        self.assertLess(
-            abs(self.non_bin.log_likelihood_ratio() - binned.log_likelihood_ratio())
-            / self.reference_ln_l,
-            1.5e-2
+        regular_ln_l = self.non_bin.log_likelihood_ratio()
+        binned_ln_l = binned.log_likelihood_ratio()
+        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
+
+    def test_very_small_epsilon_returns_good_value(self):
+        """
+        If the frequency bins cover less than one bin, the likeilhood is nan,
+        test that we avoid this.
+        """
+        binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
+            interferometers=self.ifos, waveform_generator=deepcopy(self.bin_wfg),
+            fiducial_parameters=self.fiducial_parameters,
+            priors=self.priors.copy(),
+            epsilon=0.001,
         )
+        binned.parameters.update(self.test_parameters)
+        self.assertFalse(np.isnan(binned.log_likelihood_ratio()))
 
 
 if __name__ == "__main__":
