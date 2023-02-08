@@ -415,7 +415,7 @@ class UniformInComponentsMassRatio(Prior):
     """
 
     def __init__(self, minimum, maximum, name='mass_ratio', latex_label='$q$',
-                 unit=None, boundary=None):
+                 unit=None, boundary=None, equal_mass=False):
         """
         Parameters
         ==========
@@ -427,7 +427,14 @@ class UniformInComponentsMassRatio(Prior):
         latex_label: see superclass
         unit: see superclass
         boundary: see superclass
+        equal_mass: bool
+            Whether the likelihood being considered is expected to peak at
+            equal masses. If True, the mapping described in Appendix A of
+            arXiv:2111.13619 is used in the :code:`rescale` method.
+            default=False
+
         """
+        self.equal_mass = equal_mass
         super(UniformInComponentsMassRatio, self).__init__(
             minimum=minimum, maximum=maximum, name=name,
             latex_label=latex_label, unit=unit, boundary=boundary)
@@ -445,6 +452,8 @@ class UniformInComponentsMassRatio(Prior):
         return (self._integral(val) - self._integral(self.minimum)) / self.norm
 
     def rescale(self, val):
+        if self.equal_mass:
+            val = 2 * np.minimum(val, 1 - val)
         resc = self.icdf(val)
         if resc.ndim == 0:
             return resc.item()
