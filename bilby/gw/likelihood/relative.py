@@ -409,5 +409,5 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h, optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_array=d_inner_h_array, optimal_snr_squared_array=None,
-            d_inner_h_squared_tc_array=None)
+            d_inner_h_array=d_inner_h_array
+        )
