@@ -421,7 +421,9 @@ def binary_black_hole_roq(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
     waveform_kwargs = dict(
-        waveform_approximant='IMRPhenomPv2', reference_frequency=20.0)
+        waveform_approximant='IMRPhenomPv2', reference_frequency=20.0,
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
     waveform_kwargs.update(waveform_arguments)
     return _base_roq_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -435,7 +437,9 @@ def binary_neutron_star_roq(
         phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
         **waveform_arguments):
     waveform_kwargs = dict(
-        waveform_approximant='IMRPhenomD_NRTidal', reference_frequency=20.0)
+        waveform_approximant='IMRPhenomD_NRTidal', reference_frequency=20.0,
+        catch_waveform_errors=False, pn_spin_order=-1, pn_tidal_order=-1,
+        pn_phase_order=-1, pn_amplitude_order=0)
     waveform_kwargs.update(waveform_arguments)
     return _base_roq_waveform(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -520,8 +524,11 @@ def _base_roq_waveform(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, lambda_1, lambda_2, phi_jl, theta_jn, phase,
         **waveform_arguments):
-    """
-    See https://git.ligo.org/lscsoft/lalsuite/blob/master/lalsimulation/src/LALSimInspiral.c#L1460
+    """ Base source model for ROQGravitationalWaveTransient, which evaluates
+    waveform values at frequency nodes contained in waveform_arguments. This
+    requires that waveform_arguments contain all of 'frequency_nodes',
+    'linear_indices', and 'quadratic_indices', or both 'frequency_nodes_linear' and
+    'frequency_nodes_quadratic'.
 
     Parameters
     ==========
@@ -554,7 +561,15 @@ def _base_roq_waveform(
     ===================
     Non-sampled extra data used in the source model calculation
     frequency_nodes_linear: np.array
+        frequency nodes for linear likelihood part
     frequency_nodes_quadratic: np.array
+        frequency nodes for quadratic likelihood part
+    frequency_nodes: np.array
+        unique frequency nodes for linear and quadratic likelihood parts
+    linear_indices: np.array
+        indices to recover frequency nodes for linear part from unique frequency nodes
+    quadratic_indices: np.array
+        indices to recover frequency nodes for quadratic part from unique frequency nodes
     reference_frequency: float
     approximant: str
 
@@ -568,51 +583,38 @@ def _base_roq_waveform(
         Dict containing plus and cross modes evaluated at the linear and
         quadratic frequency nodes.
     """
-    from lal import CreateDict
-    frequency_nodes_linear = waveform_arguments['frequency_nodes_linear']
-    frequency_nodes_quadratic = waveform_arguments['frequency_nodes_quadratic']
-    reference_frequency = waveform_arguments['reference_frequency']
-    approximant = lalsim_GetApproximantFromString(
-        waveform_arguments['waveform_approximant'])
+    if 'frequency_nodes' not in waveform_arguments:
+        size_linear = len(waveform_arguments['frequency_nodes_linear'])
+        frequency_nodes_combined = np.hstack(
+            (waveform_arguments['frequency_nodes_linear'],
+             waveform_arguments['frequency_nodes_quadratic'])
+        )
+        frequency_nodes_unique, original_indices = np.unique(
+            frequency_nodes_combined, return_inverse=True
+        )
+        linear_indices = original_indices[:size_linear]
+        quadratic_indices = original_indices[size_linear:]
+        waveform_arguments['frequency_nodes'] = frequency_nodes_unique
+        waveform_arguments['linear_indices'] = linear_indices
+        waveform_arguments['quadratic_indices'] = quadratic_indices
 
-    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
-    mass_1 = mass_1 * utils.solar_mass
-    mass_2 = mass_2 * utils.solar_mass
+    waveform_arguments['frequencies'] = waveform_arguments['frequency_nodes']
+    waveform_polarizations = _base_waveform_frequency_sequence(
+        frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
+        phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_arguments)
 
-    waveform_dictionary = CreateDict()
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2)
-
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
-        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
-        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
-        reference_frequency=reference_frequency, phase=phase)
-
-    h_linear_plus, h_linear_cross = lalsim_SimInspiralChooseFDWaveformSequence(
-        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, reference_frequency, luminosity_distance, iota,
-        waveform_dictionary, approximant, frequency_nodes_linear)
-
-    waveform_dictionary = CreateDict()
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2)
-
-    h_quadratic_plus, h_quadratic_cross = lalsim_SimInspiralChooseFDWaveformSequence(
-        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, reference_frequency, luminosity_distance, iota,
-        waveform_dictionary, approximant, frequency_nodes_quadratic)
-
-    waveform_polarizations = dict()
-    waveform_polarizations['linear'] = dict(
-        plus=h_linear_plus.data.data, cross=h_linear_cross.data.data)
-    waveform_polarizations['quadratic'] = dict(
-        plus=h_quadratic_plus.data.data, cross=h_quadratic_cross.data.data)
-
-    return waveform_polarizations
+    return {
+        'linear': {
+            'plus': waveform_polarizations['plus'][waveform_arguments['linear_indices']],
+            'cross': waveform_polarizations['cross'][waveform_arguments['linear_indices']]
+        },
+        'quadratic': {
+            'plus': waveform_polarizations['plus'][waveform_arguments['quadratic_indices']],
+            'cross': waveform_polarizations['cross'][waveform_arguments['quadratic_indices']]
+        }
+    }
 
 
 def binary_black_hole_frequency_sequence(
