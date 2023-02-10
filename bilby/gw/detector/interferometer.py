@@ -618,13 +618,17 @@ class Interferometer(object):
 
     @property
     def whitened_frequency_domain_strain(self):
-        """ Calculates the whitened data by dividing data by the amplitude spectral density
+        """ Calculates the whitened data by dividing the frequency domain data by
+        ((amplitude spectral density) * (duration / 4) ** 0.5). The resulting
+        data will have unit variance.
 
         Returns
         =======
         array_like: The whitened data
         """
-        return self.strain_data.frequency_domain_strain / self.amplitude_spectral_density_array
+        return self.strain_data.frequency_domain_strain / (
+            self.amplitude_spectral_density_array * np.sqrt(self.duration / 4)
+        )
 
     def save_data(self, outdir, label=None):
         """ Creates save files for interferometer data in plain text format.
