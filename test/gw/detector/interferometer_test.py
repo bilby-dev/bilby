@@ -558,5 +558,23 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
                 self.assertAlmostEqual(std, 0.0, places=10)
 
 
+class TestInterferometerWhitenedStrain(unittest.TestCase):
+    def setUp(self):
+        self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
+        self.ifo.set_strain_data_from_power_spectral_density(
+            sampling_frequency=4096, duration=64)
+
+    def tearDown(self):
+        del self.ifo
+
+    def test_whitened_strain(self):
+        mask = self.ifo.frequency_mask
+        white = self.ifo.whitened_frequency_domain_strain[mask]
+        std_real = np.std(white.real)
+        std_imag = np.std(white.imag)
+        self.assertAlmostEqual(std_real, 1, places=2)
+        self.assertAlmostEqual(std_imag, 1, places=2)
+
+
 if __name__ == "__main__":
     unittest.main()

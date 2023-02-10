@@ -377,6 +377,10 @@ class CompactBinaryCoalescenceResult(CoreResult):
         logger.debug("Downsampling frequency mask to {} values".format(
             len(frequency_idxs))
         )
+        frequency_window_factor = (
+            np.sum(interferometer.frequency_mask)
+            / len(interferometer.frequency_mask)
+        )
         plot_times = interferometer.time_array[time_idxs]
         plot_times -= interferometer.strain_data.start_time
         start_time -= interferometer.strain_data.start_time
@@ -447,10 +451,11 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 fig.add_trace(
                     go.Scatter(
                         x=plot_times,
-                        y=infft(
-                            interferometer.whitened_frequency_domain_strain *
-                            np.sqrt(2. / interferometer.sampling_frequency),
-                            sampling_frequency=interferometer.strain_data.sampling_frequency)[time_idxs],
+                        y=np.fft.irfft(
+                            interferometer.whitened_frequency_domain_strain
+                            * np.sqrt(np.sum(interferometer.frequency_mask))
+                            / frequency_window_factor
+                        )[time_idxs],
                         fill=None,
                         mode='lines', line_color=DATA_COLOR,
                         opacity=0.5,
@@ -473,10 +478,11 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     interferometer.amplitude_spectral_density_array[frequency_idxs],
                     color=DATA_COLOR, label='ASD')
                 axs[1].plot(
-                    plot_times, infft(
-                        interferometer.whitened_frequency_domain_strain *
-                        np.sqrt(2. / interferometer.sampling_frequency),
-                        sampling_frequency=interferometer.strain_data.sampling_frequency)[time_idxs],
+                    plot_times, np.fft.irfft(
+                        interferometer.whitened_frequency_domain_strain
+                        * np.sqrt(np.sum(interferometer.frequency_mask))
+                        / frequency_window_factor
+                    )[time_idxs],
                     color=DATA_COLOR, alpha=0.3)
             logger.debug('Plotted interferometer data.')
 
