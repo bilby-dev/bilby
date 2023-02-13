@@ -9,6 +9,7 @@ from ...core.utils import (
     logger, create_frequency_series, speed_of_light, radius_of_earth
 )
 from ..prior import CBCPriorDict
+from ..utils import ln_i0
 
 
 class ROQGravitationalWaveTransient(GravitationalWaveTransient):
@@ -380,7 +381,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         for mode in waveform_polarizations['linear']:
             response = interferometer.antenna_response(
                 self.parameters['ra'], self.parameters['dec'],
-                self.parameters['geocent_time'], self.parameters['psi'],
+                time_ref,
+                self.parameters['psi'],
                 mode
             )
             h_linear += waveform_polarizations['linear'][mode] * response
@@ -401,21 +403,16 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         dt = interferometer.time_delay_from_geocenter(
             self.parameters['ra'], self.parameters['dec'], time_ref)
+        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
+        ifo_time = dt_geocent + dt
 
-        if not self.time_marginalization:
-            dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
-            ifo_time = dt_geocent + dt
-
-            indices, in_bounds = self._closest_time_indices(
-                ifo_time, self.weights['time_samples'])
-            if not in_bounds:
-                logger.debug("SNR calculation error: requested time at edge of ROQ time samples")
-                return self._CalculatedSNRs(
-                    d_inner_h=np.nan_to_num(-np.inf),
-                    optimal_snr_squared=0,
-                    complex_matched_filter_snr=np.nan_to_num(-np.inf),
-                )
-
+        indices, in_bounds = self._closest_time_indices(
+            ifo_time, self.weights['time_samples'])
+        if not in_bounds:
+            logger.debug("SNR calculation error: requested time at edge of ROQ time samples")
+            d_inner_h = -np.inf
+            complex_matched_filter_snr = -np.inf
+        else:
             d_inner_h_tc_array = np.einsum(
                 'i,ji->j', np.conjugate(h_linear),
                 self.weights[interferometer.name + '_linear'][self.basis_number_linear][indices])
@@ -426,16 +423,14 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             with np.errstate(invalid="ignore"):
                 complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
-            d_inner_h_array = None
-
-        else:
-            ifo_times = self._times - interferometer.strain_data.start_time + dt
+        if self.time_marginalization:
+            ifo_times = self._times - interferometer.strain_data.start_time
+            ifo_times += dt
             if self.jitter_time:
                 ifo_times += self.parameters['time_jitter']
             d_inner_h_array = self._calculate_d_inner_h_array(ifo_times, h_linear, interferometer.name)
-
-            d_inner_h = 0.
-            complex_matched_filter_snr = 0.
+        else:
+            d_inner_h_array = None
 
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
@@ -1092,6 +1087,38 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         for kind in ['linear', 'quadratic']:
             for mode in signal[kind]:
                 signal[kind][mode] *= self._ref_dist / new_distance
+
+    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None):
+        self.parameters.update(self.get_sky_frame_parameters())
+        if signal_polarizations is None:
+            signal_polarizations = \
+                self.waveform_generator.frequency_domain_strain(self.parameters)
+
+        snrs = self._CalculatedSNRs()
+
+        for interferometer in self.interferometers:
+            snrs += self.calculate_snrs(
+                waveform_polarizations=signal_polarizations,
+                interferometer=interferometer
+            )
+        d_inner_h = snrs.d_inner_h_array
+        h_inner_h = snrs.optimal_snr_squared
+
+        if self.distance_marginalization:
+            time_log_like = self.distance_marginalized_likelihood(
+                d_inner_h, h_inner_h)
+        elif self.phase_marginalization:
+            time_log_like = ln_i0(abs(d_inner_h)) - h_inner_h.real / 2
+        else:
+            time_log_like = (d_inner_h.real - h_inner_h.real / 2)
+
+        times = self._times
+        if self.jitter_time:
+            times = times + self.parameters["time_jitter"]
+        time_prior_array = self.priors['geocent_time'].prob(times)
+        time_post = np.exp(time_log_like - max(time_log_like)) * time_prior_array
+        time_post /= np.sum(time_post)
+        return np.random.choice(times, p=time_post)
 
 
 class BilbyROQParamsRangeError(Exception):
