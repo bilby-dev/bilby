@@ -3,10 +3,13 @@ import os
 import pytest
 import unittest
 from copy import deepcopy
+from itertools import product
 from parameterized import parameterized
 
 import numpy as np
 import bilby
+from bilby.gw.detector import calibration
+from scipy.special import logsumexp
 
 
 class TestMarginalizedLikelihood(unittest.TestCase):
@@ -161,7 +164,7 @@ class TestMarginalizations(unittest.TestCase):
     For time, this is strongly dependent on the specific time grid used.
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
-    _parameters = itertools.product(
+    _parameters = product(
         ["regular", "roq", "relbin"],
         ["luminosity_distance", "geocent_time", "phase"],
         [True, False],
@@ -437,3 +440,86 @@ class TestMarginalizations(unittest.TestCase):
         output = like.generate_posterior_sample_from_marginalized_likelihood()
         for key in marginalizations:
             self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
+
+
+class CalibrationMarginalization(unittest.TestCase):
+
+    def setUp(self):
+        self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.ifos.set_strain_data_from_power_spectral_densities(
+            duration=4, sampling_frequency=1024
+        )
+        self.ifos[0].calibration_model = calibration.CubicSpline(
+            prefix="recalib_H1_",
+            minimum_frequency=20,
+            maximum_frequency=512,
+            n_points=5,
+        )
+        self.ifos[1].calibration_model = calibration.CubicSpline(
+            prefix="recalib_L1_",
+            minimum_frequency=20,
+            maximum_frequency=512,
+            n_points=5,
+        )
+        self.priors = bilby.gw.prior.BBHPriorDict()
+        self.priors["geocent_time"] = bilby.core.prior.Uniform(0, 4)
+        self.priors.update(bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+            amplitude_sigma=0.1,
+            phase_sigma=0.1,
+            minimum_frequency=20,
+            maximum_frequency=512,
+            n_nodes=5,
+            label="H1",
+        ))
+        self.priors.update(bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+            amplitude_sigma=0.1,
+            phase_sigma=0.1,
+            minimum_frequency=20,
+            maximum_frequency=512,
+            n_nodes=5,
+            label="L1",
+        ))
+        self.wfg = bilby.gw.waveform_generator.WaveformGenerator(
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+        )
+
+    def tearDown(self):
+        for ifo in self.ifos:
+            filename = f"{ifo.name}_calibration_file.h5"
+            if os.path.exists(filename):
+                os.remove(filename)
+
+    @parameterized.expand(["no_time", "time"])
+    def test_calibration_marginalization(self, time):
+        marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=deepcopy(self.ifos),
+            waveform_generator=self.wfg,
+            priors=deepcopy(self.priors),
+            calibration_marginalization=True,
+            time_marginalization=time == "time",
+            number_of_response_curves=100,
+            jitter_time=False,
+        )
+        non_marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=deepcopy(self.ifos),
+            waveform_generator=self.wfg,
+            priors=deepcopy(self.priors),
+            calibration_marginalization=False,
+            time_marginalization=time == "time",
+            jitter_time=False,
+        )
+        parameters = self.priors.sample()
+        marginalized.parameters.update(parameters)
+        non_marginalized.parameters.update(parameters)
+        marg_ln_l = marginalized.log_likelihood_ratio()
+        non_marg_ln_ls = list()
+        draws = marginalized.calibration_parameter_draws
+        for ii in range(100):
+            for name, value in draws["H1"].items():
+                non_marginalized.parameters[name] = value[ii]
+            for name, value in draws["L1"].items():
+                non_marginalized.parameters[name] = value[ii]
+            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio())
+        non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
+        self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)

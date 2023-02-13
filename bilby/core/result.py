@@ -274,10 +274,10 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
             old_likelihood=old_likelihood, old_prior=old_prior,
             resume_file=resume_file, n_checkpoint=n_checkpoint)
 
-    weights = np.exp(ln_weights)
-
     if use_nested_samples:
-        weights *= result.posterior['weights']
+        ln_weights += np.log(result.posterior["weights"])
+
+    weights = np.exp(ln_weights)
 
     # Overwrite the likelihood and prior evaluations
     result.posterior["log_likelihood"] = new_log_likelihood_array

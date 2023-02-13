@@ -4,12 +4,11 @@ import copy
 
 import attr
 import numpy as np
-import pandas as pd
 from scipy.special import logsumexp
 
 from ...core.likelihood import Likelihood
 from ...core.utils import logger, UnsortedInterp2d, create_time_series
-from ...core.prior import Interped, Prior, Uniform, PriorDict, DeltaFunction
+from ...core.prior import Interped, Prior, Uniform, DeltaFunction
 from ..detector import InterferometerList, get_empty_interferometer, calibration
 from ..prior import BBHPriorDict, Cosmological
 from ..utils import noise_weighted_inner_product, zenith_azimuth_to_ra_dec, ln_i0
@@ -205,7 +204,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.calibration_marginalization:
             self.number_of_response_curves = number_of_response_curves
             self.starting_index = starting_index
-            self._setup_calibration_marginalization(calibration_lookup_table)
+            self._setup_calibration_marginalization(calibration_lookup_table, priors)
             self._marginalized_parameters.append('recalib_index')
 
     def __repr__(self):
@@ -984,60 +983,21 @@ class GravitationalWaveTransient(Likelihood):
         self.time_prior_array = \
             self.priors['geocent_time'].prob(self._times) * self._delta_tc
 
-    def _setup_calibration_marginalization(self, calibration_lookup_table):
-        if calibration_lookup_table is None:
-            calibration_lookup_table = {}
-        self.calibration_draws = {}
-        self.calibration_abs_draws = {}
-        self.calibration_parameter_draws = {}
-        for interferometer in self.interferometers:
-
-            # Force the priors
-            calibration_priors = PriorDict()
-            for key in self.priors.keys():
-                if 'recalib' in key and interferometer.name in key:
-                    calibration_priors[key] = copy.copy(self.priors[key])
-                    self.priors[key] = DeltaFunction(0.0)
-
-            # If there is no entry in the lookup table, make an empty one
-            if interferometer.name not in calibration_lookup_table.keys():
-                calibration_lookup_table[interferometer.name] = \
-                    f'{interferometer.name}_calibration_file.h5'
-
-            # If the interferometer lookup table file exists, generate the curves from it
-            if os.path.exists(calibration_lookup_table[interferometer.name]):
-                self.calibration_draws[interferometer.name] = \
-                    calibration.read_calibration_file(
-                        calibration_lookup_table[interferometer.name], self.interferometers.frequency_array,
-                        self.number_of_response_curves, self.starting_index)
-
-            else:  # generate the fake curves
-                from tqdm.auto import tqdm
-                self.calibration_parameter_draws[interferometer.name] = \
-                    pd.DataFrame(calibration_priors.sample(self.number_of_response_curves))
-
-                self.calibration_draws[interferometer.name] = \
-                    np.zeros((self.number_of_response_curves, len(interferometer.frequency_array)), dtype=complex)
-
-                for i in tqdm(range(self.number_of_response_curves)):
-                    self.calibration_draws[interferometer.name][i, :] = \
-                        interferometer.calibration_model.get_calibration_factor(
-                            interferometer.frequency_array,
-                            prefix='recalib_{}_'.format(interferometer.name),
-                            **self.calibration_parameter_draws[interferometer.name].iloc[i])
-
-                calibration.write_calibration_file(
-                    calibration_lookup_table[interferometer.name],
-                    self.interferometers.frequency_array,
-                    self.calibration_draws[interferometer.name],
-                    self.calibration_parameter_draws[interferometer.name])
-
-            interferometer.calibration_model = calibration.Recalibrate()
-
-            _mask = interferometer.frequency_mask
-            self.calibration_draws[interferometer.name] = self.calibration_draws[interferometer.name][:, _mask]
-            self.calibration_abs_draws[interferometer.name] = \
-                np.abs(self.calibration_draws[interferometer.name])**2
+    def _setup_calibration_marginalization(self, calibration_lookup_table, priors=None):
+        self.calibration_draws, self.calibration_parameter_draws = calibration.build_calibration_lookup(
+            interferometers=self.interferometers,
+            lookup_files=calibration_lookup_table,
+            priors=priors,
+            number_of_response_curves=self.number_of_response_curves,
+            starting_index=self.starting_index,
+        )
+        for name, parameters in self.calibration_parameter_draws.items():
+            if parameters is not None:
+                for key in set(parameters.keys()).intersection(priors.keys()):
+                    priors[key] = DeltaFunction(0.0)
+        self.calibration_abs_draws = dict()
+        for name in self.calibration_draws:
+            self.calibration_abs_draws[name] = np.abs(self.calibration_draws[name])**2
 
     @property
     def interferometers(self):
