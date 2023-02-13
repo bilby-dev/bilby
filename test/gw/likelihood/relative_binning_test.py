@@ -69,9 +69,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         priors.pop("mass_2")
         priors["chirp_mass"] = bilby.core.prior.Uniform(12, 14)
         priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
-        priors["geocent_time"] = bilby.core.prior.Uniform(
-            self.test_parameters['geocent_time'] - 0.1,
-            self.test_parameters['geocent_time'] + 0.1)
+        priors["geocent_time"] = self.test_parameters["geocent_time"]
         priors["fiducial"] = 0
         self.priors = priors
 
@@ -126,7 +124,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             self.assertLess(
                 abs(regular_ln_l - binned_ln_l)
                 / abs(self.reference_ln_l - regular_ln_l),
-                0.3
+                0.1
             )
 
     @parameterized.expand([(False, ), (True, )])

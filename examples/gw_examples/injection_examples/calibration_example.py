@@ -107,7 +107,6 @@ result = bilby.run_sampler(
     priors=priors,
     sampler="dynesty",
     npoints=1000,
-    sample="unif",
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
