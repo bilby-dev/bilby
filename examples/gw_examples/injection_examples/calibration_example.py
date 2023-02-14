@@ -5,6 +5,11 @@ uncertainties included.
 
 We set up the full problem as is required and then just sample over a small
 number of calibration parameters.
+
+We demonstrate, two formulations of the calibration model:
+- a cubic spline described by gaussian distributions at a set of nodes.
+- a set of precomputed curves, in this example we use cubic spline realizations,
+  however, it also applies to physically motivated models.
 """
 
 import bilby
@@ -62,22 +67,32 @@ waveform_generator = bilby.gw.WaveformGenerator(
 # (LIGO-Hanford (H1), LIGO-Livingston (L1), and Virgo (V1)).
 # These default to their design sensitivity
 ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
-for ifo in ifos:
-    injection_parameters.update(
-        {f"recalib_{ifo.name}_amplitude_{ii}": 0.1 for ii in range(5)}
-    )
-    injection_parameters.update(
-        {f"recalib_{ifo.name}_phase_{ii}": 0.01 for ii in range(5)}
-    )
-    ifo.calibration_model = bilby.gw.calibration.CubicSpline(
-        prefix=f"recalib_{ifo.name}_",
-        minimum_frequency=ifo.minimum_frequency,
-        maximum_frequency=ifo.maximum_frequency,
-        n_points=5,
-    )
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration
 )
+
+ifo = ifos[0]
+injection_parameters.update(
+    {f"recalib_{ifo.name}_amplitude_{ii}": 0.1 for ii in range(5)}
+)
+injection_parameters.update({f"recalib_{ifo.name}_phase_{ii}": 0.01 for ii in range(5)})
+ifo.calibration_model = bilby.gw.calibration.CubicSpline(
+    prefix=f"recalib_{ifo.name}_",
+    minimum_frequency=ifo.minimum_frequency,
+    maximum_frequency=ifo.maximum_frequency,
+    n_points=5,
+)
+ifo = ifos[1]
+injection_parameters["recalib_index_L1"] = 3
+ifo.calibration_model = bilby.gw.calibration.Precomputed.constant_uncertainty_spline(
+    amplitude_sigma=0.1,
+    phase_sigma=0.01,
+    label="L1",
+    frequency_array=ifo.frequency_array[ifo.frequency_mask],
+    n_nodes=5,
+    n_curves=100,
+)
+
 ifos.inject_signal(
     parameters=injection_parameters, waveform_generator=waveform_generator
 )
@@ -94,6 +109,9 @@ for name in ["recalib_H1_amplitude_0", "recalib_H1_amplitude_1"]:
     priors[name] = bilby.core.prior.Gaussian(
         mu=0, sigma=0.2, name=name, latex_label=f"H1 $A_{name[-1]}$"
     )
+priors["recalib_index_L1"] = bilby.core.prior.Categorical(
+    ncategories=100, latex_label="recalib index L1"
+)
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveform generator

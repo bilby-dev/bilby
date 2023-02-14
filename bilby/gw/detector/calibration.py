@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 
 from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
+from ..prior import CalibrationPriorDict
 
 
 def read_calibration_file(filename, frequency_array, number_of_response_curves, starting_index=0):
@@ -225,6 +226,108 @@ class CubicSpline(Recalibrate):
         return calibration_factor
 
 
+class Precomputed(Recalibrate):
+
+    name = "precomputed"
+
+    def __init__(self, label, curves, frequency_array, parameters=None):
+        """
+        A class for accessing an array of precomputed recalibration curves.
+
+        Parameters
+        ==========
+        label: str
+            The label for the interferometer, e.g., H1. The corresponding
+            parameter is :code:`recalib_index_{label}`.
+        curves: array-like
+            Array with shape (n_curves, n_frequencies) with the recalibration
+            curves.
+        frequency_array: array-like
+            Array of frequencies at which the curves are evaluated.
+        """
+        self.label = label
+        self.curves = curves
+        self.frequency_array = frequency_array
+        self.parameters = parameters
+        super(Precomputed, self).__init__(prefix=f"recalib_index_{self.label}")
+
+    def get_calibration_factor(self, frequency_array, **params):
+        idx = int(params.get(self.prefix, None))
+        if idx is None:
+            raise KeyError(f"Calibration index for {self.label} not found.")
+        if not np.array_equal(frequency_array, self.frequency_array):
+            raise ValueError("Frequency grid passed to calibrator doesn't match.")
+        return self.curves[idx]
+
+    @classmethod
+    def constant_uncertainty_spline(
+        cls, amplitude_sigma, phase_sigma, frequency_array, n_nodes, label, n_curves
+    ):
+        priors = CalibrationPriorDict.constant_uncertainty_spline(
+            amplitude_sigma=amplitude_sigma,
+            phase_sigma=phase_sigma,
+            minimum_frequency=frequency_array[0],
+            maximum_frequency=frequency_array[-1],
+            n_nodes=n_nodes,
+            label=label,
+        )
+        parameters = pd.DataFrame(priors.sample(n_curves))
+        curves = curves_from_spline_and_prior(
+            label=label,
+            frequency_array=frequency_array,
+            n_points=n_nodes,
+            parameters=parameters,
+            n_curves=n_curves
+        )
+        return cls(
+            label=label,
+            curves=np.array(curves),
+            frequency_array=frequency_array,
+            parameters=parameters,
+        )
+
+    @classmethod
+    def from_envelope_file(
+        cls, envelope, frequency_array, n_nodes, label, n_curves
+    ):
+        priors = CalibrationPriorDict.from_envelope_file(
+            envelope_file=envelope,
+            minimum_frequency=frequency_array[0],
+            maximum_frequency=frequency_array[-1],
+            n_nodes=n_nodes,
+            label=label,
+        )
+        parameters = pd.DataFrame(priors.sample(n_curves))
+        curves = curves_from_spline_and_prior(
+            label=label,
+            frequency_array=frequency_array,
+            n_points=n_nodes,
+            parameters=parameters,
+            n_curves=n_curves,
+        )
+        return cls(
+            label=label,
+            curves=np.array(curves),
+            frequency_array=frequency_array,
+            parameters=parameters,
+        )
+
+    @classmethod
+    def from_calibration_file(cls, label, filename, frequency_array, n_curves, starting_index=0):
+        curves, parameters = read_calibration_file(
+            filename=filename,
+            frequency_array=frequency_array,
+            number_of_response_curves=n_curves,
+            starting_index=starting_index,
+        )
+        return cls(
+            label=label,
+            curves=np.array(curves),
+            frequency_array=frequency_array,
+            parameters=parameters,
+        )
+
+
 def build_calibration_lookup(
     interferometers,
     lookup_files=None,
@@ -255,6 +358,12 @@ def build_calibration_lookup(
                 number_of_response_curves,
                 starting_index,
             )
+        elif isinstance(interferometer.calibration_model, Precomputed):
+            model = interferometer.calibration_model
+            idxs = np.arange(number_of_response_curves, dtype=int) + starting_index
+            draws[name] = model.curves[idxs]
+            parameters[name] = pd.DataFrame(model.parameters.iloc[idxs])
+            parameters[name][model.prefix] = idxs
         else:
             if priors is None:
                 raise ValueError(

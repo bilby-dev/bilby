@@ -455,11 +455,13 @@ class CalibrationMarginalization(unittest.TestCase):
             maximum_frequency=512,
             n_points=5,
         )
-        self.ifos[1].calibration_model = calibration.CubicSpline(
-            prefix="recalib_L1_",
-            minimum_frequency=20,
-            maximum_frequency=512,
-            n_points=5,
+        self.ifos[1].calibration_model = calibration.Precomputed.constant_uncertainty_spline(
+            amplitude_sigma=0.1,
+            phase_sigma=0.1,
+            frequency_array=self.ifos[1].frequency_array[self.ifos[1].frequency_mask],
+            n_nodes=5,
+            label="L1",
+            n_curves=1000,
         )
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors["geocent_time"] = bilby.core.prior.Uniform(0, 4)
@@ -470,14 +472,6 @@ class CalibrationMarginalization(unittest.TestCase):
             maximum_frequency=512,
             n_nodes=5,
             label="H1",
-        ))
-        self.priors.update(bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
-            amplitude_sigma=0.1,
-            phase_sigma=0.1,
-            minimum_frequency=20,
-            maximum_frequency=512,
-            n_nodes=5,
-            label="L1",
         ))
         self.wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
@@ -518,8 +512,7 @@ class CalibrationMarginalization(unittest.TestCase):
         for ii in range(100):
             for name, value in draws["H1"].items():
                 non_marginalized.parameters[name] = value[ii]
-            for name, value in draws["L1"].items():
-                non_marginalized.parameters[name] = value[ii]
+            non_marginalized.parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
             non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio())
         non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
         self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)
