@@ -355,7 +355,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 in_prior_range *= \
                     (self.weights[prior_range_key][param_name][:, 0] <= parameters[param_name]) * \
                     (self.weights[prior_range_key][param_name][:, 1] >= parameters[param_name])
-            basis_number_key = f'basis_number_{basis_type}'
             self._cache[basis_number_key] = np.arange(number_of_bases)[in_prior_range][0]
         basis_number_linear = self._cache['basis_number_linear']
         basis_number_quadratic = self._cache['basis_number_quadratic']
