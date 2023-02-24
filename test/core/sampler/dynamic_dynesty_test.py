@@ -27,7 +27,13 @@ class TestDynamicDynesty(unittest.TestCase):
 
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
-        expected = dict(sample="rwalk", facc=0.2, save_bounds=False)
+        expected = dict(
+            sample="act-walk",
+            bound="live",
+            facc=0.2,
+            save_bounds=False,
+            update_interval=600,
+        )
         for key in expected:
             self.assertEqual(expected[key], self.sampler.kwargs[key])
 

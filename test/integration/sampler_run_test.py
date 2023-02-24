@@ -28,14 +28,14 @@ _sampler_kwargs = dict(
         num_particles=50,
         max_pool=1,
     ),
-    dynesty=dict(nlive=100),
+    dynesty=dict(nlive=10, sample="acceptance-walk", nact=5, proposals=["diff"]),
     dynamic_dynesty=dict(
-        nlive_init=100,
-        nlive_batch=100,
+        nlive_init=10,
+        nlive_batch=10,
         dlogz_init=1.0,
         maxbatch=0,
         maxcall=100,
-        bound="single",
+        sample="act-walk",
     ),
     emcee=dict(iterations=1000, nwalkers=10),
     kombine=dict(iterations=200, nwalkers=10, autoburnin=False),
@@ -57,6 +57,7 @@ _sampler_kwargs = dict(
     pymultinest=dict(nlive=100),
     pypolychord=dict(nlive=100),
     ultranest=dict(nlive=100, temporary_directory=False),
+    zeus=dict(nwalkers=10, iterations=100)
 )
 
 sampler_imports = dict(
