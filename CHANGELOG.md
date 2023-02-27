@@ -1,5 +1,31 @@
 # All notable changes will be documented in this file
 
+## [2.0.0] 2023-02-29
+Version 2.0.0 release of Bilby
+
+This major version release has a significant change to the behaviour of the `dynesty` wrapper.
+
+There are also a number of bugfixes and some new features in sampling and GW utilities.
+
+### Added
+- Add marginalized time reconstruction for the ROQ likelihood (!1196)
+- Generate the `dynesty` posterior using rejection sampling by default (!1203)
+- Add optimization for mass ratio prior peaking at equal masses (!1204)
+- Add option to sample over a number of precomputed calibration curves (!1215)
+
+### Changes
+- Optimize weight calculation for `MultiBandGravitationalWaveTransient` (!1171)
+- Add compatibility with pymc 5 (!1191)
+- A bug fix of the stored prior when using a marginalized likelihood (!1193)
+- Various bug fixes to improve the reliability of the `RelativeBinningGravitationalWaveTransient` (!1198, !1211)
+- A hack fix for samplers that are not compatible with `numpy>1.23` (!1194)
+- Updates to some reference noise curves (!1206, !1207)
+- Fix the broken time+calibration marginalization (!1201)
+- Fix a bug when reading GW frame files (!1202)
+- Fix the normalization of the whitened strain attribute of `Interferometer` (!1205)
+- Optimize ROQ waveform and calibration calls (!1216)
+- Add different proposal distribution and MCMC length for `dynesty` (!1187, !1222)
+
 ## [1.4.1] 2022-12-07
 Version 1.4.1 release of Bilby
 
