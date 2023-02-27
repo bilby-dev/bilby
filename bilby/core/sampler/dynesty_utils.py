@@ -88,10 +88,10 @@ class MultiEllipsoidLivePointSampler(MultiEllipsoidSampler):
     rebuild = False
 
     def update_user(self, blob, update=True):
+        LivePointSampler.update_user(self, blob=blob, update=update)
         super(MultiEllipsoidLivePointSampler, self).update_rwalk(
             blob=blob, update=update
         )
-        LivePointSampler.update_user(self, blob=blob, update=update)
 
     update_rwalk = update_user
 
@@ -181,9 +181,8 @@ class ACTTrackingRWalk:
     parallel process.
     """
 
-    _cache = list()
-
     def __init__(self):
+        self._cache = list()
         self.act = 1
         self.thin = getattr(_SamplingContainer, "nact", 2)
         self.maxmcmc = getattr(_SamplingContainer, "maxmcmc", 5000) * 50
@@ -231,9 +230,9 @@ class ACTTrackingRWalk:
         nfail = 0
         ncall = 0
         act = np.inf
-        u_list = [current_u]
-        v_list = [current_v]
-        logl_list = [logl]
+        u_list = list()
+        v_list = list()
+        logl_list = list()
         most_failures = 0
         current_failures = 0
 
@@ -257,6 +256,10 @@ class ACTTrackingRWalk:
                     current_v = v_prop
                     logl = logl_prop
 
+            u_list.append(current_u)
+            v_list.append(current_v)
+            logl_list.append(logl)
+
             if success:
                 accept += 1
                 most_failures = max(most_failures, current_failures)
@@ -264,7 +267,6 @@ class ACTTrackingRWalk:
             else:
                 nfail += 1
                 current_failures += 1
-                continue
 
             # If we've taken the minimum number of steps, calculate the ACT
             if iteration > next_check and accept > target_nact:
@@ -285,10 +287,6 @@ class ACTTrackingRWalk:
                 )
             elif iteration > next_check:
                 next_check += check_interval
-
-        u_list.append(current_u)
-        v_list.append(current_v)
-        logl_list.append(logl)
 
         most_failures = max(most_failures, current_failures)
         self.act = self._calculate_act(
@@ -355,7 +353,7 @@ class ACTTrackingRWalk:
         if accept > 0:
             naive_act = 2 / accept * iteration - 1
         else:
-            naive_act = np.inf
+            return np.inf
         return max(calculate_tau(samples), naive_act, most_failures)
 
 

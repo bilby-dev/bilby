@@ -218,11 +218,20 @@ class TestCustomSampler(unittest.TestCase):
         self.assertEqual(self.sampler.kwargs["rebuild"], False)
 
     def test_diff_update(self):
+        """
+        Sampler updates do different things depending on whether ellipsoid
+        bounding is used. For the `live-multi` case we reproduce the dynesty
+        behaviour. For the `live` case, we overwrite the scale attribute to
+        store acceptance information.
+        """
         dynesty_utils._SamplingContainer.proposals = ["diff"]
         dynesty_utils._SamplingContainer.maxmcmc = 10000
         dynesty_utils._SamplingContainer.naccept = 10
         self.sampler.update_user(blob=self.blob, update=False)
-        self.assertEqual(self.sampler.scale, self.blob["accept"])
+        if self.kind == "live":
+            self.assertEqual(self.sampler.scale, self.blob["accept"])
+        else:
+            self.assertEqual(self.sampler.scale, self.blob["scale"])
         self.assertEqual(self.sampler.walks, 101)
 
 
