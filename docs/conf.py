@@ -16,10 +16,37 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import importlib
+import inspect
 import os
+import subprocess
 import sys
 import bilby
 sys.path.insert(0, os.path.abspath('../'))
+
+
+def git_revision_hash():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    except subprocess.CalledProcessError:
+        return "master"
+
+
+def git_upstream_url():
+    try:
+        url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
+        url = url.decode("ascii").strip().rstrip(".git")
+        if "@" in url:
+            url = url.split("@")[-1].replace(":", "/")
+        if url[:5] != "https":
+            url = f"https://{url}"
+    except subprocess.CalledProcessError:
+        url = "https://git.ligo.org/lscsoft/bilby"
+    return url
+
+
+GITHASH = git_revision_hash()
+GITURL = git_upstream_url()
 
 # -- General configuration ------------------------------------------------
 
@@ -38,7 +65,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
     'sphinx_tabs.tabs',
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
 ]
 autosummary_generate = True
 
@@ -183,3 +210,40 @@ numpydoc_show_class_members = False
 
 # nbsphinx options
 nbsphinx_execute = "never"
+
+
+def linkcode_resolve(domain, info):
+    """
+    Adapted from https://github.com/aaugustin/websockets/blob/8e1628a14e0dd2ca98871c7500484b5d42d16b67/docs/conf.py
+    """
+    if domain != 'py':
+        return None
+    if not info['module']:
+        return None
+
+    try:
+        mod = importlib.import_module(info["module"])
+        if "." in info["fullname"]:
+            objname, attrname = info["fullname"].split(".")
+            obj = getattr(mod, objname)
+            try:
+                # object is a method of a class
+                obj = getattr(obj, attrname)
+            except AttributeError:
+                # object is an attribute of a class
+                return None
+        else:
+            obj = getattr(mod, info["fullname"])
+
+        try:
+            file = inspect.getsourcefile(obj)
+            lines = inspect.getsourcelines(obj)
+        except TypeError:
+            # e.g. object is a typing.Union
+            return None
+        file = f"{project}/{''.join(file.split(f'{project}/')[1:])}"
+        start, end = lines[1], lines[1] + len(lines[0]) - 1
+    except Exception:
+        return
+
+    return f"{GITURL}/-/tree/{GITHASH}/{file}#L{start}-L{end}"
