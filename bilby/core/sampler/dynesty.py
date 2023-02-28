@@ -902,6 +902,7 @@ class Dynesty(NestedSampler):
         import pandas as pd
 
         self._set_sampling_method()
+        self._setup_pool()
         self.sampler = self.sampler_init(
             loglikelihood=_log_likelihood_wrapper,
             prior_transform=_prior_transform_wrapper,
@@ -916,6 +917,8 @@ class Dynesty(NestedSampler):
 
             self.pbar = tqdm(file=sys.stdout, initial=self.sampler.it)
         self.sampler.run_nested(**sampler_kwargs)
+        self._close_pool()
+
         if self.pbar is not None:
             self.pbar = self.pbar.close()
             print("")
