@@ -901,9 +901,10 @@ class Dynesty(NestedSampler):
         """Run the sampler very briefly as a sanity test that it works."""
         import pandas as pd
 
+        self._set_sampling_method()
         self.sampler = self.sampler_init(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
+            loglikelihood=_log_likelihood_wrapper,
+            prior_transform=_prior_transform_wrapper,
             ndim=self.ndim,
             **self.sampler_init_kwargs,
         )

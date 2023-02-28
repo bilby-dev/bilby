@@ -83,6 +83,9 @@ class TestDynesty(unittest.TestCase):
         self.assertEqual([0, 4], self.sampler.kwargs["periodic"])
         self.assertEqual([1, 3], self.sampler.kwargs["reflective"])
 
+    def test_run_test_runs(self):
+        self.sampler._run_test()
+
 
 class ProposalsTest(unittest.TestCase):
 
