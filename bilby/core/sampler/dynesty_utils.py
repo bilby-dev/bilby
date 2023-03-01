@@ -183,7 +183,7 @@ class ACTTrackingRWalk:
 
     # the _cache is a class level variable to avoid being forgotten at every
     # iteration when using multiprocessing
-    self._cache = list()
+    _cache = list()
 
     def __init__(self):
         self.act = 1
