@@ -180,6 +180,7 @@ class ACTTrackingRWalk:
     parallelised sampling as the length of the MCMC will be different for each
     parallel process.
     """
+
     # the _cache is a class level variable to avoid being forgotten at every
     # iteration when using multiprocessing
     self._cache = list()

@@ -472,8 +472,8 @@ class Dynesty(NestedSampler):
                 f"{self.nact} with maximum length {self.nact * self.maxmcmc}"
             )
             from .dynesty_utils import ACTTrackingRWalk
-            ACTTrackingRWalk._cache = list()
 
+            ACTTrackingRWalk._cache = list()
             dynesty.nestedsamplers._SAMPLING["act-walk"] = ACTTrackingRWalk()
         elif sample == "rwalk_dynesty":
             sample = sample.strip("_dynesty")
