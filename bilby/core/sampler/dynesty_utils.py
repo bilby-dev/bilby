@@ -180,9 +180,11 @@ class ACTTrackingRWalk:
     parallelised sampling as the length of the MCMC will be different for each
     parallel process.
     """
+    # the _cache is a class level variable to avoid being forgotten at every
+    # iteration when using multiprocessing
+    self._cache = list()
 
     def __init__(self):
-        self._cache = list()
         self.act = 1
         self.thin = getattr(_SamplingContainer, "nact", 2)
         self.maxmcmc = getattr(_SamplingContainer, "maxmcmc", 5000) * 50
@@ -708,7 +710,3 @@ def apply_boundaries_(u_prop, periodic, reflective):
 
 
 proposal_funcs = dict(diff=propose_differetial_evolution, volumetric=propose_volumetric)
-
-fixed_length_rwalk_bilby = FixedRWalk()
-bilby_act_rwalk = ACTTrackingRWalk()
-sample_rwalk_bilby = AcceptanceTrackingRWalk()
