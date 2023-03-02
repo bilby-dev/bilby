@@ -369,6 +369,7 @@ class AcceptanceTrackingRWalk:
     This is the proposal method used by default for :code:`Bilby<2` and
     corresponds to specifying :code:`sample="rwalk"`
     """
+
     # to retain state between calls to pool.Map, this needs to be a class
     # level attribute
     old_act = None
