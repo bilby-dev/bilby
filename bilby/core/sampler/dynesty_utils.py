@@ -369,11 +369,13 @@ class AcceptanceTrackingRWalk:
     This is the proposal method used by default for :code:`Bilby<2` and
     corresponds to specifying :code:`sample="rwalk"`
     """
+    # to retain state between calls to pool.Map, this needs to be a class
+    # level attribute
+    old_act = None
 
     def __init__(self, old_act=None):
         self.maxmcmc = getattr(_SamplingContainer, "maxmcmc", 5000)
         self.nact = getattr(_SamplingContainer, "nact", 40)
-        self.old_act = old_act
 
     def __call__(self, args):
         rstate = get_random_generator(args.rseed)
@@ -440,7 +442,7 @@ class AcceptanceTrackingRWalk:
             logl = args.loglikelihood(v)
 
         blob = {"accept": accept, "reject": reject + nfail, "scale": args.scale}
-        self.old_act = act
+        AcceptanceTrackingRWalk.old_act = act
 
         ncall = accept + reject
         return u, v, logl, ncall, blob

@@ -456,6 +456,7 @@ class Dynesty(NestedSampler):
                 raise DynestySetupError("You have maxmcmc < walks (minimum mcmc)")
             if self.nact < 1:
                 raise DynestySetupError("Unable to run with nact < 1")
+            AcceptanceTrackingRWalk.old_act = None
             dynesty.nestedsamplers._SAMPLING["rwalk"] = AcceptanceTrackingRWalk()
         elif sample == "acceptance-walk":
             logger.info(
