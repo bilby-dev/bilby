@@ -8,6 +8,7 @@ import lalsimulation as lalsim
 from gwpy.timeseries import TimeSeries
 from gwpy.detector import Channel
 from scipy.stats import ks_2samp
+import pytest
 
 import bilby
 from bilby.gw import utils as gwutils
@@ -72,6 +73,7 @@ class TestGWUtils(unittest.TestCase):
         )
         self.assertEqual(mfsnr, 25.510869054168282)
 
+    @pytest.mark.skip(reason="GWOSC unstable: avoiding this test")
     def test_get_event_time(self):
         from urllib3.exceptions import NewConnectionError
         events = [
