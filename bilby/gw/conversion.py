@@ -1465,7 +1465,7 @@ def _compute_snrs(args):
     )
     snrs = list()
     for ifo in likelihood.interferometers:
-        snrs.append(likelihood.calculate_snrs(signal_polarizations, ifo))
+        snrs.append(likelihood.calculate_snrs(signal_polarizations, ifo, return_array=False))
     return snrs
 
 
