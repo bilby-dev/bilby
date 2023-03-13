@@ -693,18 +693,26 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             else:
                 setattr(self, key, value)
 
-    def calculate_snrs(self, waveform_polarizations, interferometer):
+    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=False):
         """
-        Compute the snrs for multi-banding
+        Compute the snrs
 
         Parameters
         ----------
-        waveform_polarizations: waveform
+        waveform_polarizations: dict
+            A dictionary of waveform polarizations and the corresponding array
         interferometer: bilby.gw.detector.Interferometer
+            The bilby interferometer object
+        return_array: bool
+            If true, calculate and return internal array objects
+            (d_inner_h_array and optimal_snr_squared_array), otherwise
+            these are returned as None. This parameter is ignored for the multiband
+            model as these arrays are never calculated.
 
         Returns
         -------
-        snrs: named tuple of snrs
+        calculated_snrs: _CalculatedSNRs
+            An object containing the SNR quantities.
 
         """
         strain = np.zeros(len(self.banded_frequency_points), dtype=complex)
