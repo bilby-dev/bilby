@@ -382,7 +382,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         full_waveform_ratio = duplicated_r0 + duplicated_r1 * (f - duplicated_fm)
         return fiducial_waveform * full_waveform_ratio
 
-    def calculate_snrs(self, waveform_polarizations, interferometer):
+    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True):
         r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=waveform_polarizations,
             interferometer=interferometer,
@@ -393,7 +393,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         optimal_snr_squared = h_inner_h
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
 
-        if self.time_marginalization:
+        if return_array and self.time_marginalization:
             full_waveform = self._compute_full_waveform(
                 signal_polarizations=waveform_polarizations,
                 interferometer=interferometer,
