@@ -3,3 +3,4 @@ lalsuite
 gwpy
 tables
 pyfftw
+scikit-learn
