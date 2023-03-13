@@ -181,8 +181,11 @@ class ACTTrackingRWalk:
     parallel process.
     """
 
+    # the _cache is a class level variable to avoid being forgotten at every
+    # iteration when using multiprocessing
+    _cache = list()
+
     def __init__(self):
-        self._cache = list()
         self.act = 1
         self.thin = getattr(_SamplingContainer, "nact", 2)
         self.maxmcmc = getattr(_SamplingContainer, "maxmcmc", 5000) * 50
@@ -367,10 +370,13 @@ class AcceptanceTrackingRWalk:
     corresponds to specifying :code:`sample="rwalk"`
     """
 
+    # to retain state between calls to pool.Map, this needs to be a class
+    # level attribute
+    old_act = None
+
     def __init__(self, old_act=None):
         self.maxmcmc = getattr(_SamplingContainer, "maxmcmc", 5000)
         self.nact = getattr(_SamplingContainer, "nact", 40)
-        self.old_act = old_act
 
     def __call__(self, args):
         rstate = get_random_generator(args.rseed)
@@ -437,7 +443,7 @@ class AcceptanceTrackingRWalk:
             logl = args.loglikelihood(v)
 
         blob = {"accept": accept, "reject": reject + nfail, "scale": args.scale}
-        self.old_act = act
+        AcceptanceTrackingRWalk.old_act = act
 
         ncall = accept + reject
         return u, v, logl, ncall, blob
@@ -708,7 +714,3 @@ def apply_boundaries_(u_prop, periodic, reflective):
 
 
 proposal_funcs = dict(diff=propose_differetial_evolution, volumetric=propose_volumetric)
-
-fixed_length_rwalk_bilby = FixedRWalk()
-bilby_act_rwalk = ACTTrackingRWalk()
-sample_rwalk_bilby = AcceptanceTrackingRWalk()

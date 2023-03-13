@@ -242,6 +242,7 @@ class TestEstimateNMCMC(unittest.TestCase):
         safety * (2 / accept_ratio - 1)
         """
         sampler = dynesty_utils.AcceptanceTrackingRWalk()
+        dynesty_utils.AcceptanceTrackingRWalk.old_act = None
         for _ in range(10):
             accept_ratio = np.random.uniform()
             safety = np.random.randint(2, 8)
