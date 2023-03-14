@@ -944,19 +944,30 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 self.weights[ifo.name + '_quadratic'].append(
                     np.dot(quadratic_matrix_single, multibanded_inverse_psd[ifo.name]))
 
-    def save_weights(self, filename, format='npz'):
+    def save_weights(self, filename, format='hdf5'):
         """
-        Save ROQ weights into a single file. format should be json, npz, or hdf5. For weights from multiple bases, hdf5
-        is only the possible option.
+        Save ROQ weights into a single file. format should be npz, or hdf5.
+        For weights from multiple bases, hdf5 is only the possible option.
+        Support for json format is deprecated as of :code:`v2.1` and will be
+        removed in :code:`v2.2`, another method should be used by default.
 
         Parameters
         ==========
         filename : str
+            The name of the file to save the weights to.
         format : str
-
+            The format to save the data to, this should be one of
+            :code:`"hdf5"`, :code:`"npz"`, default=:code:`"hdf5"`.
         """
         if format not in ['json', 'npz', 'hdf5']:
             raise IOError(f"Format {format} not recognized.")
+        if format == "json":
+            import warnings
+
+            warnings.warn(
+                "json format for ROQ weights is deprecated, use hdf5 instead.",
+                DeprecationWarning
+            )
         if format not in filename:
             filename += "." + format
         logger.info(f"Saving ROQ weights to {filename}")
@@ -1001,19 +1012,35 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     def load_weights(self, filename, format=None):
         """
-        Load ROQ weights. format should be json, npz, or hdf5. json or npz file is assumed to contain weights from a
-        single basis
+        Load ROQ weights. format should be json, npz, or hdf5.
+        json or npz file is assumed to contain weights from a single basis.
+        Support for json format is deprecated as of :code:`v2.1` and will be
+        removed in :code:`v2.2`, another method should be used by default.
 
         Parameters
         ==========
         filename : str
+            The name of the file to save the weights to.
         format : str
+            The format to save the data to, this should be one of
+            :code:`"hdf5"`, :code:`"npz"`, default=:code:`"hdf5"`.
 
+        Returns
+        =======
+        weights: dict
+            Dictionary containing the ROQ weights.
         """
         if format is None:
             format = filename.split(".")[-1]
         if format not in ["json", "npz", "hdf5"]:
             raise IOError(f"Format {format} not recognized.")
+        if format == "json":
+            import warnings
+
+            warnings.warn(
+                "json format for ROQ weights is deprecated, use hdf5 instead.",
+                DeprecationWarning
+            )
         logger.info(f"Loading ROQ weights from {filename}")
         if format == "json" or format == "npz":
             # Old file format assumed to contain only a single basis
