@@ -1,5 +1,18 @@
 # All notable changes will be documented in this file
 
+## [2.0.1] 2023-03-13
+Version 2.0.1 release of Bilby
+
+This is a bugfix release after the last major update.
+
+Users may notice changes in inferred binary neutron star masses after updating to match [lalsuite](https://git.ligo.org/lscsoft/lalsuite/-/merge_requests/1658).
+
+### Changes
+- Make sure quantities that need to be conserved between dynesty iterations are class-level attributes (!1225).
+- Fix massive memory usage in post-processing calculation of SNRs (!1227).
+- Update value for the solar mass (!1229).
+- Make `scikit-learn` an explicit dependence of `bilby[GW]` (!1230).
+
 ## [2.0.0] 2023-02-29
 Version 2.0.0 release of Bilby
 
