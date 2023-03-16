@@ -30,9 +30,9 @@ from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
 
-def __eval_l(l, p):
-    l.parameters.update(p)
-    return l.log_likelihood()
+def __eval_l(likelihood, params):
+    likelihood.parameters.update(params)
+    return likelihood.log_likelihood()
 
 def result_file_name(outdir, label, extension='json', gzip=False):
     """ Returns the standard filename used for a result file
@@ -153,18 +153,19 @@ def get_weights_for_reweighting(
     n = len(dict_samples) - starting_index
 
     # Helper function to compute likelihoods in parallel
-    def eval_pool(l):
+    def eval_pool(this_logl):
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100,n//(2*npool))
             return list(tqdm(
-                    pool.imap(partial(__eval_l,l),
+                    pool.imap(partial(__eval_l,this_logl),
                             dict_samples[starting_index:], chunksize=chunksize),
                     desc = 'Computing likelihoods',
                     total = n
                 ))
 
     if old_likelihood is None:
-        old_log_likelihood_array[starting_index:] = sample["log_likelihood"]
+        old_log_likelihood_array[starting_index:] = \
+            result.posterior["log_likelihood"][starting_index:].to_numpy()
     else:
         old_log_likelihood_array[starting_index:] = eval_pool(old_likelihood)
 
