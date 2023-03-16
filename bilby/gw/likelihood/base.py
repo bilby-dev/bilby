@@ -418,12 +418,7 @@ class GravitationalWaveTransient(Likelihood):
 
     def compute_log_likelihood_from_snrs(self, total_snrs):
 
-        if self.calibration_marginalization and self.time_marginalization:
-            log_l = self.time_and_calibration_marginalized_likelihood(
-                d_inner_h_array=total_snrs.d_inner_h_array,
-                h_inner_h=total_snrs.optimal_snr_squared_array)
-
-        elif self.calibration_marginalization:
+        if self.calibration_marginalization:
             log_l = self.calibration_marginalized_likelihood(
                 d_inner_h_calibration_array=total_snrs.d_inner_h_array,
                 h_inner_h=total_snrs.optimal_snr_squared_array)
@@ -492,41 +487,22 @@ class GravitationalWaveTransient(Likelihood):
         else:
             return self.parameters
 
-        """
-        As we go through and repopulate we will undo the marginalizations
-        for the next function in the chain - back up the state info first
-        """
-        backup_options = (self.time_marginalization,
-                          self.calibration_marginalization,
-                          self.distance_marginalization,
-                          self.phase_marginalization)
-
-        if self.time_marginalization:
-            new_time = self.generate_time_sample_from_marginalized_likelihood(
-                signal_polarizations=signal_polarizations)
-            self.parameters['geocent_time'] = new_time
-            self.time_marginalization = False
-        if self.distance_marginalization:
-            new_distance = self.generate_distance_sample_from_marginalized_likelihood(
-                signal_polarizations=signal_polarizations)
-            self.parameters['luminosity_distance'] = new_distance
-            self.distance_marginalization = False
-        if self.phase_marginalization:
-            new_phase = self.generate_phase_sample_from_marginalized_likelihood(
-                signal_polarizations=signal_polarizations)
-            self.parameters['phase'] = new_phase
         if self.calibration_marginalization:
             new_calibration = self.generate_calibration_sample_from_marginalized_likelihood(
                 signal_polarizations=signal_polarizations)
             self.parameters['recalib_index'] = new_calibration
-            self.calibration_marginalization = False
-
-        # Restore state info here
-        self.time_marginalization, \
-            self.calibration_marginalization, \
-            self.distance_marginalization, \
-            self.phase_marginalization = backup_options
-
+        if self.time_marginalization:
+            new_time = self.generate_time_sample_from_marginalized_likelihood(
+                signal_polarizations=signal_polarizations)
+            self.parameters['geocent_time'] = new_time
+        if self.distance_marginalization:
+            new_distance = self.generate_distance_sample_from_marginalized_likelihood(
+                signal_polarizations=signal_polarizations)
+            self.parameters['luminosity_distance'] = new_distance
+        if self.phase_marginalization:
+            new_phase = self.generate_phase_sample_from_marginalized_likelihood(
+                signal_polarizations=signal_polarizations)
+            self.parameters['phase'] = new_phase
         return self.parameters.copy()
 
     def generate_calibration_sample_from_marginalized_likelihood(
@@ -553,7 +529,8 @@ class GravitationalWaveTransient(Likelihood):
                 self.waveform_generator.frequency_domain_strain(self.parameters)
 
         log_like = self.get_calibration_log_likelihoods(signal_polarizations=signal_polarizations)
-        calibration_post = np.exp(log_like - log_like.max())
+
+        calibration_post = np.exp(log_like - max(log_like))
         calibration_post /= np.sum(calibration_post)
 
         new_calibration = np.random.choice(self.number_of_response_curves, p=calibration_post)
@@ -765,11 +742,24 @@ class GravitationalWaveTransient(Likelihood):
         d_inner_h = ln_i0(abs(d_inner_h))
 
         if self.calibration_marginalization and self.time_marginalization:
-            return d_inner_h - np.outer(h_inner_h, np.ones(np.shape(d_inner_h)[1])) / 2
+            return d_inner_h - h_inner_h[:, np.newaxis] / 2
         else:
             return d_inner_h - h_inner_h / 2
 
     def time_marginalized_likelihood(self, d_inner_h_tc_array, h_inner_h):
+        times = self._times
+        if self.jitter_time:
+            times = self._times + self.parameters['time_jitter']
+
+        _time_prior = self.priors['geocent_time']
+        time_mask = (times >= _time_prior.minimum) & (times <= _time_prior.maximum)
+        times = times[time_mask]
+        time_prior_array = self.priors['geocent_time'].prob(times) * self._delta_tc
+        if self.calibration_marginalization:
+            d_inner_h_tc_array = d_inner_h_tc_array[:, time_mask]
+        else:
+            d_inner_h_tc_array = d_inner_h_tc_array[time_mask]
+
         if self.distance_marginalization:
             log_l_tc_array = self.distance_marginalized_likelihood(
                 d_inner_h=d_inner_h_tc_array, h_inner_h=h_inner_h)
@@ -777,40 +767,11 @@ class GravitationalWaveTransient(Likelihood):
             log_l_tc_array = self.phase_marginalized_likelihood(
                 d_inner_h=d_inner_h_tc_array,
                 h_inner_h=h_inner_h)
+        elif self.calibration_marginalization:
+            log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h[:, np.newaxis] / 2
         else:
             log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h / 2
-        times = self._times
-        if self.jitter_time:
-            times = self._times + self.parameters['time_jitter']
-        time_prior_array = self.priors['geocent_time'].prob(times) * self._delta_tc
-        return logsumexp(log_l_tc_array, b=time_prior_array)
-
-    def time_and_calibration_marginalized_likelihood(self, d_inner_h_array, h_inner_h):
-        times = self._times
-        if self.jitter_time:
-            times = self._times + self.parameters['time_jitter']
-
-        _time_prior = self.priors['geocent_time']
-        time_mask = np.logical_and((times >= _time_prior.minimum), (times <= _time_prior.maximum))
-        times = times[time_mask]
-        time_probs = self.priors['geocent_time'].prob(times) * self._delta_tc
-
-        d_inner_h_array = d_inner_h_array[:, time_mask]
-        h_inner_h = h_inner_h
-
-        if self.distance_marginalization:
-            log_l_array = self.distance_marginalized_likelihood(
-                d_inner_h=d_inner_h_array, h_inner_h=h_inner_h)
-        elif self.phase_marginalization:
-            log_l_array = self.phase_marginalized_likelihood(
-                d_inner_h=d_inner_h_array,
-                h_inner_h=h_inner_h)
-        else:
-            log_l_array = np.real(d_inner_h_array) - np.outer(h_inner_h, np.ones(np.shape(d_inner_h_array)[1])) / 2
-
-        prior_array = np.outer(time_probs, 1. / self.number_of_response_curves * np.ones(len(h_inner_h))).T
-
-        return logsumexp(log_l_array, b=prior_array)
+        return logsumexp(log_l_tc_array, b=time_prior_array, axis=-1)
 
     def get_calibration_log_likelihoods(self, signal_polarizations=None):
         self.parameters.update(self.get_sky_frame_parameters())
@@ -827,7 +788,12 @@ class GravitationalWaveTransient(Likelihood):
 
             total_snrs += per_detector_snr
 
-        if self.distance_marginalization:
+        if self.time_marginalization:
+            log_l_cal_array = self.time_marginalized_likelihood(
+                d_inner_h_tc_array=total_snrs.d_inner_h_array,
+                h_inner_h=total_snrs.optimal_snr_squared_array,
+            )
+        elif self.distance_marginalization:
             log_l_cal_array = self.distance_marginalized_likelihood(
                 d_inner_h=total_snrs.d_inner_h_array,
                 h_inner_h=total_snrs.optimal_snr_squared_array)
@@ -842,7 +808,12 @@ class GravitationalWaveTransient(Likelihood):
         return log_l_cal_array
 
     def calibration_marginalized_likelihood(self, d_inner_h_calibration_array, h_inner_h):
-        if self.distance_marginalization:
+        if self.time_marginalization:
+            log_l_cal_array = self.time_marginalized_likelihood(
+                d_inner_h_tc_array=d_inner_h_calibration_array,
+                h_inner_h=h_inner_h,
+            )
+        elif self.distance_marginalization:
             log_l_cal_array = self.distance_marginalized_likelihood(
                 d_inner_h=d_inner_h_calibration_array, h_inner_h=h_inner_h)
         elif self.phase_marginalization:
