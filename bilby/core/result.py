@@ -184,12 +184,12 @@ def get_weights_for_reweighting(
                                      total=n),
                                 start=starting_index):
         if old_prior is not None:
-            old_log_prior_array[ii] = old_prior.ln_prob(dict_samples[ii])
+            old_log_prior_array[ii] = old_prior.ln_prob(sample)
         else:
             old_log_prior_array[ii] = sample["log_prior"]
 
         if new_prior is not None:
-            new_log_prior_array[ii] = new_prior.ln_prob(dict_samples[ii])
+            new_log_prior_array[ii] = new_prior.ln_prob(sample)
         else:
             # Don't perform prior reweighting (i.e. prior isn't updated)
             new_log_prior_array[ii] = old_log_prior_array[ii]
