@@ -767,6 +767,8 @@ class GravitationalWaveTransient(Likelihood):
             log_l_tc_array = self.phase_marginalized_likelihood(
                 d_inner_h=d_inner_h_tc_array,
                 h_inner_h=h_inner_h)
+        elif self.calibration_marginalization:
+            log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h[:, np.newaxis] / 2
         else:
             log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h / 2
         return logsumexp(log_l_tc_array, b=time_prior_array, axis=-1)
