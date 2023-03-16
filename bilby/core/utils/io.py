@@ -268,6 +268,11 @@ def encode_for_hdf5(key, item):
         item = float(item)
     elif isinstance(item, np.complex_):
         item = complex(item)
+    if isinstance(item, np.ndarray):
+        # Numpy's wide unicode strings are not supported by hdf5
+        if item.dtype.kind == 'U':
+            logger.debug(f'converting dtype {item.dtype} for hdf5')
+            item = np.array(item, dtype='S')
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
     elif item is None:
