@@ -497,9 +497,9 @@ class GravitationalWaveTransient(Likelihood):
         for the next function in the chain - back up the state info first
         """
         backup_options = (self.time_marginalization,
-                   self.calibration_marginalization,
-                   self.distance_marginalization,
-                   self.phase_marginalization)
+                          self.calibration_marginalization,
+                          self.distance_marginalization,
+                          self.phase_marginalization)
 
         if self.time_marginalization:
             new_time = self.generate_time_sample_from_marginalized_likelihood(
@@ -523,9 +523,9 @@ class GravitationalWaveTransient(Likelihood):
 
         # Restore state info here
         self.time_marginalization, \
-        self.calibration_marginalization, \
-        self.distance_marginalization, \
-        self.phase_marginalization = backup_options
+            self.calibration_marginalization, \
+            self.distance_marginalization, \
+            self.phase_marginalization = backup_options
 
         return self.parameters.copy()
 
