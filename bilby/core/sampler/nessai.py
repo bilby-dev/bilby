@@ -197,6 +197,7 @@ class Nessai(NestedSampler):
         # Manually set likelihood evaluations because parallelisation breaks the counter
         self.result.num_likelihood_evaluations = self.fs.ns.total_likelihood_evaluations
 
+        self.result.sampling_time = self.fs.ns.sampling_time
         self.result.samples = live_points_to_array(
             self.fs.posterior_samples, self.search_parameter_keys
         )
