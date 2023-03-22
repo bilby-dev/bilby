@@ -1,5 +1,15 @@
 # All notable changes will be documented in this file
 
+## [2.0.2] 2023-03-21
+Version 2.0.2 release of Bilby
+
+This is a bugfix release after the last major update.
+
+### Changes
+- Fix to bilby-MCMC implementation of prior boundary (!1237)
+- Fix to time calibration (!1234)
+- Fix nessai sampling time (!1236)
+
 ## [2.0.1] 2023-03-13
 Version 2.0.1 release of Bilby
 
