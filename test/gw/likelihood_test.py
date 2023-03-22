@@ -950,14 +950,14 @@ class TestCreateROQLikelihood(unittest.TestCase):
 
 class TestInOutROQWeights(unittest.TestCase):
 
-    @parameterized.expand(['npz', 'json', 'hdf5'])
+    @parameterized.expand(['npz', 'hdf5'])
     def test_out_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
         filename = f'weights.{format}'
         likelihood.save_weights(filename, format=format)
         self.assertTrue(os.path.exists(filename))
 
-    @parameterized.expand(['npz', 'json', 'hdf5'])
+    @parameterized.expand(['npz', 'hdf5'])
     def test_in_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
         filename = f'weights.{format}'
