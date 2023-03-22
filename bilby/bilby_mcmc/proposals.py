@@ -131,7 +131,8 @@ class BaseProposal(object):
 
     def __call__(self, chain):
         sample, log_factor = self.propose(chain)
-        sample = self.apply_boundaries(sample)
+        if log_factor == 0:
+            sample = self.apply_boundaries(sample)
         return sample, log_factor
 
     @abstractmethod
@@ -945,7 +946,8 @@ class EnsembleProposal(BaseProposal):
 
     def __call__(self, chain, chain_complement):
         sample, log_factor = self.propose(chain, chain_complement)
-        sample = self.apply_boundaries(sample)
+        if log_factor == 0:
+            sample = self.apply_boundaries(sample)
         return sample, log_factor
 
 
