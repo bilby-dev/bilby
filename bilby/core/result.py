@@ -76,7 +76,7 @@ def _determine_file_name(filename, outdir, label, extension, gzip):
             return result_file_name(outdir, label, extension, gzip)
 
 
-def read_in_result(filename=None, outdir=None, label=None, extension='json', gzip=False):
+def read_in_result(filename=None, outdir=None, label=None, extension='json', gzip=False, result_class=None):
     """ Reads in a stored bilby result object
 
     Parameters
@@ -86,9 +86,17 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     outdir, label, extension: str
         Name of the output directory, label and extension used for the default
         naming scheme.
-
+    result_class: bilby.core.result.Result, or child of
+        The result class to use. By default, `bilby.core.result.Result` is used,
+        but objects which inherit from this class can be given providing
+        additional methods.
     """
     filename = _determine_file_name(filename, outdir, label, extension, gzip)
+
+    if result_class is None:
+        result_class = Result
+    elif not issubclass(result_class, Result):
+        raise ValueError(f"Input result_class={result_class} not understood")
 
     # Get the actual extension (may differ from the default extension if the filename is given)
     extension = os.path.splitext(filename)[1].lstrip('.')
@@ -96,11 +104,11 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
     if 'json' in extension:
-        result = Result.from_json(filename=filename)
+        result = result_class.from_json(filename=filename)
     elif ('hdf5' in extension) or ('h5' in extension):
-        result = Result.from_hdf5(filename=filename)
+        result = result_class.from_hdf5(filename=filename)
     elif ("pkl" in extension) or ("pickle" in extension):
-        result = Result.from_pickle(filename=filename)
+        result = result_class.from_pickle(filename=filename)
     elif extension is None:
         raise ValueError("No filetype extension provided")
     else:

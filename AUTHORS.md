@@ -89,3 +89,5 @@ Vivien Raymond
 Ka-Lok Lo
 Isaac Legred
 Marc Penuliar
+Andrew Fowlie
+Martin White

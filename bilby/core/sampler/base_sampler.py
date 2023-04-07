@@ -253,7 +253,7 @@ class Sampler(object):
 
         self.kwargs = kwargs
 
-        self._check_cached_result()
+        self._check_cached_result(result_class)
 
         self._log_summary_for_sampler()
 
@@ -631,7 +631,7 @@ class Sampler(object):
         """
         raise ValueError("Method not yet implemented")
 
-    def _check_cached_result(self):
+    def _check_cached_result(self, result_class=None):
         """Check if the cached data file exists and can be used"""
 
         if command_line_args.clean:
@@ -640,7 +640,9 @@ class Sampler(object):
             return
 
         try:
-            self.cached_result = read_in_result(outdir=self.outdir, label=self.label)
+            self.cached_result = read_in_result(
+                outdir=self.outdir, label=self.label, result_class=result_class
+            )
         except IOError:
             self.cached_result = None
 
