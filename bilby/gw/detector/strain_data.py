@@ -216,9 +216,9 @@ class InterferometerStrainData(object):
         if self._frequency_domain_strain is not None:
             return self._frequency_domain_strain * self.frequency_mask
         elif self._time_domain_strain is not None:
-            logger.info("Generating frequency domain strain from given time "
-                        "domain strain.")
-            logger.info("Applying a tukey window with alpha={}, roll off={}".format(
+            logger.debug("Generating frequency domain strain from given time "
+                         "domain strain.")
+            logger.debug("Applying a tukey window with alpha={}, roll off={}".format(
                 self.alpha, self.roll_off))
             # self.low_pass_filter()
             window = self.time_domain_window()
