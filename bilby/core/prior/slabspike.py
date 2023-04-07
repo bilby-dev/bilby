@@ -1,3 +1,4 @@
+from numbers import Number
 import numpy as np
 
 from .base import Prior
@@ -84,6 +85,7 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Associated prior value with input value.
         """
+        original_is_number = isinstance(val, Number)
         val = np.atleast_1d(val)
 
         lower_indices = np.where(val < self.inverse_cdf_below_spike)[0]
@@ -96,6 +98,12 @@ class SlabSpikePrior(Prior):
         res[lower_indices] = self._contracted_rescale(val[lower_indices])
         res[intermediate_indices] = self.spike_location
         res[higher_indices] = self._contracted_rescale(val[higher_indices] - self.spike_height)
+        if original_is_number:
+            try:
+                res = res[0]
+            except (KeyError, TypeError):
+                logger.warning("Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed")
         return res
 
     def _contracted_rescale(self, val):
@@ -126,9 +134,16 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Prior probability of val
         """
+        original_is_number = isinstance(val, Number)
         res = self.slab.prob(val) * self.slab_fraction
         res = np.atleast_1d(res)
         res[np.where(val == self.spike_location)] = np.inf
+        if original_is_number:
+            try:
+                res = res[0]
+            except (KeyError, TypeError):
+                logger.warning("Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed")
         return res
 
     def ln_prob(self, val):
@@ -143,9 +158,16 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Prior probability of val
         """
+        original_is_number = isinstance(val, Number)
         res = self.slab.ln_prob(val) + np.log(self.slab_fraction)
         res = np.atleast_1d(res)
         res[np.where(val == self.spike_location)] = np.inf
+        if original_is_number:
+            try:
+                res = res[0]
+            except (KeyError, TypeError):
+                logger.warning("Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed")
         return res
 
     def cdf(self, val):
