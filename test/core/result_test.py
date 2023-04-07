@@ -59,9 +59,10 @@ class TestResult(unittest.TestCase):
                 d=2,
             )
         )
+        self.outdir = "test_outdir"
         result = bilby.core.result.Result(
             label="label",
-            outdir="outdir",
+            outdir=self.outdir,
             sampler="nestle",
             search_parameter_keys=["x", "y"],
             fixed_parameter_keys=["c", "d"],
@@ -87,7 +88,7 @@ class TestResult(unittest.TestCase):
     def tearDown(self):
         bilby.utils.command_line_args.bilby_test_mode = True
         try:
-            shutil.rmtree(self.result.outdir)
+            shutil.rmtree(self.outdir)
         except OSError:
             pass
         del self.result
@@ -490,6 +491,40 @@ class TestResult(unittest.TestCase):
         az = self.result.to_arviz()
         self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
                                        log_likelihood))
+
+    def test_result_caching(self):
+
+        class SimpleLikelihood(bilby.Likelihood):
+            def __init__(self):
+                super().__init__(parameters={"x": None})
+
+            def log_likelihood(self):
+                return -self.parameters["x"]**2
+
+        likelihood = SimpleLikelihood()
+        priors = dict(x=bilby.core.prior.Uniform(-5, 5, "x"))
+
+        # Trivial subclass of Result
+
+        class NotAResult(bilby.core.result.Result):
+            pass
+
+        result = bilby.run_sampler(
+            likelihood, priors, sampler='bilby_mcmc', nsamples=10, L1steps=1,
+            proposal_cycle="default_noGMnoKD", printdt=1,
+            check_point_plot=False,
+            result_class=NotAResult)
+        # result should be specified result_class
+        assert isinstance(result, NotAResult)
+
+        cached_result = bilby.run_sampler(
+            likelihood, priors, sampler='bilby_mcmc', nsamples=10, L1steps=1,
+            proposal_cycle="default_noGMnoKD", printdt=1,
+            check_point_plot=False,
+            result_class=NotAResult)
+
+        # so should a result loaded from cache
+        assert isinstance(cached_result, NotAResult)
 
 
 class TestResultListError(unittest.TestCase):
