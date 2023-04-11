@@ -129,13 +129,6 @@ def setup_command_line_args():
     return args
 
 
-def read_in_results(filename_list):
-    results_list = []
-    for filename in filename_list:
-        results_list.append(bilby.core.result.read_in_result(filename=filename))
-    return bilby.core.result.ResultList(results_list)
-
-
 def print_bayes_factors(results_list):
     for res in results_list:
         print(f"For result {res.label}:")
@@ -204,7 +197,7 @@ def save(result, args):
 
 def main():
     args = setup_command_line_args()
-    results_list = read_in_results(args.results)
+    results_list = bilby.core.result.read_in_result_list(args.results)
 
     if args.save:
         for result in results_list:

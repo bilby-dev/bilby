@@ -116,6 +116,34 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     return result
 
 
+def read_in_result_list(filename_list, invalid="warning"):
+    """ Read in a set of results
+
+    Parameters
+    ==========
+    filename_list: list
+        A list of filename paths
+    invalid: str (ignore, warning, error)
+        Behaviour if a file in filename_list is not a valid bilby result
+
+    Returns
+    -------
+    result_list: ResultList
+        A list of results
+    """
+    results_list = []
+    for filename in filename_list:
+        try:
+            results_list.append(read_in_result(filename=filename))
+        except Exception as e:
+            msg = f"Failed to read in file {filename} due to exception {e}"
+            if invalid == "error":
+                raise ResultListError(msg)
+            elif invalid == "warning":
+                logger.warning(msg)
+    return ResultList(results_list)
+
+
 def get_weights_for_reweighting(
         result, new_likelihood=None, new_prior=None, old_likelihood=None,
         old_prior=None, resume_file=None, n_checkpoint=5000, npool=1):
@@ -1704,7 +1732,7 @@ class Result(object):
 
 class ResultList(list):
 
-    def __init__(self, results=None):
+    def __init__(self, results=None, consistency_level="warning"):
         """ A class to store a list of :class:`bilby.core.result.Result` objects
         from equivalent runs on the same data. This provides methods for
         outputting combined results.
@@ -1713,8 +1741,15 @@ class ResultList(list):
         ==========
         results: list
             A list of `:class:`bilby.core.result.Result`.
+        consistency_level: str, [ignore, warning, error]
+            If warning, print a warning if inconsistencies are discovered
+            between the results. If error, raise an error if inconsistencies
+            are discovered between the results before combining. If ignore, do
+            nothing.
+
         """
         super(ResultList, self).__init__()
+        self.consistency_level = consistency_level
         for result in results:
             self.append(result)
 
@@ -1745,9 +1780,11 @@ class ResultList(list):
         ----------
         shuffle: bool
             If true, shuffle the samples when combining, otherwise they are concatenated.
-        consistency_level: str, [warning, error]
-            If warning, print a warning if inconsistencies are discovered between the results before combining.
-            If error, raise an error if inconsistencies are discovered between the results before combining.
+        consistency_level: str, [ignore, warning, error]
+            Overwrite the class level consistency_level. If warning, print a
+            warning if inconsistencies are discovered between the results. If
+            error, raise an error if inconsistencies are discovered between
+            the results before combining. If ignore, do nothing.
 
         Returns
         -------
@@ -1892,6 +1929,8 @@ class ResultList(list):
             raise ResultListError(msg)
         elif self.consistency_level == "warning":
             logger.warning(msg)
+        elif self.consistency_level == "ignore":
+            pass
         else:
             raise ValueError(f"Input consistency_level {self.consistency_level} not understood")
 
