@@ -1,5 +1,5 @@
 # LIGO India Aundha at Aplus sensitvity.
-# LIGO-T2000158
+# Coordinates taken from https://dcc.ligo.org/LIGO-T2000158/public
 # https://dcc.ligo.org/LIGO-T2000012/public
 name = 'A1'
 power_spectral_density = PowerSpectralDensity(asd_file='Aplus_asd.txt')
