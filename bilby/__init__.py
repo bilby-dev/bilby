@@ -23,6 +23,7 @@ from . import core, gw, hyper
 from .core import utils, likelihood, prior, result, sampler
 from .core.sampler import run_sampler
 from .core.likelihood import Likelihood
+from .core.result import read_in_result, read_in_result_list
 
 try:
     from ._version import version as __version__
