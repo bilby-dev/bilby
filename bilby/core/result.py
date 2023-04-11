@@ -459,6 +459,8 @@ class Result(object):
         self.injection_parameters = injection_parameters
         self.posterior = posterior
         self.samples = samples
+        if isinstance(nested_samples, dict):
+            nested_samples = pd.DataFrame(nested_samples)
         self.nested_samples = nested_samples
         self.walkers = walkers
         self.nburn = nburn
