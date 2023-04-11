@@ -1003,8 +1003,8 @@ class BNSPriorDict(CBCPriorDict):
     def test_redundancy(self, key, disable_logging=False):
         logger.disabled = disable_logging
         logger.info("Performing redundancy check using BBHPriorDict(self).test_redundancy")
-        logger.disabled = False
         bbh_redundancy = BBHPriorDict(self).test_redundancy(key)
+        logger.disabled = False
 
         if bbh_redundancy:
             return True
