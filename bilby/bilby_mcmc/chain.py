@@ -157,7 +157,7 @@ class Chain(object):
 
     @property
     def minimum_index(self):
-        """This calculated a minimum index from which to discard samples
+        """This calculates a minimum index from which to discard samples
 
         A number of methods are provided for the calculation. A subset are
         switched off (by `if False` statements) for future development
@@ -342,7 +342,12 @@ class Chain(object):
     @property
     def nsamples(self):
         nuseable_steps = self.position - self.minimum_index
-        return int(nuseable_steps / (self.thin_by_nact * self.tau))
+        n_independent_samples = nuseable_steps / self.tau
+        nsamples = int(n_independent_samples / self.thin_by_nact)
+        if nuseable_steps >= nsamples:
+            return nsamples
+        else:
+            return 0
 
     @property
     def nsamples_last(self):

@@ -202,6 +202,7 @@ class Sampler(object):
     If a specific sampler does not have a sampling seed option, then it should be
     left as None.
     """
+    check_point_equiv_kwargs = ["check_point_deltaT", "check_point_delta_t"]
 
     def __init__(
         self,

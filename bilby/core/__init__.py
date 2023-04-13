@@ -1,1 +1,1 @@
-from . import grid, likelihood, prior, result, sampler, series, utils
+from . import grid, likelihood, prior, result, sampler, series, utils, fisher
