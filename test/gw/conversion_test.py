@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 import pandas as pd
 
-
 import bilby
 from bilby.gw import conversion
 
@@ -656,6 +655,218 @@ class TestGenerateMassParameters(unittest.TestCase):
     def test_from_chirp_mass_source_and_symmetric_mass_2(self):
         self.helper_generation_from_keys(["chirp_mass_source", "mass_2_source"],
                                          self.expected_values, source=True)
+
+
+class TestEquationOfStateConversions(unittest.TestCase):
+    '''
+    Class to test equation of state conversions.
+    The test points were generated from a simulation independent of bilby using the original lalsimulation calls.
+    Specific cases tested are described within each function.
+
+    '''
+    def setUp(self):
+        self.mass_1_source_spectral = [
+            4.922542724434885,
+            4.350626907771598,
+            4.206155335439082,
+            1.7822696459661311,
+            1.3091740103047926
+        ]
+        self.mass_2_source_spectral = [
+            3.459974694590303,
+            1.2276461777181447,
+            3.7287707089639976,
+            0.3724016563531846,
+            1.055042934805801
+        ]
+        self.spectral_pca_gamma_0 = [
+            0.7074873121348357,
+            0.05855931126849878,
+            0.7795329261793462,
+            1.467907561566463,
+            2.9066488405635624
+        ]
+        self.spectral_pca_gamma_1 = [
+            -0.29807111670823816,
+            2.027708558522935,
+            -1.4415775226512115,
+            -0.7104870098896858,
+            -0.4913817181089619
+        ]
+        self.spectral_pca_gamma_2 = [
+            0.25625095371021156,
+            -0.19574096643220049,
+            -0.2710238103460012,
+            0.22815820981582358,
+            -0.1543413205016374
+        ]
+        self.spectral_pca_gamma_3 = [
+            -0.04030365100175101,
+            0.05698030777919032,
+            -0.045595911403040264,
+            -0.023480394227900117,
+            -0.07114492992285618
+        ]
+        self.spectral_gamma_0 = [
+            1.1259406796075457,
+            0.3191335618787259,
+            1.3651245109783452,
+            1.3540140238735314,
+            1.4551949842961993
+        ]
+        self.spectral_gamma_1 = [
+            0.26791504475282835,
+            0.3930374252139248,
+            0.11438399886108475,
+            0.14181113477953,
+            -0.11989033256620368
+        ]
+        self.spectral_gamma_2 = [
+            -0.06810849354463173,
+            -0.038250139296677754,
+            -0.0801540229444505,
+            -0.05230330841791625,
+            -0.005197303281460286
+        ]
+        self.spectral_gamma_3 = [
+            0.002848121360389597,
+            0.000872447754855139,
+            0.005528747386660879,
+            0.0024325946344566484,
+            0.00043890906202786106
+        ]
+        self.mass_1_source_polytrope = [
+            2.2466565877822573,
+            2.869741556013239,
+            4.123897187899834,
+            2.014160764697004,
+            1.414796714032148,
+            2.0919349759766614
+        ]
+        self.mass_2_source_polytrope = [
+            0.36696047254774256,
+            0.8580637120326807,
+            1.650477659961306,
+            1.310399737462001,
+            0.5470843356210495,
+            1.2311162283818198
+        ]
+        self.polytrope_log10_pressure_1 = [
+            34.05849276958394,
+            33.06962096113144,
+            33.07579629429792,
+            33.93412833210738,
+            34.24096323517809,
+            35.293288373856534
+        ]
+        self.polytrope_log10_pressure_2 = [
+            33.82891829901602,
+            35.14230456819543,
+            34.940095188881976,
+            34.72710820593933,
+            35.42780071717415,
+            35.648689969687915
+        ]
+        self.polytrope_gamma_0 = [
+            2.359580734009537,
+            2.3111471709796945,
+            4.784129809424835,
+            1.4900432021657437,
+            1.0037220431922798,
+            4.183994058757201
+        ]
+        self.polytrope_gamma_1 = [
+            1.9497583698697314,
+            1.0141111305083874,
+            2.8228335336587826,
+            4.032519623275465,
+            1.10894361284508,
+            3.168076721819637
+        ]
+        self.polytrope_gamma_2 = [
+            4.6001755196585385,
+            4.424090418206996,
+            4.429607300132092,
+            1.8176338276795763,
+            2.9938859949129797,
+            1.300271383168368
+        ]
+        self.lambda_1_spectral = [0., 0., 0., 0., 1275.7253186286332]
+        self.lambda_2_spectral = [0., 0., 0., 0., 4504.897675043909]
+        self.lambda_1_polytrope = [0., 0., 0., 0., 0., 234.66424898184766]
+        self.lambda_2_polytrope = [0., 0., 0., 0., 0., 3710.931378294547]
+        self.eos_check_spectral = [0, 0, 0, 0, 1]
+        self.eos_check_polytrope = [0, 0, 0, 0, 0, 1]
+
+    def test_spectral_pca_to_spectral(self):
+        for i in range(len(self.mass_1_source_spectral)):
+            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = \
+                conversion.spectral_pca_to_spectral(
+                    self.spectral_pca_gamma_0[i],
+                    self.spectral_pca_gamma_1[i],
+                    self.spectral_pca_gamma_2[i],
+                    self.spectral_pca_gamma_3[i]
+                )
+            self.assertAlmostEqual(spectral_gamma_0, self.spectral_gamma_0[i], places=5)
+            self.assertAlmostEqual(spectral_gamma_1, self.spectral_gamma_1[i], places=5)
+            self.assertAlmostEqual(spectral_gamma_2, self.spectral_gamma_2[i], places=5)
+            self.assertAlmostEqual(spectral_gamma_3, self.spectral_gamma_3[i], places=5)
+
+    def test_spectral_params_to_lambda_1_lambda_2(self):
+        '''
+        The points cover 5 test cases:
+            - Fail SimNeutronStarEOS4ParamSDGammaCheck()
+            - Fail max_speed_of_sound_ <=1.1
+            - Fail mass_1_source <= max_mass
+            - Fail mass_2_source >= min_mass
+            - Passes all and produces accurate lambda_1, lambda_2, eos_check values
+        '''
+        for i in range(len(self.mass_1_source_spectral)):
+            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = \
+                conversion.spectral_pca_to_spectral(
+                    self.spectral_pca_gamma_0[i],
+                    self.spectral_pca_gamma_1[i],
+                    self.spectral_pca_gamma_2[i],
+                    self.spectral_pca_gamma_3[i]
+                )
+            lambda_1, lambda_2, eos_check = \
+                conversion.spectral_params_to_lambda_1_lambda_2(
+                    spectral_gamma_0,
+                    spectral_gamma_1,
+                    spectral_gamma_2,
+                    spectral_gamma_3,
+                    self.mass_1_source_spectral[i],
+                    self.mass_2_source_spectral[i]
+                )
+            self.assertAlmostEqual(self.lambda_1_spectral[i], lambda_1, places=0)
+            self.assertAlmostEqual(self.lambda_2_spectral[i], lambda_2, places=0)
+            self.assertAlmostEqual(self.eos_check_spectral[i], eos_check)
+
+    def test_polytrope_or_causal_params_to_lambda_1_lambda_2_causal(self):
+        '''
+        The points cover 6 test cases:
+            - Fail log10_pressure1 >= log10_pressure2
+            - Fail SimNeutronStarEOS3PDViableFamilyCheck()
+            - Fail max_speed_of_sound_ <= 1.1
+            - Fail mass_1_source <= max_mass
+            - Fail mass_2_source >= min_mass
+            - Passes all and produces accurate lambda_1, lambda_2, eos_check values
+        '''
+        for i in range(len(self.mass_1_source_polytrope)):
+            lambda_1, lambda_2, eos_check = \
+                conversion.polytrope_or_causal_params_to_lambda_1_lambda_2(
+                    self.polytrope_gamma_0[i],
+                    self.polytrope_log10_pressure_1[i],
+                    self.polytrope_gamma_1[i],
+                    self.polytrope_log10_pressure_2[i],
+                    self.polytrope_gamma_2[i],
+                    self.mass_1_source_polytrope[i],
+                    self.mass_2_source_polytrope[i],
+                    0
+                )
+            self.assertAlmostEqual(self.lambda_1_polytrope[i], lambda_1, places=3)
+            self.assertAlmostEqual(self.lambda_2_polytrope[i], lambda_2, places=3)
+            self.assertAlmostEqual(self.eos_check_polytrope[i], eos_check)
 
 
 if __name__ == "__main__":
