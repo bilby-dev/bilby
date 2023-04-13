@@ -10,6 +10,7 @@ import pickle
 
 import numpy as np
 from pandas import DataFrame, Series
+from scipy.stats import norm
 
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass, command_line_args, safe_file_dump
@@ -301,7 +302,8 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         convert_to_lal_binary_black_hole_parameters(converted_parameters)
 
     if not any([key in converted_parameters for key in
-                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde', 'eos_spectral_gamma_0']]):
+                ['lambda_1', 'lambda_2', 'lambda_tilde', 'delta_lambda_tilde',
+                    'eos_spectral_gamma_0', 'lambda_symmetric']]):
         converted_parameters['lambda_1'] = 0
         converted_parameters['lambda_2'] = 0
         added_keys = added_keys + ['lambda_1', 'lambda_2']
@@ -353,6 +355,24 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
                 converted_parameters['lambda_1'] = 0.0
                 converted_parameters['lambda_2'] = 0.0
                 converted_parameters['eos_check'] = False
+    elif 'lambda_symmetric' in converted_parameters.keys():
+        if 'lambda_antisymmetric' in converted_parameters.keys():
+            converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
+                lambda_symmetric_lambda_antisymmetric_to_lambda_1_lambda_2(
+                    converted_parameters['lambda_symmetric'],
+                    converted_parameters['lambda_antisymmetric'])
+        elif 'mass_ratio' in converted_parameters.keys():
+            if 'binary_love_uniform' in converted_parameters.keys():
+                converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
+                    binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(
+                        converted_parameters['binary_love_uniform'],
+                        converted_parameters['lambda_symmetric'],
+                        converted_parameters['mass_ratio'])
+            else:
+                converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
+                    binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
+                        converted_parameters['lambda_symmetric'],
+                        converted_parameters['mass_ratio'])
 
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
@@ -811,6 +831,372 @@ def lambda_tilde_to_lambda_1_lambda_2(
         (1 + 7 * eta - 31 * eta**2) * (1 + q**-5) +
         (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (1 - q**-5))
     lambda_2 = lambda_1 / q**5
+    return lambda_1, lambda_2
+
+
+def lambda_1_lambda_2_to_lambda_symmetric(lambda_1, lambda_2):
+    """
+    Convert from individual tidal parameters to symmetric tidal term.
+
+    See, e.g., Yagi & Yunes, https://arxiv.org/abs/1512.02639
+
+    Parameters
+    ==========
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+
+    Returns
+    ======
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    """
+    lambda_symmetric = (lambda_2 + lambda_1) / 2.
+    return lambda_symmetric
+
+
+def lambda_1_lambda_2_to_lambda_antisymmetric(lambda_1, lambda_2):
+    """
+    Convert from individual tidal parameters to antisymmetric tidal term.
+
+    See, e.g., Yagi & Yunes, https://arxiv.org/abs/1512.02639
+
+    Parameters
+    ==========
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+
+    Returns
+    ======
+    lambda_antisymmetric: float
+        Antisymmetric tidal parameter.
+    """
+    lambda_antisymmetric = (lambda_2 - lambda_1) / 2.
+    return lambda_antisymmetric
+
+
+def lambda_symmetric_lambda_antisymmetric_to_lambda_1(lambda_symmetric, lambda_antisymmetric):
+    """
+    Convert from symmetric and  antisymmetric tidal terms to lambda_1
+
+    See, e.g., Yagi & Yunes, https://arxiv.org/abs/1512.02639
+
+    Parameters
+    ==========
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    lambda_antisymmetric: float
+        Antisymmetric tidal parameter.
+
+    Returns
+    ======
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    """
+    lambda_1 = lambda_symmetric - lambda_antisymmetric
+    return lambda_1
+
+
+def lambda_symmetric_lambda_antisymmetric_to_lambda_2(lambda_symmetric, lambda_antisymmetric):
+    """
+    Convert from symmetric and antisymmetric tidal terms to lambda_2
+
+    See, e.g., Yagi & Yunes, https://arxiv.org/abs/1512.02639
+
+    Parameters
+    ==========
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    lambda_antisymmetric: float
+        Antisymmetric tidal parameter.
+
+    Returns
+    ======
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    """
+    lambda_2 = lambda_symmetric + lambda_antisymmetric
+    return lambda_2
+
+
+def lambda_symmetric_lambda_antisymmetric_to_lambda_1_lambda_2(lambda_symmetric, lambda_antisymmetric):
+    """
+    Convert from symmetric and antisymmetric tidal terms to lambda_1 and lambda_2
+
+    See, e.g., Yagi & Yunes, https://arxiv.org/abs/1512.02639
+
+    Parameters
+    ==========
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    lambda_antisymmetric: float
+        Antisymmetric tidal parameter.
+
+    Returns
+    ======
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    """
+    lambda_1 = lambda_symmetric_lambda_antisymmetric_to_lambda_1(lambda_symmetric, lambda_antisymmetric)
+    lambda_2 = lambda_symmetric_lambda_antisymmetric_to_lambda_2(lambda_symmetric, lambda_antisymmetric)
+    return lambda_1, lambda_2
+
+
+def binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(lambda_symmetric, mass_ratio):
+
+    """
+    Convert from symmetric tidal terms and mass ratio to antisymmetric tidal terms
+    using BinaryLove relations.
+    This function does only the fit itself, and doesn't account for marginalisation
+    over the uncertanties in the fit
+
+    See Yagi & Yunes, https://arxiv.org/abs/1512.02639
+    and Chatziioannou, Haster, Zimmerman, https://arxiv.org/abs/1804.03221
+
+    This function will use the implementation from the CHZ paper, which
+    marginalises over the uncertainties in the BinaryLove fits.
+    This is also implemented in LALInference through the function
+    LALInferenceBinaryLove.
+
+    Parameters
+    ==========
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
+
+    Returns
+    ======
+    lambda_antisymmetric: float
+        Antisymmetric tidal parameter.
+    """
+    lambda_symmetric_m1o5 = np.power(lambda_symmetric, -1. / 5.)
+    lambda_symmetric_m2o5 = lambda_symmetric_m1o5 * lambda_symmetric_m1o5
+    lambda_symmetric_m3o5 = lambda_symmetric_m2o5 * lambda_symmetric_m1o5
+
+    q = mass_ratio
+    q2 = np.square(mass_ratio)
+
+    # Eqn.2 from CHZ, incorporating the dependence on mass ratio
+
+    n_polytropic = 0.743  # average polytropic index for the EoSs included in the fit
+    q_for_Fnofq = np.power(q, 10. / (3. - n_polytropic))
+    Fnofq = (1. - q_for_Fnofq) / (1. + q_for_Fnofq)
+
+    # b_ij and c_ij coefficients are given in Table I of CHZ
+
+    b11 = -27.7408
+    b12 = 8.42358
+    b21 = 122.686
+    b22 = -19.7551
+    b31 = -175.496
+    b32 = 133.708
+
+    c11 = -25.5593
+    c12 = 5.58527
+    c21 = 92.0337
+    c22 = 26.8586
+    c31 = -70.247
+    c32 = -56.3076
+
+    # Eqn 1 from CHZ, giving the lambda_antisymmetric_fitOnly
+    # not yet accounting for the uncertainty in the fit
+
+    numerator = 1.0 + \
+        (b11 * q * lambda_symmetric_m1o5) + (b12 * q2 * lambda_symmetric_m1o5) + \
+        (b21 * q * lambda_symmetric_m2o5) + (b22 * q2 * lambda_symmetric_m2o5) + \
+        (b31 * q * lambda_symmetric_m3o5) + (b32 * q2 * lambda_symmetric_m3o5)
+
+    denominator = 1.0 + \
+        (c11 * q * lambda_symmetric_m1o5) + (c12 * q2 * lambda_symmetric_m1o5) + \
+        (c21 * q * lambda_symmetric_m2o5) + (c22 * q2 * lambda_symmetric_m2o5) + \
+        (c31 * q * lambda_symmetric_m3o5) + (c32 * q2 * lambda_symmetric_m3o5)
+
+    lambda_antisymmetric_fitOnly = Fnofq * lambda_symmetric * numerator / denominator
+
+    return lambda_antisymmetric_fitOnly
+
+
+def binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(binary_love_uniform,
+                                                                             lambda_symmetric, mass_ratio):
+    """
+    Convert from symmetric tidal terms to lambda_1 and lambda_2
+    using BinaryLove relations
+
+    See Yagi & Yunes, https://arxiv.org/abs/1512.02639
+    and Chatziioannou, Haster, Zimmerman, https://arxiv.org/abs/1804.03221
+
+    This function will use the implementation from the CHZ paper, which
+    marginalises over the uncertainties in the BinaryLove fits.
+    This is also implemented in LALInference through the function
+    LALInferenceBinaryLove.
+
+    Parameters
+    ==========
+    binary_love_uniform: float (defined in the range [0,1])
+        Uniformly distributed variable used in BinaryLove uncertainty marginalisation
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
+
+    Returns
+    ======
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    """
+    lambda_antisymmetric_fitOnly = binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(lambda_symmetric,
+                                                                                                       mass_ratio)
+
+    lambda_symmetric_sqrt = np.sqrt(lambda_symmetric)
+
+    q = mass_ratio
+    q2 = np.square(mass_ratio)
+
+    # mu_i and sigma_i coefficients are given in Table II of CHZ
+
+    mu_1 = 137.1252739
+    mu_2 = -32.8026613
+    mu_3 = 0.5168637
+    mu_4 = -11.2765281
+    mu_5 = 14.9499544
+    mu_6 = - 4.6638851
+
+    sigma_1 = -0.0000739
+    sigma_2 = 0.0103778
+    sigma_3 = 0.4581717
+    sigma_4 = -0.8341913
+    sigma_5 = -201.4323962
+    sigma_6 = 273.9268276
+    sigma_7 = -71.2342246
+
+    # Eqn 6 from CHZ, correction on fit for lambdaA caused by
+    # uncertainty in the mean of the lambdaS residual fit,
+    # using coefficients mu_1, mu_2 and mu_3 from Table II of CHZ
+
+    lambda_antisymmetric_lambda_symmetric_meanCorr = \
+        (mu_1 / (lambda_symmetric * lambda_symmetric)) + \
+        (mu_2 / lambda_symmetric) + mu_3
+
+    # Eqn 8 from CHZ, correction on fit for lambdaA caused by
+    # uncertainty in the standard deviation of lambdaS residual fit,
+    # using coefficients sigma_1, sigma_2, sigma_3 and  sigma_4 from Table II
+
+    lambda_antisymmetric_lambda_symmetric_stdCorr = \
+        (sigma_1 * lambda_symmetric * lambda_symmetric_sqrt) + \
+        (sigma_2 * lambda_symmetric) + \
+        (sigma_3 * lambda_symmetric_sqrt) + sigma_4
+
+    # Eqn 7, correction on fit for lambdaA caused by
+    # uncertainty in the mean of the q residual fit,
+    # using coefficients mu_4, mu_5 and mu_6 from Table II
+
+    lambda_antisymmetric_mass_ratio_meanCorr = \
+        (mu_4 * q2) + (mu_5 * q) + mu_6
+
+    # Eqn 9 from CHZ, correction on fit for lambdaA caused by
+    # uncertainty in the standard deviation of the q residual fit,
+    # using coefficients sigma_5, sigma_6 and sigma_7 from Table II
+
+    lambda_antisymmetric_mass_ratio_stdCorr = \
+        (sigma_5 * q2) + (sigma_6 * q) + sigma_7
+
+    # Eqn 4 from CHZ, averaging the corrections from the
+    # mean of the residual fits
+
+    lambda_antisymmetric_meanCorr = \
+        (lambda_antisymmetric_lambda_symmetric_meanCorr +
+            lambda_antisymmetric_mass_ratio_meanCorr) / 2.
+
+    # Eqn 5 from CHZ, averaging the corrections from the
+    # standard deviations of the residual fits
+
+    lambda_antisymmetric_stdCorr = \
+        np.sqrt(np.square(lambda_antisymmetric_lambda_symmetric_stdCorr) +
+                np.square(lambda_antisymmetric_mass_ratio_stdCorr))
+
+    # Draw a correction on the fit from a
+    # Gaussian distribution with width lambda_antisymmetric_stdCorr
+    # this is done by sampling a percent point function  (inverse cdf)
+    # through a U{0,1} variable called binary_love_uniform
+
+    lambda_antisymmetric_scatter = norm.ppf(binary_love_uniform, loc=0.,
+                                            scale=lambda_antisymmetric_stdCorr)
+
+    # Add the correction of the residual mean
+    # and the Gaussian scatter to the lambda_antisymmetric_fitOnly value
+
+    lambda_antisymmetric = lambda_antisymmetric_fitOnly + \
+        (lambda_antisymmetric_meanCorr + lambda_antisymmetric_scatter)
+
+    lambda_1 = lambda_symmetric_lambda_antisymmetric_to_lambda_1(lambda_symmetric, lambda_antisymmetric)
+    lambda_2 = lambda_symmetric_lambda_antisymmetric_to_lambda_2(lambda_symmetric, lambda_antisymmetric)
+
+    # The BinaryLove model is only physically valid where
+    # lambda_2 > lambda_1 as it assumes mass_1 > mass_2
+    # It also assumes both lambda1 and lambda2 to be positive
+    # This is an explicit feature of the "raw" model fit,
+    # but since this implementation also incorporates
+    # marginalisation over the fit uncertainty, there can
+    # be instances where those assumptions are randomly broken.
+    # For those cases, set lambda_1 and lambda_2 to negative
+    # values, which in turn will cause (effectively all) the
+    # waveform models in LALSimulation to fail, thus setting
+    # logL = -infinity
+
+    # if np.greater(lambda_1, lambda_2) or np.less(lambda_1, 0) or np.less(lambda_2, 0):
+    #    lambda_1 = -np.inf
+    #    lambda_2 = -np.inf
+
+    # For now set this through an explicit constraint prior instead
+
+    return lambda_1, lambda_2
+
+
+def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(lambda_symmetric, mass_ratio):
+    """
+    Convert from symmetric tidal terms to lambda_1 and lambda_2
+    using BinaryLove relations
+
+    See Yagi & Yunes, https://arxiv.org/abs/1512.02639
+    and Chatziioannou, Haster, Zimmerman, https://arxiv.org/abs/1804.03221
+
+    This function will use the implementation from the CHZ paper, which
+    marginalises over the uncertainties in the BinaryLove fits.
+    This is also implemented in LALInference through the function
+    LALInferenceBinaryLove.
+
+    This function should be used when the BinaryLove marginalisation wasn't
+    explicitly active in the sampling stage. It will draw a random number in U[0,1]
+    here instead.
+
+    Parameters
+    ==========
+    lambda_symmetric: float
+        Symmetric tidal parameter.
+    mass_ratio: float
+        Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
+
+    Returns
+    ======
+    lambda_1: float
+        Tidal parameter of more massive neutron star.
+    lambda_2: float
+        Tidal parameter of less massive neutron star.
+    """
+
+    binary_love_uniform = np.random.uniform(0, 1, len(lambda_symmetric))
+
+    lambda_1, lambda_2 = binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(
+        binary_love_uniform, lambda_symmetric, mass_ratio)
+
     return lambda_1, lambda_2
 
 
