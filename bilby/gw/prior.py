@@ -752,8 +752,21 @@ class CBCPriorDict(ConditionalPriorDict):
             return None
 
     def is_nonempty_intersection(self, pset):
-        """ Check if keys in self exist in the PARAMETER_SETS pset """
-        if len(PARAMETER_SETS[pset].intersection(self.non_fixed_keys)) > 0:
+        """ Check if keys in self exist in the parameter set
+
+        Parameters
+        ----------
+        pset: str, set
+            Either a string referencing a parameter set in PARAMETER_SETS or
+            a set of keys
+        """
+        if isinstance(pset, str) and pset in PARAMETER_SETS:
+            check_set = PARAMETER_SETS[pset]
+        elif isinstance(pset, set):
+            check_set = pset
+        else:
+            raise ValueError(f"pset {pset} not understood")
+        if len(check_set.intersection(self.non_fixed_keys)) > 0:
             return True
         else:
             return False
@@ -769,6 +782,11 @@ class CBCPriorDict(ConditionalPriorDict):
         return self.is_nonempty_intersection("precession_only")
 
     @property
+    def measured_spin(self):
+        """ Return true if priors include any measured_spin parameters """
+        return self.is_nonempty_intersection("measured_spin")
+
+    @property
     def intrinsic(self):
         """ Return true if priors include any intrinsic parameters """
         return self.is_nonempty_intersection("intrinsic")
@@ -777,6 +795,16 @@ class CBCPriorDict(ConditionalPriorDict):
     def extrinsic(self):
         """ Return true if priors include any extrinsic parameters """
         return self.is_nonempty_intersection("extrinsic")
+
+    @property
+    def sky(self):
+        """ Return true if priors include any extrinsic parameters """
+        return self.is_nonempty_intersection("sky")
+
+    @property
+    def distance_inclination(self):
+        """ Return true if priors include any extrinsic parameters """
+        return self.is_nonempty_intersection("distance_inclination")
 
     @property
     def mass(self):

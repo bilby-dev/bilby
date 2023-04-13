@@ -1081,10 +1081,21 @@ extrinsic = {
     "cos_theta_jn", "geocent_time", "time_jitter", "ra", "dec",
     "H1_time", "L1_time", "V1_time",
 }
+sky = {
+    "azimuth", "zenith", "ra", "dec",
+}
+distance_inclination = {
+    "luminosity_distance", "redshift", "theta_jn", "cos_theta_jn",
+}
+measured_spin = {
+    "chi_1", "chi_2", "a_1", "a_2", "chi_1_in_plane"
+}
 
 PARAMETER_SETS = dict(
     spin=spin, mass=mass, phase=phase, extrinsic=extrinsic,
     tidal=tidal, primary_spin_and_q=primary_spin_and_q,
     intrinsic=spin.union(mass).union(phase).union(tidal),
     precession_only=precession_only,
+    sky=sky, distance_inclination=distance_inclination,
+    measured_spin=measured_spin,
 )

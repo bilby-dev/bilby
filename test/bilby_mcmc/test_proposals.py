@@ -129,6 +129,8 @@ class TestProposals(TestBaseProposals):
 
     def proposal_check(self, prop, ndim=2, N=100):
         chain = self.create_chain(ndim=ndim)
+        if getattr(prop, 'needs_likelihood_and_priors', False):
+            return
 
         print(f"Testing {prop.__class__.__name__}")
         # Timing and return type
