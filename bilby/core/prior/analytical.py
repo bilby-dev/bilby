@@ -1517,3 +1517,107 @@ class Categorical(Prior):
             idxs = np.isin(val, self.categories)
             probs[idxs] = self.lnp
             return probs
+
+
+class Triangular(Prior):
+    """
+    Define a new prior class which draws from a triangular distribution.
+
+    For distribution details see: wikipedia.org/wiki/Triangular_distribution
+
+    Here, minimum <= mode <= maximum,
+    where the mode has the highest pdf value.
+
+    """
+    def __init__(self, mode, minimum, maximum, name=None, latex_label=None, unit=None):
+        super(Triangular, self).__init__(
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            minimum=minimum,
+            maximum=maximum,
+        )
+        self.mode = mode
+        self.fractional_mode = (self.mode - self.minimum) / (
+            self.maximum - self.minimum
+        )
+        self.scale = self.maximum - self.minimum
+        self.rescaled_minimum = self.minimum - (self.minimum == self.mode) * self.scale
+        self.rescaled_maximum = self.maximum + (self.maximum == self.mode) * self.scale
+
+    def rescale(self, val):
+        """
+        'Rescale' a sample from standard uniform to a triangular distribution.
+
+        This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+            Uniform probability
+
+        Returns
+        =======
+        Union[float, array_like]: Rescaled probability
+
+        """
+        below_mode = (val * self.scale * (self.mode - self.minimum)) ** 0.5
+        above_mode = ((1 - val) * self.scale * (self.maximum - self.mode)) ** 0.5
+        return (self.minimum + below_mode) * (val < self.fractional_mode) + (
+            self.maximum - above_mode
+        ) * (val >= self.fractional_mode)
+
+    def prob(self, val):
+        """
+        Return the prior probability of val
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: Prior probability of val
+
+        """
+        between_minimum_and_mode = (
+            (val < self.mode)
+            * (self.minimum <= val)
+            * (val - self.rescaled_minimum)
+            / (self.mode - self.rescaled_minimum)
+        )
+        between_mode_and_maximum = (
+            (self.mode <= val)
+            * (val <= self.maximum)
+            * (self.rescaled_maximum - val)
+            / (self.rescaled_maximum - self.mode)
+        )
+        return 2.0 * (between_minimum_and_mode + between_mode_and_maximum) / self.scale
+
+    def cdf(self, val):
+        """
+        Return the prior cumulative probability at val
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: prior cumulative probability at val
+
+        """
+        return (
+            + (val > self.mode)
+            + (val > self.minimum)
+            * (val <= self.maximum)
+            / (self.scale)
+            * (
+                (val > self.mode)
+                * (self.rescaled_maximum - val) ** 2.0
+                / (self.mode - self.rescaled_maximum)
+                + (val <= self.mode)
+                * (val - self.rescaled_minimum) ** 2.0
+                / (self.mode - self.rescaled_minimum)
+            )
+        )
