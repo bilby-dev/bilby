@@ -1,5 +1,28 @@
 # All notable changes will be documented in this file
 
+## [2.1.0] 2023-04-12
+Version 2.1.0 release of Bilby
+
+Minor feature improvements and bug fixes
+
+### Additions
+- Additional parameterizations for equation-of-state inference (!1083, !1240)
+- Add Fisher matrix posterior estimator (!1242)
+
+### Changes
+- Improvements to the bilby-mcmc sampler including a Fisher Information Matrix proposal (!1242)
+- Optimize spline interpolation of calibration uncertainties (!1241)
+- Update LIGO India coordinates record to public DCC (!1246)
+- Make logger disabling work in redundancy test (!1245)
+- Make sure nested samples are data frame (!1244)
+- Minor improvements to the result methods including moving to top level imports (!1243)
+- Fix a bug in the slabspike prior (!1235)
+- Reduce verbosity when setting strain data (!1233)
+- Fix issue with cached results class (!1223)
+
+### Deprecated
+- Reading/writing ROQ weights to json (!1232)
+
 ## [2.0.2] 2023-03-21
 Version 2.0.2 release of Bilby
 
