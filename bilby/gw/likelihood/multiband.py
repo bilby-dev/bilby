@@ -736,7 +736,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         strain *= np.exp(-1j * 2. * np.pi * self.banded_frequency_points * ifo_time)
         strain *= calib_factor
 
-        d_inner_h = np.dot(strain, self.linear_coeffs[interferometer.name])
+        d_inner_h = np.conj(np.dot(strain, self.linear_coeffs[interferometer.name]))
 
         if self.linear_interpolation:
             optimal_snr_squared = np.vdot(
