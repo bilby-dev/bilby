@@ -1,5 +1,15 @@
 # All notable changes will be documented in this file
 
+## [2.1.1] 2023-04-28
+Version 2.1.1 release of Bilby
+
+Bugfix release
+
+### Changes
+- Fix the matched filter SNR phase for the multiband likelihood (!1253)
+- Bugfix for Fisher matrix proposals in `bilby_mcmc` (!1251)
+- Make the changes to the spline calibration backward compatible, 2.0.2 resume files can't be read with 2.1.0 (!1250)
+
 ## [2.1.0] 2023-04-12
 Version 2.1.0 release of Bilby
 
