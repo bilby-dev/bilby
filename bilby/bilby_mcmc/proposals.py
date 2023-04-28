@@ -805,7 +805,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
         weight=1,
         update_interval=100,
         scale_init=1e0,
-        fd_eps=1e-6,
+        fd_eps=1e-4,
         adapt=False,
     ):
         super(FisherMatrixProposal, self).__init__(
@@ -827,7 +827,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
             )
             try:
                 self.iFIM = fmp.calculate_iFIM(sample.dict)
-            except (RuntimeError, ValueError) as e:
+            except (RuntimeError, ValueError, np.linalg.LinAlgError) as e:
                 logger.warning(f"FisherMatrixProposal failed with {e}")
                 if hasattr(self, "iFIM") is False:
                     # No past iFIM exists, return sample
