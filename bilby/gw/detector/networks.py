@@ -273,7 +273,7 @@ class InterferometerList(list):
     """
 
     def to_pickle(self, outdir="outdir", label="ifo_list"):
-        utils.check_directory_exists_and_if_not_mkdir("outdir")
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
         label = label + "_" + "".join(ifo.name for ifo in self)
         filename = self._filename_from_outdir_label_extension(
             outdir, label, extension="pkl"
