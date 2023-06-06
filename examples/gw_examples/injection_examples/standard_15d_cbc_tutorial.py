@@ -52,6 +52,8 @@ ifos.set_strain_data_from_power_spectral_densities(
 ifos.inject_signal(waveform_generator=waveform_generator,
                    parameters=injection_parameters)
 
+ifos.plot_data()
+
 
 # For this analysis, we implement the standard BBH priors defined, except for
 # the definition of the time prior, which is defined as uniform about the

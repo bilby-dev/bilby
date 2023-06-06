@@ -139,3 +139,4 @@ for i, search_parameter_key in enumerate(result.search_parameter_keys):
     logger.info('Expected posterior standard deviation both modes: ' + str(likelihood.sigma[i]))
     logger.info('Sampled posterior standard deviation first mode:  ' + str(sampled_std_1[i]))
     logger.info('Sampled posterior standard deviation second mode:  ' + str(sampled_std_2[i]))
+
