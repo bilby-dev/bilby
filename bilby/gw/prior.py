@@ -292,20 +292,15 @@ class Cosmological(Interped):
         else:
             return cls._from_repr(string)
 
-    @property
-    def _repr_dict(self):
-        """
-        Get a dictionary containing the arguments needed to reproduce this object.
-        """
-        from astropy.cosmology.core import Cosmology
+    def get_instantiation_dict(self):
         from astropy import units
-        dict_with_properties = super(Cosmological, self)._repr_dict
-        if isinstance(dict_with_properties['cosmology'], Cosmology):
-            if dict_with_properties['cosmology'].name is not None:
-                dict_with_properties['cosmology'] = dict_with_properties['cosmology'].name
-        if isinstance(dict_with_properties['unit'], units.Unit):
-            dict_with_properties['unit'] = dict_with_properties['unit'].to_string()
-        return dict_with_properties
+        from astropy.cosmology.realizations import available
+        instantiation_dict = super().get_instantiation_dict()
+        if self.cosmology.name in available:
+            instantiation_dict['cosmology'] = self.cosmology.name
+        if isinstance(self.unit, units.Unit):
+            instantiation_dict['unit'] = self.unit.to_string()
+        return instantiation_dict
 
 
 class UniformComovingVolume(Cosmological):

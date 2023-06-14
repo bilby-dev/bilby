@@ -223,18 +223,6 @@ class Prior(object):
             return f"{prior_module}.{prior_name}({args})"
 
     @property
-    def _repr_dict(self):
-        """
-        Get a dictionary containing the arguments needed to reproduce this object.
-        """
-        property_names = {p for p in dir(self.__class__) if isinstance(getattr(self.__class__, p), property)}
-        subclass_args = infer_args_from_method(self.__init__)
-        dict_with_properties = self.__dict__.copy()
-        for key in property_names.intersection(subclass_args):
-            dict_with_properties[key] = getattr(self, key)
-        return {key: dict_with_properties[key] for key in subclass_args}
-
-    @property
     def is_fixed(self):
         """
         Returns True if the prior is fixed and should not be used in the sampler. Does this by checking if this instance
