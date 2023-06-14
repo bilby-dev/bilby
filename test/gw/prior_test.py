@@ -37,6 +37,14 @@ class TestBBHPriorDict(unittest.TestCase):
         del self.bbh_prior_dict
         del self.base_directory
 
+    def test_read_write_default_prior(self):
+        filename = "test_prior.prior"
+        self.bbh_prior_dict.to_file(outdir=".", label="test_prior")
+        new_prior = bilby.gw.prior.BBHPriorDict(filename=filename)
+        for key in self.bbh_prior_dict:
+            self.assertEqual(self.bbh_prior_dict[key], new_prior[key])
+        os.remove(filename)
+
     def test_create_default_prior(self):
         default = bilby.gw.prior.BBHPriorDict()
         minima = all(
