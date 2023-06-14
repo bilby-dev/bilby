@@ -219,10 +219,15 @@ def get_weights_for_reweighting(
                                      desc='Computing priors',
                                      total=n),
                                 start=starting_index):
+        # prior calculation needs to not have prior or likelihood keys
+        ln_prior = sample.pop("log_prior", np.nan)
+        if "log_likelihood" in sample:
+            del sample["log_likelihood"]
+
         if old_prior is not None:
             old_log_prior_array[ii] = old_prior.ln_prob(sample)
         else:
-            old_log_prior_array[ii] = sample["log_prior"]
+            old_log_prior_array[ii] = ln_prior
 
         if new_prior is not None:
             new_log_prior_array[ii] = new_prior.ln_prob(sample)
