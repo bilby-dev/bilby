@@ -743,6 +743,9 @@ class Result(object):
         for attr in save_attrs:
             try:
                 dictionary[attr] = getattr(self, attr)
+                if attr == "meta_data":
+                    if "lal_waveform_dictionary" in dictionary[attr]["likelihood"]["waveform_arguments"].keys():
+                        dictionary[attr]["likelihood"]["waveform_arguments"].pop("lal_waveform_dictionary")
             except ValueError as e:
                 logger.debug("Unable to save {}, message: {}".format(attr, e))
                 pass
