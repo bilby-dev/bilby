@@ -14,7 +14,7 @@ from scipy.special import logsumexp
 
 class TestMarginalizedLikelihood(unittest.TestCase):
     def setUp(self):
-        np.random.seed(500)
+        bilby.core.utils.random.seed(500)
         self.duration = 4
         self.sampling_frequency = 2048
         self.parameters = dict(
@@ -177,7 +177,7 @@ class TestMarginalizations(unittest.TestCase):
     path_to_roq_weights = "weights.npz"
 
     def setUp(self):
-        np.random.seed(500)
+        bilby.core.utils.random.seed(200)
         self.duration = 4
         self.sampling_frequency = 2048
         self.parameters = dict(
@@ -215,7 +215,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomPv2",
             )
         )
         self.interferometers.inject_signal(
@@ -249,7 +249,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomPv2",
                 frequency_nodes_linear=np.load(f"{roq_dir}/fnodes_linear.npy"),
                 frequency_nodes_quadratic=np.load(f"{roq_dir}/fnodes_quadratic.npy"),
             )
@@ -265,7 +265,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomPv2",
             )
         )
 
@@ -333,7 +333,7 @@ class TestMarginalizations(unittest.TestCase):
             cls_ = bilby.gw.likelihood.ROQGravitationalWaveTransient
         elif kind == "relbin":
             cls_ = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient
-            kwargs["epsilon"] = 0.3
+            kwargs["epsilon"] = 0.1
             self.parameters["fiducial"] = 0
         else:
             raise ValueError(f"kind {kind} not understood")
@@ -366,7 +366,15 @@ class TestMarginalizations(unittest.TestCase):
             marg_like, marginalized.log_likelihood_ratio(), delta=0.5
         )
 
-    @parameterized.expand(_parameters)
+    @parameterized.expand(
+        _parameters,
+        name_func=lambda func, num, param: (
+            f"{func.__name__}_{num}__{param.args[0]}_{param.args[1]}_" + "_".join([
+                ["D", "T", "P"][ii] for ii, val
+                in enumerate(param.args[-3:]) if val
+            ])
+        )
+    )
     def test_marginalisation(self, kind, key, distance, time, phase):
         if all([distance, time, phase]):
             pytest.skip()

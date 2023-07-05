@@ -5,7 +5,7 @@ import numpy as np
 import bilby
 from bilby.gw.waveform_generator import WaveformGenerator
 
-np.random.seed(10)
+bilby.core.utils.random.seed(10)
 
 time_duration = 4.0
 sampling_frequency = 4096.0

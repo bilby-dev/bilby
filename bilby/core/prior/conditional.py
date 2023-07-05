@@ -1,5 +1,3 @@
-import numpy as np
-
 from .base import Prior, PriorException
 from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
@@ -76,7 +74,9 @@ def conditional_prior_factory(prior_class):
             float: See superclass
 
             """
-            self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size), **required_variables)
+            from ..utils.random import rng
+
+            self.least_recently_sampled = self.rescale(rng.uniform(0, 1, size), **required_variables)
             return self.least_recently_sampled
 
         def rescale(self, val, **required_variables):

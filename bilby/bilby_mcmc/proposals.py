@@ -9,7 +9,7 @@ from scipy.stats import gaussian_kde
 from ..core.fisher import FisherMatrixPosteriorEstimator
 from ..core.prior import PriorDict
 from ..core.sampler.base_sampler import SamplerError
-from ..core.utils import logger, reflect
+from ..core.utils import logger, random, reflect
 from ..gw.source import PARAMETER_SETS
 
 
@@ -19,7 +19,7 @@ class ProposalCycle(object):
         self.weights = [prop.weight for prop in self.proposal_list]
         self.normalized_weights = [w / sum(self.weights) for w in self.weights]
         self.weighted_proposal_list = [
-            np.random.choice(self.proposal_list, p=self.normalized_weights)
+            random.rng.choice(self.proposal_list, p=self.normalized_weights)
             for _ in range(10 * int(1 / min(self.normalized_weights)))
         ]
         self.nproposals = len(self.weighted_proposal_list)
@@ -219,7 +219,7 @@ class FixedGaussianProposal(BaseProposal):
         sample = chain.current_sample
         for key in self.parameters:
             sigma = self.prior_width_dict[key] * self.sigmas[key]
-            sample[key] += sigma * np.random.randn()
+            sample[key] += sigma * random.rng.normal(0, 1)
         log_factor = 0
         return sample, log_factor
 
@@ -256,15 +256,15 @@ class AdaptiveGaussianProposal(BaseProposal):
     def propose(self, chain):
         sample = chain.current_sample
         self.update_scale(chain)
-        if np.random.random() < 1e-3:
+        if random.rng.uniform(0, 1) < 1e-3:
             factor = 1e1
-        elif np.random.random() < 1e-4:
+        elif random.rng.uniform(0, 1) < 1e-4:
             factor = 1e2
         else:
             factor = 1
         for key in self.parameters:
             sigma = factor * self.scale * self.prior_width_dict[key] * self.sigmas[key]
-            sample[key] += sigma * np.random.randn()
+            sample[key] += sigma * random.rng.normal(0, 1)
         log_factor = 0
         return sample, log_factor
 
@@ -306,13 +306,13 @@ class DifferentialEvolutionProposal(BaseProposal):
         theta = chain.current_sample
         theta1 = chain.random_sample
         theta2 = chain.random_sample
-        if np.random.rand() > self.mode_hopping_frac:
+        if random.rng.uniform(0, 1) > self.mode_hopping_frac:
             gamma = 1
         else:
             # Base jump size
-            gamma = np.random.normal(0, 2.38 / np.sqrt(2 * self.ndim))
+            gamma = random.rng.normal(0, 2.38 / np.sqrt(2 * self.ndim))
             # Scale uniformly in log between 0.1 and 10 times
-            gamma *= np.exp(np.log(0.1) + np.log(100.0) * np.random.rand())
+            gamma *= np.exp(np.log(0.1) + np.log(100.0) * random.rng.uniform(0, 1))
 
         for key in self.parameters:
             theta[key] += gamma * (theta2[key] - theta1[key])
@@ -347,7 +347,7 @@ class UniformProposal(BaseProposal):
         for key in self.parameters:
             width = self.prior_width_dict[key]
             if np.isinf(width) is False:
-                sample[key] = np.random.uniform(
+                sample[key] = random.rng.uniform(
                     self.prior_minimum_dict[key], self.prior_maximum_dict[key]
                 )
             else:
@@ -778,14 +778,14 @@ class FixedJumpProposal(BaseProposal):
     def propose(self, chain):
         sample = chain.current_sample
         for key, jump in self.jumps.items():
-            sign = np.random.randint(2) * 2 - 1
+            sign = random.rng.integers(2) * 2 - 1
             sample[key] += sign * jump + self.epsilon * self.prior_width_dict[key]
         log_factor = 0
         return sample, log_factor
 
     @property
     def epsilon(self):
-        return self.scale * np.random.normal()
+        return self.scale * random.rng.normal()
 
 
 class FisherMatrixProposal(AdaptiveGaussianProposal):
@@ -834,7 +834,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
                     return sample, 0
             self.steps_since_update = 0
 
-        jump = self.scale * np.random.multivariate_normal(
+        jump = self.scale * random.rng.multivariate_normal(
             self.mean, self.iFIM, check_valid="ignore"
         )
 
@@ -897,11 +897,11 @@ class CorrelatedPolarisationPhaseJump(BaseGravitationalWaveTransientProposal):
         alpha = sample["psi"] + phase
         beta = sample["psi"] - phase
 
-        draw = np.random.random()
+        draw = random.rng.random()
         if draw < 0.5:
-            alpha = 3.0 * np.pi * np.random.random()
+            alpha = 3.0 * np.pi * random.rng.random()
         else:
-            beta = 3.0 * np.pi * np.random.random() - 2 * np.pi
+            beta = 3.0 * np.pi * random.rng.random() - 2 * np.pi
 
         # Update
         sample["psi"] = (alpha + beta) * 0.5
@@ -936,7 +936,7 @@ class PhaseReversalProposal(BaseGravitationalWaveTransientProposal):
     @property
     def epsilon(self):
         if self.fuzz:
-            return np.random.normal(0, self.fuzz_sigma)
+            return random.rng.normal(0, self.fuzz_sigma)
         else:
             return 0
 
@@ -1001,7 +1001,7 @@ class StretchProposal(BaseProposal):
 
 def _stretch_move(sample, complement, scale, ndim, parameters):
     # Draw z
-    u = np.random.rand()
+    u = random.rng.uniform(0, 1)
     z = (u * (scale - 1) + 1) ** 2 / scale
 
     log_factor = (ndim - 1) * np.log(z)
@@ -1045,7 +1045,7 @@ class EnsembleStretch(EnsembleProposal):
     def propose(self, chain, chain_complement):
         sample = chain.current_sample
         completement = chain_complement[
-            np.random.randint(len(chain_complement))
+            random.rng.integers(len(chain_complement))
         ].current_sample
         return _stretch_move(
             sample, completement, self.scale, self.ndim, self.parameters

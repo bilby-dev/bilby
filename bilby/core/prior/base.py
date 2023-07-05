@@ -7,8 +7,13 @@ import numpy as np
 import scipy.stats
 from scipy.interpolate import interp1d
 
-from bilby.core.utils import infer_args_from_method, BilbyJsonEncoder, decode_bilby_json, logger, \
-    get_dict_with_properties
+from ..utils import (
+    infer_args_from_method,
+    BilbyJsonEncoder,
+    decode_bilby_json,
+    logger,
+    get_dict_with_properties,
+)
 
 
 class Prior(object):
@@ -124,7 +129,9 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        self.least_recently_sampled = self.rescale(np.random.uniform(0, 1, size))
+        from ..utils.random import rng
+
+        self.least_recently_sampled = self.rescale(rng.uniform(0, 1, size))
         return self.least_recently_sampled
 
     def rescale(self, val):

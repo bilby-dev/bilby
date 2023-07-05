@@ -79,12 +79,13 @@ def model(x, m, c):
 
 class TestRunningSamplers(unittest.TestCase):
     def setUp(self):
-        np.random.seed(42)
+        bilby.core.utils.random.seed(42)
         bilby.core.utils.command_line_args.bilby_test_mode = False
+        rng = bilby.core.utils.random.rng
         self.x = np.linspace(0, 1, 11)
         self.injection_parameters = dict(m=0.5, c=0.2)
         self.sigma = 0.1
-        self.y = model(self.x, **self.injection_parameters) + np.random.normal(
+        self.y = model(self.x, **self.injection_parameters) + rng.normal(
             0, self.sigma, len(self.x)
         )
         self.likelihood = bilby.likelihood.GaussianLikelihood(

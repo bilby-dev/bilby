@@ -1,9 +1,9 @@
 import unittest
 from unittest import mock
-import random
 
 import numpy as np
 
+import bilby
 from bilby.core import prior
 from bilby.core.sampler import proposal
 
@@ -132,6 +132,7 @@ class TestNormJump(unittest.TestCase):
             )
         )
         self.jump_proposal = proposal.NormJump(step_size=3.0, priors=self.priors)
+        bilby.core.utils.random.seed(5)
 
     def tearDown(self):
         del self.priors
@@ -145,12 +146,14 @@ class TestNormJump(unittest.TestCase):
         self.assertEqual(1.0, self.jump_proposal.step_size)
 
     def test_jump_proposal_call(self):
-        with mock.patch("numpy.random.normal") as m:
-            m.return_value = 0.5
-            sample = proposal.Sample(dict(reflective=0.0, periodic=0.0, default=0.0))
-            new_sample = self.jump_proposal(sample)
-            expected = proposal.Sample(dict(reflective=0.5, periodic=0.5, default=0.5))
-            self.assertDictEqual(expected, new_sample)
+        sample = proposal.Sample(dict(reflective=0.0, periodic=0.0, default=0.0))
+        new_sample = self.jump_proposal(sample)
+        expected = proposal.Sample(dict(
+            reflective=0.5942057242396577,
+            periodic=-0.02692301311556511,
+            default=-0.7450848662857457,
+        ))
+        self.assertDictEqual(expected, new_sample)
 
 
 class TestEnsembleWalk(unittest.TestCase):
@@ -164,9 +167,11 @@ class TestEnsembleWalk(unittest.TestCase):
                 default=prior.Uniform(minimum=-0.5, maximum=1),
             )
         )
+        bilby.core.utils.random.seed(5)
         self.jump_proposal = proposal.EnsembleWalk(
-            random_number_generator=random.random, n_points=4, priors=self.priors
+            random_number_generator=bilby.core.utils.random.rng.uniform, n_points=4, priors=self.priors
         )
+        self.coordinates = [proposal.Sample(self.priors.sample()) for _ in range(10)]
 
     def tearDown(self):
         del self.priors
@@ -180,7 +185,7 @@ class TestEnsembleWalk(unittest.TestCase):
         self.assertEqual(3, self.jump_proposal.n_points)
 
     def test_random_number_generator_init(self):
-        self.assertEqual(random.random, self.jump_proposal.random_number_generator)
+        self.assertEqual(bilby.core.utils.random.rng.uniform, self.jump_proposal.random_number_generator)
 
     def test_get_center_of_mass(self):
         samples = [
@@ -193,17 +198,15 @@ class TestEnsembleWalk(unittest.TestCase):
             self.assertAlmostEqual(expected[key], actual[key])
 
     def test_jump_proposal_call(self):
-        with mock.patch("random.sample") as m:
-            self.jump_proposal.random_number_generator = lambda: 2
-            m.return_value = [
-                proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
-                proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1)),
-            ]
-            sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
-            new_sample = self.jump_proposal(sample, coordinates=None)
-            expected = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
-            for key, value in new_sample.items():
-                self.assertAlmostEqual(expected[key], value)
+        sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
+        new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
+        expected = proposal.Sample(dict(
+            periodic=0.437075089594473,
+            reflective=-0.18027731528487945,
+            default=-0.17570046901727415,
+        ))
+        for key, value in new_sample.items():
+            self.assertAlmostEqual(expected[key], value)
 
 
 class TestEnsembleEnsembleStretch(unittest.TestCase):
@@ -217,7 +220,9 @@ class TestEnsembleEnsembleStretch(unittest.TestCase):
                 default=prior.Uniform(minimum=-0.5, maximum=1),
             )
         )
+        bilby.core.utils.random.seed(5)
         self.jump_proposal = proposal.EnsembleStretch(scale=3.0, priors=self.priors)
+        self.coordinates = [proposal.Sample(self.priors.sample()) for _ in range(10)]
 
     def tearDown(self):
         del self.priors
@@ -231,47 +236,24 @@ class TestEnsembleEnsembleStretch(unittest.TestCase):
         self.assertEqual(5.0, self.jump_proposal.scale)
 
     def test_jump_proposal_call(self):
-        with mock.patch("random.choice") as m:
-            with mock.patch("random.uniform") as n:
-                second_sample = proposal.Sample(
-                    dict(periodic=0.3, reflective=0.3, default=0.3)
-                )
-                random_number = 0.5
-                m.return_value = second_sample
-                n.return_value = random_number
-                sample = proposal.Sample(
-                    dict(periodic=0.1, reflective=0.1, default=0.1)
-                )
-                new_sample = self.jump_proposal(sample, coordinates=None)
-                coords = 0.3 - 0.2 * np.exp(
-                    random_number * np.log(self.jump_proposal.scale)
-                )
-                expected = proposal.Sample(
-                    dict(periodic=coords, reflective=coords, default=coords)
-                )
-                for key, value in new_sample.items():
-                    self.assertAlmostEqual(expected[key], value)
+        sample = proposal.Sample(
+            dict(periodic=0.1, reflective=0.1, default=0.1)
+        )
+        new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
+        expected = proposal.Sample(dict(
+            periodic=0.5790181653312239,
+            reflective=-0.028378746842481914,
+            default=-0.23534241783479043,
+        ))
+        for key, value in new_sample.items():
+            self.assertAlmostEqual(expected[key], value)
 
     def test_log_j_after_call(self):
-        with mock.patch("random.uniform") as m1:
-            with mock.patch("numpy.log") as m2:
-                with mock.patch("numpy.exp") as m3:
-                    m1.return_value = 1
-                    m2.return_value = 1
-                    m3.return_value = 1
-                    coordinates = [
-                        proposal.Sample(
-                            dict(periodic=0.3, reflective=0.3, default=0.3)
-                        ),
-                        proposal.Sample(
-                            dict(periodic=0.3, reflective=0.3, default=0.3)
-                        ),
-                    ]
-                    sample = proposal.Sample(
-                        dict(periodic=0.2, reflective=0.2, default=0.2)
-                    )
-                    self.jump_proposal(sample=sample, coordinates=coordinates)
-                    self.assertEqual(3, self.jump_proposal.log_j)
+        sample = proposal.Sample(
+            dict(periodic=0.2, reflective=0.2, default=0.2)
+        )
+        self.jump_proposal(sample=sample, coordinates=self.coordinates)
+        self.assertAlmostEqual(-3.2879289432183088, self.jump_proposal.log_j, 10)
 
 
 class TestDifferentialEvolution(unittest.TestCase):
@@ -285,9 +267,11 @@ class TestDifferentialEvolution(unittest.TestCase):
                 default=prior.Uniform(minimum=-0.5, maximum=1),
             )
         )
+        bilby.core.utils.random.seed(5)
         self.jump_proposal = proposal.DifferentialEvolution(
             sigma=1e-3, mu=0.5, priors=self.priors
         )
+        self.coordinates = [proposal.Sample(self.priors.sample()) for _ in range(10)]
 
     def tearDown(self):
         del self.priors
@@ -305,22 +289,17 @@ class TestDifferentialEvolution(unittest.TestCase):
         self.assertEqual(2, self.jump_proposal.sigma)
 
     def test_jump_proposal_call(self):
-        with mock.patch("random.sample") as m:
-            with mock.patch("random.gauss") as n:
-                m.return_value = (
-                    proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2)),
-                    proposal.Sample(dict(periodic=0.3, reflective=0.3, default=0.3)),
-                )
-                n.return_value = 1
-                sample = proposal.Sample(
-                    dict(periodic=0.1, reflective=0.1, default=0.1)
-                )
-                expected = proposal.Sample(
-                    dict(periodic=0.2, reflective=0.2, default=0.2)
-                )
-                new_sample = self.jump_proposal(sample, coordinates=None)
-                for key, value in new_sample.items():
-                    self.assertAlmostEqual(expected[key], value)
+        sample = proposal.Sample(
+            dict(periodic=0.1, reflective=0.1, default=0.1)
+        )
+        expected = proposal.Sample(dict(
+            periodic=0.09440864471444077,
+            reflective=0.567962015300636,
+            default=0.0657296821780595,
+        ))
+        new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
+        for key, value in new_sample.items():
+            self.assertAlmostEqual(expected[key], value)
 
 
 class TestEnsembleEigenVector(unittest.TestCase):
@@ -334,7 +313,9 @@ class TestEnsembleEigenVector(unittest.TestCase):
                 default=prior.Uniform(minimum=-0.5, maximum=1),
             )
         )
+        bilby.core.utils.random.seed(5)
         self.jump_proposal = proposal.EnsembleEigenVector(priors=self.priors)
+        self.coordinates = [proposal.Sample(self.priors.sample()) for _ in range(10)]
 
     def tearDown(self):
         del self.priors
@@ -386,26 +367,17 @@ class TestEnsembleEigenVector(unittest.TestCase):
                 self.assertEqual(2, self.jump_proposal.eigen_vectors)
 
     def test_jump_proposal_call(self):
-        self.jump_proposal.update_eigenvectors = lambda x: None
-        self.jump_proposal.eigen_values = np.array([1, np.nan, np.nan])
-        self.jump_proposal.eigen_vectors = np.array(
-            [[0.1, np.nan, np.nan], [0.4, np.nan, np.nan], [0.7, np.nan, np.nan]]
-        )
-        with mock.patch("random.randrange") as m:
-            with mock.patch("random.gauss") as n:
-                m.return_value = 0
-                n.return_value = 1
-                expected = proposal.Sample()
-                expected["periodic"] = 0.2
-                expected["reflective"] = 0.5
-                expected["default"] = 0.8
-                sample = proposal.Sample()
-                sample["periodic"] = 0.1
-                sample["reflective"] = 0.1
-                sample["default"] = 0.1
-                new_sample = self.jump_proposal(sample, coordinates=None)
-                for key, value in new_sample.items():
-                    self.assertAlmostEqual(expected[key], value)
+        expected = proposal.Sample()
+        expected["periodic"] = 0.10318172002873117
+        expected["reflective"] = 0.11177972036165257
+        expected["default"] = 0.10053457100669783
+        sample = proposal.Sample()
+        sample["periodic"] = 0.1
+        sample["reflective"] = 0.1
+        sample["default"] = 0.1
+        new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
+        for key, value in new_sample.items():
+            self.assertAlmostEqual(expected[key], value)
 
 
 if __name__ == "__main__":

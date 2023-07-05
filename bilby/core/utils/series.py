@@ -1,6 +1,5 @@
 import numpy as np
 
-
 _TOL = 14
 
 
@@ -165,29 +164,23 @@ def create_white_noise(sampling_frequency, duration):
     array_like: white noise
     array_like: frequency array
     """
+    from .random import rng
 
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
 
-    delta_freq = 1. / duration
-
     frequencies = create_frequency_series(sampling_frequency, duration)
 
-    norm1 = 0.5 * (1. / delta_freq)**0.5
-    re1 = np.random.normal(0, norm1, len(frequencies))
-    im1 = np.random.normal(0, norm1, len(frequencies))
-    htilde1 = re1 + 1j * im1
+    norm1 = 0.5 * duration**0.5
+    re1, im1 = rng.normal(0, norm1, (2, len(frequencies)))
+    white_noise = re1 + 1j * im1
 
-    # convolve data with instrument transfer function
-    otilde1 = htilde1 * 1.
     # set DC and Nyquist = 0
-    otilde1[0] = 0
+    white_noise[0] = 0
     # no Nyquist frequency when N=odd
     if np.mod(number_of_samples, 2) == 0:
-        otilde1[-1] = 0
+        white_noise[-1] = 0
 
-    # normalise for positive frequencies and units of strain/rHz
-    white_noise = otilde1
     # python: transpose for use with infft
     white_noise = np.transpose(white_noise)
     frequencies = np.transpose(frequencies)
