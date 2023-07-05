@@ -6,6 +6,7 @@ from scipy.special import erfinv
 
 from .base import Prior, PriorException
 from ..utils import logger, infer_args_from_method, get_dict_with_properties
+from ..utils import random
 
 
 class BaseJointPriorDist(object):
@@ -583,7 +584,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             if self.nmodes == 1:
                 mode = 0
             else:
-                mode = np.argwhere(self.cumweights - np.random.rand() > 0)[0][0]
+                mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
 
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
@@ -604,12 +605,12 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 mode = 0
             else:
                 if size == 1:
-                    mode = np.argwhere(self.cumweights - np.random.rand() > 0)[0][0]
+                    mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
                 else:
                     # pick modes
                     mode = [
                         np.argwhere(self.cumweights - r > 0)[0][0]
-                        for r in np.random.rand(size)
+                        for r in random.rng.uniform(0, 1, size)
                     ]
 
         samps = np.zeros((size, len(self)))
@@ -617,7 +618,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             inbound = False
             while not inbound:
                 # sample the multivariate Gaussian keys
-                vals = np.random.uniform(0, 1, len(self))
+                vals = random.rng.uniform(0, 1, len(self))
 
                 if isinstance(mode, list):
                     samp = np.atleast_1d(self.rescale(vals, mode=mode[i]))

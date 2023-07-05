@@ -1,3 +1,4 @@
+from . import random
 from .calculus import *
 from .cmd import *
 from .colors import *

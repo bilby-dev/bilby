@@ -521,6 +521,8 @@ class GravitationalWaveTransient(Likelihood):
         new_calibration: dict
             Sample set from the calibration posterior
         """
+        from ...core.utils.random import rng
+
         if 'recalib_index' in self.parameters:
             self.parameters.pop('recalib_index')
         self.parameters.update(self.get_sky_frame_parameters())
@@ -533,7 +535,7 @@ class GravitationalWaveTransient(Likelihood):
         calibration_post = np.exp(log_like - max(log_like))
         calibration_post /= np.sum(calibration_post)
 
-        new_calibration = np.random.choice(self.number_of_response_curves, p=calibration_post)
+        new_calibration = rng.choice(self.number_of_response_curves, p=calibration_post)
 
         return new_calibration
 

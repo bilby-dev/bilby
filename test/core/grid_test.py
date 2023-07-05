@@ -27,7 +27,7 @@ class MultiGaussian(bilby.Likelihood):
 
 class TestGrid(unittest.TestCase):
     def setUp(self):
-        np.random.seed(7)
+        bilby.core.utils.random.seed(7)
 
         # set 2D multivariate Gaussian (zero mean, unit variance)
         self.mus = [0.0, 0.0]

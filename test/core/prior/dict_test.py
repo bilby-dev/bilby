@@ -258,11 +258,11 @@ class TestPriorDict(unittest.TestCase):
 
     def test_sample(self):
         size = 7
-        np.random.seed(42)
+        bilby.core.utils.random.seed(42)
         samples1 = self.prior_set_from_dict.sample_subset(
             keys=self.prior_set_from_dict.keys(), size=size
         )
-        np.random.seed(42)
+        bilby.core.utils.random.seed(42)
         samples2 = self.prior_set_from_dict.sample(size=size)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
@@ -305,12 +305,12 @@ class TestPriorDict(unittest.TestCase):
         Note that the format of inputs/outputs is different between the two methods.
         """
         sample = self.prior_set_from_dict.sample()
-        self.assertEqual(
-            self.prior_set_from_dict.rescale(
-                sample.keys(),
-                self.prior_set_from_dict.cdf(sample=sample).values()
-            ), list(sample.values())
-        )
+        original = np.array(list(sample.values()))
+        new = np.array(self.prior_set_from_dict.rescale(
+            sample.keys(),
+            self.prior_set_from_dict.cdf(sample=sample).values()
+        ))
+        self.assertLess(max(abs(original - new)), 1e-10)
 
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():

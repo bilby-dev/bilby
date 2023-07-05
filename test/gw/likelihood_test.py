@@ -12,7 +12,7 @@ from bilby.gw.likelihood import BilbyROQParamsRangeError
 
 class TestBasicGWTransient(unittest.TestCase):
     def setUp(self):
-        np.random.seed(500)
+        bilby.core.utils.random.seed(500)
         self.parameters = dict(
             mass_1=31.0,
             mass_2=29.0,
@@ -56,13 +56,13 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test noise log likelihood matches precomputed value"""
         self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(
-            -4037.0994372143414, self.likelihood.noise_log_likelihood(), 3
+            -4014.1787704539474, self.likelihood.noise_log_likelihood(), 3
         )
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(), -4054.047229508672, 3)
+        self.assertAlmostEqual(self.likelihood.log_likelihood(), -4032.4397343470005, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -87,7 +87,7 @@ class TestBasicGWTransient(unittest.TestCase):
 
 class TestGWTransient(unittest.TestCase):
     def setUp(self):
-        np.random.seed(500)
+        bilby.core.utils.random.seed(500)
         self.duration = 4
         self.sampling_frequency = 2048
         self.parameters = dict(
@@ -141,14 +141,14 @@ class TestGWTransient(unittest.TestCase):
         """Test noise log likelihood matches precomputed value"""
         self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(
-            -4037.0994372143414, self.likelihood.noise_log_likelihood(), 3
+            -4014.1787704539474, self.likelihood.noise_log_likelihood(), 3
         )
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         self.likelihood.log_likelihood()
         self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4054.047229508673, 3)
+                               -4032.4397343470005, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -760,7 +760,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
 
         if add_cal_errors:
             spline_calibration_nodes = 10
-            np.random.seed(170817)
+            bilby.core.utils.random.seed(170817)
+            rng = bilby.core.utils.random.rng
             for ifo in interferometers:
                 prefix = f"recalib_{ifo.name}_"
                 ifo.calibration_model = bilby.gw.calibration.CubicSpline(
@@ -772,9 +773,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
                 for i in range(spline_calibration_nodes):
                     # 5% in amplitude, 5deg in phase
                     self.injection_parameters[f"{prefix}amplitude_{i}"] = \
-                        np.random.normal(loc=0, scale=0.05)
+                        rng.normal(loc=0, scale=0.05)
                     self.injection_parameters[f"{prefix}phase_{i}"] = \
-                        np.random.normal(loc=0, scale=5 * np.pi / 180)
+                        rng.normal(loc=0, scale=5 * np.pi / 180)
 
         waveform_generator = bilby.gw.WaveformGenerator(
             duration=self.duration,
@@ -1171,7 +1172,8 @@ class TestMBLikelihood(unittest.TestCase):
         )  # Network SNR is ~50
 
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
-        np.random.seed(170817)
+        bilby.core.utils.random.seed(70817)
+        rng = bilby.core.utils.random.rng
         self.ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration,
             start_time=self.test_parameters['geocent_time'] - self.duration + 2.
@@ -1193,9 +1195,9 @@ class TestMBLikelihood(unittest.TestCase):
                 self.test_parameters[f"recalib_{ifo.name}_phase_{i}"] = 0
                 # Calibration errors of 5% in amplitude and 5 degrees in phase
                 self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = \
-                    np.random.normal(loc=0, scale=0.05)
+                    rng.normal(loc=0, scale=0.05)
                 self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = \
-                    np.random.normal(loc=0, scale=5 * np.pi / 180)
+                    rng.normal(loc=0, scale=5 * np.pi / 180)
 
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
@@ -1230,7 +1232,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, approximant=approximant
+                reference_frequency=self.fmin, waveform_approximant=approximant
             )
         )
         self.ifos.inject_signal(parameters=self.test_parameters, waveform_generator=wfg)
@@ -1239,7 +1241,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, approximant=approximant
+                reference_frequency=self.fmin, waveform_approximant=approximant
             )
         )
         likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
@@ -1270,7 +1272,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, approximant=approximant
+                reference_frequency=self.fmin, waveform_approximant=approximant
             )
         )
         self.ifos.inject_signal(parameters=self.test_parameters, waveform_generator=wfg)
@@ -1279,7 +1281,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, approximant=approximant
+                reference_frequency=self.fmin, waveform_approximant=approximant
             )
         )
         likelihood = bilby.gw.likelihood.GravitationalWaveTransient(

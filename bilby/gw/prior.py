@@ -12,7 +12,7 @@ from ..core.prior import (
     ConditionalPriorDict, ConditionalBasePrior, BaseJointPriorDist, JointPrior,
     JointPriorDistError,
 )
-from ..core.utils import infer_args_from_method, logger
+from ..core.utils import infer_args_from_method, logger, random
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
     convert_to_lal_binary_neutron_star_parameters, generate_mass_parameters,
@@ -1503,7 +1503,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         pixel_choices = np.arange(self.npix)
         pixel_probs = self._check_norm(self.prob)
-        sample_pix = np.random.choice(pixel_choices, size=size, p=pixel_probs, replace=True)
+        sample_pix = random.rng.choice(pixel_choices, size=size, p=pixel_probs, replace=True)
         sample = np.empty((size, self.num_vars))
         for samp in range(size):
             theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])
@@ -1535,7 +1535,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
             return 0
-        dist = self.distance_icdf(np.random.uniform(0, 1))
+        dist = self.distance_icdf(random.rng.uniform(0, 1))
         name = self.names[-1]
         if (dist > self.bounds[name][1]) | (dist < self.bounds[name][0]):
             self.draw_distance(pix)
@@ -1564,8 +1564,8 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             self.draw_from_pixel(ra, dec, pix)
         return np.array(
             [
-                np.random.uniform(ra - self.pixel_length, ra + self.pixel_length),
-                np.random.uniform(dec - self.pixel_length, dec + self.pixel_length),
+                random.rng.uniform(ra - self.pixel_length, ra + self.pixel_length),
+                random.rng.uniform(dec - self.pixel_length, dec + self.pixel_length),
             ]
         )
 
