@@ -18,6 +18,7 @@ from ..utils import (
     command_line_args,
     logger,
 )
+from ..utils.random import seed as set_seed
 
 
 @attr.s
@@ -305,6 +306,7 @@ class Sampler(object):
             for equiv in self.sampling_seed_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs[self.sampling_seed_key] = kwargs.pop(equiv)
+                    set_seed(kwargs[self.sampling_seed_key])
         return kwargs
 
     @property
@@ -568,12 +570,14 @@ class Sampler(object):
             likelihood evaluations.
 
         """
+        from ..utils.random import rng
+
         logger.info("Generating initial points from the prior")
         unit_cube = []
         parameters = []
         likelihood = []
         while len(unit_cube) < npoints:
-            unit = np.random.rand(self.ndim)
+            unit = rng.uniform(0, 1, self.ndim)
             theta = self.prior_transform(unit)
             if self.check_draw(theta, warning=False):
                 unit_cube.append(unit)

@@ -16,7 +16,12 @@ from ..core.sampler.base_sampler import (
     _sampling_convenience_dump,
     signal_wrapper,
 )
-from ..core.utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
+from ..core.utils import (
+    check_directory_exists_and_if_not_mkdir,
+    logger,
+    random,
+    safe_file_dump,
+)
 from . import proposals
 from .chain import Chain, Sample
 from .utils import LOGLKEY, LOGPKEY, ConvergenceInputs, ParallelTemperingInputs
@@ -818,7 +823,7 @@ class BilbyPTMCMCSampler(object):
                 with np.errstate(over="ignore"):
                     alpha_swap = np.exp(dbeta * (logli - loglj))
 
-                if np.random.uniform(0, 1) <= alpha_swap:
+                if random.rng.uniform(0, 1) <= alpha_swap:
                     sampleri.chain[-1] = vj
                     samplerj.chain[-1] = vi
                     self.sampler_dictionary[Tindex][Eindex] = sampleri
@@ -852,7 +857,7 @@ class BilbyPTMCMCSampler(object):
                         - curr[LOGPKEY]
                     )
 
-                    if np.random.uniform(0, 1) <= alpha:
+                    if random.rng.uniform(0, 1) <= alpha:
                         sampler.accept_proposal(prop, proposal)
                     else:
                         sampler.reject_proposal(curr, proposal)
@@ -1021,7 +1026,7 @@ class BilbyPTMCMCSampler(object):
         ln_z_realisations = []
         try:
             for _ in range(repeats):
-                idxs = [np.random.randint(i, i + ll) for i in range(steps - ll)]
+                idxs = [random.rng.integers(i, i + ll) for i in range(steps - ll)]
                 ln_z_realisations.append(
                     self._calculate_stepping_stone(betas, ln_likes[idxs, :])[0]
                 )
@@ -1256,7 +1261,7 @@ class BilbyMCMCSampler(object):
                     - curr[LOGPKEY]
                 )
 
-            if np.random.uniform(0, 1) <= alpha:
+            if random.rng.uniform(0, 1) <= alpha:
                 internal_accepted += 1
                 proposal.accepted += 1
                 curr = prop

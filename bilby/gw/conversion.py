@@ -1619,8 +1619,9 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
     lambda_2: float
         Tidal parameter of less massive neutron star.
     """
+    from ..core.utils.random import rng
 
-    binary_love_uniform = np.random.uniform(0, 1, len(lambda_symmetric))
+    binary_love_uniform = rng.uniform(0, 1, len(lambda_symmetric))
 
     lambda_1, lambda_2 = binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(
         binary_love_uniform, lambda_symmetric, mass_ratio)
@@ -2422,6 +2423,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
     sample: DataFrame
         Returns the posterior with new samples.
     """
+    from ..core.utils.random import generate_seeds
+
     marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
     if len(marginalized_parameters) == 0:
         return samples
@@ -2485,7 +2488,8 @@ def generate_posterior_samples_from_marginalized_likelihood(
         _sampling_convenience_dump.likelihood = likelihood
         pool = None
 
-    fill_args = [(ii, row) for ii, row in samples.iterrows()]
+    seeds = generate_seeds(len(samples))
+    fill_args = [(ii, row, seed) for (ii, row), seed in zip(samples.iterrows(), seeds)]
     ii = 0
     pbar = tqdm(total=len(samples), file=sys.stdout)
     while ii < len(samples):
@@ -2544,8 +2548,11 @@ def generate_sky_frame_parameters(samples, likelihood):
 
 def fill_sample(args):
     from ..core.sampler.base_sampler import _sampling_convenience_dump
+    from ..core.utils.random import seed
+
+    ii, sample, rseed = args
+    seed(rseed)
     likelihood = _sampling_convenience_dump.likelihood
-    ii, sample = args
     marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
     sample = dict(sample).copy()
     likelihood.parameters.update(dict(sample).copy())

@@ -1,9 +1,9 @@
-import random
 from inspect import isclass
 
 import numpy as np
 
 from ..prior import Uniform
+from ..utils import random
 
 
 class Sample(dict):
@@ -135,7 +135,7 @@ class JumpProposalCycle(object):
         return len(self.proposal_functions)
 
     def update_cycle(self):
-        self._cycle = np.random.choice(
+        self._cycle = random.rng.choice(
             self.proposal_functions,
             size=self.cycle_length,
             p=self.weights,
@@ -195,14 +195,14 @@ class NormJump(JumpProposal):
 
     def __call__(self, sample, **kwargs):
         for key in sample.keys():
-            sample[key] = np.random.normal(sample[key], self.step_size)
+            sample[key] = random.rng.normal(sample[key], self.step_size)
         return super(NormJump, self).__call__(sample)
 
 
 class EnsembleWalk(JumpProposal):
     def __init__(
         self,
-        random_number_generator=random.random,
+        random_number_generator=random.rng.uniform,
         n_points=3,
         priors=None,
         **random_number_generator_args
@@ -227,7 +227,7 @@ class EnsembleWalk(JumpProposal):
         self.random_number_generator_args = random_number_generator_args
 
     def __call__(self, sample, **kwargs):
-        subset = random.sample(kwargs["coordinates"], self.n_points)
+        subset = random.rng.choice(kwargs["coordinates"], self.n_points, replace=False)
         for i in range(len(subset)):
             subset[i] = Sample.from_external_type(
                 subset[i], kwargs.get("sampler_name", None)
@@ -258,11 +258,11 @@ class EnsembleStretch(JumpProposal):
         self.scale = scale
 
     def __call__(self, sample, **kwargs):
-        second_sample = random.choice(kwargs["coordinates"])
+        second_sample = random.rng.choice(kwargs["coordinates"])
         second_sample = Sample.from_external_type(
             second_sample, kwargs.get("sampler_name", None)
         )
-        step = random.uniform(-1, 1) * np.log(self.scale)
+        step = random.rng.uniform(-1, 1) * np.log(self.scale)
         sample = second_sample + (sample - second_sample) * np.exp(step)
         self.log_j = len(sample) * step
         return super(EnsembleStretch, self).__call__(sample)
@@ -286,8 +286,8 @@ class DifferentialEvolution(JumpProposal):
         self.mu = mu
 
     def __call__(self, sample, **kwargs):
-        a, b = random.sample(kwargs["coordinates"], 2)
-        sample = sample + (b - a) * random.gauss(self.mu, self.sigma)
+        a, b = random.rng.choice(kwargs["coordinates"], 2, replace=False)
+        sample = sample + (b - a) * random.rng.normal(self.mu, self.sigma)
         return super(DifferentialEvolution, self).__call__(sample)
 
 
@@ -334,8 +334,8 @@ class EnsembleEigenVector(JumpProposal):
 
     def __call__(self, sample, **kwargs):
         self.update_eigenvectors(kwargs["coordinates"])
-        i = random.randrange(len(sample))
-        jump_size = np.sqrt(np.fabs(self.eigen_values[i])) * random.gauss(0, 1)
+        i = random.rng.integers(len(sample))
+        jump_size = np.sqrt(np.fabs(self.eigen_values[i])) * random.rng.normal(0, 1)
         for j, key in enumerate(sample.keys()):
             sample[key] += jump_size * self.eigen_vectors[j, i]
         return super(EnsembleEigenVector, self).__call__(sample)

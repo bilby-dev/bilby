@@ -323,6 +323,8 @@ class Ptemcee(MCMCSampler):
 
         from scipy.optimize import minimize
 
+        from ..utils.random import rng
+
         # Set up the minimize list: keys not in this list will have initial
         # positions drawn from the prior
         if minimize_list is None:
@@ -375,7 +377,7 @@ class Ptemcee(MCMCSampler):
             pos0_max = np.max(success[:, i])
             logger.info(f"Initialize {key} walkers from {pos0_min}->{pos0_max}")
             j = self.search_parameter_keys.index(key)
-            pos0[:, :, j] = np.random.uniform(
+            pos0[:, :, j] = rng.uniform(
                 pos0_min,
                 pos0_max,
                 size=(self.kwargs["ntemps"], self.kwargs["nwalkers"]),

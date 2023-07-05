@@ -262,11 +262,13 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
 
     def _generate_result(self, out):
         # extract results
+        from ..utils.random import rng
+
         data = np.array(out["weighted_samples"]["points"])
         weights = np.array(out["weighted_samples"]["weights"])
 
         scaledweights = weights / weights.max()
-        mask = np.random.rand(len(scaledweights)) < scaledweights
+        mask = rng.uniform(0, 1, len(scaledweights)) < scaledweights
 
         nested_samples = DataFrame(data, columns=self.search_parameter_keys)
         nested_samples["weights"] = weights

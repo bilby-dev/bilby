@@ -275,20 +275,22 @@ class TestConditionalPriorDict(unittest.TestCase):
             self.conditional_priors.ln_prob(sample=self.test_sample)
 
     def test_sample_subset_all_keys(self):
-        with mock.patch("numpy.random.uniform") as m:
-            m.return_value = 0.5
-            self.assertDictEqual(
-                dict(var_0=0.5, var_1=0.5 ** 2, var_2=0.5 ** 3, var_3=0.5 ** 4),
-                self.conditional_priors.sample_subset(
-                    keys=["var_0", "var_1", "var_2", "var_3"]
-                ),
-            )
+        bilby.core.utils.random.seed(5)
+        self.assertDictEqual(
+            dict(
+                var_0=0.8050029237453802,
+                var_1=0.6503946979510289,
+                var_2=0.33516501262044845,
+                var_3=0.09579062316418356,
+            ),
+            self.conditional_priors.sample_subset(
+                keys=["var_0", "var_1", "var_2", "var_3"]
+            ),
+        )
 
     def test_sample_illegal_subset(self):
-        with mock.patch("numpy.random.uniform") as m:
-            m.return_value = 0.5
-            with self.assertRaises(bilby.core.prior.IllegalConditionsException):
-                self.conditional_priors.sample_subset(keys=["var_1"])
+        with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+            self.conditional_priors.sample_subset(keys=["var_1"])
 
     def test_sample_multiple(self):
         def condition_func(reference_params, a):

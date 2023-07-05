@@ -59,9 +59,9 @@ containers:
           ${script} --help;
       done
 
-basic-3.8:
-  <<: *test-python
-  image: python:3.8
+# basic-3.8:
+#   <<: *test-python
+#   image: python:3.8
 
 basic-3.9:
   <<: *test-python
@@ -78,9 +78,9 @@ basic-3.10:
     - python -m pip list installed
     - python test/test_samplers_import.py
 
-import-samplers-3.8:
-  <<: *test-samplers-import
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+# import-samplers-3.8:
+#   <<: *test-samplers-import
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
 
 import-samplers-3.9:
   <<: *test-samplers-import
@@ -102,12 +102,12 @@ import-samplers-3.10:
     # Run precommits (flake8, spellcheck, isort, no merge conflicts, etc)
     - pre-commit run --all-files --verbose --show-diff-on-failure
 
-precommits-py3.8:
-  <<: *precommits
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-  variables:
-    CACHE_DIR: ".pip38"
-    PYVERSION: "python38"
+# precommits-py3.8:
+#   <<: *precommits
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+#   variables:
+#     CACHE_DIR: ".pip38"
+#     PYVERSION: "python38"
 
 precommits-py3.9:
   <<: *precommits
@@ -142,10 +142,10 @@ install:
 
     - pytest --cov=bilby --durations 10
 
-python-3.8:
-  <<: *unit-test
-  needs: ["basic-3.8", "precommits-py3.8"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+# python-3.8:
+#   <<: *unit-test
+#   needs: ["basic-3.8", "precommits-py3.8"]
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
 
 python-3.9:
   <<: *unit-test
@@ -176,10 +176,10 @@ python-3.10:
     - python -m pip list installed
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
-python-3.8-samplers:
-  <<: *test-sampler
-  needs: ["basic-3.8", "precommits-py3.8"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+# python-3.8-samplers:
+#   <<: *test-sampler
+#   needs: ["basic-3.8", "precommits-py3.8"]
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
 
 python-3.9-samplers:
   <<: *test-sampler
@@ -213,10 +213,10 @@ integration-tests-python-3.9:
     - pytest test/gw/plot_test.py
 
 
-plotting-python-3.8:
-  <<: *plotting
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-  needs: ["basic-3.8", "precommits-py3.8"]
+# plotting-python-3.8:
+#   <<: *plotting
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
+#   needs: ["basic-3.8", "precommits-py3.8"]
 
 plotting-python-3.9:
   <<: *plotting
@@ -285,10 +285,10 @@ pages:
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
 
-build-python38-container:
-  <<: *build-container
-  variables:
-    PYVERSION: "python38"
+# build-python38-container:
+#   <<: *build-container
+#   variables:
+#     PYVERSION: "python38"
 
 build-python39-container:
   <<: *build-container

@@ -24,6 +24,7 @@ from .utils import (
     recursively_load_dict_contents_from_group,
     recursively_decode_bilby_json,
     safe_file_dump,
+    random,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
@@ -264,7 +265,7 @@ def rejection_sample(posterior, weights):
         The posterior resampled using rejection sampling
 
     """
-    keep = weights > np.random.uniform(0, max(weights), weights.shape)
+    keep = weights > random.rng.uniform(0, max(weights), weights.shape)
     return posterior[keep]
 
 
@@ -1875,7 +1876,7 @@ class ResultList(list):
         result_weights = np.exp(log_evidences - np.max(log_evidences))
         posteriors = list()
         for res, frac in zip(self, result_weights):
-            selected_samples = (np.random.uniform(size=len(res.posterior)) < frac)
+            selected_samples = (random.rng.uniform(size=len(res.posterior)) < frac)
             posteriors.append(res.posterior[selected_samples])
 
         # remove original nested_samples
