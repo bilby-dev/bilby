@@ -412,12 +412,20 @@ class Chain(object):
         for ax, key in zip(axes[:, 1], self.keys):
             if all_samples is not None:
                 yy_all = all_samples[key]
-                ax.hist(yy_all, bins=50, alpha=0.6, density=True, color="k")
-
+                if np.any(np.isinf(yy_all)):
+                    logger.warning(
+                        f"Could not plot histogram for parameter {key} due to infinite values"
+                    )
+                else:
+                    ax.hist(yy_all, bins=50, alpha=0.6, density=True, color="k")
             yy = self.get_1d_array(key)[nburn : self.position : self.thin]
-            ax.hist(yy, bins=50, alpha=0.8, density=True)
-
-            ax.set_xlabel(self._get_plot_label_by_key(key, priors))
+            if np.any(np.isinf(yy)):
+                logger.warning(
+                    f"Could not plot histogram for parameter {key} due to infinite values"
+                )
+            else:
+                ax.hist(yy, bins=50, alpha=0.8, density=True)
+                ax.set_xlabel(self._get_plot_label_by_key(key, priors))
 
         # Add x-axes labels to the traceplots
         axes[-1, 0].set_xlabel(r"Iteration $[\times 10^{3}]$")
