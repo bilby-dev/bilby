@@ -20,14 +20,14 @@ stages:
 # Check author list is up to date
 authors:
   stage: initial
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   script:
     - python test/check_author_list.py
 
 # Test containers scripts are up to date
 containers:
   stage: initial
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   script:
     - cd containers
     - python write_dockerfiles.py #HACK
@@ -59,10 +59,6 @@ containers:
           ${script} --help;
       done
 
-# basic-3.8:
-#   <<: *test-python
-#   image: python:3.8
-
 basic-3.9:
   <<: *test-python
   image: python:3.9
@@ -77,10 +73,6 @@ basic-3.10:
     - python -m pip install .
     - python -m pip list installed
     - python test/test_samplers_import.py
-
-# import-samplers-3.8:
-#   <<: *test-samplers-import
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
 
 import-samplers-3.9:
   <<: *test-samplers-import
@@ -102,13 +94,6 @@ import-samplers-3.10:
     # Run precommits (flake8, spellcheck, isort, no merge conflicts, etc)
     - pre-commit run --all-files --verbose --show-diff-on-failure
 
-# precommits-py3.8:
-#   <<: *precommits
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-#   variables:
-#     CACHE_DIR: ".pip38"
-#     PYVERSION: "python38"
-
 precommits-py3.9:
   <<: *precommits
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
@@ -128,7 +113,7 @@ install:
   parallel:
     matrix:
       - EXTRA: [gw, mcmc, all]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   script:
     - pip install .[$EXTRA]
 
@@ -142,15 +127,15 @@ install:
 
     - pytest --cov=bilby --durations 10
 
-# python-3.8:
-#   <<: *unit-test
-#   needs: ["basic-3.8", "precommits-py3.8"]
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-
 python-3.9:
   <<: *unit-test
   needs: ["basic-3.9", "precommits-py3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+
+python-3.10:
+  <<: *unit-test
+  needs: ["basic-3.10", "precommits-py3.10"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   after_script:
     - coverage html
     - coverage xml
@@ -164,22 +149,12 @@ python-3.9:
       - htmlcov/
     expire_in: 30 days
 
-python-3.10:
-  <<: *unit-test
-  needs: ["basic-3.10", "precommits-py3.10"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
-
 .test-sampler: &test-sampler
   stage: test
   script:
     - python -m pip install .[all]
     - python -m pip list installed
     - pytest test/integration/sampler_run_test.py --durations 10 -v
-
-# python-3.8-samplers:
-#   <<: *test-sampler
-#   needs: ["basic-3.8", "precommits-py3.8"]
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
 
 python-3.9-samplers:
   <<: *test-sampler
@@ -191,10 +166,10 @@ python-3.10-samplers:
   needs: ["basic-3.10", "precommits-py3.10"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
 
-integration-tests-python-3.9:
+integration-tests-python-3.10:
   stage: test
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  needs: ["basic-3.9", "precommits-py3.9"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+  needs: ["basic-3.10", "precommits-py3.10"]
   only:
     - schedules
   script:
@@ -212,12 +187,6 @@ integration-tests-python-3.9:
     - python -m pip list installed
     - pytest test/gw/plot_test.py
 
-
-# plotting-python-3.8:
-#   <<: *plotting
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python38
-#   needs: ["basic-3.8", "precommits-py3.8"]
-
 plotting-python-3.9:
   <<: *plotting
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
@@ -232,7 +201,7 @@ plotting-python-3.10:
 
 docs:
   stage: docs
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   before_script:
     - conda install -c conda-forge pandoc ipython jupyter nbconvert
     - python -m pip install ipykernel
@@ -254,7 +223,7 @@ docs:
 
 pages:
   stage: deploy
-  needs: ["docs", "python-3.9"]
+  needs: ["docs", "python-3.10"]
   script:
     - mkdir public/
     - mv htmlcov/ public/
@@ -285,11 +254,6 @@ pages:
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
 
-# build-python38-container:
-#   <<: *build-container
-#   variables:
-#     PYVERSION: "python38"
-
 build-python39-container:
   <<: *build-container
   variables:
@@ -302,7 +266,7 @@ build-python310-container:
 
 pypi-release:
   stage: deploy
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   variables:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
