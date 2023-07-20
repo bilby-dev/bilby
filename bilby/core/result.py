@@ -2166,7 +2166,7 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
 
         try:
             name = results[0].priors[key].latex_label
-        except AttributeError:
+        except (AttributeError, KeyError):
             name = key
         label = "{} ({:2.3f})".format(name, pvalue)
         plt.plot(x_values, pp, lines[ii], label=label, **kwargs)
