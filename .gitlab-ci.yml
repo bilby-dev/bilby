@@ -17,6 +17,14 @@ stages:
 
 # ------------------- Initial stage -------------------------------------------
 
+.list-env: &list-env
+  - PREFIX="$(dirname $(which python))/.."
+  - if [ -d "${PREFIX}/conda-meta" ]; then
+      conda list --prefix "${PREFIX}" --show-channel-urls;
+    else
+      python -m pip list installed;
+    fi
+
 # Check author list is up to date
 authors:
   stage: initial
@@ -40,7 +48,7 @@ containers:
   image: python
   script:
     - python -m pip install .
-    - python -m pip list installed
+    - *list-env
     - python -c "import bilby"
     - python -c "import bilby.bilby_mcmc"
     - python -c "import bilby.core"
@@ -71,7 +79,7 @@ basic-3.10:
   stage: initial
   script:
     - python -m pip install .
-    - python -m pip list installed
+    - *list-env
     - python test/test_samplers_import.py
 
 import-samplers-3.9:
@@ -123,7 +131,7 @@ install:
   stage: test
   script:
     - python -m pip install .
-    - python -m pip list installed
+    - *list-env
 
     - pytest --cov=bilby --durations 10
 
@@ -153,7 +161,7 @@ python-3.10:
   stage: test
   script:
     - python -m pip install .[all]
-    - python -m pip list installed
+    - *list-env
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
 python-3.9-samplers:
@@ -174,7 +182,7 @@ integration-tests-python-3.10:
     - schedules
   script:
     - python -m pip install .
-    - python -m pip list installed
+    - *list-env
     # Run tests which are only done on schedule
     - pytest test/integration/example_test.py
 
@@ -184,7 +192,7 @@ integration-tests-python-3.10:
     - schedules
   script:
     - python -m pip install .
-    - python -m pip list installed
+    - *list-env
     - pytest test/gw/plot_test.py
 
 plotting-python-3.9:
