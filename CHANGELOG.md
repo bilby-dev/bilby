@@ -1,5 +1,19 @@
 # All notable changes will be documented in this file
 
+## [2.1.2] 2023-07-17
+Version 2.1.2 release of Bilby
+
+This is a bugfix release.
+Note that one of the changes will have a significant impact on scripts that rely on
+a seed for random data generation.
+Where users have previously used `np.random.seed` they should now call
+`bilby.core.utils.random.seed`.
+
+### Changes
+- Fix issues related to random number generation with multiprocessing (!1273)
+- Enable cosmological priors to be written/read in our plain text format (!1258)
+- Allow posterior reweighting to be performed when changing the likelihood and the prior (!1260)
+
 ## [2.1.1] 2023-04-28
 Version 2.1.1 release of Bilby
 
