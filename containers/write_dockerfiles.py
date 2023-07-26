@@ -3,7 +3,7 @@ from datetime import date
 with open("dockerfile-template", "r") as ff:
     template = ff.read()
 
-python_versions = [(3, 8), (3, 9), (3, 10)]
+python_versions = [(3, 9), (3, 10)]
 today = date.today().strftime("%Y%m%d")
 
 samplers = [

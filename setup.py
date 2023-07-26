@@ -5,8 +5,8 @@ import sys
 import os
 
 python_version = sys.version_info
-if python_version < (3, 8):
-    sys.exit("Python < 3.8 is not supported, aborting setup")
+if python_version < (3, 9):
+    sys.exit("Python < 3.9 is not supported, aborting setup")
 
 
 def get_long_description():
@@ -85,7 +85,6 @@ setup(
         ]
     },
     classifiers=[
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "License :: OSI Approved :: MIT License",
