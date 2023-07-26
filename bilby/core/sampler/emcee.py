@@ -403,6 +403,7 @@ class Emcee(MCMCSampler):
         if self.verbose:
             iterator.close()
         self.write_current_state()
+        self._close_pool()
 
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(self.sampler.chain.reshape((-1, self.ndim)))

@@ -135,14 +135,15 @@ class TestRunningSamplers(unittest.TestCase):
             likelihood=self.likelihood,
             priors=self.priors,
             sampler=sampler,
-            save=False,
+            save="hdf5",
             npool=pool_size,
             conversion_function=self.conversion_function,
             **kwargs,
             **extra_kwargs,
         )
         assert "derived" in res.posterior
-        assert res.log_likelihood_evaluations is not None
+        if sampler != "dnest4":
+            assert res.log_likelihood_evaluations is not None
 
     @parameterized.expand(_sampler_kwargs.keys())
     def test_interrupt_sampler_single(self, sampler):

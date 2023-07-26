@@ -2,7 +2,6 @@ import datetime
 import time
 
 import numpy as np
-import pandas as pd
 
 from ..utils import logger
 from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrapper
@@ -152,7 +151,6 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         self.start_time = np.nan
         self.sampler = None
         self._information = np.nan
-        self._last_live_sample_info = np.nan
 
         # Get the estimates of the prior distributions' widths and centers.
         widths = []
@@ -231,22 +229,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         self.result.log_evidence = stats["log_Z"]
         self._information = stats["H"]
         self.result.log_evidence_err = np.sqrt(self._information / self.num_particles)
-
-        if self._backend == "memory":
-            self._last_live_sample_info = pd.DataFrame(
-                self.sampler.backend.sample_info[-1]
-            )
-            self.result.log_likelihood_evaluations = self._last_live_sample_info[
-                "log_likelihood"
-            ]
-            self.result.samples = np.array(self.sampler.backend.posterior_samples)
-        else:
-            sample_info_path = (
-                "./" + self.kwargs["outputfiles_basename"] + "/sample_info.txt"
-            )
-            sample_info = np.genfromtxt(sample_info_path, comments="#", names=True)
-            self.result.log_likelihood_evaluations = sample_info["log_likelihood"]
-            self.result.samples = np.array(self.sampler.backend.posterior_samples)
+        self.result.samples = np.array(self.sampler.backend.posterior_samples)
 
         self.result.sampler_output = out
         self.result.outputfiles_basename = self.outputfiles_basename
