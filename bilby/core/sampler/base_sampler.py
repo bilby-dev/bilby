@@ -902,7 +902,19 @@ class _TemporaryFileSamplerMixin:
 
     def __init__(self, temporary_directory, **kwargs):
         super(_TemporaryFileSamplerMixin, self).__init__(**kwargs)
-        self.use_temporary_directory = temporary_directory
+        try:
+            from mpi4py import MPI
+
+            using_mpi = MPI.COMM_WORLD.Get_size() > 1
+        except ImportError:
+            using_mpi = False
+
+        if using_mpi and temporary_directory:
+            logger.info(
+                "Temporary directory incompatible with MPI, "
+                "will run in original directory"
+            )
+        self.use_temporary_directory = temporary_directory and not using_mpi
         self._outputfiles_basename = None
         self._temporary_outputfiles_basename = None
 
