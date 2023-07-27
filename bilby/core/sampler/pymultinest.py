@@ -5,7 +5,6 @@ import time
 
 import numpy as np
 
-from ..utils import logger
 from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrapper
 
 
@@ -77,12 +76,6 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
         temporary_directory=True,
         **kwargs
     ):
-        try:
-            from mpi4py import MPI
-
-            using_mpi = MPI.COMM_WORLD.Get_size() > 1
-        except ImportError:
-            using_mpi = False
         super(Pymultinest, self).__init__(
             likelihood=likelihood,
             priors=priors,
@@ -96,13 +89,6 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
             **kwargs
         )
         self._apply_multinest_boundaries()
-        self.exit_code = exit_code
-        if using_mpi and temporary_directory:
-            logger.info(
-                "Temporary directory incompatible with MPI, "
-                "will run in original directory"
-            )
-        self.use_temporary_directory = temporary_directory and not using_mpi
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
