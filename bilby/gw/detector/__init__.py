@@ -127,7 +127,7 @@ def get_interferometer_with_fake_noise_and_injection(
         name, injection_parameters, injection_polarizations=None,
         waveform_generator=None, sampling_frequency=4096, duration=4,
         start_time=None, outdir='outdir', label=None, plot=True, save=True,
-        zero_noise=False):
+        zero_noise=False, raise_error=True):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -192,7 +192,8 @@ def get_interferometer_with_fake_noise_and_injection(
     injection_polarizations = interferometer.inject_signal(
         parameters=injection_parameters,
         injection_polarizations=injection_polarizations,
-        waveform_generator=waveform_generator)
+        waveform_generator=waveform_generator,
+        raise_error=raise_error)
 
     signal = interferometer.get_detector_response(
         injection_polarizations, injection_parameters)
