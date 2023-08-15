@@ -1,7 +1,9 @@
 import os
 import copy
+from functools import partial
 
 import numpy as np
+from scipy.integrate import quad
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.special import hyp2f1
 from scipy.stats import norm
@@ -503,17 +505,37 @@ class AlignedSpin(Interped):
         chi_min = min(a_prior.maximum * z_prior.minimum,
                       a_prior.minimum * z_prior.maximum)
         chi_max = a_prior.maximum * z_prior.maximum
-        xx = np.linspace(chi_min, chi_max, 800)
-        a_prior_minimum = a_prior.minimum
-        if a_prior_minimum == 0:
-            a_prior_minimum += 1e-32
-        aas = np.linspace(a_prior_minimum, a_prior.maximum, 1000)
-        yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
-                                     z_prior.prob(x / aas)), aas) for x in xx]
-        super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
-                                          latex_label=latex_label, unit=unit,
-                                          boundary=boundary, minimum=minimum,
-                                          maximum=maximum)
+        if self._is_simple_aligned_prior:
+            xx = np.linspace(chi_min, chi_max, 100000)
+            yy = - np.log(np.abs(xx) / a_prior.maximum) / (2 * a_prior.maximum)
+        else:
+            xx = np.linspace(chi_min, chi_max, 10000)
+            yy = [
+                quad(partial(
+                    lambda aa, zz, amax: 1 / amax / aa * (abs(zz / aa) < 1) / 2,
+                    zz=x, amax=a_prior.maximum - a_prior.minimum
+                ), a_prior.minimum, a_prior.maximum)[0]
+                for x in xx
+            ]
+        super().__init__(
+            xx=xx,
+            yy=yy,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+            minimum=minimum,
+            maximum=maximum,
+        )
+
+    @property
+    def _is_simple_aligned_prior(self):
+        return (
+            isinstance(self.a_prior, Uniform)
+            and isinstance(self.z_prior, Uniform)
+            and self.z_prior.minimum == -1
+            and self.z_prior.maximum == 1
+        )
 
 
 class ConditionalChiUniformSpinMagnitude(ConditionalLogUniform):
