@@ -484,6 +484,8 @@ class AlignedSpin(Interped):
     This is useful when using aligned-spin only waveform approximants.
 
     This is an extension of e.g., (A7) of https://arxiv.org/abs/1805.10457.
+    For the simple case of uniform in magnitude and orientation priors, we use an
+    analytic form of the PDF.
     """
 
     def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),
