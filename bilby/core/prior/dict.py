@@ -471,7 +471,9 @@ class PriorDict(dict):
     def normalize_constraint_factor(
         self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
     ):
-        if keys in self._cached_normalizations.keys():
+        if len(self.constraint_keys) == 0:
+            return 1
+        elif keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
         else:
             factor_estimates = [
@@ -533,8 +535,10 @@ class PriorDict(dict):
                     return 0.0
             else:
                 constrained_prob = np.zeros_like(prob)
-                keep = np.array(self.evaluate_constraints(sample), dtype=bool)
-                constrained_prob[keep] = prob[keep] * ratio
+                in_bounds = np.isfinite(prob)
+                subsample = {key: sample[key][in_bounds] for key in sample}
+                keep = np.array(self.evaluate_constraints(subsample), dtype=bool)
+                constrained_prob[in_bounds] = prob[in_bounds] * keep * ratio
                 return constrained_prob
 
     def ln_prob(self, sample, axis=None):
@@ -568,8 +572,10 @@ class PriorDict(dict):
                     return -np.inf
             else:
                 constrained_ln_prob = -np.inf * np.ones_like(ln_prob)
-                keep = np.array(self.evaluate_constraints(sample), dtype=bool)
-                constrained_ln_prob[keep] = ln_prob[keep] + np.log(ratio)
+                in_bounds = np.isfinite(ln_prob)
+                subsample = {key: sample[key][in_bounds] for key in sample}
+                keep = np.log(np.array(self.evaluate_constraints(subsample), dtype=bool))
+                constrained_ln_prob[in_bounds] = ln_prob[in_bounds] + keep + np.log(ratio)
                 return constrained_ln_prob
 
     def cdf(self, sample):
@@ -603,10 +609,8 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        from matplotlib.cbook import flatten
-
         return list(
-            flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)])
+            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
         )
 
     def test_redundancy(self, key, disable_logging=False):
@@ -629,9 +633,7 @@ class PriorDict(dict):
             del temp[key]
             if temp.test_redundancy(key, disable_logging=True):
                 logger.warning(
-                    "{} is a redundant key in this {}.".format(
-                        key, self.__class__.__name__
-                    )
+                    f"{key} is a redundant key in this {self.__class__.__name__}."
                 )
                 redundant = True
         return redundant
@@ -830,13 +832,12 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
-        from matplotlib.cbook import flatten
-
         keys = list(keys)
         theta = list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
+        joint = dict()
         for key, index in zip(
             self.sorted_keys_without_fixed_parameters, self._rescale_indexes
         ):
@@ -844,7 +845,17 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        return list(flatten([result[key] for key in keys]))
+            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
+                joint[self[key].dist.distname] = [key]
+            elif isinstance(self[key], JointPrior):
+                joint[self[key].dist.distname].append(key)
+        for names in joint.values():
+            values = list()
+            for key in names:
+                values = np.concatenate([values, result[key]])
+            for key, value in zip(names, values):
+                result[key] = value
+        return list([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

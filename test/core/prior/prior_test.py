@@ -369,6 +369,15 @@ class TestPriorClasses(unittest.TestCase):
                 )
                 self.assertTrue(all(np.nan_to_num(prior.cdf(outside_domain)) == 0))
 
+    def test_cdf_float_with_float_input(self):
+        for prior in self.priors:
+            if (
+                bilby.core.prior.JointPrior in prior.__class__.__mro__
+                and prior.maximum == np.inf
+            ):
+                continue
+            self.assertIsInstance(prior.cdf(prior.sample()), float)
+
     def test_log_normal_fail(self):
         with self.assertRaises(ValueError):
             bilby.core.prior.LogNormal(name="test", unit="unit", mu=0, sigma=-1)

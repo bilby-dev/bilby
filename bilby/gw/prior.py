@@ -2,7 +2,7 @@ import os
 import copy
 
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
@@ -12,7 +12,7 @@ from ..core.prior import (
     ConditionalPriorDict, ConditionalBasePrior, BaseJointPriorDist, JointPrior,
     JointPriorDistError,
 )
-from ..core.utils import infer_args_from_method, logger, random
+from ..core.utils import infer_args_from_method, logger, random, WrappedInterp1d as interp1d
 from .conversion import (
     convert_to_lal_binary_black_hole_parameters,
     convert_to_lal_binary_neutron_star_parameters, generate_mass_parameters,
@@ -377,21 +377,6 @@ class UniformInComponentsChirpMass(PowerLaw):
             name=name, latex_label=latex_label, unit=unit, boundary=boundary)
 
 
-class WrappedInterp1d(interp1d):
-    """ A wrapper around scipy interp1d which sets equality-by-instantiation """
-    def __eq__(self, other):
-
-        for key in self.__dict__:
-            if type(self.__dict__[key]) is np.ndarray:
-                if not np.array_equal(self.__dict__[key], other.__dict__[key]):
-                    return False
-            elif key == "_spline":
-                pass
-            elif getattr(self, key) != getattr(other, key):
-                return False
-        return True
-
-
 class UniformInComponentsMassRatio(Prior):
     r"""
     Prior distribution for chirp mass which is uniform in component masses.
@@ -435,7 +420,7 @@ class UniformInComponentsMassRatio(Prior):
             latex_label=latex_label, unit=unit, boundary=boundary)
         self.norm = self._integral(maximum) - self._integral(minimum)
         qs = np.linspace(minimum, maximum, 1000)
-        self.icdf = WrappedInterp1d(
+        self.icdf = interp1d(
             self.cdf(qs), qs, kind='cubic',
             bounds_error=False, fill_value=(minimum, maximum))
 
@@ -449,11 +434,7 @@ class UniformInComponentsMassRatio(Prior):
     def rescale(self, val):
         if self.equal_mass:
             val = 2 * np.minimum(val, 1 - val)
-        resc = self.icdf(val)
-        if resc.ndim == 0:
-            return resc.item()
-        else:
-            return resc
+        return self.icdf(val)
 
     def prob(self, val):
         in_prior = (val >= self.minimum) & (val <= self.maximum)

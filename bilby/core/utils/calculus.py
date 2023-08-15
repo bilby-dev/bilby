@@ -1,7 +1,7 @@
 import math
 from numbers import Number
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp1d, interp2d
 from scipy.special import logsumexp
 
 from .log import logger
@@ -262,6 +262,29 @@ class UnsortedInterp2d(interp2d):
         elif not isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
             x = x * np.ones_like(y)
         return x, y
+
+
+class WrappedInterp1d(interp1d):
+    """
+    A wrapper around scipy interp1d which sets equality-by-instantiation and
+    makes sure that the output is a float if the input is a float or int.
+    """
+    def __call__(self, x):
+        output = super().__call__(x)
+        if isinstance(x, (float, int)):
+            output = output.item()
+        return output
+
+    def __eq__(self, other):
+        for key in self.__dict__:
+            if type(self.__dict__[key]) is np.ndarray:
+                if not np.array_equal(self.__dict__[key], other.__dict__[key]):
+                    return False
+            elif key == "_spline":
+                pass
+            elif getattr(self, key) != getattr(other, key):
+                return False
+        return True
 
 
 def round_up_to_power_of_two(x):
