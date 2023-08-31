@@ -182,7 +182,7 @@ class Cpnest(NestedSampler):
         if "proposals" in self.kwargs:
             if self.kwargs["proposals"] is None:
                 return
-            if type(self.kwargs["proposals"]) == JumpProposalCycle:
+            if isinstance(self.kwargs["proposals"], JumpProposalCycle):
                 self.kwargs["proposals"] = dict(
                     mhs=self.kwargs["proposals"], hmc=self.kwargs["proposals"]
                 )

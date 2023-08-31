@@ -32,7 +32,7 @@ MultivariateGaussianDist(
                 self.assertTrue(item == fromstr.__getattribute__(key))
             elif key == "mvn":
                 for d1, d2 in zip(fromstr.__getattribute__(key), item):
-                    self.assertTrue(type(d1) == type(d2))
+                    self.assertTrue(type(d1) == type(d2))  # noqa: E721
             elif isinstance(item, (list, tuple, np.ndarray)):
                 self.assertTrue(
                     np.all(np.array(item) == np.array(fromstr.__getattribute__(key)))
