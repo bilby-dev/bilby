@@ -193,7 +193,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.parameters["m"] = 2
         likelihood.parameters["c"] = 0
         likelihood.log_likelihood()
-        self.assertTrue(type(likelihood.sigma) == type(sigma_array))
+        self.assertTrue(type(likelihood.sigma) == type(sigma_array))  # noqa: E721
         self.assertTrue(all(likelihood.sigma == sigma_array))
 
     def test_set_sigma_None(self):

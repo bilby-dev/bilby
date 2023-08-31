@@ -388,7 +388,7 @@ class Bilby_MCMC(MCMCSampler):
 
         with open(self.resume_file, "rb") as file:
             ptsampler = dill.load(file)
-            if type(ptsampler) != BilbyPTMCMCSampler:
+            if not isinstance(ptsampler, BilbyPTMCMCSampler):
                 logger.debug("Malformed resume file, ignoring")
                 return False
             self.ptsampler = ptsampler

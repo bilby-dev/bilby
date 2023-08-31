@@ -189,10 +189,7 @@ class TestGWTransient(unittest.TestCase):
         self.assertListEqual(
             bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers
         )
-        self.assertTrue(
-            type(self.likelihood.interferometers)
-            == bilby.gw.detector.InterferometerList
-        )
+        self.assertIsInstance(self.likelihood.interferometers, bilby.gw.detector.InterferometerList)
 
     def test_interferometers_setting_interferometer_list(self):
         ifos = bilby.gw.detector.InterferometerList(
@@ -205,10 +202,7 @@ class TestGWTransient(unittest.TestCase):
         self.assertListEqual(
             bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers
         )
-        self.assertTrue(
-            type(self.likelihood.interferometers)
-            == bilby.gw.detector.InterferometerList
-        )
+        self.assertIsInstance(self.likelihood.interferometers, bilby.gw.detector.InterferometerList)
 
     def test_meta_data(self):
         expected = dict(

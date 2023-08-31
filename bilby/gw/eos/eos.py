@@ -60,12 +60,12 @@ class TabularEOS(object):
         self.sampling_flag = sampling_flag
         self.warning_flag = warning_flag
 
-        if type(eos) == str:
+        if isinstance(eos, str):
             if eos in valid_eos_dict.keys():
                 table = np.loadtxt(valid_eos_dict[eos])
             else:
                 table = np.loadtxt(eos)
-        elif type(eos) == np.ndarray:
+        elif isinstance(eos, np.ndarray):
             table = eos
         else:
             raise ValueError("eos provided is invalid type please supply a str name, str path to ASCII file, "

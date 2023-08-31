@@ -682,11 +682,11 @@ class Sampler(object):
         if self.cached_result is None:
             kwargs_print = self.kwargs.copy()
             for k in kwargs_print:
-                if type(kwargs_print[k]) in (list, np.ndarray):
+                if isinstance(kwargs_print[k], (list, np.ndarray)):
                     array_repr = np.array(kwargs_print[k])
                     if array_repr.size > 10:
                         kwargs_print[k] = f"array_like, shape={array_repr.shape}"
-                elif type(kwargs_print[k]) == DataFrame:
+                elif isinstance(kwargs_print[k], DataFrame):
                     kwargs_print[k] = f"DataFrame, shape={kwargs_print[k].shape}"
             logger.info(
                 f"Using sampler {self.__class__.__name__} with kwargs {kwargs_print}"
