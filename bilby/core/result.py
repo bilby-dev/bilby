@@ -134,6 +134,16 @@ def read_in_result_list(filename_list, invalid="warning"):
     """
     results_list = []
     for filename in filename_list:
+        if (
+            not os.path.exists(filename)
+            and os.path.exists(f"{os.path.splitext(filename)[0]}.pkl")
+        ):
+            pickle_path = f"{os.path.splitext(filename)[0]}.pkl"
+            logger.warning(
+                f"Result file {filename} doesn't exist but {pickle_path} does. "
+                f"Using {pickle_path}."
+            )
+            filename = pickle_path
         try:
             results_list.append(read_in_result(filename=filename))
         except Exception as e:
