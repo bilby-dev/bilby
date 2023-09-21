@@ -1,5 +1,25 @@
 # All notable changes will be documented in this file
 
+## [2.2.0] 2023-07-24
+Version 2.2.0 release of Bilby
+
+This release contains one new feature and drops support for Python 3.8.
+
+### Added
+- New waveform interface to support the SEOBNRv5 family of waveforms (!1218)
+- Enable default noise + injection function for non-CBC signals (!1263)
+- Fallback to result pickle loading to match result writing (!1291)
+
+### Changes
+- Additional error catching for plotting (!1261, !1271)
+- Improve plotting options for corner plots (!1270)
+- Fix bugs in closing the pool for emcee (!1274)
+- Generalize MPI support (!1278)
+- Fix a bug with saving hdf5 results when conda isn't present (!1290)
+
+### Deprecated
+- Drop support for py38 (!1277)
+
 ## [2.1.2] 2023-07-17
 Version 2.1.2 release of Bilby
 
