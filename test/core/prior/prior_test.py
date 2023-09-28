@@ -558,6 +558,8 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(-1e2, 1e2, 1000)
             elif isinstance(prior, bilby.core.prior.FermiDirac):
                 domain = np.linspace(0.0, 1e2, 1000)
+            elif isinstance(prior, bilby.gw.prior.AlignedSpin):
+                domain = np.linspace(prior.minimum, prior.maximum, 10000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
