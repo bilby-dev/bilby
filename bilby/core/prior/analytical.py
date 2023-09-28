@@ -1608,7 +1608,7 @@ class Triangular(Prior):
 
         """
         return (
-            + (val > self.mode)
+            (val > self.mode)
             + (val > self.minimum)
             * (val <= self.maximum)
             / (self.scale)
