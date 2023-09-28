@@ -83,6 +83,7 @@ Stephen R Green
 Sumeet Kulkarni
 Sylvia Biscoveanu
 Tathagata Ghosh
+Teagan Clarke
 Tomasz Baka
 Will M. Farr
 Virginia d'Emilio

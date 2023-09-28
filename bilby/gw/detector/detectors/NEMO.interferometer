@@ -1,0 +1,18 @@
+# The proposed NEMO high frequency detector 
+# location here set to Gingin Western Australia
+# https://arxiv.org/abs/2007.03128 Figure 1 
+
+name = 'NEMO'
+power_spectral_density = PowerSpectralDensity(psd_file='NEMO_psd.txt')
+minimum_frequency = 10
+maximum_frequency = 2048
+
+length = 4
+latitude = -31.34
+longitude = 115.91
+elevation = 0.0
+xarm_azimuth = 2.0
+yarm_azimuth = 125.0
+
+
+
