@@ -216,6 +216,31 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     integrand = np.conj(aa) * bb / power_spectral_density
     return 4 / duration * np.sum(integrand)
 
+def td_noise_weighted_inner_product(aa, bb, cc, duration):
+    """
+    Calculate the noise weighted inner product between two arrays in the time domain.
+
+    Parameters
+    ==========
+    aa: array_like
+        Array to be complex conjugated
+    bb: array_like
+        Array not to be complex conjugated
+    cc: array_like
+        Noise correlation matrix
+    duration: float
+        duration of the data
+
+    Returns
+    =======
+    Noise-weighted inner product.
+    """
+
+    _, qq = np.linalg.eigh(cc)
+    aa_qq, bb_qq = np.dot(qq, aa), np.dot(qq, bb)
+    sigmasq = np.diag(np.dot(np.linalg.inv(cc), qq.T))
+    integrand = np.conj(aa_qq) * sigmasq * bb_qq
+    return 4 / duration * np.sum(integrand)
 
 def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
     """
