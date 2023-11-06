@@ -423,8 +423,7 @@ def read_frame_file(file_name, start_time, end_time, resample=None, channel=None
 
     if loaded:
         if resample and (strain.sample_rate.value != resample):
-            strain.resample(resample)
-        return strain
+            return strain.resample(resample)
     else:
         logger.warning('No data loaded.')
         return None
