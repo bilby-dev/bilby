@@ -446,7 +446,7 @@ class Dynesty(NestedSampler):
 
         if sample == "rwalk":
             logger.info(
-                "Using the bilby-implemented rwalk sample method with ACT estimated walks. "
+                f"Using the bilby-implemented {sample} sample method with ACT estimated walks. "
                 f"An average of {2 * self.nact} steps will be accepted up to chain length "
                 f"{self.maxmcmc}."
             )
@@ -460,7 +460,7 @@ class Dynesty(NestedSampler):
             dynesty.nestedsamplers._SAMPLING["rwalk"] = AcceptanceTrackingRWalk()
         elif sample == "acceptance-walk":
             logger.info(
-                "Using the bilby-implemented rwalk sampling with an average of "
+                f"Using the bilby-implemented {sample} sampling with an average of "
                 f"{self.naccept} accepted steps per MCMC and maximum length {self.maxmcmc}"
             )
             from .dynesty_utils import FixedRWalk
@@ -468,7 +468,7 @@ class Dynesty(NestedSampler):
             dynesty.nestedsamplers._SAMPLING["acceptance-walk"] = FixedRWalk()
         elif sample == "act-walk":
             logger.info(
-                "Using the bilby-implemented rwalk sampling tracking the "
+                f"Using the bilby-implemented {sample} sampling tracking the "
                 f"autocorrelation function and thinning by "
                 f"{self.nact} with maximum length {self.nact * self.maxmcmc}"
             )
