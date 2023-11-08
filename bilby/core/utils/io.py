@@ -283,7 +283,7 @@ def encode_for_hdf5(key, item):
             output = item
         elif np.issubdtype(item_array.dtype, np.number):
             output = np.array(item)
-        elif issubclass(item_array.dtype.type, str) or item[0] is None:
+        elif issubclass(item_array.dtype.type, str) or None in item:
             output = list()
             for value in item:
                 if isinstance(value, str):
