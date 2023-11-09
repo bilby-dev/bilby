@@ -258,7 +258,8 @@ pages:
   script:
     - cd containers
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --tag v3-bilby-$PYVERSION - < v3-dockerfile-test-suite-$PYVERSION
+    - cp v3-dockerfile-test-suite-$PYVERSION Dockerfile
+    - docker build --tag v3-bilby-$PYVERSION .
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
 

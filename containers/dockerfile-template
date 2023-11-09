@@ -1,36 +1,17 @@
 FROM containers.ligo.org/docker/base:conda
 LABEL name="bilby CI testing" \
-maintainer="Gregory Ashton <gregory.ashton@ligo.org>"
+maintainer="Gregory Ashton <gregory.ashton@ligo.org>, Colm Talbot <colm.talbot@ligo.org>"
 
-RUN conda update -n base -c defaults conda
-
+COPY env-template.yml env.yml
+RUN echo "  - python=={python_major_version}.{python_minor_version}" >> env.yml
 ENV conda_env python{python_major_version}{python_minor_version}
 
-RUN conda create -n ${{conda_env}} python={python_major_version}.{python_minor_version}
+RUN mamba env create -f env.yml -n ${{conda_env}}
 RUN echo "source activate ${{conda_env}}" > ~/.bashrc
 ENV PATH /opt/conda/envs/${{conda_env}}/bin:$PATH
 RUN /bin/bash -c "source activate ${{conda_env}}"
-RUN conda info
+RUN mamba info
 RUN python --version
-
-# Install conda-installable programs
-RUN conda install -n ${{conda_env}} -y matplotlib numpy scipy pandas astropy flake8
-RUN conda install -n ${{conda_env}} -c anaconda coverage configargparse future dill
-RUN conda install -n ${{conda_env}} -c conda-forge black pytest-cov deepdish arviz
-
-# Install pip-requirements
-RUN pip install --upgrade pip
-RUN pip install --upgrade setuptools coverage-badge parameterized
-
-# Install documentation requirements
-RUN pip install sphinx numpydoc nbsphinx sphinx_rtd_theme sphinx-tabs autodoc
-
-# Install testing requirements
-RUN conda install -n ${{conda_env}} -c conda-forge scikit-image celerite george
-
-# Install dependencies and samplers
-RUN pip install corner healpy cython tables
-RUN conda install -n ${{conda_env}} {conda_samplers} -c conda-forge -c pytorch
 
 # Install Polychord
 RUN apt-get update --allow-releaseinfo-change
@@ -42,10 +23,6 @@ RUN apt-get install -y gfortran
 
 RUN git clone https://github.com/PolyChord/PolyChordLite.git \
 && (cd PolyChordLite && python setup.py --no-mpi install)
-
-# Install GW packages
-RUN conda install -n ${{conda_env}} -c conda-forge python-lalsimulation bilby.cython pyseobnr
-RUN pip install ligo-gracedb gwpy ligo.skymap
 
 # Add the ROQ data to the image
 RUN mkdir roq_basis \
