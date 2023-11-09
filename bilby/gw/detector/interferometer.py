@@ -90,7 +90,7 @@ class Interferometer(object):
         self.strain_data = InterferometerStrainData(
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
-        self.meta_data = dict()
+        self.meta_data = dict(name=name)
 
     def __eq__(self, other):
         if self.name == other.name and \
