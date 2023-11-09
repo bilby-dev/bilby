@@ -55,7 +55,6 @@ _sampler_kwargs = dict(
     PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
     pymc=dict(draws=50, tune=50, n_init=250),
     pymultinest=dict(nlive=100),
-    pypolychord=dict(nlive=100),
     ultranest=dict(nlive=100, temporary_directory=False),
     zeus=dict(nwalkers=10, iterations=100)
 )
@@ -65,7 +64,7 @@ sampler_imports = dict(
     dynamic_dynesty="dynesty"
 )
 
-no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "pypolychord", "ultranest", "pymc"]
+no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
 
 
 def slow_func(x, m, c):
