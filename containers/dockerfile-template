@@ -13,17 +13,6 @@ RUN /bin/bash -c "source activate ${{conda_env}}"
 RUN mamba info
 RUN python --version
 
-# Install Polychord
-RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y build-essential
-RUN apt-get install -y libblas3 libblas-dev
-RUN apt-get install -y liblapack3 liblapack-dev
-RUN apt-get install -y libatlas3-base libatlas-base-dev
-RUN apt-get install -y gfortran
-
-RUN git clone https://github.com/PolyChord/PolyChordLite.git \
-&& (cd PolyChordLite && python setup.py --no-mpi install)
-
 # Add the ROQ data to the image
 RUN mkdir roq_basis \
     && cd roq_basis \
