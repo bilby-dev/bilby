@@ -1,5 +1,20 @@
 # All notable changes will be documented in this file
 
+## [2.2.1] 2023-1111
+Version 2.2.1 release of Bilby
+
+This release is a bugfix release.
+
+### Changes
+- Ensure inteferometer metadata is not empty (!1281)
+- Make interrupted pools exit more quickly (!1284)
+- Fix conditional sampling with DeltaFunction conditions (!1289)
+- The triangular prior raised an error with numpy (!1294)
+- Make sure strain data resampling works (!1295)
+- Dynesty logging (!1296)
+- A bug with saving lists that contain None (!1301)
+- Preparatory fix an upcoming change in dynesty (!1302)
+
 ## [2.2.0] 2023-07-24
 Version 2.2.0 release of Bilby
 
