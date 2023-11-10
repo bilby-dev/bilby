@@ -438,42 +438,42 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
     def test_frequency_domain_caching_and_using_time_domain_strain_without_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.time_domain_strain()
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.frequency_domain_strain,
+            self.waveform_generator.time_domain_strain,
+            self.simulation_parameters,
+            None,
+        ))
 
     def test_frequency_domain_caching_and_using_time_domain_strain_with_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.frequency_domain_strain,
+            self.waveform_generator.time_domain_strain,
+            self.simulation_parameters,
+            self.simulation_parameters,
+        ))
 
     def test_time_domain_caching_and_using_frequency_domain_strain_without_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain()
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.time_domain_strain,
+            self.waveform_generator.frequency_domain_strain,
+            self.simulation_parameters,
+            None,
+        ))
 
     def test_time_domain_caching_and_using_frequency_domain_strain_with_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.time_domain_strain,
+            self.waveform_generator.frequency_domain_strain,
+            self.simulation_parameters,
+            self.simulation_parameters,
+        ))
 
     def test_frequency_domain_caching_changing_model(self):
         original_waveform = self.waveform_generator.frequency_domain_strain(
@@ -648,42 +648,51 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
     def test_frequency_domain_caching_and_using_time_domain_strain_without_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.time_domain_strain()
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.frequency_domain_strain,
+            self.waveform_generator.time_domain_strain,
+            self.simulation_parameters,
+            None,
+        ))
 
     def test_frequency_domain_caching_and_using_time_domain_strain_with_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.frequency_domain_strain,
+            self.waveform_generator.time_domain_strain,
+            self.simulation_parameters,
+            self.simulation_parameters,
+        ))
 
     def test_time_domain_caching_and_using_frequency_domain_strain_without_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain()
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.time_domain_strain,
+            self.waveform_generator.frequency_domain_strain,
+            self.simulation_parameters,
+            None,
+        ))
 
     def test_time_domain_caching_and_using_frequency_domain_strain_with_parameters(
         self,
     ):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertNotEqual(original_waveform, new_waveform)
+        self.assertFalse(_test_caching_different_domain(
+            self.waveform_generator.time_domain_strain,
+            self.waveform_generator.frequency_domain_strain,
+            self.simulation_parameters,
+            self.simulation_parameters,
+        ))
+
+
+def _test_caching_different_domain(func1, func2, params1, params2):
+    original_waveform = func1(parameters=params1)
+    new_waveform = func2(parameters=params2)
+    output = True
+    for key in original_waveform:
+        output &= np.array_equal(original_waveform[key], new_waveform[key])
+    return output
 
 
 if __name__ == "__main__":
