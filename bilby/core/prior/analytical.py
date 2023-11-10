@@ -28,6 +28,7 @@ class DeltaFunction(Prior):
                                             minimum=peak, maximum=peak, check_range_nonzero=False)
         self.peak = peak
         self._is_fixed = True
+        self.least_recently_sampled = peak
 
     def rescale(self, val):
         """Rescale everything to the peak with the correct shape.

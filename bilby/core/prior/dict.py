@@ -711,16 +711,22 @@ class ConditionalPriorDict(PriorDict):
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
-        subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
+        add_delta_keys = [
+            key
+            for key in self.keys()
+            if key not in keys and isinstance(self[key], DeltaFunction)
+        ]
+        use_keys = add_delta_keys + list(keys)
+        subset_dict = ConditionalPriorDict({key: self[key] for key in use_keys})
         if not subset_dict._resolved:
             raise IllegalConditionsException(
                 "The current set of priors contains unresolvable conditions."
             )
         samples = dict()
         for key in subset_dict.sorted_keys:
-            if isinstance(self[key], Constraint):
+            if key not in keys or isinstance(self[key], Constraint):
                 continue
-            elif isinstance(self[key], Prior):
+            if isinstance(self[key], Prior):
                 try:
                     samples[key] = subset_dict[key].sample(
                         size=size, **subset_dict.get_required_variables(key)

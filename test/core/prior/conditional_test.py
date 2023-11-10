@@ -412,6 +412,38 @@ class TestConditionalPriorDict(unittest.TestCase):
         res = priors.rescale(["a", "b", "d", "c"], [0.5, 0.5, 0.5, 0.5])
         print(res)
 
+    def test_subset_sampling(self):
+        def _tp_conditional_uniform(ref_params, period):
+            min_ref, max_ref = ref_params["minimum"], ref_params["maximum"]
+            max_ref = np.minimum(max_ref, min_ref + period)
+            return {"minimum": min_ref, "maximum": max_ref}
+
+        p0 = 68400.0
+        prior = bilby.core.prior.ConditionalPriorDict(
+            {
+                "tp": bilby.core.prior.ConditionalUniform(
+                    condition_func=_tp_conditional_uniform, minimum=0, maximum=2 * p0
+                )
+            }
+        )
+
+        # ---------- 0. Sanity check: sample full prior
+        prior["period"] = p0
+        samples2d = prior.sample(1000)
+        assert samples2d["tp"].max() < p0
+
+        # ---------- 1. Subset sampling with external delta-prior
+        print("Test 1: Subset-sampling conditionals for fixed 'externals':")
+        prior["period"] = p0
+        samples1d = prior.sample_subset(["tp"], 1000)
+        self.assertLess(samples1d["tp"].max(), p0)
+
+        # ---------- 2. Subset sampling with external uniform prior
+        prior["period"] = bilby.core.prior.Uniform(minimum=p0, maximum=2 * p0)
+        print("Test 2: Subset-sampling conditionals for 'external' uncertainties:")
+        with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+            prior.sample_subset(["tp"], 1000)
+
 
 class TestDirichletPrior(unittest.TestCase):
 
