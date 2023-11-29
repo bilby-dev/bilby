@@ -1,5 +1,13 @@
 # All notable changes will be documented in this file
 
+## [2.2.2] 2023-11-29
+Version 2.2.2 release of Bilby
+
+This is a bugfix release reverting a change from 2.2.1
+
+### Changes
+- Revert !1284 (!1306)
+
 ## [2.2.1] 2023-1111
 Version 2.2.1 release of Bilby
 
