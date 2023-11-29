@@ -727,29 +727,16 @@ class Sampler(object):
         if self.npool in (1, None) or getattr(self, "pool", None) is not None:
             self._log_interruption(signum=signum)
             self.write_current_state()
-            self._close_pool(hard=True)
+            self._close_pool()
             if self.hard_exit:
                 os._exit(self.exit_code)
             else:
                 sys.exit(self.exit_code)
 
-    def _close_pool(self, hard=False):
-        """
-        Close the worker pool.
-
-        Parameters
-        ==========
-        hard: bool
-            Whether to terminate the pool or just close it. Terminating the
-            pool will kill all running jobs, closing it will wait for them to
-            finish.
-        """
+    def _close_pool(self):
         if getattr(self, "pool", None) is not None:
             logger.info("Starting to close worker pool.")
-            if hard:
-                self.pool.terminate()
-            else:
-                self.pool.close()
+            self.pool.close()
             self.pool.join()
             self.pool = None
             self.kwargs["pool"] = self.pool
