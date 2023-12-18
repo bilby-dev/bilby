@@ -100,7 +100,7 @@ def run_sampler(
         A string used in defining output files
     sampler: str, Sampler
         The name of the sampler to use - see
-        `bilby.sampler.get_implemented_samplers()` for a list of available
+        `bilby.sampler.IMPLEMENTED_SAMPLERS` for a list of available
         samplers.
         Alternatively a Sampler object can be passed
     use_ratio: bool (False)
