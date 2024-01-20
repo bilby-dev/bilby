@@ -707,6 +707,8 @@ class BBHPriorDict(CBCPriorDict):
             else:
                 fname = 'precessing_spins_bbh.prior'
             filename = os.path.join(DEFAULT_PRIOR_DIR, fname)
+            print(filename)
+            print(DEFAULT_PRIOR_DIR)
             logger.info('No prior given, using default BBH priors in {}.'.format(filename))
         elif filename is not None:
             if not os.path.isfile(filename):
