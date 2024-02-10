@@ -398,7 +398,7 @@ def read_frame_file(file_name, start_time, end_time, resample=None, channel=None
             strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
             loaded = True
             logger.info('Successfully loaded {}.'.format(channel))
-        except RuntimeError:
+        except (RuntimeError, ValueError):
             logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
 
     if loaded is False:
@@ -418,7 +418,7 @@ def read_frame_file(file_name, start_time, end_time, resample=None, channel=None
                                              **kwargs)
                     loaded = True
                     logger.info('Successfully read strain data for channel {}.'.format(channel))
-                except RuntimeError:
+                except (RuntimeError, ValueError):
                     pass
 
     if loaded:
