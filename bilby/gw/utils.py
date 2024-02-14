@@ -1038,7 +1038,7 @@ def ln_i0(value):
     array-like:
         The natural logarithm of the bessel function
     """
-    return np.log(i0e(value)) + value
+    return np.log(i0e(value)) + np.abs(value)
 
 
 def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
