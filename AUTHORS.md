@@ -81,6 +81,7 @@ Sharan Banagiri
 Shichao Wu
 Simon Stevenson
 Soichiro Morisaki
+Soumen Roy
 Stephen R Green
 Sumeet Kulkarni
 Sylvia Biscoveanu

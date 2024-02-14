@@ -735,6 +735,7 @@ class Dynesty(NestedSampler):
                 self.sampler.nqueue = -1
                 self.start_time = self.sampler.kwargs.pop("start_time")
                 self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
                     self.sampler.M = self.pool.map
