@@ -123,6 +123,9 @@ class Dynesty(NestedSampler):
         The proposal methods to use during MCMC. This can be some combination
         of :code:`"diff", "volumetric"`. See the dynesty guide in the Bilby docs
         for more details. default=:code:`["diff"]`.
+    rstate: numpy.random.Generator (None)
+        Instance of a numpy random generator for generating random numbers.
+        Also see :code:`seed` in 'Other Parameters'.
 
     Other Parameters
     ================
@@ -143,7 +146,12 @@ class Dynesty(NestedSampler):
         has no impact on the sampling.
     dlogz: float, (0.1)
         Stopping criteria
+    seed: int (None)
+        Use to seed the random number generator if :code:`rstate` is not
+        specified.
     """
+
+    sampling_seed_key = "seed"
 
     @property
     def _dynesty_init_kwargs(self):
@@ -176,6 +184,7 @@ class Dynesty(NestedSampler):
     def default_kwargs(self):
         kwargs = self._dynesty_init_kwargs
         kwargs.update(self._dynesty_sampler_kwargs)
+        kwargs["seed"] = None
         return kwargs
 
     def __init__(
@@ -265,6 +274,14 @@ class Dynesty(NestedSampler):
             for equiv in self.npool_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs["queue_size"] = kwargs.pop(equiv)
+        if "seed" in kwargs:
+            seed = kwargs.get("seed")
+            if "rstate" not in kwargs:
+                kwargs["rstate"] = np.random.default_rng(seed)
+            else:
+                logger.warning(
+                    "Kwargs contain both 'rstate' and 'seed', ignoring 'seed'."
+                )
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs["walks"]:
@@ -604,6 +621,7 @@ class Dynesty(NestedSampler):
             sampling_time_s=self.sampling_time.seconds,
             ncores=self.kwargs.get("queue_size", 1),
         )
+        self.kwargs["rstate"] = None
 
     def _update_sampling_time(self):
         end_time = datetime.datetime.now()
