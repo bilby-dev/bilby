@@ -57,6 +57,7 @@ Michael Puerrer
 Michael Williams
 Monica Rizzo
 Moritz Huebner
+Nico Gerardo Bers
 Nicola De Lillo
 Nikhil Sarin
 Nirban Bose

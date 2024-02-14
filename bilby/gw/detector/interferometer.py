@@ -607,7 +607,7 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The matched filter signal to noise ratio squared
+        complex: The matched filter signal to noise ratio
 
         """
         return gwutils.matched_filter_snr(
