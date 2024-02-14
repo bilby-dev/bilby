@@ -37,8 +37,8 @@ new point from the constrained prior. These can be specified using the
    iterations of :code:`dynesty`. With this method, :code:`nact=2` often gives good
    results, however, in some cases, a larger value may be required.
 
-2. :code:`sample="acceptance-walk"`: with this method, the length of each MCMC
-   chain is predetermined. The specific length evolves during the run to yield an
+2. :code:`sample="acceptance-walk"`: with this method, at each iteration all MCMC chains
+   are set to the same length. The specific length evolves during the run to yield an
    average of :code:`naccept` accepted jumps during each chain. This method is well
    suited to parallelised applications, as each MCMC chain will run for the same
    amount of time. The value of :code:`naccept` should be tuned based on the
