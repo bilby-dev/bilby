@@ -38,8 +38,9 @@ new point from the constrained prior. These can be specified using the
    results, however, in some cases, a larger value may be required.
 
 2. :code:`sample="acceptance-walk"`: with this method, at each iteration all MCMC chains
-   are set to the same length. The specific length evolves during the run to yield an
-   average of :code:`naccept` accepted jumps during each chain. This method is well
+   are set to the same length. The specific length evolves during the run so that the
+   number of accepted steps follows a Poisson distribution with mean :code:`naccept`
+   during each chain. This method is well
    suited to parallelised applications, as each MCMC chain will run for the same
    amount of time. The value of :code:`naccept` should be tuned based on the
    application. For example, one could run a single analysis with
@@ -62,7 +63,9 @@ There are a number of keyword arguments that influence these sampling methods:
    for consistency with other codes. Default is 5000. If this limit is reached,
    a warning will be printed during sampling.
 
-#. :code:`proposals`: a list of the desired proposals. The allowed values are
+#. :code:`proposals`: a list of the desired proposals.
+   Each of these proposals can be used with any of the sampling methods described
+   above. The allowed values are
 
   * :code:`diff`: `ter Braak + (2006) <https://doi.org/10.1007/s11222-006-8769-1>`_
     differential evolution. This is the default for :code:`bound="live"` and
@@ -70,7 +73,9 @@ There are a number of keyword arguments that influence these sampling methods:
 
   * :code:`volumetric`: sample from an ellipsoid centered on the current point.
     This is the proposal distribution implemented in :code:`dynesty` and the
-    default for all other :code:`bound` options.
+    default for all other :code:`bound` options. This was the default proposal
+    distribution for :code:`Bilby<2`, however, in many applications it leads to
+    longer autocorrelation times and struggles to explore multi-modal distributions.
 
 Finally, we implement two custom :code:`dynesty.sampler.Sampler` classes to
 facilitate the differential evolution proposal and average acceptance tracking.
