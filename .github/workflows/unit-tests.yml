@@ -28,7 +28,7 @@ jobs:
     #     pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Run unit tests
       run: |
-        pytest --cov-bilby --durations 10
+        pytest --cov=bilby --durations 10
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v
