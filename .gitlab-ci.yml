@@ -82,9 +82,9 @@ basic-3.10:
     - *list-env
     - python test/test_samplers_import.py
 
-import-samplers-3.9:
-  <<: *test-samplers-import
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+# import-samplers-3.9:
+#   <<: *test-samplers-import
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 import-samplers-3.10:
   <<: *test-samplers-import
@@ -98,16 +98,15 @@ import-samplers-3.10:
     - pip install --upgrade pip
     - pip --cache-dir=$CACHE_DIR install --upgrade bilby
     - pip --cache-dir=$CACHE_DIR install .
-    - pip --cache-dir=$CACHE_DIR install pre-commit
     # Run precommits (flake8, spellcheck, isort, no merge conflicts, etc)
     - pre-commit run --all-files --verbose --show-diff-on-failure
 
-precommits-py3.9:
-  <<: *precommits
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  variables:
-    CACHE_DIR: ".pip39"
-    PYVERSION: "python39"
+# precommits-py3.9:
+#   <<: *precommits
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+#   variables:
+#     CACHE_DIR: ".pip39"
+#     PYVERSION: "python39"
 
 precommits-py3.10:
   <<: *precommits
@@ -135,10 +134,10 @@ install:
 
     - pytest --cov=bilby --durations 10
 
-python-3.9:
-  <<: *unit-test
-  needs: ["basic-3.9", "precommits-py3.9"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+# python-3.9:
+#   <<: *unit-test
+#   needs: ["basic-3.9", "precommits-py3.9"]
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10:
   <<: *unit-test
@@ -164,10 +163,10 @@ python-3.10:
     - *list-env
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
-python-3.9-samplers:
-  <<: *test-sampler
-  needs: ["basic-3.9", "precommits-py3.9"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+# python-3.9-samplers:
+#   <<: *test-sampler
+#   needs: ["basic-3.9", "precommits-py3.9"]
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10-samplers:
   <<: *test-sampler
@@ -195,10 +194,10 @@ integration-tests-python-3.10:
     - *list-env
     - pytest test/gw/plot_test.py
 
-plotting-python-3.9:
-  <<: *plotting
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  needs: ["basic-3.9", "precommits-py3.9"]
+# plotting-python-3.9:
+#   <<: *plotting
+#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+#   needs: ["basic-3.9", "precommits-py3.9"]
 
 plotting-python-3.10:
   <<: *plotting
@@ -211,8 +210,6 @@ docs:
   stage: docs
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   before_script:
-    - conda install -c conda-forge pandoc ipython jupyter nbconvert
-    - python -m pip install ipykernel
     - python -m ipykernel install
   script:
     # Make the documentation
@@ -263,10 +260,11 @@ pages:
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
 
-build-python39-container:
-  <<: *build-container
-  variables:
-    PYVERSION: "python39"
+# disable building python39 container due to dependency issues
+# build-python39-container:
+#   <<: *build-container
+#   variables:
+#     PYVERSION: "python39"
 
 build-python310-container:
   <<: *build-container
@@ -280,7 +278,6 @@ pypi-release:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
   before_script:
-    - python -m pip install twine setuptools_scm build
     - python -m build --sdist --wheel --outdir dist/ .
   script:
     - twine upload dist/*

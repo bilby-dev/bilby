@@ -11,7 +11,7 @@ IMPLEMENTED_SAMPLERS = bilby.core.sampler.IMPLEMENTED_SAMPLERS
 likelihood = bilby.core.likelihood.Likelihood(dict())
 priors = bilby.core.prior.PriorDict(dict(a=bilby.core.prior.Uniform(0, 1)))
 for sampler in IMPLEMENTED_SAMPLERS:
-    if sampler == "fake_sampler":
+    if sampler in ["fake_sampler", "pypolychord"]:
         continue
     sampler_class = IMPLEMENTED_SAMPLERS[sampler]
     sampler = sampler_class(likelihood=likelihood, priors=priors)
