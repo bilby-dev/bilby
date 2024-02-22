@@ -6,6 +6,7 @@ channels:
 dependencies:
   - pip
   - setuptools
+  - setuptools_scm
   - matplotlib
   - numpy
   - scipy
@@ -57,5 +58,15 @@ dependencies:
   - jaxlib>=0.4
   - jax>=0.4
   - numba>0.53.1
+  - make
+  - pre-commit
+  - pandoc
+  - ipython
+  - jupyter
+  - nbconvert
+  - twine
   - pip:
     - autodoc
+    - ipykernel
+    - build
+    - nflows
