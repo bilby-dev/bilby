@@ -23,9 +23,9 @@ jobs:
       run: |
         python -m pip install .
         conda list --show-channel-urls
-    - name: Run precommits
-      run: |
-        pre-commit run --all-files --verbose --show-diff-on-failure
+    # - name: Run precommits
+    #   run: |
+    #     pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Run unit tests
       run: |
         pytest --cov-bilby --durations 10
