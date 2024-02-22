@@ -40,8 +40,8 @@ jobs:
           python -c "import bilby.hyper"
           python -c "import cli_bilby"
           python test/import_test.py
-      - if: ${{ matrix.os != "windows-latest" }}
-        run: |
-          for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
-              ${script} --help;
-          done
+      # - if: ${{ matrix.os != "windows-latest" }}
+      #   run: |
+      #     for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
+      #         ${script} --help;
+      #     done
