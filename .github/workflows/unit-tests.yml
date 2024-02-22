@@ -16,15 +16,9 @@ jobs:
     container: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
     strategy:
       fail-fast: false
-      matrix:
-        python-minor: ["10"]
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.${{ matrix.python-minor }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: 3.${{ matrix.python-minor }}
     - name: Install package
       run: |
         python -m pip install .
