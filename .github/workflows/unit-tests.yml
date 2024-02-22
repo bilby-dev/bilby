@@ -13,11 +13,11 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    container: containers.ligo.org/lscsoft/bilby/v2-bilby-python3{{ matrix.python-minor }}
+    container: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
     strategy:
       fail-fast: false
       matrix:
-        python-minor: ["10", "11"]
+        python-minor: ["10"]
 
     steps:
     - uses: actions/checkout@v3
