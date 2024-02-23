@@ -306,7 +306,7 @@ class TestROQBBH(unittest.TestCase):
             frequency_nodes_quadratic=fnodes_quadratic,
             reference_frequency=50.0,
             minimum_frequency=20.0,
-            approximant="IMRPhenomPv2",
+            waveform_approximant="IMRPhenomPv2",
         )
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
 
