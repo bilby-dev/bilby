@@ -8,6 +8,10 @@ sensitivity), and then recovered.
 
 import bilby
 import numpy as np
+from bilby.core.utils.random import seed, rng
+
+# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+seed(123)
 
 
 # define the time-domain model
