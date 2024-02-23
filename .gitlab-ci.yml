@@ -75,6 +75,10 @@ basic-3.10:
   <<: *test-python
   image: python:3.10
 
+basic-3.11:
+  <<: *test-python
+  image: python:3.11
+
 .test-samplers-import: &test-samplers-import
   stage: initial
   script:
@@ -89,6 +93,10 @@ basic-3.10:
 import-samplers-3.10:
   <<: *test-samplers-import
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+
+import-samplers-3.11:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
 
 .precommits: &precommits
   stage: initial
@@ -156,6 +164,11 @@ python-3.10:
       - htmlcov/
     expire_in: 30 days
 
+python-3.11:
+  <<: *unit-test
+  needs: ["basic-3.11"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
+
 .test-sampler: &test-sampler
   stage: test
   script:
@@ -172,6 +185,11 @@ python-3.10-samplers:
   <<: *test-sampler
   needs: ["basic-3.10", "precommits-py3.10"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+
+python-3.11-samplers:
+  <<: *test-sampler
+  needs: ["basic-3.11"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
 
 integration-tests-python-3.10:
   stage: test
@@ -203,6 +221,11 @@ plotting-python-3.10:
   <<: *plotting
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   needs: ["basic-3.10", "precommits-py3.10"]
+
+plotting-python-3.11:
+  <<: *plotting
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
+  needs: ["basic-3.11"]
 
 # ------------------- Docs stage -------------------------------------------
 
@@ -270,6 +293,11 @@ build-python310-container:
   <<: *build-container
   variables:
     PYVERSION: "python310"
+
+build-python311-container:
+  <<: *build-container
+  variables:
+    PYVERSION: "python311"
 
 pypi-release:
   stage: deploy
