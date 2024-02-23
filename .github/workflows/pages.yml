@@ -1,0 +1,36 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches:
+      - github-main
+  pull_request:
+    branches:
+      - github-main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+    steps:
+      - uses: actions/checkout@v3
+      - name: install
+        run: python -m pip install .
+      - name: Run jupyter notebooks
+        run: |
+          python -m ipykernel install
+          cd examples/tutorials
+          jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
+          cd -
+      - name: Build docs
+        run: |
+          cd docs
+          make clean
+          make html
+      # Disable docs deployment until we move primarily to GitHub
+      # - name: Deploy
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   if: ${{ github.ref == 'refs/heads/master' }}
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: .
