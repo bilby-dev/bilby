@@ -9,7 +9,7 @@ from bilby.gw.source import lal_binary_black_hole
 from bilby.gw.waveform_generator import WaveformGenerator
 from bilby.core.utils.random import seed
 
-# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 duration = 4
 sampling_frequency = 2048.0

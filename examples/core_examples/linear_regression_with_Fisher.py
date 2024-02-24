@@ -10,7 +10,7 @@ import copy
 
 import bilby
 from bilby.core.utils.random import seed, rng
-#sets seed of bibly's generator "rng" to "123"
+#sets seed of bilby's generator "rng" to "123"
 seed(123)
 
 import numpy as np

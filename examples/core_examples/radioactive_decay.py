@@ -11,7 +11,7 @@ from bilby.core.likelihood import PoissonLikelihood
 from bilby.core.prior import LogUniform
 from bilby.core.utils.random import seed, rng
 
-# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
 # A few simple setup steps

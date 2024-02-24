@@ -16,7 +16,7 @@ import numpy as np
 from bilby.core.sampler import proposal
 from bilby.core.utils.random import seed
 
-# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
 # The set up here is the same as in fast_tutorial.py. Look there for descriptive explanations.

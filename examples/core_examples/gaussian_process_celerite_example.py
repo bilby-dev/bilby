@@ -7,7 +7,7 @@ import numpy as np
 from bilby.core.prior import Uniform
 from bilby.core.utils.random import seed, rng
 
-#sets seed of bibly's generator "rng" to "123"
+#sets seed of bilby's generator "rng" to "123"
 seed(123)
 
 # In this example we show how we can use the `celerite` package within `bilby`.

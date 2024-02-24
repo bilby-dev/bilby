@@ -12,7 +12,7 @@ from bilby.core.utils import check_directory_exists_and_if_not_mkdir
 from bilby.hyper.likelihood import HyperparameterLikelihood
 from bilby.core.utils.random import seed, rng
 
-# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
 outdir = "outdir"

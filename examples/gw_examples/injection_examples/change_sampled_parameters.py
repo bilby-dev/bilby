@@ -9,9 +9,9 @@ The cosmology is according to the Planck 2015 data release.
 """
 import bilby
 import numpy as np
-from bilby.core.utils.random import seed, rng
+from bilby.core.utils.random import seed
 
-# Sets seed of bibly's generator "rng" to "123" to ensure reproducibility
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
 bilby.core.utils.setup_logger(log_level="info")
