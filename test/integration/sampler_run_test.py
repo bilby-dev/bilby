@@ -53,8 +53,7 @@ _sampler_kwargs = dict(
         frac_threshold=0.5,
     ),
     PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
-    # remove pymc temporarily for CI issues
-    # pymc=dict(draws=50, tune=50, n_init=250),
+    pymc=dict(draws=50, tune=50, n_init=250),
     pymultinest=dict(nlive=100),
     ultranest=dict(nlive=100, temporary_directory=False),
     zeus=dict(nwalkers=10, iterations=100)
