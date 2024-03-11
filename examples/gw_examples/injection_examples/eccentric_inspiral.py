@@ -23,7 +23,6 @@ label = "eccentric_GW150914"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 
-
 injection_parameters = dict(
     mass_1=35.0,
     mass_2=30.0,

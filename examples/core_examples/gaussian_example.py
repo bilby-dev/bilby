@@ -5,7 +5,7 @@ non-gravitational wave data consisting of a Gaussian with a mean and variance
 """
 import bilby
 import numpy as np
-from bilby.core.utils.random import seed, rng
+from bilby.core.utils.random import rng, seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
@@ -21,6 +21,7 @@ outdir = "outdir"
 
 # Making simulated data: in this case, we consider just a Gaussian
 data = rng.normal(3, 4, 100)
+
 
 class SimpleGaussianLikelihood(bilby.Likelihood):
     def __init__(self, data):

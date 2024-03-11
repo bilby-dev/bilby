@@ -4,7 +4,7 @@ A script to demonstrate how to use your own source model
 """
 import bilby
 import numpy as np
-from bilby.core.utils.random import seed 
+from bilby.core.utils.random import seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)

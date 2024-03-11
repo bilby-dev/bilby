@@ -9,7 +9,7 @@ from copy import deepcopy
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
-from bilby.core.utils.random import seed 
+from bilby.core.utils.random import seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
@@ -23,7 +23,6 @@ sampling_frequency = 1024
 outdir = "outdir"
 label = "calibration_marginalization"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
-
 
 
 # We are going to inject a binary black hole waveform. We first establish a

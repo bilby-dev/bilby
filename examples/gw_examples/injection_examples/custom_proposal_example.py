@@ -12,7 +12,6 @@ import multiprocessing
 multiprocessing.set_start_method("fork")  # noqa
 
 import bilby.gw.sampler.proposal
-import numpy as np
 from bilby.core.sampler import proposal
 from bilby.core.utils.random import seed
 

@@ -603,7 +603,7 @@ def propose_differetial_evolution(
         sampled from the prior.
     rstate: numpy.random.Generator
         The numpy generator instance used for random number generation.
-		Consider using built in `bilby.core.utils.random.rng`.
+                Consider using built in `bilby.core.utils.random.rng`.
     mix: float
         The fraction of proposed points that should follow the specified scale
         rather than mode hopping. :code:`default=0.5`
@@ -659,8 +659,8 @@ def propose_volumetric(
         sampled from the prior.
     rstate: numpy.random.Generator
         The numpy generator instance used for random number generation.
-		Consider using built in `bilby.core.utils.random.rng`.
-		
+                Consider using built in `bilby.core.utils.random.rng`.
+
     Returns
     -------
     u_prop: np.ndarray

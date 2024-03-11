@@ -9,19 +9,15 @@ estimated using the Fisher Information Matrix approximation.
 import copy
 
 import bilby
-from bilby.core.utils.random import seed, rng
-#sets seed of bilby's generator "rng" to "123"
+from bilby.core.utils.random import rng, seed
+
+# sets seed of bilby's generator "rng" to "123"
 seed(123)
 
 import numpy as np
 
-
-
-
 # A few simple setup steps
 outdir = "outdir"
-
-
 
 
 # First, we define our "signal model", in this case a simple linear function

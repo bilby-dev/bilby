@@ -8,7 +8,7 @@ to evaluating the posterior on a grid.
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
-from bilby.core.utils.random import seed, rng
+from bilby.core.utils.random import rng, seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)

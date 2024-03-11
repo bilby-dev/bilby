@@ -14,7 +14,7 @@ correct the ROQ result is.
 
 import bilby
 import numpy as np
-from bilby.core.utils.random import seed, rng
+from bilby.core.utils.random import seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)

@@ -5,7 +5,7 @@ import george
 import matplotlib.pyplot as plt
 import numpy as np
 from bilby.core.prior import Uniform
-from bilby.core.utils.random import seed, rng
+from bilby.core.utils.random import rng, seed
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
@@ -165,9 +165,7 @@ else:
 plt.plot(x, trend, color="green", label="Mean")
 
 # Plot the mean model for ten other posterior samples.
-samples = [
-    result.posterior.iloc[rng.integer(len(result.posterior))] for _ in range(10)
-]
+samples = [result.posterior.iloc[rng.integer(len(result.posterior))] for _ in range(10)]
 for sample in samples:
     likelihood.set_parameters(sample)
     if not isinstance(likelihood.mean_model, (float, int)):

@@ -9,8 +9,8 @@ from bilby.core.prior import Uniform
 from bilby.core.result import make_pp_plot
 from bilby.core.sampler import run_sampler
 from bilby.core.utils import check_directory_exists_and_if_not_mkdir
+from bilby.core.utils.random import rng, seed
 from bilby.hyper.likelihood import HyperparameterLikelihood
-from bilby.core.utils.random import seed, rng
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
