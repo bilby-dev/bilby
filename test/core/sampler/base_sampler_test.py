@@ -10,6 +10,8 @@ import numpy as np
 import bilby
 from bilby.core import prior
 
+loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+
 
 class TestSampler(unittest.TestCase):
     def setUp(self, soft_init=False):
@@ -170,9 +172,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_no_pool(self, sampler_name):
-        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler_name](
-            self.likelihood, self.priors
-        )
+        sampler = loaded_samplers[sampler_name](self.likelihood, self.priors)
         sampler._setup_pool()
         if sampler_name == "kombine":
             from kombine import SerialPool
@@ -184,7 +184,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):
-        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler](
+        sampler = loaded_samplers[sampler](
             self.likelihood, self.priors, npool=2
         )
         sampler._setup_pool()

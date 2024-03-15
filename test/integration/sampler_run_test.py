@@ -66,6 +66,8 @@ sampler_imports = dict(
 
 no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
 
+loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+
 
 def slow_func(x, m, c):
     time.sleep(0.01)
@@ -154,7 +156,7 @@ class TestRunningSamplers(unittest.TestCase):
 
     def _run_with_signal_handling(self, sampler, pool_size=1):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
-        if bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler.lower()].hard_exit:
+        if loaded_samplers[sampler.lower()].hard_exit:
             pytest.skip(f"{sampler} hard exits, can't test signal handling.")
         if pool_size > 1 and sampler.lower() in no_pool_test:
             pytest.skip(f"{sampler} cannot be parallelized")

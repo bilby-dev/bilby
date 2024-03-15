@@ -84,7 +84,7 @@ basic-3.11:
   script:
     - python -m pip install .
     - *list-env
-    - python test/test_samplers_import.py
+    - pytest test/test_samplers_import.py -v
 
 import-samplers-3.9:
   <<: *test-samplers-import
