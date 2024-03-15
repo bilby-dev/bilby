@@ -2061,7 +2061,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         hist_kwargs['color'] = c
         hist_kwargs["linestyle"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
-        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyle": linestyle}, **kwargs)
+        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyles": linestyle}, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(mpllines.Line2D([0], [0], color=c, linestyle=linestyle))
         default_labels.append(result.label)
