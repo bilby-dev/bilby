@@ -300,6 +300,8 @@ class ACTTrackingRWalk:
         )
         reject += nfail
         blob = {"accept": accept, "reject": reject, "scale": args.scale}
+        iact = int(np.ceil(self.act))
+        thin = self.thin * iact
 
         if accept == 0:
             logger.debug(
@@ -314,11 +316,9 @@ class ACTTrackingRWalk:
                 "Unable to find a new point using walk: try increasing maxmcmc"
             )
             self._cache.append((current_u, current_v, logl, ncall, blob))
-        elif self.thin == -1:
+        elif (self.thin == -1) or (len(u_list) <= thin):
             self._cache.append((current_u, current_v, logl, ncall, blob))
         else:
-            iact = int(np.ceil(self.act))
-            thin = self.thin * iact
             u_list = u_list[thin::thin]
             v_list = v_list[thin::thin]
             logl_list = logl_list[thin::thin]
