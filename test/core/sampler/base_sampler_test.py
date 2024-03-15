@@ -12,7 +12,7 @@ from bilby.core import prior
 
 
 class TestSampler(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, soft_init=False):
         likelihood = bilby.core.likelihood.Likelihood()
         likelihood.parameters = dict(a=1, b=2, c=3)
         delta_prior = prior.DeltaFunction(peak=0)
@@ -36,10 +36,15 @@ class TestSampler(unittest.TestCase):
             outdir=test_directory,
             use_ratio=False,
             skip_import_verification=True,
+            soft_init=soft_init
         )
 
     def tearDown(self):
         del self.sampler
+
+    def test_softinit(self):
+        self.setUp(soft_init=True)
+        self.assertTrue(hasattr(self.sampler, "_log_likelihood_eval_time"))
 
     def test_search_parameter_keys(self):
         expected_search_parameter_keys = ["c"]
