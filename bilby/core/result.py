@@ -69,7 +69,11 @@ def result_file_name(outdir, label, extension='json', gzip=False):
 def _determine_file_name(filename, outdir, label, extension, gzip):
     """ Helper method to determine the filename """
     if filename is not None:
-        return filename
+        if isinstance(filename, os.PathLike):
+            # convert PathLike object to string
+            return str(filename)
+        else:
+            return filename
     else:
         if (outdir is None) and (label is None):
             raise ValueError("No information given to load file")
@@ -1795,7 +1799,7 @@ class ResultList(list):
 
         if isinstance(result, Result):
             super(ResultList, self).append(result)
-        elif isinstance(result, str):
+        elif isinstance(result, (str, os.PathLike)):
             super(ResultList, self).append(read_in_result(result))
         else:
             raise TypeError("Could not append a non-Result type")
