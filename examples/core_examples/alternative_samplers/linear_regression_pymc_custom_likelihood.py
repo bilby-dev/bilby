@@ -81,7 +81,7 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
             likelihood is evaluated.
         """
 
-        from bilby.core.sampler import Pymc
+        from bilby.core.sampler.pymc import Pymc
 
         if not isinstance(sampler, Pymc):
             return super(GaussianLikelihoodPyMC, self).log_likelihood()
