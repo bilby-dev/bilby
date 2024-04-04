@@ -128,6 +128,20 @@ class GravitationalWaveTransient(Likelihood):
                     setattr(self, key, other)
             return self
 
+        @property
+        def snrs_as_sample(self) -> dict:
+            """Get the SNRs of this object as a sample dictionary
+
+            Returns
+            =======
+            dict
+                The dictionary of SNRs labelled accordingly
+            """
+            return {
+                "matched_filter_snr" : self.complex_matched_filter_snr,
+                "optimal_snr" : self.optimal_snr_squared.real ** 0.5
+            }
+
     def __init__(
             self, interferometers, waveform_generator, time_marginalization=False,
             distance_marginalization=False, phase_marginalization=False, calibration_marginalization=False, priors=None,
