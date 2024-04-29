@@ -3,6 +3,7 @@
 channels:
   - conda-forge
   - defaults
+  - pytorch
 dependencies:
   - pip
   - setuptools
@@ -31,6 +32,7 @@ dependencies:
   - cython
   - pytables
   - pytorch
+  - cpuonly
   - python-lalsimulation
   - bilby.cython
   - pyseobnr
