@@ -160,7 +160,9 @@ def decode_bilby_json(dct):
                 )
             )
             from ..prior import Prior
-
+            for key in list(dct["kwargs"].keys()):
+                if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
+                    dct["kwargs"].pop(key)
             cls = Prior
         obj = cls(**dct["kwargs"])
         return obj
