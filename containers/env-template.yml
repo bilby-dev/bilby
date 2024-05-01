@@ -22,7 +22,7 @@ dependencies:
   - black
   - pytest-cov
   - pytest-requires
-  - arviz
+  - conda-forge::arviz
   - parameterized
   - scikit-image
   - celerite
