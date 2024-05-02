@@ -29,6 +29,7 @@ Welcome to bilby's documentation!
    writing-documentation
    hyperparameters
    containers
+   contribution-guide
    faq
 
 

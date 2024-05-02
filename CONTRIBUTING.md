@@ -1,15 +1,17 @@
 # Contributing to bilby
 
-This is a short guide to contributing to bilby aimed at general LVC members who
+This is a short guide to contributing to bilby aimed at general LVK members who
 have some familiarity with python and git.  
 
 1. [Code of conduct](#code-of-conduct)
 2. [Code style](#code-style)
-3. [Code relevance](#code-relevance)
-4. [Merge requests](#merge-requests)
-5. [Typical workflow](#typical-workflow)
-6. [Hints and tips](#hints-and-tips)
-7. [Code overview](#code-overview)
+3. [Automated Code Checking](#automated-code-checking)
+4. [Unit Testing](#unit-testing)
+5. [Code relevance](#code-relevance)
+6. [Merge requests](#merge-requests)
+7. [Typical workflow](#typical-workflow)
+8. [Hints and tips](#hints-and-tips)
+9. [Code overview](#code-overview)
 
 
 ## Code of Conduct
@@ -17,7 +19,7 @@ have some familiarity with python and git.
 Everyone participating in the bilby community, and in particular in our issue
 tracker, merge requests, and chat channels, is expected to treat other people
 with respect and follow the guidelines articulated in the [Python Community
-Code of Conduct](https://www.python.org/psf/codeofconduct/).
+Code of Conduct](https://www.python.org/psf/codeofconduct/). Furthermore, members of the LVK collaboration must follow the [LVK Code of Conduct](https://dcc.ligo.org/LIGO-M1900037/public).
 
 ## Code style
 
@@ -46,8 +48,8 @@ def my_new_function(x, y, print=False):
 ```
 3. Avoid inline comments unless necessary. Ideally, the code should make it obvious what is going on, if not the docstring, only in subtle cases use comments
 4. Name variables sensibly. Avoid using single-letter variables, it is better to name something `power_spectral_density_array` than `psda`.
-5. Don't repeat yourself. If code is repeated in multiple places, wrap it up into a function.
-6. Add tests. The C.I. is there to do the work of "checking" the code, both now and into the future. Use it.
+5. Don't repeat yourself. If code is repeated in multiple places, wrap it up into a function. This also helps with the writing of robust unit tests (see below).
+
 
 ## Automated code checking
 
@@ -75,6 +77,50 @@ $ pre-commit install
 If you experience any issues with pre-commit, please ask for support on the
 usual help channels.
 
+
+## Unit Testing
+
+Unit tests are an important part of code development, helping to minimize the number of undetected bugs which may be present in a merge request. They also greatly expedite the review of code, and can even help during the initial development if used properly. Accordingly, bilby requires unit testing for any changes with machine readable inputs and outputs (i.e. pretty much everything except plotting). 
+
+Unit testing is integrated into the CI/CD pipeline, and uses the builtin unittest package. Tests should be written into the `test/` directory which corresponds to their location within the package, such that, for example, a change to `bilby/gw/conversion.py` should go into `test/gw/conversion_test.py`. To run a single test locally, one may simply do `pytest /path/to/test TestClass.test_name`, whereas to run all the tests in a given test file one may omit the class and function.
+
+For an example of what a test looks like, consider this test for the fft utils in bilby:
+
+```
+class TestFFT(unittest.TestCase):
+    def setUp(self):
+        self.sampling_frequency = 10
+
+    def tearDown(self):
+        del self.sampling_frequency
+
+    def test_nfft_sine_function(self):
+        injected_frequency = 2.7324
+        duration = 100
+        times = utils.create_time_series(self.sampling_frequency, duration)
+
+        time_domain_strain = np.sin(2 * np.pi * times * injected_frequency + 0.4)
+
+        frequency_domain_strain, frequencies = bilby.core.utils.nfft(
+            time_domain_strain, self.sampling_frequency
+        )
+        frequency_at_peak = frequencies[np.argmax(np.abs(frequency_domain_strain))]
+        self.assertAlmostEqual(injected_frequency, frequency_at_peak, places=1)
+
+    def test_nfft_infft(self):
+        time_domain_strain = np.random.normal(0, 1, 10)
+        frequency_domain_strain, _ = bilby.core.utils.nfft(
+            time_domain_strain, self.sampling_frequency
+        )
+        new_time_domain_strain = bilby.core.utils.infft(
+            frequency_domain_strain, self.sampling_frequency
+        )
+        self.assertTrue(np.allclose(time_domain_strain, new_time_domain_strain))
+```
+
+`setUp` and `tearDown` handle construction and deconstruction of the test, such that each of the other test functions may be run independently, in any order. The other two functions each make an intuitive test of the functionality of and fft/ifft function: that the fft of a sine wave should be a delta function, and that an ifft should be an inverse of an fft. 
+
+For more information on how to write effective tests, see [this guide](https://docs.python-guide.org/writing/tests/), and many others.
 
 ## Code relevance
 
@@ -153,7 +199,19 @@ $ git clone git@git.ligo.org:albert.einstein/bilby.git
 ```
 
 replacing the SSH url to that of your fork. This will create a directory
-`/bilby` containing a local copy of the code. From this directory, you can run
+`/bilby` containing a local copy of the code.
+
+It is strongly advised to perform development with a dedicated conda environment.
+In depth instructions for creating a conda environment may be found at the relevant
+[conda docs](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment),
+but for most purposes the commands
+
+```bash
+$ conda create -n my-environment-name python=3.X
+$ conda activate my-environment-name
+```
+
+will produce the desired results. Once this is completed, one may proceed to the `/bilby` directory and run
 
 ```bash
 $ pip install -e .
@@ -202,8 +260,25 @@ $ git checkout -b my-new-feature lscsoft/master
 ### Step d) Hack away
 
 1. Develop the changes you would like to introduce, using `git add` to add files with changes. Ideally commit small units of change often, rather than creating one large commit at the end, this will simplify review and make modifying any changes easier.
-2. Commit the changes using `git commit`. This will prompt you for a commit message. Commit messages should be clear, identifying which code was changed, and why. Common practice (see e.g. [this blog](https://chris.beams.io/posts/git-commit/)) is to use a short summary line (<50 characters), followed by a blank line, then more information in longer lines.
-3. Push your changes to the remote copy of your fork on git.ligo.org
+2. Commit the changes using `git commit`. This will prompt you for a commit message. Commit messages should be clear, identifying which code was changed, and why. Bilby is adopting the use of scipy commit format, specified [here](https://docs.scipy.org/doc/scipy/dev/contributor/development_workflow.html#writing-the-commit-message). Commit messages take a standard format of `ACRONYM: Summary message` followed by a more detailed description. For example, an enhancement would look like:
+
+```
+ENH: Add my awesome new feature
+
+This is a very cool change that makes parameter estimation run 10x faster by changing a single line.
+```
+
+Similarly a bugfix:
+
+```
+BUG: Fix type error in my_awesome_feature.py
+
+Correct a typo at L1 of /bilby/my_awesome_feature.py which returned a dictionary instead of a string.
+```
+
+For more discussion of best practices, see e.g. [this blog](https://chris.beams.io/posts/git-commit/).
+
+4. Push your changes to the remote copy of your fork on git.ligo.org
 
 ```bash
 git push origin my-new-feature

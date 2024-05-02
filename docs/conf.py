@@ -66,6 +66,7 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx_tabs.tabs',
     "sphinx.ext.linkcode",
+    'myst_parser'
 ]
 autosummary_generate = True
 

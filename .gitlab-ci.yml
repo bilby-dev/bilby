@@ -230,6 +230,7 @@ docs:
   script:
     # Make the documentation
     - python -m pip install .
+    - python -m pip install myst_parser # only for testing purposes - remove once test image is generating correctly
     - cd examples/tutorials
     - jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
     - cd ../../docs
