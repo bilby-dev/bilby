@@ -2254,17 +2254,15 @@ def compute_snrs(sample, likelihood, npool=1):
                 new_samples = [_compute_snrs(xx) for xx in tqdm(fill_args, file=sys.stdout)]
 
             for ii, ifo in enumerate(likelihood.interferometers):
-                matched_filter_snrs = list()
-                optimal_snrs = list()
-                mf_key = '{}_matched_filter_snr'.format(ifo.name)
-                optimal_key = '{}_optimal_snr'.format(ifo.name)
+                snr_updates = dict()
+                for key in new_samples[0][ii].snrs_as_sample.keys():
+                    snr_updates[f"{ifo.name}_{key}"] = list()
                 for new_sample in new_samples:
-                    matched_filter_snrs.append(new_sample[ii].complex_matched_filter_snr)
-                    optimal_snrs.append(new_sample[ii].optimal_snr_squared.real ** 0.5)
-
-                sample[mf_key] = matched_filter_snrs
-                sample[optimal_key] = optimal_snrs
-
+                    snr_update = new_sample[ii].snrs_as_sample
+                    for key, val in snr_update.items():
+                        snr_updates[f"{ifo.name}_{key}"].append(val)
+            for k, v in snr_updates.items():
+                sample[k] = v
     else:
         logger.debug('Not computing SNRs.')
 

@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch, mock_open
 
 import bilby
+import bilby.core.sampler.nessai
 
 
 class TestNessai(unittest.TestCase):
@@ -12,7 +13,7 @@ class TestNessai(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Nessai(
+        self.sampler = bilby.core.sampler.nessai.Nessai(
             self.likelihood,
             self.priors,
             outdir="outdir",

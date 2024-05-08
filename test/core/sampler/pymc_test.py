@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import bilby
+import bilby.core.sampler.pymc
 
 
 class TestPyMC(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestPyMC(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Pymc(
+        self.sampler = bilby.core.sampler.pymc.Pymc(
             self.likelihood,
             self.priors,
             outdir="outdir",

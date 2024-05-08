@@ -82,7 +82,26 @@ setup(
         "console_scripts": [
             "bilby_plot=cli_bilby.plot_multiple_posteriors:main",
             "bilby_result=cli_bilby.bilby_result:main",
-        ]
+        ],
+        "bilby.samplers": [
+            "bilby_mcmc=bilby.bilby_mcmc.sampler:Bilby_MCMC",
+            "cpnest=bilby.core.sampler.cpnest:Cpnest",
+            "dnest4=bilby.core.sampler.dnest4:DNest4",
+            "dynesty=bilby.core.sampler.dynesty:Dynesty",
+            "dynamic_dynesty=bilby.core.sampler.dynamic_dynesty:DynamicDynesty",
+            "emcee=bilby.core.sampler.emcee:Emcee",
+            "kombine=bilby.core.sampler.kombine:Kombine",
+            "nessai=bilby.core.sampler.nessai:Nessai",
+            "nestle=bilby.core.sampler.nestle:Nestle",
+            "ptemcee=bilby.core.sampler.ptemcee:Ptemcee",
+            "ptmcmcsampler=bilby.core.sampler.ptmcmc:PTMCMCSampler",
+            "pymc=bilby.core.sampler.pymc:Pymc",
+            "pymultinest=bilby.core.sampler.pymultinest:Pymultinest",
+            "pypolychord=bilby.core.sampler.polychord:PyPolyChord",
+            "ultranest=bilby.core.sampler.ultranest:Ultranest",
+            "zeus=bilby.core.sampler.zeus:Zeus",
+            "fake_sampler=bilby.core.sampler.fake_sampler:FakeSampler",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3.9",

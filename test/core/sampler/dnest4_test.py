@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import bilby
+import bilby.core.sampler.dnest4
 
 
 class TestDnest4(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestDnest4(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.DNest4(
+        self.sampler = bilby.core.sampler.dnest4.DNest4(
             self.likelihood,
             self.priors,
             outdir="outdir",

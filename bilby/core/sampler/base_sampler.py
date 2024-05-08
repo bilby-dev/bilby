@@ -248,9 +248,10 @@ class Sampler(object):
 
         self.exit_code = exit_code
 
+        self._log_likelihood_eval_time = np.nan
         if not soft_init:
             self._verify_parameters()
-            self._time_likelihood()
+            self._log_likelihood_eval_time = self._time_likelihood()
             self._verify_use_ratio()
 
         self.kwargs = kwargs
@@ -433,6 +434,10 @@ class Sampler(object):
         n_evaluations: int
             The number of evaluations to estimate the evaluation time from
 
+        Returns
+        =======
+        log_likelihood_eval_time: float
+            The time (in s) it took for one likelihood evaluation
         """
 
         t1 = datetime.datetime.now()
@@ -442,15 +447,16 @@ class Sampler(object):
             )[:, 0]
             self.log_likelihood(theta)
         total_time = (datetime.datetime.now() - t1).total_seconds()
-        self._log_likelihood_eval_time = total_time / n_evaluations
+        log_likelihood_eval_time = total_time / n_evaluations
 
-        if self._log_likelihood_eval_time == 0:
-            self._log_likelihood_eval_time = np.nan
+        if log_likelihood_eval_time == 0:
+            log_likelihood_eval_time = np.nan
             logger.info("Unable to measure single likelihood time")
         else:
             logger.info(
                 f"Single likelihood evaluation took {self._log_likelihood_eval_time:.3e} s"
             )
+        return log_likelihood_eval_time
 
     def _verify_use_ratio(self):
         """

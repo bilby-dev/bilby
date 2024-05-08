@@ -5,6 +5,7 @@ from attr import define
 import bilby
 import numpy as np
 import parameterized
+import bilby.core.sampler.dynesty
 from bilby.core.sampler import dynesty_utils
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
 import shutil
@@ -41,7 +42,7 @@ class TestDynesty(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Dynesty(
+        self.sampler = bilby.core.sampler.dynesty.Dynesty(
             self.likelihood,
             self.priors,
             outdir="outdir",
@@ -84,7 +85,7 @@ class TestDynesty(unittest.TestCase):
         self.priors["c"] = bilby.core.prior.Prior(boundary=None)
         self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
-        self.sampler = bilby.core.sampler.Dynesty(
+        self.sampler = bilby.core.sampler.dynesty.Dynesty(
             self.likelihood,
             self.priors,
             outdir="outdir",

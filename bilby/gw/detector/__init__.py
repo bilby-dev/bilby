@@ -239,7 +239,7 @@ def load_data_from_cache_file(
         An initialised interferometer object with strain data set to the
         appropriate data in the cache file and a PSD.
     """
-
+    import lal
     data_set = False
     psd_set = False
 

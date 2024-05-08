@@ -3,10 +3,11 @@ dynesty>=2.0.1
 emcee
 corner
 numpy
-matplotlib<3.8.0
+matplotlib
 scipy>=1.5
 pandas
 dill
 tqdm
 h5py
 attrs
+importlib-metadata>=3.6; python_version < '3.10'

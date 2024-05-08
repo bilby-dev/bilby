@@ -239,8 +239,12 @@ class Dynesty(NestedSampler):
         self.nestcheck = nestcheck
 
         if self.n_check_point is None:
-            self.n_check_point = max(
-                int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10
+            self.n_check_point = (
+                10
+                if np.isnan(self._log_likelihood_eval_time)
+                else max(
+                    int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10
+                )
             )
         self.check_point_delta_t = check_point_delta_t
         logger.info(f"Checkpoint every check_point_delta_t = {check_point_delta_t}s")

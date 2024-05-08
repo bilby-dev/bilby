@@ -2,7 +2,7 @@ import unittest
 
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.prior import Uniform, PriorDict
-from bilby.core.sampler import Ptemcee
+from bilby.core.sampler.ptemcee import Ptemcee
 from bilby.core.sampler.base_sampler import MCMCSampler
 import numpy as np
 

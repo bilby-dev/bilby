@@ -84,11 +84,11 @@ basic-3.11:
   script:
     - python -m pip install .
     - *list-env
-    - python test/test_samplers_import.py
+    - pytest test/test_samplers_import.py -v
 
-# import-samplers-3.9:
-#   <<: *test-samplers-import
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+import-samplers-3.9:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 import-samplers-3.10:
   <<: *test-samplers-import
@@ -108,13 +108,6 @@ import-samplers-3.11:
     - pip --cache-dir=$CACHE_DIR install .
     # Run precommits (flake8, spellcheck, isort, no merge conflicts, etc)
     - pre-commit run --all-files --verbose --show-diff-on-failure
-
-# precommits-py3.9:
-#   <<: *precommits
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-#   variables:
-#     CACHE_DIR: ".pip39"
-#     PYVERSION: "python39"
 
 precommits-py3.10:
   <<: *precommits
@@ -142,10 +135,10 @@ install:
 
     - pytest --cov=bilby --durations 10
 
-# python-3.9:
-#   <<: *unit-test
-#   needs: ["basic-3.9", "precommits-py3.9"]
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+python-3.9:
+  <<: *unit-test
+  needs: ["basic-3.9"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10:
   <<: *unit-test
@@ -176,10 +169,10 @@ python-3.11:
     - *list-env
     - pytest test/integration/sampler_run_test.py --durations 10 -v
 
-# python-3.9-samplers:
-#   <<: *test-sampler
-#   needs: ["basic-3.9", "precommits-py3.9"]
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+python-3.9-samplers:
+  <<: *test-sampler
+  needs: ["basic-3.9"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10-samplers:
   <<: *test-sampler
@@ -212,10 +205,10 @@ integration-tests-python-3.10:
     - *list-env
     - pytest test/gw/plot_test.py
 
-# plotting-python-3.9:
-#   <<: *plotting
-#   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-#   needs: ["basic-3.9", "precommits-py3.9"]
+plotting-python-3.9:
+  <<: *plotting
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
+  needs: ["basic-3.9"]
 
 plotting-python-3.10:
   <<: *plotting
@@ -237,6 +230,7 @@ docs:
   script:
     # Make the documentation
     - python -m pip install .
+    - python -m pip install myst_parser # only for testing purposes - remove once test image is generating correctly
     - cd examples/tutorials
     - jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
     - cd ../../docs
@@ -283,11 +277,10 @@ pages:
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
 
-# disable building python39 container due to dependency issues
-# build-python39-container:
-#   <<: *build-container
-#   variables:
-#     PYVERSION: "python39"
+build-python39-container:
+  <<: *build-container
+  variables:
+    PYVERSION: "python39"
 
 build-python310-container:
   <<: *build-container

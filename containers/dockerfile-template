@@ -3,7 +3,7 @@ LABEL name="bilby CI testing" \
 maintainer="Gregory Ashton <gregory.ashton@ligo.org>, Colm Talbot <colm.talbot@ligo.org>"
 
 COPY env-template.yml env.yml
-RUN echo "  - python=={python_major_version}.{python_minor_version}" >> env.yml
+RUN echo "  - python={python_major_version}.{python_minor_version}" >> env.yml
 ENV conda_env python{python_major_version}{python_minor_version}
 
 RUN mamba env create -f env.yml -n ${{conda_env}}

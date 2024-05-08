@@ -2,54 +2,69 @@ import datetime
 import inspect
 import sys
 
-import bilby
-from bilby.bilby_mcmc import Bilby_MCMC
-
 from ..prior import DeltaFunction, PriorDict
-from ..utils import command_line_args, env_package_list, loaded_modules_dict, logger
+from ..utils import (
+    command_line_args,
+    env_package_list,
+    get_entry_points,
+    loaded_modules_dict,
+    logger,
+)
 from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
-from .cpnest import Cpnest
-from .dnest4 import DNest4
-from .dynamic_dynesty import DynamicDynesty
-from .dynesty import Dynesty
-from .emcee import Emcee
-from .fake_sampler import FakeSampler
-from .kombine import Kombine
-from .nessai import Nessai
-from .nestle import Nestle
-from .polychord import PyPolyChord
-from .ptemcee import Ptemcee
-from .ptmcmc import PTMCMCSampler
-from .pymc import Pymc
-from .pymultinest import Pymultinest
-from .ultranest import Ultranest
-from .zeus import Zeus
 
-IMPLEMENTED_SAMPLERS = {
-    "bilby_mcmc": Bilby_MCMC,
-    "cpnest": Cpnest,
-    "dnest4": DNest4,
-    "dynamic_dynesty": DynamicDynesty,
-    "dynesty": Dynesty,
-    "emcee": Emcee,
-    "kombine": Kombine,
-    "nessai": Nessai,
-    "nestle": Nestle,
-    "ptemcee": Ptemcee,
-    "ptmcmcsampler": PTMCMCSampler,
-    "pymc": Pymc,
-    "pymultinest": Pymultinest,
-    "pypolychord": PyPolyChord,
-    "ultranest": Ultranest,
-    "zeus": Zeus,
-    "fake_sampler": FakeSampler,
-}
+IMPLEMENTED_SAMPLERS = get_entry_points("bilby.samplers")
+
+
+def get_implemented_samplers():
+    """Get a list of the names of the implemented samplers.
+
+    This includes natively supported samplers (e.g. dynesty) and any additional
+    samplers that are supported through the sampler plugins.
+
+    Returns
+    -------
+    list
+        The list of implemented samplers.
+    """
+    return list(IMPLEMENTED_SAMPLERS.keys())
+
+
+def get_sampler_class(sampler):
+    """Get the class for a sampler from its name.
+
+    This includes natively supported samplers (e.g. dynesty) and any additional
+    samplers that are supported through the sampler plugins.
+
+    Parameters
+    ----------
+    sampler : str
+        The name of the sampler.
+
+    Returns
+    -------
+    Sampler
+        The sampler class.
+
+    Raises
+    ------
+    ValueError
+        Raised if the sampler is not implemented.
+    """
+    sampler = sampler.lower()
+    if sampler in IMPLEMENTED_SAMPLERS:
+        return IMPLEMENTED_SAMPLERS[sampler].load()
+    else:
+        raise ValueError(
+            f"Sampler {sampler} not yet implemented. "
+            f"The available samplers are: {get_implemented_samplers()}"
+        )
+
 
 if command_line_args.sampler_help:
     sampler = command_line_args.sampler_help
     if sampler in IMPLEMENTED_SAMPLERS:
-        sampler_class = IMPLEMENTED_SAMPLERS[sampler]
+        sampler_class = IMPLEMENTED_SAMPLERS[sampler].load()
         print(f'Help for sampler "{sampler}":')
         print(sampler_class.__doc__)
     else:
@@ -60,7 +75,7 @@ if command_line_args.sampler_help:
             )
         else:
             print(f"Requested sampler {sampler} not implemented")
-        print(f"Available samplers = {IMPLEMENTED_SAMPLERS}")
+        print(f"Available samplers = {get_implemented_samplers()}")
 
     sys.exit()
 
@@ -185,24 +200,20 @@ def run_sampler(
     if isinstance(sampler, Sampler):
         pass
     elif isinstance(sampler, str):
-        if sampler.lower() in IMPLEMENTED_SAMPLERS:
-            sampler_class = IMPLEMENTED_SAMPLERS[sampler.lower()]
-            sampler = sampler_class(
-                likelihood,
-                priors=priors,
-                outdir=outdir,
-                label=label,
-                injection_parameters=injection_parameters,
-                meta_data=meta_data,
-                use_ratio=use_ratio,
-                plot=plot,
-                result_class=result_class,
-                npool=npool,
-                **kwargs,
-            )
-        else:
-            print(IMPLEMENTED_SAMPLERS)
-            raise ValueError(f"Sampler {sampler} not yet implemented")
+        sampler_class = get_sampler_class(sampler)
+        sampler = sampler_class(
+            likelihood,
+            priors=priors,
+            outdir=outdir,
+            label=label,
+            injection_parameters=injection_parameters,
+            meta_data=meta_data,
+            use_ratio=use_ratio,
+            plot=plot,
+            result_class=result_class,
+            npool=npool,
+            **kwargs,
+        )
     elif inspect.isclass(sampler):
         sampler = sampler.__init__(
             likelihood,
@@ -219,7 +230,7 @@ def run_sampler(
     else:
         raise ValueError(
             "Provided sampler should be a Sampler object or name of a known "
-            f"sampler: {', '.join(IMPLEMENTED_SAMPLERS.keys())}."
+            f"sampler: {get_implemented_samplers()}."
         )
 
     if sampler.cached_result:

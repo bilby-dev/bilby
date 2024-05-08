@@ -11,6 +11,7 @@ Andrew Miller
 Antoni Ramos-Buades
 Apratim Ganguly
 Avi Vajpeyi
+Ben Patterson
 Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
@@ -73,6 +74,7 @@ Roberto Cotesta
 Rory Smith
 S. H. Oh
 Sacha Husa
+Sama Al-Shammari
 Samson Leong
 Scott Coughlin
 Serguei Ossokine
@@ -97,3 +99,5 @@ Marc Penuliar
 Andrew Fowlie
 Martin White
 Peter Tsun-Ho Pang
+Alexandre Sebastien Goettel
+Ann-Kristin Malz
