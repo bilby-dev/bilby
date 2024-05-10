@@ -13,7 +13,74 @@ from ..utils import (
 from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 
-IMPLEMENTED_SAMPLERS = get_entry_points("bilby.samplers")
+
+class ImplementedSamplers:
+    """Dictionary-like object that contains implemented samplers.
+
+    This class is singleton and only one instance can exist.
+    """
+
+    _instance = None
+
+    _samplers = get_entry_points("bilby.samplers")
+
+    def keys(self):
+        """Iterator of available samplers by name.
+
+        Reduces the list to its simplest. This includes removing the 'bilby.'
+        prefix from native samplers if a corresponding plugin is not available.
+        """
+        keys = []
+        for key in self._samplers.keys():
+            name = key.replace("bilby.", "")
+            if name in self._samplers.keys():
+                keys.append(key)
+            else:
+                keys.append(name)
+        return iter(keys)
+
+    def values(self):
+        """Iterator of sampler classes.
+
+        Note: the classes need to loaded using :code:`.load()` before being
+        called.
+        """
+        return iter(self._samplers.values())
+
+    def items(self):
+        """Iterator of tuples containing keys (sampler names) and classes.
+
+        Note: the classes need to loaded using :code:`.load()` before being
+        called.
+        """
+        return iter(((k, v) for k, v in zip(self.keys(), self.values())))
+
+    def valid_keys(self):
+        """All valid keys including bilby.<sampler name>."""
+        keys = set(self._samplers.keys())
+        return iter(keys.union({k.replace("bilby.", "") for k in keys}))
+
+    def __getitem__(self, key):
+        if key in self._samplers:
+            return self._samplers[key]
+        elif f"bilby.{key}" in self._samplers:
+            return self._samplers[f"bilby.{key}"]
+        else:
+            raise ValueError(
+                f"Sampler {key} is not implemented! "
+                f"Available samplers are: {list(self.keys())}"
+            )
+
+    def __contains__(self, value):
+        return value in self.valid_keys()
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+
+IMPLEMENTED_SAMPLERS = ImplementedSamplers()
 
 
 def get_implemented_samplers():
@@ -51,14 +118,7 @@ def get_sampler_class(sampler):
     ValueError
         Raised if the sampler is not implemented.
     """
-    sampler = sampler.lower()
-    if sampler in IMPLEMENTED_SAMPLERS:
-        return IMPLEMENTED_SAMPLERS[sampler].load()
-    else:
-        raise ValueError(
-            f"Sampler {sampler} not yet implemented. "
-            f"The available samplers are: {get_implemented_samplers()}"
-        )
+    return IMPLEMENTED_SAMPLERS[sampler.lower()].load()
 
 
 if command_line_args.sampler_help:
