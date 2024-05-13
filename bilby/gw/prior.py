@@ -1436,7 +1436,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                 self.update_distance(int(round(val)))
                 dist_samples[i] = self.distance_icdf(dist_samp[i])
         if self.distance:
-            sample = np.row_stack([sample[:, 0], sample[:, 1], dist_samples])
+            sample = np.vstack([sample[:, 0], sample[:, 1], dist_samples])
         return sample.reshape((-1, self.num_vars))
 
     def update_distance(self, pix_idx):

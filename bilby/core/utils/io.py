@@ -264,9 +264,9 @@ def encode_for_hdf5(key, item):
 
     if isinstance(item, np.int_):
         item = int(item)
-    elif isinstance(item, np.float_):
+    elif isinstance(item, np.float64):
         item = float(item)
-    elif isinstance(item, np.complex_):
+    elif isinstance(item, np.complex128):
         item = complex(item)
     if isinstance(item, np.ndarray):
         # Numpy's wide unicode strings are not supported by hdf5
