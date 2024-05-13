@@ -52,6 +52,7 @@ class Pymc(MCMCSampler):
 
     """
 
+    sampler_name = "pymc"
     default_kwargs = dict(
         draws=500,
         step=None,

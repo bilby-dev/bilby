@@ -41,6 +41,8 @@ class PTMCMCSampler(MCMCSampler):
 
     """
 
+    sampler_name = "ptmcmcsampler"
+    abbreviation = "ptmcmc_temp"
     default_kwargs = {
         "p0": None,
         "Niter": 2 * 10**4 + 1,
