@@ -154,7 +154,7 @@ def decode_bilby_json(dct):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
         except AttributeError:
-            logger.debug(
+            logger.warning(
                 "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
