@@ -547,6 +547,29 @@ class Bilby_MCMC(MCMCSampler):
                         all_samples=ptsampler.samples,
                     )
 
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names. Will always be empty for bilby_mcmc.
+        """
+        filenames = [os.path.join(outdir, f"{label}_resume.pickle")]
+        return filenames, []
+
 
 class BilbyPTMCMCSampler(object):
     def __init__(

@@ -38,6 +38,8 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
         stepping behaviour is used.
     """
 
+    sampler_name = "ultranest"
+    abbreviation = "ultra"
     default_kwargs = dict(
         resume=True,
         show_status=True,

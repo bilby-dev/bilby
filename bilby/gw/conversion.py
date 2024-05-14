@@ -2261,8 +2261,8 @@ def compute_snrs(sample, likelihood, npool=1):
                     snr_update = new_sample[ii].snrs_as_sample
                     for key, val in snr_update.items():
                         snr_updates[f"{ifo.name}_{key}"].append(val)
-            for k, v in snr_updates.items():
-                sample[k] = v
+                for k, v in snr_updates.items():
+                    sample[k] = v
     else:
         logger.debug('Not computing SNRs.')
 

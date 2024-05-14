@@ -9,6 +9,7 @@ import bilby.core.sampler.dynesty
 from bilby.core.sampler import dynesty_utils
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
 import shutil
+import os
 
 
 @define
@@ -99,6 +100,18 @@ class TestDynesty(unittest.TestCase):
 
     def test_run_test_runs(self):
         self.sampler._run_test()
+
+
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = bilby.core.sampler.dynesty.Dynesty.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 2
+    assert len(directories) == 0
+    assert os.path.join(outdir, f"{label}_resume.pickle") in filenames
+    assert os.path.join(outdir, f"{label}_dynesty.pickle") in filenames
 
 
 class ProposalsTest(unittest.TestCase):

@@ -20,6 +20,7 @@ class Nessai(NestedSampler):
     Documentation: https://nessai.readthedocs.io/
     """
 
+    sampler_name = "nessai"
     _default_kwargs = None
     _run_kwargs_list = None
     sampling_seed_key = "seed"
@@ -299,6 +300,31 @@ class Nessai(NestedSampler):
             logger.warning("Sampler is not initialized")
         self._log_interruption(signum=signum)
         sys.exit(self.exit_code)
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names. This will be empty for nessai.
+        list
+            List of directory names.
+        """
+        dirs = [os.path.join(outdir, f"{label}_{cls.sampler_name}", "")]
+        dirs += [os.path.join(dirs[0], d, "") for d in ["proposal", "diagnostics"]]
+        filenames = []
+        return filenames, dirs
 
     def _setup_pool(self):
         pass

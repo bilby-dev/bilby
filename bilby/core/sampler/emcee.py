@@ -45,6 +45,7 @@ class Emcee(MCMCSampler):
 
     """
 
+    sampler_name = "emcee"
     default_kwargs = dict(
         nwalkers=500,
         a=2,

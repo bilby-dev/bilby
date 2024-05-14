@@ -39,6 +39,7 @@ class Kombine(Emcee):
 
     """
 
+    sampler_name = "kombine"
     default_kwargs = dict(
         nwalkers=500,
         args=[],

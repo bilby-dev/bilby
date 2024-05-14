@@ -42,6 +42,9 @@ containers:
     # Fail if differences exist. If this fails, you may need to run
     # write_dockerfiles.py and commit the changes.
     - git diff --exit-code
+    - cp env-template.yml env.yml
+    - echo "  - python=3.10" >> env.yml
+    - mamba env create -f env.yml -n test --dry-run
 
 .test-python: &test-python
   stage: initial
@@ -230,6 +233,7 @@ docs:
   script:
     # Make the documentation
     - python -m pip install .
+    - python -m pip install myst_parser # only for testing purposes - remove once test image is generating correctly
     - cd examples/tutorials
     - jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
     - cd ../../docs

@@ -38,6 +38,7 @@ class Zeus(Emcee):
 
     """
 
+    sampler_name = "zeus"
     default_kwargs = dict(
         nwalkers=500,
         args=[],
