@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+
+## [2.3.0] - 2024-05-30
+
 ### Added
 
 - Add support for sampler plugins via entry points (!1340, !1355)
@@ -13,11 +16,11 @@
 
 ### Changed
 
-- Speed up ROQ weight calculation with IFFT (!903)
 - Change `bilby_mcmc` to use `glasflow` instead of `nflows` (!1332)
 - Sampler classes in are no longer imported in `bilby.core.sampler` (!1340)
 - Sampler classes in `bilby.core.sampler.IMPLEMENTED_SAMPLERS` must now be loaded before use (!1340)
 - `bilby.core.sampler.IMPLEMENTED_SAMPLERS` is now an instance of `bilby.core.sampler.ImplementedSampler` instead of a dictionary (!1355)
+- Updates to support numpy v2 (!1362)
 
 ### Fixed
 
@@ -28,6 +31,7 @@
 - Fix bug where `linestyle` was ignored in `bilby.core.result.plot_multiple` (!1238)
 - Fix `soft_init` sampler keyword argument with `dynesty` (!1335)
 - Fix ZeroDivisionError when using the `dynesty` with `act-walk` and large values of `nact` (!1346)
+- Fix custom prior loading from result file (!1360)
 
 
 ## [2.2.3] - 2024-02-24
@@ -1062,7 +1066,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.3...master
+[Unreleased]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.3.0...master
+[2.3.0]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.3...v2.3.0
 [2.2.3]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.2...v2.2.3
 [2.2.2]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.1...v2.2.2
 [2.2.1]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.0...v2.2.1
