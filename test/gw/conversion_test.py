@@ -475,7 +475,7 @@ class TestGenerateAllParameters(unittest.TestCase):
     def test_generate_bbh_parameters_with_likelihood(self):
         priors = bilby.gw.prior.BBHPriorDict()
         priors["geocent_time"] = bilby.core.prior.Uniform(0.4, 0.6)
-        ifos = bilby.gw.detector.InterferometerList(["H1"])
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
         ifos.set_strain_data_from_power_spectral_densities(duration=1, sampling_frequency=256)
         wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole
@@ -501,6 +501,8 @@ class TestGenerateAllParameters(unittest.TestCase):
             "phase",
             "H1_optimal_snr",
             "H1_matched_filter_snr",
+            "L1_optimal_snr",
+            "L1_matched_filter_snr",
             "ra",
             "dec",
         ]

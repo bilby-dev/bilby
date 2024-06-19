@@ -17,6 +17,8 @@ class FakeSampler(Sampler):
         A string pointing to the posterior data file to be loaded.
     """
 
+    sampler_name = "fake_sampler"
+
     default_kwargs = dict(
         verbose=True, logl_args=None, logl_kwargs=None, print_progress=True
     )

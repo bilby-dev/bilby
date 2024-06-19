@@ -24,6 +24,7 @@ class Nestle(NestedSampler):
 
     """
 
+    sampler_name = "nestle"
     default_kwargs = dict(
         verbose=True,
         method="multi",

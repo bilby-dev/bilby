@@ -148,6 +148,30 @@ class TestSampler(unittest.TestCase):
         )
 
 
+def test_get_expected_outputs():
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    label = "par0"
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 0
+    assert len(directories) == 1
+    assert directories[0] == os.path.join(outdir, f"sampler_{label}", "")
+
+
+def test_get_expected_outputs_abbreviation():
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    label = "par0"
+    bilby.core.sampler.Sampler.abbreviation = "abbr"
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 0
+    assert len(directories) == 1
+    assert directories[0] == os.path.join(outdir, f"abbr_{label}", "")
+    bilby.core.sampler.Sampler.abbreviation = None
+
+
 samplers = [
     "bilby_mcmc",
     "dynamic_dynesty",

@@ -154,13 +154,16 @@ def decode_bilby_json(dct):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
         except AttributeError:
-            logger.debug(
+            logger.warning(
                 "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
             )
             from ..prior import Prior
 
+            for key in list(dct["kwargs"].keys()):
+                if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
+                    dct["kwargs"].pop(key)
             cls = Prior
         obj = cls(**dct["kwargs"])
         return obj
@@ -264,9 +267,9 @@ def encode_for_hdf5(key, item):
 
     if isinstance(item, np.int_):
         item = int(item)
-    elif isinstance(item, np.float_):
+    elif isinstance(item, np.float64):
         item = float(item)
-    elif isinstance(item, np.complex_):
+    elif isinstance(item, np.complex128):
         item = complex(item)
     if isinstance(item, np.ndarray):
         # Numpy's wide unicode strings are not supported by hdf5

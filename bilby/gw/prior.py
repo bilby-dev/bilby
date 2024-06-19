@@ -1362,6 +1362,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         else:
             self.distance = False
             self.prob = self.hp.read_map(hp_file)
+        self.prob = self._check_norm(self.prob)
 
         super(HealPixMapPriorDist, self).__init__(names=names, bounds=bounds)
         self.distname = "hpmap"
@@ -1436,7 +1437,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                 self.update_distance(int(round(val)))
                 dist_samples[i] = self.distance_icdf(dist_samp[i])
         if self.distance:
-            sample = np.row_stack([sample[:, 0], sample[:, 1], dist_samples])
+            sample = np.vstack([sample[:, 0], sample[:, 1], dist_samples])
         return sample.reshape((-1, self.num_vars))
 
     def update_distance(self, pix_idx):
@@ -1501,9 +1502,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         sample : array_like
             sample of ra, and dec (and distance if 3D=True)
         """
-        pixel_choices = np.arange(self.npix)
-        pixel_probs = self._check_norm(self.prob)
-        sample_pix = random.rng.choice(pixel_choices, size=size, p=pixel_probs, replace=True)
+        sample_pix = random.rng.choice(self.npix, size=size, p=self.prob, replace=True)
         sample = np.empty((size, self.num_vars))
         for samp in range(size):
             theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])

@@ -173,6 +173,13 @@ class Sampler(object):
         Whether the implemented sampler exits hard (:code:`os._exit` rather
         than :code:`sys.exit`). The latter can be escaped as :code:`SystemExit`.
         The former cannot.
+    sampler_name : str
+        Name of the sampler. This is used when creating the output directory for
+        the sampler.
+    abbreviation : str
+        Abbreviated name of the sampler. Does not have to be specified in child
+        classes. If set to a value other than :code:`None`, this will be used
+        instead of :code:`sampler_name` when creating the output directory.
 
     Raises
     ======
@@ -187,6 +194,8 @@ class Sampler(object):
 
     """
 
+    sampler_name = "sampler"
+    abbreviation = None
     default_kwargs = dict()
     npool_equiv_kwargs = [
         "npool",
@@ -779,8 +788,37 @@ class Sampler(object):
     def write_current_state(self):
         raise NotImplementedError()
 
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+        Both can be empty. Defaults to a single directory:
+        :code:`"{outdir}/{name}_{label}/"`, where :code:`name`
+        is :code:`abbreviation` if it is defined for the sampler class, otherwise
+        it defaults to :code:`sampler_name`.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names.
+        """
+        name = cls.abbreviation or cls.sampler_name
+        dirname = os.path.join(outdir, f"{name}_{label}", "")
+        return [], [dirname]
+
 
 class NestedSampler(Sampler):
+    sampler_name = "nested_sampler"
     npoints_equiv_kwargs = [
         "nlive",
         "nlives",
@@ -854,6 +892,7 @@ class NestedSampler(Sampler):
 
 
 class MCMCSampler(Sampler):
+    sampler_name = "mcmc_sampler"
     nwalkers_equiv_kwargs = ["nwalker", "nwalkers", "draws", "Niter"]
     nburn_equiv_kwargs = ["burn", "nburn"]
 

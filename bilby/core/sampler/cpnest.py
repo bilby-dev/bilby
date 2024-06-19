@@ -40,6 +40,7 @@ class Cpnest(NestedSampler):
 
     """
 
+    sampler_name = "cpnest"
     default_kwargs = dict(
         verbose=3,
         nthreads=1,

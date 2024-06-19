@@ -151,6 +151,7 @@ class Dynesty(NestedSampler):
         specified.
     """
 
+    sampler_name = "dynesty"
     sampling_seed_key = "seed"
 
     @property
@@ -298,6 +299,32 @@ class Dynesty(NestedSampler):
                     seconds=float(self.print_method.split("-")[1])
                 )
         Sampler._verify_kwargs_against_default_kwargs(self)
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names. Will always be empty for dynesty.
+        """
+        filenames = []
+        for kind in ["resume", "dynesty"]:
+            filename = os.path.join(outdir, f"{label}_{kind}.pickle")
+            filenames.append(filename)
+        return filenames, []
 
     def _print_func(
         self,

@@ -69,7 +69,7 @@ dependencies:
   - nbconvert
   - twine
   - glasflow
-  - myst_parser
+  - myst-parser
   - pip:
     - autodoc
     - ipykernel

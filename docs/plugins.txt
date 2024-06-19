@@ -61,6 +61,19 @@ here, we encourage you to open a
 - This could be your sampler
 
 
+Bilby-native samplers
+---------------------
+
+Some samplers are implemented directly in :code:`bilby` and these are avertised
+under two possible names:
+
+- :code:`bilby.<sampler name>`: always available, indicates the sampler is implemented in bilby,
+- :code:`<sampler name>`: only refers to the native bilby implementation if an external plugin does not already provide this sampler.
+
+This allows for an external plugin to provide a sampler without introducing
+namespace conflicts.
+
+
 --------------------------------
 Information for bilby developers
 --------------------------------
