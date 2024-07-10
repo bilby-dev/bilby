@@ -415,7 +415,11 @@ class Ptemcee(MCMCSampler):
             # This is a very ugly hack to support numpy>=1.24
             ptemcee.sampler.np.float = float
 
-        if os.path.isfile(self.resume_file) and self.resume is True:
+        if (
+            os.path.isfile(self.resume_file)
+            and os.path.getsize(self.resume_file)
+            and self.resume is True
+        ):
             import dill
 
             logger.info(f"Resume data {self.resume_file} found")
@@ -513,7 +517,7 @@ class Ptemcee(MCMCSampler):
         logger.info("Starting to sample")
 
         while True:
-            for (pos0, log_posterior, log_likelihood) in sampler.sample(
+            for pos0, log_posterior, log_likelihood in sampler.sample(
                 self.pos0,
                 storechain=False,
                 iterations=self.convergence_inputs.niterations_per_check,

@@ -736,7 +736,10 @@ class Dynesty(NestedSampler):
         if os.path.isfile(self.resume_file):
             logger.info(f"Reading resume file {self.resume_file}")
             with open(self.resume_file, "rb") as file:
-                sampler = dill.load(file)
+                try:
+                    sampler = dill.load(file)
+                except EOFError:
+                    sampler = None
 
                 if not hasattr(sampler, "versions"):
                     logger.warning(

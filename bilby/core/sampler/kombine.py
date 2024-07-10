@@ -166,7 +166,11 @@ class Kombine(Emcee):
         return self.sampler.chain[:nsteps, :, :]
 
     def check_resume(self):
-        return self.resume and os.path.isfile(self.checkpoint_info.sampler_file)
+        return (
+            self.resume
+            and os.path.isfile(self.checkpoint_info.sampler_file)
+            and os.path.getsize(self.checkpoint_info.sampler_file) > 0
+        )
 
     @signal_wrapper
     def run_sampler(self):
