@@ -1,11 +1,10 @@
 bilby.cython>=0.3.0
-# remove pin after https://git.ligo.org/lscsoft/bilby/-/merge_requests/1368
-dynesty>=2.0.1,<2.1.4
+dynesty>=2.0.1
 emcee
 corner
 numpy
 matplotlib
-# remove pin after https://git.ligo.org/lscsoft/bilby/-/merge_requests/1368
+# see https://github.com/healpy/healpy/pull/953
 scipy>=1.5,<1.14
 pandas
 dill
