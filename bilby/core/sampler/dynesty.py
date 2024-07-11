@@ -691,6 +691,8 @@ class Dynesty(NestedSampler):
         )
         while True:
             self.finalize_sampler_kwargs(sampler_kwargs)
+            if getattr(self.sampler, "added_live", False):
+                self.sampler._remove_live_points()
             self.sampler.run_nested(**sampler_kwargs)
             if self.sampler.ncall == old_ncall:
                 break
@@ -705,8 +707,8 @@ class Dynesty(NestedSampler):
             if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state()
                 self.plot_current_state()
-            if getattr(self.sampler, "added_live", False):
-                self.sampler._remove_live_points()
+        if getattr(self.sampler, "added_live", False):
+            self.sampler._remove_live_points()
 
         self.sampler.run_nested(**sampler_kwargs)
         self.write_current_state()

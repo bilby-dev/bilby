@@ -1110,11 +1110,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             f_high: float
                 The maximum frequency which must be considered
             """
-            from scipy.integrate import simps
+            from scipy.integrate import simpson
             integrand1 = np.power(freq, -7. / 3) / psd
-            integral1 = simps(integrand1, freq)
+            integral1 = simpson(y=integrand1, x=freq)
             integrand3 = np.power(freq, 2. / 3.) / (psd * integral1)
-            f_3_bar = simps(integrand3, freq)
+            f_3_bar = simpson(y=integrand3, x=freq)
 
             f_high = scaling * f_3_bar**(1 / 3)
 
