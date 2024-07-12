@@ -99,6 +99,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         If True, prints information during run
     """
 
+    sampler_name = "d4nest"
     default_kwargs = dict(
         max_num_levels=20,
         num_steps=500,

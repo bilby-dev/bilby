@@ -1,0 +1,190 @@
+=======================================
+Acknowledging/Citing Bilby
+=======================================
+
+If you have used Bilby in your scientific work, please acknowledge us in your papers/proposals. 
+
+ .. code:: bibtex
+
+    @article{bilby_paper,
+        author = "Ashton, Gregory and others",
+        title = "{BILBY: A user-friendly Bayesian inference library for gravitational-wave astronomy}",
+        eprint = "1811.02042",
+        archivePrefix = "arXiv",
+        primaryClass = "astro-ph.IM",
+        doi = "10.3847/1538-4365/ab06fc",
+        journal = "Astrophys. J. Suppl.",
+        volume = "241",
+        number = "2",
+        pages = "27",
+        year = "2019"
+    }
+
+Additionally, if you used `bilby_pipe` or `parallel_bilby`, please cite appropriate papers mentioned below"
+
+ .. code:: bibtex
+
+    @article{bilby_pipe_paper,
+        author = "Romero-Shaw, I. M. and others",
+        title = "{Bayesian inference for compact binary coalescences with bilby: validation and application to the first LIGO\textendash{}Virgo gravitational-wave transient catalogue}",
+        eprint = "2006.00714",
+        archivePrefix = "arXiv",
+        primaryClass = "astro-ph.IM",
+        doi = "10.1093/mnras/staa2850",
+        journal = "Mon. Not. Roy. Astron. Soc.",
+        volume = "499",
+        number = "3",
+        pages = "3295--3319",
+        year = "2020"
+    }
+
+    @article{pbilby_paper,
+        author = "Smith, Rory J. E. and Ashton, Gregory and Vajpeyi, Avi and Talbot, Colm",
+        title = "{Massively parallel Bayesian inference for transient gravitational-wave astronomy}",
+        eprint = "1909.11873",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        reportNumber = "LIGO Document P1900255-v1",
+        doi = "10.1093/mnras/staa2483",
+        journal = "Mon. Not. Roy. Astron. Soc.",
+        volume = "498",
+        number = "3",
+        pages = "4492--4502",
+        year = "2020"
+    }
+
+If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransient`, `MBGravitationalWaveTransient`, `RelativeBinningGravitationalWaveTransient` etc., please cite the following papers in addition to the above.
+
+- `ROQGravitationalWaveTransient`
+ .. code:: bibtex
+
+     @article{roq_paper_1,
+        author = {Smith, Rory and Field, Scott E. and Blackburn, Kent and Haster, Carl-Johan and P\"urrer, Michael and Raymond, Vivien and Schmidt, Patricia},
+        title = "{Fast and accurate inference on gravitational waves from precessing compact binaries}",
+        eprint = "1604.08253",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        reportNumber = "LIGO-DOCUMENT-NUMBER-P1600096, LIGO-P1600096",
+        doi = "10.1103/PhysRevD.94.044031",
+        journal = "Phys. Rev. D",
+        volume = "94",
+        number = "4",
+        pages = "044031",
+        year = "2016"
+    }
+
+    @article{roq_paper_2,
+        author = "Morisaki, Soichiro and Smith, Rory and Tsukada, Leo and Sachdev, Surabhi and Stevenson, Simon and Talbot, Colm and Zimmerman, Aaron",
+        title = "{Rapid localization and inference on compact binary coalescences with the Advanced LIGO-Virgo-KAGRA gravitational-wave detector network}",
+        eprint = "2307.13380",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        doi = "10.1103/PhysRevD.108.123040",
+        journal = "Phys. Rev. D",
+        volume = "108",
+        number = "12",
+        pages = "123040",
+        year = "2023"
+    }
+
+
+- `MBGravitationalWaveTransient`
+ .. code:: bibtex
+
+    @article{mb_paper,
+        author = "Morisaki, Soichiro",
+        title = "{Accelerating parameter estimation of gravitational waves from compact binary coalescence using adaptive frequency resolutions}",
+        eprint = "2104.07813",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        doi = "10.1103/PhysRevD.104.044062",
+        journal = "Phys. Rev. D",
+        volume = "104",
+        number = "4",
+        pages = "044062",
+        year = "2021"
+    }
+
+
+- `RelativeBinningGravitationalWaveTransient`
+ .. code:: bibtex
+    
+    @article{relbin_bilby,
+        author = "Krishna, Kruthi and Vijaykumar, Aditya and Ganguly, Apratim and Talbot, Colm and Biscoveanu, Sylvia and George, Richard N. and Williams, Natalie and Zimmerman, Aaron",
+        title = "{Accelerated parameter estimation in Bilby with relative binning}",
+        eprint = "2312.06009",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        month = "12",
+        year = "2023"
+    }
+
+    @article{relbin_cornish,
+        author = "Cornish, Neil J.",
+        title = "{Fast Fisher Matrices and Lazy Likelihoods}",
+        eprint = "1007.4820",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        month = "7",
+        year = "2010"
+    }
+
+    @article{relbin_zackay,
+        author = "Zackay, Barak and Dai, Liang and Venumadhav, Tejaswi",
+        title = "{Relative Binning and Fast Likelihood Evaluation for Gravitational Wave Parameter Estimation}",
+        eprint = "1806.08792",
+        archivePrefix = "arXiv",
+        primaryClass = "astro-ph.IM",
+        month = "6",
+        year = "2018"
+    } 
+
+If you use the :code:`bilby_mcmc` sampler, please additionally cite the following paper
+
+ .. code:: bibtex
+
+    @article{bilby_mcmc_paper,
+        author = "Ashton, Gregory and Talbot, Colm",
+        title = "{B\,ilby-MCMC: an MCMC sampler for gravitational-wave inference}",
+        eprint = "2106.08730",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        doi = "10.1093/mnras/stab2236",
+        journal = "Mon. Not. Roy. Astron. Soc.",
+        volume = "507",
+        number = "2",
+        pages = "2037--2051",
+        year = "2021"
+    }
+
+Additionally, :code:`bilby` builds on a number of open-source packages. If you
+make use of this functionality in your publications, we recommend you cite them
+as requested in their associated documentation.
+
+**Samplers**
+* `cpnest <https://github.com/johnveitch/cpnest>`__
+* `dnest4 <https://github.com/eggplantbren/DNest4>`__
+* `dynesty <https://github.com/joshspeagle/dynesty>`__
+* `emcee <https://github.com/dfm/emcee>`__
+* `kombine <https://github.com/bfarr/kombine>`__
+* `nestle <https://github.com/kbarbary/nestle>`__
+* `nessai <https://github.com/mj-will/nessai>`__
+* `PyMC3 <https://github.com/pymc-devs/pymc3>`__
+* `pymultinest <https://github.com/JohannesBuchner/PyMultiNest>`__
+* `pypolychord <https://github.com/PolyChord/PolyChordLite>`__
+* `ptemcee <https://github.com/willvousden/ptemcee>`__
+* `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
+* `ultranest <https://github.com/JohannesBuchner/UltraNest>`__
+* `zeus <https://github.com/minaskar/zeus>`_
+
+
+**Gravitational-wave tools**
+
+* `gwpy <https://github.com/gwpy/gwpy>`__
+* `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
+* `astropy <https://github.com/astropy/astropy>`__
+
+**Plotting**
+
+* `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
+* `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines

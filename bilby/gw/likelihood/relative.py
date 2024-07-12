@@ -142,10 +142,6 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self.fiducial_polarizations = None
         self.per_detector_fiducial_waveforms = dict()
         self.per_detector_fiducial_waveform_points = dict()
-        self.bin_freqs = dict()
-        self.bin_inds = dict()
-        self.bin_widths = dict()
-        self.bin_centers = dict()
         self.set_fiducial_waveforms(self.fiducial_parameters)
         logger.info("Initial fiducial waveforms set up")
         self.setup_bins()
@@ -219,6 +215,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             bin_inds.append(bin_index)
             bin_freqs.append(bin_freq)
         self.bin_inds = np.array(bin_inds, dtype=int)
+        self.bin_sizes = np.diff(bin_inds)
+        self.bin_sizes[-1] += 1
         self.bin_freqs = np.array(bin_freqs)
         self.number_of_bins = len(self.bin_inds) - 1
         logger.debug(
@@ -319,6 +317,10 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             for edge in self.bin_freqs:
                 index = np.where(masked_frequency_array == edge)[0][0]
                 masked_bin_inds.append(index)
+            # For the last bin, make sure to include
+            # the last point in the frequency array
+            masked_bin_inds[-1] += 1
+
             masked_strain = interferometer.frequency_domain_strain[mask]
             masked_h0 = self.per_detector_fiducial_waveforms[interferometer.name][mask]
             masked_psd = interferometer.power_spectral_density_array[mask]
@@ -370,16 +372,15 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             waveform_polarizations=signal_polarizations,
             interferometer=interferometer,
         )
+
+        idxs = slice(self.bin_inds[0], self.bin_inds[-1] + 1)
+        duplicated_r0 = np.repeat(r0, self.bin_sizes)
+        duplicated_r1 = np.repeat(r1, self.bin_sizes)
+        duplicated_fm = np.repeat(self.bin_centers, self.bin_sizes)
+
         f = interferometer.frequency_array
-        duplicated_r0, duplicated_r1, duplicated_fm = np.zeros((3, f.shape[0]), dtype=complex)
-
-        for i in range(self.number_of_bins):
-            idxs = slice(self.bin_inds[i], self.bin_inds[i + 1])
-            duplicated_fm[idxs] = self.bin_centers[i]
-            duplicated_r0[idxs] = r0[i]
-            duplicated_r1[idxs] = r1[i]
-
-        full_waveform_ratio = duplicated_r0 + duplicated_r1 * (f - duplicated_fm)
+        full_waveform_ratio = np.zeros(f.shape[0], dtype=complex)
+        full_waveform_ratio[idxs] = duplicated_r0 + duplicated_r1 * (f[idxs] - duplicated_fm)
         return fiducial_waveform * full_waveform_ratio
 
     def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True):

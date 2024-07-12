@@ -85,5 +85,16 @@ class TestBilbyMCMCSampler(unittest.TestCase):
         self.assertTrue(isinstance(sampler.samples, pd.DataFrame))
 
 
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = Bilby_MCMC.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 1
+    assert len(directories) == 0
+    assert os.path.join(outdir, f"{label}_resume.pickle") in filenames
+
+
 if __name__ == "__main__":
     unittest.main()

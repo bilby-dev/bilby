@@ -3,9 +3,11 @@
 channels:
   - conda-forge
   - defaults
+  - pytorch
 dependencies:
   - pip
   - setuptools
+  - setuptools_scm
   - matplotlib
   - numpy
   - scipy
@@ -19,7 +21,8 @@ dependencies:
   - dill
   - black
   - pytest-cov
-  - arviz
+  - pytest-requires
+  - conda-forge::arviz
   - parameterized
   - scikit-image
   - celerite
@@ -29,6 +32,7 @@ dependencies:
   - cython
   - pytables
   - pytorch
+  - cpuonly
   - python-lalsimulation
   - bilby.cython
   - pyseobnr
@@ -57,5 +61,16 @@ dependencies:
   - jaxlib>=0.4
   - jax>=0.4
   - numba>0.53.1
+  - make
+  - pre-commit
+  - pandoc
+  - ipython
+  - jupyter
+  - nbconvert
+  - twine
+  - glasflow
+  - myst-parser
   - pip:
     - autodoc
+    - ipykernel
+    - build

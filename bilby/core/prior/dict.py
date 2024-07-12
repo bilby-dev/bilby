@@ -512,14 +512,14 @@ class PriorDict(dict):
         sample: dict
             Dictionary of the samples of which we want to have the probability of
         kwargs:
-            The keyword arguments are passed directly to `np.product`
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
+        prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
 
         return self.check_prob(sample, prob)
 
@@ -541,7 +541,7 @@ class PriorDict(dict):
                 constrained_prob[in_bounds] = prob[in_bounds] * keep * ratio
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None):
+    def ln_prob(self, sample, axis=None, normalized=True):
         """
 
         Parameters
@@ -550,6 +550,9 @@ class PriorDict(dict):
             Dictionary of the samples of which to calculate the log probability
         axis: None or int
             Axis along which the summation is performed
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
 
         Returns
         =======
@@ -558,10 +561,14 @@ class PriorDict(dict):
 
         """
         ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
-        return self.check_ln_prob(sample, ln_prob)
+        return self.check_ln_prob(sample, ln_prob,
+                                  normalized=normalized)
 
-    def check_ln_prob(self, sample, ln_prob):
-        ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+    def check_ln_prob(self, sample, ln_prob, normalized=True):
+        if normalized:
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+        else:
+            ratio = 1
         if np.all(np.isinf(ln_prob)):
             return ln_prob
         else:
@@ -772,7 +779,7 @@ class ConditionalPriorDict(PriorDict):
         sample: dict
             Dictionary of the samples of which we want to have the probability of
         kwargs:
-            The keyword arguments are passed directly to `np.product`
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
@@ -784,10 +791,10 @@ class ConditionalPriorDict(PriorDict):
             self[key].prob(sample[key], **self.get_required_variables(key))
             for key in sample
         ]
-        prob = np.product(res, **kwargs)
+        prob = np.prod(res, **kwargs)
         return self.check_prob(sample, prob)
 
-    def ln_prob(self, sample, axis=None):
+    def ln_prob(self, sample, axis=None, normalized=True):
         """
 
         Parameters
@@ -796,6 +803,9 @@ class ConditionalPriorDict(PriorDict):
             Dictionary of the samples of which we want to have the log probability of
         axis: Union[None, int]
             Axis along which the summation is performed
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
 
         Returns
         =======
@@ -808,7 +818,8 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         ln_prob = np.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob)
+        return self.check_ln_prob(sample, ln_prob,
+                                  normalized=normalized)
 
     def cdf(self, sample):
         self._prepare_evaluation(*zip(*sample.items()))

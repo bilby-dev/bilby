@@ -11,6 +11,7 @@ Andrew Miller
 Antoni Ramos-Buades
 Apratim Ganguly
 Avi Vajpeyi
+Ben Patterson
 Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
@@ -28,6 +29,7 @@ Gregory Ashton
 Hank Hua
 Hector Estelles
 Ignacio Magaña Hernandez
+Isaac McMahon
 Isobel Marguarethe Romero-Shaw
 Jack Heinzel
 Jacob Golomb
@@ -57,6 +59,7 @@ Michael Puerrer
 Michael Williams
 Monica Rizzo
 Moritz Huebner
+Nico Gerardo Bers
 Nicola De Lillo
 Nikhil Sarin
 Nirban Bose
@@ -72,6 +75,7 @@ Roberto Cotesta
 Rory Smith
 S. H. Oh
 Sacha Husa
+Sama Al-Shammari
 Samson Leong
 Scott Coughlin
 Serguei Ossokine
@@ -80,6 +84,7 @@ Sharan Banagiri
 Shichao Wu
 Simon Stevenson
 Soichiro Morisaki
+Soumen Roy
 Stephen R Green
 Sumeet Kulkarni
 Sylvia Biscoveanu
@@ -95,3 +100,5 @@ Marc Penuliar
 Andrew Fowlie
 Martin White
 Peter Tsun-Ho Pang
+Alexandre Sebastien Goettel
+Ann-Kristin Malz

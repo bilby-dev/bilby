@@ -14,6 +14,7 @@ class DynamicDynesty(Dynesty):
     """
 
     external_sampler_name = "dynesty"
+    sampler_name = "dynamic_dynesty"
 
     @property
     def nlive(self):

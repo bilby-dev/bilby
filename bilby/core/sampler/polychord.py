@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from .base_sampler import NestedSampler, signal_wrapper
@@ -20,6 +22,7 @@ class PyPolyChord(NestedSampler):
     To see what the keyword arguments are for, see the docstring of PyPolyChordSettings
     """
 
+    sampler_name = "pypolychord"
     default_kwargs = dict(
         use_polychord_defaults=False,
         nlive=None,
@@ -129,6 +132,28 @@ class PyPolyChord(NestedSampler):
         log_likelihoods = -0.5 * samples[:, 1]
         physical_parameters = samples[:, -self.ndim :]
         return log_likelihoods, physical_parameters
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            Ignored for pypolychord.
+
+        Returns
+        -------
+        list
+            List of file names. This will always be empty for pypolychord.
+        list
+            List of directory names.
+        """
+        return [], [os.path.join(outdir, "chains", "")]
 
     @property
     def _sample_file_directory(self):

@@ -42,6 +42,9 @@ containers:
     # Fail if differences exist. If this fails, you may need to run
     # write_dockerfiles.py and commit the changes.
     - git diff --exit-code
+    - cp env-template.yml env.yml
+    - echo "  - python=3.10" >> env.yml
+    - mamba env create -f env.yml -n test --dry-run
 
 .test-python: &test-python
   stage: initial
@@ -75,12 +78,16 @@ basic-3.10:
   <<: *test-python
   image: python:3.10
 
+basic-3.11:
+  <<: *test-python
+  image: python:3.11
+
 .test-samplers-import: &test-samplers-import
   stage: initial
   script:
     - python -m pip install .
     - *list-env
-    - python test/test_samplers_import.py
+    - pytest test/test_samplers_import.py -v
 
 import-samplers-3.9:
   <<: *test-samplers-import
@@ -90,6 +97,10 @@ import-samplers-3.10:
   <<: *test-samplers-import
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
 
+import-samplers-3.11:
+  <<: *test-samplers-import
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
+
 .precommits: &precommits
   stage: initial
   script:
@@ -98,16 +109,8 @@ import-samplers-3.10:
     - pip install --upgrade pip
     - pip --cache-dir=$CACHE_DIR install --upgrade bilby
     - pip --cache-dir=$CACHE_DIR install .
-    - pip --cache-dir=$CACHE_DIR install pre-commit
     # Run precommits (flake8, spellcheck, isort, no merge conflicts, etc)
     - pre-commit run --all-files --verbose --show-diff-on-failure
-
-precommits-py3.9:
-  <<: *precommits
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  variables:
-    CACHE_DIR: ".pip39"
-    PYVERSION: "python39"
 
 precommits-py3.10:
   <<: *precommits
@@ -137,7 +140,7 @@ install:
 
 python-3.9:
   <<: *unit-test
-  needs: ["basic-3.9", "precommits-py3.9"]
+  needs: ["basic-3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10:
@@ -157,6 +160,11 @@ python-3.10:
       - htmlcov/
     expire_in: 30 days
 
+python-3.11:
+  <<: *unit-test
+  needs: ["basic-3.11"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
+
 .test-sampler: &test-sampler
   stage: test
   script:
@@ -166,13 +174,18 @@ python-3.10:
 
 python-3.9-samplers:
   <<: *test-sampler
-  needs: ["basic-3.9", "precommits-py3.9"]
+  needs: ["basic-3.9"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10-samplers:
   <<: *test-sampler
   needs: ["basic-3.10", "precommits-py3.10"]
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+
+python-3.11-samplers:
+  <<: *test-sampler
+  needs: ["basic-3.11"]
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
 
 integration-tests-python-3.10:
   stage: test
@@ -198,12 +211,17 @@ integration-tests-python-3.10:
 plotting-python-3.9:
   <<: *plotting
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  needs: ["basic-3.9", "precommits-py3.9"]
+  needs: ["basic-3.9"]
 
 plotting-python-3.10:
   <<: *plotting
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   needs: ["basic-3.10", "precommits-py3.10"]
+
+plotting-python-3.11:
+  <<: *plotting
+  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
+  needs: ["basic-3.11"]
 
 # ------------------- Docs stage -------------------------------------------
 
@@ -211,12 +229,11 @@ docs:
   stage: docs
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
   before_script:
-    - conda install -c conda-forge pandoc ipython jupyter nbconvert
-    - python -m pip install ipykernel
     - python -m ipykernel install
   script:
     # Make the documentation
     - python -m pip install .
+    - python -m pip install myst_parser # only for testing purposes - remove once test image is generating correctly
     - cd examples/tutorials
     - jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
     - cd ../../docs
@@ -273,6 +290,11 @@ build-python310-container:
   variables:
     PYVERSION: "python310"
 
+build-python311-container:
+  <<: *build-container
+  variables:
+    PYVERSION: "python311"
+
 pypi-release:
   stage: deploy
   image: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
@@ -280,7 +302,6 @@ pypi-release:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
   before_script:
-    - python -m pip install twine setuptools_scm build
     - python -m build --sdist --wheel --outdir dist/ .
   script:
     - twine upload dist/*

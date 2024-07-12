@@ -55,7 +55,6 @@ _sampler_kwargs = dict(
     PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
     pymc=dict(draws=50, tune=50, n_init=250),
     pymultinest=dict(nlive=100),
-    pypolychord=dict(nlive=100),
     ultranest=dict(nlive=100, temporary_directory=False),
     zeus=dict(nwalkers=10, iterations=100)
 )
@@ -65,7 +64,9 @@ sampler_imports = dict(
     dynamic_dynesty="dynesty"
 )
 
-no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "pypolychord", "ultranest", "pymc"]
+no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
+
+loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
 
 
 def slow_func(x, m, c):
@@ -155,7 +156,7 @@ class TestRunningSamplers(unittest.TestCase):
 
     def _run_with_signal_handling(self, sampler, pool_size=1):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
-        if bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler.lower()].hard_exit:
+        if loaded_samplers[sampler.lower()].hard_exit:
             pytest.skip(f"{sampler} hard exits, can't test signal handling.")
         if pool_size > 1 and sampler.lower() in no_pool_test:
             pytest.skip(f"{sampler} cannot be parallelized")

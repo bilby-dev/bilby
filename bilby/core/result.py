@@ -69,7 +69,11 @@ def result_file_name(outdir, label, extension='json', gzip=False):
 def _determine_file_name(filename, outdir, label, extension, gzip):
     """ Helper method to determine the filename """
     if filename is not None:
-        return filename
+        if isinstance(filename, os.PathLike):
+            # convert PathLike object to string
+            return str(filename)
+        else:
+            return filename
     else:
         if (outdir is None) and (label is None):
             raise ValueError("No information given to load file")
@@ -1795,7 +1799,7 @@ class ResultList(list):
 
         if isinstance(result, Result):
             super(ResultList, self).append(result)
-        elif isinstance(result, str):
+        elif isinstance(result, (str, os.PathLike)):
             super(ResultList, self).append(read_in_result(result))
         else:
             raise TypeError("Could not append a non-Result type")
@@ -2057,7 +2061,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         hist_kwargs['color'] = c
         hist_kwargs["linestyle"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
-        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyle": linestyle}, **kwargs)
+        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyles": linestyle}, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(mpllines.Line2D([0], [0], color=c, linestyle=linestyle))
         default_labels.append(result.label)

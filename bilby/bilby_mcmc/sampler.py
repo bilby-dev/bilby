@@ -127,6 +127,9 @@ class Bilby_MCMC(MCMCSampler):
     initial_sample_dict: dict
         A dictionary of the initial sample value. If incomplete, will overwrite
         the initial_sample drawn using initial_sample_method.
+    normalize_prior: bool
+        When False, disables calculation of constraint normalization factor
+        during prior probability computation. Default value is True.
     verbose: bool
         Whether to print diagnostic output during the run.
 
@@ -175,6 +178,7 @@ class Bilby_MCMC(MCMCSampler):
         resume=True,
         exit_code=130,
         verbose=True,
+        normalize_prior=True,
         **kwargs,
     ):
 
@@ -194,6 +198,7 @@ class Bilby_MCMC(MCMCSampler):
         self.kwargs["target_nsamples"] = self.kwargs["nsamples"]
         self.L1steps = self.kwargs["L1steps"]
         self.L2steps = self.kwargs["L2steps"]
+        self.normalize_prior = normalize_prior
         self.pt_inputs = ParallelTemperingInputs(
             **{key: self.kwargs[key] for key in ParallelTemperingInputs._fields}
         )
@@ -309,6 +314,7 @@ class Bilby_MCMC(MCMCSampler):
             evidence_method=self.evidence_method,
             initial_sample_method=self.initial_sample_method,
             initial_sample_dict=self.initial_sample_dict,
+            normalize_prior=self.normalize_prior,
         )
 
     def get_setup_string(self):
@@ -382,7 +388,9 @@ class Bilby_MCMC(MCMCSampler):
             If true, resume file was successfully loaded, otherwise false
 
         """
-        if os.path.isfile(self.resume_file) is False:
+        if os.path.isfile(self.resume_file) is False or not os.path.getsize(
+            self.resume_file
+        ):
             return False
         import dill
 
@@ -547,6 +555,29 @@ class Bilby_MCMC(MCMCSampler):
                         all_samples=ptsampler.samples,
                     )
 
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names. Will always be empty for bilby_mcmc.
+        """
+        filenames = [os.path.join(outdir, f"{label}_resume.pickle")]
+        return filenames, []
+
 
 class BilbyPTMCMCSampler(object):
     def __init__(
@@ -560,11 +591,13 @@ class BilbyPTMCMCSampler(object):
         evidence_method,
         initial_sample_method,
         initial_sample_dict,
+        normalize_prior=True,
     ):
         self.set_pt_inputs(pt_inputs)
         self.use_ratio = use_ratio
         self.initial_sample_method = initial_sample_method
         self.initial_sample_dict = initial_sample_dict
+        self.normalize_prior = normalize_prior
         self.setup_sampler_dictionary(convergence_inputs, proposal_cycle)
         self.set_convergence_inputs(convergence_inputs)
         self.pt_rejection_sample = pt_rejection_sample
@@ -635,6 +668,7 @@ class BilbyPTMCMCSampler(object):
                     use_ratio=self.use_ratio,
                     initial_sample_method=self.initial_sample_method,
                     initial_sample_dict=self.initial_sample_dict,
+                    normalize_prior=self.normalize_prior,
                 )
                 for Eindex in range(n)
             ]
@@ -1129,12 +1163,13 @@ class BilbyMCMCSampler(object):
         use_ratio=False,
         initial_sample_method="prior",
         initial_sample_dict=None,
+        normalize_prior=True,
     ):
         self.beta = beta
         self.Tindex = Tindex
         self.Eindex = Eindex
         self.use_ratio = use_ratio
-
+        self.normalize_prior = normalize_prior
         self.parameters = _sampling_convenience_dump.priors.non_fixed_keys
         self.ndim = len(self.parameters)
 
@@ -1209,7 +1244,10 @@ class BilbyMCMCSampler(object):
         return logl
 
     def log_prior(self, sample):
-        return _sampling_convenience_dump.priors.ln_prob(sample.parameter_only_dict)
+        return _sampling_convenience_dump.priors.ln_prob(
+            sample.parameter_only_dict,
+            normalized=self.normalize_prior,
+        )
 
     def accept_proposal(self, prop, proposal):
         self.chain.append(prop)

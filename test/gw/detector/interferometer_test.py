@@ -560,21 +560,92 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
 
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
+        self.duration = 64
+        self.sampling_frequency = 4096
         self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
         self.ifo.set_strain_data_from_power_spectral_density(
-            sampling_frequency=4096, duration=64)
+            sampling_frequency=self.sampling_frequency, duration=self.duration)
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments={
+                "waveform_approximant": "IMRPhenomXP"
+            })
+
+        self.parameters = {
+            'mass_1': 10,
+            'mass_2': 10,
+            'a_1': 0,
+            'a_2': 0,
+            'tilt_1': 0,
+            'tilt_2': 0,
+            'phi_12': 0,
+            'phi_jl': 0,
+            'theta_jn': 0,
+            'luminosity_distance': 40,
+            'phase': 0,
+            'ra': 0,
+            'dec': 0,
+            'geocent_time': 62,
+            'psi': 0
+        }
 
     def tearDown(self):
         del self.ifo
+        del self.waveform_generator
+        del self.parameters
+        del self.duration
+        del self.sampling_frequency
 
-    def test_whitened_strain(self):
-        mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask]
-        std_real = np.std(white.real)
-        std_imag = np.std(white.imag)
+    def _check_frequency_series_whiteness(self, frequency_series):
+        std_real = np.std(frequency_series.real)
+        std_imag = np.std(frequency_series.imag)
         self.assertAlmostEqual(std_real, 1, places=2)
         self.assertAlmostEqual(std_imag, 1, places=2)
 
+    def _check_time_series_whiteness(self, time_series):
+        std = np.std(time_series)
+        self.assertAlmostEqual(std, 1, places=2)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_frequency_domain_whitened_strain(self):
+        mask = self.ifo.frequency_mask
+        white = self.ifo.whitened_frequency_domain_strain[mask]
+        self._check_frequency_series_whiteness(white)
+
+    def test_time_domain_whitened_strain(self):
+        whitened_td = self.ifo.whitened_time_domain_strain
+        self._check_time_series_whiteness(whitened_td)
+
+    def test_frequency_domain_noise_and_signal_whitening(self):
+        # Inject some (loud) signal
+        self.ifo.inject_signal(waveform_generator=self.waveform_generator, parameters=self.parameters)
+        # Make the template separately
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain(parameters=self.parameters)
+        signal_ifo = self.ifo.get_detector_response(
+            waveform_polarizations=waveform_polarizations,
+            parameters=self.parameters
+        )
+        # Whiten the template
+        whitened_signal_ifo = self.ifo.whiten_frequency_series(signal_ifo)
+        mask = self.ifo.frequency_mask
+        white = self.ifo.whitened_frequency_domain_strain[mask] - whitened_signal_ifo[mask]
+        self._check_frequency_series_whiteness(white)
+
+    def test_time_domain_noise_and_signal_whitening(self):
+        # Inject some (loud) signal
+        self.ifo.inject_signal(waveform_generator=self.waveform_generator, parameters=self.parameters)
+        # Make the template separately
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain(parameters=self.parameters)
+        signal_ifo = self.ifo.get_detector_response(
+            waveform_polarizations=waveform_polarizations,
+            parameters=self.parameters
+        )
+        # Whiten the template in FD
+        whitened_signal_ifo_fd = self.ifo.whiten_frequency_series(signal_ifo)
+        # Get whitened template in TD
+        whitened_signal_ifo_td = self.ifo.get_whitened_time_series_from_whitened_frequency_series(
+            whitened_signal_ifo_fd
+        )
+        whitened_td = self.ifo.whitened_time_domain_strain - whitened_signal_ifo_td
+        self._check_time_series_whiteness(whitened_td)

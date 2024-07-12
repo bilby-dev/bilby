@@ -87,10 +87,10 @@ for i in range(nmodes):
     angle = np.arctan(u[1] / u[0])
     angle = 180.0 * angle / np.pi  # convert to degrees
     ell = mpl.patches.Ellipse(
-        mus[i],
-        v[0],
-        v[1],
-        180.0 + angle,
+        xy=mus[i],
+        width=v[0],
+        height=v[1],
+        angle=180.0 + angle,
         edgecolor="black",
         facecolor="none",
         lw=2,

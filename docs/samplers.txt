@@ -73,6 +73,18 @@ MCMC samplers
 - zeus :code:`bilby.core.sampler.zeus.Zeus`
 
 
+--------------------------
+Listing available samplers
+--------------------------
+
+A list of available samplers can be produced using
+:py:func:`bilby.core.sampler.get_implemented_samplers`.
+This will list native bilby samplers and any samplers available via a plugin.
+If a plugin provides a sampler that is also implemented in bilby, the bilby
+implementation will be labeled with the prfix `bilby.` to distinguish it from
+the plugin version. See `sampler plugins`_ for more details.
+
+
 -------------------
 Installing samplers
 -------------------

@@ -2,9 +2,10 @@ import unittest
 
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.prior import Uniform, PriorDict
-from bilby.core.sampler import Ptemcee
+from bilby.core.sampler.ptemcee import Ptemcee
 from bilby.core.sampler.base_sampler import MCMCSampler
 import numpy as np
+import os
 
 
 class TestPTEmcee(unittest.TestCase):
@@ -87,6 +88,17 @@ class TestPTEmcee(unittest.TestCase):
         new_sampler = Ptemcee(*self._args, **self._kwargs, pos0="minimize")
         new = new_sampler.get_pos0().shape
         self.assertEqual(old, new)
+
+
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = Ptemcee.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 1
+    assert len(directories) == 0
+    assert os.path.join(outdir, f"{label}_checkpoint_resume.pickle") in filenames
 
 
 if __name__ == "__main__":
