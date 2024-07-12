@@ -1423,7 +1423,7 @@ class FermiDirac(Prior):
         ==========
         val: Union[float, int, array_like]
             The value(s) to evaluate the CDF at
-        
+
         Returns
         =======
         Union[float, array_like]:
