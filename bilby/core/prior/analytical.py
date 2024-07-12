@@ -1414,6 +1414,33 @@ class FermiDirac(Prior):
         """
         return np.log(self.prob(val))
 
+    def cdf(self, val):
+        """
+        Evaluate the CDF of the Fermi-Dirac distribution using a slightly
+        modified form of Equation 23 of [1]_.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+            The value(s) to evaluate the CDF at
+        
+        Returns
+        =======
+        Union[float, array_like]:
+            The CDF value(s)
+
+        References
+        ==========
+
+        .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
+           <https:arxiv.org/abs/1705.08978v1>`_, 2017.
+        """
+        result = (
+            (np.logaddexp(0, -self.r) - np.logaddexp(-val / self.sigma, -self.r))
+            / np.logaddexp(0, self.r)
+        )
+        return np.clip(result, 0, 1)
+
 
 class Categorical(Prior):
     def __init__(self, ncategories, name=None, latex_label=None,
