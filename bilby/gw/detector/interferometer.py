@@ -597,6 +597,26 @@ class Interferometer(object):
             power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
             duration=self.strain_data.duration)
 
+    def template_template_inner_product(self, signal_1, signal_2):
+        """A noise weighted inner product between two templates, using this ifo's PSD.
+
+        Parameters
+        ==========
+        signal_1 : array_like
+            An array containing the first signal
+        signal_2 : array_like
+            an array containing the second signal
+
+        Returns
+        =======
+        float: The noise weighted inner product of the two templates
+        """
+        return gwutils.noise_weighted_inner_product(
+            aa=signal_1[self.strain_data.frequency_mask],
+            bb=signal_2[self.strain_data.frequency_mask],
+            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
+            duration=self.strain_data.duration)
+
     def matched_filter_snr(self, signal):
         """
 

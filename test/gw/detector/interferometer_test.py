@@ -321,6 +321,18 @@ class TestInterferometer(unittest.TestCase):
             self.assertTrue(np.array_equal(expected[2], actual[2]))
             self.assertEqual(expected[3], actual[3])
 
+    def test_template_template_inner_product(self):
+        signal_1 = np.ones_like(self.ifo.power_spectral_density_array)
+        signal_2 = np.ones_like(self.ifo.power_spectral_density_array) * 2
+        signal_1_optimal = self.ifo.optimal_snr_squared(signal=signal_1)
+        signal_1_optimal_by_template_template = self.ifo.template_template_inner_product(
+            signal_1=signal_1,
+            signal_2=signal_1
+        )
+        self.assertTrue(np.array_equal(signal_1_optimal, signal_1_optimal_by_template_template))
+        signal_1_signal_2_inner_product = self.ifo.template_template_inner_product(signal_1=signal_1, signal_2=signal_2)
+        self.assertTrue(np.array_equal(signal_1_optimal * 2, signal_1_signal_2_inner_product))
+
     def test_repr(self):
         expected = (
             "Interferometer(name='{}', power_spectral_density={}, minimum_frequency={}, "
