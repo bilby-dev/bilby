@@ -70,10 +70,6 @@ containers:
           ${script} --help;
       done
 
-basic-3.9:
-  <<: *test-python
-  image: python:3.9
-
 basic-3.10:
   <<: *test-python
   image: python:3.10
@@ -88,10 +84,6 @@ basic-3.11:
     - python -m pip install .
     - *list-env
     - pytest test/test_samplers_import.py -v
-
-import-samplers-3.9:
-  <<: *test-samplers-import
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 import-samplers-3.10:
   <<: *test-samplers-import
@@ -138,11 +130,6 @@ install:
 
     - pytest --cov=bilby --durations 10
 
-python-3.9:
-  <<: *unit-test
-  needs: ["basic-3.9"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-
 python-3.10:
   <<: *unit-test
   needs: ["basic-3.10", "precommits-py3.10"]
@@ -171,11 +158,6 @@ python-3.11:
     - python -m pip install .[all]
     - *list-env
     - pytest test/integration/sampler_run_test.py --durations 10 -v
-
-python-3.9-samplers:
-  <<: *test-sampler
-  needs: ["basic-3.9"]
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
 
 python-3.10-samplers:
   <<: *test-sampler
@@ -207,11 +189,6 @@ integration-tests-python-3.10:
     - python -m pip install .
     - *list-env
     - pytest test/gw/plot_test.py
-
-plotting-python-3.9:
-  <<: *plotting
-  image: containers.ligo.org/lscsoft/bilby/v2-bilby-python39
-  needs: ["basic-3.9"]
 
 plotting-python-3.10:
   <<: *plotting
@@ -279,11 +256,6 @@ pages:
     - docker build --tag v3-bilby-$PYVERSION .
     - docker image tag v3-bilby-$PYVERSION containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
     - docker image push containers.ligo.org/lscsoft/bilby/v2-bilby-$PYVERSION:latest
-
-build-python39-container:
-  <<: *build-container
-  variables:
-    PYVERSION: "python39"
 
 build-python310-container:
   <<: *build-container
