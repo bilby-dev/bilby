@@ -1,0 +1,27 @@
+# This dockerfile is written automatically and should not be modified by hand.
+
+FROM containers.ligo.org/docker/base:conda
+LABEL name="bilby CI testing" \
+maintainer="Gregory Ashton <gregory.ashton@ligo.org>, Colm Talbot <colm.talbot@ligo.org>"
+
+COPY env-template.yml env.yml
+RUN echo "  - python=3.12" >> env.yml
+ENV conda_env python312
+
+RUN mamba env create -f env.yml -n ${conda_env}
+RUN echo "source activate ${conda_env}" > ~/.bashrc
+ENV PATH /opt/conda/envs/${conda_env}/bin:$PATH
+RUN /bin/bash -c "source activate ${conda_env}"
+RUN mamba info
+RUN python --version
+
+# Add the ROQ data to the image
+RUN mkdir roq_basis \
+    && cd roq_basis \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_linear.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
+    && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
+    && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis_addcal.hdf5 \
+    && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis_multiband_addcal.hdf5
