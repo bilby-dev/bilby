@@ -311,7 +311,11 @@ class Emcee(MCMCSampler):
         """
         if hasattr(self, "_sampler"):
             pass
-        elif self.resume and os.path.isfile(self.checkpoint_info.sampler_file):
+        elif (
+            self.resume
+            and os.path.isfile(self.checkpoint_info.sampler_file)
+            and os.path.getsize(self.checkpoint_info.sampler_file)
+        ):
             import dill
 
             logger.info(

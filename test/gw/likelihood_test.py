@@ -657,6 +657,80 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         )
 
     @parameterized.expand(
+        [(_path_to_basis, 20., 2048., 16),
+         (_path_to_basis, 10., 1024., 16),
+         (_path_to_basis, 20., 1024., 32),
+         (_path_to_basis_mb, 20., 2048., 16)]
+    )
+    def test_fails_with_frequency_duration_mismatch(
+        self, basis, minimum_frequency, maximum_frequency, duration
+    ):
+        """Test if likelihood fails as expected, when data frequency range is
+        not within the basis range or data duration does not match the basis
+        duration. The basis frequency range and duration are 20--1024Hz and
+        16s"""
+        self.priors["chirp_mass"].minimum = 8
+        self.priors["chirp_mass"].maximum = 9
+        interferometers = bilby.gw.detector.InterferometerList(["H1"])
+        interferometers.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=2 * maximum_frequency,
+            duration=duration,
+            start_time=self.injection_parameters["geocent_time"] - duration + 1
+        )
+        for ifo in interferometers:
+            ifo.minimum_frequency = minimum_frequency
+            ifo.maximum_frequency = maximum_frequency
+        search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=duration,
+            sampling_frequency=2 * maximum_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            waveform_arguments=dict(
+                reference_frequency=self.reference_frequency,
+                waveform_approximant=self.waveform_approximant
+            )
+        )
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=interferometers,
+                priors=self.priors,
+                waveform_generator=search_waveform_generator,
+                linear_matrix=basis,
+                quadratic_matrix=basis,
+            )
+
+    @parameterized.expand([(_path_to_basis, 7, 13), (_path_to_basis, 9, 15), (_path_to_basis, 16, 17)])
+    def test_fails_with_prior_mismatch(self, basis, chirp_mass_min, chirp_mass_max):
+        """Test if likelihood fails as expected, when prior range is not within
+        the basis bounds. Basis chirp-mass range is 8Msun--14Msun."""
+        self.priors["chirp_mass"].minimum = chirp_mass_min
+        self.priors["chirp_mass"].maximum = chirp_mass_max
+        interferometers = bilby.gw.detector.InterferometerList(["H1"])
+        interferometers.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            start_time=self.injection_parameters["geocent_time"] - self.duration + 1
+        )
+        for ifo in interferometers:
+            ifo.minimum_frequency = self.minimum_frequency
+        search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            waveform_arguments=dict(
+                reference_frequency=self.reference_frequency,
+                waveform_approximant=self.waveform_approximant
+            )
+        )
+        with self.assertRaises(BilbyROQParamsRangeError):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient(
+                interferometers=interferometers,
+                priors=self.priors,
+                waveform_generator=search_waveform_generator,
+                linear_matrix=basis,
+                quadratic_matrix=basis,
+            )
+
+    @parameterized.expand(
         product(
             [_path_to_basis, _path_to_basis_mb],
             [_path_to_basis, _path_to_basis_mb],

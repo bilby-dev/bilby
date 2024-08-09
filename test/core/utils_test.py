@@ -320,7 +320,7 @@ class TestUnsortedInterp2d(unittest.TestCase):
         self.xx = np.linspace(0, 1, 10)
         self.yy = np.linspace(0, 1, 10)
         self.zz = np.random.random((10, 10))
-        self.interpolant = bilby.core.utils.UnsortedInterp2d(self.xx, self.yy, self.zz)
+        self.interpolant = bilby.core.utils.BoundedRectBivariateSpline(self.xx, self.yy, self.zz)
 
     def tearDown(self):
         pass
