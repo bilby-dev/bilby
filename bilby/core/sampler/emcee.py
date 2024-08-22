@@ -1,7 +1,6 @@
 import os
 import shutil
 from collections import namedtuple
-from shutil import copyfile
 
 import numpy as np
 from packaging import version
@@ -333,16 +332,19 @@ class Emcee(MCMCSampler):
     def write_chains_to_file(self, sample):
         chain_file = self.checkpoint_info.chain_file
         temp_chain_file = chain_file + ".temp"
-        if os.path.isfile(chain_file):
-            copyfile(chain_file, temp_chain_file)
         if self.prerelease:
             points = np.hstack([sample.coords, sample.blobs])
         else:
             points = np.hstack([sample[0], np.array(sample[3])])
-        with open(temp_chain_file, "a") as ff:
-            for ii, point in enumerate(points):
-                ff.write(self.checkpoint_info.chain_template.format(ii, *point))
-        shutil.move(temp_chain_file, chain_file)
+        data_to_write = "\n".join(
+            self.checkpoint_info.chain_template.format(ii, *point)
+            for ii, point in enumerate(points)
+        )
+        with open(temp_chain_file, "w") as ff:
+            ff.write(data_to_write)
+        with open(temp_chain_file, "rb") as ftemp, open(chain_file, "ab") as fchain:
+            shutil.copyfileobj(ftemp, fchain)
+        os.remove(temp_chain_file)
 
     @property
     def _previous_iterations(self):
