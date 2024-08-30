@@ -114,7 +114,7 @@ This allows cuts to be specified in the prior space.
 
 You can provide the `PriorDict` a `conversion_function` and a set of `Constraint` priors to remove parts of the prior space.
 
-When using constraints, a normalization constant is estimated to ensure the priors are still correctly normalized.
+When using constraints, the normalization constant is estimated to ensure the priors are still correctly normalized.
 
 
 Simple example
