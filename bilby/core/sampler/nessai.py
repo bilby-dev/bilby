@@ -13,7 +13,7 @@ from .base_sampler import NestedSampler, signal_wrapper
 class Nessai(NestedSampler):
     """bilby wrapper of nessai (https://github.com/mj-will/nessai)
 
-    .. important::
+    .. warning::
         The nessai sampler interface in bilby is deprecated and will be
         removed in future release. Please use the :code`nessai-bilby`
         sampler plugin instead: https://github.com/bilby-dev/nessai-bilby

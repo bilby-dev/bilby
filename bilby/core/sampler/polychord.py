@@ -12,7 +12,7 @@ class PyPolyChord(NestedSampler):
     Bilby wrapper of PyPolyChord
     https://arxiv.org/abs/1506.00171
 
-    .. important::
+    .. warning::
         The PyPolyChord sampler interface in bilby is deprecated and will be
         removed in future release. Please use the :code`pypolychord-bilby`
         sampler plugin instead: https://github.com/bilby-dev/pypolychord-bilby
