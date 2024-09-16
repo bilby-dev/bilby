@@ -367,7 +367,6 @@ class ACTTrackingRWalk:
             return int(np.ceil(self.act))
 
 
-
 class AcceptanceTrackingRWalk:
     """
     This is a modified version of dynesty.sampling.sample_rwalk that runs the
