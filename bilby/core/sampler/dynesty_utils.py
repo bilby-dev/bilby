@@ -304,7 +304,7 @@ class ACTTrackingRWalk:
         thin = self.thin * iact
 
         if accept == 0:
-            logger.debug(
+            logger.warning(
                 "Unable to find a new point using walk: returning a random point"
             )
             u = common_kwargs["rstate"].uniform(size=len(current_u))
