@@ -358,7 +358,7 @@ class ACTTrackingRWalk:
         else:
             return np.inf
         return max(calculate_tau(samples), naive_act, most_failures)
-    
+
     @property
     def integer_act(self):
         if np.isinf(self.act):
