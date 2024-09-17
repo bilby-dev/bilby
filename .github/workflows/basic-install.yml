@@ -2,9 +2,12 @@ name: Clean install
 
 on:
   push:
-    branches: [ "github-main" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "github-main" ]
+    branches: [ "main" ]
+  release:
+    types:
+      - published
 
 jobs:
   build:
