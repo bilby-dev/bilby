@@ -17,13 +17,13 @@ If you need help, find an issue, or just have a question/suggestion you can
 - Join our `Slack workspace <https://bilby-code.slack.com/>`__ (you may need to email the support desk to request an invite)
 - Email our support desk: contact+lscsoft-bilby-1846-issue-@support.ligo.org
 - Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
-- For www.git.ligo.org users, submit issues directly through `the issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
+- For www.git.ligo.org users, submit issues directly through `the issue tracker <https://github.com/bilby-dev/bilby/issues>`__
 - For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
 
 We encourage you to contribute to the development of bilby. This is done via a merge request.  For
 help in creating a merge request, see `this page
 <https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html>`__ or contact
-us directly. For advice on contributing, see `the contributing guide <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
+us directly. For advice on contributing, see `the contributing guide <https://github.com/bilby-dev/bilby/blob/master/CONTRIBUTING.md>`__.
 
 
 --------------
@@ -32,9 +32,9 @@ Citation guide
 
 Please refer to the `Acknowledging/citing bilby guide <https://lscsoft.docs.ligo.org/bilby/citing-bilby.html>`__.
 
-.. |pipeline status| image:: https://git.ligo.org/lscsoft/bilby/badges/master/pipeline.svg
-   :target: https://git.ligo.org/lscsoft/bilby/commits/master
-.. |coverage report| image:: https://git.ligo.org/lscsoft/bilby/badges/master/coverage.svg
+.. |pipeline status| image:: https://github.com/bilby-dev/bilby/badges/master/pipeline.svg
+   :target: https://github.com/bilby-dev/bilby/commits/master
+.. |coverage report| image:: https://github.com/bilby-dev/bilby/badges/master/coverage.svg
    :target: https://lscsoft.docs.ligo.org/bilby/htmlcov/
 .. |pypi| image:: https://badge.fury.io/py/bilby.svg
    :target: https://pypi.org/project/bilby/

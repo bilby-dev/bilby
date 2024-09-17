@@ -314,10 +314,10 @@ review the change.
 ### Licence
 When submitting a MR, please don't include any license information in your
 code. Our repository is
-[licensed](https://git.ligo.org/lscsoft/bilby/blob/master/LICENSE.md). When
+[licensed](https://github.com/bilby-dev/bilby/blob/master/LICENSE.md). When
 submitting your merge request, we will assume you have read and agreed to the
 terms of [the
-license](https://git.ligo.org/lscsoft/bilby/blob/master/LICENSE.md).
+license](https://github.com/bilby-dev/bilby/blob/master/LICENSE.md).
 
 ### Removing previously installed versions
 
