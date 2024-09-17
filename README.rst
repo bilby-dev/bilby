@@ -9,15 +9,14 @@ Fulfilling all your Bayesian dreams.
 
 Online material to help you get started:
 
--  `Installation instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
--  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
+-  `Installation instructions <https://bilby-dev.github.io/bilby//installation.html>`__
+-  `Documentation <https://bilby-dev.github.io/bilby/>`__
 
 If you need help, find an issue, or just have a question/suggestion you can
 
 - Join our `Slack workspace <https://bilby-code.slack.com/>`__ (you may need to email the support desk to request an invite)
-- Email our support desk: contact+lscsoft-bilby-1846-issue-@support.ligo.org
 - Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
-- For www.git.ligo.org users, submit issues directly through `the issue tracker <https://github.com/bilby-dev/bilby/issues>`__
+- Submit issues directly through `the issue tracker <https://github.com/bilby-dev/bilby/issues>`__
 - For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
 
 We encourage you to contribute to the development of bilby. This is done via a merge request.  For
