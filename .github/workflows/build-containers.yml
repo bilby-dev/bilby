@@ -26,11 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup dockerfile
         run: |
-          pwd
-          ls
           cd containers
-          pwd
-          ls
           cp v3-dockerfile-test-suite-python${{ matrix.python-version }} Dockerfile
           
       - name: Login to the Container registry
@@ -44,15 +40,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: ghcr.io/${{ env.IMAGE_NAME }}-PY${{ matrix.python-version }}
+          images: ghcr.io/${{ env.IMAGE_NAME }}-python${{ matrix.python-version }}
 
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: .
-          # only push from main
-          push: github.ref == 'refs/heads/main'
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
