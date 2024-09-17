@@ -31,7 +31,7 @@ Citation guide
 
 Please refer to the `Acknowledging/citing bilby guide <https://lscsoft.docs.ligo.org/bilby/citing-bilby.html>`__.
 
-.. |pipeline status| image:: https://github.com/bilby-dev/bilby/badges/master/pipeline.svg
+.. |pipeline status| image:: https://github.com/bilby-dev/bilby/actions/workflows/unit-tests.yml/badge.svg
    :target: https://github.com/bilby-dev/bilby/commits/master
 .. |coverage report| image:: https://github.com/bilby-dev/bilby/badges/master/coverage.svg
    :target: https://lscsoft.docs.ligo.org/bilby/htmlcov/
