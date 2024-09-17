@@ -11,7 +11,7 @@ more general problems.
 
 The code, and many examples are hosted at https://github.com/bilby-dev/bilby.
 For installation instructions see
-https://lscsoft.docs.ligo.org/bilby/installation.html.
+https://bilby-dev.github.io/bilby/installation.html.
 
 """
 

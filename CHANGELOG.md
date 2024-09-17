@@ -1030,7 +1030,7 @@ re-instantiate the Prior in most cases
 
 ### Added
 - InterferometerStrainData now handles both time-domain and frequencu-domain data
-- Adds documentation on setting data (https://lscsoft.docs.ligo.org/bilby/transient-gw-data.html)
+- Adds documentation on setting data (https://bilby-dev.github.io/bilby/transient-gw-data.html)
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
 - Add functionality to plot multiple results in a corner plot, see `bilby.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
@@ -1057,7 +1057,7 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - Major effort to update all docstrings and add some documentation.
 - Marginalized likelihoods.
 - Examples of searches for gravitational waves from a Supernova and using a sine-Gaussian.
-- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://lscsoft.docs.ligo.org/bilby/prior.html).
+- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://bilby-dev.github.io/bilby/prior.html).
 - A standardised file for storing detector data.
 
 ### Removed

@@ -30,7 +30,7 @@ us directly. For advice on contributing, see `the contributing guide <https://gi
 Citation guide
 --------------
 
-Please refer to the `Acknowledging/citing bilby guide <https://lscsoft.docs.ligo.org/bilby/citing-bilby.html>`__.
+Please refer to the `Acknowledging/citing bilby guide <https://bilby-dev.github.io/bilby/citing-bilby.html>`__.
 
 .. |pipeline status| image:: https://github.com/bilby-dev/bilby/actions/workflows/unit-tests.yml/badge.svg
    :target: https://github.com/bilby-dev/bilby/commits/master
