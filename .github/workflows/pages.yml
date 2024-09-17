@@ -10,7 +10,7 @@ on:
       - published
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     container: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
     steps:
@@ -38,9 +38,14 @@ jobs:
         with:
           name: docs-html
           path: docs/_build/html/
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
-        if: ${{ github.ref == 'refs/heads/main' }}
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
