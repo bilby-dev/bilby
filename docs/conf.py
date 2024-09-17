@@ -247,4 +247,4 @@ def linkcode_resolve(domain, info):
     except Exception:
         return
 
-    return f"{GITURL}/-/tree/{GITHASH}/{file}#L{start}-L{end}"
+    return f"{GITURL}/tree/{GITHASH}/{file}#L{start}-L{end}"
