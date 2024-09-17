@@ -518,9 +518,7 @@ Version 1.0.1 release of bilby
 Version 1.0 release of bilby
 
 ### Changes
-- Minor bug fixes and typo changes only from 0.6.9, see
-github.com/bilby-dev/bilby/merge_requests?scope=all&utf8=%E2%9C%93&state=merged&milestone_title=1.0.0
-for details
+- Minor bug fixes and typo changes only from 0.6.9, see the [1.0.0 milestone](https://git.ligo.org/lscsoft/bilby/-/merge_requests?scope=all&state=all&milestone_title=1.0.0) for details
 
 ## [0.6.9] 2020-05-21
 ### Changes
