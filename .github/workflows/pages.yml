@@ -39,9 +39,9 @@ jobs:
           make html
           cd -
       # Upload the build docs as an artifact until we expose the pages
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: docs-html
           path: docs/_build/html/
   deploy:
     environment:
