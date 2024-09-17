@@ -41,7 +41,7 @@ def git_upstream_url():
         if url[:5] != "https":
             url = f"https://{url}"
     except subprocess.CalledProcessError:
-        url = "https://git.ligo.org/lscsoft/bilby"
+        url = "https://github.com/bilby-dev/bilby"
     return url
 
 

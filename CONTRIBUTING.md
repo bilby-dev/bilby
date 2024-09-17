@@ -189,7 +189,7 @@ do this.
 
 All the code lives in a git repository (for a short introduction to git, see
 [this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://git.ligo.org/lscsoft/bilby.  If you haven't
+which is hosted here: https://github.com/bilby-dev/bilby.  If you haven't
 already, you should
 [fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the
 repository and clone your fork, i.e., on your local machine run
@@ -231,7 +231,7 @@ have been merged since the time you created your fork, or last updated:
 containing a local copy of the code:
 
 ```bash
-$ git remote add lscsoft https://git.ligo.org/lscsoft/bilby
+$ git remote add lscsoft https://github.com/bilby-dev/bilby
 ```
 
 You can see which "remotes" you have available by running
@@ -299,7 +299,7 @@ main (`lscsoft`) repository.
 
 After you have pushed your new feature branch to `origin`, you should find a
 new button on the [bilby repository home
-page](https://git.ligo.org/lscsoft/bilby) inviting you to create a Merge
+page](https://github.com/bilby-dev/bilby) inviting you to create a Merge
 Request out of your newly pushed branch.  You should click the button, and
 proceed to fill in the title and description boxes on the MR page. If you are
 still working on the merge request and don’t want it to be merged accidentally,
