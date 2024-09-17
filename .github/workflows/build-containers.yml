@@ -25,7 +25,12 @@ jobs:
     steps:
       - name: Setup dockerfile
         run: |
-          cp containers/v3-dockerfile-test-suite-python${{ matrix.python-version }} Dockerfile
+          pwd
+          ls
+          cd containers
+          pwd
+          ls
+          cp v3-dockerfile-test-suite-python${{ matrix.python-version }} Dockerfile
           
       - name: Login to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
