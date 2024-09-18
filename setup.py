@@ -5,8 +5,8 @@ import sys
 import os
 
 python_version = sys.version_info
-if python_version < (3, 9):
-    sys.exit("Python < 3.9 is not supported, aborting setup")
+if python_version < (3, 10):
+    sys.exit("Python < 3.10 is not supported, aborting setup")
 
 
 def get_long_description():
@@ -66,7 +66,7 @@ setup(
         "bilby.gw.detector": ["noise_curves/*.txt", "detectors/*"],
         "bilby.gw.eos": ["eos_tables/*.dat"],
     },
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=get_requirements(),
     extras_require={
         "gw": get_requirements("gw"),
@@ -104,7 +104,6 @@ setup(
         ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",

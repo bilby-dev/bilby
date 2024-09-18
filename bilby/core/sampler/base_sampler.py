@@ -463,7 +463,7 @@ class Sampler(object):
             logger.info("Unable to measure single likelihood time")
         else:
             logger.info(
-                f"Single likelihood evaluation took {self._log_likelihood_eval_time:.3e} s"
+                f"Single likelihood evaluation took {log_likelihood_eval_time:.3e} s"
             )
         return log_likelihood_eval_time
 

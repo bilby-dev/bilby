@@ -1,17 +1,27 @@
 name: GitHub Pages
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 on:
   push:
-    branches:
-      - github-main
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - github-main
+    branches: [ "main" ]
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    container: containers.ligo.org/lscsoft/bilby/v2-bilby-python310
+    container: containers.ligo.org/lscsoft/bilby/v2-bilby-python311
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,14 +43,18 @@ jobs:
           make html
           cd -
       # Upload the build docs as an artifact until we expose the pages
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: docs-html
           path: docs/_build/html/
-      # Disable docs deployment until we move primarily to GitHub
-      # - name: Deploy
-      #   uses: peaceiris/actions-gh-pages@v3
-      #   if: ${{ github.ref == 'refs/heads/master' }}
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     publish_dir: .
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

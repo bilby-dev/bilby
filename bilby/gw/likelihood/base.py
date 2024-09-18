@@ -7,7 +7,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 from ...core.likelihood import Likelihood
-from ...core.utils import logger, UnsortedInterp2d, create_time_series
+from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
 from ..detector import InterferometerList, get_empty_interferometer, calibration
 from ..prior import BBHPriorDict, Cosmological
@@ -752,7 +752,7 @@ class GravitationalWaveTransient(Likelihood):
             d_inner_h_ref = np.real(d_inner_h_ref)
 
         return self._interp_dist_margd_loglikelihood(
-            d_inner_h_ref, h_inner_h_ref)
+            d_inner_h_ref, h_inner_h_ref, grid=False)
 
     def phase_marginalized_likelihood(self, d_inner_h, h_inner_h):
         d_inner_h = ln_i0(abs(d_inner_h))
@@ -891,9 +891,9 @@ class GravitationalWaveTransient(Likelihood):
                 self._create_lookup_table()
         else:
             self._create_lookup_table()
-        self._interp_dist_margd_loglikelihood = UnsortedInterp2d(
+        self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
             self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array, kind='cubic', fill_value=-np.inf)
+            self._dist_margd_loglikelihood_array.T, fill_value=-np.inf)
 
     @property
     def cached_lookup_table_filename(self):

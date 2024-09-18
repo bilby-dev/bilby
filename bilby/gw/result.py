@@ -377,10 +377,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
         logger.debug("Downsampling frequency mask to {} values".format(
             len(frequency_idxs))
         )
-        frequency_window_factor = (
-            np.sum(interferometer.frequency_mask)
-            / len(interferometer.frequency_mask)
-        )
         plot_times = interferometer.time_array[time_idxs]
         plot_times -= interferometer.strain_data.start_time
         start_time -= interferometer.strain_data.start_time
@@ -451,11 +447,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 fig.add_trace(
                     go.Scatter(
                         x=plot_times,
-                        y=np.fft.irfft(
-                            interferometer.whitened_frequency_domain_strain
-                            * np.sqrt(np.sum(interferometer.frequency_mask))
-                            / frequency_window_factor
-                        )[time_idxs],
+                        y=interferometer.whitened_time_domain_strain[time_idxs],
                         fill=None,
                         mode='lines', line_color=DATA_COLOR,
                         opacity=0.5,
@@ -478,11 +470,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     interferometer.amplitude_spectral_density_array[frequency_idxs],
                     color=DATA_COLOR, label='ASD')
                 axs[1].plot(
-                    plot_times, np.fft.irfft(
-                        interferometer.whitened_frequency_domain_strain
-                        * np.sqrt(np.sum(interferometer.frequency_mask))
-                        / frequency_window_factor
-                    )[time_idxs],
+                    plot_times, interferometer.whitened_time_domain_strain[time_idxs],
                     color=DATA_COLOR, alpha=0.3)
             logger.debug('Plotted interferometer data.')
 
@@ -493,10 +481,10 @@ class CompactBinaryCoalescenceResult(CoreResult):
             wf_pols = waveform_generator.frequency_domain_strain(params)
             fd_waveform = interferometer.get_detector_response(wf_pols, params)
             fd_waveforms.append(fd_waveform[frequency_idxs])
-            td_waveform = infft(
-                fd_waveform * np.sqrt(2. / interferometer.sampling_frequency) /
-                interferometer.amplitude_spectral_density_array,
-                self.sampling_frequency)[time_idxs]
+            whitened_fd_waveform = interferometer.whiten_frequency_series(fd_waveform)
+            td_waveform = interferometer.get_whitened_time_series_from_whitened_frequency_series(
+                whitened_fd_waveform
+            )[time_idxs]
             td_waveforms.append(td_waveform)
         fd_waveforms = asd_from_freq_series(
             fd_waveforms,

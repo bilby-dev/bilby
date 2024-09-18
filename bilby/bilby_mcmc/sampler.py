@@ -388,7 +388,9 @@ class Bilby_MCMC(MCMCSampler):
             If true, resume file was successfully loaded, otherwise false
 
         """
-        if os.path.isfile(self.resume_file) is False:
+        if os.path.isfile(self.resume_file) is False or not os.path.getsize(
+            self.resume_file
+        ):
             return False
         import dill
 
