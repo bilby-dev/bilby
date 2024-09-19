@@ -12,6 +12,7 @@ If you have existing clones (and muscle memory), make sure you always use `main`
 ## Migrating development to GitHub:
 
 - [create a fork of github.com/bilby-dev/bilby if you don't already have one](https://github.com/bilby-dev/bilby/fork)
+- if you already have a fork on GitHub, you will likely need to [manually update the default branch to `main`](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch)
 - fetch all upstream changes `git fetch --all && git pull`
 - if git.ligo.org/lscsoft/bilby or a personal fork on git.ligo.org is in your remotes, remove it. Use `git remote -v` to see remotes and `git remote remove` to remove them (they can be added again if needed)
 - add your fork on github as a remote `git remote add origin git@github.com:${ME}/bilby.git` (see, e.g., [here](https://stackoverflow.com/questions/9257533/what-is-the-difference-between-origin-and-upstream-on-github) for remote nomenclature)
