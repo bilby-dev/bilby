@@ -85,11 +85,11 @@ Installing optional requirements
 ================================
 
 The `requirements.txt
-<https://github.com/bilby-dev/bilby/blob/master/requirements.txt>`_ is a
+<https://github.com/bilby-dev/bilby/blob/main/requirements.txt>`_ is a
 minimal set of requirements for using :code:`bilby`. Additionally, we provide:
 
 1. The file `optional_requirements.txt
-<https://github.com/bilby-dev/bilby/blob/master/optional_requirements.txt>`_
+<https://github.com/bilby-dev/bilby/blob/main/optional_requirements.txt>`_
 which you should install if you plan to use :code:`bilby` for
 gravitational-wave data analysis.
 

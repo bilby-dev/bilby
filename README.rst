@@ -23,7 +23,7 @@ If you need help, find an issue, or just have a question/suggestion you can
 We encourage you to contribute to the development of bilby. This is done via pull request.  For
 help in creating a pull request, see `this page
 <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`__ or contact
-us directly. For advice on contributing, see `the contributing guide <https://github.com/bilby-dev/bilby/blob/master/CONTRIBUTING.md>`__.
+us directly. For advice on contributing, see `the contributing guide <https://github.com/bilby-dev/bilby/blob/main/CONTRIBUTING.md>`__.
 
 
 --------------
