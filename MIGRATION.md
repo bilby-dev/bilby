@@ -35,3 +35,27 @@ This largely follows the above instructions for migrating development.
 ## Migrating an issue to GitHub:
 
 This should not be necessary, we plan to automatically bulk migrate all issues (open and closed.)
+
+## Merge requests vs pull requests for maintainers
+
+- PR reviews are largely similar to those on gitlab. Anyone can submit a code review (and is encouraged to). Merging a PR requires two approvals from the set of maintainers in addition to any approvals from other users. Maintainers are specified by adding people as repository members.
+- There are [three merge options in GitHub](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges). We will take this as an opportunity to remove merge commits. Practically, this is done by choosing the "squash and merge" button when merging.
+
+## Making releases
+
+- Making a new release from GitHub can be done using [the web interface](https://github.com/bilby-dev/bilby/releases/new) (also visible on the repository sidebar). As on gitlab, a new tag should be made for each release.
+- If you accidentally make a tag without an associated release, a release can be associated with a pre-existing tag.
+- GitHub has an automatic release note generation option which gets close to the notes we currently write in the changelog. For example
+
+  ### What's Changed
+  * CI: add release workflow by @mj-will in https://github.com/bilby-dev/bilby/pull/35
+  * CI: rename test workflow by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/37
+
+  ### New Contributors
+  * @mj-will made their first contribution in https://github.com/bilby-dev/bilby/pull/35
+
+  **Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.3.0...v.2.40
+
+  This should then be augmented highlighting and adding more detail for the most relevant changes.
+
+  COMMENT: I suggest that we make this the primary source of the changelog going forward. The changelog can be pointed to the release page directly, e.g., [here](https://github.com/ColmTalbot/gwpopulation/releases).
