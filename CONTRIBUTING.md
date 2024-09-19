@@ -8,7 +8,7 @@ have some familiarity with python and git.
 3. [Automated Code Checking](#automated-code-checking)
 4. [Unit Testing](#unit-testing)
 5. [Code relevance](#code-relevance)
-6. [Merge requests](#merge-requests)
+6. [Pull requests](#pull-requets)
 7. [Typical workflow](#typical-workflow)
 8. [Hints and tips](#hints-and-tips)
 9. [Code overview](#code-overview)
@@ -17,7 +17,7 @@ have some familiarity with python and git.
 ## Code of Conduct
 
 Everyone participating in the bilby community, and in particular in our issue
-tracker, merge requests, and chat channels, is expected to treat other people
+tracker, pull requests, and chat channels, is expected to treat other people
 with respect and follow the guidelines articulated in the [Python Community
 Code of Conduct](https://www.python.org/psf/codeofconduct/). Furthermore, members of the LVK collaboration must follow the [LVK Code of Conduct](https://dcc.ligo.org/LIGO-M1900037/public).
 
@@ -80,7 +80,7 @@ usual help channels.
 
 ## Unit Testing
 
-Unit tests are an important part of code development, helping to minimize the number of undetected bugs which may be present in a merge request. They also greatly expedite the review of code, and can even help during the initial development if used properly. Accordingly, bilby requires unit testing for any changes with machine readable inputs and outputs (i.e. pretty much everything except plotting). 
+Unit tests are an important part of code development, helping to minimize the number of undetected bugs which may be present in a pull request. They also greatly expedite the review of code, and can even help during the initial development if used properly. Accordingly, bilby requires unit testing for any changes with machine readable inputs and outputs (i.e. pretty much everything except plotting). 
 
 Unit testing is integrated into the CI/CD pipeline, and uses the builtin unittest package. Tests should be written into the `test/` directory which corresponds to their location within the package, such that, for example, a change to `bilby/gw/conversion.py` should go into `test/gw/conversion_test.py`. To run a single test locally, one may simply do `pytest /path/to/test TestClass.test_name`, whereas to run all the tests in a given test file one may omit the class and function.
 
@@ -133,16 +133,16 @@ code.  Adding code into the bilby source comes with advantages, but also adds
 complexity and review burden to the project. If you are unsure where it should
 live, open an issue to discuss it. 
 
-## Merge requests
+## pull requests
 
 All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
 review your code and you should expect a few comments and questions. Once all
-discussions are resolved, core developers will approve the merge request and
+discussions are resolved, core developers will approve the pull request and
 then merge it into the master branch. If you go a few days without a reply,
 please feel free to ping the thread by adding a new comment.
 
-All merge requests should be focused: they should aim to either add one
+All pull requests should be focused: they should aim to either add one
 feature, solve one bug, or fix some stylistic issues. If multiple changes are
 lumped together it can slow down the process and make it harder to review.
 
@@ -159,18 +159,18 @@ behaviour. See the [Code style](#code-style) Section for an overview.
 
 **Reviewing Changes**
 
-If you are reviewing a merge request (either as a core developer or just as an
+If you are reviewing a pull request (either as a core developer or just as an
 interested party) please keep these three things in mind
 
 * If you open a discussion, be timely in responding to the submitter. Note, the
   reverse does not need to apply.
-* Keep your questions/comments focused on the scope of the merge request. If
+* Keep your questions/comments focused on the scope of the pull request. If
   while reviewing the code you notice other things which could be improved,
   open a new issue.
-* Be supportive - merge requests represent a lot of hard work and effort and
+* Be supportive - pull requests represent a lot of hard work and effort and
   should be encouraged.
 
-Reviewers should follow these rules when processing merge requests:
+Reviewers should follow these rules when processing pull requests:
 
 * Always wait for tests to pass before merging MRs.
 * Delete branches for merged MRs (by core devs pushing to the main repo).
@@ -182,7 +182,7 @@ Reviewers should follow these rules when processing merge requests:
 Bilby uses the fork and merge model for code review and contributing to the
 repository. As such, you won't be able to push changes to the master branch.
 Instead, you'll need to create a fork, make your changes on a feature branch,
-then submit a merge request. The following subsections walk you through how to
+then submit a pull request. The following subsections walk you through how to
 do this. 
 
 ### Step a) getting started
@@ -314,7 +314,7 @@ review the change.
 When submitting a MR, please don't include any license information in your
 code. Our repository is
 [licensed](https://github.com/bilby-dev/bilby/blob/main/LICENSE.md). When
-submitting your merge request, we will assume you have read and agreed to the
+submitting your pull request, we will assume you have read and agreed to the
 terms of [the
 license](https://github.com/bilby-dev/bilby/blob/main/LICENSE.md).
 
@@ -346,7 +346,7 @@ interpreter.
 
 Below, we give a schematic of how the code is structured. This is intended to
 help orient users and make it easier to contribute. The layout is intended to
-define the logic of the code and new merge requests should aim to fit within
+define the logic of the code and new pull requests should aim to fit within
 this logic (unless there is a good argument to change it). For example, code
 which adds a new sampler should not effect the gravitational-wave specific
 parts of the code. Note that this document is not programmatically generated and
