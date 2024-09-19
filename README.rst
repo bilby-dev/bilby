@@ -20,7 +20,7 @@ If you need help, find an issue, or just have a question/suggestion you can
 - For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
 - For LVK-specific issues, please open `a confidential issue on bilby_pipe <https://git.ligo.org/lscsoft/bilby_pipe/-/issues/new>`__
 
-We encourage you to contribute to the development of bilby. This is done via a merge request.  For
+We encourage you to contribute to the development of bilby. This is done via pull request.  For
 help in creating a pull request, see `this page
 <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`__ or contact
 us directly. For advice on contributing, see `the contributing guide <https://github.com/bilby-dev/bilby/blob/master/CONTRIBUTING.md>`__.
