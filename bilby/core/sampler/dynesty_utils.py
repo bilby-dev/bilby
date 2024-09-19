@@ -659,7 +659,7 @@ def propose_volumetric(
         sampled from the prior.
     rstate: numpy.random.Generator
         The numpy generator instance used for random number generation.
-                Consider using built in `bilby.core.utils.random.rng`.
+        Consider using built in `bilby.core.utils.random.rng`.
 
     Returns
     -------
