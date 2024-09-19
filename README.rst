@@ -9,7 +9,7 @@ Fulfilling all your Bayesian dreams.
 
 Online material to help you get started:
 
--  `Installation instructions <https://bilby-dev.github.io/bilby//installation.html>`__
+-  `Installation instructions <https://bilby-dev.github.io/bilby/installation.html>`__
 -  `Documentation <https://bilby-dev.github.io/bilby/>`__
 
 If you need help, find an issue, or just have a question/suggestion you can
