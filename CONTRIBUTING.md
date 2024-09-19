@@ -195,7 +195,7 @@ already, you should
 repository and clone your fork, i.e., on your local machine run
 
 ```bash
-$ git clone git@git.ligo.org:albert.einstein/bilby.git
+$ git clone git@github.com:<your-username>/bilby.git
 ```
 
 replacing the SSH url to that of your fork. This will create a directory
@@ -224,14 +224,14 @@ automatically be updated.
 ### Step b) Updating your fork
 
 If you already have a fork of bilby, and are starting work on a new project you
-can link your clone to the main (`lscsoft`) repository and pull in changes that
+can link your clone to the main (`bilby-dev`) repository and pull in changes that
 have been merged since the time you created your fork, or last updated:
 
 **Link your fork to the main repository:** from the directory `/bilby`
 containing a local copy of the code:
 
 ```bash
-$ git remote add lscsoft https://github.com/bilby-dev/bilby
+$ git remote add upstream https://github.com/bilby-dev/bilby
 ```
 
 You can see which "remotes" you have available by running
@@ -240,10 +240,10 @@ You can see which "remotes" you have available by running
 $ git remote -v
 ```
 
-**Fetch new changes from the `lscsoft` repo:**
+**Fetch new changes from the `ustream` repo:**
 
 ```bash
-$ git pull lscsoft master
+$ git pull upstream main
 ```
 
 ### Step c) Creating a new feature branch
@@ -253,8 +253,8 @@ separate from other work, simplifying review and merging once the work is done.
 To create a new feature branch:
 
 ```bash
-$ git pull lscsoft
-$ git checkout -b my-new-feature lscsoft/master
+$ git pull main
+$ git checkout -b my-new-feature upstream/main
 ```
 
 ### Step d) Hack away
@@ -278,7 +278,7 @@ Correct a typo at L1 of /bilby/my_awesome_feature.py which returned a dictionary
 
 For more discussion of best practices, see e.g. [this blog](https://chris.beams.io/posts/git-commit/).
 
-4. Push your changes to the remote copy of your fork on git.ligo.org
+4. Push your changes to the remote copy of your fork on github.com
 
 ```bash
 git push origin my-new-feature
@@ -291,20 +291,19 @@ new branch and the `origin` remote:
 git push --set-upstream origin my-new-feature
 ```
 
-### Step e) Open a Merge Request
+### Step e) Open a Pull Request
 
 When you feel that your work is finished, or if you want feedback on it, you
-should create a Merge Request to propose that your changes be merged into the
-main (`lscsoft`) repository.
+should create a Pull Request to propose that your changes be merged into the
+main (`bilby-dev`) repository.
 
 After you have pushed your new feature branch to `origin`, you should find a
 new button on the [bilby repository home
-page](https://github.com/bilby-dev/bilby) inviting you to create a Merge
+page](https://github.com/bilby-dev/bilby) inviting you to create a Pull
 Request out of your newly pushed branch.  You should click the button, and
 proceed to fill in the title and description boxes on the MR page. If you are
-still working on the merge request and don’t want it to be merged accidentally,
-add the string "WIP", "work in progress" or "do not merge" (not
-case-sensitive), to the title.
+still working on the pull request and don’t want it to be merged accidentally,
+you can [convert it to a draft](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request).
 
 Once the request has been opened, one of the maintainers will assign someone to
 review the change.
