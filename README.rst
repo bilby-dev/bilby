@@ -17,7 +17,7 @@ If you need help, find an issue, or just have a question/suggestion you can
 - Join our `Slack workspace <https://bilby-code.slack.com/>`__ (you may need to email the support desk to request an invite)
 - Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
 - Submit issues directly through `the issue tracker <https://github.com/bilby-dev/bilby/issues>`__
-- For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
+- For chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
 - For LVK-specific issues, please open `a confidential issue on bilby_pipe <https://git.ligo.org/lscsoft/bilby_pipe/-/issues/new>`__
 
 We encourage you to contribute to the development of bilby. This is done via pull request.  For
