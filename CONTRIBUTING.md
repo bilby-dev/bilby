@@ -188,10 +188,10 @@ do this.
 ### Step a) getting started
 
 All the code lives in a git repository (for a short introduction to git, see
-[this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://github.com/bilby-dev/bilby.  If you haven't
-already, you should
-[fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the
+[this tutorial](https://docs.github.com/en/get-started/using-git/about-git))
+which is hosted here: https://github.com/bilby-dev/bilby.
+If you haven't already, you should
+[fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the
 repository and clone your fork, i.e., on your local machine run
 
 ```bash
@@ -240,7 +240,7 @@ You can see which "remotes" you have available by running
 $ git remote -v
 ```
 
-**Fetch new changes from the `ustream` repo:**
+**Fetch new changes from the `upstream` repo:**
 
 ```bash
 $ git pull upstream main
