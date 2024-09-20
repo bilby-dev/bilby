@@ -253,7 +253,7 @@ separate from other work, simplifying review and merging once the work is done.
 To create a new feature branch:
 
 ```bash
-$ git pull main upstream
+$ git fetch upstream
 $ git checkout -b my-new-feature upstream/main
 ```
 
