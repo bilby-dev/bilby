@@ -133,7 +133,7 @@ code.  Adding code into the bilby source comes with advantages, but also adds
 complexity and review burden to the project. If you are unsure where it should
 live, open an issue to discuss it. 
 
-## pull requests
+## Pull requests
 
 All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
@@ -253,7 +253,7 @@ separate from other work, simplifying review and merging once the work is done.
 To create a new feature branch:
 
 ```bash
-$ git pull main
+$ git pull main upstream
 $ git checkout -b my-new-feature upstream/main
 ```
 
