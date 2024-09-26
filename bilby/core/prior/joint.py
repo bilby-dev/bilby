@@ -736,7 +736,7 @@ class JointPrior(Prior):
         unit: str
             See superclass
         """
-        if BaseJointPriorDist not in dist.__class__.__bases__:
+        if not isinstance(BaseJointPriorDist):
             raise TypeError(
                 "Must supply a JointPriorDist object instance to be shared by all joint params"
             )
