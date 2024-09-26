@@ -38,7 +38,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, PriorDict):
             return {"__prior_dict__": True, "content": obj._get_json_dict()}
-        if isinstance(obj, (BaseJointPriorDist, HealPixMapPriorDist, Prior)):
+        if isinstance(obj, (BaseJointPriorDist, Prior)):
             return {
                 "__prior__": True,
                 "__module__": obj.__module__,
