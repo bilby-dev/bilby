@@ -139,7 +139,7 @@ class BaseJointPriorDist(object):
             ]
         )
         return "{}({})".format(dist_name, args)
-    
+
     @classmethod
     def from_repr(cls, string):
         """Generate the distribution from its __repr__"""
@@ -342,7 +342,7 @@ class BaseJointPriorDist(object):
         Here is where the subclass where overwrite rescale method
         """
         return samp
-    
+
     def __eq__(self, other):
         if self.__class__ != other.__class__:
             return False
@@ -720,8 +720,6 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if not self.__dict__[key] == other.__dict__[key]:
                     return False
         return True
-
-
 
 
 class MultivariateNormalDist(MultivariateGaussianDist):

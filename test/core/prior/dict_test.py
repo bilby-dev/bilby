@@ -488,7 +488,6 @@ class TestJsonIO(unittest.TestCase):
 
     def test_read_write_to_json(self):
         """ Interped prior is removed as there is numerical error in the recovered prior."""
-        self.maxDiff = None
         self.priors.to_json(outdir="prior_files", label="json_test")
         new_priors = bilby.core.prior.PriorDict.from_json(
             filename="prior_files/json_test_prior.json"

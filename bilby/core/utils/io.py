@@ -29,7 +29,6 @@ def check_directory_exists_and_if_not_mkdir(directory):
 class BilbyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         from ..prior import BaseJointPriorDist, Prior, PriorDict
-        from ...gw.prior import HealPixMapPriorDist
         from ...bilby_mcmc.proposals import ProposalCycle
 
         if isinstance(obj, np.integer):
