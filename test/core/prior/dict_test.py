@@ -7,8 +7,25 @@ import numpy as np
 import bilby
 
 
+# needs to be defined on module-level for later re-initialization
+class MVNSubclass(bilby.core.prior.MultivariateGaussianDist):
+    def __init__(self, names, mus, covs, weights):
+        super().__init__(names=names, mus=mus, covs=covs, weights=weights)
+
+
+class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
+
+    def __init__(self, names, bounds=None):
+        super().__init__(names=names, bounds=bounds)
+
+
+setattr(bilby.core.prior, FakeJointPriorDist, FakeJointPriorDist)
+
+
 class TestPriorDict(unittest.TestCase):
+
     def setUp(self):
+
         self.first_prior = bilby.core.prior.Uniform(
             name="a", minimum=0, maximum=1, unit="kg", boundary=None
         )
@@ -24,8 +41,16 @@ class TestPriorDict(unittest.TestCase):
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/precessing_spins_bbh.prior",
         )
+        self.joint_prior_file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "prior_files/joint_prior.prior",
+        )
         self.prior_set_from_file = bilby.core.prior.PriorDict(
             filename=self.default_prior_file
+        )
+
+        self.joint_prior_from_file = bilby.core.prior.PriorDict(
+            filename=self.joint_prior_file
         )
 
     def tearDown(self):
@@ -109,6 +134,14 @@ class TestPriorDict(unittest.TestCase):
             ),
         )
         self.assertDictEqual(expected, self.prior_set_from_file)
+
+        fake_dist = FakeJointPriorDist(names=["testAfake", "testBfake"])
+        testAfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testAfake", unit="unit")
+        testBfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testBfake", unit="unit")
+        expected_joint = dict(testAfake=testAfake, testBfake=testBfake)
+        self.assertDictEqual(expected_joint, self.joint_prior_from_file)
+        self.assertTrue(id(self.joint_prior_from_file["testAfake"].dist)
+                        == id(self.joint_prior_from_file["testBfake"].dist))
 
     def test_to_file(self):
         """
@@ -331,6 +364,16 @@ class TestJsonIO(unittest.TestCase):
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
             weights=1.0,
         )
+
+        mvn_subclass = MVNSubclass(
+            names=["testAsubclass", "testBsubclass"],
+            mus=[1, 1],
+            covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
+            weights=1.0,
+        )
+
+        fake_joint_prior = FakeJointPriorDist(names=["testAfake", "testBfake"])
+
         hp_map_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/GW150914_testing_skymap.fits",
@@ -413,6 +456,18 @@ class TestJsonIO(unittest.TestCase):
                 testB=bilby.core.prior.MultivariateNormal(
                     dist=mvn, name="testB", unit="unit"
                 ),
+                testAsubclass=bilby.core.prior.JointPrior(
+                    dist=mvn_subclass, name="testAsubclass", unit="unit"
+                ),
+                testBsubclass=bilby.core.prior.JointPrior(
+                    dist=mvn_subclass, name="testBsubclass", unit="unit"
+                ),
+                testAfake=bilby.core.prior.JointPrior(
+                    dist=fake_joint_prior, name="testAfake", unit="unit"
+                ),
+                testBfake=bilby.core.prior.JointPrior(
+                    dist=fake_joint_prior, name="testBfake", unit="unit"
+                ),
                 testra=bilby.gw.prior.HealPixPrior(
                     dist=hp_dist, name="testra", unit="unit"
                 ),
@@ -433,6 +488,7 @@ class TestJsonIO(unittest.TestCase):
 
     def test_read_write_to_json(self):
         """ Interped prior is removed as there is numerical error in the recovered prior."""
+        self.maxDiff = None
         self.priors.to_json(outdir="prior_files", label="json_test")
         new_priors = bilby.core.prior.PriorDict.from_json(
             filename="prior_files/json_test_prior.json"
@@ -443,6 +499,7 @@ class TestJsonIO(unittest.TestCase):
         self.assertLess(max(abs(old_interped.xx - new_interped.xx)), 1e-15)
         self.assertLess(max(abs(old_interped.yy - new_interped.yy)), 1e-15)
         self.assertTrue(id(new_priors["testa"].dist) == id(new_priors["testb"].dist))
+        self.assertTrue(id(new_priors["testAfake"].dist) == id(new_priors["testBfake"].dist))
 
 
 class TestLoadPrior(unittest.TestCase):
