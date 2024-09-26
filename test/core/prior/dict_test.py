@@ -19,7 +19,7 @@ class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
         super().__init__(names=names, bounds=bounds)
 
 
-setattr(bilby.core.prior, FakeJointPriorDist, FakeJointPriorDist)
+setattr(bilby.core.prior, "FakeJointPriorDist", FakeJointPriorDist)
 
 
 class TestPriorDict(unittest.TestCase):
