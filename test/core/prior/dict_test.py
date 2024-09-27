@@ -8,7 +8,7 @@ import bilby
 
 
 # needs to be defined on module-level for later re-initialization
-class MVNSubclass(bilby.core.prior.MultivariateGaussianDist):
+class MVNSubclass(bilby.core.prior.MultivariateNormalDist):
     def __init__(self, names, mus, covs, weights):
         super().__init__(names=names, mus=mus, covs=covs, weights=weights)
 
@@ -138,10 +138,15 @@ class TestPriorDict(unittest.TestCase):
         fake_dist = FakeJointPriorDist(names=["testAfake", "testBfake"])
         testAfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testAfake", unit="unit")
         testBfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testBfake", unit="unit")
-        expected_joint = dict(testAfake=testAfake, testBfake=testBfake)
+        base_dist = bilby.core.prior.BaseJointPriorDist(names=["testAbase", "testBbase"])
+        testAbase = bilby.core.prior.JointPrior(dist=base_dist, name="testAbase", unit="unit")
+        testBbase = bilby.core.prior.JointPrior(dist=base_dist, name="testBbase", unit="unit")
+        expected_joint = dict(testAfake=testAfake, testBfake=testBfake, testAbase=testAbase, testBbase=testBbase)
         self.assertDictEqual(expected_joint, self.joint_prior_from_file)
         self.assertTrue(id(self.joint_prior_from_file["testAfake"].dist)
                         == id(self.joint_prior_from_file["testBfake"].dist))
+        self.assertTrue(id(self.joint_prior_from_file["testAbase"].dist)
+                        == id(self.joint_prior_from_file["testBbase"].dist))
 
     def test_to_file(self):
         """
@@ -358,7 +363,7 @@ class TestJsonIO(unittest.TestCase):
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
             weights=1.0,
         )
-        mvn = bilby.core.prior.MultivariateGaussianDist(
+        mvn = bilby.core.prior.MultivariateNormalDist(
             names=["testA", "testB"],
             mus=[1, 1],
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
