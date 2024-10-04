@@ -1,6 +1,6 @@
 # All notable changes will be documented in this file
 
-**Note:** following the migration from LIGO GitLab to GitHub, the links in this changelog have been retroactively updated.
+**Note:** following the migration from LIGO GitLab to GitHub, the links in this changelog have been retroactively updated, see [this PR](https://github.com/bilby-dev/bilby/pull/36).
 The original MRs are only visible on the [LIGO GitLab repository](https://git.ligo.org/lscsoft/bilby/-/merge_requests?scope=all&state=all)
 
 ## [Unreleased]
