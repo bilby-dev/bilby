@@ -177,7 +177,7 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
         try:
             mode_array = [tuple(map(int, mode)) for mode in mode_array]
         except (ValueError, TypeError):
-            raise ValueError(f"Unable to convert mode_array elements to tuples of ints")
+            raise ValueError("Unable to convert mode_array elements to tuples of ints")
         gwsignal_dict.update(ModeArray=mode_array)
 
     # Pass extra waveform arguments to gwsignal
