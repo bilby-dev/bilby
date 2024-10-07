@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import bilby
+import bilby.core.sampler.zeus
 
 
 class TestZeus(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestZeus(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Zeus(
+        self.sampler = bilby.core.sampler.zeus.Zeus(
             self.likelihood,
             self.priors,
             outdir="outdir",

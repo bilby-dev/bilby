@@ -8,7 +8,7 @@ import numpy as np
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
-from .joint import JointPrior
+from .joint import JointPrior, BaseJointPriorDist
 from ..utils import (
     logger,
     check_directory_exists_and_if_not_mkdir,
@@ -206,7 +206,7 @@ class PriorDict(dict):
         return obj
 
     def from_dictionary(self, dictionary):
-        mvgkwargs = {}
+        jpdkwargs = {}
         for key in list(dictionary.keys()):
             val = dictionary[key]
             if isinstance(val, Prior):
@@ -245,15 +245,12 @@ class PriorDict(dict):
                         raise TypeError("Unable to parse prior class {}".format(cls))
                     else:
                         continue
-                elif cls.__name__ in [
-                    "MultivariateGaussianDist",
-                    "MultivariateNormalDist",
-                ]:
+                elif issubclass(cls, BaseJointPriorDist):
                     dictionary.pop(key)
-                    if key not in mvgkwargs:
-                        mvgkwargs[key] = cls.from_repr(args)
-                elif cls.__name__ in ["MultivariateGaussian", "MultivariateNormal"]:
-                    mgkwargs = {
+                    if key not in jpdkwargs:
+                        jpdkwargs[key] = cls.from_repr(args)
+                elif issubclass(cls, JointPrior):
+                    jpkwargs = {
                         item[0].strip(): cls._parse_argument_string(item[1])
                         for item in cls._split_repr(
                             ", ".join(
@@ -264,16 +261,16 @@ class PriorDict(dict):
                     keymatch = re.match(r"dist=(?P<distkey>\S+),", args)
                     if keymatch is None:
                         raise ValueError(
-                            "'dist' argument for MultivariateGaussian is not specified"
+                            "'dist' argument for JointPrior is not specified"
                         )
 
-                    if keymatch["distkey"] not in mvgkwargs:
+                    if keymatch["distkey"] not in jpdkwargs:
                         raise ValueError(
-                            f"MultivariateGaussianDist {keymatch['distkey']} must be defined before {cls.__name__}"
+                            f"BaseJointPriorDist {keymatch['distkey']} must be defined before {cls.__name__}"
                         )
 
-                    mgkwargs["dist"] = mvgkwargs[keymatch["distkey"]]
-                    dictionary[key] = cls(**mgkwargs)
+                    jpkwargs["dist"] = jpdkwargs[keymatch["distkey"]]
+                    dictionary[key] = cls(**jpkwargs)
                 else:
                     try:
                         dictionary[key] = cls.from_repr(args)
@@ -510,14 +507,14 @@ class PriorDict(dict):
         sample: dict
             Dictionary of the samples of which we want to have the probability of
         kwargs:
-            The keyword arguments are passed directly to `np.product`
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.product([self[key].prob(sample[key]) for key in sample], **kwargs)
+        prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
 
         return self.check_prob(sample, prob)
 
@@ -537,7 +534,7 @@ class PriorDict(dict):
                 constrained_prob[keep] = prob[keep] * ratio
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None):
+    def ln_prob(self, sample, axis=None, normalized=True):
         """
 
         Parameters
@@ -546,6 +543,9 @@ class PriorDict(dict):
             Dictionary of the samples of which to calculate the log probability
         axis: None or int
             Axis along which the summation is performed
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
 
         Returns
         =======
@@ -554,10 +554,14 @@ class PriorDict(dict):
 
         """
         ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
-        return self.check_ln_prob(sample, ln_prob)
+        return self.check_ln_prob(sample, ln_prob,
+                                  normalized=normalized)
 
-    def check_ln_prob(self, sample, ln_prob):
-        ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+    def check_ln_prob(self, sample, ln_prob, normalized=True):
+        if normalized:
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+        else:
+            ratio = 1
         if np.all(np.isinf(ln_prob)):
             return ln_prob
         else:
@@ -770,7 +774,7 @@ class ConditionalPriorDict(PriorDict):
         sample: dict
             Dictionary of the samples of which we want to have the probability of
         kwargs:
-            The keyword arguments are passed directly to `np.product`
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
@@ -782,10 +786,10 @@ class ConditionalPriorDict(PriorDict):
             self[key].prob(sample[key], **self.get_required_variables(key))
             for key in sample
         ]
-        prob = np.product(res, **kwargs)
+        prob = np.prod(res, **kwargs)
         return self.check_prob(sample, prob)
 
-    def ln_prob(self, sample, axis=None):
+    def ln_prob(self, sample, axis=None, normalized=True):
         """
 
         Parameters
@@ -794,6 +798,9 @@ class ConditionalPriorDict(PriorDict):
             Dictionary of the samples of which we want to have the log probability of
         axis: Union[None, int]
             Axis along which the summation is performed
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
 
         Returns
         =======
@@ -806,7 +813,8 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         ln_prob = np.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob)
+        return self.check_ln_prob(sample, ln_prob,
+                                  normalized=normalized)
 
     def cdf(self, sample):
         self._prepare_evaluation(*zip(*sample.items()))

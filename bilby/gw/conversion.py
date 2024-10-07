@@ -2254,17 +2254,15 @@ def compute_snrs(sample, likelihood, npool=1):
                 new_samples = [_compute_snrs(xx) for xx in tqdm(fill_args, file=sys.stdout)]
 
             for ii, ifo in enumerate(likelihood.interferometers):
-                matched_filter_snrs = list()
-                optimal_snrs = list()
-                mf_key = '{}_matched_filter_snr'.format(ifo.name)
-                optimal_key = '{}_optimal_snr'.format(ifo.name)
+                snr_updates = dict()
+                for key in new_samples[0][ii].snrs_as_sample.keys():
+                    snr_updates[f"{ifo.name}_{key}"] = list()
                 for new_sample in new_samples:
-                    matched_filter_snrs.append(new_sample[ii].complex_matched_filter_snr)
-                    optimal_snrs.append(new_sample[ii].optimal_snr_squared.real ** 0.5)
-
-                sample[mf_key] = matched_filter_snrs
-                sample[optimal_key] = optimal_snrs
-
+                    snr_update = new_sample[ii].snrs_as_sample
+                    for key, val in snr_update.items():
+                        snr_updates[f"{ifo.name}_{key}"].append(val)
+                for k, v in snr_updates.items():
+                    sample[k] = v
     else:
         logger.debug('Not computing SNRs.')
 
@@ -2558,3 +2556,59 @@ def fill_sample(args):
     likelihood.parameters.update(dict(sample).copy())
     new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
     return tuple((new_sample[key] for key in marginalized_parameters))
+
+
+def identity_map_conversion(parameters):
+    """An identity map conversion function that makes no changes to the parameters,
+    but returns the correct signature expected by other conversion functions
+    (e.g. convert_to_lal_binary_black_hole_parameters)"""
+    return parameters, []
+
+
+def identity_map_generation(sample, likelihood=None, priors=None, npool=1):
+    """An identity map generation function that handles marginalizations, SNRs, etc. correctly,
+    but does not attempt e.g. conversions in mass or spins
+
+    Parameters
+    ==========
+    sample: dict or pandas.DataFrame
+        Samples to fill in with extra parameters, this may be either an
+        injection or posterior samples.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient, optional
+        GravitationalWaveTransient used for sampling, used for waveform and
+        likelihood.interferometers.
+    priors: dict, optional
+        Dictionary of prior objects, used to fill in non-sampled parameters.
+
+    Returns
+    =======
+
+    """
+    output_sample = sample.copy()
+
+    output_sample = fill_from_fixed_priors(output_sample, priors)
+
+    if likelihood is not None:
+        compute_per_detector_log_likelihoods(
+            samples=output_sample, likelihood=likelihood, npool=npool)
+
+        marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
+        if len(marginalized_parameters) > 0:
+            try:
+                generate_posterior_samples_from_marginalized_likelihood(
+                    samples=output_sample, likelihood=likelihood, npool=npool)
+            except MarginalizedLikelihoodReconstructionError as e:
+                logger.warning(
+                    "Marginalised parameter reconstruction failed with message "
+                    "{}. Some parameters may not have the intended "
+                    "interpretation.".format(e)
+                )
+
+        if ("ra" in output_sample.keys() and "dec" in output_sample.keys() and "psi" in output_sample.keys()):
+            compute_snrs(output_sample, likelihood, npool=npool)
+        else:
+            logger.info(
+                "Skipping SNR computation since samples have insufficient sky location information"
+            )
+
+    return output_sample

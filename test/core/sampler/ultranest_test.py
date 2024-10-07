@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import bilby
+import bilby.core.sampler.ultranest
 
 
 class TestUltranest(unittest.TestCase):
@@ -15,10 +16,15 @@ class TestUltranest(unittest.TestCase):
                  b=bilby.core.prior.Uniform(0, 1)))
         self.priors["a"] = bilby.core.prior.Prior(boundary="periodic")
         self.priors["b"] = bilby.core.prior.Prior(boundary="reflective")
-        self.sampler = bilby.core.sampler.Ultranest(self.likelihood, self.priors,
-                                                    outdir="outdir", label="label",
-                                                    use_ratio=False, plot=False,
-                                                    skip_import_verification=True)
+        self.sampler = bilby.core.sampler.ultranest.Ultranest(
+            self.likelihood,
+            self.priors,
+            outdir="outdir",
+            label="label",
+            use_ratio=False,
+            plot=False,
+            skip_import_verification=True,
+        )
 
     def tearDown(self):
         del self.likelihood

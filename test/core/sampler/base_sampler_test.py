@@ -10,9 +10,11 @@ import numpy as np
 import bilby
 from bilby.core import prior
 
+loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+
 
 class TestSampler(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, soft_init=False):
         likelihood = bilby.core.likelihood.Likelihood()
         likelihood.parameters = dict(a=1, b=2, c=3)
         delta_prior = prior.DeltaFunction(peak=0)
@@ -36,10 +38,15 @@ class TestSampler(unittest.TestCase):
             outdir=test_directory,
             use_ratio=False,
             skip_import_verification=True,
+            soft_init=soft_init
         )
 
     def tearDown(self):
         del self.sampler
+
+    def test_softinit(self):
+        self.setUp(soft_init=True)
+        self.assertTrue(hasattr(self.sampler, "_log_likelihood_eval_time"))
 
     def test_search_parameter_keys(self):
         expected_search_parameter_keys = ["c"]
@@ -141,6 +148,30 @@ class TestSampler(unittest.TestCase):
         )
 
 
+def test_get_expected_outputs():
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    label = "par0"
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 0
+    assert len(directories) == 1
+    assert directories[0] == os.path.join(outdir, f"sampler_{label}", "")
+
+
+def test_get_expected_outputs_abbreviation():
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    label = "par0"
+    bilby.core.sampler.Sampler.abbreviation = "abbr"
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 0
+    assert len(directories) == 1
+    assert directories[0] == os.path.join(outdir, f"abbr_{label}", "")
+    bilby.core.sampler.Sampler.abbreviation = None
+
+
 samplers = [
     "bilby_mcmc",
     "dynamic_dynesty",
@@ -165,9 +196,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_no_pool(self, sampler_name):
-        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler_name](
-            self.likelihood, self.priors
-        )
+        sampler = loaded_samplers[sampler_name](self.likelihood, self.priors)
         sampler._setup_pool()
         if sampler_name == "kombine":
             from kombine import SerialPool
@@ -179,7 +208,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):
-        sampler = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler](
+        sampler = loaded_samplers[sampler](
             self.likelihood, self.priors, npool=2
         )
         sampler._setup_pool()

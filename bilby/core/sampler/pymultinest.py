@@ -34,6 +34,8 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
 
     """
 
+    sampler_name = "pymultinest"
+    abbreviation = "pm"
     default_kwargs = dict(
         importance_nested_sampling=False,
         resume=True,

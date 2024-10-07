@@ -5,6 +5,7 @@ from unittest import mock
 
 import numpy as np
 import pandas as pd
+import pickle
 
 import bilby
 
@@ -471,6 +472,10 @@ class TestDirichletPrior(unittest.TestCase):
         self.priors.to_json(outdir="priors", label="test")
         test = bilby.core.prior.PriorDict.from_json(filename="priors/test_prior.json")
         self.assertEqual(self.priors, test)
+
+    def test_pickle(self):
+        """Assert can be pickled (needed for use with bilby_pipe)"""
+        pickle.dumps(self.priors)
 
 
 if __name__ == "__main__":

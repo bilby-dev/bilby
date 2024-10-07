@@ -28,8 +28,7 @@ def check_directory_exists_and_if_not_mkdir(directory):
 
 class BilbyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        from ..prior import MultivariateGaussianDist, Prior, PriorDict
-        from ...gw.prior import HealPixMapPriorDist
+        from ..prior import BaseJointPriorDist, Prior, PriorDict
         from ...bilby_mcmc.proposals import ProposalCycle
 
         if isinstance(obj, np.integer):
@@ -38,7 +37,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, PriorDict):
             return {"__prior_dict__": True, "content": obj._get_json_dict()}
-        if isinstance(obj, (MultivariateGaussianDist, HealPixMapPriorDist, Prior)):
+        if isinstance(obj, (BaseJointPriorDist, Prior)):
             return {
                 "__prior__": True,
                 "__module__": obj.__module__,
@@ -154,13 +153,16 @@ def decode_bilby_json(dct):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
         except AttributeError:
-            logger.debug(
+            logger.warning(
                 "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
             )
             from ..prior import Prior
 
+            for key in list(dct["kwargs"].keys()):
+                if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
+                    dct["kwargs"].pop(key)
             cls = Prior
         obj = cls(**dct["kwargs"])
         return obj
@@ -264,9 +266,9 @@ def encode_for_hdf5(key, item):
 
     if isinstance(item, np.int_):
         item = int(item)
-    elif isinstance(item, np.float_):
+    elif isinstance(item, np.float64):
         item = float(item)
-    elif isinstance(item, np.complex_):
+    elif isinstance(item, np.complex128):
         item = complex(item)
     if isinstance(item, np.ndarray):
         # Numpy's wide unicode strings are not supported by hdf5

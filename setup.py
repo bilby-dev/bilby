@@ -5,8 +5,8 @@ import sys
 import os
 
 python_version = sys.version_info
-if python_version < (3, 9):
-    sys.exit("Python < 3.9 is not supported, aborting setup")
+if python_version < (3, 10):
+    sys.exit("Python < 3.10 is not supported, aborting setup")
 
 
 def get_long_description():
@@ -41,7 +41,7 @@ setup(
     description="A user-friendly Bayesian inference library",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://git.ligo.org/lscsoft/bilby",
+    url="https://github.com/bilby-dev/bilby",
     author="Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot",
     author_email="paul.lasky@monash.edu",
     license="MIT",
@@ -66,7 +66,7 @@ setup(
         "bilby.gw.detector": ["noise_curves/*.txt", "detectors/*"],
         "bilby.gw.eos": ["eos_tables/*.dat"],
     },
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     install_requires=get_requirements(),
     extras_require={
         "gw": get_requirements("gw"),
@@ -82,11 +82,30 @@ setup(
         "console_scripts": [
             "bilby_plot=cli_bilby.plot_multiple_posteriors:main",
             "bilby_result=cli_bilby.bilby_result:main",
-        ]
+        ],
+        "bilby.samplers": [
+            "bilby.bilby_mcmc=bilby.bilby_mcmc.sampler:Bilby_MCMC",
+            "bilby.cpnest=bilby.core.sampler.cpnest:Cpnest",
+            "bilby.dnest4=bilby.core.sampler.dnest4:DNest4",
+            "bilby.dynesty=bilby.core.sampler.dynesty:Dynesty",
+            "bilby.dynamic_dynesty=bilby.core.sampler.dynamic_dynesty:DynamicDynesty",
+            "bilby.emcee=bilby.core.sampler.emcee:Emcee",
+            "bilby.kombine=bilby.core.sampler.kombine:Kombine",
+            "bilby.nessai=bilby.core.sampler.nessai:Nessai",
+            "bilby.nestle=bilby.core.sampler.nestle:Nestle",
+            "bilby.ptemcee=bilby.core.sampler.ptemcee:Ptemcee",
+            "bilby.ptmcmcsampler=bilby.core.sampler.ptmcmc:PTMCMCSampler",
+            "bilby.pymc=bilby.core.sampler.pymc:Pymc",
+            "bilby.pymultinest=bilby.core.sampler.pymultinest:Pymultinest",
+            "bilby.pypolychord=bilby.core.sampler.polychord:PyPolyChord",
+            "bilby.ultranest=bilby.core.sampler.ultranest:Ultranest",
+            "bilby.zeus=bilby.core.sampler.zeus:Zeus",
+            "bilby.fake_sampler=bilby.core.sampler.fake_sampler:FakeSampler",
+        ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],

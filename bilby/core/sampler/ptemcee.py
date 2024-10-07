@@ -128,6 +128,7 @@ class Ptemcee(MCMCSampler):
 
     """
 
+    sampler_name = "ptemcee"
     # Arguments used by ptemcee
     default_kwargs = dict(
         ntemps=10,
@@ -414,7 +415,11 @@ class Ptemcee(MCMCSampler):
             # This is a very ugly hack to support numpy>=1.24
             ptemcee.sampler.np.float = float
 
-        if os.path.isfile(self.resume_file) and self.resume is True:
+        if (
+            os.path.isfile(self.resume_file)
+            and os.path.getsize(self.resume_file)
+            and self.resume is True
+        ):
             import dill
 
             logger.info(f"Resume data {self.resume_file} found")
@@ -512,7 +517,7 @@ class Ptemcee(MCMCSampler):
         logger.info("Starting to sample")
 
         while True:
-            for (pos0, log_posterior, log_likelihood) in sampler.sample(
+            for pos0, log_posterior, log_likelihood in sampler.sample(
                 self.pos0,
                 storechain=False,
                 iterations=self.convergence_inputs.niterations_per_check,
@@ -709,6 +714,29 @@ class Ptemcee(MCMCSampler):
                 )
             except Exception as e:
                 logger.info(f"mean_logl plot failed with exception {e}")
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names. Will always be empty for ptemcee.
+        """
+        filenames = [f"{outdir}/{label}_checkpoint_resume.pickle"]
+        return filenames, []
 
 
 def get_minimum_stable_itertion(mean_array, frac, nsteps_min=10):

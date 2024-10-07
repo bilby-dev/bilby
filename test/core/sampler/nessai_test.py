@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import MagicMock, patch, mock_open
 
 import bilby
+import bilby.core.sampler.nessai
+import os
 
 
 class TestNessai(unittest.TestCase):
@@ -12,7 +14,7 @@ class TestNessai(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Nessai(
+        self.sampler = bilby.core.sampler.nessai.Nessai(
             self.likelihood,
             self.priors,
             outdir="outdir",
@@ -81,6 +83,20 @@ class TestNessai(unittest.TestCase):
         new_kwargs["config_file"] = "config_file.json"
         self.sampler.kwargs = new_kwargs
         self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = bilby.core.sampler.nessai.Nessai.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 0
+    assert len(directories) == 3
+    base_dir = os.path.join(outdir, f"{label}_nessai", "")
+    assert base_dir in directories
+    assert os.path.join(base_dir, "proposal", "") in directories
+    assert os.path.join(base_dir, "diagnostics", "") in directories
 
 
 if __name__ == "__main__":

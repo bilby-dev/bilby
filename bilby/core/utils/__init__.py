@@ -6,6 +6,7 @@ from .constants import *
 from .conversion import *
 from .counter import *
 from .docs import *
+from .entry_points import *
 from .introspection import *
 from .io import *
 from .log import *

@@ -3,6 +3,7 @@ import inspect
 import os
 import sys
 import time
+import warnings
 
 import numpy as np
 from pandas import DataFrame
@@ -123,6 +124,9 @@ class Dynesty(NestedSampler):
         The proposal methods to use during MCMC. This can be some combination
         of :code:`"diff", "volumetric"`. See the dynesty guide in the Bilby docs
         for more details. default=:code:`["diff"]`.
+    rstate: numpy.random.Generator (None)
+        Instance of a numpy random generator for generating random numbers.
+        Also see :code:`seed` in 'Other Parameters'.
 
     Other Parameters
     ================
@@ -143,7 +147,13 @@ class Dynesty(NestedSampler):
         has no impact on the sampling.
     dlogz: float, (0.1)
         Stopping criteria
+    seed: int (None)
+        Use to seed the random number generator if :code:`rstate` is not
+        specified.
     """
+
+    sampler_name = "dynesty"
+    sampling_seed_key = "seed"
 
     @property
     def _dynesty_init_kwargs(self):
@@ -176,6 +186,7 @@ class Dynesty(NestedSampler):
     def default_kwargs(self):
         kwargs = self._dynesty_init_kwargs
         kwargs.update(self._dynesty_sampler_kwargs)
+        kwargs["seed"] = None
         return kwargs
 
     def __init__(
@@ -230,8 +241,12 @@ class Dynesty(NestedSampler):
         self.nestcheck = nestcheck
 
         if self.n_check_point is None:
-            self.n_check_point = max(
-                int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10
+            self.n_check_point = (
+                10
+                if np.isnan(self._log_likelihood_eval_time)
+                else max(
+                    int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10
+                )
             )
         self.check_point_delta_t = check_point_delta_t
         logger.info(f"Checkpoint every check_point_delta_t = {check_point_delta_t}s")
@@ -265,6 +280,14 @@ class Dynesty(NestedSampler):
             for equiv in self.npool_equiv_kwargs:
                 if equiv in kwargs:
                     kwargs["queue_size"] = kwargs.pop(equiv)
+        if "seed" in kwargs:
+            seed = kwargs.get("seed")
+            if "rstate" not in kwargs:
+                kwargs["rstate"] = np.random.default_rng(seed)
+            else:
+                logger.warning(
+                    "Kwargs contain both 'rstate' and 'seed', ignoring 'seed'."
+                )
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs["walks"]:
@@ -277,6 +300,32 @@ class Dynesty(NestedSampler):
                     seconds=float(self.print_method.split("-")[1])
                 )
         Sampler._verify_kwargs_against_default_kwargs(self)
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names.
+        list
+            List of directory names. Will always be empty for dynesty.
+        """
+        filenames = []
+        for kind in ["resume", "dynesty"]:
+            filename = os.path.join(outdir, f"{label}_{kind}.pickle")
+            filenames.append(filename)
+        return filenames, []
 
     def _print_func(
         self,
@@ -604,6 +653,7 @@ class Dynesty(NestedSampler):
             sampling_time_s=self.sampling_time.seconds,
             ncores=self.kwargs.get("queue_size", 1),
         )
+        self.kwargs["rstate"] = None
 
     def _update_sampling_time(self):
         end_time = datetime.datetime.now()
@@ -628,12 +678,21 @@ class Dynesty(NestedSampler):
         chain of nested samples within dynesty and have to be removed before
         restarting the sampler.
         """
+
         logger.debug("Running sampler with checkpointing")
 
         old_ncall = self.sampler.ncall
         sampler_kwargs = self.sampler_function_kwargs.copy()
+        warnings.filterwarnings(
+            "ignore",
+            message="The sampling was stopped short due to maxiter/maxcall limit*",
+            category=UserWarning,
+            module="dynesty.sampler",
+        )
         while True:
             self.finalize_sampler_kwargs(sampler_kwargs)
+            if getattr(self.sampler, "added_live", False):
+                self.sampler._remove_live_points()
             self.sampler.run_nested(**sampler_kwargs)
             if self.sampler.ncall == old_ncall:
                 break
@@ -648,8 +707,8 @@ class Dynesty(NestedSampler):
             if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state()
                 self.plot_current_state()
-            if getattr(self.sampler, "added_live", False):
-                self.sampler._remove_live_points()
+        if getattr(self.sampler, "added_live", False):
+            self.sampler._remove_live_points()
 
         self.sampler.run_nested(**sampler_kwargs)
         self.write_current_state()
@@ -687,7 +746,10 @@ class Dynesty(NestedSampler):
         if os.path.isfile(self.resume_file):
             logger.info(f"Reading resume file {self.resume_file}")
             with open(self.resume_file, "rb") as file:
-                sampler = dill.load(file)
+                try:
+                    sampler = dill.load(file)
+                except EOFError:
+                    sampler = None
 
                 if not hasattr(sampler, "versions"):
                     logger.warning(
@@ -717,6 +779,7 @@ class Dynesty(NestedSampler):
                 self.sampler.nqueue = -1
                 self.start_time = self.sampler.kwargs.pop("start_time")
                 self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
                     self.sampler.M = self.pool.map
@@ -829,7 +892,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -855,7 +918,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -877,7 +940,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -894,7 +957,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")

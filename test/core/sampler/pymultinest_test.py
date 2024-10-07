@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import bilby
+import bilby.core.sampler.pymultinest
 
 
 class TestPymultinest(unittest.TestCase):
@@ -12,7 +13,7 @@ class TestPymultinest(unittest.TestCase):
         )
         self.priors["a"] = bilby.core.prior.Prior(boundary="periodic")
         self.priors["b"] = bilby.core.prior.Prior(boundary="reflective")
-        self.sampler = bilby.core.sampler.Pymultinest(
+        self.sampler = bilby.core.sampler.pymultinest.Pymultinest(
             self.likelihood,
             self.priors,
             outdir="outdir",

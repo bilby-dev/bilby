@@ -5,8 +5,11 @@ from attr import define
 import bilby
 import numpy as np
 import parameterized
+import bilby.core.sampler.dynesty
 from bilby.core.sampler import dynesty_utils
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+import shutil
+import os
 
 
 @define
@@ -40,7 +43,7 @@ class TestDynesty(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
-        self.sampler = bilby.core.sampler.Dynesty(
+        self.sampler = bilby.core.sampler.dynesty.Dynesty(
             self.likelihood,
             self.priors,
             outdir="outdir",
@@ -83,7 +86,7 @@ class TestDynesty(unittest.TestCase):
         self.priors["c"] = bilby.core.prior.Prior(boundary=None)
         self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
-        self.sampler = bilby.core.sampler.Dynesty(
+        self.sampler = bilby.core.sampler.dynesty.Dynesty(
             self.likelihood,
             self.priors,
             outdir="outdir",
@@ -97,6 +100,18 @@ class TestDynesty(unittest.TestCase):
 
     def test_run_test_runs(self):
         self.sampler._run_test()
+
+
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = bilby.core.sampler.dynesty.Dynesty.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 2
+    assert len(directories) == 0
+    assert os.path.join(outdir, f"{label}_resume.pickle") in filenames
+    assert os.path.join(outdir, f"{label}_dynesty.pickle") in filenames
 
 
 class ProposalsTest(unittest.TestCase):
@@ -201,7 +216,7 @@ class TestCustomSampler(unittest.TestCase):
         self.sampler = cls(
             loglikelihood=lambda x: 1,
             prior_transform=lambda x: x,
-            npdim=4,
+            ndim=4,
             live_points=(np.zeros((1000, 4)), np.zeros((1000, 4)), np.zeros(1000)),
             update_interval=None,
             first_update=dict(),
@@ -269,6 +284,79 @@ class TestEstimateNMCMC(unittest.TestCase):
                     tau=1000,
                 )
             self.assertAlmostEqual(estimated, expected)
+
+
+class TestReproducibility(unittest.TestCase):
+
+    @staticmethod
+    def model(x, m, c):
+        return m * x + c
+
+    def setUp(self):
+        bilby.core.utils.random.seed(42)
+        bilby.core.utils.command_line_args.bilby_test_mode = False
+        rng = bilby.core.utils.random.rng
+        self.x = np.linspace(0, 1, 11)
+        self.injection_parameters = dict(m=0.5, c=0.2)
+        self.sigma = 0.1
+        self.y = self.model(self.x, **self.injection_parameters) + rng.normal(
+            0, self.sigma, len(self.x)
+        )
+        self.likelihood = bilby.likelihood.GaussianLikelihood(
+            self.x, self.y, self.model, self.sigma
+        )
+
+        self.priors = bilby.core.prior.PriorDict()
+        self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")
+        self.priors["c"] = bilby.core.prior.Uniform(-2, 2, boundary="reflective")
+        # Evaluate prior once to ensure normalization constant have been set
+        theta = self.priors.sample()
+        self.priors.ln_prob(theta)
+        self._remove_tree()
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
+
+    def tearDown(self):
+        del self.likelihood
+        del self.priors
+        bilby.core.utils.command_line_args.bilby_test_mode = False
+        self._remove_tree()
+
+    def _remove_tree(self):
+        try:
+            shutil.rmtree("outdir")
+        except OSError:
+            pass
+
+    def _run_sampler(self, **kwargs):
+        bilby.core.utils.random.seed(42)
+        return bilby.run_sampler(
+            likelihood=self.likelihood,
+            priors=self.priors,
+            sampler="dynesty",
+            save=False,
+            resume=False,
+            dlogz=1.0,
+            nlive=20,
+            **kwargs,
+        )
+
+    def test_reproducibility_seed(self):
+        res0 = self._run_sampler(seed=1234)
+        res1 = self._run_sampler(seed=1234)
+        assert res0.log_evidence == res1.log_evidence
+
+    def test_reproducibility_state(self):
+        rstate = np.random.default_rng(1234)
+        res0 = self._run_sampler(rstate=rstate)
+        rstate = np.random.default_rng(1234)
+        res1 = self._run_sampler(rstate=rstate)
+        assert res0.log_evidence == res1.log_evidence
+
+    def test_reproducibility_state_and_seed(self):
+        rstate = np.random.default_rng(1234)
+        res0 = self._run_sampler(rstate=rstate)
+        res1 = self._run_sampler(seed=1234)
+        assert res0.log_evidence == res1.log_evidence
 
 
 if __name__ == "__main__":

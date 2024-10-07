@@ -372,6 +372,7 @@ class DirichletElement(ConditionalBeta):
             label + str(ii) for ii in range(order)
         ]
         self.__class__.__name__ = 'DirichletElement'
+        self.__class__.__qualname__ = 'DirichletElement'
 
     def dirichlet_condition(self, reference_parms, **kwargs):
         remaining = 1 - sum(

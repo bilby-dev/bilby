@@ -1,0 +1,93 @@
+=======
+Plugins
+=======
+
+----------------
+Defining plugins
+----------------
+
+:code:`bilby` allows for additional customizations/extra features via plugins.
+This allows users to add new functionality without the need to modify the main
+:code:`bilby` codebase, for example to add a new sampler.
+
+To make your plugins discoverable to :code:`bilby`, you need to specify a plugin
+group (which :code:`bilby` knows to search for), a name for the plugin, and the
+python path to your function/class within your package metadata, see `here
+<https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#using-package-metadata>`_
+for details. For example, if you have a package called :code:`mypackage` and
+you wish to add a plugin called :code:`my_awesome_plugin` within the group
+:code:`bilby.plugin`, you would specify the following in your `pyproject.toml
+<https://packaging.python.org/en/latest/guides/writing-pyproject-toml/>`_
+file::
+
+    [project.entry-points."bilby.plugin"]
+    my_awesome_plugin = "mypackage.plugin"
+
+Currently :code:`bilby` allows for the following plugin groups:
+
+- :code:`"bilby.samplers"`: group for adding samplers to :code:`bilby`. See :ref:`Sampler plugins` for more details.
+
+
+---------------
+Sampler plugins
+---------------
+
+Sampler plugins can specified via the :code:`"bilby.samplers"` group and these
+are automatically added to the 'known' samplers in :code:`bilby`.
+This allows users to add support for new samplers without having to modify the
+core :code:`bilby` codebase.
+Sampler plugins should implement a sampler class that in inherits from one of
+the following classes:
+
+- :py:class:`bilby.core.sampler.base_sampler.Sampler`
+- :py:class:`bilby.core.sampler.base_sampler.NestedSampler`
+- :py:class:`bilby.core.sampler.base_sampler.MCMCSampler`
+
+We provide a `template <https://github.com/bilby-plugins/sampler-template>`_
+for creating sampler plugins on GitHub.
+
+.. note::
+    When implementing a new sampler plugin, please avoid using a generic name for
+    the plugin (e.g. 'nest', 'mcmc') as this may lead to naming conflicts.
+
+
+Sampler plugin library
+----------------------
+
+This is a list of known sampler plugins. if you don't see your plugin listed
+here, we encourage you to open a
+`pull request <https://github.com/bilby-dev/bilby/compare>`_ to add it.
+
+- This could be your sampler
+
+
+Bilby-native samplers
+---------------------
+
+Some samplers are implemented directly in :code:`bilby` and these are avertised
+under two possible names:
+
+- :code:`bilby.<sampler name>`: always available, indicates the sampler is implemented in bilby,
+- :code:`<sampler name>`: only refers to the native bilby implementation if an external plugin does not already provide this sampler.
+
+This allows for an external plugin to provide a sampler without introducing
+namespace conflicts.
+
+
+--------------------------------
+Information for bilby developers
+--------------------------------
+
+Using plugins within bilby
+--------------------------
+
+Within :code:`bilby`, plugins are discovered with the
+:py:func:`bilby.core.utils.get_entry_points` function,
+and can be used throughout the :code:`bilby` infrastructure.
+
+Adding a new plugin group
+-------------------------
+
+If you want to add support for a new plugin group, please
+`open an issue <https://github.com/bilby-dev/bilby/issues/new>`_
+to discuss the details with other developers.

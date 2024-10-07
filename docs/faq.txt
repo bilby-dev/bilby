@@ -1,6 +1,6 @@
-=========================
-Frequency Asked Questions
-=========================
+==========================
+Frequently Asked Questions
+==========================
 
 Plotting questions
 ------------------
