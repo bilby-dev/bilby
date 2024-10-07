@@ -50,6 +50,8 @@ jobs:
           push: true
           labels: ${{ steps.meta.outputs.labels }}
 
+      # FIXME: disabled as it is not working well but should probably be added in later
+      # https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
       # - name: Generate artifact attestation
       #   uses: actions/attest-build-provenance@v1
       #   with:
