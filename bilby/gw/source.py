@@ -173,9 +173,8 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
                      'condition': condition
                      }
 
-    mode_array = [tuple(map(int, mode)) for mode in mode_array]
-
     if mode_array is not None:
+        mode_array = [tuple(map(int, mode)) for mode in mode_array]
         gwsignal_dict.update(ModeArray=mode_array)
 
     # Pass extra waveform arguments to gwsignal
