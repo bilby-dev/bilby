@@ -107,9 +107,9 @@ installed using
    $ pip install -r sampler_requirements.txt
 
 where the file `sampler_requirements.txt
-<https://git.ligo.org/lscsoft/bilby/blob/master/sampler_requirements.txt>`_ can
+<https://github.com/bilby-dev/bilby/blob/main/sampler_requirements.txt>`_ can
 be found in the at the top-level of `the repository
-<https://git.ligo.org/lscsoft/bilby>`_ (Note: if you installed from pip, you
+<https://github.com/bilby-dev/bilby>`_ (Note: if you installed from pip, you
 can simply download that file and use the command above).
 
 
