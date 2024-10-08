@@ -1459,7 +1459,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         self.distance_pdf = lambda r: self.distnorm[pix_idx] * norm(
             loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]
         ).pdf(r)
-        pdfs = self.rs ** 2 * norm(loc=self.distmu[pix_idx], scale=self.distsigma[pix_idx]).pdf(self.rs)
+        pdfs = self.rs ** 2 * self.distance_pdf(self.rs)
         cdfs = np.cumsum(pdfs) / np.sum(pdfs)
         self.distance_icdf = interp1d(cdfs, self.rs)
 

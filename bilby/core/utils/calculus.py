@@ -1,7 +1,7 @@
 import math
-from numbers import Number
+
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import RectBivariateSpline
 from scipy.special import logsumexp
 
 from .log import logger
@@ -189,79 +189,34 @@ def logtrapzexp(lnf, dx):
     return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
 
 
-class UnsortedInterp2d(interp2d):
-    def __call__(self, x, y, dx=0, dy=0, assume_sorted=False):
-        """Modified version of the interp2d call method.
+class BoundedRectBivariateSpline(RectBivariateSpline):
 
-        This avoids the outer product that is done when two numpy
-        arrays are passed.
+    def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
+        self.x_min, self.x_max, self.y_min, self.y_max = bbox
+        if self.x_min is None:
+            self.x_min = min(x)
+        if self.x_max is None:
+            self.x_max = max(x)
+        if self.y_min is None:
+            self.y_min = min(y)
+        if self.y_max is None:
+            self.y_max = max(y)
+        self.fill_value = fill_value
+        super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
-        Parameters
-        ==========
-        x: See superclass
-        y: See superclass
-        dx: See superclass
-        dy: See superclass
-        assume_sorted: bool, optional
-            This is just a place holder to prevent a warning.
-            Overwriting this will not do anything
-
-        Returns
-        =======
-        array_like: See superclass
-
-        """
-        from scipy.interpolate.dfitpack import bispeu
-
-        x, y = self._sanitize_inputs(x, y)
+    def __call__(self, x, y, dx=0, dy=0, grid=False):
+        result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
         bad = out_of_bounds_x | out_of_bounds_y
-        if isinstance(x, Number) and isinstance(y, Number):
+        result[bad] = self.fill_value
+        if result.size == 1:
             if bad:
-                output = self.fill_value
-                ier = 0
+                return self.fill_value
             else:
-                output, ier = bispeu(*self.tck, x, y)
-                output = float(output)
+                return result.item()
         else:
-            output = np.empty_like(x)
-            output[bad] = self.fill_value
-            if np.any(~bad):
-                output[~bad], ier = bispeu(*self.tck, x[~bad], y[~bad])
-            else:
-                ier = 0
-        if ier == 10:
-            raise ValueError("Invalid input data")
-        elif ier:
-            raise TypeError("An error occurred")
-        return output
-
-    @staticmethod
-    def _sanitize_inputs(x, y):
-        if isinstance(x, np.ndarray) and x.size == 1:
-            x = float(x)
-        if isinstance(y, np.ndarray) and y.size == 1:
-            y = float(y)
-        if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
-            original_shapes = (x.shape, y.shape)
-            if x.shape != y.shape:
-                while x.ndim > y.ndim:
-                    y = np.expand_dims(y, -1)
-                while y.ndim > x.ndim:
-                    x = np.expand_dims(x, -1)
-            try:
-                x = x * np.ones(y.shape)
-                y = y * np.ones(x.shape)
-            except ValueError:
-                raise ValueError(
-                    f"UnsortedInterp2d received incompatibly shaped arrays: {original_shapes}"
-                )
-        elif isinstance(x, np.ndarray) and not isinstance(y, np.ndarray):
-            y = y * np.ones_like(x)
-        elif not isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
-            x = x * np.ones_like(y)
-        return x, y
+            return result
 
 
 def round_up_to_power_of_two(x):

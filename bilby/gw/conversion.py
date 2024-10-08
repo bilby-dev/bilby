@@ -2556,3 +2556,59 @@ def fill_sample(args):
     likelihood.parameters.update(dict(sample).copy())
     new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
     return tuple((new_sample[key] for key in marginalized_parameters))
+
+
+def identity_map_conversion(parameters):
+    """An identity map conversion function that makes no changes to the parameters,
+    but returns the correct signature expected by other conversion functions
+    (e.g. convert_to_lal_binary_black_hole_parameters)"""
+    return parameters, []
+
+
+def identity_map_generation(sample, likelihood=None, priors=None, npool=1):
+    """An identity map generation function that handles marginalizations, SNRs, etc. correctly,
+    but does not attempt e.g. conversions in mass or spins
+
+    Parameters
+    ==========
+    sample: dict or pandas.DataFrame
+        Samples to fill in with extra parameters, this may be either an
+        injection or posterior samples.
+    likelihood: bilby.gw.likelihood.GravitationalWaveTransient, optional
+        GravitationalWaveTransient used for sampling, used for waveform and
+        likelihood.interferometers.
+    priors: dict, optional
+        Dictionary of prior objects, used to fill in non-sampled parameters.
+
+    Returns
+    =======
+
+    """
+    output_sample = sample.copy()
+
+    output_sample = fill_from_fixed_priors(output_sample, priors)
+
+    if likelihood is not None:
+        compute_per_detector_log_likelihoods(
+            samples=output_sample, likelihood=likelihood, npool=npool)
+
+        marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
+        if len(marginalized_parameters) > 0:
+            try:
+                generate_posterior_samples_from_marginalized_likelihood(
+                    samples=output_sample, likelihood=likelihood, npool=npool)
+            except MarginalizedLikelihoodReconstructionError as e:
+                logger.warning(
+                    "Marginalised parameter reconstruction failed with message "
+                    "{}. Some parameters may not have the intended "
+                    "interpretation.".format(e)
+                )
+
+        if ("ra" in output_sample.keys() and "dec" in output_sample.keys() and "psi" in output_sample.keys()):
+            compute_snrs(output_sample, likelihood, npool=npool)
+        else:
+            logger.info(
+                "Skipping SNR computation since samples have insufficient sky location information"
+            )
+
+    return output_sample

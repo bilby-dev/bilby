@@ -3,6 +3,7 @@ import inspect
 import os
 import sys
 import time
+import warnings
 
 import numpy as np
 from pandas import DataFrame
@@ -677,12 +678,21 @@ class Dynesty(NestedSampler):
         chain of nested samples within dynesty and have to be removed before
         restarting the sampler.
         """
+
         logger.debug("Running sampler with checkpointing")
 
         old_ncall = self.sampler.ncall
         sampler_kwargs = self.sampler_function_kwargs.copy()
+        warnings.filterwarnings(
+            "ignore",
+            message="The sampling was stopped short due to maxiter/maxcall limit*",
+            category=UserWarning,
+            module="dynesty.sampler",
+        )
         while True:
             self.finalize_sampler_kwargs(sampler_kwargs)
+            if getattr(self.sampler, "added_live", False):
+                self.sampler._remove_live_points()
             self.sampler.run_nested(**sampler_kwargs)
             if self.sampler.ncall == old_ncall:
                 break
@@ -697,8 +707,8 @@ class Dynesty(NestedSampler):
             if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state()
                 self.plot_current_state()
-            if getattr(self.sampler, "added_live", False):
-                self.sampler._remove_live_points()
+        if getattr(self.sampler, "added_live", False):
+            self.sampler._remove_live_points()
 
         self.sampler.run_nested(**sampler_kwargs)
         self.write_current_state()
@@ -736,7 +746,10 @@ class Dynesty(NestedSampler):
         if os.path.isfile(self.resume_file):
             logger.info(f"Reading resume file {self.resume_file}")
             with open(self.resume_file, "rb") as file:
-                sampler = dill.load(file)
+                try:
+                    sampler = dill.load(file)
+                except EOFError:
+                    sampler = None
 
                 if not hasattr(sampler, "versions"):
                     logger.warning(
@@ -879,7 +892,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -905,7 +918,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -927,7 +940,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -944,7 +957,7 @@ class Dynesty(NestedSampler):
             except Exception as e:
                 logger.warning(
                     f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at git.ligo.org/lscsoft/bilby/-/issues"
+                    "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")

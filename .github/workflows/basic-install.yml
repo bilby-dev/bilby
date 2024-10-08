@@ -1,0 +1,55 @@
+name: Clean install
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # disable windows build test as bilby_cython is currently broken there
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install .
+      - name: List environment
+        run: python -m pip list installed
+      - name: Test imports
+        run: |
+          python -c "import bilby"
+          python -c "import bilby.bilby_mcmc"
+          python -c "import bilby.core"
+          python -c "import bilby.core.prior"
+          python -c "import bilby.core.sampler"
+          python -c "import bilby.core.utils"
+          python -c "import bilby.gw"
+          python -c "import bilby.gw.detector"
+          python -c "import bilby.gw.eos"
+          python -c "import bilby.gw.likelihood"
+          python -c "import bilby.gw.sampler"
+          python -c "import bilby.hyper"
+          python -c "import cli_bilby"
+          python test/import_test.py
+      # - if: ${{ matrix.os != "windows-latest" }}
+      #   run: |
+      #     for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
+      #         ${script} --help;
+      #     done

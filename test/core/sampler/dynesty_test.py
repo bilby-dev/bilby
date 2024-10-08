@@ -216,7 +216,7 @@ class TestCustomSampler(unittest.TestCase):
         self.sampler = cls(
             loglikelihood=lambda x: 1,
             prior_transform=lambda x: x,
-            npdim=4,
+            ndim=4,
             live_points=(np.zeros((1000, 4)), np.zeros((1000, 4)), np.zeros(1000)),
             update_interval=None,
             first_update=dict(),
