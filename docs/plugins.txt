@@ -58,7 +58,8 @@ This is a list of known sampler plugins. if you don't see your plugin listed
 here, we encourage you to open a
 `pull request <https://github.com/bilby-dev/bilby/compare>`_ to add it.
 
-- This could be your sampler
+- :code:`nessai-bilby`: https://github.com/bilby-dev/nessai-bilby
+- :code:`pypolychord-bilby`: https://github.com/bilby-dev/pypolychord-bilby
 
 
 Bilby-native samplers
