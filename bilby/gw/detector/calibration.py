@@ -83,7 +83,7 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
         calibration_frequencies, calibration_draws, kind='cubic',
         bounds_error=False, fill_value=1)(frequency_array)
     if correction == "data":
-        calibration_draws **= -1
+        calibration_draws = 1 / calibration_draws
 
     try:
         parameter_draws = pd.read_hdf(filename, key="CalParams")
@@ -135,7 +135,7 @@ def write_calibration_file(
         )
 
     if correction == "data":
-        calibration_draws **= -1
+        calibration_draws = 1 / calibration_draws
 
     logger.info(f"Writing calibration draws to {filename}")
     calibration_file = tables.open_file(filename, 'w')
