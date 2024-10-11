@@ -319,7 +319,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 masked_bin_inds.append(index)
             # For the last bin, make sure to include
             # the last point in the frequency array
-            masked_bin_inds[-1] += 1
+            # if it is not already included
+            if masked_bin_inds[-1] != (len(masked_frequency_array) - 1):
+                masked_bin_inds[-1] += 1
 
             masked_strain = interferometer.frequency_domain_strain[mask]
             masked_h0 = self.per_detector_fiducial_waveforms[interferometer.name][mask]
