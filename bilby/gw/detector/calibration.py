@@ -32,7 +32,7 @@ Internally, in :code:`Bilby`, the correction is always :math:`\alpha`.
 However, when reading in a production described calibration uncertainty, e.g.,
 uncertainty envelopes or estimated response curves, the user should specify
 which method is being used as :code:`"data"` for :math:`\eta` or
-:code:`"tempalte"` for :math:`\alpha`.
+:code:`"template"` for :math:`\alpha`.
 
 .. note::
     In general, data products produced by the LVK calibration groups use the
@@ -50,26 +50,27 @@ from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
 from ..prior import CalibrationPriorDict
 
-def _check_calibration_correction_type(correction):
-    if correction is None:
+
+def _check_calibration_correction_type(correction_type):
+    if correction_type is None:
         logger.warning(
             "Calibration envelope correction type is not specified. "
             "Assuming this correction maps calibrated data to theoretical "
             "strain. If this is correct, this should be explicitly "
             "specified via CalibrationPriorDict.from_envelope_file(..., "
-            "correction='data'). The other possibility is correction="
+            "correction_type='data'). The other possibility is correction_type="
             "'template', which maps theoretical strain to calibrated data."
         )
-        correction = "data"
-    if correction.lower() not in ["data", "template"]:
+        correction_type = "data"
+    if correction_type.lower() not in ["data", "template"]:
         raise ValueError(
             "Calibration envelope correction should be one of 'data' or "
-            f"'template', found {correction}."
+            f"'template', found {correction_type}."
         )
     logger.debug(
-        f"Supplied calibration correction will be applied to the {correction}"
+        f"Supplied calibration correction will be applied to the {correction_type}"
     )
-    return correction
+    return correction_type
 
 
 def read_calibration_file(
@@ -107,7 +108,7 @@ def read_calibration_file(
     """
     import tables
 
-    correction = _check_calibration_correction_type(correction=correction)
+    correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
     logger.info(f"Reading calibration draws from {filename}")
     calibration_file = tables.open_file(filename, 'r')
@@ -130,7 +131,7 @@ def read_calibration_file(
     calibration_draws = interp1d(
         calibration_frequencies, calibration_draws, kind='cubic',
         bounds_error=False, fill_value=1)(frequency_array)
-    if correction == "data":
+    if correction_type == "data":
         calibration_draws = 1 / calibration_draws
 
     try:
@@ -142,7 +143,7 @@ def read_calibration_file(
 
 
 def write_calibration_file(
-    filename, frequency_array, calibration_draws, calibration_parameter_draws=None, correction=None
+    filename, frequency_array, calibration_draws, calibration_parameter_draws=None, correction_type=None
 ):
     """
     Function to write the generated response curves to file
@@ -169,9 +170,9 @@ def write_calibration_file(
     """
     import tables
 
-    correction = _check_calibration_correction_type(correction=correction)
+    correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
-    if correction == "data":
+    if correction_type == "data":
         calibration_draws = 1 / calibration_draws
 
     logger.info(f"Writing calibration draws to {filename}")
