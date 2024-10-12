@@ -1186,12 +1186,12 @@ class CalibrationPriorDict(PriorDict):
             This includes the frequencies of the nodes which are _not_ sampled.
         """
         from .detector.calibration import _check_calibration_correction_type
-        correction = _check_calibration_correction_type(correction=correction)
+        correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
         calibration_data = np.genfromtxt(envelope_file).T
         log_frequency_array = np.log(calibration_data[0])
 
-        if correction.lower() == "data":
+        if correction_type.lower() == "data":
             amplitude_median = 1 / calibration_data[1] - 1
             phase_median = -calibration_data[2]
             amplitude_sigma = abs(1 / calibration_data[3] - 1 / calibration_data[5]) / 2
