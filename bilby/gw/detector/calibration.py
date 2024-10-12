@@ -29,14 +29,14 @@ Clearly, these are related via
     \eta = \frac{1}{\alpha}
 
 Internally, in :code:`Bilby`, the correction is always :math:`\alpha`.
-However, when reading in a production described calibration uncertainty, e.g.,
-uncertainty envelopes or estimated response curves, the user should specify
-which method is being used as :code:`"data"` for :math:`\eta` or
+However, when reading in a data product describing calibration uncertainty,
+e.g., uncertainty envelopes or estimated response curves, the user should
+specify which method is being used as :code:`"data"` for :math:`\eta` or
 :code:`"template"` for :math:`\alpha`.
 
 .. note::
     In general, data products produced by the LVK calibration groups use the
-    :code:`data` convention.
+    :code:`"data"` convention.
 
 """
 import copy
