@@ -1138,7 +1138,7 @@ class CalibrationPriorDict(PriorDict):
     @staticmethod
     def from_envelope_file(envelope_file, minimum_frequency,
                            maximum_frequency, n_nodes, label,
-                           boundary="reflective", correction=None):
+                           boundary="reflective", correction_type=None):
         """
         Load in the calibration envelope.
 
@@ -1171,9 +1171,12 @@ class CalibrationPriorDict(PriorDict):
             Label for the names of the parameters, e.g., `recalib_H1_`
         boundary: None, 'reflective', 'periodic'
             The type of prior boundary to assign
-        correction: str
-            How the correction is defined, either to the data (default) or
-            the template.
+        correction_type: str
+            How the correction is defined, either to the :code:`data`
+            (default) or the :code:`template`. In general, data products
+            produced by the LVK calibration groups assume :code:`data`.
+            The default value will be removed in a future release and
+            this will need to be explicitly specified.
             ..versionadded XYZ
 
         Returns
@@ -1182,20 +1185,8 @@ class CalibrationPriorDict(PriorDict):
             Priors for the relevant parameters.
             This includes the frequencies of the nodes which are _not_ sampled.
         """
-        if correction is None:
-            logger.warning(
-                "Calibration envelope correction type is not specified. "
-                "Assuming this correction maps calibrated data to theoretical "
-                "strain. If this is correct, this should be explicitly "
-                "specified via CalibrationPriorDict.from_envelope_file(..., "
-                "correction='data')."
-            )
-            correction = "data"
-        if correction.lower() not in ["data", "template"]:
-            raise ValueError(
-                "Calibration envelope correction should be one of 'data' or "
-                f"'template', found {correction}."
-            )
+        from .detector.calibration import _check_calibration_correction_type
+        correction = _check_calibration_correction_type(correction=correction)
 
         calibration_data = np.genfromtxt(envelope_file).T
         log_frequency_array = np.log(calibration_data[0])
@@ -1203,13 +1194,13 @@ class CalibrationPriorDict(PriorDict):
         if correction.lower() == "data":
             amplitude_median = 1 / calibration_data[1] - 1
             phase_median = -calibration_data[2]
-            amplitude_sigma = (1 / calibration_data[3] - 1 / calibration_data[5]) / 2
-            phase_sigma = (calibration_data[6] - calibration_data[4]) / 2
+            amplitude_sigma = abs(1 / calibration_data[3] - 1 / calibration_data[5]) / 2
+            phase_sigma = abs(calibration_data[6] - calibration_data[4]) / 2
         else:
             amplitude_median = calibration_data[1] - 1
             phase_median = calibration_data[2]
-            amplitude_sigma = (calibration_data[5] - calibration_data[3]) / 2
-            phase_sigma = (calibration_data[6] - calibration_data[4]) / 2
+            amplitude_sigma = abs(calibration_data[5] - calibration_data[3]) / 2
+            phase_sigma = abs(calibration_data[6] - calibration_data[4]) / 2
 
         log_nodes = np.linspace(np.log(minimum_frequency),
                                 np.log(maximum_frequency), n_nodes)
