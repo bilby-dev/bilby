@@ -1,4 +1,43 @@
-""" Functions for adding calibration factors to waveform templates.
+r"""
+Functions for adding calibration factors to waveform templates.
+
+The two key quantities are :math:`d`, the (possible mis-)calibrated strain
+data used for the analysis, and :math:`h`, the theoretical strain predicted by
+the waveform model.
+
+There are two conventions in the literature for how to specify calibration
+corrections. People who work on gravitational-wave detector calibration
+typically describe a correction to the data so that the signal matches the
+theoretical prediction
+
+.. math::
+
+    h = \eta d.
+
+However, when performing inference, we are interested in the correction that
+must be applied to the theoretical strain to match the signal contained within
+the data
+
+.. math::
+
+    d = \alpha h.
+
+Clearly, these are related via
+
+.. math::
+
+    \eta = \frac{1}{\alpha}
+
+Internally, in :code:`Bilby`, the correction is always :math:`\alpha`.
+However, when reading in a production described calibration uncertainty, e.g.,
+uncertainty envelopes or estimated response curves, the user should specify
+which method is being used as :code:`"data"` for :math:`\eta` or
+:code:`"tempalte"` for :math:`\alpha`.
+
+.. note::
+    In general, data products produced by the LVK calibration groups use the
+    :code:`data` convention.
+
 """
 import copy
 import os
