@@ -111,7 +111,7 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
         self.assertListEqual(list(self.priors.keys()), list(parameters.keys()))
 
     @parameterized.expand([("template",), ("data",), (None,)])
-    def test_read_write_matches(self, correction):
+    def test_read_write_matches(self, correction_type):
         draws, parameters = calibration._generate_calibration_draws(
             self.ifo, self.priors, self.number_of_draws
         )
@@ -121,14 +121,14 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
             frequency_array=frequencies,
             calibration_draws=draws,
             calibration_parameter_draws=parameters,
-            correction=correction,
+            correction_type=correction_type,
         )
         self.assertTrue(os.path.exists(self.filename))
         loaded_draws, loaded_parameters = calibration.read_calibration_file(
             filename=self.filename,
             frequency_array=frequencies,
             number_of_response_curves=self.number_of_draws,
-            correction=correction,
+            correction_type=correction_type,
         )
         self.assertLess(np.max(np.abs(loaded_draws - draws)), 1e-13)
         self.assertTrue(parameters.equals(loaded_parameters))
