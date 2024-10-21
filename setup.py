@@ -49,6 +49,7 @@ setup(
         "bilby",
         "bilby.bilby_mcmc",
         "bilby.core",
+        "bilby.core.likelihood",
         "bilby.core.prior",
         "bilby.core.sampler",
         "bilby.core.utils",
