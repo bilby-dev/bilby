@@ -106,7 +106,7 @@ class GenerateDeterministicModel(GenerateData):
 
 
 class AdditiveWhiteGaussianNoise(GenerateData):
-    def __init__(self, model, fixed_arguments_dict, bilby_prior):
+    def __init__(self, model, bilby_prior, fixed_arguments_dict=None):
         # Create the signal instance
         self.signal = GenerateDeterministicModel(
             model=model, fixed_arguments_dict=fixed_arguments_dict
@@ -167,6 +167,9 @@ class NLELikelihood(Likelihood):
         label,
         num_simulations=1000,
         num_workers=1,
+        density_estimator="maf",
+        device="cpu",
+        show_progress_bar=False,
         cache=True,
         cache_directory="likelihood_cache",
     ):
@@ -187,6 +190,9 @@ class NLELikelihood(Likelihood):
             The number of simulations used to train the neural network
         num_workers: int
             The number of workers used to..FIX ME
+        density_estimator: FIX ME
+        device: FIX ME
+        show_progress_bar: FIX ME
         cache: bool
             If true, write a copy of the likelihood to avoid retraining
         cache_directory: str
@@ -200,12 +206,22 @@ class NLELikelihood(Likelihood):
         self.label = label
         self.num_simulations = num_simulations
         self.num_workers = num_workers
+        self.density_estimator = density_estimator
+        self.device = device
+        self.show_progress_bar = show_progress_bar
         self.cache = cache
         self.cache_directory = cache_directory
         self.fixed_parameters = [
             key for key in self.generator.call_parameter_key_list if bilby_prior[key].is_fixed
         ]
 
+        self.meta_data = dict(
+            num_simulations=num_simulations,
+            density_estimator=density_estimator,
+            device=device
+        )
+
+    def init(self):
         # Initialise SBI elements
         self.init_prior()
         self.init_simulator()
@@ -255,19 +271,25 @@ class NLELikelihood(Likelihood):
             self.sbi_likelihood_estimator = pickle.load(file)
 
     def train_likelihood(self):
-        logger.info("Train the NLE")
-        inference = sbi.inference.SNLE(prior=self.sbi_prior)
+        logger.info("Initialise training")
+        inference = sbi.inference.SNLE(
+            prior=self.sbi_prior,
+            density_estimator=self.density_estimator,
+            device=self.device,
+            logging_level='WARNING',
+            summary_writer=None,
+            show_progress_bars=self.show_progress_bar,
+        )
         simulated_params, simulated_yobs = sbi.inference.simulate_for_sbi(
             self.sbi_generator,
             proposal=self.sbi_prior,
             num_simulations=self.num_simulations,
             num_workers=self.num_workers,
+            show_progress_bar=self.show_progress_bar,
         )
 
-        logger.info("Append the simulations")
         inf_and_sims = inference.append_simulations(simulated_params, simulated_yobs)
 
-        logger.info("Train")
         self.sbi_likelihood_estimator = inf_and_sims.train()
 
         if self.cache:
@@ -362,4 +384,3 @@ class NLEResidualLikelihood(NLELikelihood):
         parameter_tensor = torch.as_tensor(parameters)
         logl = self.sbi_potential_fn(parameter_tensor)
         return float(logl)
-
