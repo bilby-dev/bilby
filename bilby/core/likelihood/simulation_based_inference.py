@@ -294,3 +294,72 @@ class NLELikelihood(Likelihood):
         parameter_tensor = torch.as_tensor(parameters)
         logl = self.sbi_potential_fn(parameter_tensor)
         return float(logl)
+
+
+class NLEResidualLikelihood(NLELikelihood):
+    def __init__(
+        self,
+        yobs,
+        generator,
+        bilby_prior,
+        label,
+        num_simulations=1000,
+        num_workers=1,
+        cache=True,
+        cache_directory="likelihood_cache",
+    ):
+        """
+        Neural likelihood estimated with SNLE
+
+        Parameters
+        ----------
+        yobs: array_like
+            TBD
+        FIXME generate: instance of SimulateData
+            An instance of the SimulateData class
+        bilby_prior: bilby.core.prior.PriorDict
+            The Bilby prior
+        label: str
+            A unique string used to cache the likelihood
+        num_simulations: int
+            The number of simulations used to train the neural network
+        num_workers: int
+            The number of workers used to..FIX ME
+        cache: bool
+            If true, write a copy of the likelihood to avoid retraining
+        cache_directory: str
+            The directory to store the likelihood cache
+        """
+        super().__init__(
+            yobs=yobs, generator=generator.noise, bilby_prior=bilby_prior, label=label,
+            num_simulations=num_simulations, num_workers=num_workers, cache=cache,
+            cache_directory=cache_directory
+        )
+
+        self.noise_generator = generator.noise
+        self.signal_generator = generator.signal
+
+    def init(self):
+        # Initialise SBI elements
+        self.init_prior()
+        self.init_simulator()
+        self.init_training()
+
+    def init_potential_fn(self):
+        self.sbi_potential_fn, _ = sbi.inference.likelihood_estimator_based_potential(
+            self.sbi_likelihood_estimator, self.sbi_prior, self.yobs_residual
+        )
+
+    def log_likelihood(self):
+        parameters = [
+            np.float32(self.parameters[key])
+            for key in self.generator.call_parameter_key_list
+            if key not in self.fixed_parameters
+        ]
+        signal_prediction = self.signal_generator.get_data(self.parameters)
+        self.yobs_residual = self.yobs - signal_prediction
+        self.init_potential_fn()
+        parameter_tensor = torch.as_tensor(parameters)
+        logl = self.sbi_potential_fn(parameter_tensor)
+        return float(logl)
+
