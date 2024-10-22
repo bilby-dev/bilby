@@ -105,27 +105,19 @@ class GenerateDeterministicModel(GenerateData):
         return self.model(**kwargs)
 
 
-class AdditiveWhiteGaussianNoise(GenerateData):
-    def __init__(self, model, bilby_prior, fixed_arguments_dict=None):
-        # Create the signal instance
-        self.signal = GenerateDeterministicModel(
-            model=model, fixed_arguments_dict=fixed_arguments_dict
-        )
+class AdditiveSignalAndNoise(GenerateData):
+    def __init__(self, signal, noise, bilby_prior, fixed_arguments_dict=None):
 
-        # Update the signal with the fixed parameters from the prior
+        self.signal = signal
+        self.noise = noise
+
+        # Update the signal and noise with the fixed parameters from the prior
         for key, val in bilby_prior.items():
-            if val.is_fixed and key in self.signal.call_parameter_key_list:
-                self.signal.fixed_arguments_dict[key] = val.peak
-                self.signal.fix_parameter(key, val.peak)
-
-        # Create the noise instance
-        signal_shape = self.signal.get_data(bilby_prior.sample()).shape
-        self.noise = GenerateWhiteGaussianNoise(data_shape=signal_shape)
-
-        for key, val in bilby_prior.items():
-            if val.is_fixed and key in self.noise.call_parameter_key_list:
-                self.noise.fix_parameter(key, val.peak)
-
+            for model in [self.signal, self.noise]:
+                if val.is_fixed and key in model.call_parameter_key_list:
+                    model.fixed_arguments_dict[key] = val.peak
+                    model.fix_parameter(key, val.peak)                
+        
         # Extract the parameters and keys
         call_parameter_key_list = (
             self.signal.call_parameter_key_list + self.noise.call_parameter_key_list
@@ -136,12 +128,12 @@ class AdditiveWhiteGaussianNoise(GenerateData):
             for key, val in joint_parameters.items()
             if key in call_parameter_key_list
         }
-
-        super(AdditiveWhiteGaussianNoise, self).__init__(
+        
+        super(AdditiveSignalAndNoise, self).__init__(
             parameters=parameters,
             call_parameter_key_list=call_parameter_key_list,
         )
-
+        
     def get_data(self, parameters: dict):
         sparameters = {
             key: val
@@ -156,6 +148,25 @@ class AdditiveWhiteGaussianNoise(GenerateData):
         sdata = self.signal.get_data(sparameters)
         ndata = self.noise.get_data(nparameters)
         return sdata + ndata
+
+
+class AdditiveWhiteGaussianNoise(AdditiveSignalAndNoise):
+    def __init__(self, model, bilby_prior, fixed_arguments_dict=None):
+        # Create the signal instance
+        signal = GenerateDeterministicModel(
+            model=model, fixed_arguments_dict=fixed_arguments_dict
+        )
+
+        # Create the noise instance
+        signal_shape = signal.get_data(bilby_prior.sample()).shape
+        noise = GenerateWhiteGaussianNoise(data_shape=signal_shape)
+
+        super(AdditiveWhiteGaussianNoise, self).__init__(
+            signal=signal,
+            noise=noise,
+            bilby_prior=bilby_prior,
+            fixed_arguments_dict=fixed_arguments_dict,
+        )
 
 
 class NLELikelihood(Likelihood):
