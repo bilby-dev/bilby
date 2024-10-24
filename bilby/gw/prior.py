@@ -1177,7 +1177,8 @@ class CalibrationPriorDict(PriorDict):
             produced by the LVK calibration groups assume :code:`data`.
             The default value will be removed in a future release and
             this will need to be explicitly specified.
-            ..versionadded XYZ
+
+            .. versionadded:: 1.4.0
 
         Returns
         =======
