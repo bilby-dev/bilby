@@ -642,6 +642,10 @@ class InterferometerStrainData(object):
     def set_from_zero_noise(self, sampling_frequency, duration, start_time=0):
         """ Set the `frequency_domain_strain` to zero noise
 
+        This sets the `strain_data` to an array of (complex) zeros,  while
+        also making sure the frequency and time arrays match
+        the sampling frequency and duration given.
+
         Parameters
         ==========
         sampling_frequency: float
