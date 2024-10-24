@@ -104,7 +104,7 @@ class InterferometerList(list):
     ):
         """Set the `Interferometer.strain_data` to zero in each detector
 
-        See `bilby.gw.detector.InterferometerStrainData.set_from_zero_noise`
+        See :py:meth:`bilby.gw.detector.InterferometerStrainData.set_from_zero_noise`
         for further  information.
 
         Parameters
