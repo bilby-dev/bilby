@@ -1,4 +1,43 @@
-""" Functions for adding calibration factors to waveform templates.
+r"""
+Functions for adding calibration factors to waveform templates.
+
+The two key quantities are :math:`d`, the (possible mis-)calibrated strain
+data used for the analysis, and :math:`h`, the theoretical strain predicted by
+the waveform model.
+
+There are two conventions in the literature for how to specify calibration
+corrections. People who work on gravitational-wave detector calibration
+typically describe a correction to the data so that the signal matches the
+theoretical prediction
+
+.. math::
+
+    h = \eta d.
+
+However, when performing inference, we are interested in the correction that
+must be applied to the theoretical strain to match the signal contained within
+the data
+
+.. math::
+
+    d = \alpha h.
+
+Clearly, these are related via
+
+.. math::
+
+    \eta = \frac{1}{\alpha}
+
+Internally, in :code:`Bilby`, the correction is always :math:`\alpha`.
+However, when reading in a data product describing calibration uncertainty,
+e.g., uncertainty envelopes or estimated response curves, the user should
+specify which method is being used as :code:`"data"` for :math:`\eta` or
+:code:`"template"` for :math:`\alpha`.
+
+.. note::
+    In general, data products produced by the LVK calibration groups use the
+    :code:`"data"` convention.
+
 """
 import copy
 import os
@@ -12,9 +51,34 @@ from ...core.prior.dict import PriorDict
 from ..prior import CalibrationPriorDict
 
 
-def read_calibration_file(filename, frequency_array, number_of_response_curves, starting_index=0):
-    """
-    Function to read the hdf5 files from the calibration group containing the physical calibration response curves.
+def _check_calibration_correction_type(correction_type):
+    if correction_type is None:
+        logger.warning(
+            "Calibration envelope correction type is not specified. "
+            "Assuming this correction maps calibrated data to theoretical "
+            "strain. If this is correct, this should be explicitly "
+            "specified via CalibrationPriorDict.from_envelope_file(..., "
+            "correction_type='data'). The other possibility is correction_type="
+            "'template', which maps theoretical strain to calibrated data."
+        )
+        correction_type = "data"
+    if correction_type.lower() not in ["data", "template"]:
+        raise ValueError(
+            "Calibration envelope correction should be one of 'data' or "
+            f"'template', found {correction_type}."
+        )
+    logger.debug(
+        f"Supplied calibration correction will be applied to the {correction_type}"
+    )
+    return correction_type
+
+
+def read_calibration_file(
+    filename, frequency_array, number_of_response_curves, starting_index=0, correction_type=None
+):
+    r"""
+    Function to read the hdf5 files from the calibration group containing the
+    physical calibration response curves.
 
     Parameters
     ----------
@@ -27,6 +91,14 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
     starting_index: int
         Index of the first curve to use within the array. This allows for segmenting the calibration curve array
         into smaller pieces.
+    correction_type: str
+        How the correction is defined, either to the :code:`data`
+        (default) or the :code:`template`. In general, data products
+        produced by the LVK calibration groups assume :code:`data`.
+        The default value will be removed in a future release and
+        this will need to be explicitly specified.
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -36,6 +108,8 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
 
     """
     import tables
+
+    correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
     logger.info(f"Reading calibration draws from {filename}")
     calibration_file = tables.open_file(filename, 'r')
@@ -58,6 +132,8 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
     calibration_draws = interp1d(
         calibration_frequencies, calibration_draws, kind='cubic',
         bounds_error=False, fill_value=1)(frequency_array)
+    if correction_type == "data":
+        calibration_draws = 1 / calibration_draws
 
     try:
         parameter_draws = pd.read_hdf(filename, key="CalParams")
@@ -67,7 +143,9 @@ def read_calibration_file(filename, frequency_array, number_of_response_curves, 
     return calibration_draws, parameter_draws
 
 
-def write_calibration_file(filename, frequency_array, calibration_draws, calibration_parameter_draws=None):
+def write_calibration_file(
+    filename, frequency_array, calibration_draws, calibration_parameter_draws=None, correction_type=None
+):
     """
     Function to write the generated response curves to file
 
@@ -82,9 +160,22 @@ def write_calibration_file(filename, frequency_array, calibration_draws, calibra
         Shape is (number_of_response_curves x len(frequency_array))
     calibration_parameter_draws: data_frame
         Parameters used to generate the random draws of the calibration response curves
+    correction_type: str
+        How the correction is defined, either to the :code:`data`
+        (default) or the :code:`template`. In general, data products
+        produced by the LVK calibration groups assume :code:`data`.
+        The default value will be removed in a future release and
+        this will need to be explicitly specified.
+
+        .. versionadded:: 1.4.0
 
     """
     import tables
+
+    correction_type = _check_calibration_correction_type(correction_type=correction_type)
+
+    if correction_type == "data":
+        calibration_draws = 1 / calibration_draws
 
     logger.info(f"Writing calibration draws to {filename}")
     calibration_file = tables.open_file(filename, 'w')
