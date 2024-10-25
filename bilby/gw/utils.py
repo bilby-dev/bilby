@@ -5,10 +5,12 @@ from functools import lru_cache
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import i0e
-from bilby_cython.geometry import (
+from bilback.geometry import (
     zenith_azimuth_to_theta_phi as _zenith_azimuth_to_theta_phi,
 )
-from bilby_cython.time import greenwich_mean_sidereal_time
+from bilback.time import greenwich_mean_sidereal_time
+from bilback.utils import array_module
+from plum import dispatch
 
 from ..core.utils import (logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
@@ -76,14 +78,15 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     array_like: A 3D representation of the geocentric vertex position
 
     """
+    xp = array_module(latitude)
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
-    radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(latitude)**2 +
-                                   semi_minor_axis**2 * np.sin(latitude)**2)**(-0.5)
-    x_comp = (radius + elevation) * np.cos(latitude) * np.cos(longitude)
-    y_comp = (radius + elevation) * np.cos(latitude) * np.sin(longitude)
-    z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * np.sin(latitude)
-    return np.array([x_comp, y_comp, z_comp])
+    radius = semi_major_axis**2 * (semi_major_axis**2 * xp.cos(latitude)**2 +
+                                   semi_minor_axis**2 * xp.sin(latitude)**2)**(-0.5)
+    x_comp = (radius + elevation) * xp.cos(latitude) * xp.cos(longitude)
+    y_comp = (radius + elevation) * xp.cos(latitude) * xp.sin(longitude)
+    z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * xp.sin(latitude)
+    return xp.array([x_comp, y_comp, z_comp])
 
 
 def inner_product(aa, bb, frequency, PSD):
@@ -132,9 +135,8 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     =======
     Noise-weighted inner product.
     """
-
-    integrand = np.conj(aa) * bb / power_spectral_density
-    return 4 / duration * np.sum(integrand)
+    integrand = aa.conjugate() * bb / power_spectral_density
+    return 4 / duration * integrand.sum()
 
 
 def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
@@ -1023,6 +1025,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
 
 
+@dispatch
 def ln_i0(value):
     """
     A numerically stable method to evaluate ln(I_0) a modified Bessel function

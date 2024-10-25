@@ -24,7 +24,8 @@ class WaveformGenerator(object):
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
-                 waveform_arguments=None):
+                 waveform_arguments=None, use_cache=True,
+                 ):
         """
         The base waveform generator class.
 
@@ -58,6 +59,10 @@ class WaveformGenerator(object):
             Note: the arguments of frequency_domain_source_model (except the first,
             which is the frequencies at which to compute the strain) will be added to
             the WaveformGenerator object and initialised to `None`.
+        use_cache: bool
+            Whether to attempt caching the waveform between subsequent calls.
+            This is :code:`True` by default but must be disabled for JIT compilation
+            with :code:`JAX`.
 
         """
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
@@ -79,6 +84,7 @@ class WaveformGenerator(object):
                 "Non null parameters passed to waveform generator. These will be ignored."
             )
         self._cache = dict(parameters=None, waveform=None, model=None)
+        self.use_cache = use_cache
         logger.info(f"Waveform generator instantiated: {self}")
 
     def __repr__(self):
