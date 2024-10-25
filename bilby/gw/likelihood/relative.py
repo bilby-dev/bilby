@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 from scipy.optimize import differential_evolution
+from bilback.utils import array_module
 
 from .base import GravitationalWaveTransient
 from ...core.utils import logger
@@ -253,7 +254,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         for interferometer in self.interferometers:
             logger.debug(f"Maximum Frequency is {interferometer.maximum_frequency}")
             wf = interferometer.get_detector_response(self.fiducial_polarizations, parameters)
-            wf[interferometer.frequency_array > self.maximum_frequency] = 0
+            wf *= interferometer.frequency_array <= self.maximum_frequency
             self.per_detector_fiducial_waveforms[interferometer.name] = wf
 
     def find_maximum_likelihood_parameters(self, parameter_bounds,
@@ -397,18 +398,19 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             parameters=parameters,
         )
         a0, a1, b0, b1 = self.summary_data[interferometer.name]
-        d_inner_h = np.sum(a0 * np.conjugate(r0) + a1 * np.conjugate(r1))
-        h_inner_h = np.sum(b0 * np.abs(r0) ** 2 + 2 * b1 * np.real(r0 * np.conjugate(r1)))
+        d_inner_h = (a0 * r0.conjugate() + a1 * r1.conjugate()).sum()
+        h_inner_h = (b0 * abs(r0) ** 2 + 2 * b1 * (r0 * r1.conjugate()).real).sum()
         optimal_snr_squared = h_inner_h
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
 
         if return_array and self.time_marginalization:
+            xp = array_module(r0)
             full_waveform = self._compute_full_waveform(
                 signal_polarizations=waveform_polarizations,
                 interferometer=interferometer,
                 parameters=parameters,
             )
-            d_inner_h_array = 4 / self.waveform_generator.duration * np.fft.fft(
+            d_inner_h_array = 4 / self.waveform_generator.duration * xp.fft.fft(
                 full_waveform[0:-1]
                 * interferometer.frequency_domain_strain.conjugate()[0:-1]
                 / interferometer.power_spectral_density_array[0:-1])
