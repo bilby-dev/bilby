@@ -3,6 +3,7 @@ import math
 import numbers
 
 import numpy as np
+from bilback.utils import array_module
 
 from .base import GravitationalWaveTransient
 from ...core.utils import (
@@ -746,6 +747,9 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             An object containing the SNR quantities.
 
         """
+        if self.time_marginalization:
+            original_time = parameters["geocent_time"]
+            parameters["geocent_time"] = self._beam_pattern_reference_time
 
         modes = {
             mode: value[self.unique_to_original_frequencies]
@@ -755,11 +759,16 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             modes, parameters, frequencies=self.banded_frequency_points
         )
 
-        d_inner_h = np.conj(np.dot(strain, self.linear_coeffs[interferometer.name]))
+        if self.time_marginalization:
+            parameters["geocent_time"] = original_time
+
+        d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conjugate()
+
+        xp = array_module(strain)
 
         if self.linear_interpolation:
-            optimal_snr_squared = np.vdot(
-                np.real(strain * np.conjugate(strain)),
+            optimal_snr_squared = xp.vdot(
+                (strain * strain.conjugate()).real,
                 self.quadratic_coeffs[interferometer.name]
             )
         else:
@@ -769,18 +778,18 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 start_idx, end_idx = self.start_end_idxs[b]
                 Mb = self.Mbs[b]
                 if b == 0:
-                    optimal_snr_squared += (4. / self.interferometers.duration) * np.vdot(
-                        np.real(strain[start_idx:end_idx + 1] * np.conjugate(strain[start_idx:end_idx + 1])),
+                    optimal_snr_squared += (4. / self.interferometers.duration) * xp.vdot(
+                        (strain[start_idx:end_idx + 1] * strain[start_idx:end_idx + 1].conjugate()).real,
                         interferometer.frequency_mask[Ks:Ke + 1] * self.windows[start_idx:end_idx + 1]
                         / interferometer.power_spectral_density_array[Ks:Ke + 1])
                 else:
                     self.wths[interferometer.name][b][Ks:Ke + 1] = (
                         self.square_root_windows[start_idx:end_idx + 1] * strain[start_idx:end_idx + 1]
                     )
-                    self.hbcs[interferometer.name][b][-Mb:] = np.fft.irfft(self.wths[interferometer.name][b])
-                    thbc = np.fft.rfft(self.hbcs[interferometer.name][b])
-                    optimal_snr_squared += (4. / self.Tbhats[b]) * np.vdot(
-                        np.real(thbc * np.conjugate(thbc)), self.Ibcs[interferometer.name][b])
+                    self.hbcs[interferometer.name][b][-Mb:] = xp.fft.irfft(self.wths[interferometer.name][b])
+                    thbc = xp.fft.rfft(self.hbcs[interferometer.name][b])
+                    optimal_snr_squared += (4. / self.Tbhats[b]) * xp.vdot(
+                        thbc * np.conjugate(thbc).real, self.Ibcs[interferometer.name][b])
 
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
