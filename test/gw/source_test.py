@@ -72,6 +72,7 @@ class TestLalBBH(unittest.TestCase):
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters
             )
+            self.assertIn("There are unused waveform kwargs", " ".join(cm.output))
         del self.parameters["unused_waveform_parameter"]
 
     def test_lal_bbh_works_without_waveform_parameters(self):
