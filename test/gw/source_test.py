@@ -65,6 +65,15 @@ class TestLalBBH(unittest.TestCase):
                 self.frequency_array, **raise_error_parameters
             )
 
+    def test_unused_waveform_kwargs_message(self):
+        self.parameters.update(self.waveform_kwargs)
+        self.parameters["unused_waveform_parameter"] = 1.0
+        with self.assertLogs('bilby', level="WARNING") as cm:
+            bilby.gw.source.lal_binary_black_hole(
+                self.frequency_array, **self.parameters
+            )
+        del self.parameters["unused_waveform_parameter"]
+
     def test_lal_bbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
             bilby.gw.source.lal_binary_black_hole(
