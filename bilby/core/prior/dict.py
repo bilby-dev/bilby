@@ -5,6 +5,7 @@ from importlib import import_module
 from io import open as ioopen
 
 import numpy as np
+from scipy.integrate import qmc_quad
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -464,6 +465,44 @@ class PriorDict(dict):
                 key: np.reshape(all_samples[key][:needed], size) for key in keys
             }
             return all_samples
+
+    def normalize_constraint_factor_qmc_quad(self, keys, nrepeats=10, sampling_chunk=50000,
+                                             rel_error_target=0.01, max_trials=False):
+
+        def integrand(theta):
+            samples = np.array(self.rescale(keys=keys, theta=theta)).reshape((len(keys), -1))
+            samples = {key: samps for key, samps in zip(keys, samples)}
+            probs = self.evaluate_constraints(samples)
+            return probs
+
+        trials = 0
+        estimates = []
+        weights = []
+        while True:
+            res = qmc_quad(func=integrand, a=np.zeros(len(keys)), b=np.ones(len(keys)),
+                           n_estimates=nrepeats, n_points=sampling_chunk)
+            trials += sampling_chunk * nrepeats
+
+            # compute a weighted mean of the integral measurements and the resulting standard deviation
+            estimates.append(res.integral)
+            weights.append(1 / res.standard_error)
+
+            cumulative_weighted_error = 1 / np.sum(weights)
+            cumulative_weighted_integral = cumulative_weighted_error * np.sum(np.array(estimates) * np.array(weights))
+
+            # compute the rounded factor and relative error (as given by the standard deviation)
+            factor = 1 / cumulative_weighted_integral
+            rel_error = factor * cumulative_weighted_error
+
+            if rel_error > rel_error_target:
+                if max_trials and (trials + sampling_chunk * nrepeats > max_trials):
+                    break
+            else:
+                break
+
+        decimals = int(-np.floor(np.log10(3 * rel_error)))
+        factor_rounded = np.round(factor, decimals)
+        return factor_rounded
 
     def normalize_constraint_factor(
         self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
