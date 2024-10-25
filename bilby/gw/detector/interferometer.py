@@ -6,6 +6,7 @@ from bilback.geometry import (
     three_by_three_matrix_contraction,
     time_delay_from_geocenter,
 )
+from bilback.utils import array_module
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
@@ -308,7 +309,8 @@ class Interferometer(object):
             frequencies = self.frequency_array
             mask = self.frequency_mask
         else:
-            mask = np.ones(len(frequencies), dtype=bool)
+            xp = array_module(frequencies)
+            mask = xp.ones(len(frequencies), dtype=bool)
 
         signal = {}
         for mode in waveform_polarizations.keys():
@@ -329,7 +331,6 @@ class Interferometer(object):
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
-        from bilback.utils import array_module
         xp = array_module(signal_ifo)
 
         signal_ifo = signal_ifo * xp.exp(-1j * 2 * np.pi * dt * frequencies)

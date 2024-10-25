@@ -6,7 +6,6 @@ idea of how much pain is being added.
 
 from functools import partial
 
-import numpy as np
 from bilby.core.likelihood import Likelihood
 
 import jax
@@ -14,6 +13,7 @@ import jax.numpy as jnp
 from plum import dispatch
 from jax.scipy.special import i0e
 from ripple.waveforms import IMRPhenomPv2
+
 
 def bilby_to_ripple_spins(
     theta_jn,
@@ -34,16 +34,41 @@ def bilby_to_ripple_spins(
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
-def ripple_bbh(frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
-        a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, **kwargs):
+wf_func = jax.jit(IMRPhenomPv2.gen_IMRPhenomPv2)
+
+
+def ripple_bbh_relbin(
+    frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
+    a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, fiducial, **kwargs,
+):
+    if fiducial == 1:
+        kwargs["frequencies"] = frequency
+    else:
+        kwargs["frequencies"] = kwargs.pop("frequency_bin_edges")
+    return ripple_bbh(
+        frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
+        a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, **kwargs
+    )
+
+
+def ripple_bbh(
+    frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
+    a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, **kwargs,
+):
     iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_ripple_spins(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2
     )
+    if "frequencies" in kwargs:
+        frequencies = kwargs["frequencies"]
+    elif "minimum_frequency" in kwargs:
+        frequencies = jnp.maximum(frequency, kwargs["minimum_frequency"])
+    else:
+        frequencies = frequency
     theta = jnp.array([
         mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
-        luminosity_distance, 0.0, phase, iota
+        luminosity_distance, jnp.array(0.0), phase, iota
     ])
-    hp, hc = jax.jit(IMRPhenomPv2.gen_IMRPhenomPv2)(frequency, theta, jax.numpy.array(20.0))
+    hp, hc = wf_func(frequencies, theta, jax.numpy.array(20.0))
     return dict(plus=hp, cross=hc)
 
 
@@ -90,22 +115,28 @@ class JittedLikelihood(Likelihood):
     """
 
     def __init__(
-        self, likelihood, likelihood_func=generic_bilby_likelihood_function, kwargs=None
+        self,
+        likelihood,
+        likelihood_func=generic_bilby_likelihood_function,
+        kwargs=None,
+        cast_to_float=True,
     ):
         if kwargs is None:
             kwargs = dict()
         self.kwargs = kwargs
         self._likelihood = likelihood
         self.likelihood_func = jax.jit(partial(likelihood_func, likelihood))
+        self.cast_to_float = cast_to_float
         super().__init__(dict())
 
     def __getattr__(self, name):
         return getattr(self._likelihood, name)
 
     def log_likelihood_ratio(self):
-        return float(
-            np.nan_to_num(self.likelihood_func(self.parameters, **self.kwargs))
-        )
+        ln_l = jnp.nan_to_num(self.likelihood_func(self.parameters, **self.kwargs))
+        if self.cast_to_float:
+            ln_l = float(ln_l)
+        return ln_l
 
 
 @dispatch
