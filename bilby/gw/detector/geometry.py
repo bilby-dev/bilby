@@ -1,5 +1,5 @@
 import numpy as np
-from bilby_cython.geometry import calculate_arm, detector_tensor
+from bilback.geometry import calculate_arm, detector_tensor
 
 from .. import utils as gwutils
 
@@ -264,7 +264,7 @@ class InterferometerGeometry(object):
         if not self._x_updated or not self._y_updated:
             _, _ = self.x, self.y  # noqa
         if not self._detector_tensor_updated:
-            self._detector_tensor = detector_tensor(x=self.x, y=self.y)
+            self._detector_tensor = detector_tensor(self.x, self.y)
             self._detector_tensor_updated = True
         return self._detector_tensor
 
@@ -290,17 +290,17 @@ class InterferometerGeometry(object):
         """
         if arm == 'x':
             return calculate_arm(
-                arm_tilt=self._xarm_tilt,
-                arm_azimuth=self._xarm_azimuth,
-                longitude=self._longitude,
-                latitude=self._latitude
+                self._xarm_tilt,
+                self._xarm_azimuth,
+                self._longitude,
+                self._latitude
             )
         elif arm == 'y':
             return calculate_arm(
-                arm_tilt=self._yarm_tilt,
-                arm_azimuth=self._yarm_azimuth,
-                longitude=self._longitude,
-                latitude=self._latitude
+                self._yarm_tilt,
+                self._yarm_azimuth,
+                self._longitude,
+                self._latitude
             )
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")

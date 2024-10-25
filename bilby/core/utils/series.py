@@ -1,4 +1,5 @@
 import numpy as np
+from bilback.utils import array_module
 
 _TOL = 14
 
@@ -97,9 +98,10 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     float: An equidistant time series given the parameters
 
     """
+    xp = array_module(sampling_frequency)
     _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
     number_of_samples = int(duration * sampling_frequency)
-    return np.linspace(start=starting_time,
+    return xp.linspace(start=starting_time,
                        stop=duration + starting_time - 1 / sampling_frequency,
                        num=number_of_samples)
 
@@ -117,11 +119,12 @@ def create_frequency_series(sampling_frequency, duration):
     array_like: frequency series
 
     """
+    xp = array_module(sampling_frequency)
     _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
-    number_of_samples = int(np.round(duration * sampling_frequency))
-    number_of_frequencies = int(np.round(number_of_samples / 2) + 1)
+    number_of_samples = int(xp.round(duration * sampling_frequency))
+    number_of_frequencies = int(xp.round(number_of_samples / 2) + 1)
 
-    return np.linspace(start=0,
+    return xp.linspace(start=0,
                        stop=sampling_frequency / 2,
                        num=number_of_frequencies)
 
@@ -139,7 +142,7 @@ def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
 
     """
     num = sampling_frequency * duration
-    if np.abs(num - np.round(num)) > 10**(-_TOL):
+    if abs(num % 1) > 10**(-_TOL):
         raise IllegalDurationAndSamplingFrequencyException(
             '\nYour sampling frequency and duration must multiply to a number'
             'up to (tol = {}) decimals close to an integer number. '

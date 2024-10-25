@@ -107,9 +107,13 @@ class GravitationalWaveTransient(Likelihood):
 
     @attr.s(slots=True, weakref_slot=False)
     class _CalculatedSNRs:
-        d_inner_h = attr.ib(default=0j, converter=complex)
-        optimal_snr_squared = attr.ib(default=0, converter=float)
-        complex_matched_filter_snr = attr.ib(default=0j, converter=complex)
+        # the complex converted breaks JAX compilation
+        # d_inner_h = attr.ib(default=0j, converter=complex)
+        # optimal_snr_squared = attr.ib(default=0, converter=float)
+        # complex_matched_filter_snr = attr.ib(default=0j, converter=complex)
+        d_inner_h = attr.ib(default=0j)
+        optimal_snr_squared = attr.ib(default=0)
+        complex_matched_filter_snr = attr.ib(default=0j)
         d_inner_h_array = attr.ib(default=None)
         optimal_snr_squared_array = attr.ib(default=None)
 
@@ -428,7 +432,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] -= self.parameters['time_jitter']
 
-        return float(log_l.real)
+        return log_l.real
 
     def compute_log_likelihood_from_snrs(self, total_snrs):
 
