@@ -86,6 +86,7 @@ def generic_bilby_likelihood_function(likelihood, parameters, use_ratio=True):
         Whether to evaluate the likelihood ratio or the full likelihood.
         Default is :code:`True`.
     """
+    parameters = {k: jnp.array(v) for k, v in parameters.items()}
     likelihood.parameters.update(parameters)
     if use_ratio:
         return likelihood.log_likelihood_ratio()
