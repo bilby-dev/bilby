@@ -5,9 +5,7 @@ from functools import lru_cache
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import i0e
-from bilback.geometry import (
-    zenith_azimuth_to_theta_phi as _zenith_azimuth_to_theta_phi,
-)
+from bilback.geometry import zenith_azimuth_to_theta_phi
 from bilback.time import greenwich_mean_sidereal_time
 from bilback.utils import array_module
 from plum import dispatch
@@ -230,28 +228,6 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     return sum(integral).real
 
 
-def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
-    """
-    Convert from the 'detector frame' to the Earth frame.
-
-    Parameters
-    ==========
-    kappa: float
-        The zenith angle in the detector frame
-    eta: float
-        The azimuthal angle in the detector frame
-    ifos: list
-        List of Interferometer objects defining the detector frame
-
-    Returns
-    =======
-    theta, phi: float
-        The zenith and azimuthal angles in the earth frame.
-    """
-    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
-    return _zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
-
-
 def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
@@ -272,6 +248,8 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
+    # delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    # theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
     theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
     gmst = greenwich_mean_sidereal_time(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
