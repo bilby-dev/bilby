@@ -9,6 +9,7 @@ import multiprocessing
 import pickle
 
 import numpy as np
+from bilback.utils import array_module
 from pandas import DataFrame, Series
 from scipy.stats import norm
 
@@ -204,9 +205,9 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     added_keys: list
         keys which are added to parameters during function call
     """
-
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
+    xp = array_module(parameters[original_keys[0]])
     if 'luminosity_distance' not in original_keys:
         if 'redshift' in converted_parameters.keys():
             converted_parameters['luminosity_distance'] = \
@@ -244,7 +245,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 converted_parameters['a_{}'.format(idx)] = abs(
                     converted_parameters[key])
                 converted_parameters['cos_tilt_{}'.format(idx)] = \
-                    np.sign(converted_parameters[key])
+                    xp.sign(converted_parameters[key])
             else:
                 with np.errstate(invalid="raise"):
                     try:
@@ -267,13 +268,13 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
         cos_angle = str('cos_' + angle)
         if cos_angle in converted_parameters.keys():
             with np.errstate(invalid="ignore"):
-                converted_parameters[angle] = np.arccos(converted_parameters[cos_angle])
+                converted_parameters[angle] = xp.arccos(converted_parameters[cos_angle])
 
     if "delta_phase" in original_keys:
         with np.errstate(invalid="ignore"):
-            converted_parameters["phase"] = np.mod(
+            converted_parameters["phase"] = xp.mod(
                 converted_parameters["delta_phase"]
-                - np.sign(np.cos(converted_parameters["theta_jn"]))
+                - xp.sign(xp.cos(converted_parameters["theta_jn"]))
                 * converted_parameters["psi"],
                 2 * np.pi)
     added_keys = [key for key in converted_parameters.keys()
@@ -378,19 +379,19 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
             g3pca = converted_parameters['eos_spectral_pca_gamma_3']
             m1s = converted_parameters['mass_1_source']
             m2s = converted_parameters['mass_2_source']
-            all_lambda_1 = np.empty(0)
-            all_lambda_2 = np.empty(0)
-            all_eos_check = np.empty(0, dtype=bool)
+            all_lambda_1 = list()
+            all_lambda_2 = list()
+            all_eos_check = list()
             for (g_0pca, g_1pca, g_2pca, g_3pca, m1_s, m2_s) in zip(g0pca, g1pca, g2pca, g3pca, m1s, m2s):
                 g_0, g_1, g_2, g_3 = spectral_pca_to_spectral(g_0pca, g_1pca, g_2pca, g_3pca)
                 lambda_1, lambda_2, eos_check = \
                     spectral_params_to_lambda_1_lambda_2(g_0, g_1, g_2, g_3, m1_s, m2_s)
-                all_lambda_1 = np.append(all_lambda_1, lambda_1)
-                all_lambda_2 = np.append(all_lambda_2, lambda_2)
-                all_eos_check = np.append(all_eos_check, eos_check)
-            converted_parameters['lambda_1'] = all_lambda_1
-            converted_parameters['lambda_2'] = all_lambda_2
-            converted_parameters['eos_check'] = all_eos_check
+                all_lambda_1.append(lambda_1)
+                all_lambda_2.append(lambda_2)
+                all_eos_check.append(eos_check)
+            converted_parameters['lambda_1'] = np.array(all_lambda_1)
+            converted_parameters['lambda_2'] = np.array(all_lambda_2)
+            converted_parameters['eos_check'] = np.array(all_eos_check)
             for key in float_eos_params.keys():
                 converted_parameters[key] = float_eos_params[key]
     elif 'eos_polytrope_gamma_0' and 'eos_polytrope_log10_pressure_1' in converted_parameters.keys():
@@ -630,8 +631,9 @@ def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3)
         array of gamma_0, gamma_1, gamma_2, gamma_3 in model space
 
     '''
-    sampled_pca_gammas = np.array([gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3])
-    transformation_matrix = np.array(
+    xp = array_module(gamma_pca_0)
+    sampled_pca_gammas = xp.array([gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3])
+    transformation_matrix = xp.array(
         [
             [0.43801, -0.76705, 0.45143, 0.12646],
             [-0.53573, 0.17169, 0.67968, 0.47070],
@@ -640,10 +642,10 @@ def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3)
         ]
     )
 
-    model_space_mean = np.array([0.89421, 0.33878, -0.07894, 0.00393])
-    model_space_standard_deviation = np.array([0.35700, 0.25769, 0.05452, 0.00312])
+    model_space_mean = xp.array([0.89421, 0.33878, -0.07894, 0.00393])
+    model_space_standard_deviation = xp.array([0.35700, 0.25769, 0.05452, 0.00312])
     converted_gamma_parameters = \
-        model_space_mean + model_space_standard_deviation * np.dot(transformation_matrix, sampled_pca_gammas)
+        model_space_mean + model_space_standard_deviation * xp.dot(transformation_matrix, sampled_pca_gammas)
 
     return converted_gamma_parameters
 
@@ -958,9 +960,9 @@ def chirp_mass_and_primary_mass_to_mass_ratio(chirp_mass, mass_1):
         Mass ratio (mass_2/mass_1) of the binary
     """
     a = (chirp_mass / mass_1) ** 5
-    t0 = np.cbrt(9 * a + np.sqrt(3) * np.sqrt(27 * a ** 2 - 4 * a ** 3))
-    t1 = np.cbrt(2) * 3 ** (2 / 3)
-    t2 = np.cbrt(2 / 3) * a
+    t0 = (9 * a + 3**0.5 * (27 * a ** 2 - 4 * a ** 3)**0.5)**(1 / 3)
+    t1 = (2)**(1 / 3) * 3 ** (2 / 3)
+    t2 = (2 / 3)**(1 / 3) * a
     return t2 / t0 + t0 / t1
 
 
@@ -1043,8 +1045,8 @@ def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
     symmetric_mass_ratio: float
         Symmetric mass ratio of the binary
     """
-
-    return np.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, 1 / 4)
+    xp = array_module(mass_1)
+    return xp.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, 1 / 4)
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):
@@ -1403,17 +1405,17 @@ def binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(lambda_s
     lambda_antisymmetric: float
         Antisymmetric tidal parameter.
     """
-    lambda_symmetric_m1o5 = np.power(lambda_symmetric, -1. / 5.)
+    lambda_symmetric_m1o5 = lambda_symmetric ** (-1 / 5)
     lambda_symmetric_m2o5 = lambda_symmetric_m1o5 * lambda_symmetric_m1o5
     lambda_symmetric_m3o5 = lambda_symmetric_m2o5 * lambda_symmetric_m1o5
 
     q = mass_ratio
-    q2 = np.square(mass_ratio)
+    q2 = mass_ratio ** 2
 
     # Eqn.2 from CHZ, incorporating the dependence on mass ratio
 
     n_polytropic = 0.743  # average polytropic index for the EoSs included in the fit
-    q_for_Fnofq = np.power(q, 10. / (3. - n_polytropic))
+    q_for_Fnofq = q ** (10. / (3. - n_polytropic))
     Fnofq = (1. - q_for_Fnofq) / (1. + q_for_Fnofq)
 
     # b_ij and c_ij coefficients are given in Table I of CHZ
@@ -1483,10 +1485,10 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(bin
     lambda_antisymmetric_fitOnly = binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(lambda_symmetric,
                                                                                                        mass_ratio)
 
-    lambda_symmetric_sqrt = np.sqrt(lambda_symmetric)
+    lambda_symmetric_sqrt = lambda_symmetric ** 0.5
 
     q = mass_ratio
-    q2 = np.square(mass_ratio)
+    q2 = mass_ratio ** 2
 
     # mu_i and sigma_i coefficients are given in Table II of CHZ
 
@@ -1546,9 +1548,10 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(bin
     # Eqn 5 from CHZ, averaging the corrections from the
     # standard deviations of the residual fits
 
-    lambda_antisymmetric_stdCorr = \
-        np.sqrt(np.square(lambda_antisymmetric_lambda_symmetric_stdCorr) +
-                np.square(lambda_antisymmetric_mass_ratio_stdCorr))
+    lambda_antisymmetric_stdCorr = (
+        lambda_antisymmetric_lambda_symmetric_stdCorr ** 2
+        + lambda_antisymmetric_mass_ratio_stdCorr ** 2
+    ) ** 0.5
 
     # Draw a correction on the fit from a
     # Gaussian distribution with width lambda_antisymmetric_stdCorr
@@ -2065,28 +2068,29 @@ def generate_spin_parameters(sample):
     output_sample = sample.copy()
 
     output_sample = generate_component_spins(output_sample)
+    xp = array_module(sample["spin_1z"])
 
     output_sample['chi_eff'] = (output_sample['spin_1z'] +
                                 output_sample['spin_2z'] *
                                 output_sample['mass_ratio']) /\
                                (1 + output_sample['mass_ratio'])
 
-    output_sample['chi_1_in_plane'] = np.sqrt(
+    output_sample['chi_1_in_plane'] = (
         output_sample['spin_1x'] ** 2 + output_sample['spin_1y'] ** 2
-    )
-    output_sample['chi_2_in_plane'] = np.sqrt(
+    ) ** 0.5
+    output_sample['chi_2_in_plane'] = (
         output_sample['spin_2x'] ** 2 + output_sample['spin_2y'] ** 2
-    )
+    ) ** 0.5
 
-    output_sample['chi_p'] = np.maximum(
+    output_sample['chi_p'] = xp.maximum(
         output_sample['chi_1_in_plane'],
         (4 * output_sample['mass_ratio'] + 3) /
         (3 * output_sample['mass_ratio'] + 4) * output_sample['mass_ratio'] *
         output_sample['chi_2_in_plane'])
 
     try:
-        output_sample['cos_tilt_1'] = np.cos(output_sample['tilt_1'])
-        output_sample['cos_tilt_2'] = np.cos(output_sample['tilt_2'])
+        output_sample['cos_tilt_1'] = xp.cos(output_sample['tilt_1'])
+        output_sample['cos_tilt_2'] = xp.cos(output_sample['tilt_2'])
     except KeyError:
         pass
 
@@ -2115,12 +2119,13 @@ def generate_component_spins(sample):
         ['theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2',
          'mass_1', 'mass_2', 'reference_frequency', 'phase']
     if all(key in output_sample.keys() for key in spin_conversion_parameters):
+        xp = array_module(output_sample["theta_jn"])
         (
             output_sample['iota'], output_sample['spin_1x'],
             output_sample['spin_1y'], output_sample['spin_1z'],
             output_sample['spin_2x'], output_sample['spin_2y'],
             output_sample['spin_2z']
-        ) = np.vectorize(bilby_to_lalsimulation_spins)(
+        ) = xp.vectorize(bilby_to_lalsimulation_spins)(
             output_sample['theta_jn'], output_sample['phi_jl'],
             output_sample['tilt_1'], output_sample['tilt_2'],
             output_sample['phi_12'], output_sample['a_1'], output_sample['a_2'],
@@ -2130,10 +2135,10 @@ def generate_component_spins(sample):
         )
 
         output_sample['phi_1'] =\
-            np.fmod(2 * np.pi + np.arctan2(
+            xp.fmod(2 * np.pi + xp.arctan2(
                 output_sample['spin_1y'], output_sample['spin_1x']), 2 * np.pi)
         output_sample['phi_2'] =\
-            np.fmod(2 * np.pi + np.arctan2(
+            xp.fmod(2 * np.pi + xp.arctan2(
                 output_sample['spin_2y'], output_sample['spin_2x']), 2 * np.pi)
 
     elif 'chi_1' in output_sample and 'chi_2' in output_sample:

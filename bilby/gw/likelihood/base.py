@@ -4,6 +4,7 @@ import copy
 
 import attr
 import numpy as np
+from bilback.utils import array_module
 from scipy.special import logsumexp
 
 from ...core.likelihood import Likelihood
@@ -169,6 +170,7 @@ class GravitationalWaveTransient(Likelihood):
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
+            self.reference_ifo.set_array_backend(array_module(self.interferometers[0].vertex))
             if self.time_marginalization:
                 logger.info("Cannot marginalise over non-geocenter time.")
                 self.time_marginalization = False
