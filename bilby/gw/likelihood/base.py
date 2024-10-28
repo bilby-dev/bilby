@@ -410,6 +410,7 @@ class GravitationalWaveTransient(Likelihood):
         return self._noise_log_likelihood_value
 
     def log_likelihood_ratio(self):
+        self.parameters.update(self.get_sky_frame_parameters())
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
         if waveform_polarizations is None:
@@ -417,8 +418,6 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
-
-        self.parameters.update(self.get_sky_frame_parameters())
 
         total_snrs = self._CalculatedSNRs()
 
@@ -462,13 +461,12 @@ class GravitationalWaveTransient(Likelihood):
         return log_l
 
     def compute_per_detector_log_likelihood(self):
+        self.parameters.update(self.get_sky_frame_parameters())
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
 
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
-
-        self.parameters.update(self.get_sky_frame_parameters())
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(
@@ -1071,8 +1069,10 @@ class GravitationalWaveTransient(Likelihood):
         =======
         dict: dictionary containing ra, dec, and geocent_time
         """
+        from ..conversion import convert_orientation_quaternion, convert_cartesian
         if parameters is None:
             parameters = self.parameters
+        convert_orientation_quaternion(parameters)
         time = parameters.get(f'{self.time_reference}_time', None)
         if time is None and "geocent_time" in parameters:
             logger.warning(
@@ -1080,20 +1080,25 @@ class GravitationalWaveTransient(Likelihood):
                 "Falling back to geocent time"
             )
         if not self.reference_frame == "sky":
-            try:
+            if "sky_x" in parameters:
+                zenith, azimuth = convert_cartesian(parameters, "sky")
+            elif "zenith" in parameters:
+                zenith = parameters["zenith"]
+                azimuth = parameters["azimuth"]
+            elif "ra" in parameters and "dec" in parameters:
+                ra = parameters["ra"]
+                dec = parameters["dec"]
+                logger.warning(
+                    "Cannot convert from zenith/azimuth to ra/dec falling "
+                    "back to provided ra/dec"
+                )
+                zenith = None
+            else:
+                raise KeyError("No sky location parameters recognised")
+            if zenith is not None:
                 ra, dec = zenith_azimuth_to_ra_dec(
-                    parameters['zenith'], parameters['azimuth'],
-                    time, self.reference_frame)
-            except KeyError:
-                if "ra" in parameters and "dec" in parameters:
-                    ra = parameters["ra"]
-                    dec = parameters["dec"]
-                    logger.warning(
-                        "Cannot convert from zenith/azimuth to ra/dec falling "
-                        "back to provided ra/dec"
-                    )
-                else:
-                    raise
+                    zenith, azimuth, time, self.reference_frame
+                )
         else:
             ra = parameters["ra"]
             dec = parameters["dec"]
