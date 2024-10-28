@@ -18,11 +18,14 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import bilby
 import bilby.gw.jaxstuff
 import jax
+import jax.numpy as jnp
+from jax import random
 from numpyro.infer import AIES, ESS  # noqa
+from numpyro.infer.ensemble_util import get_nondiagonal_indices
 
 jax.config.update("jax_enable_x64", True)
 
-bilby.core.utils.setup_logger(log_level="WARNING")
+bilby.core.utils.setup_logger()  # log_level="WARNING")
 
 
 def main(use_jax, model):
@@ -146,7 +149,28 @@ def main(use_jax, model):
     ]:
         priors[key] = injection_parameters[key]
     del priors["mass_1"], priors["mass_2"]
-    priors["L1_time"] = bilby.core.prior.Uniform(1126259642.313, 1126259642.513)
+    priors["L1_time"] = bilby.core.prior.Uniform(1126259642.41, 1126259642.45)
+    del priors["ra"], priors["dec"]
+    # priors["zenith"] = bilby.core.prior.Cosine()
+    # priors["azimuth"] = bilby.core.prior.Uniform(minimum=0, maximum=2 * np.pi)
+    priors["sky_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["sky_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["sky_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["delta_phase"] = priors.pop("phase")
+    priors["chirp_mass"].minimum = 20
+    priors["chirp_mass"].maximum = 35
+    del priors["tilt_1"], priors["tilt_2"], priors["phi_12"], priors["phi_jl"]
+    priors["spin_1_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["spin_1_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["spin_1_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["spin_2_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["spin_2_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["spin_2_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    del priors["theta_jn"], priors["psi"], priors["delta_phase"]
+    priors["orientation_w"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["orientation_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["orientation_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
+    priors["orientation_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
 
     # Perform a check that the prior does not extend to a parameter space longer than the data
     if not use_jax:
@@ -167,7 +191,7 @@ def main(use_jax, model):
         interferometers=ifos,
         waveform_generator=waveform_generator,
         priors=priors,
-        phase_marginalization=True,
+        # phase_marginalization=True,
         reference_frame=ifos,
         time_reference="L1",
     )
@@ -190,7 +214,6 @@ def main(use_jax, model):
             jit_likelihood = bilby.gw.jaxstuff.JittedLikelihood(
                 likelihood,
                 cast_to_float=False,
-                jit=True,
             )
             jit_likelihood.parameters.update(sample())
             jit_likelihood.log_likelihood_ratio()
@@ -216,29 +239,36 @@ def main(use_jax, model):
         result = bilby.run_sampler(
             likelihood=sample_likelihood,
             priors=priors,
-            # sampler="dynesty",
-            sampler="numpyro",
+            sampler="dynesty",
+            # sampler="numpyro",
             sampler_name="ESS",
-            num_warmup=100,
-            num_samples=100,
-            num_chains=40,
-            thinning=2,
-            # moves={AIES.DEMove(): 0.25, AIES.DEMove(g0=1): 0.5, AIES.StretchMove(): 0.25},
+            # sampler_name="NUTS",
+            num_warmup=500,
+            num_samples=500,
+            num_chains=100,
+            thinning=5,
+            # moves={
+            #     AIES.DEMove(): 0.35,
+            #     ModeHopping(): 0.3,
+            #     AIES.StretchMove(): 0.35,
+            # },
             moves={
                 ESS.DifferentialMove(): 0.25,
                 ESS.KDEMove(): 0.25,
                 ESS.GaussianMove(): 0.5,
             },
             chain_method="vectorized",
-            npoints=100,
-            sample="acceptance-walk",
+            npoints=500,
+            # sample="acceptance-walk",
+            sample="act-walk",
             naccept=10,
             injection_parameters=injection_parameters,
             outdir=outdir,
             label=label,
+            npool=4,
         )
-        print(result)
-        print(f"Sampling time: {result.sampling_time:.1f}s\n")
+        # print(result)
+        # print(f"Sampling time: {result.sampling_time:.1f}s\n")
 
     # Make a corner plot.
     result.plot_corner()
@@ -246,8 +276,45 @@ def main(use_jax, model):
     return result.sampling_time
 
 
+def ModeHopping():
+    """
+    A proposal using differential evolution.
+
+    This `Differential evolution proposal
+    <http://www.stat.columbia.edu/~gelman/stuff_for_blog/cajo.pdf>`_ is
+    implemented following `Nelson et al. (2013)
+    <https://doi.org/10.1088/0067-0049/210/1/11>`_.
+
+    :param sigma: (optional)
+        The standard deviation of the Gaussian used to stretch the proposal vector.
+        Defaults to `1.0.e-5`.
+    :param g0 (optional):
+        The mean stretch factor for the proposal vector. By default,
+        it is `2.38 / sqrt(2*ndim)` as recommended by the two references.
+    """
+
+    def make_de_move(n_chains):
+        PAIRS = get_nondiagonal_indices(n_chains // 2)
+
+        def de_move(rng_key, active, inactive):
+            n_active_chains, _ = inactive.shape
+
+            selected_pairs = random.choice(rng_key, PAIRS, shape=(n_active_chains,))
+
+            # Compute diff vectors
+            diffs = jnp.diff(inactive[selected_pairs], axis=1).squeeze(axis=1)
+
+            proposal = active + diffs
+
+            return proposal, jnp.zeros(n_active_chains)
+
+        return de_move
+
+    return make_de_move
+
+
 if __name__ == "__main__":
     times = dict()
-    for arg in product([True, False], ["relbin", "mb", "regular"][-1:]):
+    for arg in product([True, False][1:], ["relbin", "mb", "regular"][1:2]):
         times[arg] = main(*arg)
     print(times)
