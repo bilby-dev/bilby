@@ -179,6 +179,40 @@ def transform_precessing_spins(*args):
     return lalsim_SimInspiralTransformPrecessingNewInitialConditions(*args)
 
 
+def convert_orientation_quaternion(parameters):
+    xp = array_module(parameters["orientation_w"])
+    norm = (
+        parameters["orientation_w"]**2
+        + parameters["orientation_x"]**2
+        + parameters["orientation_y"]**2
+        + parameters["orientation_z"]**2
+    )**0.5
+    parameters["theta_jn"] = 2 * xp.arccos(
+        parameters["orientation_z"] / norm
+    )
+    parameters["psi"] = xp.arctan2(
+        parameters["orientation_w"],
+        parameters["orientation_y"]
+        + parameters["orientation_x"],
+    ) / 2
+    parameters["delta_phase"] = xp.arctan2(
+        parameters["orientation_y"],
+        parameters["orientation_x"],
+    ) / 2
+
+
+def convert_cartesian(parameters, label):
+    spin_norm = (
+        parameters[f"{label}_x"]**2
+        + parameters[f"{label}_y"]**2
+        + parameters[f"{label}_z"]**2
+    )**0.5
+    xp = array_module(spin_norm)
+    zenith = xp.arccos(parameters[f"{label}_z"] / spin_norm)
+    azimuth = xp.arctan2(parameters[f"{label}_y"], parameters[f"{label}_x"])
+    return zenith, azimuth
+
+
 def convert_to_lal_binary_black_hole_parameters(parameters):
     """
     Convert parameters we have into parameters we need.
@@ -230,6 +264,14 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     converted_parameters = generate_component_masses(converted_parameters, require_add=False)
 
     for idx in ['1', '2']:
+        if f"spin_{idx}_x" in original_keys:
+            converted_parameters["tilt_1"], converted_parameters["phi_jl"] = (
+                convert_cartesian(converted_parameters, "spin_1")
+            )
+            converted_parameters["tilt_2"], converted_parameters["phi_12"] = (
+                convert_cartesian(converted_parameters, "spin_2")
+            )
+            converted_parameters["phi_12"] -= converted_parameters["phi_jl"]
         key = 'chi_{}'.format(idx)
         if key in original_keys:
             if "chi_{}_in_plane".format(idx) in original_keys:
@@ -260,6 +302,9 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                         )
                         converted_parameters[f"cos_tilt_{idx}"] = 1.0
 
+    if "orientation_w" in original_keys:
+        convert_orientation_quaternion(converted_parameters)
+
     for key in ["phi_jl", "phi_12"]:
         if key not in converted_parameters:
             converted_parameters[key] = 0.0
@@ -270,7 +315,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
             with np.errstate(invalid="ignore"):
                 converted_parameters[angle] = xp.arccos(converted_parameters[cos_angle])
 
-    if "delta_phase" in original_keys:
+    if "delta_phase" in converted_parameters:
         with np.errstate(invalid="ignore"):
             converted_parameters["phase"] = xp.mod(
                 converted_parameters["delta_phase"]
