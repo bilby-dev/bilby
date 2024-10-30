@@ -466,77 +466,122 @@ class PriorDict(dict):
             }
             return all_samples
 
-    def normalize_constraint_factor_qmc_quad(self, keys, nrepeats=10, sampling_chunk=50000,
-                                             rel_error_target=0.01, max_trials=False):
+    def _integrate_normalization_factor_from_samples(self, keys, sampling_chunk):
+        samples = self.sample_subset(keys=keys, size=sampling_chunk)
+        count = np.count_nonzero(np.array(self.evaluate_constraints(samples), dtype=bool))
+        factor = count / sampling_chunk
+        return factor
+
+    def _integrate_normalization_factor_from_qmc_quad(self, keys, sampling_chunk):
 
         def integrand(theta):
-            samples = np.array(self.rescale(keys=keys, theta=theta)).reshape((len(keys), -1))
-            samples = {key: samps for key, samps in zip(keys, samples)}
+            samples = {key: self[key].rescale(units) for key, units in zip(keys, theta)}
             probs = self.evaluate_constraints(samples)
             return probs
 
+        res = qmc_quad(func=integrand, a=np.zeros(len(keys)), b=np.ones(len(keys)),
+                       n_estimates=1, n_points=sampling_chunk)
+
+        return res.integral
+
+    def normalize_constraint_factor(self, keys, nrepeats=10, sampling_chunk=10000,
+                                    rel_error_target=0.01, max_trials=False, method="qmc_quad", **kwargs):
+        """Estimates the probality normalization factor for constrained priors from (quasi) Monte Carlo integration.
+
+        Parameters
+        ==========
+        keys : list, tuple
+            The set of keys in the prior dict to perform the integration for. Must contain all keys that the constraint
+            depends on. For joint priors, the full distribution is sampled. Joint prior keys not present in 'keys' are
+            marginalized.
+        nrepeats: int
+            Number of repeated Monte Carlo integrations before convergence is checked. Higher numbers improve the
+            estimation of the sampling error.
+        sampling_chunk: int
+            Number of samples drawn per Monte Carlo integration. Higher numbers improve the integral estimation.
+        rel_error_target: float
+            The relative error targeted by the Monte Carlo integration. The relative error of the integral is estimated
+            from the standard deviation between repeated runs. The algorithm repeats 'nrepeats' iterations until the
+            rel_error_target is reached.
+        max_trials: False, int
+            Second termination criterion. The integration stops when the number of samples evaluated in the next
+            iteration would exceed 'max_trials' even if rel_error_target was not reached.
+        method: ["qmc_quad", "from_samples"]
+            Method to use for the Monte Carlo integration, effectively choosing between quasi Monte Carlo integration
+            and "normal" Monte Carlo integration. Due to computational overhead, the latter method will be faster in
+            most cases. However, 'qmc_quad' is expected to yield lower errors against the ground truth for cases with
+            few repeats, but high sampling_chunk.
+
+        Returns
+        =======
+        factor_rounded : float
+            The normalization factor, rounded to the number of significant digits based on the standard deviation of
+            the integration estimate.
+
+        """
+        keys = tuple(keys)
+        if keys in self._cached_normalizations.keys():
+            return self._cached_normalizations[keys]
+
+        sample_keys = [key for key in keys]
+
+        # check if the constraint can be applied to the selection of keys
+        try:
+            sample = self.sample_subset(keys, size=1)
+            self.conversion_function(sample)
+        except KeyError:
+            raise ValueError("'keys' does not contain all parameters needed to evaluate the constraint.")
+
+        for key in sample_keys:
+            if isinstance(self[key], JointPrior):
+                dist_keys = set(self[key].dist.names)
+                missing_keys = list(dist_keys - set(keys))
+                sample_keys.extend(missing_keys)
+
+        if method == "qmc_quad":
+            integrator = self._integrate_normalization_factor_from_qmc_quad
+        elif method == "from_samples":
+            integrator = self._integrate_normalization_factor_from_samples
+        else:
+            raise ValueError(f"Integration method {method} not understood")
+        try:
+            theta = np.random.uniform(0, 1, size=(len(keys), 1))
+            samples = {key: self[key].rescale(units) for key, units in zip(keys, theta)}
+            for key in keys:
+                if np.any(np.isnan(samples[key])):
+                    print("The rescale method appears to be not working. Switching to 'sample_based'.")
+                    integrator = self._integrate_normalization_factor_from_samples
+        except Exception:
+            print("The rescale method appears to be not working. Switching to 'sample_based'.")
+            integrator = self._integrate_normalization_factor_from_samples
+
         trials = 0
         estimates = []
-        weights = []
         while True:
-            res = qmc_quad(func=integrand, a=np.zeros(len(keys)), b=np.ones(len(keys)),
-                           n_estimates=nrepeats, n_points=sampling_chunk)
-            trials += sampling_chunk * nrepeats
+            for i in range(nrepeats):
+                integral = integrator(sample_keys, sampling_chunk, **kwargs)
+                trials += sampling_chunk
 
-            # compute a weighted mean of the integral measurements and the resulting standard deviation
-            estimates.append(res.integral)
-            weights.append(1 / res.standard_error)
+                # compute a weighted mean of the integral measurements and the resulting standard deviation
+                estimates.append(integral)
 
-            cumulative_weighted_error = 1 / np.sum(weights)
-            cumulative_weighted_integral = cumulative_weighted_error * np.sum(np.array(estimates) * np.array(weights))
+            standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
+            cumulative_integral = np.sum(estimates) / len(estimates)
 
             # compute the rounded factor and relative error (as given by the standard deviation)
-            factor = 1 / cumulative_weighted_integral
-            rel_error = factor * cumulative_weighted_error
+            factor = 1 / cumulative_integral
+            rel_error = factor * standard_error
 
-            if rel_error > rel_error_target:
-                if max_trials and (trials + sampling_chunk * nrepeats > max_trials):
-                    break
-            else:
+            if rel_error < rel_error_target:
+                break
+            elif max_trials and ((trials + sampling_chunk * nrepeats) > max_trials):
                 break
 
         decimals = int(-np.floor(np.log10(3 * rel_error)))
         factor_rounded = np.round(factor, decimals)
+
+        self._cached_normalizations[keys] = factor_rounded
         return factor_rounded
-
-    def normalize_constraint_factor(
-        self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
-    ):
-        if keys in self._cached_normalizations.keys():
-            return self._cached_normalizations[keys]
-        else:
-            factor_estimates = [
-                self._estimate_normalization(keys, min_accept, sampling_chunk)
-                for _ in range(nrepeats)
-            ]
-            factor = np.mean(factor_estimates)
-            if np.std(factor_estimates) > 0:
-                decimals = int(-np.floor(np.log10(3 * np.std(factor_estimates))))
-                factor_rounded = np.round(factor, decimals)
-            else:
-                factor_rounded = factor
-            self._cached_normalizations[keys] = factor_rounded
-            return factor_rounded
-
-    def _estimate_normalization(self, keys, min_accept, sampling_chunk):
-        samples = self.sample_subset(keys=keys, size=sampling_chunk)
-        keep = np.atleast_1d(self.evaluate_constraints(samples))
-        if len(keep) == 1:
-            self._cached_normalizations[keys] = 1
-            return 1
-        all_samples = {key: np.array([]) for key in keys}
-        while np.count_nonzero(keep) < min_accept:
-            samples = self.sample_subset(keys=keys, size=sampling_chunk)
-            for key in samples:
-                all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
-            keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
-        factor = len(keep) / np.count_nonzero(keep)
-        return factor
 
     def prob(self, sample, **kwargs):
         """
@@ -558,6 +603,9 @@ class PriorDict(dict):
         return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
+        if self.conversion_function == self.default_conversion_function:
+            return prob
+
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(prob == 0.0):
             return prob * ratio
@@ -597,10 +645,10 @@ class PriorDict(dict):
                                   normalized=normalized)
 
     def check_ln_prob(self, sample, ln_prob, normalized=True):
-        if normalized:
+        if normalized and (self.conversion_function != self.default_conversion_function):
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
-            ratio = 1
+            return ln_prob
         if np.all(np.isinf(ln_prob)):
             return ln_prob
         else:
