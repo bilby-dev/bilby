@@ -69,7 +69,7 @@ def get_version_information():
 def loaded_modules_dict():
     module_names = list(sys.modules.keys())
     vdict = {}
-    for key in sys.modules:
+    for key in module_names:
         if "." not in key:
             try:
                 vdict[key] = metadata.version(key)
