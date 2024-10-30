@@ -294,6 +294,31 @@ class TestPriorDict(unittest.TestCase):
         self.assertTrue(isinstance(out, np.ndarray))
         self.assertTrue(out.shape == (len(keys), size))
 
+    def test_constrained_normalization(self):
+        prior_x = bilby.prior.Uniform(-1, 1, name="x")
+        prior_y = bilby.prior.Uniform(-1, 1, name="y")
+
+        r = 1
+
+        def radius_squared(sample_dict):
+            sample_dict["constraint"] = sample_dict["x"] ** 2 + sample_dict["y"] ** 2
+            return sample_dict
+
+        prior_constraint = bilby.prior.Constraint(minimum=0, maximum=r**2, name="constraint")
+
+        prior_dict = bilby.prior.PriorDict(
+            {
+                "x": prior_x,
+                "y": prior_y,
+                "constraint": prior_constraint,
+            },
+            conversion_function=radius_squared,
+        )
+
+        factor = prior_dict.normalize_constraint_factor(keys=("x", "y"))
+        truth = 4 / (np.pi * r**2)
+        self.assertAlmostEqual(truth, factor, places=2)
+
     def test_sample(self):
         size = 7
         bilby.core.utils.random.seed(42)
