@@ -10,6 +10,7 @@ import torch
 
 from .base import Likelihood
 from ..utils import logger, check_directory_exists_and_if_not_mkdir
+from ..prior.base import Constraint
 
 
 class GenerateData(object):
@@ -21,24 +22,23 @@ class GenerateData(object):
 
     Parameters
     ==========
-    model: function or callable
-        A function that takes as input a set of arguments and return a
-        realisation of the data given those parameters.
-    fixed_arguments: dict
-        A dictionary containing keys (pertaining to the model arguments) and
-        values that are to be fixed.
+    parameters: dictionary
+        A dictionary of parameters for initialisation.
+    call_parameter_key_list: list
+        A list of keys corresponding to the ordering of the parameters to be
+        passed to the call method of this class.
     """
 
     def __init__(self, parameters, call_parameter_key_list):
         self.parameters = parameters
         self.call_parameter_key_list = call_parameter_key_list
 
-    def get_data(parameters: dict):
-        NotImplementedError("Method get_data() should be implemented by subclass")
-
     def fix_parameter(self, key, val):
         self.parameters[key] = val
         self.call_parameter_key_list.pop(self.call_parameter_key_list.index(key))
+
+    def get_data(parameters: dict):
+        NotImplementedError("Method get_data() should be implemented by subclass")
 
     def __call__(self, new_parameter_list):
         if len(new_parameter_list) != len(self.call_parameter_key_list):
@@ -52,14 +52,17 @@ class GenerateData(object):
 
 class GenerateWhiteGaussianNoise(GenerateData):
     """
-    TBD
+    A class to generate white Gaussian Noise
 
     Parameters
     ==========
-    num_data:
+    data_shape: tuple
+        A tuple describing the shape of data to generate
+    sigma: float (None)
+        The sigma value for initialisation
     """
 
-    def __init__(self, data_shape):
+    def __init__(self, data_shape, sigma=None):
         super(GenerateWhiteGaussianNoise, self).__init__(
             parameters=dict(sigma=None),
             call_parameter_key_list=["sigma"],
@@ -73,14 +76,14 @@ class GenerateWhiteGaussianNoise(GenerateData):
 
 class GenerateDeterministicModel(GenerateData):
     """
-    TBD
+    A class to generate data from a deterministic model
 
     Parameters
     ==========
     model: function or callable
         A function that takes as input a set of arguments and return a
         realisation of the data given those parameters.
-    fixed_arguments: dict
+    fixed_arguments_dict: dict
         A dictionary containing keys (pertaining to the model arguments) and
         values that are to be fixed.
     """
@@ -106,18 +109,13 @@ class GenerateDeterministicModel(GenerateData):
 
 
 class AdditiveSignalAndNoise(GenerateData):
-    def __init__(self, signal, noise, bilby_prior, fixed_arguments_dict=None):
+    def __init__(self, signal, noise, bilby_prior):
 
         self.signal = signal
         self.noise = noise
 
-        # Update the signal and noise with the fixed parameters from the prior
-        for key, val in bilby_prior.items():
-            for model in [self.signal, self.noise]:
-                if val.is_fixed and key in model.call_parameter_key_list:
-                    model.fixed_arguments_dict[key] = val.peak
-                    model.fix_parameter(key, val.peak)                
-        
+        bilby_prior.convert_floats_to_delta_functions()
+
         # Extract the parameters and keys
         call_parameter_key_list = (
             self.signal.call_parameter_key_list + self.noise.call_parameter_key_list
@@ -128,12 +126,12 @@ class AdditiveSignalAndNoise(GenerateData):
             for key, val in joint_parameters.items()
             if key in call_parameter_key_list
         }
-        
+
         super(AdditiveSignalAndNoise, self).__init__(
             parameters=parameters,
             call_parameter_key_list=call_parameter_key_list,
         )
-        
+
     def get_data(self, parameters: dict):
         sparameters = {
             key: val
@@ -165,7 +163,6 @@ class AdditiveWhiteGaussianNoise(AdditiveSignalAndNoise):
             signal=signal,
             noise=noise,
             bilby_prior=bilby_prior,
-            fixed_arguments_dict=fixed_arguments_dict,
         )
 
 
