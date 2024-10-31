@@ -1,0 +1,13 @@
+{
+  "name": "Bilby GW Development",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "python.pythonPath": "/opt/conda/bin/python",
+    "python.linting.enabled": true,
+    "python.formatting.provider": "black"
+  },
+  "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
+  "postCreateCommand": "/bin/bash"
+}
