@@ -1,4 +1,6 @@
 import unittest
+import logging
+import pytest
 
 import bilby
 import lal
@@ -32,6 +34,10 @@ class TestLalBBH(unittest.TestCase):
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
         self.bad_parameters = copy(self.parameters)
         self.bad_parameters["mass_1"] = -30.0
+
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
 
     def tearDown(self):
         del self.parameters
@@ -68,11 +74,14 @@ class TestLalBBH(unittest.TestCase):
     def test_unused_waveform_kwargs_message(self):
         self.parameters.update(self.waveform_kwargs)
         self.parameters["unused_waveform_parameter"] = 1.0
-        with self.assertLogs('bilby', level="WARNING") as cm:
+        bilby.gw.source.logger.propagate = True
+
+        with self._caplog.at_level(logging.WARNING, logger="bilby") as cm:
             bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters
-            )
-            self.assertIn("There are unused waveform kwargs", " ".join(cm.output))
+                    self.frequency_array, **self.parameters
+                )            
+            assert "There are unused waveform kwargs" in self._caplog.text
+
         del self.parameters["unused_waveform_parameter"]
 
     def test_lal_bbh_works_without_waveform_parameters(self):
