@@ -109,12 +109,10 @@ class GenerateDeterministicModel(GenerateData):
 
 
 class AdditiveSignalAndNoise(GenerateData):
-    def __init__(self, signal, noise, bilby_prior):
+    def __init__(self, signal, noise):
 
         self.signal = signal
         self.noise = noise
-
-        bilby_prior.convert_floats_to_delta_functions()
 
         # Extract the parameters and keys
         call_parameter_key_list = (
