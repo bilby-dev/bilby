@@ -274,5 +274,11 @@ class TestSkyFrameConversion(unittest.TestCase):
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
 
 
+def test_ln_i0_mathces_scipy():
+    from scipy.special import i0
+    values = np.linspace(-10, 10, 101)
+    assert max(abs(gwutils.ln_i0(values) - np.log(i0(values)))) < 1e-10
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -16,6 +16,7 @@ Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
 Charlie Hoy
+Chentao Yang
 Christopher Philip Luke Berry
 Christos Karathanasis
 Colm Talbot
@@ -102,3 +103,4 @@ Martin White
 Peter Tsun-Ho Pang
 Alexandre Sebastien Goettel
 Ann-Kristin Malz
+Sean Hibbitt

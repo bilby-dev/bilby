@@ -1023,6 +1023,7 @@ class Result(object):
         import matplotlib.pyplot as plt
         logger.info('Plotting {} marginal distribution'.format(key))
         label = self.get_latex_labels_from_parameter_keys([key])[0]
+        label = sanity_check_labels([label])[0]
         fig, ax = plt.subplots()
         try:
             ax.hist(self.posterior[key].values, bins=bins, density=True,
@@ -1707,13 +1708,17 @@ class Result(object):
             =======
             azdata: InferenceData
                 The ArviZ InferenceData object.
+
+            Raises
+            ======
+            RuntimeError: If ArviZ is not installed.
         """
 
         try:
             import arviz as az
         except ImportError:
-            logger.debug(
-                "ArviZ is not installed, so cannot convert to InferenceData"
+            raise ResultError(
+                "ArviZ is not installed, so cannot convert to InferenceData."
             )
 
         posdict = {}
@@ -2231,7 +2236,8 @@ def sanity_check_labels(labels):
     """ Check labels for plotting to remove matplotlib errors """
     for ii, lab in enumerate(labels):
         if "_" in lab and "$" not in lab:
-            labels[ii] = lab.replace("_", "-")
+            lab = lab.replace("_", "-")
+        labels[ii] = lab.replace("\\\\", "\\")
     return labels
 
 

@@ -1119,7 +1119,7 @@ class CalibrationPriorDict(PriorDict):
     @staticmethod
     def from_envelope_file(envelope_file, minimum_frequency,
                            maximum_frequency, n_nodes, label,
-                           boundary="reflective"):
+                           boundary="reflective", correction_type=None):
         """
         Load in the calibration envelope.
 
@@ -1129,6 +1129,14 @@ class CalibrationPriorDict(PriorDict):
 
             frequency median-amplitude median-phase -1-sigma-amplitude
             -1-sigma-phase +1-sigma-amplitude +1-sigma-phase
+
+        There are two definitions of the calibration correction in the
+        literature, one defines the correction as mapping calibrated strain
+        to theoretical waveform templates (:code:`data`) and the other as
+        mapping theoretical waveform templates to calibrated strain
+        (:code:`template`). Prior to version 1.4.0, :code:`template` was assumed,
+        the default changed to :code:`data` when the :code:`correction` argument
+        was added.
 
         Parameters
         ==========
@@ -1144,6 +1152,14 @@ class CalibrationPriorDict(PriorDict):
             Label for the names of the parameters, e.g., `recalib_H1_`
         boundary: None, 'reflective', 'periodic'
             The type of prior boundary to assign
+        correction_type: str
+            How the correction is defined, either to the :code:`data`
+            (default) or the :code:`template`. In general, data products
+            produced by the LVK calibration groups assume :code:`data`.
+            The default value will be removed in a future release and
+            this will need to be explicitly specified.
+
+            .. versionadded:: 1.4.0
 
         Returns
         =======
@@ -1151,12 +1167,22 @@ class CalibrationPriorDict(PriorDict):
             Priors for the relevant parameters.
             This includes the frequencies of the nodes which are _not_ sampled.
         """
+        from .detector.calibration import _check_calibration_correction_type
+        correction_type = _check_calibration_correction_type(correction_type=correction_type)
+
         calibration_data = np.genfromtxt(envelope_file).T
         log_frequency_array = np.log(calibration_data[0])
-        amplitude_median = calibration_data[1] - 1
-        phase_median = calibration_data[2]
-        amplitude_sigma = (calibration_data[5] - calibration_data[3]) / 2
-        phase_sigma = (calibration_data[6] - calibration_data[4]) / 2
+
+        if correction_type.lower() == "data":
+            amplitude_median = 1 / calibration_data[1] - 1
+            phase_median = -calibration_data[2]
+            amplitude_sigma = abs(1 / calibration_data[3] - 1 / calibration_data[5]) / 2
+            phase_sigma = abs(calibration_data[6] - calibration_data[4]) / 2
+        else:
+            amplitude_median = calibration_data[1] - 1
+            phase_median = calibration_data[2]
+            amplitude_sigma = abs(calibration_data[5] - calibration_data[3]) / 2
+            phase_sigma = abs(calibration_data[6] - calibration_data[4]) / 2
 
         log_nodes = np.linspace(np.log(minimum_frequency),
                                 np.log(maximum_frequency), n_nodes)

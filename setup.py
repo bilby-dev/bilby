@@ -5,8 +5,8 @@ import sys
 import os
 
 python_version = sys.version_info
-if python_version < (3, 9):
-    sys.exit("Python < 3.9 is not supported, aborting setup")
+if python_version < (3, 10):
+    sys.exit("Python < 3.10 is not supported, aborting setup")
 
 
 def get_long_description():
@@ -41,7 +41,7 @@ setup(
     description="A user-friendly Bayesian inference library",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://git.ligo.org/lscsoft/bilby",
+    url="https://github.com/bilby-dev/bilby",
     author="Greg Ashton, Moritz Huebner, Paul Lasky, Colm Talbot",
     author_email="paul.lasky@monash.edu",
     license="MIT",
@@ -66,7 +66,7 @@ setup(
         "bilby.gw.detector": ["noise_curves/*.txt", "detectors/*"],
         "bilby.gw.eos": ["eos_tables/*.dat"],
     },
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=get_requirements(),
     extras_require={
         "gw": get_requirements("gw"),
@@ -104,7 +104,6 @@ setup(
         ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",

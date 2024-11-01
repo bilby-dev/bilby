@@ -597,6 +597,26 @@ class Interferometer(object):
             power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
             duration=self.strain_data.duration)
 
+    def template_template_inner_product(self, signal_1, signal_2):
+        """A noise weighted inner product between two templates, using this ifo's PSD.
+
+        Parameters
+        ==========
+        signal_1 : array_like
+            An array containing the first signal
+        signal_2 : array_like
+            an array containing the second signal
+
+        Returns
+        =======
+        float: The noise weighted inner product of the two templates
+        """
+        return gwutils.noise_weighted_inner_product(
+            aa=signal_1[self.strain_data.frequency_mask],
+            bb=signal_2[self.strain_data.frequency_mask],
+            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
+            duration=self.strain_data.duration)
+
     def matched_filter_snr(self, signal):
         """
 
@@ -625,7 +645,7 @@ class Interferometer(object):
         Such that
 
         .. math::
-            Var(n) = \\frac{1}{N} \\sum_k=0^N n_W(f_k)n_W^*(f_k) = 2
+            Var(n) = \\frac{1}{N} \\sum_{k=0}^N n_W(f_k)n_W^*(f_k) = 2
 
         Where the factor of two is due to the independent real and imaginary
         components.
@@ -658,12 +678,12 @@ class Interferometer(object):
 
         .. math::
 
-            W = \\frac{1}{N} \\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
+            W = \\frac{1}{N} \\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})
 
         and accordingly the termwise window factor is
 
         .. math::
-            w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}}
+            w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
 
         """
         frequency_window_factor = (
