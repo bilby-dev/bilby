@@ -748,7 +748,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         _time = self.parameters["geocent_time"]
         if self.time_marginalization:
             self.parameters["geocent_time"] = self._beam_pattern_reference_time
- 
+
         modes = {
             mode: value[self.unique_to_original_frequencies]
             for mode, value in waveform_polarizations.items()
