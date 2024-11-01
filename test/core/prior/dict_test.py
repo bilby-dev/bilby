@@ -319,6 +319,23 @@ class TestPriorDict(unittest.TestCase):
         truth = 4 / (np.pi * r**2)
         self.assertAlmostEqual(truth, factor, places=2)
 
+        r = 2
+
+        prior_constraint_2 = bilby.prior.Constraint(minimum=0, maximum=r**2, name="constraint")
+
+        prior_dict_2 = bilby.prior.PriorDict(
+            {
+                "x": prior_x,
+                "y": prior_y,
+                "constraint": prior_constraint_2,
+            },
+            conversion_function=radius_squared,
+        )
+
+        factor_2 = prior_dict_2.normalize_constraint_factor(keys=("x", "y"))
+        truth_2 = 1
+        self.assertAlmostEqual(truth_2, factor_2, places=2)
+
     def test_sample(self):
         size = 7
         bilby.core.utils.random.seed(42)

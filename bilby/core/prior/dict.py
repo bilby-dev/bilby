@@ -5,7 +5,7 @@ from importlib import import_module
 from io import open as ioopen
 
 import numpy as np
-from scipy.integrate import qmc_quad
+from scipy.stats.qmc import Halton
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -15,6 +15,7 @@ from ..utils import (
     check_directory_exists_and_if_not_mkdir,
     BilbyJsonEncoder,
     decode_bilby_json,
+    random
 )
 
 
@@ -468,24 +469,19 @@ class PriorDict(dict):
 
     def _integrate_normalization_factor_from_samples(self, keys, sampling_chunk):
         samples = self.sample_subset(keys=keys, size=sampling_chunk)
-        count = np.count_nonzero(np.array(self.evaluate_constraints(samples), dtype=bool))
-        factor = count / sampling_chunk
+        factor = np.mean(self.evaluate_constraints(samples))
         return factor
 
     def _integrate_normalization_factor_from_qmc_quad(self, keys, sampling_chunk):
+        qrng = Halton(len(keys), seed=random.rng)
+        theta = qrng.random(sampling_chunk).T
+        samples = np.array(self.rescale(keys=keys, theta=theta)).reshape((len(keys), -1))
+        samples = {key: samps for key, samps in zip(keys, samples)}
+        factor = np.mean(self.evaluate_constraints(samples))
+        return factor
 
-        def integrand(theta):
-            samples = {key: self[key].rescale(units) for key, units in zip(keys, theta)}
-            probs = self.evaluate_constraints(samples)
-            return probs
-
-        res = qmc_quad(func=integrand, a=np.zeros(len(keys)), b=np.ones(len(keys)),
-                       n_estimates=1, n_points=sampling_chunk)
-
-        return res.integral
-
-    def normalize_constraint_factor(self, keys, nrepeats=10, sampling_chunk=10000,
-                                    rel_error_target=0.01, max_trials=False, method="qmc_quad", **kwargs):
+    def normalize_constraint_factor(self, keys, nrepeats=10, sampling_chunk=10000, rel_error_target=0.01,
+                                    max_trials=False, method="qmc_quad", **kwargs):
         """Estimates the probality normalization factor for constrained priors from (quasi) Monte Carlo integration.
 
         Parameters
@@ -523,7 +519,7 @@ class PriorDict(dict):
         if keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
 
-        sample_keys = [key for key in keys]
+        sample_keys = tuple(keys)
 
         # check if the constraint can be applied to the selection of keys
         try:
@@ -538,22 +534,23 @@ class PriorDict(dict):
                 missing_keys = list(dist_keys - set(keys))
                 sample_keys.extend(missing_keys)
 
-        if method == "qmc_quad":
+        if method == "from_samples":
+            integrator = self._integrate_normalization_factor_from_samples
+        elif method == "qmc_quad":
             integrator = self._integrate_normalization_factor_from_qmc_quad
-        elif method == "from_samples":
-            integrator = self._integrate_normalization_factor_from_samples
-        else:
-            raise ValueError(f"Integration method {method} not understood")
-        try:
             theta = np.random.uniform(0, 1, size=(len(keys), 1))
-            samples = {key: self[key].rescale(units) for key, units in zip(keys, theta)}
-            for key in keys:
-                if np.any(np.isnan(samples[key])):
-                    print("The rescale method appears to be not working. Switching to 'sample_based'.")
-                    integrator = self._integrate_normalization_factor_from_samples
-        except Exception:
-            print("The rescale method appears to be not working. Switching to 'sample_based'.")
-            integrator = self._integrate_normalization_factor_from_samples
+            samples = self.rescale(keys, theta)
+            none_keys = []
+            for i, key in enumerate(keys):
+                if samples[i] is None:
+                    none_keys.append(key)
+            if len(none_keys) > 0:
+                print(f"The rescale method returns 'None', for key(s) {none_keys}. Switching to 'sample_based'.")
+                integrator = self._integrate_normalization_factor_from_samples
+                method = "from_samples"
+        else:
+            raise ValueError(f"Integration method {method} not understood.\n" +
+                             "Available options are ('from_samples','qmc_quad').")
 
         trials = 0
         estimates = []
@@ -566,7 +563,7 @@ class PriorDict(dict):
                 estimates.append(integral)
 
             standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
-            cumulative_integral = np.sum(estimates) / len(estimates)
+            cumulative_integral = np.mean(estimates)
 
             # compute the rounded factor and relative error (as given by the standard deviation)
             factor = 1 / cumulative_integral
@@ -577,11 +574,14 @@ class PriorDict(dict):
             elif max_trials and ((trials + sampling_chunk * nrepeats) > max_trials):
                 break
 
-        decimals = int(-np.floor(np.log10(3 * rel_error)))
-        factor_rounded = np.round(factor, decimals)
+        if rel_error > 0:
+            decimals = int(-np.floor(np.log10(3 * rel_error)))
+            factor_rounded = np.round(factor, decimals)
+            self._cached_normalizations[keys] = factor_rounded
+        else:
+            self._cached_normalizations[keys] = factor
 
-        self._cached_normalizations[keys] = factor_rounded
-        return factor_rounded
+        return self._cached_normalizations[keys]
 
     def prob(self, sample, **kwargs):
         """
@@ -603,9 +603,6 @@ class PriorDict(dict):
         return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
-        if self.conversion_function == self.default_conversion_function:
-            return prob
-
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(prob == 0.0):
             return prob * ratio
@@ -645,7 +642,7 @@ class PriorDict(dict):
                                   normalized=normalized)
 
     def check_ln_prob(self, sample, ln_prob, normalized=True):
-        if normalized and (self.conversion_function != self.default_conversion_function):
+        if normalized:
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             return ln_prob
