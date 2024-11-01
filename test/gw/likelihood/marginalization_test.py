@@ -165,7 +165,7 @@ class TestMarginalizations(unittest.TestCase):
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
     _parameters = product(
-        ["regular", "roq", "relbin"],
+        ["regular", "roq", "relbin", "multiband"],
         ["luminosity_distance", "geocent_time", "phase"],
         [True, False],
         [True, False],
@@ -268,6 +268,17 @@ class TestMarginalizations(unittest.TestCase):
             )
         )
 
+        self.multiband_waveform_generator = bilby.gw.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                waveform_approximant="IMRPhenomPv2",
+            )
+        )
+
     def tearDown(self):
         del self.duration
         del self.sampling_frequency
@@ -313,6 +324,12 @@ class TestMarginalizations(unittest.TestCase):
         elif kind == "relbin":
             kwargs["fiducial_parameters"] = deepcopy(self.parameters)
             kwargs["waveform_generator"] = self.relbin_waveform_generator
+        elif kind == "multiband":
+            kwargs["waveform_generator"] = self.multiband_waveform_generator
+            kwargs["reference_chirp_mass"] = (
+                (self.parameters["mass_1"] * self.parameters["mass_2"])**0.6 /
+                (self.parameters["mass_1"] + self.parameters["mass_2"])**0.2
+            )
         return kwargs
 
     def get_likelihood(
@@ -334,6 +351,8 @@ class TestMarginalizations(unittest.TestCase):
             cls_ = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient
             kwargs["epsilon"] = 0.1
             self.parameters["fiducial"] = 0
+        elif kind == "multiband":
+            cls_ = bilby.gw.likelihood.MBGravitationalWaveTransient
         else:
             raise ValueError(f"kind {kind} not understood")
         like = cls_(**kwargs)
@@ -414,7 +433,7 @@ class TestMarginalizations(unittest.TestCase):
         )
 
     @parameterized.expand(
-        itertools.product(["regular", "roq", "relbin"], *itertools.repeat([True, False], 3)),
+        itertools.product(["regular", "roq", "relbin", "multiband"], *itertools.repeat([True, False], 3)),
         name_func=lambda func, num, param: (
             f"{func.__name__}_{num}__{param.args[0]}_" + "_".join([
                 ["D", "P", "T"][ii] for ii, val
