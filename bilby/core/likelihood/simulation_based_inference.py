@@ -160,7 +160,6 @@ class AdditiveWhiteGaussianNoise(AdditiveSignalAndNoise):
         super(AdditiveWhiteGaussianNoise, self).__init__(
             signal=signal,
             noise=noise,
-            bilby_prior=bilby_prior,
         )
 
 
