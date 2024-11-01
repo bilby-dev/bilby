@@ -78,7 +78,7 @@ class TestLalBBH(unittest.TestCase):
 
         with self._caplog.at_level(logging.WARNING, logger="bilby"):
             bilby.gw.source.lal_binary_black_hole(
-                    self.frequency_array, **self.parameters
+                self.frequency_array, **self.parameters
             )
             assert "There are unused waveform kwargs" in self._caplog.text
 
