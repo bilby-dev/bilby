@@ -723,6 +723,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         self._beam_pattern_reference_time = (
             self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
         ) / 2
+        self.interferometers.reference_time = self._beam_pattern_reference_time
 
     def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True):
         """
@@ -745,10 +746,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             An object containing the SNR quantities.
 
         """
-        _time = self.parameters["geocent_time"]
-        if self.time_marginalization:
-            self.parameters["geocent_time"] = self._beam_pattern_reference_time
-
         modes = {
             mode: value[self.unique_to_original_frequencies]
             for mode, value in waveform_polarizations.items()
@@ -756,8 +753,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         strain = interferometer.get_detector_response(
             modes, self.parameters, frequencies=self.banded_frequency_points
         )
-
-        self.parameters["geocent_time"] = _time
 
         d_inner_h = np.conj(np.dot(strain, self.linear_coeffs[interferometer.name]))
 
