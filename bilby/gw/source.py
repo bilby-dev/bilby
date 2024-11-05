@@ -857,28 +857,33 @@ def _base_roq_waveform(
         linear_indices = original_indices[:size_linear]
         quadratic_indices = original_indices[size_linear:]
         waveform_arguments['frequencies'] = frequency_nodes_unique
+        return_split = waveform_arguments.pop("return_split", False)
     else:
         linear_indices = waveform_arguments.pop("linear_indices")
         quadratic_indices = waveform_arguments.pop("quadratic_indices")
         for key in ["frequency_nodes_linear", "frequency_nodes_quadratic"]:
             _ = waveform_arguments.pop(key, None)
         waveform_arguments['frequencies'] = waveform_arguments.pop('frequency_nodes')
+        return_split = True
     waveform_polarizations = _base_waveform_frequency_sequence(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
         a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl,
         phi_12=phi_12, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_arguments)
 
-    return {
-        'linear': {
-            'plus': waveform_polarizations['plus'][linear_indices],
-            'cross': waveform_polarizations['cross'][linear_indices]
-        },
-        'quadratic': {
-            'plus': waveform_polarizations['plus'][quadratic_indices],
-            'cross': waveform_polarizations['cross'][quadratic_indices]
+    if return_split:
+        return {
+            'linear': {
+                'plus': waveform_polarizations['plus'][linear_indices],
+                'cross': waveform_polarizations['cross'][linear_indices]
+            },
+            'quadratic': {
+                'plus': waveform_polarizations['plus'][quadratic_indices],
+                'cross': waveform_polarizations['cross'][quadratic_indices]
+            }
         }
-    }
+    else:
+        return waveform_polarizations
 
 
 def binary_black_hole_frequency_sequence(

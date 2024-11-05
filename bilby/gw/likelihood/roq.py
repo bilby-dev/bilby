@@ -186,6 +186,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             self._waveform_generator.waveform_arguments['frequency_nodes'] = frequency_nodes
             self._waveform_generator.waveform_arguments['linear_indices'] = linear_indices
             self._waveform_generator.waveform_arguments['quadratic_indices'] = quadratic_indices
+            self._waveform_generator.waveform_arguments["return_split"] = False
 
     def _verify_numbers_of_prior_ranges_and_frequency_nodes(self, basis_type):
         """
@@ -303,6 +304,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             "delta tc for time marginalization = {} seconds.".format(self._delta_tc))
         self._times = tcmin + self._delta_tc / 2. + np.arange(number_of_time_samples) * self._delta_tc
         self._beam_pattern_reference_time = (tcmin + tcmax) / 2.
+        self.interferometers.reference_time = self._beam_pattern_reference_time
 
     @staticmethod
     def _parse_basis(basis, basis_type):
@@ -408,6 +410,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self._waveform_generator.waveform_arguments['frequency_nodes'] = frequency_nodes
         self._waveform_generator.waveform_arguments['linear_indices'] = linear_indices
         self._waveform_generator.waveform_arguments['quadratic_indices'] = quadratic_indices
+        self._waveform_generator.waveform_arguments["return_split"] = False
         self._cache['parameters'] = self.parameters.copy()
 
     @property
@@ -450,31 +453,19 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
         if self.time_marginalization:
-            time_ref = self._beam_pattern_reference_time
+            time_ref = interferometer.reference_time
         else:
             time_ref = self.parameters['geocent_time']
 
-        frequency_nodes = self.waveform_generator.waveform_arguments['frequency_nodes']
+        strain = interferometer.get_detector_response(
+            waveform_polarizations, self.parameters, frequencies=self.banded_frequency_points
+        )
+        
         linear_indices = self.waveform_generator.waveform_arguments['linear_indices']
         quadratic_indices = self.waveform_generator.waveform_arguments['quadratic_indices']
-        size_linear = len(linear_indices)
-        size_quadratic = len(quadratic_indices)
-        h_linear = np.zeros(size_linear, dtype=complex)
-        h_quadratic = np.zeros(size_quadratic, dtype=complex)
-        for mode in waveform_polarizations['linear']:
-            response = interferometer.antenna_response(
-                self.parameters['ra'], self.parameters['dec'],
-                time_ref,
-                self.parameters['psi'],
-                mode
-            )
-            h_linear += waveform_polarizations['linear'][mode] * response
-            h_quadratic += waveform_polarizations['quadratic'][mode] * response
 
-        calib_factor = interferometer.calibration_model.get_calibration_factor(
-            frequency_nodes, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
-        h_linear *= calib_factor[linear_indices]
-        h_quadratic *= calib_factor[quadratic_indices]
+        h_linear *= strain[linear_indices]
+        h_quadratic *= strain[quadratic_indices]
 
         optimal_snr_squared = np.vdot(
             np.abs(h_quadratic)**2,
