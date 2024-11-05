@@ -724,6 +724,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         self._beam_pattern_reference_time = (
             self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
         ) / 2
+        self.interferometers.reference_time = self._beam_pattern_reference_time
 
     def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
         """
