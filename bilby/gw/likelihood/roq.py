@@ -460,12 +460,12 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         strain = interferometer.get_detector_response(
             waveform_polarizations, self.parameters, frequencies=self.banded_frequency_points
         )
-        
+
         linear_indices = self.waveform_generator.waveform_arguments['linear_indices']
         quadratic_indices = self.waveform_generator.waveform_arguments['quadratic_indices']
 
-        h_linear *= strain[linear_indices]
-        h_quadratic *= strain[quadratic_indices]
+        h_linear = strain[linear_indices]
+        h_quadratic = strain[quadratic_indices]
 
         optimal_snr_squared = np.vdot(
             np.abs(h_quadratic)**2,
