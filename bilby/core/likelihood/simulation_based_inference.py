@@ -42,7 +42,11 @@ class GenerateData(object):
 
     def __call__(self, new_parameter_list):
         if len(new_parameter_list) != len(self.call_parameter_key_list):
-            raise ValueError()
+            raise ValueError(
+                f"Instance of {self.__class__} called with parameter list of "
+                f"length {len(new_parameter_list)}, but requires a list of "
+                f"length {len(self.call_parameter_key_list)}"
+            )
 
         for key, val in zip(self.call_parameter_key_list, new_parameter_list):
             self.parameters[key] = val
