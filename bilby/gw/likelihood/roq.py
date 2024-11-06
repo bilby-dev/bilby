@@ -457,8 +457,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         else:
             time_ref = self.parameters['geocent_time']
 
+        frequencies = self.waveform_generator.waveform_arguments['frequency_nodes']
         strain = interferometer.get_detector_response(
-            waveform_polarizations, self.parameters, frequencies=self.banded_frequency_points
+            waveform_polarizations, self.parameters, frequencies=frequencies
         )
 
         linear_indices = self.waveform_generator.waveform_arguments['linear_indices']
