@@ -17,7 +17,7 @@ def _set_default_cosmology():
 def get_available_cosmologies():
     """Get the list of available cosmologies.
 
-    Includes the Planck15_LAL cosmology.
+    Includes the :code:`Planck15_LAL` cosmology and all cosmologies shipped with :code:`astropy`.
 
     Returns
     -------
