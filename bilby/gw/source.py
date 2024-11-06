@@ -857,14 +857,14 @@ def _base_roq_waveform(
         linear_indices = original_indices[:size_linear]
         quadratic_indices = original_indices[size_linear:]
         waveform_arguments['frequencies'] = frequency_nodes_unique
-        return_split = waveform_arguments.pop("return_split", False)
     else:
         linear_indices = waveform_arguments.pop("linear_indices")
         quadratic_indices = waveform_arguments.pop("quadratic_indices")
         for key in ["frequency_nodes_linear", "frequency_nodes_quadratic"]:
             _ = waveform_arguments.pop(key, None)
         waveform_arguments['frequencies'] = waveform_arguments.pop('frequency_nodes')
-        return_split = True
+    return_split = waveform_arguments.pop("return_split", False)
+
     waveform_polarizations = _base_waveform_frequency_sequence(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
