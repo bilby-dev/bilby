@@ -442,6 +442,7 @@ class PriorDict(dict):
 
     def sample_subset_constrained(self, keys=iter([]), size=None):
         efficiency_warning_was_issued = False
+
         def check_efficiency(n_tested, n_valid):
             nonlocal efficiency_warning_was_issued
             if efficiency_warning_was_issued:
