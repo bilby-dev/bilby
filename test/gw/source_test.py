@@ -75,6 +75,7 @@ class TestLalBBH(unittest.TestCase):
         self.parameters.update(self.waveform_kwargs)
         self.parameters["unused_waveform_parameter"] = 1.0
         self._caplog.set_level(logging.WARNING, logger="bilby")
+        bilby.gw.source.logger.setLevel(logging.WARNING)
         bilby.gw.source.logger.propagate = True
 
         with self._caplog.at_level(logging.WARNING, logger="bilby"):
