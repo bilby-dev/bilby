@@ -77,6 +77,8 @@ class TestLalBBH(unittest.TestCase):
         bilby.core.utils.log.logger.setLevel(logging.WARNING)
         bilby.core.utils.log.logger.propagate = True
 
+        print("Parameters", self.parameters)
+
         with self._caplog.at_level(logging.WARNING, logger="bilby"):
             bilby.gw.source.lal_binary_black_hole(
                 self.frequency_array, **self.parameters
