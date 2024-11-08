@@ -74,9 +74,8 @@ class TestLalBBH(unittest.TestCase):
     def test_unused_waveform_kwargs_message(self):
         self.parameters.update(self.waveform_kwargs)
         self.parameters["unused_waveform_parameter"] = 1.0
-        self._caplog.set_level(logging.WARNING, logger="bilby")
-        bilby.gw.source.logger.setLevel(logging.WARNING)
-        bilby.gw.source.logger.propagate = True
+        bilby.core.utils.log.logger.setLevel(logging.WARNING)
+        bilby.core.utils.log.logger.propagate = True
 
         with self._caplog.at_level(logging.WARNING, logger="bilby"):
             bilby.gw.source.lal_binary_black_hole(
