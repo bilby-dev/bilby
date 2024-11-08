@@ -33,6 +33,9 @@ jobs:
     # - name: Run precommits
     #   run: |
     #     pre-commit run --all-files --verbose --show-diff-on-failure
+    - name: Run broken test
+      run: |
+        pytest test/gw/source_test.py
     - name: Run unit tests
       run: |
         pytest --cov=bilby --durations 10
