@@ -449,7 +449,7 @@ class PriorDict(dict):
                 return
             efficiency = n_valid / float(n_tested)
             if n_tested >= 1e3 and efficiency < 1e-3:
-                logger.warning("Warning: prior sampling efficiency is very low, please verify its validity.")
+                logger.warning("Prior sampling efficiency is very low, please verify its validity.")
                 efficiency_warning_was_issued = True
 
         n_tested_samples, n_valid_samples = 0, 0
