@@ -506,7 +506,7 @@ class PriorDict(dict):
         max_trials: False, int
             Second termination criterion. The integration stops when the number of samples evaluated in the next
             iteration would exceed 'max_trials' even if rel_error_target was not reached.
-        method: ["qmc_quad", "from_samples"]
+        method: ['qmc_quad', 'from_samples']
             Method to use for the Monte Carlo integration, effectively choosing between quasi Monte Carlo integration
             and "normal" Monte Carlo integration. Due to computational overhead, the latter method will be faster in
             most cases. However, 'qmc_quad' is expected to yield lower errors against the ground truth for cases with
@@ -514,10 +514,25 @@ class PriorDict(dict):
 
         Returns
         =======
-        factor_rounded : float
+        factor_rounded: float
             The normalization factor, rounded to the number of significant digits based on the standard deviation of
             the integration estimate.
 
+        Notes
+        =====
+        .. seealso::
+            Scipy's :scipy:stats:qmc:`Halton` class
+                Documentation of the quasi-random number generator :scipy:stats:qmc:`Halton` used for the quasi-monte
+                carlo integration of the normalization factor.
+            Scipy's :scipy:integrate:`qmc_quad` method
+                Documentation of the quasi-monte carlo integration scheme native to scipy.
+                The implementation, particularly the error estimate, motivates this implementation.
+                (The error estimate was re-implemented to also apply for the 'from_samples' method.)
+
+        .. versionchanged:: 4.0
+            The estimation of the normalization factor is now by default based on quasi-monte carlo integration.
+            Further, the default stopping criterion is now based on an target for the estimated relative integration
+            error.
         """
         keys = tuple(keys)
         if keys in self._cached_normalizations.keys():
@@ -566,8 +581,6 @@ class PriorDict(dict):
             for i in range(nrepeats):
                 integral = integrator(sample_keys, sampling_chunk, **kwargs)
                 trials += sampling_chunk
-
-                # compute a weighted mean of the integral measurements and the resulting standard deviation
                 estimates.append(integral)
 
             standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
