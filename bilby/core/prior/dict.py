@@ -552,8 +552,8 @@ class PriorDict(dict):
                 if len(none_keys) > 0:
                     raise NotImplementedError(f"The rescale method returns 'None', for key(s) {none_keys}.")
             except NotImplementedError as e:
-                print(f"The rescaling step fails with message:\n{e}")
-                print("Switching to method 'from_samples'")
+                logger.info(f"The rescaling step fails with message:\n{e}")
+                logger.info("Switching to method 'from_samples'")
                 integrator = self._integrate_normalization_factor_from_samples
                 method = "from_samples"
         else:
