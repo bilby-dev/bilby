@@ -442,6 +442,10 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
+    @property
+    def has_constraint(self):
+        return len(self.constraint_keys) > 0
+
     def sample_subset_constrained(self, keys=iter([]), size=None):
         if size is None or size == 1:
             while True:
@@ -538,14 +542,18 @@ class PriorDict(dict):
             integrator = self._integrate_normalization_factor_from_samples
         elif method == "qmc_quad":
             integrator = self._integrate_normalization_factor_from_qmc_quad
-            theta = np.random.uniform(0, 1, size=(len(keys), 1))
-            samples = self.rescale(keys, theta)
-            none_keys = []
-            for i, key in enumerate(keys):
-                if samples[i] is None:
-                    none_keys.append(key)
-            if len(none_keys) > 0:
-                print(f"The rescale method returns 'None', for key(s) {none_keys}. Switching to 'sample_based'.")
+            try:
+                theta = np.random.uniform(0, 1, size=(len(keys), 1))
+                samples = self.rescale(keys, theta)
+                none_keys = []
+                for i, key in enumerate(keys):
+                    if samples[i] is None:
+                        none_keys.append(key)
+                if len(none_keys) > 0:
+                    raise NotImplementedError(f"The rescale method returns 'None', for key(s) {none_keys}.")
+            except NotImplementedError as e:
+                print(f"The rescaling step fails with message:\n{e}")
+                print("Switching to method 'from_samples'")
                 integrator = self._integrate_normalization_factor_from_samples
                 method = "from_samples"
         else:
@@ -603,6 +611,8 @@ class PriorDict(dict):
         return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
+        if not self.has_constraint:
+            return prob
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         if np.all(prob == 0.0):
             return prob * ratio
@@ -642,7 +652,7 @@ class PriorDict(dict):
                                   normalized=normalized)
 
     def check_ln_prob(self, sample, ln_prob, normalized=True):
-        if normalized:
+        if normalized and self.has_constraint:
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             return ln_prob
