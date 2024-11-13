@@ -490,7 +490,7 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        keys : list, tuple
+        keys: list, tuple
             The set of keys in the prior dict to perform the integration for. Must contain all keys that the constraint
             depends on. For joint priors, the full distribution is sampled. Joint prior keys not present in 'keys' are
             marginalized.
@@ -521,11 +521,11 @@ class PriorDict(dict):
         Notes
         =====
         .. seealso::
-            Scipy's :scipy:stats:qmc:`Halton` class
-                Documentation of the quasi-random number generator :scipy:stats:qmc:`Halton` used for the quasi-monte
-                carlo integration of the normalization factor.
-            Scipy's :scipy:integrate:`qmc_quad` method
-                Documentation of the quasi-monte carlo integration scheme native to scipy.
+            :py:class:`scipy.stats.qmc.Halton`
+                Documentation of the quasi-random number generator used for the quasi-monte carlo-based method
+                to integrate the normalization factor.
+            :py:func:`scipy.integrate.qmc_quad`
+                Documentation of the scipy-native quasi-monte carlo integration scheme.
                 The implementation, particularly the error estimate, motivates this implementation.
                 (The error estimate was re-implemented to also apply for the 'from_samples' method.)
 
