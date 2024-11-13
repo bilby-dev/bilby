@@ -2,10 +2,10 @@ import os
 
 import numpy as np
 import math
-from bilback.geometry import zenith_azimuth_to_theta_phi
 
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 

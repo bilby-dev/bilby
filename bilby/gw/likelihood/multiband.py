@@ -3,9 +3,9 @@ import math
 import numbers
 
 import numpy as np
-from bilback.utils import array_module
 
 from .base import GravitationalWaveTransient
+from ...compat.utils import array_module
 from ...core.utils import (
     logger, speed_of_light, solar_mass, radius_of_earth,
     gravitational_constant, round_up_to_power_of_two,
