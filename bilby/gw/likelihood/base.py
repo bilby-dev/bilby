@@ -4,9 +4,9 @@ import copy
 
 import attr
 import numpy as np
-from bilback.utils import array_module
 from scipy.special import logsumexp
 
+from ...compat.utils import array_module
 from ...core.likelihood import Likelihood, _fallback_to_parameters
 from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction

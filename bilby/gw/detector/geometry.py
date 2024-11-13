@@ -1,5 +1,5 @@
 import numpy as np
-from bilback.geometry import calculate_arm, detector_tensor
+from ..geometry import calculate_arm, detector_tensor
 
 from .. import utils as gwutils
 
