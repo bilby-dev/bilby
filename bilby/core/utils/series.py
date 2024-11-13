@@ -1,5 +1,5 @@
 import numpy as np
-from bilback.utils import array_module
+from ...compat.utils import array_module
 
 _TOL = 14
 

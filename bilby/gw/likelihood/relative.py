@@ -2,9 +2,9 @@ from copy import deepcopy
 
 import numpy as np
 from scipy.optimize import differential_evolution
-from bilback.utils import array_module
 
 from .base import GravitationalWaveTransient
+from ...compat.utils import array_module
 from ...core.utils import logger
 from ...core.prior.base import Constraint
 from ...core.prior import DeltaFunction

@@ -5,11 +5,11 @@ from functools import lru_cache
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import i0e
-from bilback.geometry import zenith_azimuth_to_theta_phi
-from bilback.time import greenwich_mean_sidereal_time
-from bilback.utils import array_module
 from plum import dispatch
 
+from .geometry import zenith_azimuth_to_theta_phi
+from .time import greenwich_mean_sidereal_time
+from ...compat.utils import array_module
 from ..core.utils import (logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)

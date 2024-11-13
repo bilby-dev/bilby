@@ -1,17 +1,16 @@
 import os
 
 import numpy as np
-from bilback.geometry import (
+
+from ...core import utils
+from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
+from ...compat.utils import array_module
+from .. import utils as gwutils
+from ..geometry import (
     get_polarization_tensor,
     three_by_three_matrix_contraction,
     time_delay_from_geocenter,
 )
-from bilback.utils import array_module
-
-from ...core import utils
-from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
-from ...core.utils.env import string_to_boolean
-from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
