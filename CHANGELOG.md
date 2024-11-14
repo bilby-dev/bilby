@@ -11,9 +11,9 @@ Note: this release contains changes made on both GitHub and LIGO GitLab.
 
 ### Added
 
-- Add support for time marginalization in multiband likelihood (#842)
-- Add `Planck15_LAL` cosmology (#829)
-- Add option to specify calibration correction direction (#47)
+- Add support for time marginalization in multiband likelihood (https://github.com/bilby-dev/bilby/pull/#842)
+- Add `Planck15_LAL` cosmology (https://github.com/bilby-dev/bilby/pull/#829)
+- Add option to specify calibration correction direction (https://github.com/bilby-dev/bilby/pull/#47)
 - Add explicit support for Python 3.12 ([!1376](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1376))
 - Add option to disable caching in `hyper.model.Model` ([!1364](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1364))
 - Add `Interferometer.template_template_inner_product` ([!345](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1345))
@@ -24,9 +24,9 @@ Note: this release contains changes made on both GitHub and LIGO GitLab.
 
 ### Changed
 
-- Optimize prior rescale methods (#850)
-- Remove double-backslashes in latex labels (#837)
-- Documentation updates ([!1351](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1351), [!1377](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1377), #824, #826,#838)
+- Optimize prior rescale methods (https://github.com/bilby-dev/bilby/pull/#850)
+- Remove double-backslashes in latex labels (https://github.com/bilby-dev/bilby/pull/#837)
+- Documentation updates ([!1351](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1351), [!1377](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1377), https://github.com/bilby-dev/bilby/pull/#824, https://github.com/bilby-dev/bilby/pull/#826,https://github.com/bilby-dev/bilby/pull/#838)
 - Improve I/O efficiency in bilby_mcmc ([!1378](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1378))
 - Drop support for Python 3.9 ([!1374](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1374))
 - Simplify healpix distance PDF call ([!1366](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1366]))
@@ -34,18 +34,18 @@ Note: this release contains changes made on both GitHub and LIGO GitLab.
 
 ### Fixed
 
-- Fix absolute and relative paths in result files (#858)
-- Fix `get_cosmology` and `set_cosmology` to be consistent (#828)
-- Fix indexing bug when using relative binning (#48)
-- Fix JointPrior subclassing (#44)
-- Ensure infinite ACT estimates are handled in dynesty (#39)
+- Fix absolute and relative paths in result files (https://github.com/bilby-dev/bilby/pull/#858)
+- Fix `get_cosmology` and `set_cosmology` to be consistent (https://github.com/bilby-dev/bilby/pull/#828)
+- Fix indexing bug when using relative binning (https://github.com/bilby-dev/bilby/pull/#48)
+- Fix JointPrior subclassing (https://github.com/bilby-dev/bilby/pull/#44)
+- Ensure infinite ACT estimates are handled in dynesty (https://github.com/bilby-dev/bilby/pull/#39)
 - Fix likelihood time ([!1371](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1371))
 - Catch error when trying to load zero byes resume file ([!1341](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1341))
 - Avoid redundant calculations in `HealPixMapPriorDist` ([!1323](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1323))
 
 ### Deprecated
 
-- `nessai` and `pypolychord` interfaces are deprecated in favour of the corresponding plugins (#822)
+- `nessai` and `pypolychord` interfaces are deprecated in favour of the corresponding plugins (https://github.com/bilby-dev/bilby/pull/#822)
 
 
 ## [2.3.0] - 2024-05-30
