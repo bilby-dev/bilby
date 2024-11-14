@@ -1,5 +1,4 @@
 bilby_rust
-bilback
 dynesty>=2.0.1
 emcee
 corner
