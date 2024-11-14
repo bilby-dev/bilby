@@ -9,7 +9,6 @@ import multiprocessing
 import pickle
 
 import numpy as np
-from bilback.utils import array_module
 from pandas import DataFrame, Series
 from scipy.stats import norm
 
@@ -27,6 +26,7 @@ from .utils import (lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
                     lalsim_SimNeutronStarRadius,
                     lalsim_SimNeutronStarLoveNumberK2)
 
+from ..compat.utils import array_module
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import logger, solar_mass, gravitational_constant, speed_of_light, command_line_args, safe_file_dump
 from ..core.prior import DeltaFunction
@@ -241,7 +241,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     """
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
-    xp = array_module(parameters[original_keys[0]])
+    xp = array_module(parameters[original_keys[5]])
     if 'luminosity_distance' not in original_keys:
         if 'redshift' in converted_parameters.keys():
             converted_parameters['luminosity_distance'] = \
