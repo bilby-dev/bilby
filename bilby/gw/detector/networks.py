@@ -102,11 +102,10 @@ class InterferometerList(list):
     def set_strain_data_from_zero_noise(
         self, sampling_frequency, duration, start_time=0
     ):
-        """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
+        """Set the `Interferometer.strain_data` to zero in each detector
 
-        This uses the `interferometer.power_spectral_density` object to set
-        the `strain_data` to zero noise. See
-        `bilby.gw.detector.InterferometerStrainData` for further information.
+        See :py:meth:`bilby.gw.detector.InterferometerStrainData.set_from_zero_noise`
+        for further  information.
 
         Parameters
         ==========

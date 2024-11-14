@@ -5,7 +5,7 @@ corner
 numpy
 matplotlib
 # see https://github.com/healpy/healpy/pull/953
-scipy>=1.5,<1.14
+scipy>=1.5
 pandas
 dill
 tqdm

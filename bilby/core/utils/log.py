@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 import subprocess
 import sys
+from importlib import metadata
 
 logger = logging.getLogger('bilby')
 
@@ -69,8 +70,11 @@ def loaded_modules_dict():
     module_names = list(sys.modules.keys())
     vdict = {}
     for key in module_names:
-        if "." not in str(key):
-            vdict[key] = str(getattr(sys.modules[key], "__version__", "N/A"))
+        if "." not in key:
+            try:
+                vdict[key] = metadata.version(key)
+            except metadata.PackageNotFoundError:
+                continue
     return vdict
 
 

@@ -4,8 +4,10 @@ import pandas as pd
 import shutil
 import os
 import json
+from unittest.mock import patch
 
 import bilby
+from bilby.core.result import ResultError
 
 
 class TestJson(unittest.TestCase):
@@ -272,6 +274,19 @@ class TestResult(unittest.TestCase):
         self.result.save_to_file(overwrite=False, extension=extension)
         self.assertTrue(os.path.isfile(f"{self.result.outdir}/{self.result.label}_result.{extension}.old"))
 
+    def _save_with_outdir_and_filename(self, filename, outdir, template):
+        self.result.save_to_file(filename=filename, outdir=outdir, extension="json", gzip=False)
+        self.assertTrue(os.path.isfile(template))
+
+    def test_save_with_outdir_and_filename(self):
+        self._save_with_outdir_and_filename("out/result", "out2", "out2/result.json")
+        self._save_with_outdir_and_filename("out/result", None, "out/result.json")
+        self._save_with_outdir_and_filename("result", "out", "out/result.json")
+        self._save_with_outdir_and_filename(
+            "result", None, os.path.join(self.result.outdir, "result.json"))
+        self._save_with_outdir_and_filename(
+            None, "out", os.path.join("out", f"{self.result.label}_result.json"))
+
     def test_save_and_overwrite_json(self):
         self._save_and_overwrite_test(extension='json')
 
@@ -491,6 +506,24 @@ class TestResult(unittest.TestCase):
         az = self.result.to_arviz()
         self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
                                        log_likelihood))
+
+    @patch("builtins.__import__")
+    def test_to_arviz_not_installed(self, mock_import):
+
+        def import_side_effect(name, *args):
+            if name == "arviz":
+                raise ImportError
+            return __import__(name, *args)
+
+        mock_import.side_effect = import_side_effect
+
+        with self.assertRaises(ResultError) as excinfo:
+            self.result.to_arviz()
+
+        self.assertEqual(
+            str(excinfo.exception),
+            "ArviZ is not installed, so cannot convert to InferenceData."
+        )
 
     def test_result_caching(self):
 
