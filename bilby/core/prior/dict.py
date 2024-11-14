@@ -6,6 +6,7 @@ from io import open as ioopen
 from warnings import warn
 
 import numpy as np
+from scipy._lib._array_api import array_namespace
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -635,9 +636,9 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        return list(
-            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
-        )
+        xp = array_namespace(theta)
+
+        return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -862,8 +863,9 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        xp = array_namespace(theta)
+
         keys = list(keys)
-        theta = list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
@@ -886,9 +888,9 @@ class ConditionalPriorDict(PriorDict):
             # {a: [], b: [], c: [1, 2, 3, 4], d: []}
             # -> [1, 2, 3, 4]
             # -> {a: 1, b: 2, c: 3, d: 4}
-            values = list()
+            values = xp.array([])
             for key in names:
-                values = np.concatenate([values, result[key]])
+                values = xp.concatenate([values, result[key]])
             for key, value in zip(names, values):
                 result[key] = value
 
@@ -903,7 +905,7 @@ class ConditionalPriorDict(PriorDict):
             else:
                 return result[key].flatten()
 
-        return [safe_flatten(result[key]) for key in keys]
+        return xp.array([safe_flatten(result[key]) for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

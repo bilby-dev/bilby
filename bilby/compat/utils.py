@@ -1,5 +1,5 @@
 import numpy as np
-from array_api_compat import array_namespace
+from scipy._lib._array_api import array_namespace
 
 __all__ = ["array_module", "promote_to_array"]
 
@@ -20,3 +20,15 @@ def promote_to_array(args, backend, skip=None):
         args = tuple(backend.array(arg) for arg in args[:skip]) + args[skip:]
     return args
 
+
+def xp_wrap(func):
+
+    def wrapped(self, *args, **kwargs):
+        if "xp" not in kwargs:
+            try:
+                kwargs["xp"] = array_module(*args)
+            except TypeError:
+                pass
+        return func(self, *args, **kwargs)
+
+    return wrapped
