@@ -19,7 +19,7 @@ Note: this release contains changes made on both GitHub and LIGO GitLab.
 - Add `Interferometer.template_template_inner_product` ([!345](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1345))
 - Add flag to skip prior normalization when using constraints ([!1308](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1308))
 - Add information error messages for ROQs ([!1280](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1280))
-- Add a warning for unused waveform keyword arguments ([!1269](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1269), #42)
+- Add a warning for unused waveform keyword arguments ([!1269](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1269), https://github.com/bilby-dev/bilby/pull/42)
 - Add identity conversion and generation functions ([!1264](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1264))
 
 ### Changed
