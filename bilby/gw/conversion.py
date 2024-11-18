@@ -259,7 +259,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                         )
                         converted_parameters[f"cos_tilt_{idx}"] = 1.0
 
-    for key in ["phi_jl", "phi_12"]:
+    for key in ["phi_jl", "phi_12","eccentricity","mean_per_ano"]:
         if key not in converted_parameters:
             converted_parameters[key] = 0.0
 
