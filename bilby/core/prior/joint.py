@@ -63,8 +63,9 @@ class BaseJointPriorDist(object):
         self.requested_parameters = dict()
         self.reset_request()
 
-        # a dictionary of the rescaled parameters
-        self.rescale_parameters = dict()
+        # a dictionary of the rescale(d) parameters
+        self._rescale_parameters = dict()
+        self._rescaled_parameters = dict()
         self.reset_rescale()
 
         # a list of sampled parameters
@@ -94,7 +95,12 @@ class BaseJointPriorDist(object):
         Check if all the rescaled parameters have been filled.
         """
 
-        return not np.any([val is None for val in self.rescale_parameters.values()])
+        return not np.any([val is None for val in self._rescale_parameters.values()])
+
+    def set_rescale(self, key, values):
+        values = np.array(values)
+        self._rescale_parameters[key] = values
+        self._rescaled_parameters[key] = np.atleast_1d(np.ones_like(values)) * np.nan
 
     def reset_rescale(self):
         """
@@ -102,7 +108,11 @@ class BaseJointPriorDist(object):
         """
 
         for name in self.names:
-            self.rescale_parameters[name] = None
+            self._rescale_parameters[name] = None
+            self._rescaled_parameters[name] = None
+
+    def get_rescaled(self, key):
+        return self._rescaled_parameters[key]
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
@@ -303,10 +313,11 @@ class BaseJointPriorDist(object):
 
         Parameters
         ==========
-        value: array
-            A 1d vector sample (one for each parameter) drawn from a uniform
+        value: array or None
+            If given, a 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
             N is the number of samples and M is the number of parameters.
+            If None, values previously set using BaseJointPriorDist.set_rescale() are used.
         kwargs: dict
             All keyword args that need to be passed to _rescale method, these keyword
             args are called in the JointPrior rescale methods for each parameter
@@ -317,7 +328,11 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = np.array(value)
+        if value is None:
+            samp = np.array(list(self._rescale_parameters.values())).T
+        else:
+            samp = np.array(value)
+
         if len(samp.shape) == 1:
             samp = samp.reshape(1, self.num_vars)
 
@@ -327,6 +342,11 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
+        if value is None:
+            for i, key in enumerate(self.names):
+                output = self.get_rescaled(key)
+                # update in-place for proper handling in PriorDict-instances
+                output[:] = samp[:, i]
         return np.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
@@ -790,19 +810,23 @@ class JointPrior(Prior):
             all kwargs passed to the dist.rescale method
         Returns
         =======
-        float:
-            A sample from the prior parameter.
+        np.ndarray:
+            The samples from the prior parameter. If not all names in "dist" have been filled,
+            the array contains only np.nan. *This* specific array instance will be filled with
+            the rescaled value once all parameters have been requested
         """
 
-        self.dist.rescale_parameters[self.name] = val
+        self.dist.set_rescale(self.name, val)
 
         if self.dist.filled_rescale():
-            values = np.array(list(self.dist.rescale_parameters.values())).T
-            samples = self.dist.rescale(values, **kwargs)
+            self.dist.rescale(values=None, **kwargs)
+            output = self.dist.get_rescaled(self.name)
             self.dist.reset_rescale()
-            return samples
         else:
-            return []  # return empty list
+            output = self.dist.get_rescaled(self.name)
+
+        # have to return raw output to conserve in-place modifications
+        return output
 
     def sample(self, size=1, **kwargs):
         """

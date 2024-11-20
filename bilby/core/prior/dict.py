@@ -600,18 +600,21 @@ class PriorDict(dict):
         ==========
         keys: list
             List of prior keys to be rescaled
-        theta: list
-            List of randomly drawn values on a unit cube associated with the prior keys
+        theta: dict or array-like
+            Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
         =======
-        list: List of floats containing the rescaled sample
+        list:
+            If theta is 1D, returns list of floats containing the rescaled sample.
+            If theta is 2D, returns list of lists containing the rescaled samples.
         """
-        theta = list(theta)
+        theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
         samples = []
         for key, units in zip(keys, theta):
             samps = self[key].rescale(units)
-            samples += list(np.asarray(samps).flatten())
+            # turns 0d-arrays into scalars
+            samples.append(np.squeeze(samps).tolist())
         return samples
 
     def test_redundancy(self, key, disable_logging=False):
@@ -832,28 +835,28 @@ class ConditionalPriorDict(PriorDict):
         ==========
         keys: list
             List of prior keys to be rescaled
-        theta: list
-            List of randomly drawn values on a unit cube associated with the prior keys
+        theta: dict or array-like
+            Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
         =======
-        list: List of floats containing the rescaled sample
+        list:
+            If theta is float for each key, returns list of floats containing the rescaled sample.
+            If theta is array-like for each key, returns list of lists containing the rescaled samples.
         """
         keys = list(keys)
-        theta = list(theta)
+        theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
-        for key, index in zip(
-            self.sorted_keys_without_fixed_parameters, self._rescale_indexes
-        ):
-            result[key] = self[key].rescale(
-                theta[index], **self.get_required_variables(key)
-            )
+        for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
+            result[key] = self[key].rescale(theta[index], **self.get_required_variables(key))
             self[key].least_recently_sampled = result[key]
         samples = []
         for key in keys:
-            samples += list(np.asarray(result[key]).flatten())
+            # turns 0d-arrays into scalars
+            res = np.squeeze(result[key]).tolist()
+            samples.append(res)
         return samples
 
     def _update_rescale_keys(self, keys):
