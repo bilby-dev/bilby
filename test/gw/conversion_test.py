@@ -428,6 +428,8 @@ class TestGenerateAllParameters(unittest.TestCase):
             "tilt_2",
             "phi_12",
             "phi_jl",
+            "eccentricity",
+            "mean_per_ano",
             "luminosity_distance",
             "theta_jn",
             "psi",
@@ -479,6 +481,24 @@ class TestGenerateAllParameters(unittest.TestCase):
             bilby.gw.conversion.generate_all_bbh_parameters,
             self.expected_bbh_keys,
         )
+
+    def test_generate_all_bbh_default_parameters(self):
+        for default_param in [
+            "phi_12",
+            "phi_jl",
+            "eccentricity",
+            "mean_per_ano",
+        ]:
+            param = self.parameters.copy()
+            if default_param in param:
+                param.pop(default_param)
+            ret = bilby.gw.conversion.generate_all_bbh_parameters(param)
+            self.assertIn(default_param, ret)
+            self.assertEqual(ret[default_param], 0)
+
+            ret = bilby.gw.conversion.generate_all_bbh_parameters(self.parameters)
+            self.assertIn(default_param, ret)
+            self.assertEqual(ret[default_param], self.parameters.get(default_param, 0))
 
     def test_generate_all_bns_parameters(self):
         self._generate(
