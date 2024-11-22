@@ -221,11 +221,9 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         # check sample(s) is within bounds
-        outbounds = np.ones(samp.shape[0], dtype=bool)
+        outbounds = np.zeros(samp.shape[0], dtype=bool)
         for s, bound in zip(samp.T, self.bounds.values()):
-            outbounds = (s < bound[0]) | (s > bound[1])
-            if np.any(outbounds):
-                break
+            outbounds += (s < bound[0]) | (s > bound[1])
         return samp, outbounds
 
     def ln_prob(self, value):
