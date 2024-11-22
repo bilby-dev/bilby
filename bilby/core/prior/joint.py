@@ -635,76 +635,83 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         )
 
     def _rescale(self, samp, **kwargs):
-        try:
-            mode = kwargs["mode"]
-        except KeyError:
-            mode = None
+        mode = kwargs.get("mode", self.mode)
 
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
             else:
-                mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
+                mode = random.rng.choice(
+                    self.nmodes, size=len(samp), p=self.weights
+                )
 
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = self.mus[mode] + self.sigmas[mode] * np.einsum(
-            "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
-        )
+        uniques = np.unique(mode)
+        if len(uniques) == 1:
+            unique = uniques[0]
+            samp = self.mus[unique] + self.sigmas[unique] * np.einsum(
+                "ij,kj->ik", samp * self.sqeigvalues[unique], self.eigvectors[unique]
+            )
+        else:
+            for m in uniques:
+                mask = m == mode
+                samp[mask] = self.mus[m] + self.sigmas[m] * np.einsum(
+                    "ij,kj->ik", samp[mask] * self.sqeigvalues[m], self.eigvectors[m]
+                )
+
         return samp
 
     def _sample(self, size, **kwargs):
-        try:
-            mode = kwargs["mode"]
-        except KeyError:
-            mode = None
+        mode = kwargs.get("mode", self.mode)
+
+        samps = np.zeros((size, len(self)))
+        outbound = np.ones(size, dtype=bool)
 
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
-            else:
-                if size == 1:
-                    mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
-                else:
-                    # pick modes
-                    mode = [
-                        np.argwhere(self.cumweights - r > 0)[0][0]
-                        for r in random.rng.uniform(0, 1, size)
-                    ]
+        while np.any(outbound):
+            # sample the multivariate Gaussian keys
+            vals = random.rng.uniform(0, 1, (np.sum(outbound), len(self)))
 
-        samps = np.zeros((size, len(self)))
-        for i in range(size):
-            inbound = False
-            while not inbound:
-                # sample the multivariate Gaussian keys
-                vals = random.rng.uniform(0, 1, len(self))
+            if mode is None:
+                mode = random.rng.choice(
+                    self.nmodes, size=np.sum(outbound), p=self.weights
+                )
 
-                if isinstance(mode, list):
-                    samp = np.atleast_1d(self.rescale(vals, mode=mode[i]))
-                else:
-                    samp = np.atleast_1d(self.rescale(vals, mode=mode))
-                samps[i, :] = samp
+            samps[outbound] = np.atleast_1d(self.rescale(vals, mode=mode))
 
-                # check sample is in bounds (otherwise perform another draw)
-                outbound = False
-                for name, val in zip(self.names, samp):
-                    if val < self.bounds[name][0] or val > self.bounds[name][1]:
-                        outbound = True
-                        break
-
-                if not outbound:
-                    inbound = True
+            # check sample is in bounds and redraw those which are not
+            samps, outbound = self._check_samp(samps)
 
         return samps
 
-    def _ln_prob(self, samp, lnprob, outbounds):
-        for j in range(samp.shape[0]):
-            # loop over the modes and sum the probabilities
-            for i in range(self.nmodes):
-                # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
-                z = (samp[j] - self.mus[i]) / self.sigmas[i]
-                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
+    def _ln_prob(self, samp, lnprob, outbounds, **kwargs):
+        mode = kwargs.get("mode", self.mode)
+
+        if mode is None:
+            for j in range(samp.shape[0]):
+                # loop over the modes and sum the probabilities
+                for i in range(self.nmodes):
+                    # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
+                    z = (samp[j] - self.mus[i]) / self.sigmas[i]
+                    lnprob[j] = np.logaddexp(lnprob[j],
+                                             self.mvn[i].logpdf(z) - self.logprodsigmas[i] + np.log(self.weights[i]))
+        else:
+            uniques = np.unique(np.asarray(mode, dtype=int))
+            if len(uniques) == 1:
+                unique = uniques[0]
+                z = (samp[j] - self.mus[unique]) / self.sigmas[unique]
+                # don't multiply by the mode weight if the mode is given (ie. prob(mode|mode) = 1)
+                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[unique].logpdf(z) - self.logprodsigmas[unique])
+            else:
+                for m in uniques:
+                    mask = mode == m
+                    z = (samp[mask] - self.mus[m]) / self.sigmas[m]
+                    # don't multiply by the mode weight if the mode is given (ie. prob(mode|mode) = 1)
+                    lnprob[mask] = np.logaddexp(lnprob[mask], self.mvn[m].logpdf(z) - self.logprodsigmas[m])
 
         # set out-of-bounds values to -inf
         lnprob[outbounds] = -np.inf
@@ -743,6 +750,21 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if not self.__dict__[key] == other.__dict__[key]:
                     return False
         return True
+
+    @property
+    def mode(self):
+        if hasattr(self, "_mode"):
+            return self._mode
+        else:
+            return None
+
+    @mode.setter
+    def mode(self, mode):
+        if not np.isdtype(np.asarray(mode).dtype, "integral"):
+            raise ValueError("The mode to set must have integral data type.")
+        if np.any(mode >= self.nmodes) or np.any(mode < 0):
+            raise ValueError("The value of mode cannot be higher than the number of modes or smaller than zero.")
+        self._mode = mode
 
 
 class MultivariateNormalDist(MultivariateGaussianDist):
