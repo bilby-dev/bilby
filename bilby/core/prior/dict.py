@@ -851,12 +851,30 @@ class ConditionalPriorDict(PriorDict):
         """
         keys = list(keys)
         theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
-        self._check_resolved()
-        self._update_rescale_keys(keys)
+        if set(keys) == set(self.non_fixed_keys):
+            subset_dict = self
+        else:
+            subset_dict = ConditionalPriorDict({key: self[key] for key in keys})
+        if not subset_dict._resolved:
+            raise IllegalConditionsException(
+                "The current set of priors contains unresolvable conditions."
+            )
+        subset_dict._update_rescale_keys(keys)
         result = dict()
-        for key, index in zip(self.sorted_keys_without_fixed_parameters, self._rescale_indexes):
-            result[key] = self[key].rescale(theta[index], **self.get_required_variables(key))
-            self[key].least_recently_sampled = result[key]
+        for key, index in zip(subset_dict.sorted_keys_without_fixed_parameters, subset_dict._rescale_indexes):
+            try:
+                result[key] = subset_dict[key].rescale(theta[index], **subset_dict.get_required_variables(key))
+            except ValueError:
+                # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
+                # If that is the case, we sample each sample individually.
+                required_variables = subset_dict.get_required_variables(key)
+                result[key] = np.zeros_like(theta[key])
+                for i in range(len(theta[key])):
+                    rvars = {
+                        key: value[i] for key, value in required_variables.items()
+                    }
+                    result[key][i] = subset_dict[key].rescale(theta[index][i], **rvars)
+            subset_dict[key].least_recently_sampled = result[key]
         samples = []
         for key in keys:
             # turns 0d-arrays into scalars

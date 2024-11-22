@@ -403,10 +403,11 @@ class TestConditionalPriorDict(unittest.TestCase):
         )
 
     def test_rescale_illegal_conditions(self):
-        del self.conditional_priors["var_0"]
+        test_sample = self.test_sample.copy()
+        test_sample.pop("var_0")
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.rescale(
-                keys=list(self.test_sample.keys()),
+                keys=list(test_sample.keys()),
                 theta=list(self.test_sample.values()),
             )
 
