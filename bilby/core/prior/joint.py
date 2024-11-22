@@ -819,7 +819,7 @@ class JointPrior(Prior):
         self.dist.set_rescale(self.name, val)
 
         if self.dist.filled_rescale():
-            self.dist.rescale(values=None, **kwargs)
+            self.dist.rescale(value=None, **kwargs)
             output = self.dist.get_rescaled(self.name)
             self.dist.reset_rescale()
         else:
