@@ -311,6 +311,11 @@ class TestPriorDict(unittest.TestCase):
         expected = dict(length=np.array([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
 
+        joint_prior = self.joint_prior_from_file
+        samples = joint_prior.sample_subset(keys=["testAbase"], size=size)
+        self.assertTrue(joint_prior["testAbase"].dist.sampled_parameters == [])
+        self.assertTrue(joint_prior["testBbase"].dist.sampled_parameters == [])
+
     def test_sample_subset_constrained_as_array(self):
         size = 3
         keys = ["mass", "speed"]
@@ -344,6 +349,15 @@ class TestPriorDict(unittest.TestCase):
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
 
+    def test_ln_prob_actual_subset(self):
+        joint_prior = self.joint_prior_from_file
+        keys = ["testAbase"]
+        samples = joint_prior.sample_subset(keys=keys, size=1)
+        lnprob = joint_prior.ln_prob(samples)
+        self.assertTrue(joint_prior["testAbase"].dist.requested_parameters["testAbase"] is None)
+        self.assertTrue(joint_prior["testBbase"].dist.requested_parameters["testBbase"] is None)
+        self.assertTrue(lnprob == 0)
+
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5, 0.5, 0.5]
         expected = [
@@ -362,6 +376,16 @@ class TestPriorDict(unittest.TestCase):
                 )
             ),
         )
+
+    def test_rescale_actual_subset(self):
+        theta = [0.5]
+        keys = ["testAbase"]
+        joint_prior = self.joint_prior_from_file
+        samples = joint_prior.rescale(keys=keys, theta=theta)
+        print(joint_prior["testAbase"].dist._rescale_parameters)
+        self.assertTrue(joint_prior["testAbase"].dist._rescale_parameters["testAbase"] is None)
+        self.assertTrue(joint_prior["testBbase"].dist._rescale_parameters["testBbase"] is None)
+        self.assertTrue(np.all(np.isnan(samples)))
 
     def test_cdf(self):
         """
