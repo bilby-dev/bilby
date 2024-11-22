@@ -3,13 +3,14 @@ from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
     SymmetricLogUniform, Cosine, Sine, Gaussian, TruncatedGaussian, HalfGaussian, \
     LogNormal, Exponential, StudentT, Beta, Logistic, Cauchy, Gamma, ChiSquared, FermiDirac
-from ..utils import infer_args_from_method, infer_parameters_from_function
+from .joint import JointPrior
+from ..utils import infer_args_from_method, infer_parameters_from_function, get_dict_with_properties
 
 
 def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
-        def __init__(self, condition_func, name=None, latex_label=None, unit=None,
-                     boundary=None, **reference_params):
+        def __init__(self, condition_func, name=None, latex_label=None, unit=None, boundary=None, dist=None,
+                     **reference_params):
             """
 
             Parameters
@@ -41,23 +42,26 @@ def conditional_prior_factory(prior_class):
                 See superclass
             boundary: str, optional
                 See superclass
+            dist: BaseJointPriorDist, optional
+                See superclass
             reference_params:
                 Initial values for attributes such as `minimum`, `maximum`.
                 This differs on the `prior_class`, for example for the Gaussian
                 prior this is `mu` and `sigma`.
             """
-            if 'boundary' in infer_args_from_method(super(ConditionalPrior, self).__init__):
-                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                       unit=unit, boundary=boundary, **reference_params)
-            else:
-                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                       unit=unit, **reference_params)
+            kwargs = {"name": name, "latex_label": latex_label, "unit": unit, "boundary": boundary, "dist": dist}
+            needed_kwargs = infer_args_from_method(super(ConditionalPrior, self).__init__)
+            for kw in kwargs.copy():
+                if kw not in needed_kwargs:
+                    kwargs.pop(kw)
+
+            super(ConditionalPrior, self).__init__(**kwargs, **reference_params)
 
             self._required_variables = None
             self.condition_func = condition_func
             self._reference_params = reference_params
-            self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
-            self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
+            self.__class__.__name__ = "Conditional{}".format(prior_class.__name__)
+            self.__class__.__qualname__ = "Conditional{}".format(prior_class.__qualname__)
 
         def sample(self, size=None, **required_variables):
             """Draw a sample from the prior
@@ -202,7 +206,9 @@ def conditional_prior_factory(prior_class):
             return self._required_variables
 
         def get_instantiation_dict(self):
-            instantiation_dict = super(ConditionalPrior, self).get_instantiation_dict()
+            superclass_args = infer_args_from_method(super(ConditionalPrior, self).__init__)
+            dict_with_properties = get_dict_with_properties(self)
+            instantiation_dict = {key: dict_with_properties[key] for key in superclass_args}
             for key, value in self.reference_params.items():
                 instantiation_dict[key] = value
             return instantiation_dict
@@ -319,6 +325,10 @@ class ConditionalFermiDirac(conditional_prior_factory(FermiDirac)):
 
 
 class ConditionalInterped(conditional_prior_factory(Interped)):
+    pass
+
+
+class ConditionalJointPrior(conditional_prior_factory(JointPrior)):
     pass
 
 
