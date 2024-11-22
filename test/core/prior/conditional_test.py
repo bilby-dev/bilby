@@ -338,24 +338,47 @@ class TestConditionalPriorDict(unittest.TestCase):
         cov = [[[0.03, 0.], [0., 0.04]]]
         mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
+        names_2 = ["mvgvar_a", "mvgvar_b"]
+        mvg_dual_mode = bilby.core.prior.MultivariateGaussianDist(
+            names=names_2,
+            nmodes=2,
+            mus=[mu[0], (np.array(mu[0]) + np.ones_like(mu[0])).tolist()],
+            covs=[cov[0], cov[0]],
+            weights=[1, 2]
+        )
+
+        def condition_func_2(reference_params, var_0):
+            return dict(mode=np.searchsorted(np.cumsum(np.array([1, 2]) / 3), var_0))
+
+        def condition_func_1(reference_params, var_0, var_1):
+            return {"minimum": var_0, "maximum": var_1}
+
         priordict = bilby.core.prior.ConditionalPriorDict(
             dict(
                 var_3=self.prior_3,
                 var_2=self.prior_2,
                 var_0=self.prior_0,
                 var_1=self.prior_1,
-                mvgvar_0=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_0"),
-                mvgvar_1=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_1"),
+                mvgvar_0=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_1, dist=mvg, name="mvgvar_0", minimum=self.minimum, maximum=self.maximum),
+                mvgvar_1=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_1, dist=mvg, name="mvgvar_1", minimum=self.minimum, maximum=self.maximum),
+                mvgvar_a=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_2, dist=mvg_dual_mode, name="mvgvar_a",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
+                mvgvar_b=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_2, dist=mvg_dual_mode, name="mvgvar_b",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
             )
         )
 
-        ref_variables = list(self.test_sample.values()) + [0.5, 0.5]
-        keys = list(self.test_sample.keys()) + names
+        ref_variables = list(self.test_sample.values()) + [0.5, 0.5] + [0.5, 0.2]
+        keys = list(self.test_sample.keys()) + names + names_2
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertIsInstance(res, list)
-        self.assertEqual(np.shape(res), (6,))
-        self.assertListEqual([isinstance(r, float) for r in res], 6 * [True])
+        self.assertEqual(np.shape(res), (8,))
+        self.assertListEqual([isinstance(r, float) for r in res], 8 * [True])
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
@@ -363,7 +386,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
         expected.extend([1, 1])
-        self.assertListEqual(expected, res)
+        self.assertListEqual(expected, res[:-2])
 
     def test_cdf(self):
         """
