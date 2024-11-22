@@ -750,7 +750,7 @@ class MultivariateNormalDist(MultivariateGaussianDist):
 
 
 class JointPrior(Prior):
-    def __init__(self, dist, name=None, latex_label=None, unit=None):
+    def __init__(self, dist, name=None, latex_label=None, unit=None, **kwargs):
         """This defines the single parameter Prior object for parameters that belong to a JointPriorDist
 
         Parameters
@@ -800,6 +800,17 @@ class JointPrior(Prior):
     def maximum(self, maximum):
         self._maximum = maximum
         self.dist.bounds[self.name] = (self.dist.bounds[self.name][0], maximum)
+
+    def __setattr__(self, name, value):
+        # first check that the JointPrior has an explicit setter method for the attribute, which should take presedence
+        if hasattr(self.__class__, name) and getattr(self.__class__, name).fset is not None:
+            return super().__setattr__(name, value)
+        # then check if the BaseJointPriorDist-!subclass! has an explicit setter method for the attribute
+        elif hasattr(self, "dist") and hasattr(self.dist, name) and getattr(self.dist.__class__, name).fset is not None:
+            return self.dist.__setattr__(name, value)
+        # if not, use the default settattr
+        else:
+            return super().__setattr__(name, value)
 
     def rescale(self, val, **kwargs):
         """
