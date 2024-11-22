@@ -234,8 +234,8 @@ def conditional_prior_factory(prior_class):
             prior_name = self.__class__.__name__
             instantiation_dict = self.get_instantiation_dict()
             instantiation_dict["condition_func"] = ".".join([
-                instantiation_dict["condition_func"].__module__,
-                instantiation_dict["condition_func"].__name__
+                self.condition_func.__module__,
+                self.condition_func.__name__
             ])
             args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
                               for key in instantiation_dict])
