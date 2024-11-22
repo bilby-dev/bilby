@@ -351,7 +351,7 @@ class TestConditionalPriorDict(unittest.TestCase):
             return dict(mode=np.searchsorted(np.cumsum(np.array([1, 2]) / 3), var_0))
 
         def condition_func_1(reference_params, var_0, var_1):
-            return {"minimum": var_0, "maximum": var_1}
+            return {"minimum": var_0 - 1, "maximum": var_1 + 1}
 
         priordict = bilby.core.prior.ConditionalPriorDict(
             dict(
@@ -387,6 +387,12 @@ class TestConditionalPriorDict(unittest.TestCase):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
         expected.extend([1, 1])
         self.assertListEqual(expected, res[:-2])
+        res_sample = priordict.sample(1)
+        self.assertEqual(list(res_sample.keys()), priordict.sorted_keys_without_fixed_parameters)
+        res_sample = priordict.sample(10)
+        self.assertListEqual([len(val) for val in res_sample.values()], [10] * len(res_sample.keys()))
+        lnprobs = priordict.ln_prob(priordict.sample(10), axis=0)
+        self.assertEqual(len(lnprobs), 10)
 
     def test_cdf(self):
         """
