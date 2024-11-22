@@ -420,6 +420,9 @@ class PriorDict(dict):
                 samples[key] = self[key].sample(size=size)
             else:
                 logger.debug("{} not a known prior.".format(key))
+        # ensure that `reset_sampled()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_sampled")
         return samples
 
     @property
@@ -429,6 +432,27 @@ class PriorDict(dict):
         keys = [k for k in keys if self[k].is_fixed is False]
         keys = [k for k in keys if k not in self.constraint_keys]
         return keys
+
+    @property
+    def jointprior_dependencies(self):
+        keys = self.keys()
+        keys = [k for k in keys if isinstance(self[k], JointPrior)]
+        dependencies = {k: list(set(self[k].dist.names) - set([k])) for k in keys}
+        return dependencies
+
+    def _reset_jointprior_dists_with_missed_dependencies(self, keys, reset_func):
+        keys = set(keys)
+        dependencies = self.jointprior_dependencies
+        requested_jointpriors = set(dependencies).intersection()
+        missing_dependencies = {value for key in requested_jointpriors for value in dependencies[key]}
+        reset_dists = []
+        for key in missing_dependencies:
+            dist = self[key].dist
+            if id(dist) in reset_dists:
+                pass
+            else:
+                getattr(dist, reset_func)()
+                reset_dists.append(id(dist))
 
     @property
     def fixed_keys(self):
@@ -499,13 +523,16 @@ class PriorDict(dict):
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
-    def prob(self, sample, **kwargs):
+    def prob(self, sample, normalized=True, **kwargs):
         """
 
         Parameters
         ==========
         sample: dict
             Dictionary of the samples of which we want to have the probability of
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -516,10 +543,16 @@ class PriorDict(dict):
         """
         prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
 
-        return self.check_prob(sample, prob)
+        # ensure that `reset_request()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), reset_func="reset_request")
+        return self.check_prob(sample, prob, normalized)
 
-    def check_prob(self, sample, prob):
-        ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+    def check_prob(self, sample, prob, normalized=True):
+        if normalized:
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+        else:
+            ratio = 1
         if np.all(prob == 0.0):
             return prob * ratio
         else:
@@ -534,18 +567,18 @@ class PriorDict(dict):
                 constrained_prob[keep] = prob[keep] * ratio
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None, normalized=True):
+    def ln_prob(self, sample, normalized=True, **kwargs):
         """
 
         Parameters
         ==========
         sample: dict
             Dictionary of the samples of which to calculate the log probability
-        axis: None or int
-            Axis along which the summation is performed
         normalized: bool
             When False, disables calculation of constraint normalization factor
             during prior probability computation. Default value is True.
+        kwargs:
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
@@ -553,7 +586,11 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
+        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], **kwargs)
+
+        # ensure that `reset_request()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_ln_prob(sample, ln_prob,
                                   normalized=normalized)
 
@@ -617,6 +654,7 @@ class PriorDict(dict):
         for i, samps in enumerate(samples):
             # turns 0d-arrays into scalars
             samples[i] = np.squeeze(samps).tolist()
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_rescale")
         return samples
 
     def test_redundancy(self, key, disable_logging=False):
@@ -715,6 +753,12 @@ class ConditionalPriorDict(PriorDict):
         for k in self[key].required_variables:
             if k not in sampled_keys:
                 conditions_resolved = False
+                break
+            elif isinstance(self[k], JointPrior):
+                dependencies = self.jointprior_dependencies[k]
+                if len(set(dependencies) - set(sampled_keys)) > 0:
+                    conditions_resolved = False
+                    break
         return conditions_resolved
 
     def sample_subset(self, keys=iter([]), size=None):
@@ -756,6 +800,7 @@ class ConditionalPriorDict(PriorDict):
                         samples[key][i] = self[key].sample(**rvars)
             else:
                 logger.debug("{} not a known prior.".format(key))
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_sampled")
         return samples
 
     def get_required_variables(self, key):
@@ -796,6 +841,7 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         prob = np.prod(res, **kwargs)
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_prob(sample, prob)
 
     def ln_prob(self, sample, axis=None, normalized=True):
@@ -822,6 +868,7 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         ln_prob = np.sum(res, axis=axis)
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_ln_prob(sample, ln_prob,
                                   normalized=normalized)
 
@@ -881,6 +928,7 @@ class ConditionalPriorDict(PriorDict):
             # turns 0d-arrays into scalars
             res = np.squeeze(result[key]).tolist()
             samples.append(res)
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_rescale")
         return samples
 
     def _prepare_evaluation(self, keys, theta):
