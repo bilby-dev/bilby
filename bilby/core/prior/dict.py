@@ -727,7 +727,10 @@ class ConditionalPriorDict(PriorDict):
             if key not in keys and isinstance(self[key], DeltaFunction)
         ]
         use_keys = add_delta_keys + list(keys)
-        subset_dict = ConditionalPriorDict({key: self[key] for key in use_keys})
+        if set(use_keys) == set(self.keys()):
+            subset_dict = self
+        else:
+            subset_dict = ConditionalPriorDict({key: self[key] for key in use_keys})
         if not subset_dict._resolved:
             raise IllegalConditionsException(
                 "The current set of priors contains unresolvable conditions."
