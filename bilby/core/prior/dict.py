@@ -613,8 +613,10 @@ class PriorDict(dict):
         samples = []
         for key, units in zip(keys, theta):
             samps = self[key].rescale(units)
+            samples.append(samps)
+        for i, samps in enumerate(samples):
             # turns 0d-arrays into scalars
-            samples.append(np.squeeze(samps).tolist())
+            samples[i] = np.squeeze(samps).tolist()
         return samples
 
     def test_redundancy(self, key, disable_logging=False):
