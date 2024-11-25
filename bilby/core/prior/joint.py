@@ -755,7 +755,8 @@ class MultivariateGaussianDist(BaseJointPriorDist):
 
     @mode.setter
     def mode(self, mode):
-        if not np.isdtype(np.asarray(mode).dtype, "integral"):
+        mode = np.asarray(mode)
+        if not mode.dtype == int:
             raise ValueError("The mode to set must have integral data type.")
         if np.any(mode >= self.nmodes) or np.any(mode < 0):
             raise ValueError("The value of mode cannot be higher than the number of modes or smaller than zero.")
