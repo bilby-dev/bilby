@@ -479,7 +479,7 @@ class PriorDict(dict):
     def _integrate_normalization_factor_from_qmc_quad(self, keys, sampling_chunk):
         qrng = Halton(len(keys), seed=random.rng)
         theta = qrng.random(sampling_chunk).T
-        samples = np.array(self.rescale(keys=keys, theta=theta)).reshape((len(keys), -1))
+        samples = self.rescale(keys=keys, theta=theta)
         samples = {key: samps for key, samps in zip(keys, samples)}
         factor = np.mean(self.evaluate_constraints(samples))
         return factor

@@ -299,7 +299,7 @@ class TestPriorDict(unittest.TestCase):
         prior_y = bilby.prior.Uniform(-1, 1, name="y")
 
         def radius_squared(sample_dict):
-            sample_dict["constraint"] = sample_dict["x"] ** 2 + sample_dict["y"] ** 2
+            sample_dict["constraint"] = np.array(sample_dict["x"]) ** 2 + np.array(sample_dict["y"]) ** 2
             return sample_dict
 
         r = 1
