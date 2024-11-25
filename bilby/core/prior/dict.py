@@ -550,18 +550,20 @@ class PriorDict(dict):
         for key in sample_keys:
             if isinstance(self[key], JointPrior):
                 dist_keys = set(self[key].dist.names)
-                missing_keys = list(dist_keys - set(keys))
-                sample_keys.extend(missing_keys)
+                missing_keys = tuple(dist_keys - set(sample_keys))
+                sample_keys += missing_keys
+                for key in missing_keys:
+                    self.sample_subset(missing_keys, 1)
 
         if method == "from_samples":
             integrator = self._integrate_normalization_factor_from_samples
         elif method == "qmc_quad":
             integrator = self._integrate_normalization_factor_from_qmc_quad
             try:
-                theta = np.random.uniform(0, 1, size=(len(keys), 1))
-                samples = self.rescale(keys, theta)
+                theta = np.random.uniform(0, 1, size=(len(sample_keys), 1))
+                samples = self.rescale(sample_keys, theta)
                 none_keys = []
-                for i, key in enumerate(keys):
+                for i, key in enumerate(sample_keys):
                     if samples[i] is None:
                         none_keys.append(key)
                 if len(none_keys) > 0:
