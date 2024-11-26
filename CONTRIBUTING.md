@@ -353,6 +353,6 @@ parts of the code. Note that this document is not programmatically generated and
 so may get out of date with time. If you notice something wrong, please open an
 issue.
 
-![bilby overview](docs/images/bilby_layout.png)
+![bilby overview](https://raw.githubusercontent.com/bilby-dev/bilby/main/docs/images/bilby_layout.png)
 
 **Note** this layout is not comprehensive, for example only a few example "Priors" are shown.
