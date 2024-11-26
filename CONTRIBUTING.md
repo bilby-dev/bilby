@@ -312,7 +312,7 @@ review the change.
 
 ## Making releases
 
-**Note:** releases should be made in coordination with other developers and
+**Note:** releases should be made in coordination with other developers and,
 doing so requires certain permissions.
 
 ### Versioning
@@ -322,20 +322,20 @@ and versions should have the format `MAJOR.MINOR.PATCH`.
 The version tag should also start with `v` e.g. `v2.4.0`.
 
 `bilby` uses `setuptools_scm` to automatically set the version based on git tags.
-This means no manual changes are needed to the version number when making a release.
+This means no manual changes are needed to the version number are required.
 
 ### Updating the changelog
 
 Before making a release, the [changelog](https://github.com/bilby-dev/bilby/blob/main/CHANGELOG.md)
 should be updated to include the changes since the last release. This should
 be done by a new pull request.
-We roughly follow style proposed in [keep a changelog](https://keepachangelog.com/en/1.1.0/)
+We roughly follow the style proposed in [keep a changelog](https://keepachangelog.com/en/1.1.0/)
 
 When making a changelog keep the following in mind:
 
-- Only document meaningful changes to the code. Changes to e.g. the CI or test suite do not need to be included.
+- Only document meaningful changes to the code. Changes to, e.g., the CI or test suite do not need to be included.
 - Include links to the relevant PRs
-- Remember to updated the URLs at the bottom of changelog file
+- Remember to update the URLs at the bottom of changelog file
 
 ### Making the release on GitHub
 
@@ -346,7 +346,7 @@ Once the changelog has been updated, follow these steps for making a release:
 
 1. Navigate to https://github.com/bilby-dev/bilby/releases.
 2. Click `Draft new release`.
-3. Select a existing tag that does not have a release or specify the name of a
+3. Select an existing tag that does not have a release or specify the name of a
 new tag that will be made when the release is made.
 4. Specify the version as the title, e.g. `v2.4.0`.
 5. Copy the relevant section from the changelog and include a link to the full changelog, e.g.
@@ -357,14 +357,15 @@ If making a pre-release, make sure `Set as a pre-release` is checked.
 8. Click `Publish release`.
 
 Once step 8 is complete, the CI will trigger and the new release will be 
-automatically uploaded to PyPI. Check the CI workflow completed successfully.
+automatically uploaded to PyPI. Check that the CI workflow completed successfully.
+After this, you should see the new release on PyPI.
 
-**Note:** pre-releases will not show up as the latest release on PyPI but they
+**Note:** pre-releases will not show up as the latest release on PyPI, but they
 are listed under [Release history](https://pypi.org/project/bilby/#history)
 
 ### Updating conda-forge
 
-**Note:** we do not current release pre-releases on `conda-forge`
+**Note:** we do not currently release pre-releases on `conda-forge`
 
 `conda-forge` is not automatically updated when a new release is made, but an 
 pull request should be opened automatically on the [bilby feedstock](https://github.com/conda-forge/bilby-feedstock)
