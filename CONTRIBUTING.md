@@ -360,6 +360,9 @@ Once step 8 is complete, the CI will trigger and the new release will be
 automatically uploaded to PyPI. Check that the CI workflow completed successfully.
 After this, you should see the new release on PyPI.
 
+If the CI workflow fails, please contact Colm Talbot (@ColmTalbot) and
+Michael Williams (@mj-will).
+
 **Note:** pre-releases will not show up as the latest release on PyPI, but they
 are listed under [Release history](https://pypi.org/project/bilby/#history)
 
