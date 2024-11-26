@@ -8,7 +8,7 @@ have some familiarity with python and git.
 3. [Automated Code Checking](#automated-code-checking)
 4. [Unit Testing](#unit-testing)
 5. [Code relevance](#code-relevance)
-6. [Pull requests](#pull-requets)
+6. [Pull requests](#pull-requests)
 7. [Typical workflow](#typical-workflow)
 8. [Hints and tips](#hints-and-tips)
 9. [Code overview](#code-overview)
