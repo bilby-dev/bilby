@@ -814,9 +814,9 @@ class CBCPriorDict(ConditionalPriorDict):
 
     @property
     def _cosmological_priors(self):
-        return {
+        return [
             key for key, prior in self.items() if isinstance(prior, Cosmological)
-        }
+        ]
 
     @property
     def is_cosmological(self):
