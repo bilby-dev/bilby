@@ -117,6 +117,18 @@ class CompactBinaryCoalescenceResult(CoreResult):
         return self.__get_from_nested_meta_data(
             'likelihood', 'parameter_conversion')
 
+    @property
+    def cosmology(self):
+        """The global cosmology used in the analysis.
+
+        If the cosmology is not set, the default cosmology is returned.
+        See :py:func:`bilby.gw.cosmology.get_cosmology` for details.
+
+        .. versionadded:: 2.5.0
+        """
+        from .cosmology import get_cosmology
+        return get_cosmology()
+
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
 
