@@ -3,6 +3,7 @@ import shutil
 import unittest
 
 import pandas as pd
+from parameterized import parameterized
 
 import bilby
 
@@ -199,6 +200,15 @@ class TestCBCResult(unittest.TestCase):
         self.assertEqual(
             self.result.detector_injection_properties("not_a_detector"), None
         )
+
+    @parameterized.expand(["Planck18", "Planck15", "Planck15_LAL"])
+    def test_cosmology(self, cosmology):
+        from bilby.gw.cosmology import get_cosmology, set_cosmology
+        set_cosmology(cosmology)
+        cosmo = get_cosmology()
+        self.assertEqual(self.result.cosmology, cosmo)
+        # Reset the cosmology to the default
+        set_cosmology("Planck15")
 
 
 if __name__ == "__main__":
