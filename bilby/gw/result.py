@@ -19,6 +19,14 @@ class CompactBinaryCoalescenceResult(CoreResult):
     of compact binaries.
     """
     def __init__(self, **kwargs):
+
+        # Ensure cosmology is always stored in the meta_data
+        if "meta_data" not in kwargs:
+            kwargs["meta_data"] = dict()
+        if "cosmology" not in kwargs["meta_data"]:
+            from .cosmology import get_cosmology
+            kwargs["meta_data"]["cosmology"] = get_cosmology()
+
         super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
     def __get_from_nested_meta_data(self, *keys):
@@ -121,13 +129,9 @@ class CompactBinaryCoalescenceResult(CoreResult):
     def cosmology(self):
         """The global cosmology used in the analysis.
 
-        If the cosmology is not set, the default cosmology is returned.
-        See :py:func:`bilby.gw.cosmology.get_cosmology` for details.
-
         .. versionadded:: 2.5.0
         """
-        from .cosmology import get_cosmology
-        return get_cosmology()
+        return self.__get_from_nested_meta_data('cosmology')
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
