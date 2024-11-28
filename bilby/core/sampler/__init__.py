@@ -251,6 +251,14 @@ def run_sampler(
     meta_data["likelihood"] = likelihood.meta_data
     meta_data["loaded_modules"] = loaded_modules_dict()
     meta_data["environment_packages"] = env_package_list(as_dataframe=True)
+    # Add the cosmology if available
+    if "cosmology" not in meta_data:
+        try:
+            from bilby.gw.cosmology import get_cosmology
+
+            meta_data["cosmology"] = get_cosmology()
+        except ImportError:
+            logger.info("Could not specify cosmology in meta data")
 
     if command_line_args.bilby_zero_likelihood_mode:
         from bilby.core.likelihood import ZeroLikelihood
