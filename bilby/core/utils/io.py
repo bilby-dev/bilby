@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 
 from .log import logger
-from .introspection import infer_args_from_method
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
@@ -87,11 +86,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
 
 
 def encode_astropy_cosmology(obj):
-    cls_name = obj.__class__.__name__
-    dct = {key: getattr(obj, key) for key in infer_args_from_method(obj.__init__)}
-    dct["__cosmology__"] = True
-    dct["__name__"] = cls_name
-    return dct
+    return {"__cosmology__": True, **obj.to_format("mapping")}
 
 
 def encode_astropy_quantity(dct):
@@ -103,11 +98,10 @@ def encode_astropy_quantity(dct):
 
 def decode_astropy_cosmology(dct):
     try:
-        from astropy import cosmology as cosmo
+        from astropy.cosmology import Cosmology
 
-        cosmo_cls = getattr(cosmo, dct["__name__"])
-        del dct["__cosmology__"], dct["__name__"]
-        return cosmo_cls(**dct)
+        del dct["__cosmology__"]
+        return Cosmology.from_format(dct, format="mapping")
     except ImportError:
         logger.debug(
             "Cannot import astropy, cosmological priors may not be " "properly loaded."
@@ -241,6 +235,8 @@ def decode_from_hdf5(item):
             output = item
     elif isinstance(item, np.bool_):
         output = bool(item)
+    elif isinstance(item, dict) and "__cosmology__" in item:
+        output = decode_astropy_cosmology(item)
     else:
         output = item
     return output
@@ -313,7 +309,14 @@ def encode_for_hdf5(key, item):
     elif isinstance(item, datetime.timedelta):
         output = item.total_seconds()
     else:
-        raise ValueError(f'Cannot save {key}: {type(item)} type')
+        try:
+            from astropy import cosmology as cosmo
+
+            if isinstance(item, cosmo.FLRW):
+                output = encode_astropy_cosmology(item)
+        except ImportError:
+            logger.debug("Cannot import astropy, cannot write cosmological priors")
+            raise ValueError(f'Cannot save {key}: {type(item)} type')
     return output
 
 
