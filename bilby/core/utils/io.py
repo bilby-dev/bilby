@@ -329,8 +329,6 @@ def decode_from_hdf5(item):
             output = item
     elif isinstance(item, np.bool_):
         output = bool(item)
-    elif isinstance(item, dict) and "__cosmology__" in item:
-        output = decode_astropy_cosmology(item)
     else:
         output = item
     return output
@@ -353,6 +351,13 @@ def encode_for_hdf5(key, item):
         Input item converted into HDF5 saveable format
     """
     from ..prior.dict import PriorDict
+
+    try:
+        from astropy import cosmology as cosmo, units
+    except ImportError:
+        logger.debug("Cannot import astropy, cannot write cosmological priors")
+        cosmo = None
+        units = None
 
     if isinstance(item, np.int_):
         item = int(item)
@@ -392,6 +397,12 @@ def encode_for_hdf5(key, item):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
         output = item.to_dict(orient="list")
+    elif cosmo is not None and isinstance(item, cosmo.FLRW):
+        output = encode_astropy_cosmology(item)
+    elif units is not None and isinstance(item, units.Quantity):
+        output = encode_astropy_quantity(item)
+    elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+        output = encode_astropy_unit(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
@@ -403,18 +414,26 @@ def encode_for_hdf5(key, item):
     elif isinstance(item, datetime.timedelta):
         output = item.total_seconds()
     else:
-        try:
-            from astropy import cosmology as cosmo, units
+        raise ValueError(f'Cannot save {key}: {type(item)} type')
+    return output
 
-            if isinstance(item, cosmo.FLRW):
-                return encode_astropy_cosmology(item)
-            if isinstance(item, units.Quantity):
-                return encode_astropy_quantity(item)
-            if isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
-                return encode_astropy_unit(item)
-        except ImportError:
-            logger.debug("Cannot import astropy, cannot write cosmological priors")
-            raise ValueError(f'Cannot save {key}: {type(item)} type')
+
+def decode_hdf5_dict(output):
+    """Decode a dictionary constructed from a HDF5 file.
+
+    This handles decoding of Bilby types and astropy types from the dictionary.
+
+    .. versionadded:: 2.5.0
+    """
+    if ("__function__" in output) or ("__class__" in output):
+        default = ".".join([output["__module__"], output["__name__"]])
+        output = getattr(import_module(output["__module__"]), output["__name__"], default)
+    elif "__cosmology__" in output:
+        output = decode_astropy_cosmology(output)
+    elif "__astropy_quantity__" in output:
+        output = decode_astropy_quantity(output)
+    elif "__astropy_unit__" in output:
+        output = decode_astropy_unit(output)
     return output
 
 
@@ -423,6 +442,9 @@ def recursively_load_dict_contents_from_group(h5file, path):
     Recursively load a HDF5 file into a dictionary
 
     .. versionadded:: 1.1.0
+
+    .. versionchanged: 2.5.0
+        Now decodes astropy and bilby types
 
     Parameters
     ----------
@@ -446,6 +468,10 @@ def recursively_load_dict_contents_from_group(h5file, path):
             output[key] = recursively_load_dict_contents_from_group(
                 h5file, path + key + "/"
             )
+    # Some items may be encoded as dictionaries, so we need to decode them
+    # after the dictionary has been constructed.
+    # This includes decoding astropy and bilby types
+    output = decode_hdf5_dict(output)
     return output
 
 
