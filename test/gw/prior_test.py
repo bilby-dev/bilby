@@ -174,11 +174,11 @@ class TestBBHPriorDict(unittest.TestCase):
         self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
             minimum=10, maximum=10000, name="luminosity_distance"
         )
-        self.assertTrue(self.bbh_prior_dict.is_cosmological())
+        self.assertTrue(self.bbh_prior_dict.is_cosmological)
 
     def test_is_cosmological_false(self):
         del self.bbh_prior_dict["luminosity_distance"]
-        self.assertFalse(self.bbh_prior_dict.is_cosmological())
+        self.assertFalse(self.bbh_prior_dict.is_cosmological)
 
     def test_check_valid_cosmology(self):
         self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
