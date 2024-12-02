@@ -52,8 +52,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_cosmology(obj)
             if isinstance(obj, units.Quantity):
                 return encode_astropy_quantity(obj)
-            if isinstance(obj, units.PrefixUnit):
-                return str(obj)
+            if isinstance(obj, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+                return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
         if isinstance(obj, np.ndarray):
@@ -86,33 +86,98 @@ class BilbyJsonEncoder(json.JSONEncoder):
 
 
 def encode_astropy_cosmology(obj):
+    """Encode an astropy cosmology object to a dictionary.
+
+    Adds the key :code:`__cosmology__` to the dictionary to indicate that the
+    object is a cosmology object.
+
+    .. versionchange:: 2.5.0
+        Now uses the :code:`to_format("mapping")` method to encode the
+        cosmology object.
+    """
     return {"__cosmology__": True, **obj.to_format("mapping")}
 
 
 def encode_astropy_quantity(dct):
-    dct = dict(__astropy_quantity__=True, value=dct.value, unit=str(dct.unit))
+    """Encode an astropy quantity object to a dictionary.
+
+    Adds the key :code:`__astropy_quantity__` to the dictionary to indicate that
+    the object is a quantity object.
+    """
+    dct = dict(__astropy_quantity__=True, value=dct.value, unit=dct.unit.to_string())
     if isinstance(dct["value"], np.ndarray):
-        dct["value"] = list(dct["value"])
+        dct["value"] = dct["value"].tolist()
     return dct
 
 
-def decode_astropy_cosmology(dct):
-    try:
-        from astropy.cosmology import Cosmology
+def encode_astropy_unit(obj):
+    """Encode an astropy unit object to a dictionary.
 
-        del dct["__cosmology__"]
-        return Cosmology.from_format(dct, format="mapping")
-    except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be " "properly loaded."
-        )
-        return dct
+    Adds the key :code:`__astropy_unit__` to the dictionary to indicate that the
+    object is a unit object.
 
-
-def decode_astropy_quantity(dct):
+    .. versionadded:: 2.5.0
+    """
     try:
         from astropy import units
 
+        # Based on the JsonCustomEncoder in astropy.units.misc
+        if obj == units.dimensionless_unscaled:
+            return dict(__astropy_unit__=True, unit="dimensionless_unit")
+        return dict(__astropy_unit__=True, unit=obj.to_string())
+
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return obj
+
+
+def decode_astropy_cosmology(dct):
+    """Decode an astropy cosmology from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bibly.core.utils.io.encode_astropy_cosmology` and should have the
+    key :code:`__cosmology__`.
+
+    .. versionchange:: 2.5.0
+        Now uses the :code:`from_format` method to decode the cosmology object.
+        Still supports decoding result files that used the previous encoding.
+    """
+    try:
+        from astropy import cosmology as cosmo
+
+        del dct["__cosmology__"]
+        return cosmo.Cosmology.from_format(dct, format="mapping")
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return dct
+    except KeyError:
+        # Support decoding result files that used the previous encoding
+        logger.warning(
+            "Failed to decode cosmology, falling back to legacy decoding."
+            "Support for legacy decoding will be removed in a future release."
+        )
+        cosmo_cls = getattr(cosmo, dct["__name__"])
+        del dct["__cosmology__"], dct["__name__"]
+        return cosmo_cls(**dct)
+
+
+def decode_astropy_quantity(dct):
+    """Decode an astropy quantity from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_astropy_quantity` and should have the
+    key :code:`__astropy_quantity__`.
+    """
+    try:
+        from astropy import units
+        from astropy.cosmology import units as cosmo_units
+
+        # Enable cosmology units such as redshift
+        units.add_enabled_units(cosmo_units)
         if dct["value"] is None:
             return None
         else:
@@ -120,7 +185,34 @@ def decode_astropy_quantity(dct):
             return units.Quantity(**dct)
     except ImportError:
         logger.debug(
-            "Cannot import astropy, cosmological priors may not be " "properly loaded."
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return dct
+
+
+def decode_astropy_unit(dct):
+    """Decode an astropy unit from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_astropy_unit` and should have the
+    key :code:`__astropy_unit__`.
+
+    .. versionadded:: 2.5.0
+    """
+    try:
+        from astropy import units
+        from astropy.cosmology import units as cosmo_units
+
+        # Enable cosmology units such as redshift
+        units.add_enabled_units(cosmo_units)
+        if dct["unit"] == "dimensionless_unit":
+            return units.dimensionless_unscaled
+        else:
+            del dct["__astropy_unit__"]
+            return units.Unit(dct["unit"])
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
         )
         return dct
 
@@ -164,6 +256,8 @@ def decode_bilby_json(dct):
         return decode_astropy_cosmology(dct)
     if dct.get("__astropy_quantity__", False):
         return decode_astropy_quantity(dct)
+    if dct.get("__astropy_unit__", False):
+        return decode_astropy_unit(dct)
     if dct.get("__array__", False):
         return np.asarray(dct["content"])
     if dct.get("__complex__", False):
@@ -310,10 +404,14 @@ def encode_for_hdf5(key, item):
         output = item.total_seconds()
     else:
         try:
-            from astropy import cosmology as cosmo
+            from astropy import cosmology as cosmo, units
 
             if isinstance(item, cosmo.FLRW):
-                output = encode_astropy_cosmology(item)
+                return encode_astropy_cosmology(item)
+            if isinstance(item, units.Quantity):
+                return encode_astropy_quantity(item)
+            if isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+                return encode_astropy_unit(item)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
             raise ValueError(f'Cannot save {key}: {type(item)} type')
