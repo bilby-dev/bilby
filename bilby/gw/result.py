@@ -496,8 +496,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
         fd_waveforms = list()
         td_waveforms = list()
-        for _, params in samples.iterrows():
-            params = dict(params)
+        for params in samples.itertuples(index=False):
+            params = dict(params._asdict())
             wf_pols = waveform_generator.frequency_domain_strain(params)
             fd_waveform = interferometer.get_detector_response(wf_pols, params)
             fd_waveforms.append(fd_waveform[frequency_idxs])
