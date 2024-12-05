@@ -711,7 +711,7 @@ class Dynesty(NestedSampler):
                 self._add_live()
                 self.plot_current_state()
                 self._remove_live()
-        
+
         self._remove_live()
         sampler_kwargs["add_live"] = True
         self.sampler.run_nested(**sampler_kwargs)
