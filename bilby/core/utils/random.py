@@ -15,6 +15,7 @@ def seed(seed):
 
     Generator.rng = default_rng(seed)
     global_meta_data.add_to_meta_data("rng", Generator.rng)
+    global_meta_data.add_to_meta_data("seed", seed)
 
 
 def generate_seeds(nseeds):
