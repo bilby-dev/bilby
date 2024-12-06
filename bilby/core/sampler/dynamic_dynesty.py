@@ -44,6 +44,12 @@ class DynamicDynesty(Dynesty):
     def finalize_sampler_kwargs(self, sampler_kwargs):
         sampler_kwargs["maxcall"] = self.sampler.ncall + self.n_check_point
 
+    def _add_live(self):
+        pass
+
+    def _remove_live(self):
+        pass
+
     def read_saved_state(self, continuing=False):
         resume = super(DynamicDynesty, self).read_saved_state(continuing=continuing)
         if not resume:
