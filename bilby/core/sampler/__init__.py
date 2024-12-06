@@ -7,6 +7,7 @@ from ..utils import (
     command_line_args,
     env_package_list,
     get_entry_points,
+    global_meta_data,
     loaded_modules_dict,
     logger,
 )
@@ -251,6 +252,7 @@ def run_sampler(
     meta_data["likelihood"] = likelihood.meta_data
     meta_data["loaded_modules"] = loaded_modules_dict()
     meta_data["environment_packages"] = env_package_list(as_dataframe=True)
+    meta_data["global_meta_data"] = global_meta_data
 
     if command_line_args.bilby_zero_likelihood_mode:
         from bilby.core.likelihood import ZeroLikelihood
