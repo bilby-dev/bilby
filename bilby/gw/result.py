@@ -20,12 +20,14 @@ class CompactBinaryCoalescenceResult(CoreResult):
     """
     def __init__(self, **kwargs):
 
-        # Ensure cosmology is always stored in the meta_data
         if "meta_data" not in kwargs:
             kwargs["meta_data"] = dict()
-        if "cosmology" not in kwargs["meta_data"]:
+        if "global_meta_data" not in kwargs:
+            kwargs["meta_data"]["global_meta_data"] = dict()
+        # Ensure cosmology is always stored in the meta_data
+        if "cosmology" not in kwargs["meta_data"]["global_meta_data"]:
             from .cosmology import get_cosmology
-            kwargs["meta_data"]["cosmology"] = get_cosmology()
+            kwargs["meta_data"]["global_meta_data"]["cosmology"] = get_cosmology()
 
         super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
@@ -131,7 +133,9 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
         .. versionadded:: 2.5.0
         """
-        return self.__get_from_nested_meta_data('cosmology')
+        return self.__get_from_nested_meta_data(
+            'global_meta_data', 'cosmology'
+        )
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
