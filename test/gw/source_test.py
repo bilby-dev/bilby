@@ -298,6 +298,7 @@ class TestEccentricLalBBH(unittest.TestCase):
             )
 
 
+@pytest.mark.requires_roqs
 class TestROQBBH(unittest.TestCase):
     def setUp(self):
         roq_dir = "/roq_basis"

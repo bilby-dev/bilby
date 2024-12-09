@@ -157,6 +157,7 @@ class TestMarginalizedLikelihood(unittest.TestCase):
             bilby.run_sampler(like, new_prior)
 
 
+@pytest.mark.requires_roqs
 class TestMarginalizations(unittest.TestCase):
     """
     Test all marginalised likelihoods matches brute force version.
