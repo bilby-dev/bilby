@@ -209,7 +209,7 @@ class TestCBCResult(BaseCBCResultTest):
     def test_cosmology(self):
         self.assertEqual(
             self.result.cosmology,
-            self.meta_data["cosmology"],
+            self.meta_data["global_meta_data"]["cosmology"],
         )
 
 
