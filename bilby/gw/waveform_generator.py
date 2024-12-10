@@ -459,7 +459,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         else:
             dtype = float
             array = self.time_array
-        
+
         h_plus = np.zeros(array.shape, dtype=dtype)
         h_cross = np.zeros(array.shape, dtype=dtype)
 
@@ -472,26 +472,26 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         else:
             h_plus[:len(hpc.hp)] = hpc.hp
             h_cross[:len(hpc.hc)] = hpc.hc
-        
+
         return dict(plus=h_plus, cross=h_cross)
 
     _all_parameters = {
-            "mass_1",
-            "mass_2",
-            "luminosity_distance",
-            "a_1",
-            "tilt_1",
-            "phi_12",
-            "a_2",
-            "tilt_2",
-            "phi_jl",
-            "theta_jn",
-            "phase",
-            "eccentricity",
-            "mean_per_ano",
-            "lambda_1",
-            "lambda_2",
-        }
+        "mass_1",
+        "mass_2",
+        "luminosity_distance",
+        "a_1",
+        "tilt_1",
+        "phi_12",
+        "a_2",
+        "tilt_2",
+        "phi_jl",
+        "theta_jn",
+        "phase",
+        "eccentricity",
+        "mean_per_ano",
+        "lambda_1",
+        "lambda_2",
+    }
 
     def _parameters_from_source_model(self):
         return self._all_parameters.difference(self.defaults.keys())
