@@ -87,6 +87,11 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
     This version is only intended to be used with `SEOBNRv5HM` and `SEOBNRv5PHM` and
     does not have full functionality for other waveform models.
     """
+    logger.warning(
+        "bilby.gw.source.gwsignal_binary_black_hole is deprecated and will be removed "
+        "in a future release, use bilby.gw.waveform_generator.GWSignalWaveformGenerator"
+        " instead."
+    )
 
     from lalsimulation.gwsignal import GenerateFDWaveform
     from lalsimulation.gwsignal.models import gwsignal_get_waveform_generator
