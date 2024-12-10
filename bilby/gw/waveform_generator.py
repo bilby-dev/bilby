@@ -3,6 +3,7 @@ import numpy as np
 from ..core import utils
 from ..core.series import CoupledTimeAndFrequencySeries
 from ..core.utils import PropertyAccessor
+from ..core.utils import logger
 from .conversion import convert_to_lal_binary_black_hole_parameters
 from .utils import lalsim_GetApproximantFromString
 
@@ -63,7 +64,7 @@ class WaveformGenerator(object):
                                                                     start_time=start_time)
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
-        self.source_parameter_keys = self.__parameters_from_source_model()
+        self.source_parameter_keys = self._parameters_from_source_model()
         if parameter_conversion is None:
             self.parameter_conversion = convert_to_lal_binary_black_hole_parameters
         else:
@@ -212,7 +213,7 @@ class WaveformGenerator(object):
         dict: The dictionary of parameter key-value pairs
 
         """
-        return self.__parameters
+        return self._parameters
 
     @parameters.setter
     def parameters(self, parameters):
@@ -235,10 +236,10 @@ class WaveformGenerator(object):
         for key in self.source_parameter_keys.symmetric_difference(
                 new_parameters):
             new_parameters.pop(key)
-        self.__parameters = new_parameters
-        self.__parameters.update(self.waveform_arguments)
+        self._parameters = new_parameters
+        self._parameters.update(self.waveform_arguments)
 
-    def __parameters_from_source_model(self):
+    def _parameters_from_source_model(self):
         """
         Infer the named arguments of the source model.
 
@@ -271,3 +272,243 @@ class LALCBCWaveformGenerator(WaveformGenerator):
         if SimInspiralGetSpinFreqFromApproximant(waveform_approximant_number) == self.LAL_SIM_INSPIRAL_SPINS_FLOW:
             if self.waveform_arguments["reference_frequency"] != self.waveform_arguments["minimum_frequency"]:
                 raise ValueError(f"For {waveform_approximant}, reference_frequency must equal minimum_frequency")
+
+
+class GWSignalWaveformGenerator(WaveformGenerator):
+    """ A waveform generator with specific checks for GW signals """
+
+    def __init__(self, spinning=True, eccentric=False, tidal=False, **kwargs):
+        try:
+            from lalsimulation.gwsignal import gwsignal_get_waveform_generator
+        except ImportError:
+            raise ImportError("lalsimulation is not installed. Cannot use the GWSignal waveform generator.")
+        self.spinning = spinning
+        self.tidal = tidal
+        self.eccentric = eccentric
+        super().__init__(**kwargs)
+        self.waveform_approximant = self.waveform_arguments["waveform_approximant"]
+        self.generator = gwsignal_get_waveform_generator(self.waveform_approximant)
+
+    @property
+    def defaults(self):
+        output = dict()
+        if not self.eccentric:
+            output["eccentricity"] = 0.0
+            output["mean_per_ano"] = 0.0
+        if not self.tidal:
+            output["lambda_1"] = 0.0
+            output["lambda_2"] = 0.0
+        if not self.spinning:
+            output["a_1"] = 0.0
+            output["a_2"] = 0.0
+            output["tilt_1"] = 0.0
+            output["tilt_2"] = 0.0
+            output["phi_12"] = 0.0
+            output["phi_jl"] = 0.0
+        return output
+
+    def _from_bilby_parameters(self, **parameters):
+        from .conversion import bilby_to_lalsimulation_spins
+        from lalsimulation.gwsignal.core.parameter_conventions import Cosmo_units_dictionary
+        waveform_kwargs = dict(
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            maximum_frequency=self.frequency_array[-1],
+            mode_array=None,
+            pn_amplitude_order=0,
+        )
+        waveform_kwargs.update(self.waveform_arguments)
+        reference_frequency = waveform_kwargs['reference_frequency']
+        minimum_frequency = waveform_kwargs['minimum_frequency']
+        maximum_frequency = waveform_kwargs['maximum_frequency']
+        mode_array = waveform_kwargs['mode_array']
+        pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
+
+        if pn_amplitude_order != 0:
+            # This is to mimic the behaviour in
+            # https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiral.c#L5542
+            if pn_amplitude_order == -1:
+                if self.waveform_approximant in ["SpinTaylorT4", "SpinTaylorT5"]:
+                    pn_amplitude_order = 3  # Equivalent to MAX_PRECESSING_AMP_PN_ORDER in LALSimulation
+                else:
+                    pn_amplitude_order = 6  # Equivalent to MAX_NONPRECESSING_AMP_PN_ORDER in LALSimulation
+            start_frequency = minimum_frequency * 2. / (pn_amplitude_order + 2)
+        else:
+            start_frequency = minimum_frequency
+
+        params = self.defaults.copy()
+        params.update(parameters)
+        parameters = params
+
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+            theta_jn=parameters["theta_jn"],
+            phi_jl=parameters["phi_jl"],
+            tilt_1=parameters["tilt_1"],
+            tilt_2=parameters["tilt_2"],
+            phi_12=parameters["phi_12"],
+            a_1=parameters["a_1"],
+            a_2=parameters["a_2"],
+            mass_1=parameters["mass_1"] * utils.solar_mass,
+            mass_2=parameters["mass_2"] * utils.solar_mass,
+            reference_frequency=reference_frequency,
+            phase=parameters["phase"],
+        )
+
+        longitude_ascending_nodes = 0.0
+
+        gwsignal_dict = {
+            'mass1': parameters["mass_1"],
+            'mass2': parameters["mass_2"],
+            'spin1x': spin_1x,
+            'spin1y': spin_1y,
+            'spin1z': spin_1z,
+            'spin2x': spin_2x,
+            'spin2y': spin_2y,
+            'spin2z': spin_2z,
+            'deltaF': 1 / self.duration,
+            'deltaT': 1 / self.sampling_frequency,
+            'f22_start': start_frequency,
+            'f_max': maximum_frequency,
+            'f22_ref': reference_frequency,
+            'phi_ref': parameters["phase"],
+            'distance': parameters["luminosity_distance"],
+            'inclination': iota,
+            'eccentricity': parameters["eccentricity"],
+            'longAscNodes': longitude_ascending_nodes,
+            'meanPerAno': parameters["mean_per_ano"],
+            'condition': self.condition
+        }
+        gwsignal_dict = {
+            key: val << Cosmo_units_dictionary.get(key, 0)
+            for key, val in gwsignal_dict.items()
+        }
+
+        if mode_array is not None:
+            gwsignal_dict.update(ModeArray=mode_array)
+
+        extra_args = waveform_kwargs.copy()
+
+        for key in [
+                "waveform_approximant",
+                "reference_frequency",
+                "minimum_frequency",
+                "maximum_frequency",
+                "catch_waveform_errors",
+                "mode_array",
+                "pn_spin_order",
+                "pn_amplitude_order",
+                "pn_tidal_order",
+                "pn_phase_order",
+                "numerical_relativity_file",
+        ]:
+            if key in extra_args.keys():
+                del extra_args[key]
+
+        gwsignal_dict.update(extra_args)
+        return gwsignal_dict
+
+    @property
+    def condition(self):
+        condition = 0
+        if self.generator.metadata["implemented_domain"] == 'time':
+            condition = 1
+        return condition
+
+    def frequency_domain_strain(self, parameters):
+        from lalsimulation.gwsignal import GenerateFDWaveform
+        self.parameters = parameters
+        hpc = _try_waveform_call(
+            GenerateFDWaveform,
+            self._from_bilby_parameters(**self.parameters),
+            self.generator,
+            self.waveform_arguments.get("catch_waveform_errors", False)
+        )
+
+        wf = self._extract_waveform(hpc, "frequency")
+
+        frequency_bounds = (
+            (self.frequency_array >= self.waveform_arguments.get("minimum_frequency", 20.0))
+            * (self.frequency_array <= self.waveform_arguments.get("maximum_frequency", 50.0))
+        )
+        for key in wf:
+            wf[key] *= frequency_bounds
+
+        if self.condition:
+            dt = 1 / hpc.hp.df.value + hpc.hp.epoch.value
+            time_shift = np.exp(-1j * 2 * np.pi * dt * self.frequency_array[frequency_bounds])
+            for key in wf:
+                wf[key][frequency_bounds] *= time_shift
+
+        return wf
+
+    def time_domain_strain(self, parameters):
+        from lalsimulation.gwsignal import GenerateTDWaveform
+        self.parameters = parameters
+        hpc = _try_waveform_call(
+            GenerateTDWaveform,
+            self._from_bilby_parameters(**self.parameters),
+            self.generator,
+            self.waveform_arguments.get("catch_waveform_errors", False)
+        )
+        return self._extract_waveform(hpc, "time")
+
+    def _extract_waveform(self, hpc, kind):
+        if kind == "frequency":
+            dtype = complex
+            array = self.frequency_array
+        else:
+            dtype = float
+            array = self.time_array
+        
+        h_plus = np.zeros(array.shape, dtype=dtype)
+        h_cross = np.zeros(array.shape, dtype=dtype)
+
+        if len(hpc.hp) > len(array):
+            logger.debug(
+                f"GWsignal waveform longer than bilby's `{kind}_array`({len(hpc.hp)} "
+                f"vs {len(array)}). Truncating GWsignal array.")
+            h_plus = hpc.hp[:len(h_plus)]
+            h_cross = hpc.hc[:len(h_cross)]
+        else:
+            h_plus[:len(hpc.hp)] = hpc.hp
+            h_cross[:len(hpc.hc)] = hpc.hc
+        
+        return dict(plus=h_plus, cross=h_cross)
+
+    _all_parameters = {
+            "mass_1",
+            "mass_2",
+            "luminosity_distance",
+            "a_1",
+            "tilt_1",
+            "phi_12",
+            "a_2",
+            "tilt_2",
+            "phi_jl",
+            "theta_jn",
+            "phase",
+            "eccentricity",
+            "mean_per_ano",
+            "lambda_1",
+            "lambda_2",
+        }
+
+    def _parameters_from_source_model(self):
+        return self._all_parameters.difference(self.defaults.keys())
+
+
+def _try_waveform_call(func, parameters, generator, catch_waveform_errors):
+    try:
+        return func(parameters, generator)
+    except Exception as e:
+        if not catch_waveform_errors:
+            raise
+        else:
+            EDOM = "Input domain error" in e.args[0]
+            if EDOM:
+                logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                               "The parameters were {}\n".format(parameters) +
+                               "Likelihood will be set to -inf.")
+                return None
+            else:
+                raise
