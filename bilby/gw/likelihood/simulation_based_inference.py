@@ -29,7 +29,7 @@ class GenerateWhitenedIFONoise(GenerateData):
             call_parameter_key_list=["sigma"],
         )
         self.ifo = ifo
-
+      
     def get_data(self, parameters: dict):
         self.parameters.update(parameters)
         sigma = self.parameters["sigma"]
@@ -39,6 +39,7 @@ class GenerateWhitenedIFONoise(GenerateData):
             start_time=self.ifo.start_time,
         )
         whitened_strain = self.ifo.whitened_time_domain_strain * np.array(sigma)
+        
         return whitened_strain
 
 
@@ -65,7 +66,7 @@ class GenerateWhitenedSignal(GenerateData):
         )
         self.ifo = ifo
         self.waveform_generator = waveform_generator
-
+        
     def get_data(self, parameters: dict):
         self.parameters.update(parameters)
         parameters = self.parameters
@@ -91,7 +92,15 @@ class GenerateWhitenedSignal(GenerateData):
         ht = np.roll(ht, nroll)
 
         # Whiten the time-domain signal
-        hf = np.fft.rfft(ht)
-        ht_tilde = np.fft.irfft(hf / (self.ifo.amplitude_spectral_density_array * np.sqrt(self.ifo.duration / 4)))
+        frequency_window_factor = (
+            np.sum(self.ifo.frequency_mask)
+            / len(self.ifo.frequency_mask)
+        )
+        
+        hf = np.fft.rfft(ht) / self.ifo.sampling_frequency
+        ht_tilde = (
+            np.fft.irfft(hf / (self.ifo.amplitude_spectral_density_array * np.sqrt(self.ifo.duration / 4)))
+            * np.sqrt(np.sum(self.ifo.frequency_mask)) / frequency_window_factor
+        )
 
         return ht_tilde

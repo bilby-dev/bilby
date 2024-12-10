@@ -113,11 +113,14 @@ class GenerateDeterministicModel(GenerateData):
 
 
 class AdditiveSignalAndNoise(GenerateData):
-    def __init__(self, signal, noise):
+    def __init__(self, ifo, signal, noise, use_mask, times):
 
         self.signal = signal
         self.noise = noise
-
+        self.ifo= ifo
+        self.use_mask=use_mask
+        self.time_lower=times[0]
+        self.time_upper=times[1]
         # Extract the parameters and keys
         call_parameter_key_list = (
             self.signal.call_parameter_key_list + self.noise.call_parameter_key_list
@@ -147,6 +150,13 @@ class AdditiveSignalAndNoise(GenerateData):
         }
         sdata = self.signal.get_data(sparameters)
         ndata = self.noise.get_data(nparameters)
+        #Taking only the piece necessary for the training
+        if self.use_mask==True:
+            window_start = self.ifo.start_time +2- self.time_lower
+            window_end = self.ifo.start_time + 2 + self.time_upper
+            mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
+            sdata=sdata[mask]
+            ndata=ndata[mask]
         return sdata + ndata
 
 
