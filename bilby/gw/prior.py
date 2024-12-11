@@ -508,7 +508,7 @@ class AlignedSpin(Interped):
         if a_prior_minimum == 0:
             a_prior_minimum += 1e-32
         aas = np.linspace(a_prior_minimum, a_prior.maximum, 1000)
-        yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
+        yy = [np.trapezoid(np.nan_to_num(a_prior.prob(aas) / aas *
                                      z_prior.prob(x / aas)), aas) for x in xx]
         super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
                                           latex_label=latex_label, unit=unit,
@@ -1477,7 +1477,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         from scipy.integrate import cumulative_trapezoid
         yy = self._all_interped(self.pix_xx)
-        yy /= np.trapz(yy, self.pix_xx)
+        yy /= np.trapezoid(yy, self.pix_xx)
         YY = cumulative_trapezoid(yy, self.pix_xx, initial=0)
         YY[-1] = 1
         self.inverse_cdf = interp1d(x=YY, y=self.pix_xx, bounds_error=True)
