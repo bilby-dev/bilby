@@ -7,6 +7,7 @@ from scipy.special import erfinv
 from .base import Prior, PriorException
 from ..utils import logger, infer_args_from_method, get_dict_with_properties
 from ..utils import random
+from ...compat.utils import xp_wrap
 
 
 class BaseJointPriorDist(object):
@@ -295,7 +296,8 @@ class BaseJointPriorDist(object):
         """
         return samps
 
-    def rescale(self, value, **kwargs):
+    @xp_wrap
+    def rescale(self, value, *, xp=np, **kwargs):
         """
         Rescale from a unit hypercube to JointPriorDist. Note that no
         bounds are applied in the rescale function. (child classes need to
@@ -317,7 +319,7 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = np.array(value)
+        samp = xp.array(value)
         if len(samp.shape) == 1:
             samp = samp.reshape(1, self.num_vars)
 
@@ -327,7 +329,7 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
-        return np.squeeze(samp)
+        return xp.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
         """
@@ -611,7 +613,9 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             scipy.stats.multivariate_normal(mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1])
         )
 
-    def _rescale(self, samp, **kwargs):
+    @xp_wrap
+    def _rescale(self, samp, *, xp=np, **kwargs):
+        print(samp, xp)
         try:
             mode = kwargs["mode"]
         except KeyError:
@@ -626,7 +630,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = self.mus[mode] + self.sigmas[mode] * np.einsum(
+        samp = self.mus[mode] + self.sigmas[mode] * xp.einsum(
             "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
         )
         return samp
@@ -778,7 +782,8 @@ class JointPrior(Prior):
         self._maximum = maximum
         self.dist.bounds[self.name] = (self.dist.bounds[self.name][0], maximum)
 
-    def rescale(self, val, **kwargs):
+    @xp_wrap
+    def rescale(self, val, *, xp=np, **kwargs):
         """
         Scale a unit hypercube sample to the prior.
 
@@ -793,11 +798,10 @@ class JointPrior(Prior):
         float:
             A sample from the prior parameter.
         """
-
         self.dist.rescale_parameters[self.name] = val
 
         if self.dist.filled_rescale():
-            values = np.array(list(self.dist.rescale_parameters.values())).T
+            values = xp.array(list(self.dist.rescale_parameters.values())).T
             samples = self.dist.rescale(values, **kwargs)
             self.dist.reset_rescale()
             return samples

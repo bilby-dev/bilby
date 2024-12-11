@@ -3,6 +3,7 @@ from scipy.integrate import trapezoid
 
 from .base import Prior
 from ..utils import logger, WrappedInterp1d as interp1d
+from ...compat.utils import xp_wrap
 
 
 class Interped(Prior):
@@ -80,7 +81,8 @@ class Interped(Prior):
     def cdf(self, val):
         return self.cumulative_distribution(val)
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the prior.
 
