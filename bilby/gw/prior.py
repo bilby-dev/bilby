@@ -812,6 +812,68 @@ class CBCPriorDict(ConditionalPriorDict):
         """ Return true if priors include phase parameters """
         return self.is_nonempty_intersection("phase")
 
+    @property
+    def _cosmological_priors(self):
+        return [
+            key for key, prior in self.items() if isinstance(prior, Cosmological)
+        ]
+
+    @property
+    def is_cosmological(self):
+        """Return True if any of the priors are cosmological."""
+        if self._cosmological_priors:
+            return True
+        else:
+            return False
+
+    @property
+    def cosmology(self):
+        """The cosmology used in the priors."""
+        if self.is_cosmological:
+            return self[self._cosmological_priors[0]].cosmology
+        else:
+            return None
+
+    def check_valid_cosmology(self, error=True, warning=False):
+        """Check that all cosmological priors use the same cosmology.
+
+        .. versionadded:: 2.5.0
+
+        Parameters
+        ==========
+        error: bool
+            Whether to raise a ValueError on failure.
+        warning: bool
+            Whether to log a warning on failure.
+
+        Returns
+        =======
+        bool: whether the cosmological priors are valid.
+
+        Raises
+        ======
+        ValueError: if error is True and the cosmological priors are invalid.
+        """
+        cosmological_priors = self._cosmological_priors
+        if not cosmological_priors:
+            return True
+
+        from astropy.cosmology import cosmology_equal
+
+        cosmologies = [self[key].cosmology for key in self._cosmological_priors]
+        if all(cosmology_equal(cosmologies[0], c, allow_equivalent=True) for c in cosmologies[1:]):
+            return True
+
+        message = (
+            "All cosmological priors must use the same cosmology. "
+            f"Found: {cosmologies}"
+        )
+        if warning:
+            logger.warning(message)
+            return False
+        if error:
+            raise ValueError(message)
+
     def validate_prior(self, duration, minimum_frequency, N=1000, error=True, warning=False):
         """ Validate the prior is suitable for use
 
