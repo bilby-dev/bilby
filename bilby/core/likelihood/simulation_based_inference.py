@@ -151,7 +151,7 @@ class AdditiveSignalAndNoise(GenerateData):
         sdata = self.signal.get_data(sparameters)
         ndata = self.noise.get_data(nparameters)
         #Taking only the piece necessary for the training
-        if self.use_mask==True:
+        if self.use_mask:
             window_start = self.ifo.start_time +2- self.time_lower
             window_end = self.ifo.start_time + 2 + self.time_upper
             mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
