@@ -848,6 +848,29 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
+    
+    def test_jax_rescale(self):
+        import jax
+
+        points = jax.numpy.linspace(1e-3, 1 - 1e-3, 10)
+        for prior in self.priors:
+            if isinstance(
+                prior, (
+                    bilby.core.prior.StudentT,
+                    bilby.core.prior.Beta,
+                    bilby.core.prior.Gamma,
+                ),
+            ) or bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                continue
+            print(prior)
+            scaled = prior.rescale(points)
+            assert isinstance(scaled, jax.Array)
+            if isinstance(prior, bilby.core.prior.DeltaFunction):
+                continue
+            assert max(abs(prior.cdf(scaled) - points)) < 1e-6
+            probs = prior.prob(scaled)
+            assert min(probs) > 0
+            assert max(abs(jax.numpy.log(probs) - prior.ln_prob(scaled))) < 1e-6
 
 
 if __name__ == "__main__":
