@@ -172,7 +172,8 @@ class PowerLaw(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=np):
         if self.alpha == -1:
-            _cdf = xp.log(val / self.minimum) / xp.log(self.maximum / self.minimum)
+            with np.errstate(invalid="ignore"):
+                _cdf = xp.log(val / self.minimum) / xp.log(self.maximum / self.minimum)
         else:
             _cdf = (
                 (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
@@ -733,10 +734,7 @@ class LogNormal(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return (
-            xp.exp(-(xp.log(xp.maximum(val, self.minimum)) - self.mu) ** 2 / self.sigma ** 2 / 2)
-                / xp.sqrt(2 * np.pi) / val / self.sigma
-        ) * (val > self.minimum)
+        return xp.exp(self.ln_prob(val, xp=xp))
 
     @xp_wrap
     def ln_prob(self, val, *, xp=np):
@@ -750,16 +748,18 @@ class LogNormal(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return (
-            -(xp.log(val) - self.mu) ** 2 / self.sigma ** 2 / 2
-            - xp.log(xp.sqrt(2 * np.pi) * val * self.sigma)
-        ) + xp.log(val > self.minimum)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return xp.nan_to_num((
+                -(xp.log(xp.maximum(val, self.minimum)) - self.mu) ** 2 / self.sigma ** 2 / 2
+                - xp.log(xp.sqrt(2 * np.pi) * val * self.sigma)
+            ) + xp.log(val > self.minimum), nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
 
     @xp_wrap
     def cdf(self, val, *, xp=np):
-        return 0.5 + erf(
-            (xp.log(xp.maximum(val, self.minimum)) - self.mu) / self.sigma / np.sqrt(2)
-        ) / 2
+        with np.errstate(divide="ignore"):
+            return 0.5 + erf(
+                (xp.log(xp.maximum(val, self.minimum)) - self.mu) / self.sigma / np.sqrt(2)
+            ) / 2
 
 
 class LogGaussian(LogNormal):
@@ -794,7 +794,8 @@ class Exponential(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return -self.mu * xp.log1p(-val)
+        with np.errstate(divide="ignore", over="ignore"):
+            return -self.mu * xp.log1p(-val)
 
     @xp_wrap
     def prob(self, val, *, xp=np):
@@ -808,7 +809,7 @@ class Exponential(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return xp.exp(-val / self.mu) / self.mu * (val >= self.minimum)
+        return xp.exp(self.ln_prob(val, xp=xp))
 
     @xp_wrap
     def ln_prob(self, val, *, xp=np):
@@ -822,11 +823,13 @@ class Exponential(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return -val / self.mu - xp.log(self.mu) + xp.log(val > self.minimum)
+        with np.errstate(divide="ignore"):
+            return -val / self.mu - xp.log(self.mu) + xp.log(val >= self.minimum)
 
     @xp_wrap
     def cdf(self, val, *, xp=np):
-        return xp.maximum(1. - xp.exp(-val / self.mu), 0)
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+            return xp.maximum(1. - xp.exp(-val / self.mu), 0)
 
 
 class StudentT(Prior):
@@ -869,12 +872,17 @@ class StudentT(Prior):
         'Rescale' a sample from the unit line element to the appropriate Student's t-prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Notes
+        =====
+        This explicitly casts to the requested backend, but the computation will be done by scipy.
         """
-        return (
-            xp.nan_to_num(stdtrit(self.df, val) * self.scale + self.mu)
-            + xp.log(val > 0)
-            - xp.log(val < 1)
-        )
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return (
+                xp.nan_to_num(stdtrit(self.df, val) * self.scale + self.mu)
+                + xp.log(val > 0)
+                - xp.log(val < 1)
+            )
 
     @xp_wrap
     def prob(self, val, *, xp=np):
@@ -902,9 +910,11 @@ class StudentT(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return gammaln(0.5 * (self.df + 1)) - gammaln(0.5 * self.df)\
-            - xp.log((np.pi * self.df)**0.5 * self.scale) - (self.df + 1) / 2 *\
-            xp.log(1 + ((val - self.mu) / self.scale) ** 2 / self.df)
+        return (
+            gammaln(0.5 * (self.df + 1)) - gammaln(0.5 * self.df)
+            - xp.log((np.pi * self.df)**0.5 * self.scale) - (self.df + 1) / 2
+            * xp.log(1 + ((val - self.mu) / self.scale) ** 2 / self.df)
+        )
 
     def cdf(self, val):
         return stdtr(self.df, (val - self.mu) / self.scale)
@@ -948,13 +958,21 @@ class Beta(Prior):
         self.alpha = alpha
         self.beta = beta
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the appropriate Beta prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Notes
+        =====
+        This explicitly casts to the requested backend, but the computation will be done by scipy.
         """
-        return betaincinv(self.alpha, self.beta, val) * (self.maximum - self.minimum) + self.minimum
+        return (
+            xp.asarray(betaincinv(self.alpha, self.beta, val)) * (self.maximum - self.minimum)
+            + self.minimum
+        )
 
     @xp_wrap
     def prob(self, val, *, xp=np):
@@ -983,42 +1001,18 @@ class Beta(Prior):
         Union[float, array_like]: Prior probability of val
         """
         _ln_prob = (
-            xlogy(self.alpha - 1, val - self.minimum)
-            + xlogy(self.beta - 1, self.maximum - val)
+            xlogy(xp.asarray(self.alpha - 1), val - self.minimum)
+            + xlogy(xp.asarray(self.beta - 1), self.maximum - val)
             - betaln(self.alpha, self.beta)
             - xlogy(self.alpha + self.beta - 1, self.maximum - self.minimum)
         )
-
-        # deal with the fact that if alpha or beta are < 1 you get infinities at 0 and 1
-        if isinstance(val, (float, int)):
-            if xp.isfinite(_ln_prob) and self.minimum <= val <= self.maximum:
-                return _ln_prob
-            return -xp.inf
-        else:
-            _ln_prob_sub = xp.full_like(val, -xp.inf)
-            idx = xp.isfinite(_ln_prob) & (val >= self.minimum) & (val <= self.maximum)
-            _ln_prob_sub[idx] = _ln_prob[idx]
-            return _ln_prob_sub
+        return xp.nan_to_num(_ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
 
     @xp_wrap
     def cdf(self, val, *, xp=np):
-        if isinstance(val, (float, int)):
-            if val > self.maximum:
-                return 1.
-            elif val < self.minimum:
-                return 0.
-            else:
-                return betainc(
-                    self.alpha, self.beta,
-                    (val - self.minimum) / (self.maximum - self.minimum)
-                )
-        else:
-            _cdf = np.nan_to_num(betainc(self.alpha, self.beta,
-                                 (val - self.minimum) / (self.maximum - self.minimum)))
-            _cdf *= val >= self.minimum
-            _cdf *= val <= self.maximum
-            _cdf += val > self.maximum
-            return _cdf
+        return xp.nan_to_num(
+            betainc(self.alpha, self.beta, (val - self.minimum) / (self.maximum - self.minimum))
+        ) + (val > self.maximum)
 
 
 class Logistic(Prior):
@@ -1057,7 +1051,9 @@ class Logistic(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return self.mu + self.scale * xp.log(xp.maximum(val / (1 - val), 0))
+        with np.errstate(divide="ignore"):
+            val = xp.asarray(val)
+            return self.mu + self.scale * xp.log(xp.maximum(val / (1 - val), 0))
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1072,7 +1068,8 @@ class Logistic(Prior):
         """
         return np.exp(self.ln_prob(val))
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np):
         """Returns the log prior probability of val.
 
         Parameters
@@ -1083,8 +1080,9 @@ class Logistic(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return -(val - self.mu) / self.scale -\
-            2. * np.log(1. + np.exp(-(val - self.mu) / self.scale)) - np.log(self.scale)
+        with np.errstate(over="ignore"):
+            return -(val - self.mu) / self.scale -\
+                2. * np.log1p(xp.exp(-(val - self.mu) / self.scale)) - np.log(self.scale)
 
     def cdf(self, val):
         return 1. / (1. + np.exp(-(val - self.mu) / self.scale))
@@ -1127,7 +1125,8 @@ class Cauchy(Prior):
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
         rescaled = self.alpha + self.beta * xp.tan(np.pi * (val - 0.5))
-        return rescaled
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return rescaled - xp.log(val < 1) + xp.log(val > 0)
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1193,15 +1192,17 @@ class Gamma(Prior):
         self.k = k
         self.theta = theta
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the appropriate Gamma prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return gammaincinv(self.k, val) * self.theta
+        return xp.asarray(gammaincinv(self.k, val)) * self.theta
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=np):
         """Return the prior probability of val.
 
         Parameters
@@ -1212,9 +1213,10 @@ class Gamma(Prior):
         =======
          Union[float, array_like]: Prior probability of val
         """
-        return np.exp(self.ln_prob(val))
+        return xp.exp(self.ln_prob(val))
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np):
         """Returns the log prior probability of val.
 
         Parameters
@@ -1225,20 +1227,16 @@ class Gamma(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        if isinstance(val, (float, int)):
-            if val < self.minimum:
-                _ln_prob = -np.inf
-            else:
-                _ln_prob = xlogy(self.k - 1, val) - val / self.theta - xlogy(self.k, self.theta) - gammaln(self.k)
-        else:
-            _ln_prob = -np.inf * np.ones(val.size)
-            idx = (val >= self.minimum)
-            _ln_prob[idx] = xlogy(self.k - 1, val[idx]) - val[idx] / self.theta\
+        with np.errstate(divide="ignore"):
+            ln_prob = (
+                xlogy(xp.asarray(self.k - 1), val) - val / self.theta
                 - xlogy(self.k, self.theta) - gammaln(self.k)
-        return _ln_prob
+            ) + xp.log(val >= self.minimum)
+        return xp.nan_to_num(ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=xp.inf)
 
-    def cdf(self, val):
-        return gammainc(self.k, xp.maximum(val, self.minimum) / self.theta)
+    @xp_wrap
+    def cdf(self, val, *, xp=np):
+        return gammainc(xp.asarray(self.k), xp.maximum(val, self.minimum) / self.theta)
 
 
 class ChiSquared(Gamma):

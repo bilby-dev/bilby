@@ -102,6 +102,19 @@ class TestSlabSpikeClasses(unittest.TestCase):
         del self.test_nodes_finite_support
         del self.test_nodes_infinite_support
 
+    def test_jax_methods(self):
+        import jax
+
+        points = jax.numpy.linspace(1e-3, 1 - 1e-3, 10)
+        for prior in self.slab_spikes:
+            scaled = prior.rescale(points)
+            assert isinstance(scaled, jax.Array)
+            if isinstance(prior, bilby.core.prior.DeltaFunction):
+                continue
+            probs = prior.prob(scaled)
+            assert min(probs) > 0
+            assert max(abs(jax.numpy.log(probs) - prior.ln_prob(scaled))) < 1e-6
+
     def test_prob_on_slab(self):
         for slab, slab_spike, test_nodes in zip(self.slabs, self.slab_spikes, self.test_nodes):
             expected = slab.prob(test_nodes) * slab_spike.slab_fraction
