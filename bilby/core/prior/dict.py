@@ -608,6 +608,8 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
         xp = array_namespace(theta)
 
         return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
@@ -837,6 +839,8 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
         xp = array_namespace(theta)
 
         keys = list(keys)
@@ -850,7 +854,7 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        return xp.array([result[key] for key in keys])
+        return xp.concatenate([result[key] for key in keys], axis=None)
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

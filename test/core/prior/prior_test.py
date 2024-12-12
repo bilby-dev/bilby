@@ -506,10 +506,14 @@ class TestPriorClasses(unittest.TestCase):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
             if prior.minimum == -np.inf:
-                prior.minimum = -1e5
+                minimum = -1e5
+            else:
+                minimum = prior.minimum
             if prior.maximum == np.inf:
-                prior.maximum = 1e5
-            domain = np.linspace(prior.minimum, prior.maximum, 1000)
+                maximum = 1e5
+            else:
+                maximum = prior.maximum
+            domain = np.linspace(minimum, maximum, 1000)
             self.assertTrue(all(prior.prob(domain) >= 0))
 
     def test_probability_surrounding_domain(self):
@@ -518,13 +522,14 @@ class TestPriorClasses(unittest.TestCase):
             # skip delta function prior in this case
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
-            surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
-            indomain = (surround_domain >= prior.minimum) | (
-                surround_domain <= prior.maximum
-            )
-            outdomain = (surround_domain < prior.minimum) | (
-                surround_domain > prior.maximum
-            )
+            with np.errstate(invalid="ignore"):
+                surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
+                indomain = (surround_domain >= prior.minimum) | (
+                    surround_domain <= prior.maximum
+                )
+                outdomain = (surround_domain < prior.minimum) | (
+                    surround_domain > prior.maximum
+                )
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_request():
                     continue
@@ -560,7 +565,7 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(0.0, 1e2, 1000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
-            self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+            self.assertAlmostEqual(np.trapezoid(prior.prob(domain), domain), 1, 3)
 
     def test_accuracy(self):
         """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
@@ -755,18 +760,12 @@ class TestPriorClasses(unittest.TestCase):
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
     
-    def test_jax_rescale(self):
+    def test_jax_methods(self):
         import jax
 
         points = jax.numpy.linspace(1e-3, 1 - 1e-3, 10)
         for prior in self.priors:
-            if isinstance(
-                prior, (
-                    bilby.core.prior.StudentT,
-                    bilby.core.prior.Beta,
-                    bilby.core.prior.Gamma,
-                ),
-            ) or bilby.core.prior.JointPrior in prior.__class__.__mro__:
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
             print(prior)
             scaled = prior.rescale(points)
