@@ -636,6 +636,8 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
         xp = array_namespace(theta)
 
         return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
@@ -863,6 +865,8 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
         xp = array_namespace(theta)
 
         keys = list(keys)
@@ -877,35 +881,7 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
-                joint[self[key].dist.distname] = [key]
-            elif isinstance(self[key], JointPrior):
-                joint[self[key].dist.distname].append(key)
-        for names in joint.values():
-            # this is needed to unpack how joint prior rescaling works
-            # as an example of a joint prior over {a, b, c, d} we might
-            # get the following based on the order within the joint prior
-            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
-            # -> [1, 2, 3, 4]
-            # -> {a: 1, b: 2, c: 3, d: 4}
-            values = xp.array([])
-            for key in names:
-                values = xp.concatenate([values, result[key]])
-            for key, value in zip(names, values):
-                result[key] = value
-
-        def safe_flatten(value):
-            """
-            this is gross but can be removed whenever we switch to returning
-            arrays, flatten converts 0-d arrays to 1-d so has to be special
-            cased
-            """
-            if isinstance(value, (float, int)):
-                return value
-            else:
-                return result[key].flatten()
-
-        return xp.array([safe_flatten(result[key]) for key in keys])
+        return xp.concatenate([result[key] for key in keys], axis=None)
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
