@@ -43,8 +43,8 @@ class GenerateWhitenedIFONoise(GenerateData):
         whitened_strain = self.ifo.whitened_time_domain_strain * np.array(sigma)
         #Taking only the piece necessary for the training
         if self.use_mask:
-            window_start = self.ifo.start_time +2- self.time_lower
-            window_end = self.ifo.start_time + 2 + self.time_upper
+            window_start = self.ifo.start_time +(self.ifo.duration/2.)- self.time_lower
+            window_end = self.ifo.start_time + (self.ifo.duration/2.) + self.time_upper
             mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
             whitened_strain=whitened_strain[mask]
         return whitened_strain
@@ -113,8 +113,8 @@ class GenerateWhitenedSignal(GenerateData):
         )
         #Taking only the piece necessary for the training
         if self.use_mask:
-            window_start = self.ifo.start_time +2- self.time_lower
-            window_end = self.ifo.start_time + 2 + self.time_upper
+            window_start = self.ifo.start_time +(self.ifo.duration/2.)- self.time_lower
+            window_end = self.ifo.start_time + (self.ifo.duration/2.) + self.time_upper
             mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
             ht_tilde=ht_tilde[mask]
 
