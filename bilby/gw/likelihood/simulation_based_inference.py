@@ -23,13 +23,15 @@ class GenerateWhitenedIFONoise(GenerateData):
     num_data:
     """
 
-    def __init__(self, ifo):
+    def __init__(self, ifo, use_mask, times):
         super(GenerateWhitenedIFONoise, self).__init__(
             parameters=dict(sigma=None),
             call_parameter_key_list=["sigma"],
         )
         self.ifo = ifo
-      
+        self.use_mask=use_mask
+        self.time_lower=times[0]
+        self.time_upper=times[1]
     def get_data(self, parameters: dict):
         self.parameters.update(parameters)
         sigma = self.parameters["sigma"]
@@ -39,7 +41,12 @@ class GenerateWhitenedIFONoise(GenerateData):
             start_time=self.ifo.start_time,
         )
         whitened_strain = self.ifo.whitened_time_domain_strain * np.array(sigma)
-        
+        #Taking only the piece necessary for the training
+        if self.use_mask:
+            window_start = self.ifo.start_time +2- self.time_lower
+            window_end = self.ifo.start_time + 2 + self.time_upper
+            mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
+            whitened_strain=whitened_strain[mask]
         return whitened_strain
 
 
@@ -56,7 +63,7 @@ class GenerateWhitenedSignal(GenerateData):
     bilby_prior:
     """
 
-    def __init__(self, ifo, waveform_generator, signal_prior):
+    def __init__(self, ifo, waveform_generator, signal_prior, use_mask, times):
         call_parameter_key_list = signal_prior.non_fixed_keys
         parameters = signal_prior.sample()
 
@@ -66,7 +73,9 @@ class GenerateWhitenedSignal(GenerateData):
         )
         self.ifo = ifo
         self.waveform_generator = waveform_generator
-        
+        self.use_mask=use_mask
+        self.time_lower=times[0]
+        self.time_upper=times[1]
     def get_data(self, parameters: dict):
         self.parameters.update(parameters)
         parameters = self.parameters
@@ -102,5 +111,11 @@ class GenerateWhitenedSignal(GenerateData):
             np.fft.irfft(hf / (self.ifo.amplitude_spectral_density_array * np.sqrt(self.ifo.duration / 4)))
             * np.sqrt(np.sum(self.ifo.frequency_mask)) / frequency_window_factor
         )
+        #Taking only the piece necessary for the training
+        if self.use_mask:
+            window_start = self.ifo.start_time +2- self.time_lower
+            window_end = self.ifo.start_time + 2 + self.time_upper
+            mask = (self.ifo.time_array >= window_start) & (self.ifo.time_array <= window_end)
+            ht_tilde=ht_tilde[mask]
 
         return ht_tilde
