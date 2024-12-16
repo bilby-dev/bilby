@@ -443,7 +443,7 @@ class PriorDict(dict):
     def _reset_jointprior_dists_with_missed_dependencies(self, keys, reset_func):
         keys = set(keys)
         dependencies = self.jointprior_dependencies
-        requested_jointpriors = set(dependencies).intersection()
+        requested_jointpriors = set(dependencies).intersection(keys)
         missing_dependencies = {value for key in requested_jointpriors for value in dependencies[key]}
         reset_dists = []
         for key in missing_dependencies:
