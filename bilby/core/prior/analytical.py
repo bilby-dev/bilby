@@ -8,8 +8,8 @@ from scipy.special._ufuncs import (
     gammaln,
     stdtr,
     betaln,
+    betainc,
     betaincinv,
-    btdtr,
     gammaincinv,
     gammainc,
 )
@@ -1025,10 +1025,12 @@ class Beta(Prior):
             elif val < self.minimum:
                 return 0.
             else:
-                return btdtr(self.alpha, self.beta,
-                             (val - self.minimum) / (self.maximum - self.minimum))
+                return betainc(
+                    self.alpha, self.beta,
+                    (val - self.minimum) / (self.maximum - self.minimum)
+                )
         else:
-            _cdf = np.nan_to_num(btdtr(self.alpha, self.beta,
+            _cdf = np.nan_to_num(betainc(self.alpha, self.beta,
                                  (val - self.minimum) / (self.maximum - self.minimum)))
             _cdf[val < self.minimum] = 0.
             _cdf[val > self.maximum] = 1.
