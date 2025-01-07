@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.special import erfinv
-from scipy.special._ufuncs import (
+from scipy.special import (
     xlogy,
     erf,
+    erfinv,
     log1p,
     stdtrit,
     gammaln,
