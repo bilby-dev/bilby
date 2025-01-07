@@ -291,20 +291,17 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
     @property
     def defaults(self):
-        output = dict()
+        from lalsimulation.gwsignal.core import parameter_conventions
+
+        keys = parameter_conventions.nongr_params.copy()
         if not self.eccentric:
-            output["eccentricity"] = 0.0
-            output["mean_per_ano"] = 0.0
+            keys += ["eccentricity", "mean_per_ano"]
         if not self.tidal:
-            output["lambda_1"] = 0.0
-            output["lambda_2"] = 0.0
+            keys += ["lambda_1", "lambda_2"]
         if not self.spinning:
-            output["a_1"] = 0.0
-            output["a_2"] = 0.0
-            output["tilt_1"] = 0.0
-            output["tilt_2"] = 0.0
-            output["phi_12"] = 0.0
-            output["phi_jl"] = 0.0
+            keys += ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
+
+        output = {key: 0.0 for key in keys}
         return output
 
     def _from_bilby_parameters(self, **parameters):
