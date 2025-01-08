@@ -38,17 +38,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Activate environment
-      run: |
-        source /opt/conda/bin/activate python${{ matrix.python.short-version }}
-        conda list --show-channel-urls
-      shell: bash
     - name: Install package
       run: |
+        # activate env so that conda list shows the correct environment
+        source /opt/conda/bin/activate python${{ matrix.python.short-version }}
         # FIXME: Remove this line when gwpy supports matplotlib 3.10
         conda install -c conda-forge "matplotlib<3.10"
         python -m pip install .
         conda list --show-channel-urls
+      shell: bash
     # - name: Run precommits
     #   run: |
     #     pre-commit run --all-files --verbose --show-diff-on-failure
