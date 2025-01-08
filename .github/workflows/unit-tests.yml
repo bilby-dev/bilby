@@ -41,6 +41,7 @@ jobs:
     - name: Activate environment
       run: |
         source activate python${{ matrix.python.short-version }}
+      shell: bash
     - name: Install package
       run: |
         # FIXME: Remove this line when gwpy supports matplotlib 3.10
