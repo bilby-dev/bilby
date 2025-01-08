@@ -16,6 +16,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CONDA_PATH: /opt/conda/
+
 jobs:
   build:
 
@@ -41,7 +44,7 @@ jobs:
     - name: Install package
       run: |
         # activate env so that conda list shows the correct environment
-        source /opt/conda/bin/activate python${{ matrix.python.short-version }}
+        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
         # FIXME: Remove this line when gwpy supports matplotlib 3.10
         conda install -c conda-forge "matplotlib<3.10"
         python -m pip install .
