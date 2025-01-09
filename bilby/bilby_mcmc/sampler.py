@@ -530,7 +530,7 @@ class Bilby_MCMC(MCMCSampler):
                 else:
                     ratio = "-"
                 logger.info(
-                    f"Temp:{ii}<->{ii+1}|"
+                    f"Temp:{ii}<->{ii + 1}|"
                     f"beta={beta:0.4g}|"
                     f"hot-samp={sampler.nsamples}|"
                     f"swap={ratio}|"
