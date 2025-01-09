@@ -157,11 +157,11 @@ def decode_astropy_cosmology(dct):
     except KeyError:
         # Support decoding result files that used the previous encoding
         logger.warning(
-            "Failed to decode cosmology, falling back to legacy decoding."
+            "Failed to decode cosmology, falling back to legacy decoding. "
             "Support for legacy decoding will be removed in a future release."
         )
         cosmo_cls = getattr(cosmo, dct["__name__"])
-        del dct["__cosmology__"], dct["__name__"]
+        del dct["__name__"]
         return cosmo_cls(**dct)
 
 
