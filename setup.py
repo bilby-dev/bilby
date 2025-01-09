@@ -48,11 +48,13 @@ setup(
     packages=[
         "bilby",
         "bilby.bilby_mcmc",
+        "bilby.compat",
         "bilby.core",
         "bilby.core.prior",
         "bilby.core.sampler",
         "bilby.core.utils",
         "bilby.gw",
+        "bilby.gw.compat",
         "bilby.gw.detector",
         "bilby.gw.eos",
         "bilby.gw.likelihood",

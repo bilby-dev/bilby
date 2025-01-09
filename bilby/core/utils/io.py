@@ -57,8 +57,12 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return str(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
-        if isinstance(obj, np.ndarray):
-            return {"__array__": True, "content": obj.tolist()}
+        if hasattr(obj, "__array_namespace__"):
+            return {
+                "__array__": True,
+                "__array_namespace__": obj.__array_namespace__().__name__,
+                "content": obj.tolist(),
+            }
         if isinstance(obj, complex):
             return {"__complex__": True, "real": obj.real, "imag": obj.imag}
         if isinstance(obj, pd.DataFrame):
@@ -171,7 +175,9 @@ def decode_bilby_json(dct):
     if dct.get("__astropy_quantity__", False):
         return decode_astropy_quantity(dct)
     if dct.get("__array__", False):
-        return np.asarray(dct["content"])
+        namespace = dct.get("__array_namespace__", "numpy")
+        xp = import_module(namespace)
+        return xp.asarray(dct["content"])
     if dct.get("__complex__", False):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
@@ -275,6 +281,10 @@ def encode_for_hdf5(key, item):
         if item.dtype.kind == 'U':
             logger.debug(f'converting dtype {item.dtype} for hdf5')
             item = np.array(item, dtype='S')
+    elif hasattr(item, "__array_namespace__"):
+        # temporarily dump all arrays as numpy arrays, we should figure ou
+        # how to properly deserialize them
+        item = np.asarray(item)
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
     elif item is None:
