@@ -757,7 +757,9 @@ class Dynesty(NestedSampler):
         from ... import __version__ as bilby_version
 
         versions = dict(bilby=bilby_version, dynesty=dynesty_version)
-        if os.path.isfile(self.resume_file):
+
+        # Check if the file exists and is not empty (empty resume files are created for HTCondor file transfer)
+        if os.path.isfile(self.resume_file) and os.stat(self.resume_file).st_size > 0:
             logger.info(f"Reading resume file {self.resume_file}")
             with open(self.resume_file, "rb") as file:
                 try:
