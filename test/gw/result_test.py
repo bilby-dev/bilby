@@ -1,13 +1,20 @@
 import os
-import shutil
 import unittest
 
 import pandas as pd
+from parameterized import parameterized, parameterized_class
+import pytest
 
 import bilby
 
 
-class TestCBCResult(unittest.TestCase):
+class BaseCBCResultTest(unittest.TestCase):
+
+    @pytest.fixture(autouse=True)
+    def init_outdir(self, tmp_path):
+        # Use pytest's tmp_path fixture to create a temporary directory
+        self.outdir = str(tmp_path / "test")
+
     def setUp(self):
         bilby.utils.command_line_args.bilby_test_mode = False
         priors = bilby.gw.prior.BBHPriorDict()
@@ -35,7 +42,7 @@ class TestCBCResult(unittest.TestCase):
         )
         self.result = bilby.gw.result.CBCResult(
             label="label",
-            outdir="outdir",
+            outdir=self.outdir,
             sampler="nestle",
             search_parameter_keys=list(priors.keys()),
             fixed_parameter_keys=list(),
@@ -50,11 +57,10 @@ class TestCBCResult(unittest.TestCase):
 
     def tearDown(self):
         bilby.utils.command_line_args.bilby_test_mode = True
-        try:
-            shutil.rmtree(self.result.outdir)
-        except OSError:
-            pass
         del self.result
+
+
+class TestCBCResult(BaseCBCResultTest):
 
     def test_phase_marginalization(self):
         self.assertEqual(
@@ -199,6 +205,52 @@ class TestCBCResult(unittest.TestCase):
         self.assertEqual(
             self.result.detector_injection_properties("not_a_detector"), None
         )
+
+    def test_cosmology(self):
+        self.assertEqual(
+            self.result.cosmology,
+            self.meta_data["global_meta_data"]["cosmology"],
+        )
+
+
+@parameterized_class(
+    ["cosmology_name"],
+    [["Planck15"], ["Planck15_LAL"]]
+)
+class TestCBCResultSaveAndLoad(BaseCBCResultTest):
+
+    def setUp(self):
+        self.orig_cosmology = bilby.gw.cosmology.get_cosmology()
+        bilby.gw.cosmology.set_cosmology(self.cosmology_name)
+        return super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        bilby.gw.cosmology.set_cosmology(self.orig_cosmology)
+
+    @parameterized.expand(
+        [
+            ("json", False),
+            ("json", True),
+            ("pkl", False),
+            ("hdf5", False),
+        ]
+    )
+    def test_save_and_load(self, extension, gzip):
+        self.result.save_to_file(extension=extension, gzip=gzip)
+        loaded_result = bilby.core.result.read_in_result(
+            outdir=self.result.outdir,
+            label=self.result.label,
+            extension=extension,
+            gzip=gzip,
+            result_class=bilby.gw.result.CBCResult,
+        )
+        self.assertEqual(self.result.cosmology, loaded_result.cosmology)
+        self.assertEqual(self.result.parameter_conversion, loaded_result.parameter_conversion)
+        self.assertEqual(self.result.frequency_domain_source_model, loaded_result.frequency_domain_source_model)
+        self.assertEqual(self.result.waveform_generator_class, loaded_result.waveform_generator_class)
+        self.assertEqual(self.result.waveform_arguments, loaded_result.waveform_arguments)
+        self.assertEqual(self.result.interferometers, loaded_result.interferometers)
 
 
 if __name__ == "__main__":
