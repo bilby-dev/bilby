@@ -1,6 +1,8 @@
 # The proposed Einstein Telescope located at the site of Virgo.
 # LIGO-T980044-10
 # https://dcc.ligo.org/LIGO-P1600143/public
+# fixme: based on the internal document T1400308
+# These are the parameters for E1, the other sub-detectors are derived from this.
 name = 'ET'
 power_spectral_density = PowerSpectralDensity(psd_file='ET_D_psd.txt')
 length = 10
@@ -12,3 +14,4 @@ elevation = 51.884
 xarm_azimuth = 70.5674
 yarm_azimuth = 130.5674
 shape = 'Triangle'
+clockwise = False

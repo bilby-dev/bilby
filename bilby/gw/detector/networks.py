@@ -310,6 +310,7 @@ class TriangularInterferometer(InterferometerList):
         yarm_azimuth,
         xarm_tilt=0.0,
         yarm_tilt=0.0,
+        clockwise=True,
     ):
         super(TriangularInterferometer, self).__init__([])
         self.name = name
@@ -322,6 +323,7 @@ class TriangularInterferometer(InterferometerList):
             maximum_frequency = [maximum_frequency] * 3
 
         for ii in range(3):
+
             self.append(
                 Interferometer(
                     "{}{}".format(name, ii + 1),
@@ -339,8 +341,8 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            xarm_azimuth += 240
-            yarm_azimuth += 240
+            xarm_azimuth += 240 if clockwise else 120
+            yarm_azimuth += 240 if clockwise else 120
 
             latitude += (
                 np.arctan(
