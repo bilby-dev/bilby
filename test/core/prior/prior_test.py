@@ -87,6 +87,12 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
             bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
+            bilby.gw.prior.AlignedSpin(
+                a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
+                z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
+                name="test",
+                unit="unit",
+            ),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
             bilby.core.prior.MultivariateNormal(dist=mvn, name="testa", unit="unit"),
