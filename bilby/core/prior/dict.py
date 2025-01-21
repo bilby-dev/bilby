@@ -598,9 +598,9 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        keys: list
+        keys: array-like
             List of prior keys to be rescaled
-        theta: dict or array-like
+        theta: array-like
             Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
@@ -609,7 +609,8 @@ class PriorDict(dict):
             If theta is 1D, returns list of floats containing the rescaled sample.
             If theta is 2D, returns list of lists containing the rescaled samples.
         """
-        theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
         samples = []
         for key, units in zip(keys, theta):
             samps = self[key].rescale(units)
@@ -835,9 +836,9 @@ class ConditionalPriorDict(PriorDict):
 
         Parameters
         ==========
-        keys: list
+        keys: array-like
             List of prior keys to be rescaled
-        theta: dict or array-like
+        theta: array-like
             Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
@@ -846,8 +847,11 @@ class ConditionalPriorDict(PriorDict):
             If theta is float for each key, returns list of floats containing the rescaled sample.
             If theta is array-like for each key, returns list of lists containing the rescaled samples.
         """
-        keys = list(keys)
-        theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
+        if isinstance(keys, {}.keys().__class__):
+            keys = list(keys)
+
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
