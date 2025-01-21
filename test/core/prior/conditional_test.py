@@ -395,7 +395,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
         expected.extend([1, 1])
-        self.assertListEqual(expected, res[:-2])
+        self.assertListEqual(expected, res[:6])
         res_sample = priordict.sample(1)
         self.assertEqual(list(res_sample.keys()), priordict.sorted_keys_without_fixed_parameters)
         res_sample = priordict.sample(1000)

@@ -382,9 +382,8 @@ class TestPriorDict(unittest.TestCase):
         keys = ["testAbase"]
         joint_prior = self.joint_prior_from_file
         samples = joint_prior.rescale(keys=keys, theta=theta)
-        print(joint_prior["testAbase"].dist._rescale_parameters)
-        self.assertTrue(joint_prior["testAbase"].dist._rescale_parameters["testAbase"] is None)
-        self.assertTrue(joint_prior["testBbase"].dist._rescale_parameters["testBbase"] is None)
+        self.assertTrue(joint_prior["testAbase"].dist._current_rescaled_parameter_values["testAbase"] is None)
+        self.assertTrue(joint_prior["testBbase"].dist._current_rescaled_parameter_values["testBbase"] is None)
         self.assertTrue(np.all(np.isnan(samples)))
 
     def test_cdf(self):
