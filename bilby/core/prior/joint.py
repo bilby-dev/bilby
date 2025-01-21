@@ -63,9 +63,11 @@ class BaseJointPriorDist(object):
         self.requested_parameters = dict()
         self.reset_request()
 
-        # a dictionary of the rescale(d) parameters
-        self._rescale_parameters = dict()
-        self._rescaled_parameters = dict()
+        # a dictionary that stores the unit-cube values of parameters for later rescaling
+        self._current_unit_cube_parameter_values = dict()
+        # a dictionary of arrays that are used as intermediate return values of JointPrior.rescale()
+        # and updated in-place once all parameters have been requested
+        self._current_rescaled_parameter_values = dict()
         self.reset_rescale()
 
         # a list of sampled parameters
@@ -95,24 +97,24 @@ class BaseJointPriorDist(object):
         Check if all the rescaled parameters have been filled.
         """
 
-        return not np.any([val is None for val in self._rescale_parameters.values()])
+        return not np.any([val is None for val in self._current_unit_cube_parameter_values.values()])
 
     def set_rescale(self, key, values):
-        values = np.array(values)
-        self._rescale_parameters[key] = values
-        self._rescaled_parameters[key] = np.atleast_1d(np.ones_like(values)) * np.nan
+        self._current_unit_cube_parameter_values[key] = np.array(values)
+        self._current_rescaled_parameter_values[key] = np.full_like(values, np.nan, dtype=float)
 
     def reset_rescale(self):
         """
         Reset the rescaled parameters to None.
         """
-
         for name in self.names:
-            self._rescale_parameters[name] = None
-            self._rescaled_parameters[name] = None
+            self._current_unit_cube_parameter_values[name] = None
+            self._current_rescaled_parameter_values[name] = None
 
     def get_rescaled(self, key):
-        return self._rescaled_parameters[key]
+        """Return an array that will be updated in-place once the rescale-operation
+        has been performed."""
+        return self._current_rescaled_parameter_values[key]
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
@@ -317,7 +319,7 @@ class BaseJointPriorDist(object):
             If given, a 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
             N is the number of samples and M is the number of parameters.
-            If None, values previously set using BaseJointPriorDist.set_rescale() are used.
+            If None, the values previously set using BaseJointPriorDist.set_rescale() are used.
         kwargs: dict
             All keyword args that need to be passed to _rescale method, these keyword
             args are called in the JointPrior rescale methods for each parameter
@@ -329,9 +331,11 @@ class BaseJointPriorDist(object):
             distribution.
         """
         if value is None:
-            samp = np.array(list(self._rescale_parameters.values())).T
+            samp = np.array(list(self._current_unit_cube_parameter_values.values())).T
         else:
-            samp = np.array(value)
+            for key, val in zip(self.names, value):
+                self.set_rescale(key, val)
+            samp = np.asarray(value)
 
         if len(samp.shape) == 1:
             samp = samp.reshape(1, self.num_vars)
@@ -342,11 +346,12 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
-        if value is None:
-            for i, key in enumerate(self.names):
-                output = self.get_rescaled(key)
-                # update in-place for proper handling in PriorDict-instances
-                output[:] = samp[:, i]
+        for i, key in enumerate(self.names):
+            # get the numpy array used for indermediate outputs
+            # prior to a full rescale-operation
+            output = self.get_rescaled(key)
+            # update the array in-place
+            output[...] = samp[:, i]
         return np.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
@@ -819,10 +824,16 @@ class JointPrior(Prior):
         self.dist.set_rescale(self.name, val)
 
         if self.dist.filled_rescale():
+            # If all names have been filled, perform rescale operation
             self.dist.rescale(value=None, **kwargs)
+            # get the rescaled values for the requested parameter
             output = self.dist.get_rescaled(self.name)
+            # reset the rescale operation
             self.dist.reset_rescale()
         else:
+            # If not all names have been filled, return a *numpy array*
+            # filled only with `np.nan`. Once all names have been requested,
+            # this array is updated *in-place* with the rescaled values.
             output = self.dist.get_rescaled(self.name)
 
         # have to return raw output to conserve in-place modifications
