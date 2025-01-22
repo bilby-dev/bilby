@@ -319,7 +319,8 @@ class BaseJointPriorDist(object):
             If given, a 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
             N is the number of samples and M is the number of parameters.
-            If None, the values previously set using BaseJointPriorDist.set_rescale() are used.
+            If None, the values previously set using BaseJointPriorDist.set_rescale() are used,
+            the result is stored and can be accessed using get_rescaled().
         kwargs: dict
             All keyword args that need to be passed to _rescale method, these keyword
             args are called in the JointPrior rescale methods for each parameter
@@ -331,7 +332,9 @@ class BaseJointPriorDist(object):
             distribution.
         """
         if value is None:
-            samp = np.array(list(self._current_unit_cube_parameter_values.values())).T
+            if not self.filled_rescale():
+                raise ValueError("Attempting to rescale from stored values without having set all required values.")
+            samp = np.array([self._current_unit_cube_parameter_values[key] for key in self.names]).T
             if len(samp.shape) == 1:
                 samp = samp.reshape(1, self.num_vars)
         else:
@@ -342,16 +345,16 @@ class BaseJointPriorDist(object):
                 raise ValueError("Array is the wrong shape")
             elif samp.shape[1] != self.num_vars:
                 raise ValueError("Array is the wrong shape")
-            for key, val in zip(self.names, samp.T):
-                self.set_rescale(key, val)
 
         samp = self._rescale(samp, **kwargs)
-        for i, key in enumerate(self.names):
-            # get the numpy array used for indermediate outputs
-            # prior to a full rescale-operation
-            output = self.get_rescaled(key)
-            # update the array in-place
-            output[...] = samp[:, i]
+        # only store result if the rescale was done with saved unit-cube values
+        if value is None:
+            for i, key in enumerate(self.names):
+                # get the numpy array used for indermediate outputs
+                # prior to a full rescale-operation
+                output = self.get_rescaled(key)
+                # update the array in-place
+                output[...] = samp[:, i]
         return np.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
