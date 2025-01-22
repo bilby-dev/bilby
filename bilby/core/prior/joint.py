@@ -184,13 +184,13 @@ class BaseJointPriorDist(object):
             kwargs[key.strip()] = arg
         return kwargs
 
-    def prob(self, samp):
+    def prob(self, samp, **kwargs):
         """
         Get the probability of a sample. For bounded priors the
         probability will not be properly normalised.
         """
 
-        return np.exp(self.ln_prob(samp))
+        return np.exp(self.ln_prob(samp, **kwargs))
 
     def _check_samp(self, value):
         """
@@ -226,7 +226,7 @@ class BaseJointPriorDist(object):
             outbounds += (s < bound[0]) | (s > bound[1])
         return samp, outbounds
 
-    def ln_prob(self, value):
+    def ln_prob(self, value, **kwargs):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised.
@@ -241,7 +241,7 @@ class BaseJointPriorDist(object):
 
         samp, outbounds = self._check_samp(value)
         lnprob = -np.inf * np.ones(samp.shape[0])
-        lnprob = self._ln_prob(samp, lnprob, outbounds)
+        lnprob = self._ln_prob(samp, lnprob, outbounds, **kwargs)
         if samp.shape[0] == 1:
             return lnprob[0]
         else:
@@ -658,6 +658,11 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 "ij,kj->ik", samp * self.sqeigvalues[unique], self.eigvectors[unique]
             )
         else:
+            mode = np.asarray(mode)
+            if mode.shape != (samp.shape[0],):
+                raise ValueError(f"Inconsistent sizes of the array-like used to select modes "
+                                 f"with shape {mode.shape} and the array of requested samps "
+                                 f"with length {len(samp)}.")
             for m in uniques:
                 mask = m == mode
                 samp[mask] = self.mus[m] + self.sigmas[m] * np.einsum(
@@ -695,21 +700,28 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         mode = kwargs.get("mode", self.mode)
 
         if mode is None:
-            for j in range(samp.shape[0]):
-                # loop over the modes and sum the probabilities
-                for i in range(self.nmodes):
-                    # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
-                    z = (samp[j] - self.mus[i]) / self.sigmas[i]
-                    lnprob[j] = np.logaddexp(lnprob[j],
-                                             self.mvn[i].logpdf(z) - self.logprodsigmas[i] + np.log(self.weights[i]))
+            # loop over the modes and sum the probabilities
+            for i in range(self.nmodes):
+                # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
+                z = (samp - self.mus[i]) / self.sigmas[i]
+                lnprob = np.logaddexp(
+                    lnprob,
+                    self.mvn[i].logpdf(z) - self.logprodsigmas[i] + np.log(self.weights[i])
+                )
         else:
             uniques = np.unique(np.asarray(mode, dtype=int))
             if len(uniques) == 1:
                 unique = uniques[0]
-                z = (samp[j] - self.mus[unique]) / self.sigmas[unique]
+                z = (samp - self.mus[unique]) / self.sigmas[unique]
                 # don't multiply by the mode weight if the mode is given (ie. prob(mode|mode) = 1)
-                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[unique].logpdf(z) - self.logprodsigmas[unique])
+                lnprob = np.logaddexp(lnprob, self.mvn[unique].logpdf(z) - self.logprodsigmas[unique])
             else:
+                mode = np.asarray(mode)
+                print(mode.shape, samp.shape)
+                if mode.shape != (samp.shape[0],):
+                    raise ValueError(f"Inconsistent sizes of the array-like used to select modes "
+                                     f"with shape {mode.shape} and the array of requested samps "
+                                     f"with length {len(samp)}.")
                 for m in uniques:
                     mask = mode == m
                     z = (samp[mask] - self.mus[m]) / self.sigmas[m]
