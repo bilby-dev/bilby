@@ -375,7 +375,7 @@ class SymmetricLogUniform(Prior):
             * (val <= -self.minimum) * (val >= -self.maximum)
             + (0.5 + norm * np.log(abs(val) / self.minimum))
             * (val >= self.minimum) * (val <= self.maximum)
-            + 0.5 * (val >= -self.minimum) * (val <= self.minimum)
+            + 0.5 * (val > -self.minimum) * (val < self.minimum)
             + 1 * (val > self.maximum)
         )
         return _cdf
