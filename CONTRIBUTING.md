@@ -8,10 +8,11 @@ have some familiarity with python and git.
 3. [Automated Code Checking](#automated-code-checking)
 4. [Unit Testing](#unit-testing)
 5. [Code relevance](#code-relevance)
-6. [Pull requests](#pull-requets)
+6. [Pull requests](#pull-requests)
 7. [Typical workflow](#typical-workflow)
-8. [Hints and tips](#hints-and-tips)
-9. [Code overview](#code-overview)
+8. [Making releases](#making-releases)
+9. [Hints and tips](#hints-and-tips)
+10. [Code overview](#code-overview)
 
 
 ## Code of Conduct
@@ -308,6 +309,72 @@ you can [convert it to a draft](https://docs.github.com/en/pull-requests/collabo
 Once the request has been opened, one of the maintainers will assign someone to
 review the change.
 
+
+## Making releases
+
+**Note:** releases should be made in coordination with other developers and,
+doing so requires certain permissions.
+
+### Versioning
+
+We use [semantic versioning](https://semver.org/) when creating bilby releases
+and versions should have the format `MAJOR.MINOR.PATCH`.
+The version tag should also start with `v` e.g. `v2.4.0`.
+
+`bilby` uses `setuptools_scm` to automatically set the version based on git tags.
+This means no manual changes are needed to the version number are required.
+
+### Updating the changelog
+
+Before making a release, the [changelog](https://github.com/bilby-dev/bilby/blob/main/CHANGELOG.md)
+should be updated to include the changes since the last release. This should
+be done by a new pull request.
+We roughly follow the style proposed in [keep a changelog](https://keepachangelog.com/en/1.1.0/)
+
+When making a changelog keep the following in mind:
+
+- Only document meaningful changes to the code. Changes to, e.g., the CI or test suite do not need to be included.
+- Include links to the relevant PRs
+- Remember to update the URLs at the bottom of changelog file
+
+### Making the release on GitHub
+
+**Note:** releases will automatically be pushed to PyPI and versions on PyPI
+cannot be changed, so please take care when making a release.
+
+Once the changelog has been updated, follow these steps for making a release:
+
+1. Navigate to https://github.com/bilby-dev/bilby/releases.
+2. Click `Draft new release`.
+3. Select an existing tag that does not have a release or specify the name of a
+new tag that will be made when the release is made.
+4. Specify the version as the title, e.g. `v2.4.0`.
+5. Copy the relevant section from the changelog and include a link to the full changelog, e.g.
+`**Full Changelog:** https://github.com/bilby-dev/bilby/compare/<previous-release>...<this-release>`
+6. If this is latest stable release, make sure `Set at latest release` is checked.
+If making a pre-release, make sure `Set as a pre-release` is checked.
+7. Check the formatting using the `Preview` tab.
+8. Click `Publish release`.
+
+Once step 8 is complete, the CI will trigger and the new release will be 
+automatically uploaded to PyPI. Check that the CI workflow completed successfully.
+After this, you should see the new release on PyPI.
+
+If the CI workflow fails, please contact Colm Talbot (@ColmTalbot) and
+Michael Williams (@mj-will).
+
+**Note:** pre-releases will not show up as the latest release on PyPI, but they
+are listed under [Release history](https://pypi.org/project/bilby/#history)
+
+### Updating conda-forge
+
+**Note:** we do not currently release pre-releases on `conda-forge`
+
+`conda-forge` is not automatically updated when a new release is made, but an 
+pull request should be opened automatically on the [bilby feedstock](https://github.com/conda-forge/bilby-feedstock)
+(this can take up to a day). Once it is open, follow the steps in the pull request
+to review and merge the changes.
+
 ## Hints and tips
 
 ### Licence
@@ -353,6 +420,6 @@ parts of the code. Note that this document is not programmatically generated and
 so may get out of date with time. If you notice something wrong, please open an
 issue.
 
-![bilby overview](docs/images/bilby_layout.png)
+![bilby overview](https://raw.githubusercontent.com/bilby-dev/bilby/main/docs/images/bilby_layout.png)
 
 **Note** this layout is not comprehensive, for example only a few example "Priors" are shown.

@@ -174,6 +174,98 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         binned.parameters.update(self.test_parameters)
         self.assertFalse(np.isnan(binned.log_likelihood_ratio()))
 
+    def test_likelihood_when_waveform_extends_beyond_maximum_frequency(self):
+        """
+        Test that we can setup the relative binning likelihood & that it yields
+        accurate results (in zero-noise) for signals that extend in frequency
+        beyond the maximum frequency, such as in sub-solar mass mergers.
+        """
+        duration = 980
+        fmin = 20
+        sampling_frequency = 8192
+
+        test_parameters = dict(
+            chirp_mass=0.435,
+            mass_ratio=1.0,
+            a_1=0.3,
+            a_2=0.4,
+            tilt_1=1.0,
+            tilt_2=0.2,
+            phi_12=1.0,
+            phi_jl=2.0,
+            luminosity_distance=40,
+            theta_jn=0.4,
+            psi=0.659,
+            phase=1.3,
+            geocent_time=1187008882,
+            ra=1.3,
+            dec=-1.2,
+        )
+
+        fiducial_parameters = test_parameters.copy()
+
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
+        ifos.set_strain_data_from_zero_noise(
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=test_parameters['geocent_time'] - duration + 2.
+        )
+        for ifo in ifos:
+            ifo.minimum_frequency = fmin
+
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors["chirp_mass"] = bilby.core.prior.Uniform(0.434, 0.436)
+        priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
+        priors["geocent_time"] = test_parameters["geocent_time"]
+        priors["fiducial"] = 0
+
+        approximant = "IMRPhenomXP"
+        non_bin_wfg = bilby.gw.WaveformGenerator(
+            duration=duration,
+            sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(
+                reference_frequency=fmin,
+                minimum_frequency=fmin,
+                waveform_approximant=approximant
+            )
+        )
+        bin_wfg = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=duration,
+            sampling_frequency=sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
+            waveform_arguments=dict(
+                reference_frequency=fmin,
+                waveform_approximant=approximant,
+                minimum_frequency=fmin
+            )
+        )
+        ifos.inject_signal(
+            parameters=test_parameters,
+            waveform_generator=non_bin_wfg,
+            raise_error=False,
+        )
+
+        non_bin = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=ifos,
+            waveform_generator=deepcopy(non_bin_wfg),
+            priors=priors.copy()
+        )
+        binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
+            interferometers=ifos,
+            waveform_generator=deepcopy(bin_wfg),
+            fiducial_parameters=fiducial_parameters,
+            priors=priors.copy(),
+            epsilon=0.05,
+        )
+
+        non_bin.parameters.update(test_parameters)
+        binned.parameters.update(test_parameters)
+
+        regular_ln_l = non_bin.log_likelihood_ratio()
+        binned_ln_l = binned.log_likelihood_ratio()
+        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
+
 
 if __name__ == "__main__":
     unittest.main()

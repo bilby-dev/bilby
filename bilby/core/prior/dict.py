@@ -613,9 +613,12 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        return list(
-            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
-        )
+        theta = list(theta)
+        samples = []
+        for key, units in zip(keys, theta):
+            samps = self[key].rescale(units)
+            samples += list(np.asarray(samps).flatten())
+        return samples
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -863,7 +866,7 @@ class ConditionalPriorDict(PriorDict):
                 values = np.concatenate([values, result[key]])
             for key, value in zip(names, values):
                 result[key] = value
-        return list([result[key] for key in keys])
+        return [list(np.asarray(result[key]).flatten()) for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
