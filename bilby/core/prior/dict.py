@@ -866,7 +866,7 @@ class ConditionalPriorDict(PriorDict):
                 values = np.concatenate([values, result[key]])
             for key, value in zip(names, values):
                 result[key] = value
-        return [list(np.asarray(result[key]).flatten()) for key in keys]
+        return [np.asarray(result[key]).flatten() for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
