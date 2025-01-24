@@ -1,9 +1,7 @@
-from collections import UserDict
-
 from . import random
 
 
-class GlobalMetaData(UserDict):
+class GlobalMetaData(dict):
     """A class to store global meta data.
 
     This class is a singleton, meaning that only one instance can exist at a time.
