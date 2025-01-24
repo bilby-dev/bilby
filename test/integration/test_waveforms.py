@@ -46,20 +46,20 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             lambda_2=1500,
         )
 
-    def test_IMRPhenomPv2(self):
-        waveform_approximant = "IMRPhenomPv2"
+    def test_IMRPhenomXPHM(self):
+        waveform_approximant = "IMRPhenomXPHM"
         self.run_for_approximant(waveform_approximant, source="bbh")
 
-    def test_IMRPhenomD(self):
-        waveform_approximant = "IMRPhenomD"
+    def test_IMRPhenomXAS(self):
+        waveform_approximant = "IMRPhenomXAS"
         self.run_for_approximant(waveform_approximant, source="bbh")
 
-    def test_IMRPhenomPv2_NRTidal(self):
-        waveform_approximant = "IMRPhenomPv2_NRTidal"
+    def test_IMRPhenomPv2_NRTidalv2(self):
+        waveform_approximant = "IMRPhenomPv2_NRTidalv2"
         self.run_for_approximant(waveform_approximant, source="bns")
 
-    def test_IMRPhenomD_NRTidal(self):
-        waveform_approximant = "IMRPhenomD_NRTidal"
+    def test_IMRPhenomD_NRTidalv2(self):
+        waveform_approximant = "IMRPhenomD_NRTidalv2"
         self.run_for_approximant(waveform_approximant, source="bns")
 
     def test_TaylorF2(self):
