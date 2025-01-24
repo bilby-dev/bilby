@@ -12,6 +12,7 @@ import pytest
 
 import bilby
 from bilby.core import utils
+from bilby.core.utils import global_meta_data
 
 
 class TestConstants(unittest.TestCase):
@@ -465,6 +466,34 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
             data = dill.load(file)
         b = data["rng"].random()
         self.assertEqual(a, b)
+
+
+class TestGlobalMetaData(unittest.TestCase):
+
+    def setUp(self):
+        global_meta_data.clear()
+        global_meta_data["rng"] = bilby.core.utils.random.rng
+        bilby.gw.cosmology.DEFAULT_COSMOLOGY = None
+        bilby.gw.cosmology.COSMOLOGY = [None, str(None)]
+
+    def tearDown(self):
+        global_meta_data.clear()
+        global_meta_data["rng"] = bilby.core.utils.random.rng
+        bilby.gw.cosmology.DEFAULT_COSMOLOGY = None
+        bilby.gw.cosmology.COSMOLOGY = [None, str(None)]
+
+    def test_add_to_meta_data(self):
+        global_meta_data.add_to_meta_data("test", 123)
+        self.assertEqual(global_meta_data["test"], 123)
+
+    def test_set_rng(self):
+        bilby.core.utils.random.seed(1234)
+        self.assertTrue(global_meta_data["rng"] is bilby.core.utils.random.rng)
+        self.assertEqual(global_meta_data["seed"], 1234)
+
+    def test_set_cosmology(self):
+        bilby.gw.cosmology.set_cosmology("Planck15_LAL")
+        self.assertTrue(global_meta_data["cosmology"] is bilby.gw.cosmology.COSMOLOGY[0])
 
 
 if __name__ == "__main__":
