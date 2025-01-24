@@ -64,6 +64,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {"__dataframe__": True, "content": obj.to_dict(orient="list")}
         if isinstance(obj, pd.Series):
             return {"__series__": True, "content": obj.to_dict()}
+        if isinstance(obj, np.random.Generator):
+            return encode_numpy_random_generator(obj)
         if inspect.isfunction(obj):
             return {
                 "__function__": True,
@@ -131,6 +133,30 @@ def encode_astropy_unit(obj):
             "Cannot import astropy, cosmological priors may not be properly loaded."
         )
         return obj
+
+
+def encode_numpy_random_generator(generator):
+    """Encode a numpy random generator to a dictionary.
+
+    Adds the key :code:`__numpy_random_generator__` to the dictionary to indicate
+    that the object is a numpy random generator.
+
+    The :code:`bit_generator_state` key contains the state of the bit generator
+    including its name.
+
+    .. versionadded:: 2.5.0
+    """
+    state = generator.bit_generator.state
+    # The state and inc integers are converted to strings to avoid issues with
+    # arbitrary precision integers when encoding to HDF5.
+    # We list them explicitly to avoid issues that may arise if the numpy
+    # random generator changes its state representation.
+    state["state"]["state"] = str(state["state"]["state"])
+    state["state"]["inc"] = str(state["state"]["inc"])
+    return {
+        "__numpy_random_generator__": True,
+        "bit_generator_state": state,
+    }
 
 
 def decode_astropy_cosmology(dct):
@@ -217,6 +243,30 @@ def decode_astropy_unit(dct):
         return dct
 
 
+def decode_numpy_random_generator(dct):
+    """Decode a numpy random generator from a dictionary.
+
+    .. versionadded:: 2.5.0
+    """
+    try:
+        bit_generator = getattr(np.random, dct["bit_generator_state"]["bit_generator"])
+    except AttributeError as e:
+        raise ValueError(
+            f"Unknown numpy bit generator {dct['bit_generator_state']['bit_generator']}. "
+            "The bit generator must be a numpy.random.Generator."
+            f"Original error: {e}"
+        ) from e
+    # Convert the state and inc integers back to integers
+    dct["bit_generator_state"]["state"]["state"] = \
+        int(dct["bit_generator_state"]["state"]["state"])
+    dct["bit_generator_state"]["state"]["inc"] = \
+        int(dct["bit_generator_state"]["state"]["inc"])
+
+    generator = np.random.Generator(bit_generator())
+    generator.bit_generator.state = dct["bit_generator_state"]
+    return generator
+
+
 def load_json(filename, gzip):
     if gzip or os.path.splitext(filename)[1].lstrip(".") == "gz":
         import gzip
@@ -252,6 +302,8 @@ def decode_bilby_json(dct):
             cls = Prior
         obj = cls(**dct["kwargs"])
         return obj
+    if dct.get("__numpy_random_generator__", False):
+        return decode_numpy_random_generator(dct)
     if dct.get("__cosmology__", False):
         return decode_astropy_cosmology(dct)
     if dct.get("__astropy_quantity__", False):
@@ -372,6 +424,8 @@ def encode_for_hdf5(key, item):
             item = np.array(item, dtype='S')
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
+    elif isinstance(item, np.random.Generator):
+        output = encode_numpy_random_generator(item)
     elif item is None:
         output = "__none__"
     elif isinstance(item, list):
@@ -434,6 +488,8 @@ def decode_hdf5_dict(output):
         output = decode_astropy_quantity(output)
     elif "__astropy_unit__" in output:
         output = decode_astropy_unit(output)
+    elif "__numpy_random_generator__" in output:
+        output = decode_numpy_random_generator(output)
     return output
 
 
