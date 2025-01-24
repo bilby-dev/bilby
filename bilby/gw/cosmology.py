@@ -91,12 +91,14 @@ def set_cosmology(cosmology=None):
             Dictionary with arguments required to instantiate the cosmology
             class.
     """
+    from ..core.utils.meta_data import global_meta_data
     cosmology = get_cosmology(cosmology)
     COSMOLOGY[0] = cosmology
     if cosmology.name is not None:
         COSMOLOGY[1] = cosmology.name
     else:
         COSMOLOGY[1] = repr(cosmology)
+    global_meta_data.add_to_meta_data("cosmology", cosmology)
 
 
 def z_at_value(func, fval, **kwargs):
