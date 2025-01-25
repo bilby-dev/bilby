@@ -1003,7 +1003,6 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
 
 
-@dispatch
 def ln_i0(value):
     """
     A numerically stable method to evaluate ln(I_0) a modified Bessel function
@@ -1019,7 +1018,8 @@ def ln_i0(value):
     array-like:
         The natural logarithm of the bessel function
     """
-    return np.log(i0e(value)) + np.abs(value)
+    xp = array_module(value)
+    return xp.log(i0e(value)) + xp.abs(value)
 
 
 def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
