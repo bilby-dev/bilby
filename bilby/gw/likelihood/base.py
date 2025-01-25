@@ -780,12 +780,12 @@ class GravitationalWaveTransient(Likelihood):
         d_inner_h_ref, h_inner_h_ref = self._setup_rho(
             d_inner_h, h_inner_h, parameters=parameters)
         if self.phase_marginalization:
-            d_inner_h_ref = np.abs(d_inner_h_ref)
+            d_inner_h_ref = abs(d_inner_h_ref)
         else:
-            d_inner_h_ref = np.real(d_inner_h_ref)
+            d_inner_h_ref = d_inner_h_ref.real
 
         return self._interp_dist_margd_loglikelihood(
-            d_inner_h_ref, h_inner_h_ref, grid=False)
+            d_inner_h_ref, h_inner_h_ref)
 
     def phase_marginalized_likelihood(self, d_inner_h, h_inner_h):
         d_inner_h = ln_i0(abs(d_inner_h))
@@ -933,9 +933,19 @@ class GravitationalWaveTransient(Likelihood):
                 self._create_lookup_table()
         else:
             self._create_lookup_table()
-        self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
-            self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array.T, fill_value=-np.inf)
+        if "jax" in array_module(self.interferometers.frequency_array).__name__:
+            from interpax import Interpolator2D
+            import jax.numpy as jnp
+            self._interp_dist_margd_loglikelihood = Interpolator2D(
+                jnp.asarray(self._d_inner_h_ref_array),
+                jnp.asarray(self._optimal_snr_squared_ref_array),
+                jnp.asarray(self._dist_margd_loglikelihood_array.T),
+                extrap=-jnp.inf,
+            )
+        else:
+            self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
+                self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
+                self._dist_margd_loglikelihood_array.T, fill_value=-np.inf)
 
     @property
     def cached_lookup_table_filename(self):
@@ -1107,8 +1117,10 @@ class GravitationalWaveTransient(Likelihood):
         =======
         dict: dictionary containing ra, dec, and geocent_time
         """
+        from ..conversion import convert_orientation_quaternion, convert_cartesian
         parameters = _fallback_to_parameters(self, parameters)
-        convert_orientation_quaternion(parameters)
+        if "orientation_w" in parameters:
+            convert_orientation_quaternion(parameters)
         time = parameters.get(f'{self.time_reference}_time', None)
         if time is None and "geocent_time" in parameters:
             logger.warning(
