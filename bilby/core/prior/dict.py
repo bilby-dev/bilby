@@ -54,6 +54,9 @@ class PriorDict(dict):
         else:
             self.conversion_function = self.default_conversion_function
 
+    def __hash__(self):
+        return hash(str(self))
+
     def evaluate_constraints(self, sample):
         out_sample = self.conversion_function(sample)
         prob = 1
@@ -515,9 +518,11 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
+        xp = array_namespace(*sample.values())
+        prob = xp.prod(xp.asarray([self[key].prob(sample[key]) for key in sample]), **kwargs)
 
-        return self.check_prob(sample, prob)
+        return prob
+        # return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
@@ -783,12 +788,14 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
+        xp = array_namespace(*sample.values())
+        res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key))
             for key in sample
-        ]
-        prob = np.prod(res, **kwargs)
-        return self.check_prob(sample, prob)
+        ])
+        prob = xp.prod(res, **kwargs)
+        return prob
+        # return self.check_prob(sample, prob)
 
     def ln_prob(self, sample, axis=None, normalized=True):
         """
@@ -809,13 +816,15 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
+        xp = array_namespace(*sample.values())
+        res = xp.array([
             self[key].ln_prob(sample[key], **self.get_required_variables(key))
             for key in sample
-        ]
-        ln_prob = np.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized)
+        ])
+        ln_prob = xp.sum(res, axis=axis)
+        return ln_prob
+        # return self.check_ln_prob(sample, ln_prob,
+        #                           normalized=normalized)
 
     def cdf(self, sample):
         self._prepare_evaluation(*zip(*sample.items()))
@@ -854,7 +863,7 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        return xp.concatenate([result[key] for key in keys], axis=None)
+        return xp.array([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
