@@ -428,7 +428,7 @@ class Precomputed(Recalibrate):
 
     @classmethod
     def from_envelope_file(
-        cls, envelope, frequency_array, n_nodes, label, n_curves
+        cls, envelope, frequency_array, n_nodes, label, n_curves, correction_type
     ):
         priors = CalibrationPriorDict.from_envelope_file(
             envelope_file=envelope,
@@ -436,6 +436,7 @@ class Precomputed(Recalibrate):
             maximum_frequency=frequency_array[-1],
             n_nodes=n_nodes,
             label=label,
+            correction_type=correction_type,
         )
         parameters = pd.DataFrame(priors.sample(n_curves))
         curves = curves_from_spline_and_prior(

@@ -16,6 +16,7 @@ Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
 Charlie Hoy
+Cheng Foo
 Chentao Yang
 Christopher Philip Luke Berry
 Christos Karathanasis

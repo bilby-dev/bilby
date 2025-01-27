@@ -1,7 +1,18 @@
 import numpy as np
-from scipy.special import erfinv
-from scipy.special._ufuncs import xlogy, erf, log1p, stdtrit, gammaln, stdtr, \
-    btdtri, betaln, btdtr, gammaincinv, gammainc
+from scipy.special import (
+    xlogy,
+    erf,
+    erfinv,
+    log1p,
+    stdtrit,
+    gammaln,
+    stdtr,
+    betaln,
+    betainc,
+    betaincinv,
+    gammaincinv,
+    gammainc,
+)
 
 from .base import Prior
 from ..utils import logger
@@ -967,7 +978,7 @@ class Beta(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return btdtri(self.alpha, self.beta, val) * (self.maximum - self.minimum) + self.minimum
+        return betaincinv(self.alpha, self.beta, val) * (self.maximum - self.minimum) + self.minimum
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1014,10 +1025,12 @@ class Beta(Prior):
             elif val < self.minimum:
                 return 0.
             else:
-                return btdtr(self.alpha, self.beta,
-                             (val - self.minimum) / (self.maximum - self.minimum))
+                return betainc(
+                    self.alpha, self.beta,
+                    (val - self.minimum) / (self.maximum - self.minimum)
+                )
         else:
-            _cdf = np.nan_to_num(btdtr(self.alpha, self.beta,
+            _cdf = np.nan_to_num(betainc(self.alpha, self.beta,
                                  (val - self.minimum) / (self.maximum - self.minimum)))
             _cdf[val < self.minimum] = 0.
             _cdf[val > self.maximum] = 1.
