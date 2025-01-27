@@ -1,7 +1,10 @@
+from collections import UserDict
+
 from . import random
+from .log import logger
 
 
-class GlobalMetaData(dict):
+class GlobalMetaData(UserDict):
     """A class to store global meta data.
 
     This class is a singleton, meaning that only one instance can exist at a time.
@@ -9,8 +12,15 @@ class GlobalMetaData(dict):
 
     _instance = None
 
-    def add_to_meta_data(self, key, value):
-        self[key] = value
+    def __setitem__(self, key, item):
+        if key in self:
+            logger.debug(
+                f"Overwriting meta data key {key} with value {item}. "
+                f"Old value was {self[key]}"
+            )
+        else:
+            logger.debug(f"Setting meta data key {key} with value {item}")
+        return super().__setitem__(key, item)
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
