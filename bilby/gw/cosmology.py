@@ -13,7 +13,7 @@ def _set_default_cosmology():
     if DEFAULT_COSMOLOGY is None:
         DEFAULT_COSMOLOGY = cosmo.Planck15
         COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
-        global_meta_data.add_to_meta_data("cosmology", COSMOLOGY[0])
+        global_meta_data["cosmology"] = COSMOLOGY[0]
 
 
 def get_available_cosmologies():
@@ -98,7 +98,7 @@ def set_cosmology(cosmology=None):
         COSMOLOGY[1] = cosmology.name
     else:
         COSMOLOGY[1] = repr(cosmology)
-    global_meta_data.add_to_meta_data("cosmology", cosmology)
+    global_meta_data["cosmology"] = cosmology
 
 
 def z_at_value(func, fval, **kwargs):
