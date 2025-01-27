@@ -1,3 +1,4 @@
+from collections import UserDict, UserList
 import datetime
 import inspect
 import json
@@ -43,6 +44,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 "__name__": obj.__class__.__name__,
                 "kwargs": dict(obj.get_instantiation_dict()),
             }
+        if isinstance(obj, (UserDict, UserList)):
+            return obj.data
         if isinstance(obj, ProposalCycle):
             return str(obj)
         try:
@@ -463,6 +466,8 @@ def encode_for_hdf5(key, item):
         )
     elif isinstance(item, dict):
         output = item.copy()
+    elif isinstance(item, (UserDict, UserList)):
+        output = item.data
     elif isinstance(item, tuple):
         output = {str(ii): elem for ii, elem in enumerate(item)}
     elif isinstance(item, datetime.timedelta):
