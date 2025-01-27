@@ -482,8 +482,8 @@ class TestGlobalMetaData(unittest.TestCase):
         bilby.gw.cosmology.DEFAULT_COSMOLOGY = None
         bilby.gw.cosmology.COSMOLOGY = [None, str(None)]
 
-    def test_add_to_meta_data(self):
-        global_meta_data.add_to_meta_data("test", 123)
+    def test_set_item(self):
+        global_meta_data["test"] = 123
         self.assertEqual(global_meta_data["test"], 123)
 
     def test_set_rng(self):
