@@ -38,6 +38,16 @@ class InterferometerList(list):
                 self.append(ifo)
         self._check_interferometers()
 
+    @property
+    def reference_time(self):
+        return self._reference_time
+
+    @reference_time.setter
+    def reference_time(self, time):
+        self._reference_time = time
+        for ifo in self:
+            ifo.reference_time = time
+
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
 
