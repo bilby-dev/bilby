@@ -5,6 +5,7 @@ from scipy.special import gammaln, xlogy
 from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args
+from ..compat.utils import array_module
 
 
 class Likelihood(object):
@@ -465,10 +466,16 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
         """
 
     def __init__(self, mean, cov):
-        self.cov = np.atleast_2d(cov)
-        self.mean = np.atleast_1d(mean)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.pdf = multivariate_normal(mean=self.mean, cov=self.cov)
+        xp = array_module(cov)
+        self.cov = xp.atleast_2d(cov)
+        self.mean = xp.atleast_1d(mean)
+        self.sigma = xp.sqrt(np.diag(self.cov))
+        if xp == np:
+            self.logpdf = multivariate_normal(mean=self.mean, cov=self.cov).logpdf
+        else:
+            from functools import partial
+            from jax.scipy.stats.multivariate_normal import logpdf
+            self.logpdf = partial(logpdf, mean=self.mean, cov=self.cov)
         parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
         super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=parameters)
 
@@ -477,8 +484,9 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
         return len(self.cov[0])
 
     def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
-        return self.pdf.logpdf(x)
+        xp = array_module(self.cov)
+        x = xp.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        return self.logpdf(x)
 
 
 class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
@@ -496,12 +504,19 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
         """
 
     def __init__(self, mean_1, mean_2, cov):
-        self.cov = np.atleast_2d(cov)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.mean_1 = np.atleast_1d(mean_1)
-        self.mean_2 = np.atleast_1d(mean_2)
-        self.pdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov)
-        self.pdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov)
+        xp = array_module(cov)
+        self.cov = xp.atleast_2d(cov)
+        self.sigma = xp.sqrt(np.diag(self.cov))
+        self.mean_1 = xp.atleast_1d(mean_1)
+        self.mean_2 = xp.atleast_1d(mean_2)
+        if xp == np:
+            self.logpdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov).logpdf
+            self.logpdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov).logpdf
+        else:
+            from functools import partial
+            from jax.scipy.stats.multivariate_normal import logpdf
+            self.logpdf_1 = partial(logpdf, mean=self.mean_1, cov=self.cov)
+            self.logpdf_2 = partial(logpdf, mean=self.mean_2, cov=self.cov)
         parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
         super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__(parameters=parameters)
 
@@ -510,8 +525,9 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
         return len(self.cov[0])
 
     def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
-        return -np.log(2) + np.logaddexp(self.pdf_1.logpdf(x), self.pdf_2.logpdf(x))
+        xp = array_module(self.cov)
+        x = xp.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        return -xp.log(2) + xp.logaddexp(self.logpdf_1(x), self.logpdf_2(x))
 
 
 class JointLikelihood(Likelihood):
