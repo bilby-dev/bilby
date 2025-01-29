@@ -552,7 +552,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         linear-interpolation algorithm"""
         logger.info("Linear-interpolation algorithm is used for (h, h).")
         self.quadratic_coeffs = dict((ifo.name, np.array([])) for ifo in self.interferometers)
-        original_duration = self.interferometers.duration
+        original_duration = float(self.interferometers.duration)
 
         for b in range(self.number_of_bands):
             logger.info(f"Pre-computing quadratic coefficients for the {b}-th band")
@@ -576,7 +576,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                     start_idx_in_band + len(window_sequence) - 1,
                     len(ifo.power_spectral_density_array) - 1
                 )
-                _frequency_mask = ifo.frequency_mask[start_idx_in_band:end_idx_in_band + 1]
+                _frequency_mask = np.asarray(ifo.frequency_mask[start_idx_in_band:end_idx_in_band + 1])
                 window_over_psd = np.zeros(end_idx_in_band + 1 - start_idx_in_band)
                 window_over_psd[_frequency_mask] = \
                     1. / ifo.power_spectral_density_array[start_idx_in_band:end_idx_in_band + 1][_frequency_mask]
