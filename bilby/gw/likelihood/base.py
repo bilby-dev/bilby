@@ -933,7 +933,7 @@ class GravitationalWaveTransient(Likelihood):
                 self._create_lookup_table()
         else:
             self._create_lookup_table()
-        if "jax" in array_module(self.interferometers.frequency_array).__name__:
+        if "jax" in array_module(self.interferometers[0].vertex).__name__:
             from interpax import Interpolator2D
             import jax.numpy as jnp
             self._interp_dist_margd_loglikelihood = Interpolator2D(
