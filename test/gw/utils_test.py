@@ -243,6 +243,26 @@ class TestGWUtils(unittest.TestCase):
                 1.5,
             )
 
+    def test_safe_cast_mode_to_int(self):
+        # Valid cases
+        self.assertEqual(gwutils.safe_cast_mode_to_int("2"), 2)
+        self.assertEqual(gwutils.safe_cast_mode_to_int("-3"), -3)
+        self.assertEqual(gwutils.safe_cast_mode_to_int(5), 5)
+
+        # Invalid string cases
+        with self.assertRaises(ValueError):
+            gwutils.safe_cast_mode_to_int("two")
+        with self.assertRaises(ValueError):
+            gwutils.safe_cast_mode_to_int("")
+
+        # Unsupported types
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(2.0)
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(2.0j)
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(None)
+
 
 class TestSkyFrameConversion(unittest.TestCase):
 
