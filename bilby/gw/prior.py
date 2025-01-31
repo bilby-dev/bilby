@@ -514,10 +514,17 @@ class AlignedSpin(Interped):
             xx = np.linspace(chi_min, chi_max, 10000)
             yy = [
                 quad(partial(
-                    lambda aa, zz, amax: 1 / amax / aa * (abs(zz / aa) < 1) / 2,
-                    zz=x, amax=a_prior.maximum - a_prior.minimum
+                    lambda aa, chi, amax: (
+                        1
+                        / amax
+                        / aa
+                        * (abs(chi / aa) <= 1)
+                        * a_prior.prob(aa)
+                        * z_prior.prob(chi / aa)
+                    ),
+                    chi=chi, amax=a_prior.maximum - a_prior.minimum
                 ), a_prior.minimum, a_prior.maximum)[0]
-                for x in xx
+                for chi in xx
             ]
         super().__init__(
             xx=xx,
