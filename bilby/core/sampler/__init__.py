@@ -335,7 +335,10 @@ def run_sampler(
             result.save_to_file(extension=save, gzip=gzip, outdir=outdir)
 
     if None not in [result.injection_parameters, conversion_function]:
-        result.injection_parameters = conversion_function(result.injection_parameters)
+        result.injection_parameters = conversion_function(
+            result.injection_parameters,
+            likelihood=likelihood,
+        )
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
