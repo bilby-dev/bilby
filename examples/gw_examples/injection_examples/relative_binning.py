@@ -142,6 +142,7 @@ result = bilby.run_sampler(
     outdir=outdir,
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 alt_waveform_generator = bilby.gw.WaveformGenerator(
