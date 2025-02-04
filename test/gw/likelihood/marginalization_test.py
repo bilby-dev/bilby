@@ -231,8 +231,8 @@ class TestMarginalizations(unittest.TestCase):
 
         trial_roq_paths = [
             "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomXPHM/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomXPHM/4s",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
         ]
         roq_dir = None
         for path in trial_roq_paths:
