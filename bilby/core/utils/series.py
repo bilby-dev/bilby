@@ -101,9 +101,11 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     xp = array_module(sampling_frequency)
     _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
     number_of_samples = int(duration * sampling_frequency)
-    return xp.linspace(start=starting_time,
-                       stop=duration + starting_time - 1 / sampling_frequency,
-                       num=number_of_samples)
+    return xp.linspace(
+        starting_time,
+        duration + starting_time - 1 / sampling_frequency,
+        num=number_of_samples,
+    )
 
 
 def create_frequency_series(sampling_frequency, duration):
@@ -124,9 +126,7 @@ def create_frequency_series(sampling_frequency, duration):
     number_of_samples = int(xp.round(duration * sampling_frequency))
     number_of_frequencies = int(xp.round(number_of_samples / 2) + 1)
 
-    return xp.linspace(start=0,
-                       stop=sampling_frequency / 2,
-                       num=number_of_frequencies)
+    return xp.linspace(0, sampling_frequency / 2, num=number_of_frequencies)
 
 
 def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
@@ -209,10 +209,11 @@ def nfft(time_domain_strain, sampling_frequency):
         strain / Hz, and the associated frequency_array.
 
     """
-    frequency_domain_strain = np.fft.rfft(time_domain_strain)
+    xp = array_module(time_domain_strain)
+    frequency_domain_strain = xp.fft.rfft(time_domain_strain)
     frequency_domain_strain /= sampling_frequency
 
-    frequency_array = np.linspace(
+    frequency_array = xp.linspace(
         0, sampling_frequency / 2, len(frequency_domain_strain))
 
     return frequency_domain_strain, frequency_array
@@ -234,7 +235,8 @@ def infft(frequency_domain_strain, sampling_frequency):
     time_domain_strain: array_like
         An array of the time domain strain
     """
-    time_domain_strain_norm = np.fft.irfft(frequency_domain_strain)
+    xp = array_module(frequency_domain_strain)
+    time_domain_strain_norm = xp.fft.irfft(frequency_domain_strain)
     time_domain_strain = time_domain_strain_norm * sampling_frequency
     return time_domain_strain
 
