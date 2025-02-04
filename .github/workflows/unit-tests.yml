@@ -45,8 +45,6 @@ jobs:
       run: |
         # activate env so that conda list shows the correct environment
         source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
-        # FIXME: Remove this line when gwpy supports matplotlib 3.10
-        conda install -c conda-forge "matplotlib<3.10"
         python -m pip install .
         conda list --show-channel-urls
       shell: bash
