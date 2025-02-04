@@ -189,6 +189,9 @@ def run_sampler(
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
+        This function should take one positional argument, a dictionary or
+        pandas dataframe and three optional arguments: the likelihood, prior
+        dict, and an integer :code:`npool` to allow parallelisation.
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the bilby defaults for a binary black hole.
