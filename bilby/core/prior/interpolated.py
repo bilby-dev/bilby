@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .base import Prior
 from ..utils import logger
+from ..utils.calculus import interp1d
 from ...compat.utils import xp_wrap
 
 
