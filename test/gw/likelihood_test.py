@@ -283,8 +283,8 @@ class TestROQLikelihood(unittest.TestCase):
         # Possible locations for the ROQ: in the docker image, local, or on CIT
         trial_roq_paths = [
             "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomXPHM/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomXPHM/4s",
         ]
         roq_dir = None
         for path in trial_roq_paths:
@@ -546,8 +546,8 @@ class TestRescaledROQLikelihood(unittest.TestCase):
         # Possible locations for the ROQ: in the docker image, local, or on CIT
         trial_roq_paths = [
             "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomXPHM/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomXPHM/4s",
         ]
         roq_dir = None
         for path in trial_roq_paths:
@@ -980,8 +980,8 @@ class TestCreateROQLikelihood(unittest.TestCase):
         # Possible locations for the ROQ: in the docker image, local, or on CIT
         trial_roq_paths = [
             "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomXPHM/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomXPHM/4s",
         ]
         roq_dir = None
         for path in trial_roq_paths:
@@ -1132,8 +1132,8 @@ class TestInOutROQWeights(unittest.TestCase):
         # Possible locations for the ROQ: in the docker image, local, or on CIT
         trial_roq_paths = [
             "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomXPHM/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomXPHM/4s",
         ]
         roq_dir = None
         for path in trial_roq_paths:
