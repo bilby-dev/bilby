@@ -88,11 +88,11 @@ class SlabSpikePrior(Prior):
         original_is_number = isinstance(val, Number)
         val = np.atleast_1d(val)
 
-        lower_indices = np.where(val < self.inverse_cdf_below_spike)[0]
-        intermediate_indices = np.where(np.logical_and(
+        lower_indices = val < self.inverse_cdf_below_spike
+        intermediate_indices = np.logical_and(
             self.inverse_cdf_below_spike <= val,
-            val <= self.inverse_cdf_below_spike + self.spike_height))[0]
-        higher_indices = np.where(val > self.inverse_cdf_below_spike + self.spike_height)[0]
+            val <= (self.inverse_cdf_below_spike + self.spike_height))
+        higher_indices = val > (self.inverse_cdf_below_spike + self.spike_height)
 
         res = np.zeros(len(val))
         res[lower_indices] = self._contracted_rescale(val[lower_indices])
@@ -137,7 +137,7 @@ class SlabSpikePrior(Prior):
         original_is_number = isinstance(val, Number)
         res = self.slab.prob(val) * self.slab_fraction
         res = np.atleast_1d(res)
-        res[np.where(val == self.spike_location)] = np.inf
+        res[val == self.spike_location] = np.inf
         if original_is_number:
             try:
                 res = res[0]
@@ -161,7 +161,7 @@ class SlabSpikePrior(Prior):
         original_is_number = isinstance(val, Number)
         res = self.slab.ln_prob(val) + np.log(self.slab_fraction)
         res = np.atleast_1d(res)
-        res[np.where(val == self.spike_location)] = np.inf
+        res[val == self.spike_location] = np.inf
         if original_is_number:
             try:
                 res = res[0]
@@ -185,7 +185,5 @@ class SlabSpikePrior(Prior):
 
         """
         res = self.slab.cdf(val) * self.slab_fraction
-        res = np.atleast_1d(res)
-        indices_above_spike = np.where(val > self.spike_location)[0]
-        res[indices_above_spike] += self.spike_height
+        res += self.spike_height * (val > self.spike_location)
         return res
