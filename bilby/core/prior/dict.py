@@ -899,10 +899,19 @@ class ConditionalPriorDict(PriorDict):
                 values = np.concatenate([values, result[key]])
             for key, value in zip(names, values):
                 result[key] = value
-        # this is gross but can be removed whenever we switch to returning
-        # arrays, flatten converts 0-d arrays to 1-d and squeeze converts it
-        # back
-        return [np.asarray(result[key]).flatten().squeeze() for key in keys]
+
+        def safe_flatten(value):
+            """
+            this is gross but can be removed whenever we switch to returning
+            arrays, flatten converts 0-d arrays to 1-d so has to be special
+            cased
+            """
+            if isinstance(value, (float, int)):
+                return value
+            else:
+                return result[key].flatten()
+
+        return [safe_flatten(result[key]) for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
