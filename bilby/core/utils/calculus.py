@@ -1,10 +1,11 @@
 import math
 
 import numpy as np
-from scipy.interpolate import interp1d, RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
+from ...compat.utils import array_module
 
 
 def derivatives(
@@ -187,6 +188,20 @@ def logtrapzexp(lnf, dx):
         raise TypeError("Step size must be a single value or array-like")
 
     return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
+
+
+class interp1d(_interp1d):
+        
+        def __call__(self, x):
+            xp = array_module(x)
+            if "jax" in xp.__name__:
+                if isinstance(self.fill_value, tuple):
+                    left, right = self.fill_value
+                else:
+                    left = right = self.fill_value
+                return xp.interp(x , xp.asarray(self.x), xp.asarray(self.y), left=left, right=right)
+            else:
+                return super().__call__(x)
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):

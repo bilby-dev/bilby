@@ -2,7 +2,8 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 from .base import Prior
-from ..utils import logger, WrappedInterp1d as interp1d
+from ..utils import logger
+from ..utils.calculus import interp1d
 from ...compat.utils import xp_wrap
 
 
