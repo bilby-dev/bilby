@@ -2,6 +2,7 @@
 import numpy as np
 
 from .base import GravitationalWaveTransient
+from ...compat.utils import array_module
 from ...core.utils import (
     logger, create_frequency_series, speed_of_light, radius_of_earth
 )
@@ -458,8 +459,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         quadratic_indices = self.waveform_generator.waveform_arguments['quadratic_indices']
         size_linear = len(linear_indices)
         size_quadratic = len(quadratic_indices)
-        h_linear = np.zeros(size_linear, dtype=complex)
-        h_quadratic = np.zeros(size_quadratic, dtype=complex)
+        h_linear = 0j
+        h_quadratic = 0j
         for mode in waveform_polarizations['linear']:
             response = interferometer.antenna_response(
                 parameters['ra'], parameters['dec'],
@@ -470,13 +471,14 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             h_linear += waveform_polarizations['linear'][mode] * response
             h_quadratic += waveform_polarizations['quadratic'][mode] * response
 
+        xp = array_module(h_linear)
         calib_factor = interferometer.calibration_model.get_calibration_factor(
             frequency_nodes, prefix='recalib_{}_'.format(interferometer.name), **parameters)
         h_linear *= calib_factor[linear_indices]
         h_quadratic *= calib_factor[quadratic_indices]
 
-        optimal_snr_squared = np.vdot(
-            np.abs(h_quadratic)**2,
+        optimal_snr_squared = xp.vdot(
+            xp.abs(h_quadratic)**2,
             self.weights[interferometer.name + '_quadratic'][self.basis_number_quadratic]
         )
 
@@ -487,20 +489,18 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         indices, in_bounds = self._closest_time_indices(
             ifo_time, self.weights['time_samples'])
-        if not in_bounds:
-            logger.debug("SNR calculation error: requested time at edge of ROQ time samples")
-            d_inner_h = -np.inf
-            complex_matched_filter_snr = -np.inf
-        else:
-            d_inner_h_tc_array = np.einsum(
-                'i,ji->j', np.conjugate(h_linear),
-                self.weights[interferometer.name + '_linear'][self.basis_number_linear][indices])
+        d_inner_h_tc_array = xp.einsum(
+            'i,ji->j', xp.conjugate(h_linear),
+            self.weights[interferometer.name + '_linear'][self.basis_number_linear][indices])
 
-            d_inner_h = self._interp_five_samples(
-                self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
+        d_inner_h = self._interp_five_samples(
+            self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
 
-            with np.errstate(invalid="ignore"):
-                complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
+        with np.errstate(invalid="ignore"):
+            complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
+
+        d_inner_h += xp.log(in_bounds)
+        complex_matched_filter_snr += xp.log(in_bounds)
 
         if return_array and self.time_marginalization:
             ifo_times = self._times - interferometer.strain_data.start_time
@@ -537,10 +537,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         in_bounds: bool
             Whether the indices are for valid times
         """
-        closest = int((time - samples[0]) / (samples[1] - samples[0]))
+        xp = array_module(time)
+        closest = xp.floor((time - samples[0]) / (samples[1] - samples[0]))
         indices = [closest + ii for ii in [-2, -1, 0, 1, 2]]
         in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
-        return indices, in_bounds
+        return xp.asarray(indices).astype(int), in_bounds
 
     @staticmethod
     def _interp_five_samples(time_samples, values, time):
