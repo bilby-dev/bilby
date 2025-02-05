@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..compat.utils import array_module
 from ..core import utils
 from ..core.utils import logger
 from .conversion import bilby_to_lalsimulation_spins
@@ -1187,20 +1188,22 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     dict:
         Dictionary containing the plus and cross components of the strain.
     """
-    tau = Q / (np.sqrt(2.0) * np.pi * frequency)
-    temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
+    xp = array_module(frequency_array)
+    tau = Q / (2.0**0.5 * np.pi * frequency)
+    temp = Q / (4.0 * np.pi**0.5 * frequency)
     fm = frequency_array - frequency
     fp = frequency_array + frequency
 
-    h_plus = ((hrss / np.sqrt(temp * (1 + np.exp(-Q**2)))) *
-              ((np.sqrt(np.pi) * tau) / 2.0) *
-              (np.exp(-fm**2 * np.pi**2 * tau**2) +
-              np.exp(-fp**2 * np.pi**2 * tau**2)))
+    negative_term = xp.exp(-fm**2 * np.pi**2 * tau**2)
+    positive_term = xp.exp(-fp**2 * np.pi**2 * tau**2)
 
-    h_cross = (-1j * (hrss / np.sqrt(temp * (1 - np.exp(-Q**2)))) *
-               ((np.sqrt(np.pi) * tau) / 2.0) *
-               (np.exp(-fm**2 * np.pi**2 * tau**2) -
-               np.exp(-fp**2 * np.pi**2 * tau**2)))
+    h_plus = hrss * np.pi**0.5 * tau / 2 * (
+        negative_term + positive_term
+    ) / (temp * (1 + xp.exp(-Q**2)))**0.5
+
+    h_cross = -1j * hrss * np.pi**0.5 * tau / 2 * (
+        negative_term - positive_term
+    ) / (temp * (1 - np.exp(-Q**2)))**0.5
 
     return {'plus': h_plus, 'cross': h_cross}
 
