@@ -933,19 +933,12 @@ class GravitationalWaveTransient(Likelihood):
                 self._create_lookup_table()
         else:
             self._create_lookup_table()
-        if "jax" in array_module(self.interferometers[0].vertex).__name__:
-            from interpax import Interpolator2D
-            import jax.numpy as jnp
-            self._interp_dist_margd_loglikelihood = Interpolator2D(
-                jnp.asarray(self._d_inner_h_ref_array),
-                jnp.asarray(self._optimal_snr_squared_ref_array),
-                jnp.asarray(self._dist_margd_loglikelihood_array.T),
-                extrap=-jnp.inf,
-            )
-        else:
-            self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
-                self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-                self._dist_margd_loglikelihood_array.T, fill_value=-np.inf)
+        self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
+            self._d_inner_h_ref_array,
+            self._optimal_snr_squared_ref_array,
+            self._dist_margd_loglikelihood_array.T,
+            fill_value=-np.inf,
+        )
 
     @property
     def cached_lookup_table_filename(self):
