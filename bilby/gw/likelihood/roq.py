@@ -490,11 +490,16 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         indices, in_bounds = self._closest_time_indices(
             ifo_time, self.weights['time_samples'])
         d_inner_h_tc_array = xp.einsum(
-            'i,ji->j', xp.conjugate(h_linear),
-            self.weights[interferometer.name + '_linear'][self.basis_number_linear][indices])
+            'i,ji->j',
+            xp.conjugate(h_linear),
+            xp.asarray(
+                self.weights[interferometer.name + '_linear'][self.basis_number_linear]
+            )[indices],
+        )
 
         d_inner_h = self._interp_five_samples(
-            self.weights['time_samples'][indices], d_inner_h_tc_array, ifo_time)
+            xp.asarray(self.weights['time_samples'])[indices], d_inner_h_tc_array, ifo_time
+        )
 
         with np.errstate(invalid="ignore"):
             complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
