@@ -10,6 +10,7 @@ from .entry_points import *
 from .introspection import *
 from .io import *
 from .log import *
+from .meta_data import *
 from .plotting import *
 from .samples import *
 from .series import *
