@@ -189,6 +189,9 @@ def run_sampler(
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
+        This function should take one positional argument, a dictionary or
+        pandas dataframe and three optional arguments: the likelihood, prior
+        dict, and an integer :code:`npool` to allow parallelisation.
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the bilby defaults for a binary black hole.
@@ -335,7 +338,10 @@ def run_sampler(
             result.save_to_file(extension=save, gzip=gzip, outdir=outdir)
 
     if None not in [result.injection_parameters, conversion_function]:
-        result.injection_parameters = conversion_function(result.injection_parameters)
+        result.injection_parameters = conversion_function(
+            result.injection_parameters,
+            likelihood=likelihood,
+        )
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
