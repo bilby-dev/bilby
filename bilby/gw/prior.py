@@ -511,19 +511,18 @@ class AlignedSpin(Interped):
             xx = np.linspace(chi_min, chi_max, 100000)
             yy = - np.log(np.abs(xx) / a_prior.maximum) / (2 * a_prior.maximum)
         else:
+
+            def integrand(aa, chi):
+                """
+                The integrand for the aligned spin (chi) probability density
+                after performing the integral over spin orientation using a
+                delta function identity.
+                """
+                return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
+
             xx = np.linspace(chi_min, chi_max, 10000)
             yy = [
-                quad(partial(
-                    lambda aa, chi, amax: (
-                        1
-                        / amax
-                        / aa
-                        * (abs(chi / aa) <= 1)
-                        * a_prior.prob(aa)
-                        * z_prior.prob(chi / aa)
-                    ),
-                    chi=chi, amax=a_prior.maximum - a_prior.minimum
-                ), a_prior.minimum, a_prior.maximum)[0]
+                quad(integrand, a_prior.minimum, a_prior.maximum, chi)[0]
                 for chi in xx
             ]
         super().__init__(
