@@ -1,6 +1,5 @@
 import os
 import copy
-from functools import partial
 
 import numpy as np
 from scipy.integrate import quad
