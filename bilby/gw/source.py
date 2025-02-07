@@ -1091,6 +1091,8 @@ def _base_waveform_frequency_sequence(
     reference_frequency = waveform_kwargs.pop('reference_frequency')
     approximant = waveform_kwargs.pop('waveform_approximant')
     catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
+    _ = waveform_kwargs.pop("minimum_frequency", None)
+    _ = waveform_kwargs.pop("maximum_frequency", None)
 
     waveform_dictionary = set_waveform_dictionary(waveform_kwargs, lambda_1, lambda_2)
     approximant = lalsim_GetApproximantFromString(approximant)
