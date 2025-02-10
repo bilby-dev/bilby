@@ -138,5 +138,6 @@ result = bilby.run_sampler(
     check_point_plot=True,
     npool=1,
     conversion_function=bilby.gw.conversion.generate_all_bns_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

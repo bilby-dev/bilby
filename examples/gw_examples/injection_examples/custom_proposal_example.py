@@ -101,6 +101,7 @@ result = bilby.run_sampler(
     outdir=outdir,
     label=label,
     proposals=jump_proposals,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 # Make a corner plot.
