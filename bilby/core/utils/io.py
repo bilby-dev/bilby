@@ -1,3 +1,4 @@
+from collections import UserDict, UserList
 import datetime
 import inspect
 import json
@@ -11,7 +12,6 @@ import numpy as np
 import pandas as pd
 
 from .log import logger
-from .introspection import infer_args_from_method
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
@@ -44,6 +44,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 "__name__": obj.__class__.__name__,
                 "kwargs": dict(obj.get_instantiation_dict()),
             }
+        if isinstance(obj, (UserDict, UserList)):
+            return obj.data
         if isinstance(obj, ProposalCycle):
             return str(obj)
         try:
@@ -53,8 +55,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_cosmology(obj)
             if isinstance(obj, units.Quantity):
                 return encode_astropy_quantity(obj)
-            if isinstance(obj, units.PrefixUnit):
-                return str(obj)
+            if isinstance(obj, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+                return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
         if isinstance(obj, np.ndarray):
@@ -65,6 +67,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {"__dataframe__": True, "content": obj.to_dict(orient="list")}
         if isinstance(obj, pd.Series):
             return {"__series__": True, "content": obj.to_dict()}
+        if isinstance(obj, np.random.Generator):
+            return encode_numpy_random_generator(obj)
         if inspect.isfunction(obj):
             return {
                 "__function__": True,
@@ -87,38 +91,122 @@ class BilbyJsonEncoder(json.JSONEncoder):
 
 
 def encode_astropy_cosmology(obj):
-    cls_name = obj.__class__.__name__
-    dct = {key: getattr(obj, key) for key in infer_args_from_method(obj.__init__)}
-    dct["__cosmology__"] = True
-    dct["__name__"] = cls_name
-    return dct
+    """Encode an astropy cosmology object to a dictionary.
+
+    Adds the key :code:`__cosmology__` to the dictionary to indicate that the
+    object is a cosmology object.
+
+    .. versionchange:: 2.5.0
+        Now uses the :code:`to_format("mapping")` method to encode the
+        cosmology object.
+    """
+    return {"__cosmology__": True, **obj.to_format("mapping")}
 
 
 def encode_astropy_quantity(dct):
-    dct = dict(__astropy_quantity__=True, value=dct.value, unit=str(dct.unit))
+    """Encode an astropy quantity object to a dictionary.
+
+    Adds the key :code:`__astropy_quantity__` to the dictionary to indicate that
+    the object is a quantity object.
+    """
+    dct = dict(__astropy_quantity__=True, value=dct.value, unit=dct.unit.to_string())
     if isinstance(dct["value"], np.ndarray):
-        dct["value"] = list(dct["value"])
+        dct["value"] = dct["value"].tolist()
     return dct
 
 
-def decode_astropy_cosmology(dct):
-    try:
-        from astropy import cosmology as cosmo
+def encode_astropy_unit(obj):
+    """Encode an astropy unit object to a dictionary.
 
-        cosmo_cls = getattr(cosmo, dct["__name__"])
-        del dct["__cosmology__"], dct["__name__"]
-        return cosmo_cls(**dct)
-    except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be " "properly loaded."
-        )
-        return dct
+    Adds the key :code:`__astropy_unit__` to the dictionary to indicate that the
+    object is a unit object.
 
-
-def decode_astropy_quantity(dct):
+    .. versionadded:: 2.5.0
+    """
     try:
         from astropy import units
 
+        # Based on the JsonCustomEncoder in astropy.units.misc
+        if obj == units.dimensionless_unscaled:
+            return dict(__astropy_unit__=True, unit="dimensionless_unit")
+        return dict(__astropy_unit__=True, unit=obj.to_string())
+
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return obj
+
+
+def encode_numpy_random_generator(generator):
+    """Encode a numpy random generator to a dictionary.
+
+    Adds the key :code:`__numpy_random_generator__` to the dictionary to indicate
+    that the object is a numpy random generator.
+
+    The :code:`bit_generator_state` key contains the state of the bit generator
+    including its name.
+
+    .. versionadded:: 2.5.0
+    """
+    state = generator.bit_generator.state
+    # The state and inc integers are converted to strings to avoid issues with
+    # arbitrary precision integers when encoding to HDF5.
+    # We list them explicitly to avoid issues that may arise if the numpy
+    # random generator changes its state representation.
+    state["state"]["state"] = str(state["state"]["state"])
+    state["state"]["inc"] = str(state["state"]["inc"])
+    return {
+        "__numpy_random_generator__": True,
+        "bit_generator_state": state,
+    }
+
+
+def decode_astropy_cosmology(dct):
+    """Decode an astropy cosmology from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bibly.core.utils.io.encode_astropy_cosmology` and should have the
+    key :code:`__cosmology__`.
+
+    .. versionchange:: 2.5.0
+        Now uses the :code:`from_format` method to decode the cosmology object.
+        Still supports decoding result files that used the previous encoding.
+    """
+    try:
+        from astropy import cosmology as cosmo
+
+        del dct["__cosmology__"]
+        return cosmo.Cosmology.from_format(dct, format="mapping")
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return dct
+    except KeyError:
+        # Support decoding result files that used the previous encoding
+        logger.warning(
+            "Failed to decode cosmology, falling back to legacy decoding. "
+            "Support for legacy decoding will be removed in a future release."
+        )
+        cosmo_cls = getattr(cosmo, dct["__name__"])
+        del dct["__name__"]
+        return cosmo_cls(**dct)
+
+
+def decode_astropy_quantity(dct):
+    """Decode an astropy quantity from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_astropy_quantity` and should have the
+    key :code:`__astropy_quantity__`.
+    """
+    try:
+        from astropy import units
+        from astropy.cosmology import units as cosmo_units
+
+        # Enable cosmology units such as redshift
+        units.add_enabled_units(cosmo_units)
         if dct["value"] is None:
             return None
         else:
@@ -126,9 +214,60 @@ def decode_astropy_quantity(dct):
             return units.Quantity(**dct)
     except ImportError:
         logger.debug(
-            "Cannot import astropy, cosmological priors may not be " "properly loaded."
+            "Cannot import astropy, cosmological priors may not be properly loaded."
         )
         return dct
+
+
+def decode_astropy_unit(dct):
+    """Decode an astropy unit from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_astropy_unit` and should have the
+    key :code:`__astropy_unit__`.
+
+    .. versionadded:: 2.5.0
+    """
+    try:
+        from astropy import units
+        from astropy.cosmology import units as cosmo_units
+
+        # Enable cosmology units such as redshift
+        units.add_enabled_units(cosmo_units)
+        if dct["unit"] == "dimensionless_unit":
+            return units.dimensionless_unscaled
+        else:
+            del dct["__astropy_unit__"]
+            return units.Unit(dct["unit"])
+    except ImportError:
+        logger.debug(
+            "Cannot import astropy, cosmological priors may not be properly loaded."
+        )
+        return dct
+
+
+def decode_numpy_random_generator(dct):
+    """Decode a numpy random generator from a dictionary.
+
+    .. versionadded:: 2.5.0
+    """
+    try:
+        bit_generator = getattr(np.random, dct["bit_generator_state"]["bit_generator"])
+    except AttributeError as e:
+        raise ValueError(
+            f"Unknown numpy bit generator {dct['bit_generator_state']['bit_generator']}. "
+            "The bit generator must be a numpy.random.Generator."
+            f"Original error: {e}"
+        ) from e
+    # Convert the state and inc integers back to integers
+    dct["bit_generator_state"]["state"]["state"] = \
+        int(dct["bit_generator_state"]["state"]["state"])
+    dct["bit_generator_state"]["state"]["inc"] = \
+        int(dct["bit_generator_state"]["state"]["inc"])
+
+    generator = np.random.Generator(bit_generator())
+    generator.bit_generator.state = dct["bit_generator_state"]
+    return generator
 
 
 def load_json(filename, gzip):
@@ -166,10 +305,14 @@ def decode_bilby_json(dct):
             cls = Prior
         obj = cls(**dct["kwargs"])
         return obj
+    if dct.get("__numpy_random_generator__", False):
+        return decode_numpy_random_generator(dct)
     if dct.get("__cosmology__", False):
         return decode_astropy_cosmology(dct)
     if dct.get("__astropy_quantity__", False):
         return decode_astropy_quantity(dct)
+    if dct.get("__astropy_unit__", False):
+        return decode_astropy_unit(dct)
     if dct.get("__array__", False):
         return np.asarray(dct["content"])
     if dct.get("__complex__", False):
@@ -264,6 +407,13 @@ def encode_for_hdf5(key, item):
     """
     from ..prior.dict import PriorDict
 
+    try:
+        from astropy import cosmology as cosmo, units
+    except ImportError:
+        logger.debug("Cannot import astropy, cannot write cosmological priors")
+        cosmo = None
+        units = None
+
     if isinstance(item, np.int_):
         item = int(item)
     elif isinstance(item, np.float64):
@@ -277,6 +427,8 @@ def encode_for_hdf5(key, item):
             item = np.array(item, dtype='S')
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
+    elif isinstance(item, np.random.Generator):
+        output = encode_numpy_random_generator(item)
     elif item is None:
         output = "__none__"
     elif isinstance(item, list):
@@ -302,12 +454,20 @@ def encode_for_hdf5(key, item):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
         output = item.to_dict(orient="list")
+    elif cosmo is not None and isinstance(item, cosmo.FLRW):
+        output = encode_astropy_cosmology(item)
+    elif units is not None and isinstance(item, units.Quantity):
+        output = encode_astropy_quantity(item)
+    elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+        output = encode_astropy_unit(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
         )
     elif isinstance(item, dict):
         output = item.copy()
+    elif isinstance(item, (UserDict, UserList)):
+        output = item.data
     elif isinstance(item, tuple):
         output = {str(ii): elem for ii, elem in enumerate(item)}
     elif isinstance(item, datetime.timedelta):
@@ -317,11 +477,35 @@ def encode_for_hdf5(key, item):
     return output
 
 
+def decode_hdf5_dict(output):
+    """Decode a dictionary constructed from a HDF5 file.
+
+    This handles decoding of Bilby types and astropy types from the dictionary.
+
+    .. versionadded:: 2.5.0
+    """
+    if ("__function__" in output) or ("__class__" in output):
+        default = ".".join([output["__module__"], output["__name__"]])
+        output = getattr(import_module(output["__module__"]), output["__name__"], default)
+    elif "__cosmology__" in output:
+        output = decode_astropy_cosmology(output)
+    elif "__astropy_quantity__" in output:
+        output = decode_astropy_quantity(output)
+    elif "__astropy_unit__" in output:
+        output = decode_astropy_unit(output)
+    elif "__numpy_random_generator__" in output:
+        output = decode_numpy_random_generator(output)
+    return output
+
+
 def recursively_load_dict_contents_from_group(h5file, path):
     """
     Recursively load a HDF5 file into a dictionary
 
     .. versionadded:: 1.1.0
+
+    .. versionchanged: 2.5.0
+        Now decodes astropy and bilby types
 
     Parameters
     ----------
@@ -345,6 +529,10 @@ def recursively_load_dict_contents_from_group(h5file, path):
             output[key] = recursively_load_dict_contents_from_group(
                 h5file, path + key + "/"
             )
+    # Some items may be encoded as dictionaries, so we need to decode them
+    # after the dictionary has been constructed.
+    # This includes decoding astropy and bilby types
+    output = decode_hdf5_dict(output)
     return output
 
 
