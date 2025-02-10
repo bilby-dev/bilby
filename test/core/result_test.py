@@ -445,8 +445,11 @@ class TestResult(unittest.TestCase):
 
     def test_get_credible_levels_raises_error_if_no_injection_parameters(self):
         self.result.injection_parameters = None
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError) as error_context:
             self.result.get_all_injection_credible_levels()
+        self.assertTrue(
+            "Result object has no 'injection_parameters" in str(error_context.exception)
+        )
 
     def test_kde(self):
         kde = self.result.kde
