@@ -533,7 +533,7 @@ class AlignedSpin(Interped):
                 return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
 
             self.num_interp = 10_000 if num_interp is None else num_interp
-            xx = np.linspace(chi_min, chi_max, num_interp)
+            xx = np.linspace(chi_min, chi_max, self.num_interp)
             yy = [
                 quad(integrand, a_prior.minimum, a_prior.maximum, chi)[0]
                 for chi in xx
