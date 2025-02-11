@@ -92,6 +92,7 @@ class TestPriorClasses(unittest.TestCase):
                 z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
                 name="test",
                 unit="unit",
+                num_interp=1000,
             ),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
