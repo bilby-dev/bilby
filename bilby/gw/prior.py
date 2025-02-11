@@ -519,8 +519,8 @@ class AlignedSpin(Interped):
                       a_prior.minimum * z_prior.maximum)
         chi_max = a_prior.maximum * z_prior.maximum
         if self._is_simple_aligned_prior:
-            num_interp = 100_000 if num_interp is None else num_interp
-            xx = np.linspace(chi_min, chi_max, num_interp)
+            self.num_interp = 100_000 if num_interp is None else num_interp
+            xx = np.linspace(chi_min, chi_max, self.num_interp)
             yy = - np.log(np.abs(xx) / a_prior.maximum) / (2 * a_prior.maximum)
         else:
 
@@ -532,7 +532,7 @@ class AlignedSpin(Interped):
                 """
                 return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
 
-            num_interp = 10_000 if num_interp is None else num_interp
+            self.num_interp = 10_000 if num_interp is None else num_interp
             xx = np.linspace(chi_min, chi_max, num_interp)
             yy = [
                 quad(integrand, a_prior.minimum, a_prior.maximum, chi)[0]
