@@ -487,9 +487,18 @@ class AlignedSpin(Interped):
     analytic form of the PDF.
     """
 
-    def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),
-                 name=None, latex_label=None, unit=None, boundary=None,
-                 minimum=np.nan, maximum=np.nan):
+    def __init__(
+        self,
+        a_prior=Uniform(0, 1),
+        z_prior=Uniform(-1, 1),
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary=None,
+        minimum=np.nan,
+        maximum=np.nan,
+        num_interp=None,
+    ):
         """
         Parameters
         ==========
@@ -500,6 +509,9 @@ class AlignedSpin(Interped):
         name: see superclass
         latex_label: see superclass
         unit: see superclass
+        num_interp: int
+            The number of points to use in the interpolation. Defaults to 100,000
+            for simple aligned priors and 10,000 for general priors.
         """
         self.a_prior = a_prior
         self.z_prior = z_prior
@@ -507,7 +519,8 @@ class AlignedSpin(Interped):
                       a_prior.minimum * z_prior.maximum)
         chi_max = a_prior.maximum * z_prior.maximum
         if self._is_simple_aligned_prior:
-            xx = np.linspace(chi_min, chi_max, 100000)
+            num_interp = 100_000 if num_interp is None else num_interp
+            xx = np.linspace(chi_min, chi_max, num_interp)
             yy = - np.log(np.abs(xx) / a_prior.maximum) / (2 * a_prior.maximum)
         else:
 
@@ -519,7 +532,8 @@ class AlignedSpin(Interped):
                 """
                 return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
 
-            xx = np.linspace(chi_min, chi_max, 10000)
+            num_interp = 10_000 if num_interp is None else num_interp
+            xx = np.linspace(chi_min, chi_max, num_interp)
             yy = [
                 quad(integrand, a_prior.minimum, a_prior.maximum, chi)[0]
                 for chi in xx
