@@ -5,6 +5,30 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.5.0]
+
+### Added
+
+- Add `cosmology` to `CBCPriorDict` (https://github.com/bilby-dev/bilby/pull/868)
+- Add `cosmology` to `CBCResult` (https://github.com/bilby-dev/bilby/pull/867)
+- Add support for analytic aligned spin priors (https://github.com/bilby-dev/bilby/pull/849)
+- Add global meta data (https://github.com/bilby-dev/bilby/pull/873)
+- Add warning when prior sampling efficiency is low (https://github.com/bilby-dev/bilby/pull/853)
+
+### Changed
+
+- Remove calls to deprecated scipy functions (https://github.com/bilby-dev/bilby/pull/884)
+- [dynesty] Reduce number of calls to `add_live_points (https://github.com/bilby-dev/bilby/pull/872)
+- Check for empty result files when resuming (https://github.com/bilby-dev/bilby/pull/890)
+
+### Fixed
+
+- Fix `numerical_relativity_file` keyword argument (https://github.com/bilby-dev/bilby/pull/909)
+- Fix missing argument in precomputed calibration (https://github.com/bilby-dev/bilby/pull/882)
+- Fix passing `mode_array` in injections waveform arguments (https://github.com/bilby-dev/bilby/pull/820)
+- Fix dtypes changing in `plot_interferometer_waveform_posterior` (https://github.com/bilby-dev/bilby/pull/870)
+
+
 ## [2.4.0]
 
 Note: this release contains changes made on both GitHub and LIGO GitLab.
@@ -1109,7 +1133,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.4.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.0...main
+[2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/bilby-dev/bilby/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/bilby-dev/bilby/compare/v2.2.2...v2.2.3
