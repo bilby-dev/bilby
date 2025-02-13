@@ -20,6 +20,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - Remove calls to deprecated scipy functions (https://github.com/bilby-dev/bilby/pull/884)
 - [dynesty] Reduce number of calls to `add_live_points (https://github.com/bilby-dev/bilby/pull/872)
 - Check for empty result files when resuming (https://github.com/bilby-dev/bilby/pull/890)
+- Add `num_interp` to `AlignedSpin` prior (https://github.com/bilby-dev/bilby/pull/912)
 
 ### Fixed
 
