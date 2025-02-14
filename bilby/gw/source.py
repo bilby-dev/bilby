@@ -17,8 +17,22 @@ Unused waveform_kwargs: {waveform_kwargs}
 """
 
 
-def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-                               phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+def _base_gwsignal_binary_black_hole(
+        frequency_array,
+        mass_1,
+        mass_2,
+        luminosity_distance,
+        a_1,
+        tilt_1,
+        phi_12,
+        a_2,
+        tilt_2,
+        phi_jl,
+        theta_jn,
+        phase,
+        eccentricity,
+        mean_per_ano,
+        **kwargs):
     """
     A binary black hole waveform model using GWsignal
 
@@ -49,6 +63,10 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
         Angle between the total binary angular momentum and the line of sight
     phase: float
         The phase at coalescence
+    eccentricity: float
+        Orbital eccentricity
+    mean_per_ano: float
+        Mean anomaly
     kwargs: dict
         Optional keyword arguments
         Supported arguments:
@@ -84,8 +102,8 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
     =====
     This function is a temporary wrapper to the interface that will
     likely be significantly changed or removed in a future release.
-    This version is only intended to be used with `SEOBNRv5HM` and `SEOBNRv5PHM` and
-    does not have full functionality for other waveform models.
+    This version is only intended to be used with ``SEOBNRv5HM``, ``SEOBNRv5EHM``
+    and ``SEOBNRv5PHM`` and does not have full functionality for other waveform models.
     """
 
     from lalsimulation.gwsignal import GenerateFDWaveform
@@ -104,7 +122,7 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
     waveform_kwargs.update(kwargs)
 
     waveform_approximant = waveform_kwargs['waveform_approximant']
-    if waveform_approximant not in ["SEOBNRv5HM", "SEOBNRv5PHM"]:
+    if waveform_approximant not in ["SEOBNRv5HM", "SEOBNRv5EHM", "SEOBNRv5PHM"]:
         if waveform_approximant == "IMRPhenomXPHM":
             logger.warning("The new waveform interface is unreviewed for this model" +
                            "and it is only intended for testing.")
@@ -142,9 +160,7 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
         phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1 * utils.solar_mass, mass_2=mass_2 * utils.solar_mass,
         reference_frequency=reference_frequency, phase=phase)
 
-    eccentricity = 0.0
     longitude_ascending_nodes = 0.0
-    mean_per_ano = 0.0
 
     # Check if conditioning is needed
     condition = 0
@@ -258,6 +274,62 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
         h_cross[frequency_bounds] *= time_shift
 
     return dict(plus=h_plus, cross=h_cross)
+
+
+def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+                               phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+
+    return _base_gwsignal_binary_black_hole(
+        frequency_array=frequency_array,
+        mass_1=mass_1,
+        mass_2=mass_2,
+        luminosity_distance=luminosity_distance,
+        a_1=a_1,
+        tilt_1=tilt_1,
+        phi_12=phi_12,
+        a_2=a_2,
+        tilt_2=tilt_2,
+        phi_jl=phi_jl,
+        theta_jn=theta_jn,
+        phase=phase,
+        eccentricity=0,
+        mean_per_ano=0,
+        **kwargs)
+
+
+def gwsignal_eccentric_binary_black_hole(
+        frequency_array,
+        mass_1,
+        mass_2,
+        luminosity_distance,
+        a_1,
+        tilt_1,
+        phi_12,
+        a_2,
+        tilt_2,
+        phi_jl,
+        theta_jn,
+        phase,
+        eccentricity,
+        mean_per_ano,
+        **kwargs):
+
+    return _base_gwsignal_binary_black_hole(
+        frequency_array=frequency_array,
+        mass_1=mass_1,
+        mass_2=mass_2,
+        luminosity_distance=luminosity_distance,
+        a_1=a_1,
+        tilt_1=tilt_1,
+        phi_12=phi_12,
+        a_2=a_2,
+        tilt_2=tilt_2,
+        phi_jl=phi_jl,
+        theta_jn=theta_jn,
+        phase=phase,
+        eccentricity=eccentricity,
+        mean_per_ano=mean_per_ano,
+        **kwargs)
 
 
 def lal_binary_black_hole(
