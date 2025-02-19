@@ -334,7 +334,7 @@ class Interferometer(object):
         signal_ifo = sum(signal.values()) * mask
 
         time_shift = self.time_delay_from_geocenter(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+            parameters['ra'], parameters['dec'], antenna_time)
 
         # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
