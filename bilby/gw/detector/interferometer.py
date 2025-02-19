@@ -1,15 +1,16 @@
 import os
 
 import numpy as np
-from bilby_cython.geometry import (
+
+from ...core import utils
+from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
+from ...compat.utils import array_module
+from .. import utils as gwutils
+from ..geometry import (
     get_polarization_tensor,
     three_by_three_matrix_contraction,
     time_delay_from_geocenter,
 )
-
-from ...core import utils
-from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
-from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
@@ -304,10 +305,12 @@ class Interferometer(object):
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
         if frequencies is None:
-            frequencies = self.frequency_array[self.frequency_mask]
+            # frequencies = self.frequency_array[self.frequency_mask]
+            frequencies = self.frequency_array
             mask = self.frequency_mask
         else:
-            mask = np.ones(len(frequencies), dtype=bool)
+            xp = array_module(frequencies)
+            mask = xp.ones(len(frequencies), dtype=bool)
 
         signal = {}
         for mode in waveform_polarizations.keys():
@@ -317,8 +320,8 @@ class Interferometer(object):
                 parameters['geocent_time'],
                 parameters['psi'], mode)
 
-            signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values()) * mask
+            signal[mode] = waveform_polarizations[mode] * mask * det_response
+        signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
@@ -328,9 +331,11 @@ class Interferometer(object):
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
-        signal_ifo[mask] = signal_ifo[mask] * np.exp(-1j * 2 * np.pi * dt * frequencies)
+        xp = array_module(signal_ifo)
 
-        signal_ifo[mask] *= self.calibration_model.get_calibration_factor(
+        signal_ifo = signal_ifo * xp.exp(-1j * 2 * np.pi * dt * frequencies)
+
+        signal_ifo *= self.calibration_model.get_calibration_factor(
             frequencies, prefix='recalib_{}_'.format(self.name), **parameters
         )
 
@@ -911,3 +916,16 @@ class Interferometer(object):
         if res.__class__ != cls:
             raise TypeError('The loaded object is not an Interferometer')
         return res
+
+    def set_array_backend(self, xp):
+        for attr in [
+            "length",
+            "latitude",
+            "longitude",
+            "elevation",
+            "xarm_azimuth",
+            "yarm_azimuth",
+            "xarm_tilt",
+            "yarm_tilt",
+        ]:
+            setattr(self, attr, xp.array(getattr(self, attr)))

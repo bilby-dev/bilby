@@ -6,6 +6,7 @@ import attr
 import numpy as np
 from scipy.special import logsumexp
 
+from ...compat.utils import array_module
 from ...core.likelihood import Likelihood
 from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
@@ -107,9 +108,13 @@ class GravitationalWaveTransient(Likelihood):
 
     @attr.s(slots=True, weakref_slot=False)
     class _CalculatedSNRs:
-        d_inner_h = attr.ib(default=0j, converter=complex)
-        optimal_snr_squared = attr.ib(default=0, converter=float)
-        complex_matched_filter_snr = attr.ib(default=0j, converter=complex)
+        # the complex converted breaks JAX compilation
+        # d_inner_h = attr.ib(default=0j, converter=complex)
+        # optimal_snr_squared = attr.ib(default=0, converter=float)
+        # complex_matched_filter_snr = attr.ib(default=0j, converter=complex)
+        d_inner_h = attr.ib(default=0j)
+        optimal_snr_squared = attr.ib(default=0)
+        complex_matched_filter_snr = attr.ib(default=0j)
         d_inner_h_array = attr.ib(default=None)
         optimal_snr_squared_array = attr.ib(default=None)
 
@@ -165,6 +170,7 @@ class GravitationalWaveTransient(Likelihood):
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
+            self.reference_ifo.set_array_backend(array_module(self.interferometers[0].vertex))
             if self.time_marginalization:
                 logger.info("Cannot marginalise over non-geocenter time.")
                 self.time_marginalization = False
@@ -404,6 +410,7 @@ class GravitationalWaveTransient(Likelihood):
         return self._noise_log_likelihood_value
 
     def log_likelihood_ratio(self):
+        self.parameters.update(self.get_sky_frame_parameters())
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
         if waveform_polarizations is None:
@@ -411,8 +418,6 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
-
-        self.parameters.update(self.get_sky_frame_parameters())
 
         total_snrs = self._CalculatedSNRs()
 
@@ -428,7 +433,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] -= self.parameters['time_jitter']
 
-        return float(log_l.real)
+        return log_l.real
 
     def compute_log_likelihood_from_snrs(self, total_snrs):
 
@@ -456,13 +461,12 @@ class GravitationalWaveTransient(Likelihood):
         return log_l
 
     def compute_per_detector_log_likelihood(self):
+        self.parameters.update(self.get_sky_frame_parameters())
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(self.parameters)
 
         if self.time_marginalization and self.jitter_time:
             self.parameters['geocent_time'] += self.parameters['time_jitter']
-
-        self.parameters.update(self.get_sky_frame_parameters())
 
         for interferometer in self.interferometers:
             per_detector_snr = self.calculate_snrs(
@@ -747,12 +751,12 @@ class GravitationalWaveTransient(Likelihood):
         d_inner_h_ref, h_inner_h_ref = self._setup_rho(
             d_inner_h, h_inner_h)
         if self.phase_marginalization:
-            d_inner_h_ref = np.abs(d_inner_h_ref)
+            d_inner_h_ref = abs(d_inner_h_ref)
         else:
-            d_inner_h_ref = np.real(d_inner_h_ref)
+            d_inner_h_ref = d_inner_h_ref.real
 
         return self._interp_dist_margd_loglikelihood(
-            d_inner_h_ref, h_inner_h_ref, grid=False)
+            d_inner_h_ref, h_inner_h_ref)
 
     def phase_marginalized_likelihood(self, d_inner_h, h_inner_h):
         d_inner_h = ln_i0(abs(d_inner_h))
@@ -892,8 +896,11 @@ class GravitationalWaveTransient(Likelihood):
         else:
             self._create_lookup_table()
         self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
-            self._d_inner_h_ref_array, self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array.T, fill_value=-np.inf)
+            self._d_inner_h_ref_array,
+            self._optimal_snr_squared_ref_array,
+            self._dist_margd_loglikelihood_array.T,
+            fill_value=-np.inf,
+        )
 
     @property
     def cached_lookup_table_filename(self):
@@ -1065,8 +1072,11 @@ class GravitationalWaveTransient(Likelihood):
         =======
         dict: dictionary containing ra, dec, and geocent_time
         """
+        from ..conversion import convert_orientation_quaternion, convert_cartesian
         if parameters is None:
             parameters = self.parameters
+        if "orientation_w" in parameters:
+            convert_orientation_quaternion(parameters)
         time = parameters.get(f'{self.time_reference}_time', None)
         if time is None and "geocent_time" in parameters:
             logger.warning(
@@ -1074,20 +1084,25 @@ class GravitationalWaveTransient(Likelihood):
                 "Falling back to geocent time"
             )
         if not self.reference_frame == "sky":
-            try:
+            if "sky_x" in parameters:
+                zenith, azimuth = convert_cartesian(parameters, "sky")
+            elif "zenith" in parameters:
+                zenith = parameters["zenith"]
+                azimuth = parameters["azimuth"]
+            elif "ra" in parameters and "dec" in parameters:
+                ra = parameters["ra"]
+                dec = parameters["dec"]
+                logger.warning(
+                    "Cannot convert from zenith/azimuth to ra/dec falling "
+                    "back to provided ra/dec"
+                )
+                zenith = None
+            else:
+                raise KeyError("No sky location parameters recognised")
+            if zenith is not None:
                 ra, dec = zenith_azimuth_to_ra_dec(
-                    parameters['zenith'], parameters['azimuth'],
-                    time, self.reference_frame)
-            except KeyError:
-                if "ra" in parameters and "dec" in parameters:
-                    ra = parameters["ra"]
-                    dec = parameters["dec"]
-                    logger.warning(
-                        "Cannot convert from zenith/azimuth to ra/dec falling "
-                        "back to provided ra/dec"
-                    )
-                else:
-                    raise
+                    zenith, azimuth, time, self.reference_frame
+                )
         else:
             ra = parameters["ra"]
             dec = parameters["dec"]

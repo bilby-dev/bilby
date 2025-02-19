@@ -23,7 +23,8 @@ class WaveformGenerator(object):
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
-                 waveform_arguments=None):
+                 waveform_arguments=None, use_cache=True,
+                 ):
         """
         The base waveform generator class.
 
@@ -56,6 +57,10 @@ class WaveformGenerator(object):
             Note: the arguments of frequency_domain_source_model (except the first,
             which is the frequencies at which to compute the strain) will be added to
             the WaveformGenerator object and initialised to `None`.
+        use_cache: bool
+            Whether to attempt caching the waveform between subsequent calls.
+            This is :code:`True` by default but must be disabled for JIT compilation
+            with :code:`JAX`.
 
         """
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
@@ -75,6 +80,7 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             self.parameters = parameters
         self._cache = dict(parameters=None, waveform=None, model=None)
+        self.use_cache = use_cache
         utils.logger.info(
             "Waveform generator initiated with\n"
             "  frequency_domain_source_model: {}\n"
@@ -169,8 +175,12 @@ class WaveformGenerator(object):
                           transformed_model_data_points, parameters):
         if parameters is not None:
             self.parameters = parameters
-        if self.parameters == self._cache['parameters'] and self._cache['model'] == model and \
-                self._cache['transformed_model'] == transformed_model:
+        if (
+            self.use_cache
+            and self.parameters == self._cache['parameters']
+            and self._cache['model'] == model
+            and self._cache['transformed_model'] == transformed_model
+        ):
             return self._cache['waveform']
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model)
