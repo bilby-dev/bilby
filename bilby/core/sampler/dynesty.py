@@ -667,7 +667,7 @@ class Dynesty(NestedSampler):
 
     def finalize_sampler_kwargs(self, sampler_kwargs):
         sampler_kwargs["maxcall"] = self.n_check_point
-        sampler_kwargs["add_live"] = True
+        sampler_kwargs["add_live"] = False
 
     def _run_external_sampler_with_checkpointing(self):
         """
@@ -675,8 +675,11 @@ class Dynesty(NestedSampler):
         periods of time (less than the checkpoint time) and if sufficient
         time has passed, write a checkpoint before continuing. To get the most
         informative checkpoint plots, the current live points are added to the
-        chain of nested samples within dynesty and have to be removed before
-        restarting the sampler.
+        chain of nested samples before making the plots and have to be removed
+        before restarting the sampler. We previously used the dynesty internal
+        version of this, but this is unsafe as dynesty is not capable of
+        determining if adding the live points was interrupted and so we want to
+        minimize the number of times this is done.
         """
 
         logger.debug("Running sampler with checkpointing")
@@ -691,8 +694,7 @@ class Dynesty(NestedSampler):
         )
         while True:
             self.finalize_sampler_kwargs(sampler_kwargs)
-            if getattr(self.sampler, "added_live", False):
-                self.sampler._remove_live_points()
+            self._remove_live()
             self.sampler.run_nested(**sampler_kwargs)
             if self.sampler.ncall == old_ncall:
                 break
@@ -706,14 +708,26 @@ class Dynesty(NestedSampler):
                 ).total_seconds()
             if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state()
+                self._add_live()
                 self.plot_current_state()
-        if getattr(self.sampler, "added_live", False):
-            self.sampler._remove_live_points()
+                self._remove_live()
 
+        self._remove_live()
+        if "add_live" in sampler_kwargs:
+            sampler_kwargs["add_live"] = self.kwargs.get("add_live", True)
         self.sampler.run_nested(**sampler_kwargs)
         self.write_current_state()
         self.plot_current_state()
         return self.sampler.results
+
+    def _add_live(self):
+        if not self.sampler.added_live:
+            for _ in self.sampler.add_live_points():
+                pass
+
+    def _remove_live(self):
+        if self.sampler.added_live:
+            self.sampler._remove_live_points()
 
     def _remove_checkpoint(self):
         """Remove checkpointed state"""
@@ -743,7 +757,9 @@ class Dynesty(NestedSampler):
         from ... import __version__ as bilby_version
 
         versions = dict(bilby=bilby_version, dynesty=dynesty_version)
-        if os.path.isfile(self.resume_file):
+
+        # Check if the file exists and is not empty (empty resume files are created for HTCondor file transfer)
+        if os.path.isfile(self.resume_file) and os.stat(self.resume_file).st_size > 0:
             logger.info(f"Reading resume file {self.resume_file}")
             with open(self.resume_file, "rb") as file:
                 try:
@@ -774,8 +790,8 @@ class Dynesty(NestedSampler):
                         )
                 del sampler.versions
                 self.sampler = sampler
-                if getattr(self.sampler, "added_live", False) and continuing:
-                    self.sampler._remove_live_points()
+                if continuing:
+                    self._remove_live()
                 self.sampler.nqueue = -1
                 self.start_time = self.sampler.kwargs.pop("start_time")
                 self.sampling_time = self.sampler.kwargs.pop("sampling_time")

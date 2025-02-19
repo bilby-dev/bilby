@@ -1,13 +1,18 @@
 import unittest
 import os
 
+import dill
 import numpy as np
 from astropy import constants
 import lal
 import matplotlib.pyplot as plt
+import h5py
+import json
+import pytest
 
 import bilby
 from bilby.core import utils
+from bilby.core.utils import global_meta_data
 
 
 class TestConstants(unittest.TestCase):
@@ -410,6 +415,85 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
     def test_integral_func2_irregular_steps(self):
         res = utils.logtrapzexp(self.lnfunc2irregular, self.irregulardxs)
         self.assertTrue(np.abs((np.exp(res) - self.func2int) / self.func2int) < 1e-2)
+
+
+class TestSavingNumpyRandomGenerator(unittest.TestCase):
+
+    @pytest.fixture(autouse=True)
+    def init_outdir(self, tmp_path):
+        # Use pytest's tmp_path fixture to create a temporary directory
+        self.outdir = tmp_path / "test"
+        self.outdir.mkdir()
+
+    def setUp(self):
+        self.filename = "test_random_state.npy"
+        self.data = {
+            "rng": np.random.default_rng(),
+            "seed": 1234,
+        }
+
+    def test_hdf5(self):
+        with h5py.File(self.outdir / "test.h5", "w") as f:
+            bilby.core.utils.recursively_save_dict_contents_to_group(
+                f, "/", self.data
+            )
+        a = self.data["rng"].random()
+
+        with h5py.File(self.outdir / "test.h5", "r") as f:
+            data = bilby.core.utils.recursively_load_dict_contents_from_group(f, "/")
+
+        b = data["rng"].random()
+        self.assertEqual(a, b)
+
+    def test_json(self):
+        with open(self.outdir / "test.json", 'w') as file:
+            json.dump(self.data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
+
+        a = self.data["rng"].random()
+
+        with open(self.outdir / "test.json", 'r') as file:
+            data = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
+
+        b = data["rng"].random()
+        self.assertEqual(a, b)
+
+    def test_pickle(self):
+        with open(self.outdir / "test.pkl", 'wb') as file:
+            dill.dump(self.data, file)
+        a = self.data["rng"].random()
+
+        with open(self.outdir / "test.pkl", 'rb') as file:
+            data = dill.load(file)
+        b = data["rng"].random()
+        self.assertEqual(a, b)
+
+
+class TestGlobalMetaData(unittest.TestCase):
+
+    def setUp(self):
+        global_meta_data.clear()
+        global_meta_data["rng"] = bilby.core.utils.random.rng
+        bilby.gw.cosmology.DEFAULT_COSMOLOGY = None
+        bilby.gw.cosmology.COSMOLOGY = [None, str(None)]
+
+    def tearDown(self):
+        global_meta_data.clear()
+        global_meta_data["rng"] = bilby.core.utils.random.rng
+        bilby.gw.cosmology.DEFAULT_COSMOLOGY = None
+        bilby.gw.cosmology.COSMOLOGY = [None, str(None)]
+
+    def test_set_item(self):
+        global_meta_data["test"] = 123
+        self.assertEqual(global_meta_data["test"], 123)
+
+    def test_set_rng(self):
+        bilby.core.utils.random.seed(1234)
+        self.assertTrue(global_meta_data["rng"] is bilby.core.utils.random.rng)
+        self.assertEqual(global_meta_data["seed"], 1234)
+
+    def test_set_cosmology(self):
+        bilby.gw.cosmology.set_cosmology("Planck15_LAL")
+        self.assertTrue(global_meta_data["cosmology"] is bilby.gw.cosmology.COSMOLOGY[0])
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ class TestBaseClass(unittest.TestCase):
     def test_calibration_factor(self):
         frequency_array = np.linspace(20, 1024, 1000)
         cal_factor = self.model.get_calibration_factor(frequency_array)
-        assert np.alltrue(cal_factor.real == np.ones_like(frequency_array))
+        assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
 
 class TestCubicSpline(unittest.TestCase):
@@ -56,7 +56,7 @@ class TestCubicSpline(unittest.TestCase):
         cal_factor = self.model.get_calibration_factor(
             frequency_array, **self.parameters
         )
-        assert np.alltrue(cal_factor.real == np.ones_like(frequency_array))
+        assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
     def test_repr(self):
         expected = "CubicSpline(prefix='{}', minimum_frequency={}, maximum_frequency={}, n_points={})".format(

@@ -7,7 +7,8 @@ from .conversion import bilby_to_lalsimulation_spins
 from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
                     lalsim_SimInspiralChooseFDWaveform,
-                    lalsim_SimInspiralChooseFDWaveformSequence)
+                    lalsim_SimInspiralChooseFDWaveformSequence,
+                    safe_cast_mode_to_int)
 
 UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs. This is deprecated behavior and will
 result in an error in future releases. Make sure all of the waveform kwargs are correctly
@@ -175,6 +176,13 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
                      }
 
     if mode_array is not None:
+        try:
+            mode_array = [tuple(map(safe_cast_mode_to_int, mode)) for mode in mode_array]
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Unable to convert mode_array elements to tuples of ints. "
+                f"mode_array: {mode_array}, Error: {e}"
+            ) from e
         gwsignal_dict.update(ModeArray=mode_array)
 
     # Pass extra waveform arguments to gwsignal
@@ -510,7 +518,7 @@ def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
     waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', CreateDict())
     waveform_kwargs["TidalLambda1"] = lambda_1
     waveform_kwargs["TidalLambda2"] = lambda_2
-    waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_data", None)
+    waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_file", None)
 
     for key in [
         "pn_spin_order", "pn_tidal_order", "pn_phase_order", "pn_amplitude_order"
@@ -529,6 +537,7 @@ def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
     if mode_array is not None:
         mode_array_lal = lalsim.SimInspiralCreateModeArray()
         for mode in mode_array:
+            mode = tuple(map(safe_cast_mode_to_int, mode))
             lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
         lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
     return waveform_dictionary

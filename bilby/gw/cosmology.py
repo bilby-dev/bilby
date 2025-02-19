@@ -8,10 +8,12 @@ COSMOLOGY = [None, str(None)]
 
 def _set_default_cosmology():
     from astropy import cosmology as cosmo
+    from ..core.utils.meta_data import global_meta_data
     global DEFAULT_COSMOLOGY, COSMOLOGY
     if DEFAULT_COSMOLOGY is None:
         DEFAULT_COSMOLOGY = cosmo.Planck15
         COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
+        global_meta_data["cosmology"] = COSMOLOGY[0]
 
 
 def get_available_cosmologies():
@@ -89,12 +91,14 @@ def set_cosmology(cosmology=None):
             Dictionary with arguments required to instantiate the cosmology
             class.
     """
+    from ..core.utils.meta_data import global_meta_data
     cosmology = get_cosmology(cosmology)
     COSMOLOGY[0] = cosmology
     if cosmology.name is not None:
         COSMOLOGY[1] = cosmology.name
     else:
         COSMOLOGY[1] = repr(cosmology)
+    global_meta_data["cosmology"] = cosmology
 
 
 def z_at_value(func, fval, **kwargs):

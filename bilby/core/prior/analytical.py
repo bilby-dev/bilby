@@ -1082,7 +1082,7 @@ class Logistic(Prior):
         """
         with np.errstate(over="ignore"):
             return -(val - self.mu) / self.scale -\
-                2. * np.log1p(xp.exp(-(val - self.mu) / self.scale)) - np.log(self.scale)
+                2. * xp.log1p(xp.exp(-(val - self.mu) / self.scale)) - xp.log(self.scale)
 
     def cdf(self, val):
         return 1. / (1. + np.exp(-(val - self.mu) / self.scale))
