@@ -3,7 +3,7 @@ import copy
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
