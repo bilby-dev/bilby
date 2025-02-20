@@ -25,6 +25,7 @@ from .utils import (
     recursively_decode_bilby_json,
     safe_file_dump,
     random,
+    string_to_boolean,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
@@ -501,6 +502,15 @@ class Result(object):
 
         self.prior_values = None
         self._kde = None
+
+        if string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_METADATA", "False")):
+            gmd = self.meta_data.pop("global_meta_data", None)
+            if gmd is not None:
+                logger.warning(
+                    "Global meta data was removed from the result object for compatibility. "
+                    "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
+                    "This behaviour will be removed in a future release."
+                )
 
     _load_doctstring = """ Read in a saved .{format} data file
 
