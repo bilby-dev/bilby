@@ -133,11 +133,23 @@ class CompactBinaryCoalescenceResult(CoreResult):
     def cosmology(self):
         """The global cosmology used in the analysis.
 
+        Will return None if the result does not include global meta data.
+        Inclusion of the the global meta is controlled by the
+        :code:`BILBY_INCLUDE_GLOBAL_META_DATA` environment variable.
+
         .. versionadded:: 2.5.0
         """
-        return self.__get_from_nested_meta_data(
-            'global_meta_data', 'cosmology'
-        )
+        try:
+            return self.__get_from_nested_meta_data(
+                'global_meta_data', 'cosmology'
+            )
+        except AttributeError as e:
+            logger.warning(
+                "No cosmology found in result. "
+                "This is likely due to the result not containing "
+                f"global meta data. Error: {e}."
+            )
+            return None
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
