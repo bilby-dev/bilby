@@ -23,7 +23,9 @@ class CompactBinaryCoalescenceResult(CoreResult):
         if "meta_data" not in kwargs:
             kwargs["meta_data"] = dict()
         if "global_meta_data" not in kwargs:
-            kwargs["meta_data"]["global_meta_data"] = dict()
+            from ..core.utils.meta_data import global_meta_data
+
+            kwargs["meta_data"]["global_meta_data"] = global_meta_data
         # Ensure cosmology is always stored in the meta_data
         if "cosmology" not in kwargs["meta_data"]["global_meta_data"]:
             from .cosmology import get_cosmology

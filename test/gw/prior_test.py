@@ -568,6 +568,15 @@ class TestAlignedSpin(unittest.TestCase):
         max_difference = max(abs(analytic - prior.prob(chis)))
         self.assertAlmostEqual(max_difference, 0, 2)
 
+    def test_non_analytic_form_has_correct_statistics(self):
+        a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
+        z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
+        chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
+        chis = chi_prior.sample(100000)
+        alts = a_prior.sample(100000) * z_prior.sample(100000)
+        self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
+        self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
+
 
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
 
