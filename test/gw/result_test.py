@@ -1,4 +1,5 @@
 import os
+import logging
 import unittest
 
 import pandas as pd
@@ -61,6 +62,10 @@ class BaseCBCResultTest(unittest.TestCase):
 
 
 class TestCBCResult(BaseCBCResultTest):
+
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
 
     def test_phase_marginalization(self):
         self.assertEqual(
@@ -206,11 +211,43 @@ class TestCBCResult(BaseCBCResultTest):
             self.result.detector_injection_properties("not_a_detector"), None
         )
 
+
+@parameterized_class(
+    ["include_global_meta_data"], [["True"], ["False"]]
+)
+class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
+
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
+
+    def setUp(self):
+        self.meta_data_env_var = os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA")
+        os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = self.include_global_meta_data
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = self.meta_data_env_var
+
+    def test_global_meta_data(self):
+        if self.include_global_meta_data == "True":
+            assert "global_meta_data" in self.result.meta_data
+        else:
+            assert "global_meta_data" not in self.result.meta_data
+
     def test_cosmology(self):
-        self.assertEqual(
-            self.result.cosmology,
-            self.meta_data["global_meta_data"]["cosmology"],
-        )
+        bilby.core.utils.meta_data.logger.propagate = True
+        with self._caplog.at_level(logging.DEBUG, logger="bilby"):
+            cosmology = self.result.cosmology
+        if self.include_global_meta_data == "True":
+            self.assertEqual(
+                self.result.cosmology,
+                self.meta_data["global_meta_data"]["cosmology"],
+            )
+        else:
+            self.assertEqual(cosmology, None)
+            assert "not containing global meta data" in str(self._caplog.text)
 
 
 @parameterized_class(
