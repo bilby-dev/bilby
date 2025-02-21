@@ -2,6 +2,12 @@ import numpy as np
 from scipy.special import erfinv
 from scipy.special._ufuncs import xlogy, erf, log1p, stdtrit, gammaln, stdtr, \
     btdtri, betaln, btdtr, gammaincinv, gammainc
+try:
+    from scipy.special._ufuncs import betaincinv as btdtri
+    from scipy.special._ufuncs import betainc as btdtr
+    
+except: 
+    from scipy.special._ufuncs import  btdtri,btdtr 
 
 from .base import Prior
 from ..utils import logger
