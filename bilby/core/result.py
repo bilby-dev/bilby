@@ -503,7 +503,7 @@ class Result(object):
         self.prior_values = None
         self._kde = None
 
-        if string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_METADATA", "False")):
+        if not string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA", "False")):
             gmd = self.meta_data.pop("global_meta_data", None)
             if gmd is not None:
                 logger.warning(
@@ -511,6 +511,8 @@ class Result(object):
                     "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
                     "This behaviour will be removed in a future release."
                 )
+        else:
+            logger.debug("Including global meta data in the result object.")
 
     _load_doctstring = """ Read in a saved .{format} data file
 
