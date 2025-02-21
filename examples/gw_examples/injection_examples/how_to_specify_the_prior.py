@@ -113,5 +113,6 @@ result = bilby.run_sampler(
     outdir=outdir,
     injection_parameters=injection_parameters,
     label="specify_prior",
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()
