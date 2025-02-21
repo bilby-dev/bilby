@@ -222,7 +222,8 @@ class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
         self._caplog = caplog
 
     def setUp(self):
-        self.meta_data_env_var = os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA")
+        # Current default is False
+        self.meta_data_env_var = os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA") or "False"
         os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = self.include_global_meta_data
         super().setUp()
 
