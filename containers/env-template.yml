@@ -22,6 +22,7 @@ dependencies:
   - black
   - pytest-cov
   - pytest-requires
+  - pytest-rerunfailures
   - conda-forge::arviz
   - parameterized
   - scikit-image
