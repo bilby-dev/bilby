@@ -5,6 +5,7 @@ import dill
 import numpy as np
 from astropy import constants
 import lal
+import logging
 import matplotlib.pyplot as plt
 import h5py
 import json
@@ -470,6 +471,10 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
 
 class TestGlobalMetaData(unittest.TestCase):
 
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
+
     def setUp(self):
         global_meta_data.clear()
         global_meta_data["rng"] = bilby.core.utils.random.rng
@@ -494,6 +499,19 @@ class TestGlobalMetaData(unittest.TestCase):
     def test_set_cosmology(self):
         bilby.gw.cosmology.set_cosmology("Planck15_LAL")
         self.assertTrue(global_meta_data["cosmology"] is bilby.gw.cosmology.COSMOLOGY[0])
+
+    def test_update(self):
+        bilby.core.utils.meta_data.logger.propagate = True
+        with self._caplog.at_level(logging.DEBUG, logger="bilby"):
+            global_meta_data.update({"test": 123})
+        assert "Setting meta data key test with value 123" in str(self._caplog.text)
+
+    def test_init(self):
+        bilby.core.utils.meta_data.logger.propagate = True
+        with self._caplog.at_level(logging.DEBUG, logger="bilby"):
+            bilby.core.utils.GlobalMetaData({"test": 123})
+        assert "Setting meta data key test with value 123" in str(self._caplog.text)
+        assert "GlobalMetaData has already been instantiated" in str(self._caplog.text)
 
 
 if __name__ == "__main__":
