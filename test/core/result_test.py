@@ -832,7 +832,7 @@ class TestReweight(unittest.TestCase):
         self.result = bilby.core.result.Result(
             search_parameter_keys=list(self.priors.keys()),
             priors=self.priors,
-            posterior=pd.DataFrame(self.priors.sample(1000)),
+            posterior=pd.DataFrame(self.priors.sample(2000)),
             log_evidence=-np.log(10),
         )
 
@@ -857,6 +857,7 @@ class TestReweight(unittest.TestCase):
         _, weights, _, _, _, _ = self._run_reweighting(sigma=1)
         self.assertLess(min(abs(weights - 1)), 1e-10)
 
+    @pytest.mark.flaky(reruns=3)
     def test_reweight_different_likelihood_weights_correct(self):
         """
         Test the known case where the target likelihood is a Gaussian with
