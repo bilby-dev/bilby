@@ -506,7 +506,7 @@ class Result(object):
         if not string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA", "False")):
             gmd = self.meta_data.pop("global_meta_data", None)
             if gmd is not None:
-                logger.warning(
+                logger.info(
                     "Global meta data was removed from the result object for compatibility. "
                     "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
                     "This behaviour will be removed in a future release."
