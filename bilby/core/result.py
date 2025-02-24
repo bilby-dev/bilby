@@ -1533,8 +1533,7 @@ class Result(object):
         if keys is None:
             keys = self.search_parameter_keys
         if self.injection_parameters is None:
-            raise (
-                TypeError,
+            raise TypeError(
                 "Result object has no 'injection_parameters'. "
                 "Cannot compute credible levels."
             )
