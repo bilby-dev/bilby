@@ -348,6 +348,15 @@ class TestInterferometerList(unittest.TestCase):
         ifos.set_strain_data_from_power_spectral_densities(2048, 4)
         ifos.plot_data(outdir=self.outdir)
 
+    def test_plot_time_domain_data(self):
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        ifos.set_strain_data_from_power_spectral_densities(2048, 4)
+        ifos.plot_time_domain_data(outdir=self.outdir)
+
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
+        ifos.set_strain_data_from_power_spectral_densities(2048, 4)
+        ifos.plot_time_domain_data(outdir=self.outdir)
+
 
 class TriangularInterferometerTest(unittest.TestCase):
     def setUp(self):
