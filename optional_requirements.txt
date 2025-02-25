@@ -2,3 +2,4 @@ celerite
 george
 plotly
 pytest-requires
+pytest-rerunfailures
