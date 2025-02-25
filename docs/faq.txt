@@ -18,7 +18,7 @@ Global meta data
 
 **Q:** I'm seeing a message about global meta data, what does this mean?
 
-**A:** In `bilby` 2.5.0, the global meta data dictionary was added to the result object
+**A:** In :code:`bilby` 2.5.0, the global meta data dictionary was added to the result object
 under :code:`result.meta_data["global_meta_data]`. This includes information such as the 
 global cosmology and random number generator. To ensure backwards compatibility,
 by default, this object is removed the result when it is instantiated.
