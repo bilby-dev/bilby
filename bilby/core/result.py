@@ -509,7 +509,8 @@ class Result(object):
                 logger.info(
                     "Global meta data was removed from the result object for compatibility. "
                     "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
-                    "This behaviour will be removed in a future release."
+                    "This behaviour will be removed in a future release. "
+                    "For more details see: https://bilby-dev.github.io/bilby/faq.html#global-meta-data"
                 )
         else:
             logger.debug("Including global meta data in the result object.")
