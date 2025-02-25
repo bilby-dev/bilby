@@ -27,4 +27,4 @@ In the meantime, you can include the global meta data by setting the
 global variable :code:`BILBY_INCLUDE_GLOBAL_META_DATA=1`. This can be either be done
 in the command line using :code:`export BILBY_INCLUDE_GLOBAL_META_DATA=1` or within
 python (e.g. using :code:`os`,
-code:`os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = "1"`)
+:code:`os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = "1"`)
