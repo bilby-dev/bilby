@@ -21,10 +21,12 @@ Global meta data
 **A:** In :code:`bilby` 2.5.0, the global meta data dictionary was added to the result object
 under :code:`result.meta_data["global_meta_data]`. This includes information such as the 
 global cosmology and random number generator. To ensure backwards compatibility,
-by default, this object is removed the result when it is instantiated.
+by default, this dictionary is removed from the result object when it is instantiated.
 In a future release, this will be changed.
 In the meantime, you can include the global meta data by setting the
-global variable :code:`BILBY_INCLUDE_GLOBAL_META_DATA=1`. This can be either be done
-in the command line using :code:`export BILBY_INCLUDE_GLOBAL_META_DATA=1` or within
+global variable :code:`BILBY_INCLUDE_GLOBAL_META_DATA=1`
+(:code:`BILBY_INCLUDE_GLOBAL_META_DATA=0` excludes it).
+This can be either be done in the command line using
+:code:`export BILBY_INCLUDE_GLOBAL_META_DATA=1` or within
 python (e.g. using :code:`os`,
 :code:`os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = "1"`)
