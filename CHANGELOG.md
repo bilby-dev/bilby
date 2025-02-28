@@ -12,7 +12,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - Add `cosmology` to `CBCPriorDict` (https://github.com/bilby-dev/bilby/pull/868)
 - Add `cosmology` to `CBCResult` (https://github.com/bilby-dev/bilby/pull/867)
 - Add support for analytic aligned spin priors (https://github.com/bilby-dev/bilby/pull/849)
-- Add optional global meta data (https://github.com/bilby-dev/bilby/pull/873)
+- Add optional global meta data (https://github.com/bilby-dev/bilby/pull/873, https://github.com/bilby-dev/bilby/pull/915)
 - Add warning when prior sampling efficiency is low (https://github.com/bilby-dev/bilby/pull/853)
 - Add `plot_time_domain_data` to `InterferometerList` (https://github.com/bilby-dev/bilby/pull/920)
 
