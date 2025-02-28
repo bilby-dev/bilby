@@ -5,10 +5,28 @@ Frequently Asked Questions
 Plotting questions
 ------------------
 
-I'm running into latex errors when :code:`bilby` tries to create plots, what should I do?
+**Q:** I'm running into latex errors when :code:`bilby` tries to create plots, what should I do?
 
-Matplotlib can be a little finicky. We wrap plotting commands in a function
+**A:** Matplotlib can be a little finicky. We wrap plotting commands in a function
 which can set up the rcParams and we use environment variables to allow
 configuration of this. See the docstring of this :code:`bilby.core.utils.latex_plot_format`
 for the allowed configuration options.
 
+
+Global meta data
+----------------
+
+**Q:** I'm seeing a message about global meta data, what does this mean?
+
+**A:** In :code:`bilby` 2.5.0, the global meta data dictionary was added to the result object
+under :code:`result.meta_data["global_meta_data]`. This includes information such as the 
+global cosmology and random number generator. To ensure backwards compatibility,
+by default, this dictionary is removed from the result object when it is instantiated.
+In a future release, this will be changed.
+In the meantime, you can include the global meta data by setting the
+global variable :code:`BILBY_INCLUDE_GLOBAL_META_DATA=1`
+(:code:`BILBY_INCLUDE_GLOBAL_META_DATA=0` excludes it).
+This can be either be done in the command line using
+:code:`export BILBY_INCLUDE_GLOBAL_META_DATA=1` or within
+python (e.g. using :code:`os`,
+:code:`os.environ["BILBY_INCLUDE_GLOBAL_META_DATA"] = "1"`)
