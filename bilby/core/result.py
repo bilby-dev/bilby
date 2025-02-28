@@ -194,7 +194,9 @@ def get_weights_for_reweighting(
 
         starting_index = np.argmin(np.abs(old_log_likelihood_array))
         logger.info(f'Checkpoint resuming from {starting_index}.')
-
+    elif resume_file is not None:
+        basedir = os.split(resume_file)[0]
+        check_directory_exists_and_if_not_mkdir(basedir)
     else:
         old_log_likelihood_array = np.zeros(nposterior)
         old_log_prior_array = np.zeros(nposterior)
