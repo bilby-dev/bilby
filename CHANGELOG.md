@@ -12,8 +12,9 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - Add `cosmology` to `CBCPriorDict` (https://github.com/bilby-dev/bilby/pull/868)
 - Add `cosmology` to `CBCResult` (https://github.com/bilby-dev/bilby/pull/867)
 - Add support for analytic aligned spin priors (https://github.com/bilby-dev/bilby/pull/849)
-- Add global meta data (https://github.com/bilby-dev/bilby/pull/873)
+- Add optional global meta data (https://github.com/bilby-dev/bilby/pull/873)
 - Add warning when prior sampling efficiency is low (https://github.com/bilby-dev/bilby/pull/853)
+- Add `plot_time_domain_data` to `InterferometerList` (https://github.com/bilby-dev/bilby/pull/920)
 
 ### Changed
 
@@ -21,6 +22,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - [dynesty] Reduce number of calls to `add_live_points (https://github.com/bilby-dev/bilby/pull/872)
 - Check for empty result files when resuming (https://github.com/bilby-dev/bilby/pull/890)
 - Add `num_interp` to `AlignedSpin` prior (https://github.com/bilby-dev/bilby/pull/912)
+- Allow result files with inconsistent priors to be merged (https://github.com/bilby-dev/bilby/pull/918)
 
 ### Fixed
 
@@ -28,6 +30,8 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - Fix missing argument in precomputed calibration (https://github.com/bilby-dev/bilby/pull/882)
 - Fix passing `mode_array` in injections waveform arguments (https://github.com/bilby-dev/bilby/pull/820)
 - Fix dtypes changing in `plot_interferometer_waveform_posterior` (https://github.com/bilby-dev/bilby/pull/870)
+- Fix raise statement in `get_all_injection_credible_levels` (https://github.com/bilby-dev/bilby/pull/911)
+- Specify likelihood for injection conversion function (https://github.com/bilby-dev/bilby/pull/900)
 
 
 ## [2.4.0]
