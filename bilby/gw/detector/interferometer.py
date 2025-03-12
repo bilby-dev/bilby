@@ -639,16 +639,15 @@ class Interferometer(object):
     def whiten_frequency_series(self, frequency_series : np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
 
-        .. math::
-            \\tilde{a}_w(f) = \\tilde{a}(f) \\sqrt{\\frac{4}{T S_n(f)}}
-
-        Such that
+        Given a frequency series :math:`\\tilde{a}_w(f)`, whiten the data by applying
 
         .. math::
-            Var(n) = \\frac{1}{N} \\sum_{k=0}^N n_W(f_k)n_W^*(f_k) = 2
+            \\tilde{a}_w(f) = \\tilde{a}(f) \\sqrt{\\frac{4}{T S_n(f)}}\\,,`
 
-        Where the factor of two is due to the independent real and imaginary
-        components.
+        where :math:`S_n(f)` is the Power Spectral Density (PSD). If the PSD correctly
+        describes the properties of the data, the resulting whitened frequency series
+        will be whitened in the sense that the real and imaginary components will be
+        standard normal random variables.
 
         Parameters
         ==========
