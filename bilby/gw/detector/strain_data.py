@@ -835,10 +835,42 @@ class NotchList(list):
 
 
 def resample_with_gwpy(data, sampling_frequency):
+    """
+    Resample a GWPy TimeSeries to a new sampling frequency.
+
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    """
     data = data.resample(sampling_frequency)
 
 
 def resample_with_lal(data, sampling_frequency):
+    """
+    Resample a GWPy TimeSeries using LAL's ResampleREAL8TimeSeries function.
+
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    """
     import lal
     from gwpy.timeseries import TimeSeries
     lal_timeseries = data.to_lal()
@@ -859,7 +891,31 @@ RESAMPLING_FUNCTIONS = dict(
 
 
 def resample_timeseries(data, sampling_frequency, resampling_method="lal"):
+    """
+    Resample a time series to a specified sampling frequency using a chosen method.
 
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+    resampling_method : str, optional
+        The resampling method to use. Defaults to "lal".
+        Must be one of the methods defined in
+        `bilby.gw.detector.strain_data.RESAMPLING_FUNCTIONS`.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    Raises:
+    ------
+    ValueError
+        If the specified resampling method is not implemented.
+
+    """
     if data.sample_rate.value == sampling_frequency:
         logger.info("Sample rate matches data no resampling")
     elif resampling_method in RESAMPLING_FUNCTIONS:
@@ -877,7 +933,6 @@ def find_and_read_data(start, end, ifo, frametype, channel, find_url_kwargs=None
 
     Parameters
     ----------
-
     start, end: float
         The GPS start and end time
     ifo: str [H1, L1, V1]
