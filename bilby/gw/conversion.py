@@ -1683,7 +1683,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
 
         if (
             not getattr(likelihood, "reference_frame", "sky") == "sky"
-            or not getattr(likelihood, "time_reference", "geocenter") == "geocenter"
+            or not getattr(likelihood, "time_reference", "geocent") == "geocent"
         ):
             try:
                 generate_sky_frame_parameters(
