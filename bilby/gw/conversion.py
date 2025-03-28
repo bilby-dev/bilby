@@ -1704,7 +1704,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             logger.info(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
-    
+
     if likelihood is not None:
         likelihood.parameters.clear()
         likelihood.parameters.update(initial_likelihood_parameters)
