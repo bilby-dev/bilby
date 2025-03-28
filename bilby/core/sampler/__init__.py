@@ -1,7 +1,6 @@
 import datetime
 import inspect
 import sys
-from copy import deepcopy
 
 from ..prior import DeltaFunction, PriorDict
 from ..utils import (
@@ -339,15 +338,10 @@ def run_sampler(
             result.save_to_file(extension=save, gzip=gzip, outdir=outdir)
 
     if None not in [result.injection_parameters, conversion_function]:
-        # the conversion function can modify the likelihood parameters in place
-        # this can break things for the conversion over the posterior samples
-        old_parameters = deepcopy(likelihood.parameters)
         result.injection_parameters = conversion_function(
             result.injection_parameters,
             likelihood=likelihood,
         )
-        likelihood.parameters.clear()
-        likelihood.parameters.update(old_parameters)
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
