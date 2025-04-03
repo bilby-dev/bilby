@@ -6,7 +6,8 @@ from .base_sampler import Sampler, signal_wrapper
 
 class Fisher(Sampler):
     """
-    TBD
+    A sampler class that estimates the maximum likelihood using scipy, then draws
+    posterior samples using the Fisher information matrix.
 
     Parameters
     ==========
@@ -19,10 +20,16 @@ class Fisher(Sampler):
         Name of the output directory
     label: str, optional
         Naming scheme of the output files
-    use_ratio: bool, optional
-        Switch to set whether or not you want to use the log-likelihood ratio
-        or just the log-likelihood
-
+    nsamples: int
+        The number of samples to draw in the posterior
+    minimization_method: str (Nelder-Mead)
+        The method to use in scipy.optimize.minimize
+    fd_eps: float
+        A parameter to control the size of perturbation used when finite
+        differencing the likelihood
+    n_prior_samples: int
+        The number of prior samples to draw and use to attempt estimatation
+        of the maximum likelihood sample.
     """
 
     sampler_name = "fisher"
