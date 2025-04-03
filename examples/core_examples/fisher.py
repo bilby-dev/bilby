@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-TBD
+This example, building on the Gaussian example, demonstrates the use of the Fisher
+tools within Bilby.
 
 """
 import bilby
@@ -67,7 +68,7 @@ result_dynesty = bilby.run_sampler(
     label="example_dynesty",
 )
 
-# Finally plot a corner plot: all outputs are stored in outdir
+# Plot a corner plot: all outputs are stored in outdir
 bilby.result.plot_multiple(
     [result_fisher, result_dynesty],
     filename=f"{outdir}/comparison_fisher_dynesty.png",
@@ -78,3 +79,9 @@ bilby.result.plot_multiple(
     parameters=injection_parameters,
     truth_color="C3",
 )
+
+# Note that the `fisher` tools can also be accessed directly
+fisher = bilby.core.fisher.FisherMatrixPosteriorEstimator(likelihood, priors)
+samples = fisher.sample_dataframe(
+    "maxL", 1000
+)  # Draw a set of samples as a pandas dataframe
