@@ -5,6 +5,7 @@ import math
 
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 
@@ -331,6 +332,10 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
+    def set_array_backend(self, xp):
+        for ifo in self:
+            ifo.set_array_backend(xp)
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
@@ -466,3 +471,26 @@ def load_interferometer(filename):
             "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
         )
     return ifo
+
+
+@zenith_azimuth_to_theta_phi.dispatch
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
+    """
+    Convert from the 'detector frame' to the Earth frame.
+
+    Parameters
+    ==========
+    kappa: float
+        The zenith angle in the detector frame
+    eta: float
+        The azimuthal angle in the detector frame
+    ifos: list
+        List of Interferometer objects defining the detector frame
+
+    Returns
+    =======
+    theta, phi: float
+        The zenith and azimuthal angles in the earth frame.
+    """
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)

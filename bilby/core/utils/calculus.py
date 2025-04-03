@@ -1,10 +1,11 @@
 import math
 
 import numpy as np
-from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
+from ...compat.utils import array_module
 
 
 def derivatives(
@@ -189,6 +190,31 @@ def logtrapzexp(lnf, dx):
     return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
 
 
+class interp1d(_interp1d):
+        
+    def __call__(self, x):
+        from array_api_compat import is_numpy_namespace
+
+        xp = array_module(x)
+        if is_numpy_namespace(xp):
+            return super().__call__(x)
+        else:
+            return self._call_alt(x, xp=xp)
+    
+    def _call_alt(self, x, *, xp=np):
+        if isinstance(self.fill_value, tuple):
+            left, right = self.fill_value
+        else:
+            left = right = self.fill_value
+        return xp.interp(
+            x,
+            xp.asarray(self.x),
+            xp.asarray(self.y),
+            left=left,
+            right=right,
+        )
+
+
 class BoundedRectBivariateSpline(RectBivariateSpline):
 
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
@@ -202,9 +228,16 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         if self.y_max is None:
             self.y_max = max(y)
         self.fill_value = fill_value
+        self.x = x
+        self.y = y
+        self.z = z
         super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
     def __call__(self, x, y, dx=0, dy=0, grid=False):
+        from array_api_compat import is_jax_namespace
+        xp = array_module(x)
+        if is_jax_namespace(xp):
+            return self._call_jax(x, y)
         result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
@@ -217,6 +250,19 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
                 return result.item()
         else:
             return result
+    
+    def _call_jax(self, x, y):
+        import jax.numpy as jnp
+        from interpax import interp2d
+
+        return interp2d(
+            x,
+            y,
+            jnp.asarray(self.x),
+            jnp.asarray(self.y),
+            jnp.asarray(self.z),
+            extrap=self.fill_value,
+        )
 
 
 def round_up_to_power_of_two(x):
