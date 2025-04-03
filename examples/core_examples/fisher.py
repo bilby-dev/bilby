@@ -73,8 +73,8 @@ bilby.result.plot_multiple(
     [result_fisher, result_dynesty],
     filename=f"{outdir}/comparison_fisher_dynesty.png",
     labels=[
-        f"Fisher ({result_fisher.meta_data['run_statistics']['sampling_time_s']:0.2f})",
-        f"Dynesty ({result_dynesty.meta_data['run_statistics']['sampling_time_s']:0.2f})",
+        f"Fisher ({result_fisher.meta_data['run_statistics']['sampling_time_s']:0.2f} s)",
+        f"Dynesty ({result_dynesty.meta_data['run_statistics']['sampling_time_s']:0.2f} s)",
     ],
     parameters=injection_parameters,
     truth_color="C3",
