@@ -3,10 +3,13 @@ import pandas as pd
 import scipy.linalg
 from scipy.optimize import minimize
 
+from .utils import random
+
 
 class FisherMatrixPosteriorEstimator(object):
-    def __init__(self, likelihood, priors, parameters=None, fd_eps=1e-6, n_prior_samples=100):
-        """ A class to estimate posteriors using the Fisher Matrix approach
+    def __init__(self, likelihood, priors, parameters=None, minimization_method="Nelder-Mead",
+                 fd_eps=1e-6, n_prior_samples=100):
+        """ A class to estimate posteriors using a Fisher Information Matrix approach
 
         Parameters
         ----------
@@ -16,6 +19,8 @@ class FisherMatrixPosteriorEstimator(object):
             A bilby prior object
         parameters: list
             Names of parameters to sample in
+        minimization_method: str (Nelder-Mead)
+            The method to use in scipy.optimize.minimize
         fd_eps: float
             A parameter to control the size of perturbation used when finite
             differencing the likelihood
@@ -28,6 +33,7 @@ class FisherMatrixPosteriorEstimator(object):
             self.parameter_names = priors.non_fixed_keys
         else:
             self.parameter_names = parameters
+        self.minimization_method = minimization_method
         self.fd_eps = fd_eps
         self.n_prior_samples = n_prior_samples
         self.N = len(self.parameter_names)
@@ -45,6 +51,11 @@ class FisherMatrixPosteriorEstimator(object):
             self.prior_width_dict[key] = width
 
     def log_likelihood(self, sample):
+        if isinstance(sample, dict) is False:
+            if isinstance(sample, pd.DataFrame) and len(sample) == 1:
+                sample = sample.to_dict()
+            else:
+                raise ValueError()
         self.likelihood.parameters.update(sample)
         return self.likelihood.log_likelihood()
 
@@ -60,14 +71,12 @@ class FisherMatrixPosteriorEstimator(object):
         return iFIM
 
     def sample_array(self, sample, n=1):
-        from .utils.random import rng
-
         if sample == "maxL":
             sample = self.get_maximum_likelihood_sample()
 
         self.mean = np.array(list(sample.values()))
         self.iFIM = self.calculate_iFIM(sample)
-        return rng.multivariate_normal(self.mean, self.iFIM, n)
+        return random.rng.multivariate_normal(self.mean, self.iFIM, n)
 
     def sample_dataframe(self, sample, n=1):
         samples = self.sample_array(sample, n)
@@ -89,8 +98,8 @@ class FisherMatrixPosteriorEstimator(object):
 
     def get_finite_difference_xx(self, sample, ii):
         # Sample grid
-        p = self.shift_sample_x(sample, ii, 1)
-        m = self.shift_sample_x(sample, ii, -1)
+        p = self._shift_sample_x(sample, ii, 1)
+        m = self._shift_sample_x(sample, ii, -1)
 
         dx = .5 * (p[ii] - m[ii])
 
@@ -102,10 +111,10 @@ class FisherMatrixPosteriorEstimator(object):
 
     def get_finite_difference_xy(self, sample, ii, jj):
         # Sample grid
-        pp = self.shift_sample_xy(sample, ii, 1, jj, 1)
-        pm = self.shift_sample_xy(sample, ii, 1, jj, -1)
-        mp = self.shift_sample_xy(sample, ii, -1, jj, 1)
-        mm = self.shift_sample_xy(sample, ii, -1, jj, -1)
+        pp = self._shift_sample_xy(sample, ii, 1, jj, 1)
+        pm = self._shift_sample_xy(sample, ii, 1, jj, -1)
+        mp = self._shift_sample_xy(sample, ii, -1, jj, 1)
+        mm = self._shift_sample_xy(sample, ii, -1, jj, -1)
 
         dx = .5 * (pp[ii] - mm[ii])
         dy = .5 * (pp[jj] - mm[jj])
@@ -117,7 +126,7 @@ class FisherMatrixPosteriorEstimator(object):
 
         return (loglpp - loglpm - loglmp + loglmm) / (4 * dx * dy)
 
-    def shift_sample_x(self, sample, x_key, x_coef):
+    def _shift_sample_x(self, sample, x_key, x_coef):
 
         vx = sample[x_key]
         dvx = self.fd_eps * self.prior_width_dict[x_key]
@@ -127,7 +136,7 @@ class FisherMatrixPosteriorEstimator(object):
 
         return shift_sample
 
-    def shift_sample_xy(self, sample, x_key, x_coef, y_key, y_coef):
+    def _shift_sample_xy(self, sample, x_key, x_coef, y_key, y_coef):
 
         vx = sample[x_key]
         vy = sample[y_key]
@@ -166,9 +175,10 @@ class FisherMatrixPosteriorEstimator(object):
                 x0,
                 args=(self, 1),
                 bounds=self.prior_bounds,
-                method="L-BFGS-B",
+                method=self.minimization_method,
             )
             if out.fun < minlogL:
                 minout = out
 
+        self.minimization_metadata = minout
         return {key: val for key, val in zip(self.parameter_names, minout.x)}
