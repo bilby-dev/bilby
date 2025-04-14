@@ -324,7 +324,7 @@ def decode_bilby_json(dct):
         return pd.Series(dct["content"])
     if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
-        try: 
+        try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"], default)
         except ModuleNotFoundError:
             logger.warning(
