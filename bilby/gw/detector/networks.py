@@ -102,11 +102,10 @@ class InterferometerList(list):
     def set_strain_data_from_zero_noise(
         self, sampling_frequency, duration, start_time=0
     ):
-        """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
+        """Set the `Interferometer.strain_data` to zero in each detector
 
-        This uses the `interferometer.power_spectral_density` object to set
-        the `strain_data` to zero noise. See
-        `bilby.gw.detector.InterferometerStrainData` for further information.
+        See :py:meth:`bilby.gw.detector.InterferometerStrainData.set_from_zero_noise`
+        for further  information.
 
         Parameters
         ==========
@@ -203,6 +202,43 @@ class InterferometerList(list):
 
         for interferometer in self:
             interferometer.plot_data(signal=signal, outdir=outdir, label=label)
+
+    def plot_time_domain_data(
+        self, outdir=".", label=None, bandpass_frequencies=(50, 250),
+        notches=None, start_end=None, t0=None
+    ):
+        """Plots the strain data in the time domain for each of the
+        interfeormeters
+
+        Parameters
+        ==========
+        outdir: str
+            The output directory in which the plots should be saved.
+        label: str
+            The string labelling the data.
+        bandpass_frequencies: tuple, optional
+            A tuple of the (low, high) frequencies to use when bandpassing
+            data, if None no bandpass is applied.
+        notches: list, optional
+            A list of frequencies specifying any lines to notch.
+        start_end: tuple, optional
+            A tuple of the (start, end) range of GPS times to plot.
+        t0: float, optional
+            If given, the reference time to subtract from the time series
+            plotting.
+        """
+        if utils.command_line_args.bilby_test_mode:
+            return
+
+        for interferometer in self:
+            interferometer.plot_time_domain_data(
+                outdir=outdir,
+                label=label,
+                bandpass_frequencies=bandpass_frequencies,
+                notches=notches,
+                start_end=start_end,
+                t0=t0
+            )
 
     @property
     def number_of_interferometers(self):

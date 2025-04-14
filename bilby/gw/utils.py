@@ -1038,7 +1038,7 @@ def ln_i0(value):
     array-like:
         The natural logarithm of the bessel function
     """
-    return np.log(i0e(value)) + value
+    return np.log(i0e(value)) + np.abs(value)
 
 
 def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
@@ -1073,3 +1073,38 @@ def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
         chi,
         -1
     )
+
+
+def safe_cast_mode_to_int(value):
+    """Converts a string or integer, representing a mode index in a mode array, to an integer.
+
+    Raises an error if the value is a float or any unsupported type.
+
+    Parameters
+    ---------------
+    value:
+         The input value to be cast to an integer.
+
+    Returns
+    ----------
+    int:
+        The converted integer.
+
+    Raises
+    ---------
+    TypeError
+         If the input is a float or an unsupported type.
+    ValueError
+        If the string cannot be converted to an integer.
+    """
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            raise ValueError(f"Cannot convert string '{value}' to an integer.")
+    elif isinstance(value, float):
+        raise TypeError("Conversion from float to int is not allowed.")
+    else:
+        raise TypeError(f"Unsupported type '{type(value).__name__}'.")

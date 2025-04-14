@@ -8,6 +8,10 @@ sensitivity), and then recovered.
 
 import bilby
 import numpy as np
+from bilby.core.utils.random import seed
+
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
+seed(123)
 
 
 # define the time-domain model
@@ -114,6 +118,7 @@ result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 result.plot_corner()

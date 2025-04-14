@@ -19,6 +19,18 @@ class CompactBinaryCoalescenceResult(CoreResult):
     of compact binaries.
     """
     def __init__(self, **kwargs):
+
+        if "meta_data" not in kwargs:
+            kwargs["meta_data"] = dict()
+        if "global_meta_data" not in kwargs:
+            from ..core.utils.meta_data import global_meta_data
+
+            kwargs["meta_data"]["global_meta_data"] = global_meta_data
+        # Ensure cosmology is always stored in the meta_data
+        if "cosmology" not in kwargs["meta_data"]["global_meta_data"]:
+            from .cosmology import get_cosmology
+            kwargs["meta_data"]["global_meta_data"]["cosmology"] = get_cosmology()
+
         super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
     def __get_from_nested_meta_data(self, *keys):
@@ -116,6 +128,28 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ The frequency domain source model (function)"""
         return self.__get_from_nested_meta_data(
             'likelihood', 'parameter_conversion')
+
+    @property
+    def cosmology(self):
+        """The global cosmology used in the analysis.
+
+        Will return None if the result does not include global meta data.
+        Inclusion of the the global meta is controlled by the
+        :code:`BILBY_INCLUDE_GLOBAL_META_DATA` environment variable.
+
+        .. versionadded:: 2.5.0
+        """
+        try:
+            return self.__get_from_nested_meta_data(
+                'global_meta_data', 'cosmology'
+            )
+        except AttributeError as e:
+            logger.warning(
+                "No cosmology found in result. "
+                "This is likely due to the result not containing "
+                f"global meta data. Error: {e}."
+            )
+            return None
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
@@ -377,10 +411,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
         logger.debug("Downsampling frequency mask to {} values".format(
             len(frequency_idxs))
         )
-        frequency_window_factor = (
-            np.sum(interferometer.frequency_mask)
-            / len(interferometer.frequency_mask)
-        )
         plot_times = interferometer.time_array[time_idxs]
         plot_times -= interferometer.strain_data.start_time
         start_time -= interferometer.strain_data.start_time
@@ -451,11 +481,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
                 fig.add_trace(
                     go.Scatter(
                         x=plot_times,
-                        y=np.fft.irfft(
-                            interferometer.whitened_frequency_domain_strain
-                            * np.sqrt(np.sum(interferometer.frequency_mask))
-                            / frequency_window_factor
-                        )[time_idxs],
+                        y=interferometer.whitened_time_domain_strain[time_idxs],
                         fill=None,
                         mode='lines', line_color=DATA_COLOR,
                         opacity=0.5,
@@ -478,25 +504,20 @@ class CompactBinaryCoalescenceResult(CoreResult):
                     interferometer.amplitude_spectral_density_array[frequency_idxs],
                     color=DATA_COLOR, label='ASD')
                 axs[1].plot(
-                    plot_times, np.fft.irfft(
-                        interferometer.whitened_frequency_domain_strain
-                        * np.sqrt(np.sum(interferometer.frequency_mask))
-                        / frequency_window_factor
-                    )[time_idxs],
+                    plot_times, interferometer.whitened_time_domain_strain[time_idxs],
                     color=DATA_COLOR, alpha=0.3)
             logger.debug('Plotted interferometer data.')
 
         fd_waveforms = list()
         td_waveforms = list()
-        for _, params in samples.iterrows():
-            params = dict(params)
+        for params in samples.to_dict(orient="records"):
             wf_pols = waveform_generator.frequency_domain_strain(params)
             fd_waveform = interferometer.get_detector_response(wf_pols, params)
             fd_waveforms.append(fd_waveform[frequency_idxs])
-            td_waveform = infft(
-                fd_waveform * np.sqrt(2. / interferometer.sampling_frequency) /
-                interferometer.amplitude_spectral_density_array,
-                self.sampling_frequency)[time_idxs]
+            whitened_fd_waveform = interferometer.whiten_frequency_series(fd_waveform)
+            td_waveform = interferometer.get_whitened_time_series_from_whitened_frequency_series(
+                whitened_fd_waveform
+            )[time_idxs]
             td_waveforms.append(td_waveform)
         fd_waveforms = asd_from_freq_series(
             fd_waveforms,

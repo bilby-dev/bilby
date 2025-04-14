@@ -1,0 +1,59 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Unit testing
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONDA_PATH: /opt/conda/
+
+jobs:
+  build:
+
+    name: ${{ matrix.python.name }} unit tests
+    runs-on: ubuntu-latest
+    container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - name: Python 3.10
+            version: 3.10
+            short-version: 310
+          - name: Python 3.11
+            version: 3.11
+            short-version: 311
+          - name: Python 3.12
+            version: 3.12
+            short-version: 312
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install package
+      run: |
+        # activate env so that conda list shows the correct environment
+        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
+        python -m pip install .
+        conda list --show-channel-urls
+      shell: bash
+    # - name: Run precommits
+    #   run: |
+    #     pre-commit run --all-files --verbose --show-diff-on-failure
+    - name: Run unit tests
+      run: |
+        pytest --cov=bilby --durations 10
+    - name: Run sampler tests
+      run: |
+        pytest test/integration/sampler_run_test.py --durations 10 -v

@@ -7,9 +7,11 @@ from .conversion import *
 from .counter import *
 from .docs import *
 from .entry_points import *
+from .env import *
 from .introspection import *
 from .io import *
 from .log import *
+from .meta_data import *
 from .plotting import *
 from .samples import *
 from .series import *

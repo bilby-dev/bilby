@@ -1,6 +1,83 @@
 # All notable changes will be documented in this file
 
+**Note:** following the migration from LIGO GitLab to GitHub, the links in this changelog have been retroactively updated, see [this PR](https://github.com/bilby-dev/bilby/pull/36).
+The original MRs are only visible on the [LIGO GitLab repository](https://git.ligo.org/lscsoft/bilby/-/merge_requests?scope=all&state=all)
+
 ## [Unreleased]
+
+## [2.5.0]
+
+### Added
+
+- Add `cosmology` to `CBCPriorDict` (https://github.com/bilby-dev/bilby/pull/868)
+- Add `cosmology` to `CBCResult` (https://github.com/bilby-dev/bilby/pull/867)
+- Add support for analytic aligned spin priors (https://github.com/bilby-dev/bilby/pull/849)
+- Add optional global meta data (https://github.com/bilby-dev/bilby/pull/873, https://github.com/bilby-dev/bilby/pull/915)
+- Add warning when prior sampling efficiency is low (https://github.com/bilby-dev/bilby/pull/853)
+- Add `plot_time_domain_data` to `InterferometerList` (https://github.com/bilby-dev/bilby/pull/920)
+
+### Changed
+
+- Remove calls to deprecated scipy functions (https://github.com/bilby-dev/bilby/pull/884)
+- [dynesty] Reduce number of calls to `add_live_points (https://github.com/bilby-dev/bilby/pull/872)
+- Check for empty result files when resuming (https://github.com/bilby-dev/bilby/pull/890)
+- Add `num_interp` to `AlignedSpin` prior (https://github.com/bilby-dev/bilby/pull/912)
+- Allow result files with inconsistent priors to be merged (https://github.com/bilby-dev/bilby/pull/918)
+
+### Fixed
+
+- Fix `numerical_relativity_file` keyword argument (https://github.com/bilby-dev/bilby/pull/909)
+- Fix missing argument in precomputed calibration (https://github.com/bilby-dev/bilby/pull/882)
+- Fix passing `mode_array` in injections waveform arguments (https://github.com/bilby-dev/bilby/pull/820)
+- Fix dtypes changing in `plot_interferometer_waveform_posterior` (https://github.com/bilby-dev/bilby/pull/870)
+- Fix raise statement in `get_all_injection_credible_levels` (https://github.com/bilby-dev/bilby/pull/911)
+- Specify likelihood for injection conversion function (https://github.com/bilby-dev/bilby/pull/900)
+
+
+## [2.4.0]
+
+Note: this release contains changes made on both GitHub and LIGO GitLab.
+
+### Added
+
+- Add support for time marginalization in multiband likelihood (https://github.com/bilby-dev/bilby/pull/842)
+- Add `Planck15_LAL` cosmology (https://github.com/bilby-dev/bilby/pull/829)
+- Add option to specify calibration correction direction (https://github.com/bilby-dev/bilby/pull/47)
+- Add explicit support for Python 3.12 ([!1376](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1376))
+- Add option to disable caching in `hyper.model.Model` ([!1364](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1364))
+- Add `Interferometer.template_template_inner_product` ([!345](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1345))
+- Add flag to skip prior normalization when using constraints ([!1308](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1308))
+- Add information error messages for ROQs ([!1280](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1280))
+- Add a warning for unused waveform keyword arguments ([!1269](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1269), https://github.com/bilby-dev/bilby/pull/42)
+- Add identity conversion and generation functions ([!1264](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1264))
+
+### Changed
+
+- Optimize prior rescale methods (https://github.com/bilby-dev/bilby/pull/850)
+- Remove double-backslashes in latex labels (https://github.com/bilby-dev/bilby/pull/837)
+- Documentation updates ([!1351](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1351), [!1377](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1377), https://github.com/bilby-dev/bilby/pull/824, https://github.com/bilby-dev/bilby/pull/826,https://github.com/bilby-dev/bilby/pull/838)
+- Improve I/O efficiency in bilby_mcmc ([!1378](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1378))
+- Drop support for Python 3.9 ([!1374](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1374))
+- Simplify healpix distance PDF call ([!1366](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1366]))
+- Suppress dynesty warnings ([!1365](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1365))
+
+### Fixed
+
+- Fix absolute and relative paths in result files (https://github.com/bilby-dev/bilby/pull/858)
+- Fix `get_cosmology` and `set_cosmology` to be consistent (https://github.com/bilby-dev/bilby/pull/828)
+- Fix indexing bug when using relative binning (https://github.com/bilby-dev/bilby/pull/48)
+- Fix JointPrior subclassing (https://github.com/bilby-dev/bilby/pull/44)
+- Ensure infinite ACT estimates are handled in dynesty (https://github.com/bilby-dev/bilby/pull/39)
+- Fix likelihood time ([!1371](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1371))
+- Catch error when trying to load zero byes resume file ([!1341](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1341))
+- Avoid redundant calculations in `HealPixMapPriorDist` ([!1323](https://git.ligo.org/lscsoft/bilby/-/merge_requests/1323))
+
+### Deprecated
+
+- `nessai` and `pypolychord` interfaces are deprecated in favour of the corresponding plugins (https://github.com/bilby-dev/bilby/pull/822)
+
+
+## [2.3.0] - 2024-05-30
 
 ### Added
 
@@ -13,11 +90,11 @@
 
 ### Changed
 
-- Speed up ROQ weight calculation with IFFT (!903)
 - Change `bilby_mcmc` to use `glasflow` instead of `nflows` (!1332)
 - Sampler classes in are no longer imported in `bilby.core.sampler` (!1340)
 - Sampler classes in `bilby.core.sampler.IMPLEMENTED_SAMPLERS` must now be loaded before use (!1340)
 - `bilby.core.sampler.IMPLEMENTED_SAMPLERS` is now an instance of `bilby.core.sampler.ImplementedSampler` instead of a dictionary (!1355)
+- Updates to support numpy v2 (!1362)
 
 ### Fixed
 
@@ -28,6 +105,7 @@
 - Fix bug where `linestyle` was ignored in `bilby.core.result.plot_multiple` (!1238)
 - Fix `soft_init` sampler keyword argument with `dynesty` (!1335)
 - Fix ZeroDivisionError when using the `dynesty` with `act-walk` and large values of `nact` (!1346)
+- Fix custom prior loading from result file (!1360)
 
 
 ## [2.2.3] - 2024-02-24
@@ -514,9 +592,7 @@ Version 1.0.1 release of bilby
 Version 1.0 release of bilby
 
 ### Changes
-- Minor bug fixes and typo changes only from 0.6.9, see
-git.ligo.org/lscsoft/bilby/-/merge_requests?scope=all&utf8=%E2%9C%93&state=merged&milestone_title=1.0.0
-for details
+- Minor bug fixes and typo changes only from 0.6.9, see the [1.0.0 milestone](https://github.com/bilby-dev/bilby/-/merge_requests?scope=all&state=all&milestone_title=1.0.0) for details
 
 ## [0.6.9] 2020-05-21
 ### Changes
@@ -1028,7 +1104,7 @@ re-instantiate the Prior in most cases
 
 ### Added
 - InterferometerStrainData now handles both time-domain and frequencu-domain data
-- Adds documentation on setting data (https://lscsoft.docs.ligo.org/bilby/transient-gw-data.html)
+- Adds documentation on setting data (https://bilby-dev.github.io/bilby/transient-gw-data.html)
 - Checkpointing for `dynesty`: the sampling will be checkpointed every 10 minutes (approximately) and can be resumed.
 - Add functionality to plot multiple results in a corner plot, see `bilby.core.result.plot_multiple()`.
 - Likelihood evaluations are now saved along with the posteriors.
@@ -1055,37 +1131,40 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - Major effort to update all docstrings and add some documentation.
 - Marginalized likelihoods.
 - Examples of searches for gravitational waves from a Supernova and using a sine-Gaussian.
-- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://lscsoft.docs.ligo.org/bilby/prior.html).
+- A `PriorSet` to handle sets of priors and allows reading in from a standardised prior file (see https://bilby-dev.github.io/bilby/prior.html).
 - A standardised file for storing detector data.
 
 ### Removed
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.3...master
-[2.2.3]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.2...v2.2.3
-[2.2.2]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.1...v2.2.2
-[2.2.1]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.2.0...v2.2.1
-[2.2.0]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.1.2...v2.2.0
-[2.1.2]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.1.1...v2.1.2
-[2.1.1]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.1.0...v2.1.1
-[2.1.0]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.0.2...v2.1.0
-[2.0.2]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.0.1...v2.0.2
-[2.0.1]: https://git.ligo.org/lscsoft/bilby/-/compare/v2.0.0...v2.0.1
-[2.0.0]: https://git.ligo.org/lscsoft/bilby/-/compare/v1.4.1...v2.0.0
-[1.4.1]: https://git.ligo.org/lscsoft/bilby/-/compare/v1.4.0...v1.4.1
-[1.4.0]: https://git.ligo.org/lscsoft/bilby/-/compare/1.3.0...v1.4.0
-[1.3.0]: https://git.ligo.org/lscsoft/bilby/-/compare/1.2.1...1.3.0
-[1.2.1]: https://git.ligo.org/lscsoft/bilby/-/compare/1.2.0...1.2.1
-[1.2.0]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.5...1.2.0
-[1.1.5]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.4...1.1.5
-[1.1.4]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.2...1.1.4
-[1.1.3]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.2...1.1.3
-[1.1.2]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.1...1.1.2
-[1.1.1]: https://git.ligo.org/lscsoft/bilby/-/compare/1.1.0...1.1.1
-[1.1.0]: https://git.ligo.org/lscsoft/bilby/-/compare/1.0.4...1.1.0
-[1.0.4]: https://git.ligo.org/lscsoft/bilby/-/compare/1.0.3...1.0.4
-[1.0.3]: https://git.ligo.org/lscsoft/bilby/-/compare/1.0.2...1.0.3
-[1.0.2]: https://git.ligo.org/lscsoft/bilby/-/compare/1.0.1...1.0.2
-[1.0.1]: https://git.ligo.org/lscsoft/bilby/-/compare/1.0.0...1.0.1
-[1.0.0]: https://git.ligo.org/lscsoft/bilby/-/compare/0.6.9...1.0.0
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.0...main
+[2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/bilby-dev/bilby/compare/v2.2.3...v2.3.0
+[2.2.3]: https://github.com/bilby-dev/bilby/compare/v2.2.2...v2.2.3
+[2.2.2]: https://github.com/bilby-dev/bilby/compare/v2.2.1...v2.2.2
+[2.2.1]: https://github.com/bilby-dev/bilby/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/bilby-dev/bilby/compare/v2.1.2...v2.2.0
+[2.1.2]: https://github.com/bilby-dev/bilby/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/bilby-dev/bilby/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/bilby-dev/bilby/compare/v2.0.2...v2.1.0
+[2.0.2]: https://github.com/bilby-dev/bilby/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/bilby-dev/bilby/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/bilby-dev/bilby/compare/v1.4.1...v2.0.0
+[1.4.1]: https://github.com/bilby-dev/bilby/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/bilby-dev/bilby/compare/1.3.0...v1.4.0
+[1.3.0]: https://github.com/bilby-dev/bilby/compare/1.2.1...1.3.0
+[1.2.1]: https://github.com/bilby-dev/bilby/compare/1.2.0...1.2.1
+[1.2.0]: https://github.com/bilby-dev/bilby/compare/1.1.5...1.2.0
+[1.1.5]: https://github.com/bilby-dev/bilby/compare/1.1.4...1.1.5
+[1.1.4]: https://github.com/bilby-dev/bilby/compare/1.1.2...1.1.4
+[1.1.3]: https://github.com/bilby-dev/bilby/compare/1.1.2...1.1.3
+[1.1.2]: https://github.com/bilby-dev/bilby/compare/1.1.1...1.1.2
+[1.1.1]: https://github.com/bilby-dev/bilby/compare/1.1.0...1.1.1
+[1.1.0]: https://github.com/bilby-dev/bilby/compare/1.0.4...1.1.0
+[1.0.4]: https://github.com/bilby-dev/bilby/compare/1.0.3...1.0.4
+[1.0.3]: https://github.com/bilby-dev/bilby/compare/1.0.2...1.0.3
+[1.0.2]: https://github.com/bilby-dev/bilby/compare/1.0.1...1.0.2
+[1.0.1]: https://github.com/bilby-dev/bilby/compare/1.0.0...1.0.1
+[1.0.0]: https://github.com/bilby-dev/bilby/compare/0.6.9...1.0.0

@@ -1,5 +1,6 @@
 import os
 import unittest
+from parameterized import parameterized
 
 import numpy as np
 from bilby.core.prior import PriorDict
@@ -21,7 +22,7 @@ class TestBaseClass(unittest.TestCase):
     def test_calibration_factor(self):
         frequency_array = np.linspace(20, 1024, 1000)
         cal_factor = self.model.get_calibration_factor(frequency_array)
-        assert np.alltrue(cal_factor.real == np.ones_like(frequency_array))
+        assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
 
 class TestCubicSpline(unittest.TestCase):
@@ -55,7 +56,7 @@ class TestCubicSpline(unittest.TestCase):
         cal_factor = self.model.get_calibration_factor(
             frequency_array, **self.parameters
         )
-        assert np.alltrue(cal_factor.real == np.ones_like(frequency_array))
+        assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
     def test_repr(self):
         expected = "CubicSpline(prefix='{}', minimum_frequency={}, maximum_frequency={}, n_points={})".format(
@@ -109,7 +110,8 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
         self.assertEqual(draws.shape, (self.number_of_draws, sum(self.ifo.frequency_mask)))
         self.assertListEqual(list(self.priors.keys()), list(parameters.keys()))
 
-    def test_read_write_matches(self):
+    @parameterized.expand([("template",), ("data",), (None,)])
+    def test_read_write_matches(self, correction_type):
         draws, parameters = calibration._generate_calibration_draws(
             self.ifo, self.priors, self.number_of_draws
         )
@@ -119,12 +121,14 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
             frequency_array=frequencies,
             calibration_draws=draws,
             calibration_parameter_draws=parameters,
+            correction_type=correction_type,
         )
         self.assertTrue(os.path.exists(self.filename))
         loaded_draws, loaded_parameters = calibration.read_calibration_file(
             filename=self.filename,
             frequency_array=frequencies,
             number_of_response_curves=self.number_of_draws,
+            correction_type=correction_type,
         )
         self.assertLess(np.max(np.abs(loaded_draws - draws)), 1e-13)
         self.assertTrue(parameters.equals(loaded_parameters))

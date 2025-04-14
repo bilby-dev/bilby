@@ -243,6 +243,26 @@ class TestGWUtils(unittest.TestCase):
                 1.5,
             )
 
+    def test_safe_cast_mode_to_int(self):
+        # Valid cases
+        self.assertEqual(gwutils.safe_cast_mode_to_int("2"), 2)
+        self.assertEqual(gwutils.safe_cast_mode_to_int("-3"), -3)
+        self.assertEqual(gwutils.safe_cast_mode_to_int(5), 5)
+
+        # Invalid string cases
+        with self.assertRaises(ValueError):
+            gwutils.safe_cast_mode_to_int("two")
+        with self.assertRaises(ValueError):
+            gwutils.safe_cast_mode_to_int("")
+
+        # Unsupported types
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(2.0)
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(2.0j)
+        with self.assertRaises(TypeError):
+            gwutils.safe_cast_mode_to_int(None)
+
 
 class TestSkyFrameConversion(unittest.TestCase):
 
@@ -272,6 +292,12 @@ class TestSkyFrameConversion(unittest.TestCase):
         ras, decs = zip(*map(bilby.gw.utils.zenith_azimuth_to_ra_dec, *args))
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
+
+
+def test_ln_i0_mathces_scipy():
+    from scipy.special import i0
+    values = np.linspace(-10, 10, 101)
+    assert max(abs(gwutils.ln_i0(values) - np.log(i0(values)))) < 1e-10
 
 
 if __name__ == "__main__":

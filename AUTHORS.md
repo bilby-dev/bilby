@@ -16,6 +16,8 @@ Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
 Charlie Hoy
+Cheng Foo
+Chentao Yang
 Christopher Philip Luke Berry
 Christos Karathanasis
 Colm Talbot
@@ -29,6 +31,7 @@ Gregory Ashton
 Hank Hua
 Hector Estelles
 Ignacio Magaña Hernandez
+Isaac McMahon
 Isobel Marguarethe Romero-Shaw
 Jack Heinzel
 Jacob Golomb
@@ -101,3 +104,5 @@ Martin White
 Peter Tsun-Ho Pang
 Alexandre Sebastien Goettel
 Ann-Kristin Malz
+Lorenzo Pompili
+Sean Hibbitt

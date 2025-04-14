@@ -6,9 +6,15 @@ from .conversion import bilby_to_lalsimulation_spins
 from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
                     lalsim_SimInspiralChooseFDWaveform,
-                    lalsim_SimInspiralWaveformParamsInsertTidalLambda1,
-                    lalsim_SimInspiralWaveformParamsInsertTidalLambda2,
-                    lalsim_SimInspiralChooseFDWaveformSequence)
+                    lalsim_SimInspiralChooseFDWaveformSequence,
+                    safe_cast_mode_to_int)
+
+UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs. This is deprecated behavior and will
+result in an error in future releases. Make sure all of the waveform kwargs are correctly
+spelled.
+
+Unused waveform_kwargs: {waveform_kwargs}
+"""
 
 
 def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
@@ -169,6 +175,13 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
                      }
 
     if mode_array is not None:
+        try:
+            mode_array = [tuple(map(safe_cast_mode_to_int, mode)) for mode in mode_array]
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Unable to convert mode_array elements to tuples of ints. "
+                f"mode_array: {mode_array}, Error: {e}"
+            ) from e
         gwsignal_dict.update(ModeArray=mode_array)
 
     # Pass extra waveform arguments to gwsignal
@@ -480,6 +493,55 @@ def lal_eccentric_binary_black_hole_no_spins(
         eccentricity=eccentricity, **waveform_kwargs)
 
 
+def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
+    """
+    Add keyword arguments to the :code:`LALDict` object.
+
+    Parameters
+    ==========
+    waveform_kwargs: dict
+        A dictionary of waveform kwargs. This is modified in place to remove used arguments.
+    lambda_1: float
+        Dimensionless tidal deformability of the primary object.
+    lambda_2: float
+        Dimensionless tidal deformability of the primary object.
+
+    Returns
+    =======
+    waveform_dictionary: lal.LALDict
+        The lal waveform dictionary. This is either taken from the waveform_kwargs or created
+        internally.
+    """
+    import lalsimulation as lalsim
+    from lal import CreateDict
+    waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', CreateDict())
+    waveform_kwargs["TidalLambda1"] = lambda_1
+    waveform_kwargs["TidalLambda2"] = lambda_2
+    waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_file", None)
+
+    for key in [
+        "pn_spin_order", "pn_tidal_order", "pn_phase_order", "pn_amplitude_order"
+    ]:
+        waveform_kwargs[key[:2].upper() + key[3:].title().replace('_', '')] = waveform_kwargs.pop(key)
+
+    for key in list(waveform_kwargs.keys()).copy():
+        func = getattr(lalsim, f"SimInspiralWaveformParamsInsert{key}", None)
+        if func is None:
+            continue
+        value = waveform_kwargs.pop(key)
+        if func is not None and value is not None:
+            func(waveform_dictionary, value)
+
+    mode_array = waveform_kwargs.pop("mode_array", None)
+    if mode_array is not None:
+        mode_array_lal = lalsim.SimInspiralCreateModeArray()
+        for mode in mode_array:
+            mode = tuple(map(safe_cast_mode_to_int, mode))
+            lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
+        lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
+    return waveform_dictionary
+
+
 def _base_lal_cbc_fd_waveform(
         frequency_array, mass_1, mass_2, luminosity_distance, theta_jn, phase,
         a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0, phi_12=0.0, phi_jl=0.0,
@@ -525,22 +587,16 @@ def _base_lal_cbc_fd_waveform(
     =======
     dict: A dictionary with the plus and cross polarisation strain modes
     """
-    import lal
     import lalsimulation as lalsim
 
-    waveform_approximant = waveform_kwargs['waveform_approximant']
-    reference_frequency = waveform_kwargs['reference_frequency']
-    minimum_frequency = waveform_kwargs['minimum_frequency']
-    maximum_frequency = waveform_kwargs['maximum_frequency']
-    catch_waveform_errors = waveform_kwargs['catch_waveform_errors']
-    pn_spin_order = waveform_kwargs['pn_spin_order']
-    pn_tidal_order = waveform_kwargs['pn_tidal_order']
-    pn_phase_order = waveform_kwargs['pn_phase_order']
+    waveform_approximant = waveform_kwargs.pop('waveform_approximant')
+    reference_frequency = waveform_kwargs.pop('reference_frequency')
+    minimum_frequency = waveform_kwargs.pop('minimum_frequency')
+    maximum_frequency = waveform_kwargs.pop('maximum_frequency')
+    catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
     pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
-    waveform_dictionary = waveform_kwargs.get(
-        'lal_waveform_dictionary', lal.CreateDict()
-    )
 
+    waveform_dictionary = set_waveform_dictionary(waveform_kwargs, lambda_1, lambda_2)
     approximant = lalsim_GetApproximantFromString(waveform_approximant)
 
     if pn_amplitude_order != 0:
@@ -566,35 +622,6 @@ def _base_lal_cbc_fd_waveform(
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
-
-    lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(
-        waveform_dictionary, int(pn_spin_order))
-    lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(
-        waveform_dictionary, int(pn_tidal_order))
-    lalsim.SimInspiralWaveformParamsInsertPNPhaseOrder(
-        waveform_dictionary, int(pn_phase_order))
-    lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
-        waveform_dictionary, int(pn_amplitude_order))
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, float(lambda_1))
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, float(lambda_2))
-
-    for key, value in waveform_kwargs.items():
-        func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
-        if func is not None:
-            func(waveform_dictionary, value)
-
-    if waveform_kwargs.get('numerical_relativity_file', None) is not None:
-        lalsim.SimInspiralWaveformParamsInsertNumRelData(
-            waveform_dictionary, waveform_kwargs['numerical_relativity_file'])
-
-    if ('mode_array' in waveform_kwargs) and waveform_kwargs['mode_array'] is not None:
-        mode_array = waveform_kwargs['mode_array']
-        mode_array_lal = lalsim.SimInspiralCreateModeArray()
-        for mode in mode_array:
-            lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
-        lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
 
     if lalsim.SimInspiralImplementedFDApproximants(approximant):
         wf_func = lalsim_SimInspiralChooseFDWaveform
@@ -649,6 +676,9 @@ def _base_lal_cbc_fd_waveform(
         time_shift = np.exp(-1j * 2 * np.pi * dt * frequency_array[frequency_bounds])
         h_plus[frequency_bounds] *= time_shift
         h_cross[frequency_bounds] *= time_shift
+
+    if len(waveform_kwargs) > 0:
+        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus, cross=h_cross)
 
@@ -705,6 +735,7 @@ def lal_binary_black_hole_relative_binning(
     waveform_kwargs.update(kwargs)
 
     if fiducial == 1:
+        _ = waveform_kwargs.pop("frequency_bin_edges", None)
         return _base_lal_cbc_fd_waveform(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
             luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
@@ -712,6 +743,8 @@ def lal_binary_black_hole_relative_binning(
             phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
 
     else:
+        _ = waveform_kwargs.pop("minimum_frequency", None)
+        _ = waveform_kwargs.pop("maximum_frequency", None)
         waveform_kwargs["frequencies"] = waveform_kwargs.pop("frequency_bin_edges")
         return _base_waveform_frequency_sequence(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -748,6 +781,8 @@ def lal_binary_neutron_star_relative_binning(
             a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
             phi_jl=phi_jl, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
     else:
+        _ = waveform_kwargs.pop("minimum_frequency", None)
+        _ = waveform_kwargs.pop("maximum_frequency", None)
         waveform_kwargs["frequencies"] = waveform_kwargs.pop("frequency_bin_edges")
         return _base_waveform_frequency_sequence(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
@@ -822,19 +857,21 @@ def _base_roq_waveform(
     if 'frequency_nodes' not in waveform_arguments:
         size_linear = len(waveform_arguments['frequency_nodes_linear'])
         frequency_nodes_combined = np.hstack(
-            (waveform_arguments['frequency_nodes_linear'],
-             waveform_arguments['frequency_nodes_quadratic'])
+            (waveform_arguments.pop('frequency_nodes_linear'),
+             waveform_arguments.pop('frequency_nodes_quadratic'))
         )
         frequency_nodes_unique, original_indices = np.unique(
             frequency_nodes_combined, return_inverse=True
         )
         linear_indices = original_indices[:size_linear]
         quadratic_indices = original_indices[size_linear:]
-        waveform_arguments['frequency_nodes'] = frequency_nodes_unique
-        waveform_arguments['linear_indices'] = linear_indices
-        waveform_arguments['quadratic_indices'] = quadratic_indices
-
-    waveform_arguments['frequencies'] = waveform_arguments['frequency_nodes']
+        waveform_arguments['frequencies'] = frequency_nodes_unique
+    else:
+        linear_indices = waveform_arguments.pop("linear_indices")
+        quadratic_indices = waveform_arguments.pop("quadratic_indices")
+        for key in ["frequency_nodes_linear", "frequency_nodes_quadratic"]:
+            _ = waveform_arguments.pop(key, None)
+        waveform_arguments['frequencies'] = waveform_arguments.pop('frequency_nodes')
     waveform_polarizations = _base_waveform_frequency_sequence(
         frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
         luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
@@ -843,12 +880,12 @@ def _base_roq_waveform(
 
     return {
         'linear': {
-            'plus': waveform_polarizations['plus'][waveform_arguments['linear_indices']],
-            'cross': waveform_polarizations['cross'][waveform_arguments['linear_indices']]
+            'plus': waveform_polarizations['plus'][linear_indices],
+            'cross': waveform_polarizations['cross'][linear_indices]
         },
         'quadratic': {
-            'plus': waveform_polarizations['plus'][waveform_arguments['quadratic_indices']],
-            'cross': waveform_polarizations['cross'][waveform_arguments['quadratic_indices']]
+            'plus': waveform_polarizations['plus'][quadratic_indices],
+            'cross': waveform_polarizations['cross'][quadratic_indices]
         }
     }
 
@@ -1059,49 +1096,13 @@ def _base_waveform_frequency_sequence(
         Dict containing plus and cross modes evaluated at the linear and
         quadratic frequency nodes.
     """
-    from lal import CreateDict
-    import lalsimulation as lalsim
+    frequencies = waveform_kwargs.pop('frequencies')
+    reference_frequency = waveform_kwargs.pop('reference_frequency')
+    approximant = waveform_kwargs.pop('waveform_approximant')
+    catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
 
-    frequencies = waveform_kwargs['frequencies']
-    reference_frequency = waveform_kwargs['reference_frequency']
-    approximant = lalsim_GetApproximantFromString(waveform_kwargs['waveform_approximant'])
-    catch_waveform_errors = waveform_kwargs['catch_waveform_errors']
-    pn_spin_order = waveform_kwargs['pn_spin_order']
-    pn_tidal_order = waveform_kwargs['pn_tidal_order']
-    pn_phase_order = waveform_kwargs['pn_phase_order']
-    pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
-    waveform_dictionary = waveform_kwargs.get(
-        'lal_waveform_dictionary', CreateDict()
-    )
-
-    lalsim.SimInspiralWaveformParamsInsertPNSpinOrder(
-        waveform_dictionary, int(pn_spin_order))
-    lalsim.SimInspiralWaveformParamsInsertPNTidalOrder(
-        waveform_dictionary, int(pn_tidal_order))
-    lalsim.SimInspiralWaveformParamsInsertPNPhaseOrder(
-        waveform_dictionary, int(pn_phase_order))
-    lalsim.SimInspiralWaveformParamsInsertPNAmplitudeOrder(
-        waveform_dictionary, int(pn_amplitude_order))
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, float(lambda_1))
-    lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, float(lambda_2))
-
-    for key, value in waveform_kwargs.items():
-        func = getattr(lalsim, "SimInspiralWaveformParamsInsert" + key, None)
-        if func is not None:
-            func(waveform_dictionary, value)
-
-    if waveform_kwargs.get('numerical_relativity_file', None) is not None:
-        lalsim.SimInspiralWaveformParamsInsertNumRelData(
-            waveform_dictionary, waveform_kwargs['numerical_relativity_file'])
-
-    if ('mode_array' in waveform_kwargs) and waveform_kwargs['mode_array'] is not None:
-        mode_array = waveform_kwargs['mode_array']
-        mode_array_lal = lalsim.SimInspiralCreateModeArray()
-        for mode in mode_array:
-            lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
-        lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
+    waveform_dictionary = set_waveform_dictionary(waveform_kwargs, lambda_1, lambda_2)
+    approximant = lalsim_GetApproximantFromString(approximant)
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
     mass_1 = mass_1 * utils.solar_mass
@@ -1134,6 +1135,9 @@ def _base_waveform_frequency_sequence(
                 return None
             else:
                 raise
+
+    if len(waveform_kwargs) > 0:
+        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus.data.data, cross=h_cross.data.data)
 

@@ -18,7 +18,7 @@ for letter in ["B", "I", "L", "Y"]:
     img = 1 - io.imread("{}.png".format(letter), as_gray=True)[::-1, :]
     x = np.arange(img.shape[0])
     y = np.arange(img.shape[1])
-    interp = si.interpolate.interp2d(x, y, img.T)
+    interp = si.RectBivariateSpline(x, y, img, kx=1, ky=1)
 
     likelihood = Likelihood(interp)
 

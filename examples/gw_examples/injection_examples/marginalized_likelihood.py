@@ -7,14 +7,15 @@ We also demonstrate how the posterior distribution for the marginalised
 parameter can be recovered in post-processing.
 """
 import bilby
-import numpy as np
+from bilby.core.utils.random import seed
+
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
+seed(123)
 
 duration = 4
 sampling_frequency = 1024
 outdir = "outdir"
 label = "marginalized_likelihood"
-
-np.random.seed(170608)
 
 injection_parameters = dict(
     mass_1=36.0,
@@ -108,5 +109,6 @@ result = bilby.run_sampler(
     outdir=outdir,
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

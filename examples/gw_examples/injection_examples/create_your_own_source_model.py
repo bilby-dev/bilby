@@ -4,6 +4,10 @@ A script to demonstrate how to use your own source model
 """
 import bilby
 import numpy as np
+from bilby.core.utils.random import seed
+
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
+seed(123)
 
 # First set up logging and some output directories and labels
 outdir = "outdir"
@@ -98,5 +102,6 @@ result = bilby.core.sampler.run_sampler(
     resume=False,
     sample="unif",
     injection_parameters=injection_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

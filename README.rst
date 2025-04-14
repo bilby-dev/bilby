@@ -9,72 +9,32 @@ Fulfilling all your Bayesian dreams.
 
 Online material to help you get started:
 
--  `Installation instructions <https://lscsoft.docs.ligo.org/bilby/installation.html>`__
--  `Documentation <https://lscsoft.docs.ligo.org/bilby/index.html>`__
+-  `Installation instructions <https://bilby-dev.github.io/bilby/installation.html>`__
+-  `Documentation <https://bilby-dev.github.io/bilby/>`__
 
 If you need help, find an issue, or just have a question/suggestion you can
 
-- Join our `Slack workspace <https://bilby-code.slack.com/>`__ (you may need to email the support desk to request an invite)
-- Email our support desk: contact+lscsoft-bilby-1846-issue-@support.ligo.org
+- Join our `Slack workspace <https://bilby-code.slack.com/>`__ via this `invite link <https://join.slack.com/t/bilby-code/shared_invite/zt-2s5a0jy1g-xB7uIy1fGGxW0CkBwwTbWQp>`__
 - Ask questions (or search through other users questions and answers) on `StackOverflow <https://stackoverflow.com/questions/tagged/bilby>`__ using the bilby tag
-- For www.git.ligo.org users, submit issues directly through `the issue tracker <https://git.ligo.org/lscsoft/bilby/issues>`__
-- For www.chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
+- Submit issues directly through `the issue tracker <https://github.com/bilby-dev/bilby/issues>`__
+- For chat.ligo.org users, join the `#bilby-help <https://chat.ligo.org/ligo/channels/bilby-help>`__ or `#bilby-devel <https://chat.ligo.org/ligo/channels/bilby-devel>`__ channels
+- For LVK-confidential issues, please open `a confidential issue on bilby_pipe <https://github.com/bilby-dev/bilby_pipe/-/issues/new>`__
 
-We encourage you to contribute to the development of bilby. This is done via a merge request.  For
-help in creating a merge request, see `this page
-<https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html>`__ or contact
-us directly. For advice on contributing, see `the contributing guide <https://git.ligo.org/lscsoft/bilby/blob/master/CONTRIBUTING.md>`__.
+We encourage you to contribute to the development of bilby. This is done via pull request.  For
+help in creating a pull request, see `this page
+<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`__ or contact
+us directly. For advice on contributing, see `the contributing guide <https://github.com/bilby-dev/bilby/blob/main/CONTRIBUTING.md>`__.
 
 
 --------------
 Citation guide
 --------------
 
-If you use :code:`bilby` in a scientific publication, please cite
+Please refer to the `Acknowledging/citing bilby guide <https://bilby-dev.github.io/bilby/citing-bilby.html>`__.
 
-* `Bilby: A user-friendly Bayesian inference library for gravitational-wave
-  astronomy
-  <https://ui.adsabs.harvard.edu/#abs/2018arXiv181102042A/abstract>`__
-* `Bayesian inference for compact binary coalescences with BILBY: validation and application to the first LIGO-Virgo gravitational-wave transient catalogue <https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.3295R/abstract>`__
-
-The first of these papers introduces the software, while the second introduces advances in the sampling approaches and validation of the software.
-If you use the :code:`bilby_mcmc` sampler, please additionally cite
-
-* `BILBY-MCMC: an MCMC sampler for gravitational-wave inference <https://ui.adsabs.harvard.edu/abs/2021MNRAS.507.2037A/abstract>`__
-
-Additionally, :code:`bilby` builds on a number of open-source packages. If you
-make use of this functionality in your publications, we recommend you cite them
-as requested in their associated documentation.
-
-**Samplers**
-
-* `dynesty <https://github.com/joshspeagle/dynesty>`__
-* `nestle <https://github.com/kbarbary/nestle>`__
-* `pymultinest <https://github.com/JohannesBuchner/PyMultiNest>`__
-* `cpnest <https://github.com/johnveitch/cpnest>`__
-* `emcee <https://github.com/dfm/emcee>`__
-* `nessai <https://github.com/mj-will/nessai>`_
-* `ptemcee <https://github.com/willvousden/ptemcee>`__
-* `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
-* `pypolychord <https://github.com/PolyChord/PolyChordLite>`__
-* `PyMC3 <https://github.com/pymc-devs/pymc3>`_
-
-
-**Gravitational-wave tools**
-
-* `gwpy <https://github.com/gwpy/gwpy>`__
-* `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
-* `astropy <https://github.com/astropy/astropy>`__
-
-**Plotting**
-
-* `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
-* `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines
-
-
-.. |pipeline status| image:: https://git.ligo.org/lscsoft/bilby/badges/master/pipeline.svg
-   :target: https://git.ligo.org/lscsoft/bilby/commits/master
-.. |coverage report| image:: https://git.ligo.org/lscsoft/bilby/badges/master/coverage.svg
+.. |pipeline status| image:: https://github.com/bilby-dev/bilby/actions/workflows/unit-tests.yml/badge.svg
+   :target: https://github.com/bilby-dev/bilby/commits/master
+.. |coverage report| image:: https://github.com/bilby-dev/bilby/badges/master/coverage.svg
    :target: https://lscsoft.docs.ligo.org/bilby/htmlcov/
 .. |pypi| image:: https://badge.fury.io/py/bilby.svg
    :target: https://pypi.org/project/bilby/

@@ -8,10 +8,26 @@ COSMOLOGY = [None, str(None)]
 
 def _set_default_cosmology():
     from astropy import cosmology as cosmo
+    from ..core.utils.meta_data import global_meta_data
     global DEFAULT_COSMOLOGY, COSMOLOGY
     if DEFAULT_COSMOLOGY is None:
         DEFAULT_COSMOLOGY = cosmo.Planck15
         COSMOLOGY = [DEFAULT_COSMOLOGY, DEFAULT_COSMOLOGY.name]
+        global_meta_data["cosmology"] = COSMOLOGY[0]
+
+
+def get_available_cosmologies():
+    """Get the list of available cosmologies.
+
+    Includes the :code:`Planck15_LAL` cosmology and all cosmologies shipped with :code:`astropy`.
+
+    Returns
+    -------
+    tuple
+        A tuple of strings with the names of the available cosmologies.
+    """
+    from astropy.cosmology.realizations import available
+    return (*available, "Planck15_LAL")
 
 
 def get_cosmology(cosmology=None):
@@ -38,8 +54,25 @@ def get_cosmology(cosmology=None):
     _set_default_cosmology()
     if cosmology is None:
         cosmology = DEFAULT_COSMOLOGY
+    elif isinstance(cosmology, cosmo.FLRW):
+        cosmology = cosmology
     elif isinstance(cosmology, str):
-        cosmology = getattr(cosmo, cosmology)
+        if cosmology.lower() == "planck15_lal":
+            # Planck15_LAL cosmology as defined in:
+            # https://dcc.ligo.org/DocDB/0167/T2000185/005/LVC_symbol_convention.pdf
+            cosmology = cosmo.FlatLambdaCDM(
+                H0=67.90, Om0=0.3065, name="Planck15_LAL"
+            )
+        else:
+            cosmology = getattr(cosmo, cosmology)
+    elif isinstance(cosmology, dict):
+        if 'Ode0' in cosmology.keys():
+            if 'w0' in cosmology.keys():
+                cosmology = cosmo.wCDM(**cosmology)
+            else:
+                cosmology = cosmo.LambdaCDM(**cosmology)
+        else:
+            cosmology = cosmo.FlatLambdaCDM(**cosmology)
     return cosmology
 
 
@@ -58,27 +91,14 @@ def set_cosmology(cosmology=None):
             Dictionary with arguments required to instantiate the cosmology
             class.
     """
-    from astropy import cosmology as cosmo
-    _set_default_cosmology()
-    if cosmology is None:
-        cosmology = DEFAULT_COSMOLOGY
-    elif isinstance(cosmology, cosmo.FLRW):
-        cosmology = cosmology
-    elif isinstance(cosmology, str):
-        cosmology = getattr(cosmo, cosmology)
-    elif isinstance(cosmology, dict):
-        if 'Ode0' in cosmology.keys():
-            if 'w0' in cosmology.keys():
-                cosmology = cosmo.wCDM(**cosmology)
-            else:
-                cosmology = cosmo.LambdaCDM(**cosmology)
-        else:
-            cosmology = cosmo.FlatLambdaCDM(**cosmology)
+    from ..core.utils.meta_data import global_meta_data
+    cosmology = get_cosmology(cosmology)
     COSMOLOGY[0] = cosmology
     if cosmology.name is not None:
         COSMOLOGY[1] = cosmology.name
     else:
         COSMOLOGY[1] = repr(cosmology)
+    global_meta_data["cosmology"] = cosmology
 
 
 def z_at_value(func, fval, **kwargs):

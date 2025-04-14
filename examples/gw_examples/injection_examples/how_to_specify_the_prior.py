@@ -6,12 +6,14 @@ parameter estimation.
 
 import bilby
 import numpy as np
+from bilby.core.utils.random import seed
+
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
+seed(123)
 
 duration = 4
 sampling_frequency = 1024
 outdir = "outdir"
-
-np.random.seed(151012)
 
 injection_parameters = dict(
     mass_1=36.0,
@@ -111,5 +113,6 @@ result = bilby.run_sampler(
     outdir=outdir,
     injection_parameters=injection_parameters,
     label="specify_prior",
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

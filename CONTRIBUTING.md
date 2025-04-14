@@ -8,16 +8,17 @@ have some familiarity with python and git.
 3. [Automated Code Checking](#automated-code-checking)
 4. [Unit Testing](#unit-testing)
 5. [Code relevance](#code-relevance)
-6. [Merge requests](#merge-requests)
+6. [Pull requests](#pull-requests)
 7. [Typical workflow](#typical-workflow)
-8. [Hints and tips](#hints-and-tips)
-9. [Code overview](#code-overview)
+8. [Making releases](#making-releases)
+9. [Hints and tips](#hints-and-tips)
+10. [Code overview](#code-overview)
 
 
 ## Code of Conduct
 
 Everyone participating in the bilby community, and in particular in our issue
-tracker, merge requests, and chat channels, is expected to treat other people
+tracker, pull requests, and chat channels, is expected to treat other people
 with respect and follow the guidelines articulated in the [Python Community
 Code of Conduct](https://www.python.org/psf/codeofconduct/). Furthermore, members of the LVK collaboration must follow the [LVK Code of Conduct](https://dcc.ligo.org/LIGO-M1900037/public).
 
@@ -80,7 +81,7 @@ usual help channels.
 
 ## Unit Testing
 
-Unit tests are an important part of code development, helping to minimize the number of undetected bugs which may be present in a merge request. They also greatly expedite the review of code, and can even help during the initial development if used properly. Accordingly, bilby requires unit testing for any changes with machine readable inputs and outputs (i.e. pretty much everything except plotting). 
+Unit tests are an important part of code development, helping to minimize the number of undetected bugs which may be present in a pull request. They also greatly expedite the review of code, and can even help during the initial development if used properly. Accordingly, bilby requires unit testing for any changes with machine readable inputs and outputs (i.e. pretty much everything except plotting). 
 
 Unit testing is integrated into the CI/CD pipeline, and uses the builtin unittest package. Tests should be written into the `test/` directory which corresponds to their location within the package, such that, for example, a change to `bilby/gw/conversion.py` should go into `test/gw/conversion_test.py`. To run a single test locally, one may simply do `pytest /path/to/test TestClass.test_name`, whereas to run all the tests in a given test file one may omit the class and function.
 
@@ -133,16 +134,16 @@ code.  Adding code into the bilby source comes with advantages, but also adds
 complexity and review burden to the project. If you are unsure where it should
 live, open an issue to discuss it. 
 
-## Merge requests
+## Pull requests
 
 All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
 review your code and you should expect a few comments and questions. Once all
-discussions are resolved, core developers will approve the merge request and
+discussions are resolved, core developers will approve the pull request and
 then merge it into the master branch. If you go a few days without a reply,
 please feel free to ping the thread by adding a new comment.
 
-All merge requests should be focused: they should aim to either add one
+All pull requests should be focused: they should aim to either add one
 feature, solve one bug, or fix some stylistic issues. If multiple changes are
 lumped together it can slow down the process and make it harder to review.
 
@@ -159,18 +160,18 @@ behaviour. See the [Code style](#code-style) Section for an overview.
 
 **Reviewing Changes**
 
-If you are reviewing a merge request (either as a core developer or just as an
+If you are reviewing a pull request (either as a core developer or just as an
 interested party) please keep these three things in mind
 
 * If you open a discussion, be timely in responding to the submitter. Note, the
   reverse does not need to apply.
-* Keep your questions/comments focused on the scope of the merge request. If
+* Keep your questions/comments focused on the scope of the pull request. If
   while reviewing the code you notice other things which could be improved,
   open a new issue.
-* Be supportive - merge requests represent a lot of hard work and effort and
+* Be supportive - pull requests represent a lot of hard work and effort and
   should be encouraged.
 
-Reviewers should follow these rules when processing merge requests:
+Reviewers should follow these rules when processing pull requests:
 
 * Always wait for tests to pass before merging MRs.
 * Delete branches for merged MRs (by core devs pushing to the main repo).
@@ -182,20 +183,20 @@ Reviewers should follow these rules when processing merge requests:
 Bilby uses the fork and merge model for code review and contributing to the
 repository. As such, you won't be able to push changes to the master branch.
 Instead, you'll need to create a fork, make your changes on a feature branch,
-then submit a merge request. The following subsections walk you through how to
+then submit a pull request. The following subsections walk you through how to
 do this. 
 
 ### Step a) getting started
 
 All the code lives in a git repository (for a short introduction to git, see
-[this tutorial](https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html))
-which is hosted here: https://git.ligo.org/lscsoft/bilby.  If you haven't
-already, you should
-[fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) the
+[this tutorial](https://docs.github.com/en/get-started/using-git/about-git))
+which is hosted here: https://github.com/bilby-dev/bilby.
+If you haven't already, you should
+[fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the
 repository and clone your fork, i.e., on your local machine run
 
 ```bash
-$ git clone git@git.ligo.org:albert.einstein/bilby.git
+$ git clone git@github.com:<your-username>/bilby.git
 ```
 
 replacing the SSH url to that of your fork. This will create a directory
@@ -224,14 +225,14 @@ automatically be updated.
 ### Step b) Updating your fork
 
 If you already have a fork of bilby, and are starting work on a new project you
-can link your clone to the main (`lscsoft`) repository and pull in changes that
+can link your clone to the main (`bilby-dev`) repository and pull in changes that
 have been merged since the time you created your fork, or last updated:
 
 **Link your fork to the main repository:** from the directory `/bilby`
 containing a local copy of the code:
 
 ```bash
-$ git remote add lscsoft https://git.ligo.org/lscsoft/bilby
+$ git remote add upstream https://github.com/bilby-dev/bilby
 ```
 
 You can see which "remotes" you have available by running
@@ -240,10 +241,10 @@ You can see which "remotes" you have available by running
 $ git remote -v
 ```
 
-**Fetch new changes from the `lscsoft` repo:**
+**Fetch new changes from the `upstream` repo:**
 
 ```bash
-$ git pull lscsoft master
+$ git pull upstream main
 ```
 
 ### Step c) Creating a new feature branch
@@ -253,8 +254,8 @@ separate from other work, simplifying review and merging once the work is done.
 To create a new feature branch:
 
 ```bash
-$ git pull lscsoft
-$ git checkout -b my-new-feature lscsoft/master
+$ git fetch upstream
+$ git checkout -b my-new-feature upstream/main
 ```
 
 ### Step d) Hack away
@@ -278,7 +279,7 @@ Correct a typo at L1 of /bilby/my_awesome_feature.py which returned a dictionary
 
 For more discussion of best practices, see e.g. [this blog](https://chris.beams.io/posts/git-commit/).
 
-4. Push your changes to the remote copy of your fork on git.ligo.org
+4. Push your changes to the remote copy of your fork on github.com
 
 ```bash
 git push origin my-new-feature
@@ -291,33 +292,98 @@ new branch and the `origin` remote:
 git push --set-upstream origin my-new-feature
 ```
 
-### Step e) Open a Merge Request
+### Step e) Open a Pull Request
 
 When you feel that your work is finished, or if you want feedback on it, you
-should create a Merge Request to propose that your changes be merged into the
-main (`lscsoft`) repository.
+should create a Pull Request to propose that your changes be merged into the
+main (`bilby-dev`) repository.
 
 After you have pushed your new feature branch to `origin`, you should find a
 new button on the [bilby repository home
-page](https://git.ligo.org/lscsoft/bilby) inviting you to create a Merge
+page](https://github.com/bilby-dev/bilby) inviting you to create a Pull
 Request out of your newly pushed branch.  You should click the button, and
 proceed to fill in the title and description boxes on the MR page. If you are
-still working on the merge request and don’t want it to be merged accidentally,
-add the string "WIP", "work in progress" or "do not merge" (not
-case-sensitive), to the title.
+still working on the pull request and don’t want it to be merged accidentally,
+you can [convert it to a draft](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request).
 
 Once the request has been opened, one of the maintainers will assign someone to
 review the change.
+
+
+## Making releases
+
+**Note:** releases should be made in coordination with other developers and,
+doing so requires certain permissions.
+
+### Versioning
+
+We use [semantic versioning](https://semver.org/) when creating bilby releases
+and versions should have the format `MAJOR.MINOR.PATCH`.
+The version tag should also start with `v` e.g. `v2.4.0`.
+
+`bilby` uses `setuptools_scm` to automatically set the version based on git tags.
+This means no manual changes are needed to the version number are required.
+
+### Updating the changelog
+
+Before making a release, the [changelog](https://github.com/bilby-dev/bilby/blob/main/CHANGELOG.md)
+should be updated to include the changes since the last release. This should
+be done by a new pull request.
+We roughly follow the style proposed in [keep a changelog](https://keepachangelog.com/en/1.1.0/)
+
+When making a changelog keep the following in mind:
+
+- Only document meaningful changes to the code. Changes to, e.g., the CI or test suite do not need to be included.
+- Include links to the relevant PRs
+- Remember to update the URLs at the bottom of changelog file
+
+### Making the release on GitHub
+
+**Note:** releases will automatically be pushed to PyPI and versions on PyPI
+cannot be changed, so please take care when making a release.
+
+Once the changelog has been updated, follow these steps for making a release:
+
+1. Navigate to https://github.com/bilby-dev/bilby/releases.
+2. Click `Draft new release`.
+3. Select an existing tag that does not have a release or specify the name of a
+new tag that will be made when the release is made.
+4. Specify the version as the title, e.g. `v2.4.0`.
+5. Copy the relevant section from the changelog and include a link to the full changelog, e.g.
+`**Full Changelog:** https://github.com/bilby-dev/bilby/compare/<previous-release>...<this-release>`
+6. If this is latest stable release, make sure `Set at latest release` is checked.
+If making a pre-release, make sure `Set as a pre-release` is checked.
+7. Check the formatting using the `Preview` tab.
+8. Click `Publish release`.
+
+Once step 8 is complete, the CI will trigger and the new release will be 
+automatically uploaded to PyPI. Check that the CI workflow completed successfully.
+After this, you should see the new release on PyPI.
+
+If the CI workflow fails, please contact Colm Talbot (@ColmTalbot) and
+Michael Williams (@mj-will).
+
+**Note:** pre-releases will not show up as the latest release on PyPI, but they
+are listed under [Release history](https://pypi.org/project/bilby/#history)
+
+### Updating conda-forge
+
+**Note:** we do not currently release pre-releases on `conda-forge`
+
+`conda-forge` is not automatically updated when a new release is made, but an 
+pull request should be opened automatically on the [bilby feedstock](https://github.com/conda-forge/bilby-feedstock)
+(this can take up to a day). Once it is open, follow the steps in the pull request
+to review and merge the changes.
 
 ## Hints and tips
 
 ### Licence
 When submitting a MR, please don't include any license information in your
 code. Our repository is
-[licensed](https://git.ligo.org/lscsoft/bilby/blob/master/LICENSE.md). When
-submitting your merge request, we will assume you have read and agreed to the
+[licensed](https://github.com/bilby-dev/bilby/blob/main/LICENSE.md). When
+submitting your pull request, we will assume you have read and agreed to the
 terms of [the
-license](https://git.ligo.org/lscsoft/bilby/blob/master/LICENSE.md).
+license](https://github.com/bilby-dev/bilby/blob/main/LICENSE.md).
 
 ### Removing previously installed versions
 
@@ -347,13 +413,13 @@ interpreter.
 
 Below, we give a schematic of how the code is structured. This is intended to
 help orient users and make it easier to contribute. The layout is intended to
-define the logic of the code and new merge requests should aim to fit within
+define the logic of the code and new pull requests should aim to fit within
 this logic (unless there is a good argument to change it). For example, code
 which adds a new sampler should not effect the gravitational-wave specific
 parts of the code. Note that this document is not programmatically generated and
 so may get out of date with time. If you notice something wrong, please open an
 issue.
 
-![bilby overview](docs/images/bilby_layout.png)
+![bilby overview](https://raw.githubusercontent.com/bilby-dev/bilby/main/docs/images/bilby_layout.png)
 
 **Note** this layout is not comprehensive, for example only a few example "Priors" are shown.

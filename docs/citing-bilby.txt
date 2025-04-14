@@ -58,7 +58,7 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
 - `ROQGravitationalWaveTransient`
  .. code:: bibtex
 
-     @article{roq_paper,
+     @article{roq_paper_1,
         author = {Smith, Rory and Field, Scott E. and Blackburn, Kent and Haster, Carl-Johan and P\"urrer, Michael and Raymond, Vivien and Schmidt, Patricia},
         title = "{Fast and accurate inference on gravitational waves from precessing compact binaries}",
         eprint = "1604.08253",
@@ -72,6 +72,21 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
         pages = "044031",
         year = "2016"
     }
+
+    @article{roq_paper_2,
+        author = "Morisaki, Soichiro and Smith, Rory and Tsukada, Leo and Sachdev, Surabhi and Stevenson, Simon and Talbot, Colm and Zimmerman, Aaron",
+        title = "{Rapid localization and inference on compact binary coalescences with the Advanced LIGO-Virgo-KAGRA gravitational-wave detector network}",
+        eprint = "2307.13380",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        doi = "10.1103/PhysRevD.108.123040",
+        journal = "Phys. Rev. D",
+        volume = "108",
+        number = "12",
+        pages = "123040",
+        year = "2023"
+    }
+
 
 - `MBGravitationalWaveTransient`
  .. code:: bibtex
@@ -93,8 +108,18 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
 
 - `RelativeBinningGravitationalWaveTransient`
  .. code:: bibtex
+    
+    @article{relbin_bilby,
+        author = "Krishna, Kruthi and Vijaykumar, Aditya and Ganguly, Apratim and Talbot, Colm and Biscoveanu, Sylvia and George, Richard N. and Williams, Natalie and Zimmerman, Aaron",
+        title = "{Accelerated parameter estimation in Bilby with relative binning}",
+        eprint = "2312.06009",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        month = "12",
+        year = "2023"
+    }
 
-    @article{relbin_paper,
+    @article{relbin_cornish,
         author = "Cornish, Neil J.",
         title = "{Fast Fisher Matrices and Lazy Likelihoods}",
         eprint = "1007.4820",
@@ -102,10 +127,64 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
         primaryClass = "gr-qc",
         month = "7",
         year = "2010"
-    }   
+    }
 
-Please also ensure that you appropriately cite the following:
+    @article{relbin_zackay,
+        author = "Zackay, Barak and Dai, Liang and Venumadhav, Tejaswi",
+        title = "{Relative Binning and Fast Likelihood Evaluation for Gravitational Wave Parameter Estimation}",
+        eprint = "1806.08792",
+        archivePrefix = "arXiv",
+        primaryClass = "astro-ph.IM",
+        month = "6",
+        year = "2018"
+    } 
 
-- The sampler(s) used for your analysis
-- Any additional package(s) that you use to generate waveforms e.g. `lalsuite` (https://doi.org/10.7935/GT1W-FZ16)
-as well as the original scientific papers for each waveform.
+If you use the :code:`bilby_mcmc` sampler, please additionally cite the following paper
+
+ .. code:: bibtex
+
+    @article{bilby_mcmc_paper,
+        author = "Ashton, Gregory and Talbot, Colm",
+        title = "{B\,ilby-MCMC: an MCMC sampler for gravitational-wave inference}",
+        eprint = "2106.08730",
+        archivePrefix = "arXiv",
+        primaryClass = "gr-qc",
+        doi = "10.1093/mnras/stab2236",
+        journal = "Mon. Not. Roy. Astron. Soc.",
+        volume = "507",
+        number = "2",
+        pages = "2037--2051",
+        year = "2021"
+    }
+
+Additionally, :code:`bilby` builds on a number of open-source packages. If you
+make use of this functionality in your publications, we recommend you cite them
+as requested in their associated documentation.
+
+**Samplers**
+* `cpnest <https://github.com/johnveitch/cpnest>`__
+* `dnest4 <https://github.com/eggplantbren/DNest4>`__
+* `dynesty <https://github.com/joshspeagle/dynesty>`__
+* `emcee <https://github.com/dfm/emcee>`__
+* `kombine <https://github.com/bfarr/kombine>`__
+* `nestle <https://github.com/kbarbary/nestle>`__
+* `nessai <https://github.com/mj-will/nessai>`__
+* `PyMC3 <https://github.com/pymc-devs/pymc3>`__
+* `pymultinest <https://github.com/JohannesBuchner/PyMultiNest>`__
+* `pypolychord <https://github.com/PolyChord/PolyChordLite>`__
+* `ptemcee <https://github.com/willvousden/ptemcee>`__
+* `ptmcmcsampler <https://github.com/jellis18/PTMCMCSampler>`__
+* `ultranest <https://github.com/JohannesBuchner/UltraNest>`__
+* `zeus <https://github.com/minaskar/zeus>`_
+
+
+**Gravitational-wave tools**
+
+* `gwpy <https://github.com/gwpy/gwpy>`__
+* `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
+* `astropy <https://github.com/astropy/astropy>`__
+
+**Plotting**
+
+* `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
+* `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines
