@@ -291,7 +291,8 @@ def decode_bilby_json(dct):
     if dct.get("__prior__", False):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
-        except AttributeError:
+            obj = cls(**dct["kwargs"])
+        except (AttributeError, ValueError):
             logger.warning(
                 "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
@@ -303,7 +304,7 @@ def decode_bilby_json(dct):
                 if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
                     dct["kwargs"].pop(key)
             cls = Prior
-        obj = cls(**dct["kwargs"])
+            obj = cls(**dct["kwargs"])
         return obj
     if dct.get("__numpy_random_generator__", False):
         return decode_numpy_random_generator(dct)
