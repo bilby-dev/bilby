@@ -323,7 +323,14 @@ def decode_bilby_json(dct):
         return pd.Series(dct["content"])
     if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
-        return getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        try: 
+            cls = getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        except ModuleNotFoundError:
+            logger.warning(
+                f"Cannot load module {dct['__module__']}, returning function name as string"
+            )
+            cls = default
+        return cls
     if dct.get("__timedelta__", False):
         return timedelta(seconds=dct["__total_seconds__"])
     return dct
