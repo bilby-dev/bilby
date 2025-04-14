@@ -90,7 +90,7 @@ setup(
             "bilby.dynesty=bilby.core.sampler.dynesty:Dynesty",
             "bilby.dynamic_dynesty=bilby.core.sampler.dynamic_dynesty:DynamicDynesty",
             "bilby.emcee=bilby.core.sampler.emcee:Emcee",
-            "bilby.fisher=bilby.core.sampler.fisher:Fisher",
+            "bilby.fisher=bilby.core.fisher_sampler:Fisher",
             "bilby.kombine=bilby.core.sampler.kombine:Kombine",
             "bilby.nessai=bilby.core.sampler.nessai:Nessai",
             "bilby.nestle=bilby.core.sampler.nestle:Nestle",

@@ -53,11 +53,11 @@ result_fisher = bilby.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label="example_fisher",
-    nsamples=5000,
+    nsamples=10000,
+    clean=True,
+    plot=True,
 )
 
-
-# Run dynesty as a comparison
 result_dynesty = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
@@ -80,8 +80,8 @@ bilby.result.plot_multiple(
     truth_color="C3",
 )
 
-# Note that the `fisher` tools can also be accessed directly
-fisher = bilby.core.fisher.FisherMatrixPosteriorEstimator(likelihood, priors)
+# Note that the `fisher` tools can also be accessed directly, e.g:
+fisher = bilby.core.fisher_matrix.FisherMatrixPosteriorEstimator(likelihood, priors)
 samples = fisher.sample_dataframe(
     "maxL", 1000
 )  # Draw a set of samples as a pandas dataframe

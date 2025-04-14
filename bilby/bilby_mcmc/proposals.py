@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.distance import jensenshannon
 from scipy.stats import gaussian_kde
 
-from ..core.fisher import FisherMatrixPosteriorEstimator
+from ..core.fisher_matrix import FisherMatrixPosteriorEstimator
 from ..core.prior import PriorDict
 from ..core.sampler.base_sampler import SamplerError
 from ..core.utils import logger, random, reflect

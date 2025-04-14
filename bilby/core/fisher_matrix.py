@@ -1,9 +1,12 @@
+from packaging import version
+
 import numpy as np
 import pandas as pd
 import scipy.linalg
 from scipy.optimize import minimize
 
-from .utils import random
+from .utils import random, logger
+from .prior import PriorDict
 
 
 class FisherMatrixPosteriorEstimator(object):
@@ -29,6 +32,10 @@ class FisherMatrixPosteriorEstimator(object):
             of the maximum likelihood sample.
         """
         self.likelihood = likelihood
+
+        if isinstance(priors, PriorDict) is False:
+            priors = PriorDict(priors)
+
         if parameters is None:
             self.parameter_names = priors.non_fixed_keys
         else:
@@ -83,10 +90,28 @@ class FisherMatrixPosteriorEstimator(object):
         return pd.DataFrame(samples, columns=self.parameter_names)
 
     def calculate_FIM(self, sample):
-        FIM = np.zeros((self.N, self.N))
-        for ii, ii_key in enumerate(self.parameter_names):
-            for jj, jj_key in enumerate(self.parameter_names):
-                FIM[ii, jj] = -self.get_second_order_derivative(sample, ii_key, jj_key)
+        if version.parse(scipy.__version__) < version.parse("1.15"):
+            logger.info("Scipy version < 1.15, using fallback")
+            FIM = np.zeros((self.N, self.N))
+            for ii, ii_key in enumerate(self.parameter_names):
+                for jj, jj_key in enumerate(self.parameter_names):
+                    FIM[ii, jj] = -self.get_second_order_derivative(sample, ii_key, jj_key)
+            return FIM
+
+        import scipy.differentiate as sd
+
+        def array_to_dict(x_array):
+            return dict(zip(self.parameter_names, x_array))
+
+        def wrapped_logl(x_array):
+            return self.log_likelihood(array_to_dict(x_array))
+
+        def wrapped_logl_arb(x_array):
+            return np.apply_along_axis(wrapped_logl, 0, x_array)
+
+        point = np.array([sample[key] for key in self.parameter_names])
+        res = sd.hessian(wrapped_logl_arb, point)
+        FIM = - res.ddf
 
         return FIM
 
@@ -181,4 +206,5 @@ class FisherMatrixPosteriorEstimator(object):
                 minout = out
 
         self.minimization_metadata = minout
+        logger.info(f"Maximum likelihood estimation: {minout.message}")
         return {key: val for key, val in zip(self.parameter_names, minout.x)}
