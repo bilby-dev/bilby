@@ -53,23 +53,21 @@ class Model:
         """
         probability = 1.0
         for ii, function in enumerate(self.models):
-            function_parameters = self._get_function_parameters(function)
+            function_parameters = self._get_function_parameters(function, **kwargs)
             if (
                 self.cache
                 and self._cached_parameters[function] == function_parameters
             ):
                 new_probability = self._cached_probability[function]
             else:
-                new_probability = function(
-                    data, **self._get_function_parameters(function)
-                )
+                new_probability = function(data, **function_parameters)
                 if self.cache:
                     self._cached_parameters[function] = function_parameters
                     self._cached_probability[function] = new_probability
             probability *= new_probability
         return probability
 
-    def _get_function_parameters(self, func):
+    def _get_function_parameters(self, func, **kwargs):
         """
         If the function is a class method we need to remove more arguments or
         have the variable names provided in the class.
@@ -82,5 +80,5 @@ class Model:
             for key in ignore:
                 if key in param_keys:
                     del param_keys[param_keys.index(key)]
-        parameters = {key: self.parameters[key] for key in param_keys}
+        parameters = {key: kwargs.get(key, self.parameters[key]) for key in param_keys}
         return parameters
