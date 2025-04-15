@@ -4,10 +4,12 @@ import os
 import sys
 import time
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame
 
+from ..likelihood import _safe_likelihood_call
 from ..result import rejection_sample
 from ..utils import (
     check_directory_exists_and_if_not_mkdir,
@@ -45,15 +47,20 @@ def _log_likelihood_wrapper(theta):
             for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
         }
     ):
-        params = {
-            key: t
-            for key, t in zip(_sampling_convenience_dump.search_parameter_keys, theta)
-        }
-        _sampling_convenience_dump.likelihood.parameters.update(params)
-        if _sampling_convenience_dump.use_ratio:
-            return _sampling_convenience_dump.likelihood.log_likelihood_ratio()
-        else:
-            return _sampling_convenience_dump.likelihood.log_likelihood()
+        params = deepcopy(_sampling_convenience_dump.parameters)
+        params.update(
+            {
+                key: t
+                for key, t in zip(
+                    _sampling_convenience_dump.search_parameter_keys, theta
+                )
+            }
+        )
+        return _safe_likelihood_call(
+            _sampling_convenience_dump.likelihood,
+            params,
+            _sampling_convenience_dump.use_ratio,
+        )
     else:
         return np.nan_to_num(-np.inf)
 
