@@ -151,7 +151,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
             parameter1=self.parameter1_value, parameter2=self.parameter2_value
         )
         self.assertDictEqual(
-            expected_model_parameters, self.analytical_1d_likelihood.model_parameters
+            expected_model_parameters, self.analytical_1d_likelihood.model_parameters()
         )
 
     def test_repr(self):
@@ -603,6 +603,9 @@ class TestJointLikelihood(unittest.TestCase):
             self.first_likelihood, self.second_likelihood, self.third_likelihood
         )
 
+        # self.first_parameters = dict(param1=1, param2=2)
+        # self.second_parmaeters = dict(param2=2, param3=3)
+        # self.third_parmaeters = dict(param4=4, param5=5)
         self.first_likelihood.parameters["param1"] = 1
         self.first_likelihood.parameters["param2"] = 2
         self.second_likelihood.parameters["param2"] = 2

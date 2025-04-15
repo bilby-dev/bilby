@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import trapezoid
 
+from ..likelihood import _safe_likelihood_call
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
 from .base_sampler import (
     MCMCSampler,
@@ -341,11 +342,8 @@ class Ptemcee(MCMCSampler):
 
         def neg_log_like(params):
             """Internal function to minimize"""
-            likelihood_copy.parameters.update(
-                {key: val for key, val in zip(minimize_list, params)}
-            )
             try:
-                return -likelihood_copy.log_likelihood()
+                return -_safe_likelihood_call(likelihood_copy, params)
             except RuntimeError:
                 return +np.inf
 
@@ -1476,13 +1474,12 @@ class LikePriorEvaluator(object):
         priors = _sampling_convenience_dump.priors
         likelihood = _sampling_convenience_dump.likelihood
         search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
-        parameters = {key: v for key, v in zip(search_parameter_keys, v_array)}
+        parameters = _sampling_convenience_dump.parameters.copy()
+        parameters.update({key: v for key, v in zip(search_parameter_keys, v_array)})
         if priors.evaluate_constraints(parameters) > 0:
-            likelihood.parameters.update(parameters)
-            if _sampling_convenience_dump.use_ratio:
-                return likelihood.log_likelihood() - likelihood.noise_log_likelihood()
-            else:
-                return likelihood.log_likelihood()
+            return _safe_likelihood_call(
+                likelihood, parameters, _sampling_convenience_dump.use_ratio
+            )
         else:
             return np.nan_to_num(-np.inf)
 
