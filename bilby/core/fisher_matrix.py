@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import scipy.linalg
 from scipy.optimize import minimize
+import tqdm
 
 from .utils import random, logger
 from .prior import PriorDict
@@ -45,6 +46,7 @@ class FisherMatrixPosteriorEstimator(object):
         self.n_prior_samples = n_prior_samples
         self.N = len(self.parameter_names)
 
+        # Construct prior samples at initialisation so that the prior is not stored
         self.prior_samples = [
             priors.sample_subset(self.parameter_names) for _ in range(n_prior_samples)
         ]
@@ -174,6 +176,22 @@ class FisherMatrixPosteriorEstimator(object):
         shift_sample[y_key] = vy + y_coef * dvy
         return shift_sample
 
+    def _maximize_likelihood_from_initial_sample(self, initial_sample):
+        x0 = list(initial_sample.values())
+
+        def neg_log_like(x, self, T=1):
+            sample = {key: val for key, val in zip(self.parameter_names, x)}
+            return - 1 / T * self.log_likelihood(sample)
+
+        out = minimize(
+            neg_log_like,
+            x0,
+            args=(self, 1),
+            bounds=self.prior_bounds,
+            method=self.minimization_method,
+        )
+        return out
+
     def get_maximum_likelihood_sample(self, initial_sample=None):
         """ A method to attempt optimization of the maximum likelihood
 
@@ -185,25 +203,31 @@ class FisherMatrixPosteriorEstimator(object):
         is large or the posterior is wide relative to the prior, the method fails
         to find the global maximum in high dimensional problems.
         """
-        minlogL = np.inf
-        for i in range(self.n_prior_samples):
-            initial_sample = self.prior_samples[i]
 
-            x0 = list(initial_sample.values())
+        if initial_sample:
+            out = self._maximize_likelihood_from_initial_sample(initial_sample)
+        else:
+            logger.info(f"Maximising the likelihood using {self.n_prior_samples} prior samples")
+            max_logL = -np.inf
+            logL_list = []
+            successes = 0
+            for sample in tqdm.tqdm(self.prior_samples):
+                out = self._maximize_likelihood_from_initial_sample(sample)
+                logL_list.append(-out.fun)
+                if out.success:
+                    successes += 1
+                if out.fun > max_logL:
+                    max_logL = -out.fun
+                    minout = out
 
-            def neg_log_like(x, self, T=1):
-                sample = {key: val for key, val in zip(self.parameter_names, x)}
-                return - 1 / T * self.log_likelihood(sample)
+            if np.isinf(max_logL):
+                raise ValueError("Maxisation of the likelihood failed")
 
-            out = minimize(
-                neg_log_like,
-                x0,
-                args=(self, 1),
-                bounds=self.prior_bounds,
-                method=self.minimization_method,
+            logger.info(
+                f"Finished with {100 * successes / self.n_prior_samples}% success rate "
+                f"Maximum log-likelihood {max_logL} "
+                f"Distribution range {np.min(logL_list)}:{np.max(logL_list)}"
             )
-            if out.fun < minlogL:
-                minout = out
 
         self.minimization_metadata = minout
         logger.info(f"Maximum likelihood estimation: {minout.message}")

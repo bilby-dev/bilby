@@ -121,11 +121,13 @@ class Fisher(Sampler):
         )
 
         if self.kwargs["rejection_sampling"]:
+            logger.info(f"Rejection sampling the posterior from {self.kwargs['nsamples']} generated samples")
             logl_norm = multivariate_normal.logpdf(
                 raw_samples, mean=fisher_mpe.mean, cov=fisher_mpe.iFIM
             )
+            # TODO: Add prior weights
             ln_weights = raw_logl - logl_norm
-            ln_weights -= np.max(ln_weights)
+            ln_weights -= np.mean(ln_weights)
             weights = np.exp(ln_weights)
 
             samples, idxs = rejection_sample(raw_samples, weights, return_idxs=True)
@@ -135,12 +137,12 @@ class Fisher(Sampler):
             efficiency = 100 * nsamples / len(raw_samples)
             ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
             logger.info(
-                f"Rejection sampling Fisher posterior produced {nsamples}"
+                f"Rejection sampling Fisher posterior produced {nsamples} samples"
                 f" with an efficiency of {efficiency}% and effective sample"
                 f" size {ess}"
             )
             if self.plot:
-                self.create_rejection_sample_diagnostic(samples, raw_samples)
+                self.create_rejection_sample_diagnostic(samples, raw_samples, fisher_mpe.mean)
         else:
             samples = raw_samples
             logl = raw_logl
@@ -152,7 +154,7 @@ class Fisher(Sampler):
 
         return self.result
 
-    def create_rejection_sample_diagnostic(self, samples, raw_samples):
+    def create_rejection_sample_diagnostic(self, samples, raw_samples, maxL):
         import corner
         import matplotlib.pyplot as plt
         import matplotlib.lines as mpllines
@@ -161,6 +163,8 @@ class Fisher(Sampler):
             bins=50,
             smooth=0.9,
             max_n_ticks=3,
+            truths=maxL,
+            truth_color="C3",
         )
 
         kwargs["labels"] = [
@@ -178,7 +182,7 @@ class Fisher(Sampler):
                 rxs,
                 color=c,
                 contour_kwargs={"linestyles": ls, "alpha": 0.8},
-                hist_kwargs={"ls": ls, "alpha": 0.8},
+                hist_kwargs={"density": True, "ls": ls, "alpha": 0.8},
                 data_kwargs={"alpha": 1},
                 no_fill_contours=True,
                 alpha=0.8,
@@ -198,7 +202,7 @@ class Fisher(Sampler):
                 color=c,
                 contour_kwargs={"linestyles": ls, "alpha": 0.8},
                 contourf_kwargs={"alpha": 0.8},
-                hist_kwargs={"ls": ls, "alpha": 0.8},
+                hist_kwargs={"density": True, "ls": ls, "alpha": 0.8},
                 no_fill_contours=True,
                 fig=fig,
                 alpha=0.1,
@@ -223,6 +227,7 @@ class Fisher(Sampler):
                 color="C0",
                 histtype="step",
                 ls="-",
+                density=True,
             )
             ax.hist(
                 rxs,
@@ -230,6 +235,7 @@ class Fisher(Sampler):
                 color="C1",
                 histtype="step",
                 ls="--",
+                density=True,
             )
             ax.set_xlabel(kwargs["labels"][0])
 
