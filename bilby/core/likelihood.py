@@ -13,7 +13,7 @@ def _fallback_to_parameters(obj, parameters):
 
     if parameters is None:
         msg = "No parameters provided in likelihood call, falling back to values stored in {obj}"
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", True)
+        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
         if parameters_as_state.upper() == "FALSE":
             raise LikelihoodParameterError(msg)
         elif parameters_as_state.upper() == "WARN":
@@ -34,7 +34,7 @@ def _safe_likelihood_call(likelihood, parameters=None, use_ratio=False):
     if "parameters" in inspect.signature(method).parameters:
         logl = method(parameters=parameters)
     else:
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", True)
+        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
         if parameters_as_state.upper() == "FALSE":
             raise LikelihoodParameterError(
                 f"Unable to call {likelihood} with {parameters} as an argument"
@@ -74,7 +74,7 @@ class Likelihood:
 
     @property
     def parameters(self):
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", True)
+        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
         msg = f"Parameter attribute queried for {self.__class__}"
         if parameters_as_state.upper() == "FALSE":
             raise LikelihoodParameterError(msg)
@@ -85,7 +85,7 @@ class Likelihood:
     @parameters.setter
     def parameters(self, parameters):
         if parameters is not None:
-            parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", True)
+            parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
             msg = f"Setting non-trivial parameters for {self.__class__}"
             if parameters_as_state.upper() == "FALSE":
                 raise LikelihoodParameterError(msg)
