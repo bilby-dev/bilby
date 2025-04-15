@@ -3,6 +3,8 @@ import pandas as pd
 import scipy.linalg
 from scipy.optimize import minimize
 
+from .likelihood import _safe_likelihood_call
+
 
 class FisherMatrixPosteriorEstimator(object):
     def __init__(self, likelihood, priors, parameters=None, fd_eps=1e-6, n_prior_samples=100):
@@ -45,8 +47,7 @@ class FisherMatrixPosteriorEstimator(object):
             self.prior_width_dict[key] = width
 
     def log_likelihood(self, sample):
-        self.likelihood.parameters.update(sample)
-        return self.likelihood.log_likelihood()
+        _safe_likelihood_call(self.likelihood, sample)
 
     def calculate_iFIM(self, sample):
         FIM = self.calculate_FIM(sample)
