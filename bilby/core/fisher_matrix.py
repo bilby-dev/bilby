@@ -10,6 +10,10 @@ from .utils import random, logger
 from .prior import PriorDict
 
 
+def array_to_dict(array, keys):
+    return dict(zip(keys, array))
+
+
 class FisherMatrixPosteriorEstimator(object):
     def __init__(self, likelihood, priors, parameters=None, minimization_method="Nelder-Mead",
                  fd_eps=1e-6, n_prior_samples=100):
@@ -99,23 +103,22 @@ class FisherMatrixPosteriorEstimator(object):
                 for jj, jj_key in enumerate(self.parameter_names):
                     FIM[ii, jj] = -self.get_second_order_derivative(sample, ii_key, jj_key)
             return FIM
+        else:
+            import scipy.differentiate as sd
+            point = np.array([sample[key] for key in self.parameter_names])
+            res = sd.hessian(self.log_likelihood_from_array, point)
+            FIM = - res.ddf
 
-        import scipy.differentiate as sd
+        return FIM
 
-        def array_to_dict(x_array):
-            return dict(zip(self.parameter_names, x_array))
-
+    def log_likelihood_from_array(self, x_array):
         def wrapped_logl(x_array):
-            return self.log_likelihood(array_to_dict(x_array))
+            return self.log_likelihood(array_to_dict(x_array, self.parameter_names))
 
         def wrapped_logl_arb(x_array):
             return np.apply_along_axis(wrapped_logl, 0, x_array)
 
-        point = np.array([sample[key] for key in self.parameter_names])
-        res = sd.hessian(wrapped_logl_arb, point)
-        FIM = - res.ddf
-
-        return FIM
+        return wrapped_logl_arb(x_array)
 
     def get_second_order_derivative(self, sample, ii, jj):
         if ii == jj:
