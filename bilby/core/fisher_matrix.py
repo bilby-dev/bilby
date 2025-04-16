@@ -10,7 +10,7 @@ from .utils import random, logger
 from .prior import PriorDict
 
 
-def array_to_dict(array, keys):
+def array_to_dict(keys, array):
     return dict(zip(keys, array))
 
 
@@ -105,6 +105,7 @@ class FisherMatrixPosteriorEstimator(object):
             return FIM
         else:
             import scipy.differentiate as sd
+            logger.info("Using Scipy differentiate")
             point = np.array([sample[key] for key in self.parameter_names])
             res = sd.hessian(self.log_likelihood_from_array, point)
             FIM = - res.ddf
@@ -113,7 +114,7 @@ class FisherMatrixPosteriorEstimator(object):
 
     def log_likelihood_from_array(self, x_array):
         def wrapped_logl(x_array):
-            return self.log_likelihood(array_to_dict(x_array, self.parameter_names))
+            return self.log_likelihood(array_to_dict(self.parameter_names, x_array))
 
         def wrapped_logl_arb(x_array):
             return np.apply_along_axis(wrapped_logl, 0, x_array)
@@ -182,14 +183,12 @@ class FisherMatrixPosteriorEstimator(object):
     def _maximize_likelihood_from_initial_sample(self, initial_sample):
         x0 = list(initial_sample.values())
 
-        def neg_log_like(x, self, T=1):
-            sample = {key: val for key, val in zip(self.parameter_names, x)}
-            return - 1 / T * self.log_likelihood(sample)
+        def neg_log_like(x):
+            return - self.log_likelihood_from_array(x)
 
         out = minimize(
             neg_log_like,
             x0,
-            args=(self, 1),
             bounds=self.prior_bounds,
             method=self.minimization_method,
         )
@@ -216,20 +215,21 @@ class FisherMatrixPosteriorEstimator(object):
             successes = 0
             for sample in tqdm.tqdm(self.prior_samples):
                 out = self._maximize_likelihood_from_initial_sample(sample)
-                logL_list.append(-out.fun)
+                logL = -out.fun
+                logL_list.append(logL)
                 if out.success:
                     successes += 1
-                if out.fun > max_logL:
-                    max_logL = -out.fun
+                if logL > max_logL:
+                    max_logL = logL
                     minout = out
 
             if np.isinf(max_logL):
                 raise ValueError("Maxisation of the likelihood failed")
 
             logger.info(
-                f"Finished with {100 * successes / self.n_prior_samples}% success rate "
-                f"Maximum log-likelihood {max_logL} "
-                f"Distribution range {np.min(logL_list)}:{np.max(logL_list)}"
+                f"Finished with {100 * successes / self.n_prior_samples}% success rate| "
+                f"Maximum log-likelihood {max_logL}| "
+                f"(max-mu)/sigma= {(max_logL - np.mean(logL_list)) / np.std(logL_list)} "
             )
 
         self.minimization_metadata = minout
