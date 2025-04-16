@@ -1197,7 +1197,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 signal[kind][mode] *= self._ref_dist / new_distance
 
     def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None):
-        from ...core.utils.random import random
+        from ...core.utils import random
 
         self.parameters.update(self.get_sky_frame_parameters())
         if signal_polarizations is None:
