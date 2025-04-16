@@ -119,14 +119,19 @@ class Fisher(Sampler):
                 for _, sample in raw_samples.iterrows()
             ]
         )
+        raw_logpi = self.priors.ln_prob(raw_samples, axis=0)
+
+        if self.use_ratio:
+            raw_logl -= self.likelihood.noise_log_likelihood()
 
         if self.kwargs["rejection_sampling"]:
             logger.info(f"Rejection sampling the posterior from {self.kwargs['nsamples']} generated samples")
+
             logl_norm = multivariate_normal.logpdf(
                 raw_samples, mean=fisher_mpe.mean, cov=fisher_mpe.iFIM
             )
-            # TODO: Add prior weights
-            ln_weights = raw_logl - logl_norm
+
+            ln_weights = raw_logl + raw_logpi - logl_norm
             ln_weights -= np.mean(ln_weights)
             weights = np.exp(ln_weights)
 
