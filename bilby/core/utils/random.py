@@ -4,6 +4,7 @@ from numpy.random import default_rng, SeedSequence
 def __getattr__(name):
     if name == "rng":
         return Generator.rng
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 class Generator:
