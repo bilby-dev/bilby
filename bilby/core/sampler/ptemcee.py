@@ -343,7 +343,8 @@ class Ptemcee(MCMCSampler):
         def neg_log_like(params):
             """Internal function to minimize"""
             try:
-                return -_safe_likelihood_call(likelihood_copy, params)
+                parameters = {key: val for key, val in zip(minimize_list, params)}
+                return -_safe_likelihood_call(likelihood_copy, parameters)
             except RuntimeError:
                 return +np.inf
 
