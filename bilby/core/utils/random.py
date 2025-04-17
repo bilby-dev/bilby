@@ -8,14 +8,13 @@ generate random seeds.
 The intended usage is to import the submodule and the use the :code:`rng`
 attribute to generate random numbers. For example:
 
-.. code-block:: python
-    from bilby.core.utils import random
+.. code:: python
 
+    >>> from bilby.core.utils import random
     # Seed the random number generator
-    random.seed(1234)
-
+    >>> random.seed(1234)
     # Generate a random number between 0 and 1
-    x = random.rng.random()
+    >>> x = random.rng.random()
 
 The :code:`rng` attribute is a :code:`numpy.random.Generator` object, for
 more details see the numpy documentation:
@@ -36,7 +35,24 @@ def __getattr__(name):
 
 
 class Generator:
+    """Class to hold the random number generator.
+
+    This class is used to ensure that the same random number generator
+    is used throughout :code:`bilby`.
+
+    It should not be used directly, instead use :code:`random.rng` to
+    generate random numbers. See the documentation for more details.
+    """
     rng = default_rng()
+    """Random number generator.
+
+    This is a :code:`numpy.random.Generator` object that is used to
+    generate random numbers. By default, it is not seeded.
+
+    The recommended way to use this is to import the :code:`random` module
+    and use the :code:`rng` attribute to generate random numbers. See the
+    documentation for more details.
+    """
 
 
 def seed(seed):
