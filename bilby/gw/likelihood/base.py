@@ -809,7 +809,7 @@ class GravitationalWaveTransient(Likelihood):
 
         if self.distance_marginalization:
             log_l_tc_array = self.distance_marginalized_likelihood(
-                d_inner_h=d_inner_h_tc_array, h_inner_h=h_inner_h)
+                d_inner_h=d_inner_h_tc_array, h_inner_h=h_inner_h, parameters=parameters)
         elif self.phase_marginalization:
             log_l_tc_array = self.phase_marginalized_likelihood(
                 d_inner_h=d_inner_h_tc_array,
