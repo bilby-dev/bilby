@@ -188,8 +188,12 @@ class WaveformGenerator(object):
     def _strain_from_model(self, model_data_points, model, parameters):
         return model(model_data_points, **parameters)
 
-    def _strain_from_transformed_model(self, transformed_model_data_points, transformed_model, transformation_function, parameters):
-        transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model, parameters)
+    def _strain_from_transformed_model(
+        self, transformed_model_data_points, transformed_model, transformation_function, parameters
+    ):
+        transformed_model_strain = self._strain_from_model(
+            transformed_model_data_points, transformed_model, parameters
+        )
 
         if isinstance(transformed_model_strain, np.ndarray):
             return transformation_function(transformed_model_strain, self.sampling_frequency)
