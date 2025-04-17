@@ -26,7 +26,7 @@ class TestLikelihoodBase(unittest.TestCase):
 
     def test_repr(self):
         self.likelihood = Likelihood(parameters=["a", "b"])
-        expected = "Likelihood(parameters=['a', 'b'])"
+        expected = "Likelihood"
         self.assertEqual(expected, repr(self.likelihood))
 
     def test_base_log_likelihood(self):
@@ -210,7 +210,7 @@ class TestGaussianLikelihood(unittest.TestCase):
         likelihood.parameters["c"] = 0
         likelihood.parameters["sigma"] = 1
         likelihood.log_likelihood()
-        self.assertTrue(likelihood.sigma == 1)
+        self.assertEqual(likelihood.sigma, 1)
 
     def test_sigma_other(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, sigma=None)
@@ -287,7 +287,7 @@ class TestStudentTLikelihood(unittest.TestCase):
         likelihood.parameters["m"] = 2
         likelihood.parameters["c"] = 0
         likelihood.parameters["nu"] = 98
-        self.assertTrue(likelihood.nu == 98)
+        self.assertEqual(likelihood.nu, 98)
 
     def test_lam(self):
         likelihood = StudentTLikelihood(self.x, self.y, self.function, nu=0, sigma=0.5)
@@ -514,6 +514,7 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
         self.likelihood = AnalyticalMultidimensionalCovariantGaussian(
             mean=self.mean, cov=self.cov
         )
+        self.likelihood.parameters.update({f"x{ii}": 0 for ii in range(len(self.sigma))})
 
     def tearDown(self):
         del self.cov
@@ -538,7 +539,7 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
 
     def test_log_likelihood(self):
         likelihood = AnalyticalMultidimensionalCovariantGaussian(mean=[0], cov=[1])
-        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood())
+        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood(dict(x0=0)))
 
 
 class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
@@ -550,6 +551,7 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         self.likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
             mean_1=self.mean_1, mean_2=self.mean_2, cov=self.cov
         )
+        self.likelihood.parameters.update({f"x{ii}": 0 for ii in range(len(self.sigma))})
 
     def tearDown(self):
         del self.cov
@@ -580,7 +582,7 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
             mean_1=[0], mean_2=[0], cov=[1]
         )
-        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood())
+        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood(dict(x0=0)))
 
 
 class TestJointLikelihood(unittest.TestCase):
