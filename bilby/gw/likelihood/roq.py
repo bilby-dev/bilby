@@ -386,6 +386,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         parameters = _fallback_to_parameters(self, parameters).copy()
         if self.parameter_conversion is not None:
             parameters = self.parameter_conversion(parameters)
+        if self._cache["parameters"] == parameters:
+            return
         for basis_type, number_of_bases in zip(
             ['linear', 'quadratic'], [self.number_of_bases_linear, self.number_of_bases_quadratic]
         ):
@@ -412,36 +414,30 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         self._cache['parameters'] = parameters.copy()
 
     @property
-    def basis_number_linear(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
-        if self.number_of_bases_linear > 1 or self.number_of_bases_quadratic > 1:
-            if parameters != self._cache['parameters']:
-                self._update_basis()
+    def basis_number_linear(self):
+        if self.number_of_bases_linear > 1:
             return self._cache['basis_number_linear']
         else:
             return 0
 
     @property
-    def basis_number_quadratic(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
-        if self.number_of_bases_linear > 1 or self.number_of_bases_quadratic > 1:
-            if parameters != self._cache['parameters']:
-                self._update_basis()
+    def basis_number_quadratic(self):
+        if self.number_of_bases_quadratic > 1:
             return self._cache['basis_number_quadratic']
         else:
             return 0
 
     @property
-    def waveform_generator(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
-        if getattr(self, 'number_of_bases_linear', 1) > 1 or getattr(self, 'number_of_bases_quadratic', 1) > 1:
-            if parameters != self._cache['parameters']:
-                self._update_basis()
+    def waveform_generator(self):
         return self._waveform_generator
 
     @waveform_generator.setter
     def waveform_generator(self, waveform_generator):
         self._waveform_generator = waveform_generator
+
+    def log_likelihood_ratio(self, parameters=None):
+        self._update_basis(parameters)
+        return super().log_likelihood_ratio(parameters=parameters)
 
     def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
         """
@@ -454,6 +450,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
         parameters = _fallback_to_parameters(self, parameters)
+        self._update_basis(parameters)
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
         else:
