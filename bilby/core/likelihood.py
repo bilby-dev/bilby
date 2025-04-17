@@ -8,15 +8,25 @@ from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args, logger
 
+PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
+
+
+def set_parameters_as_state(level):
+    global PARAMETERS_AS_STATE
+
+    level = str(level).upper()
+    if level not in ["TRUE", "FALSE", "WARN"]:
+        raise ValueError("Allowed levels for parameters as state are 'TRUE', 'FALSE', and 'WARN'")
+    PARAMETERS_AS_STATE = level
+
 
 def _fallback_to_parameters(obj, parameters):
 
     if parameters is None:
         msg = "No parameters provided in likelihood call, falling back to values stored in {obj}"
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
-        if parameters_as_state.upper() == "FALSE":
+        if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
-        elif parameters_as_state.upper() == "WARN":
+        elif PARAMETERS_AS_STATE == "WARN":
             logger.warning(msg)
         else:
             logger.debug(msg)
@@ -34,12 +44,11 @@ def _safe_likelihood_call(likelihood, parameters=None, use_ratio=False):
     if "parameters" in inspect.signature(method).parameters:
         logl = method(parameters=parameters)
     else:
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
-        if parameters_as_state.upper() == "FALSE":
+        if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(
                 f"Unable to call {likelihood} with {parameters} as an argument"
             )
-        elif parameters_as_state.upper() == "WARN":
+        elif PARAMETERS_AS_STATE == "WARN":
             logger.warning(f"Using parameters as state for {likelihood}")
         likelihood.parameters.update(parameters)
         logl = method()
@@ -74,22 +83,20 @@ class Likelihood:
 
     @property
     def parameters(self):
-        parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
         msg = f"Parameter attribute queried for {self.__class__}"
-        if parameters_as_state.upper() == "FALSE":
+        if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
-        elif parameters_as_state.upper() == "WARN":
+        elif PARAMETERS_AS_STATE == "WARN":
             logger.warning(msg)
         return self._parameters
 
     @parameters.setter
     def parameters(self, parameters):
         if parameters is not None:
-            parameters_as_state = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
             msg = f"Setting non-trivial parameters for {self.__class__}"
-            if parameters_as_state.upper() == "FALSE":
+            if PARAMETERS_AS_STATE == "FALSE":
                 raise LikelihoodParameterError(msg)
-            elif parameters_as_state.upper() == "WARN":
+            elif PARAMETERS_AS_STATE == "WARN":
                 logger.warning(msg)
         else:
             parameters = dict()
@@ -187,7 +194,7 @@ class Analytical1DLikelihood(Likelihood):
 
     def __init__(self, x, y, func, **kwargs):
         parameters = infer_parameters_from_function(func)
-        super(Analytical1DLikelihood, self).__init__(dict())
+        super(Analytical1DLikelihood, self).__init__()
         self.x = x
         self.y = y
         self._func = func
@@ -270,13 +277,9 @@ class GaussianLikelihood(Analytical1DLikelihood):
         super(GaussianLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
         self.sigma = sigma
 
-        # Check if sigma was provided, if not it is a parameter
-        if self.sigma is None:
-            self.parameters['sigma'] = None
-
     def log_likelihood(self, parameters=None):
         parameters = _fallback_to_parameters(self, parameters)
-        sigma = parameters.get("sigma", self._sigma)
+        sigma = parameters.get("sigma", self.sigma)
         log_l = np.sum(- (self.residual(parameters) / sigma)**2 / 2 -
                        np.log(2 * np.pi * sigma**2) / 2)
         return log_l
@@ -293,7 +296,10 @@ class GaussianLikelihood(Analytical1DLikelihood):
         that if sigma is not in parameters the attribute is used which was
         given at init (i.e. the known sigma as either a float or array).
         """
-        return self.parameters.get('sigma', self._sigma)
+        if PARAMETERS_AS_STATE == "FALSE":
+            return self._sigma
+        else:
+            return self.parameters.get('sigma', self._sigma)
 
     @sigma.setter
     def sigma(self, sigma):
@@ -441,16 +447,13 @@ class StudentTLikelihood(Analytical1DLikelihood):
         self.nu = nu
         self.sigma = sigma
 
-        # Check if nu was provided, if not it is a parameter
-        if self.nu is None:
-            self.parameters['nu'] = None
-
     def log_likelihood(self, parameters=None):
-        if self.nu <= 0.:
+        parameters = _fallback_to_parameters(self, parameters)
+        nu = parameters.get("nu", self.nu)
+        if nu <= 0.:
             raise ValueError("Number of degrees of freedom for Student's "
                              "t-likelihood must be positive")
 
-        nu = self.nu
         log_l =\
             np.sum(- (nu + 1) * np.log1p(self.lam * self.residual(parameters=parameters)**2 / nu) / 2 +
                    np.log(self.lam / (nu * np.pi)) / 2 +
@@ -473,7 +476,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
         values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
-        return self.parameters.get('nu', self._nu)
+        if PARAMETERS_AS_STATE == "FALSE":
+            return self._nu
+        else:
+            return self.parameters.get('nu', self._nu)
 
     @nu.setter
     def nu(self, nu):
@@ -616,10 +622,11 @@ class JointLikelihood(Likelihood):
     def __sync_parameters(self):
         """ Synchronizes parameters between the likelihoods
         so that all likelihoods share a single parameter dict."""
-        for likelihood in self.likelihoods:
-            self.parameters.update(likelihood.parameters)
-        for likelihood in self.likelihoods:
-            likelihood.parameters = self.parameters
+        if PARAMETERS_AS_STATE != "FALSE":
+            for likelihood in self.likelihoods:
+                self.parameters.update(likelihood.parameters)
+            for likelihood in self.likelihoods:
+                likelihood.parameters = self.parameters
 
     @property
     def likelihoods(self):
@@ -706,7 +713,11 @@ class _GPLikelihood(Likelihood):
         self.GPClass = gp_class
         self.gp = self.GPClass(kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True)
         self.gp.compute(self.t, yerr=self.yerr)
-        super().__init__()
+        if PARAMETERS_AS_STATE == "FALSE":
+            parameters = None
+        else:
+            parameters = self.gp.get_parameter_dict()
+        super().__init__(parameters=parameters)
 
     def set_parameters(self, parameters):
         """
@@ -723,6 +734,8 @@ class _GPLikelihood(Likelihood):
                 self.gp.set_parameter(name=name, value=value)
             except ValueError:
                 pass
+            if PARAMETERS_AS_STATE != "FALSE":
+                self.parameters[name] = value
 
 
 class CeleriteLikelihood(_GPLikelihood):
