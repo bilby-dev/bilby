@@ -1088,18 +1088,10 @@ class TestInOutROQWeights(unittest.TestCase):
         )
         self.check_weights_are_same(likelihood, likelihood_from_weights)
 
-    @parameterized.expand(product(['npz', 'json'], [False, True]))
-    def test_out_multiple_bases_inconsistent_format(self, format, multiband):
-        "npz or json format is not compatible with multiple bases"
-        likelihood = self.create_likelihood_multiple_bases(multiband)
-        with self.assertRaises(ValueError):
-            likelihood.save_weights('weights', format=format)
-
     def tearDown(self):
-        for format in ['npz', 'json', 'hdf5']:
-            filename = f'weights.{format}'
-            if os.path.exists(filename):
-                os.remove(filename)
+        filename = f'weights.hdf5'
+        if os.path.exists(filename):
+            os.remove(filename)
 
     @staticmethod
     def check_weights_are_same(l1, l2):
