@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 from scipy.stats import multivariate_normal
+import tqdm
 
 from .fisher_matrix import FisherMatrixPosteriorEstimator
 from .sampler.base_sampler import Sampler, signal_wrapper
@@ -113,13 +114,19 @@ class Fisher(Sampler):
         )
 
         raw_samples = fisher_mpe.sample_dataframe("maxL", self.kwargs["nsamples"])
-        raw_logl = np.array(
-            [
-                fisher_mpe.log_likelihood(sample.to_dict())
-                for _, sample in raw_samples.iterrows()
-            ]
-        )
-        raw_logpi = self.priors.ln_prob(raw_samples, axis=0)
+
+        raw_logpi = []
+        raw_logl = []
+        logger.info("Calculating the likelihood and priors")
+        for _, rs in tqdm.tqdm(raw_samples.iterrows(), total=len(raw_samples)):
+            raw_logpi.append(self.priors.ln_prob(rs.to_dict(), axis=0))
+            if np.isinf(raw_logpi[-1]):
+                raw_logl.append(-np.inf)
+            else:
+                raw_logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
+
+        raw_logpi = np.real(np.array(raw_logpi))
+        raw_logl = np.array(raw_logl)
 
         if self.use_ratio:
             raw_logl -= self.likelihood.noise_log_likelihood()
@@ -132,6 +139,14 @@ class Fisher(Sampler):
             )
 
             ln_weights = raw_logl + raw_logpi - logl_norm
+
+            # Remove impossible samples
+            idxs = ~np.isinf(ln_weights)
+            ln_weights = ln_weights[idxs]
+            raw_samples = raw_samples[idxs]
+            raw_logl = raw_logl[idxs]
+            raw_logpi = raw_logpi[idxs]
+
             ln_weights -= np.mean(ln_weights)
             weights = np.exp(ln_weights)
 

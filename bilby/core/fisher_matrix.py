@@ -54,7 +54,9 @@ class FisherMatrixPosteriorEstimator(object):
         self.prior_samples = [
             priors.sample_subset(self.parameter_names) for _ in range(n_prior_samples)
         ]
-        self.prior_bounds = [(priors[key].minimum, priors[key].maximum) for key in self.parameter_names]
+        self.prior_bounds_min = np.array([priors[key].minimum for key in self.parameter_names])
+        self.prior_bounds_max = np.array([priors[key].maximum for key in self.parameter_names])
+        self.prior_bounds = list(zip(self.prior_bounds_min, self.prior_bounds_max))
 
         self.prior_width_dict = {}
         for key in self.parameter_names:
@@ -105,15 +107,22 @@ class FisherMatrixPosteriorEstimator(object):
             return FIM
         else:
             import scipy.differentiate as sd
-            logger.info("Using Scipy differentiate")
+            logger.info("Using Scipy differentiate to estimate the Fisher information matrix (FIM)")
             point = np.array([sample[key] for key in self.parameter_names])
-            res = sd.hessian(self.log_likelihood_from_array, point)
+            res = sd.hessian(self.log_likelihood_from_array, point, initial_step=0.5)
             FIM = - res.ddf
+            logger.info(f"Estimated FIM:\n{FIM}")
 
         return FIM
 
     def log_likelihood_from_array(self, x_array):
         def wrapped_logl(x_array):
+            # Map points outside the bounds to the bounds
+            idxs = x_array < self.prior_bounds_min
+            x_array[idxs] = self.prior_bounds_min[idxs]
+            idxs = x_array > self.prior_bounds_max
+            x_array[idxs] = self.prior_bounds_max[idxs]
+
             return self.log_likelihood(array_to_dict(self.parameter_names, x_array))
 
         def wrapped_logl_arb(x_array):
