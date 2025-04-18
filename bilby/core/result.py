@@ -2026,7 +2026,7 @@ class ResultList(list):
 @latex_plot_format
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, corner_labels=None, linestyles=None,
-                  **kwargs):
+                  fig=None, **kwargs):
     """ Generate a corner plot overlaying two sets of results
 
     Parameters
@@ -2058,6 +2058,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         List of strings to be passed to the input `labels` to `result.plot_corner`.
     linestyles: list, optional
         List of linestyle strings to plot the results with.
+    fig: figure, optional
+        Figure onto which the results are plotted.
 
     Returns
     =======
@@ -2073,7 +2075,7 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     if corner_labels is not None:
         kwargs['labels'] = corner_labels
 
-    fig = results[0].plot_corner(save=False, **kwargs)
+    fig = results[0].plot_corner(fig=fig, save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
