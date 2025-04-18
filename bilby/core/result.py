@@ -2056,6 +2056,8 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         Bayes factor will be used instead.
     corner_labels: list, optional
         List of strings to be passed to the input `labels` to `result.plot_corner`.
+    linestyles: list, optional
+        List of linestyle strings to plot the results with.
 
     Returns
     =======
