@@ -66,7 +66,8 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx_tabs.tabs',
     "sphinx.ext.linkcode",
-    'myst_parser'
+    'myst_parser',
+    "sphinx_sitemap",
 ]
 autosummary_generate = True
 
@@ -150,6 +151,7 @@ html_sidebars = {
     ]
 }
 
+html_baseurl = 'https://bilby-dev.github.io/bilby/'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
