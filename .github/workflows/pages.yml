@@ -30,7 +30,9 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       - name: install
-        run: python -m pip install .
+        run: |
+          python -m pip install .
+          python -m pip sphinx-sitemap
       - name: Run jupyter notebooks
         run: |
           python -m ipykernel install
