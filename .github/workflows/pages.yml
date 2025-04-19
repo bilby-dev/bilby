@@ -32,7 +32,7 @@ jobs:
       - name: install
         run: |
           python -m pip install .
-          python -m pip sphinx-sitemap
+          python -m pip install sphinx-sitemap
       - name: Run jupyter notebooks
         run: |
           python -m ipykernel install
