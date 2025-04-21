@@ -1046,18 +1046,22 @@ class TestCreateROQLikelihood(unittest.TestCase):
 @pytest.mark.requires_roqs
 class TestInOutROQWeights(unittest.TestCase):
 
-    @parameterized.expand(['npz', 'hdf5'])
-    def test_out_single_basis(self, format):
+    def test_out_single_basis(self):
         likelihood = self.create_likelihood_single_basis()
-        filename = f'weights.{format}'
-        likelihood.save_weights(filename, format=format)
+        filename = 'weights.hdf5'
+        likelihood.save_weights(filename, format='hdf5')
         self.assertTrue(os.path.exists(filename))
 
-    @parameterized.expand(['npz', 'hdf5'])
-    def test_in_single_basis(self, format):
+    def test_saving_wrong_format_fails(self):
         likelihood = self.create_likelihood_single_basis()
-        filename = f'weights.{format}'
-        likelihood.save_weights(filename, format=format)
+        filename = 'weights.npz'
+        with self.assertRaises(IOError):
+            likelihood.save_weights(filename, format='npz')
+
+    def test_in_single_basis(self):
+        likelihood = self.create_likelihood_single_basis()
+        filename = 'weights.hdf5'
+        likelihood.save_weights(filename, format='hdf5')
         likelihood_from_weights = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=likelihood.interferometers,
             priors=likelihood.priors,
@@ -1068,18 +1072,16 @@ class TestInOutROQWeights(unittest.TestCase):
 
     @parameterized.expand([(False, ), (True, )])
     def test_out_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         self.assertTrue(os.path.exists(filename))
 
     @parameterized.expand([(False, ), (True, )])
     def test_in_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         likelihood_from_weights = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=likelihood.interferometers,
             priors=likelihood.priors,
@@ -1089,7 +1091,7 @@ class TestInOutROQWeights(unittest.TestCase):
         self.check_weights_are_same(likelihood, likelihood_from_weights)
 
     def tearDown(self):
-        filename = f'weights.hdf5'
+        filename = 'weights.hdf5'
         if os.path.exists(filename):
             os.remove(filename)
 

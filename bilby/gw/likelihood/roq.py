@@ -1006,8 +1006,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         logger.info(f"Saving ROQ weights to {filename}")
         import h5py
         with h5py.File(filename, 'w') as f:
-            f.create_dataset('time_samples',
-                                data=self.weights['time_samples'])
+            f.create_dataset('time_samples', data=self.weights['time_samples'])
             for basis_type in ['linear', 'quadratic']:
                 key = f'prior_range_{basis_type}'
                 if key in self.weights:
