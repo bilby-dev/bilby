@@ -76,11 +76,17 @@ class FisherMatrixPosteriorEstimator(object):
 
     def calculate_iFIM(self, sample):
         FIM = self.calculate_FIM(sample)
+
+        # Force the FIM to be symmetric by averaging off-diagonal estimates
+        upper_off_diagonal_average = .5 * (np.triu(FIM, 1) + np.triu(FIM.T, 1))
+        FIM = np.diag(np.diag(FIM)) + upper_off_diagonal_average + upper_off_diagonal_average.T
+
         iFIM = scipy.linalg.inv(FIM)
 
         # Ensure iFIM is positive definite
         min_eig = np.min(np.real(np.linalg.eigvals(iFIM)))
         if min_eig < 0:
+            logger.warning("Scaling the iFIM to ensure it is positive definite")
             iFIM -= 10 * min_eig * np.eye(*iFIM.shape)
 
         return iFIM
@@ -111,7 +117,7 @@ class FisherMatrixPosteriorEstimator(object):
             point = np.array([sample[key] for key in self.parameter_names])
             res = sd.hessian(self.log_likelihood_from_array, point, initial_step=0.5)
             FIM = - res.ddf
-            logger.info(f"Estimated FIM:\n{FIM}")
+            logger.debug(f"Estimated FIM:\n{FIM}")
 
         return FIM
 
@@ -120,6 +126,7 @@ class FisherMatrixPosteriorEstimator(object):
             # Map points outside the bounds to the bounds
             idxs = x_array < self.prior_bounds_min
             x_array[idxs] = self.prior_bounds_min[idxs]
+
             idxs = x_array > self.prior_bounds_max
             x_array[idxs] = self.prior_bounds_max[idxs]
 

@@ -1,13 +1,14 @@
 import datetime
 
 import numpy as np
+import pandas as pd
 from scipy.stats import multivariate_normal
 import tqdm
 
 from .fisher_matrix import FisherMatrixPosteriorEstimator
 from .sampler.base_sampler import Sampler, signal_wrapper
 from .result import rejection_sample
-from .utils import logger, kish_log_effective_sample_size, safe_save_figure
+from .utils import logger, kish_log_effective_sample_size, safe_save_figure, random
 
 
 class Fisher(Sampler):
@@ -52,6 +53,8 @@ class Fisher(Sampler):
         minimization_method="Nelder-Mead",
         n_prior_samples=100,
         fd_eps=1e-6,
+        mirror_diagnostic_plot=False,
+        cov_scaling=1,
     )
 
     def __init__(
@@ -113,59 +116,28 @@ class Fisher(Sampler):
             fd_eps=self.kwargs["fd_eps"],
         )
 
-        raw_samples = fisher_mpe.sample_dataframe("maxL", self.kwargs["nsamples"])
+        maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample()
+        maxL_sample_array = np.array(list(maxL_sample_dict.values()))
+        iFIM = fisher_mpe.calculate_iFIM(maxL_sample_dict)
+        cov = self.kwargs["cov_scaling"] * iFIM
 
-        raw_logpi = []
-        raw_logl = []
-        logger.info("Calculating the likelihood and priors")
-        for _, rs in tqdm.tqdm(raw_samples.iterrows(), total=len(raw_samples)):
-            raw_logpi.append(self.priors.ln_prob(rs.to_dict(), axis=0))
-            if np.isinf(raw_logpi[-1]):
-                raw_logl.append(-np.inf)
-            else:
-                raw_logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
+        msg = "Generation-distribution: " + "| ".join(
+            [f"{key}: {val:0.5f} +/- {np.sqrt(var):.5f}" for ((key, val), var)
+             in zip(maxL_sample_dict.items(), np.diag(cov))]
+        )
+        logger.info(msg)
 
-        raw_logpi = np.real(np.array(raw_logpi))
-        raw_logl = np.array(raw_logl)
+        g_samples, g_logl, g_logpi = self._draw_samples_from_generating_distribution(
+            maxL_sample_array, cov, fisher_mpe)
 
         if self.use_ratio:
-            raw_logl -= self.likelihood.noise_log_likelihood()
+            g_logl -= self.likelihood.noise_log_likelihood()
 
         if self.kwargs["rejection_sampling"]:
-            logger.info(f"Rejection sampling the posterior from {self.kwargs['nsamples']} generated samples")
-
-            logl_norm = multivariate_normal.logpdf(
-                raw_samples, mean=fisher_mpe.mean, cov=fisher_mpe.iFIM
-            )
-
-            ln_weights = raw_logl + raw_logpi - logl_norm
-
-            # Remove impossible samples
-            idxs = ~np.isinf(ln_weights)
-            ln_weights = ln_weights[idxs]
-            raw_samples = raw_samples[idxs]
-            raw_logl = raw_logl[idxs]
-            raw_logpi = raw_logpi[idxs]
-
-            ln_weights -= np.mean(ln_weights)
-            weights = np.exp(ln_weights)
-
-            samples, idxs = rejection_sample(raw_samples, weights, return_idxs=True)
-            logl = raw_logl[idxs]
-
-            nsamples = len(samples)
-            efficiency = 100 * nsamples / len(raw_samples)
-            ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
-            logger.info(
-                f"Rejection sampling Fisher posterior produced {nsamples} samples"
-                f" with an efficiency of {efficiency}% and effective sample"
-                f" size {ess}"
-            )
-            if self.plot:
-                self.create_rejection_sample_diagnostic(samples, raw_samples, fisher_mpe.mean)
+            samples, logl = self._rejection_sample(g_samples, g_logl, g_logpi, maxL_sample_array, cov)
         else:
-            samples = raw_samples
-            logl = raw_logl
+            samples = g_samples
+            logl = g_logl
 
         end_time = datetime.datetime.now()
         self.sampling_time = end_time - self.start_time
@@ -174,15 +146,15 @@ class Fisher(Sampler):
 
         return self.result
 
-    def create_rejection_sample_diagnostic(self, samples, raw_samples, maxL):
+    def create_rejection_sample_diagnostic(self, samples, raw_samples, maxL, weights):
         import corner
         import matplotlib.pyplot as plt
         import matplotlib.lines as mpllines
 
         kwargs = dict(
             bins=50,
-            smooth=0.9,
-            max_n_ticks=3,
+            smooth=0.7,
+            max_n_ticks=5,
             truths=maxL,
             truth_color="C3",
         )
@@ -194,67 +166,100 @@ class Fisher(Sampler):
         # Create the data array to plot and pass everything to corner
         xs = samples[self.search_parameter_keys].values
         rxs = raw_samples[self.search_parameter_keys].values
+
+        g_color = "k"
+        g_ls = "--"
+        f_color = "C0"
+        f_ls = "-"
+
         if len(self.search_parameter_keys) > 1:
             lines = []
-            ls = "-"
-            c = "C0"
             fig = corner.corner(
                 rxs,
-                color=c,
-                contour_kwargs={"linestyles": ls, "alpha": 0.8},
-                hist_kwargs={"density": True, "ls": ls, "alpha": 0.8},
+                color=g_color,
+                contour_kwargs={"linestyles": g_ls, "alpha": 0.8},
+                hist_kwargs={"density": True, "ls": g_ls, "alpha": 0.8},
                 data_kwargs={"alpha": 1},
                 no_fill_contours=True,
                 alpha=0.8,
                 plot_density=False,
-                plot_datapoints=True,
+                plot_datapoints=False,
                 fill_contours=False,
                 quantiles=[0.16, 0.84],
                 levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
                 **kwargs
             )
-            lines.append(mpllines.Line2D([0], [0], color=c, linestyle=ls))
+            lines.append(mpllines.Line2D([0], [0], color=g_color, linestyle=g_ls))
 
-            ls = "--"
-            c = "C1"
-            fig = corner.corner(
-                xs,
-                color=c,
-                contour_kwargs={"linestyles": ls, "alpha": 0.8},
-                contourf_kwargs={"alpha": 0.8},
-                hist_kwargs={"density": True, "ls": ls, "alpha": 0.8},
-                no_fill_contours=True,
-                fig=fig,
-                alpha=0.1,
-                plot_density=True,
-                plot_datapoints=False,
-                fill_contours=False,
-                quantiles=[0.16, 0.84],
-                levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
-                **kwargs,
-            )
-            lines.append(mpllines.Line2D([0], [0], color=c, linestyle=ls))
+            if len(xs) > len(samples.keys()):
+                fig = corner.corner(
+                    xs,
+                    color=f_color,
+                    contour_kwargs={"linestyles": f_ls, "alpha": 0.8},
+                    contourf_kwargs={"alpha": 0.8},
+                    hist_kwargs={"density": True, "ls": f_ls, "alpha": 0.8},
+                    no_fill_contours=True,
+                    fig=fig,
+                    alpha=0.1,
+                    plot_density=True,
+                    plot_datapoints=False,
+                    fill_contours=False,
+                    quantiles=[0.16, 0.84],
+                    levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
+                    **kwargs,
+                )
+                lines.append(mpllines.Line2D([0], [0], color=f_color, linestyle=f_ls))
+            else:
+                logger.info("Too few samples to add to the diagnostic plot")
 
             axes = fig.get_axes()
             ndim = int(np.sqrt(len(axes)))
-            axes[ndim - 1].legend(lines, ["$g(x)$", "$f(x)$"])
+            axes[0].legend(lines, ["$g(x)$", "$f(x)$"])
+
+            axes = np.array(axes).reshape((ndim, ndim))
+
+            base_alpha = 0.1
+            alphas = base_alpha + (1 - base_alpha) * weights
+            for ii in range(1, ndim):
+                for jj in range(0, ndim - 1):
+                    if ii <= jj:
+                        continue
+                    if self.kwargs["mirror_diagnostic_plot"]:
+                        ax = axes[jj, ii]
+                        xsamples = rxs[:, ii]
+                        ysamples = rxs[:, jj]
+                    else:
+                        ax = axes[ii, jj]
+                        xsamples = rxs[:, jj]
+                        ysamples = rxs[:, ii]
+                    sc = ax.scatter(
+                        xsamples,
+                        ysamples,
+                        c=np.log(weights),
+                        alpha=alphas,
+                        edgecolor='none',
+                        vmin=-5,
+                        vmax=0
+                    )
+            cbar = fig.colorbar(sc, ax=axes[0, -1])
+            cbar.set_label("Log-weight")
 
         else:
             fig, ax = plt.subplots()
             ax.hist(
                 xs,
                 bins=kwargs["bins"],
-                color="C0",
+                color=f_color,
                 histtype="step",
-                ls="-",
+                ls=f_ls,
                 density=True,
             )
             ax.hist(
                 rxs,
                 bins=kwargs["bins"],
-                color="C1",
+                color=g_color,
                 histtype="step",
-                ls="--",
+                ls=g_ls,
                 density=True,
             )
             ax.set_xlabel(kwargs["labels"][0])
@@ -284,3 +289,82 @@ class Fisher(Sampler):
             neffsamples=None,
             sampling_time_s=self.sampling_time.total_seconds(),
         )
+
+    def _draw_samples_from_generating_distribution(self, sample_array, cov, fisher_mpe):
+        samples_array = random.rng.multivariate_normal(sample_array, cov, self.kwargs["nsamples"])
+        samples = pd.DataFrame(samples_array, columns=fisher_mpe.parameter_names)
+
+        logpi = []
+        logl = []
+        logger.info("Calculating the likelihood and priors")
+        outside_prior_count = 0
+        for _, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
+            logpi.append(self.priors.ln_prob(rs.to_dict(), axis=0))
+            if np.isinf(logpi[-1]):
+                outside_prior_count += 1
+                logl.append(-np.inf)
+            else:
+                logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
+
+        if outside_prior_count < len(samples):
+            logger.info(
+                f"Discarding {100 * outside_prior_count / len(samples):0.3f}% of samples that"
+                " fall outside the prior"
+            )
+        else:
+            raise ValueError("Sampling has failed: no viable samples left")
+
+        logpi = np.real(np.array(logpi))
+        logl = np.array(logl)
+        return samples, logl, logpi
+
+    def _rejection_sample(self, g_samples, g_logl, g_logpi, mean, cov):
+        logger.info(f"Rejection sampling the posterior from {len(g_samples)} samples")
+
+        g_logl_norm = multivariate_normal.logpdf(
+            g_samples, mean=mean, cov=cov
+        )
+
+        ln_weights = g_logl + g_logpi - g_logl_norm
+
+        # Remove impossible samples
+        idxs = ~np.isinf(ln_weights)
+        ln_weights = ln_weights[idxs]
+        g_samples = g_samples[idxs]
+        g_logl = g_logl[idxs]
+        g_logpi = g_logpi[idxs]
+
+        # Scale
+        ln_weights -= np.max(ln_weights)
+
+        # Sort by weight
+        idxs = np.argsort(ln_weights)
+        g_samples = g_samples.iloc[idxs]
+        g_logl = g_logl[idxs]
+        g_logpi = g_logpi[idxs]
+        ln_weights = ln_weights[idxs]
+
+        weights = np.exp(ln_weights)
+
+        samples, idxs = rejection_sample(g_samples, weights, return_idxs=True)
+        logl = g_logl[idxs]
+
+        nsamples = len(samples)
+
+        if self.plot:
+            self.create_rejection_sample_diagnostic(samples, g_samples, mean, weights)
+
+        if nsamples == 1:
+            raise ValueError(
+                "Rejection sampling has produced a single sample and therefore failed."
+            )
+
+        efficiency = 100 * nsamples / len(g_samples)
+        ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
+        logger.info(
+            f"Rejection sampling Fisher posterior produced {nsamples} samples"
+            f" with an efficiency of {efficiency:0.3f}% and effective sample"
+            f" size {ess}"
+        )
+
+        return samples, logl
