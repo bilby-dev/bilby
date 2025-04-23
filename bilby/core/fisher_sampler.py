@@ -53,6 +53,7 @@ class Fisher(Sampler):
         minimization_method="Nelder-Mead",
         n_prior_samples=100,
         fd_eps=1e-6,
+        plot_diagnostic=False,
         mirror_diagnostic_plot=False,
         cov_scaling=1,
         use_injection_for_maxL=True,
@@ -153,7 +154,7 @@ class Fisher(Sampler):
 
         return self.result
 
-    def create_rejection_sample_diagnostic(self, samples, raw_samples, maxL, weights):
+    def create_resample_diagnostic(self, samples, raw_samples, maxL, weights, method):
         import corner
         import matplotlib.pyplot as plt
         import matplotlib.lines as mpllines
@@ -173,6 +174,11 @@ class Fisher(Sampler):
         # Create the data array to plot and pass everything to corner
         xs = samples[self.search_parameter_keys].values
         rxs = raw_samples[self.search_parameter_keys].values
+
+        # Sort by weight (only for plotting)
+        idxs = np.argsort(weights)
+        rxs = rxs[idxs]
+        weights = weights[idxs]
 
         g_color = "k"
         g_ls = "--"
@@ -271,8 +277,9 @@ class Fisher(Sampler):
             )
             ax.set_xlabel(kwargs["labels"][0])
 
-        filename = "{}/{}_rejection_sample.png".format(self.outdir, self.label)
-        logger.debug("Saving rejection-sample diagnopstic plot to {}".format(filename))
+        fig.suptitle(f"Resampling method: {method}")
+
+        filename = f"{self.outdir}/{self.label}_resample_{method}.png"
         safe_save_figure(fig=fig, filename=filename, dpi=400)
         plt.close(fig)
 
@@ -342,22 +349,33 @@ class Fisher(Sampler):
         # Scale
         ln_weights -= np.max(ln_weights)
 
-        # Sort by weight
-        idxs = np.argsort(ln_weights)
-        g_samples = g_samples.iloc[idxs]
-        g_logl = g_logl[idxs]
-        g_logpi = g_logpi[idxs]
-        ln_weights = ln_weights[idxs]
-
-        ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
-        logger.info(f"Calculated weights have an effective sample size {ess}")
+        self.ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
+        logger.info(f"Calculated weights have an effective sample size {self.ess}")
 
         weights = np.exp(ln_weights)
 
         return weights
 
     def _importance_sample(self, g_samples, g_logl, g_logpi, mean, cov):
-        raise NotImplementedError()
+        logger.info(f"Importance sampling the posterior from {len(g_samples)} samples")
+        weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
+
+        normalized_weights = weights / np.sum(weights)
+        idxs = np.random.choice(len(g_samples), size=self.ess, p=normalized_weights)
+        samples = g_samples.iloc[idxs]
+        logl = g_logl[idxs]
+
+        if self.kwargs["plot_diagnostic"]:
+            self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
+
+        nsamples = len(samples)
+        efficiency = 100 * nsamples / len(g_samples)
+        logger.info(
+            f"Importance sampling Fisher posterior produced {nsamples} samples"
+            f" with an efficiency of {efficiency:0.3f}%"
+        )
+
+        return samples, logl
 
     def _rejection_sample(self, g_samples, g_logl, g_logpi, mean, cov):
         logger.info(f"Rejection sampling the posterior from {len(g_samples)} samples")
@@ -368,8 +386,8 @@ class Fisher(Sampler):
 
         nsamples = len(samples)
 
-        if self.plot:
-            self.create_rejection_sample_diagnostic(samples, g_samples, mean, weights)
+        if self.kwargs["plot_diagnostic"]:
+            self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
 
         if nsamples == 1:
             raise ValueError(
