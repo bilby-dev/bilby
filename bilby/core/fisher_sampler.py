@@ -49,9 +49,10 @@ class Fisher(Sampler):
     sampling_seed_key = "seed"
     default_kwargs = dict(
         resample="importance",
-        nsamples=1000,
+        target_nsamples=10000,
+        batch_nsamples=10000,
+        prior_nsamples=100,
         minimization_method="Nelder-Mead",
-        n_prior_samples=100,
         fd_eps=1e-6,
         plot_diagnostic=False,
         mirror_diagnostic_plot=False,
@@ -114,7 +115,7 @@ class Fisher(Sampler):
             likelihood=self.likelihood,
             priors=self.priors,
             minimization_method=self.kwargs["minimization_method"],
-            n_prior_samples=self.kwargs["n_prior_samples"],
+            n_prior_samples=self.kwargs["prior_nsamples"],
             fd_eps=self.kwargs["fd_eps"],
         )
 
@@ -134,7 +135,7 @@ class Fisher(Sampler):
         logger.info(msg)
 
         g_samples, g_logl, g_logpi = self._draw_samples_from_generating_distribution(
-            maxL_sample_array, cov, fisher_mpe)
+            maxL_sample_array, cov, fisher_mpe, self.kwargs["batch_nsamples"])
 
         if self.use_ratio:
             g_logl -= self.likelihood.noise_log_likelihood()
@@ -303,8 +304,8 @@ class Fisher(Sampler):
             sampling_time_s=self.sampling_time.total_seconds(),
         )
 
-    def _draw_samples_from_generating_distribution(self, sample_array, cov, fisher_mpe):
-        samples_array = random.rng.multivariate_normal(sample_array, cov, self.kwargs["nsamples"])
+    def _draw_samples_from_generating_distribution(self, mean, cov, fisher_mpe, nsamples):
+        samples_array = random.rng.multivariate_normal(mean, cov, nsamples)
         samples = pd.DataFrame(samples_array, columns=fisher_mpe.parameter_names)
 
         logpi = []
