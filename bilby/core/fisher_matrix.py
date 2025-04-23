@@ -223,7 +223,8 @@ class FisherMatrixPosteriorEstimator(object):
         """
 
         if initial_sample:
-            out = self._maximize_likelihood_from_initial_sample(initial_sample)
+            logger.info(f"Maximising the likelihood from initial sample {initial_sample}")
+            minout = self._maximize_likelihood_from_initial_sample(initial_sample)
         else:
             logger.info(f"Maximising the likelihood using {self.n_prior_samples} prior samples")
             max_logL = -np.inf

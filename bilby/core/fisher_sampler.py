@@ -55,6 +55,7 @@ class Fisher(Sampler):
         fd_eps=1e-6,
         mirror_diagnostic_plot=False,
         cov_scaling=1,
+        use_injection_for_maxL=True,
     )
 
     def __init__(
@@ -116,7 +117,11 @@ class Fisher(Sampler):
             fd_eps=self.kwargs["fd_eps"],
         )
 
-        maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample()
+        if self.injection_parameters and "use_injection_for_maxL" in self.kwargs:
+            sample = {key: self.injection_parameters[key] for key in fisher_mpe.parameter_names}
+        else:
+            sample = None
+        maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample(sample)
         maxL_sample_array = np.array(list(maxL_sample_dict.values()))
         iFIM = fisher_mpe.calculate_iFIM(maxL_sample_dict)
         cov = self.kwargs["cov_scaling"] * iFIM
