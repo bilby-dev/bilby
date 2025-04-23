@@ -15,9 +15,16 @@ def array_to_dict(keys, array):
 
 
 class FisherMatrixPosteriorEstimator(object):
-    def __init__(self, likelihood, priors, parameters=None, minimization_method="Nelder-Mead",
-                 fd_eps=1e-6, n_prior_samples=100):
-        """ A class to estimate posteriors using a Fisher Information Matrix approach
+    def __init__(
+        self,
+        likelihood,
+        priors,
+        parameters=None,
+        minimization_method="Nelder-Mead",
+        fd_eps=1e-6,
+        n_prior_samples=100,
+    ):
+        """A class to estimate posteriors using a Fisher Information Matrix approach
 
         Parameters
         ----------
@@ -54,8 +61,12 @@ class FisherMatrixPosteriorEstimator(object):
         self.prior_samples = [
             priors.sample_subset(self.parameter_names) for _ in range(n_prior_samples)
         ]
-        self.prior_bounds_min = np.array([priors[key].minimum for key in self.parameter_names])
-        self.prior_bounds_max = np.array([priors[key].maximum for key in self.parameter_names])
+        self.prior_bounds_min = np.array(
+            [priors[key].minimum for key in self.parameter_names]
+        )
+        self.prior_bounds_max = np.array(
+            [priors[key].maximum for key in self.parameter_names]
+        )
         self.prior_bounds = list(zip(self.prior_bounds_min, self.prior_bounds_max))
 
         self.prior_width_dict = {}
@@ -78,8 +89,12 @@ class FisherMatrixPosteriorEstimator(object):
         FIM = self.calculate_FIM(sample)
 
         # Force the FIM to be symmetric by averaging off-diagonal estimates
-        upper_off_diagonal_average = .5 * (np.triu(FIM, 1) + np.triu(FIM.T, 1))
-        FIM = np.diag(np.diag(FIM)) + upper_off_diagonal_average + upper_off_diagonal_average.T
+        upper_off_diagonal_average = 0.5 * (np.triu(FIM, 1) + np.triu(FIM.T, 1))
+        FIM = (
+            np.diag(np.diag(FIM))
+            + upper_off_diagonal_average
+            + upper_off_diagonal_average.T
+        )
 
         iFIM = scipy.linalg.inv(FIM)
 
@@ -109,14 +124,19 @@ class FisherMatrixPosteriorEstimator(object):
             FIM = np.zeros((self.N, self.N))
             for ii, ii_key in enumerate(self.parameter_names):
                 for jj, jj_key in enumerate(self.parameter_names):
-                    FIM[ii, jj] = -self.get_second_order_derivative(sample, ii_key, jj_key)
+                    FIM[ii, jj] = -self.get_second_order_derivative(
+                        sample, ii_key, jj_key
+                    )
             return FIM
         else:
             import scipy.differentiate as sd
-            logger.info("Using Scipy differentiate to estimate the Fisher information matrix (FIM)")
+
+            logger.info(
+                "Using Scipy differentiate to estimate the Fisher information matrix (FIM)"
+            )
             point = np.array([sample[key] for key in self.parameter_names])
             res = sd.hessian(self.log_likelihood_from_array, point, initial_step=0.5)
-            FIM = - res.ddf
+            FIM = -res.ddf
             logger.debug(f"Estimated FIM:\n{FIM}")
 
         return FIM
@@ -148,13 +168,13 @@ class FisherMatrixPosteriorEstimator(object):
         p = self._shift_sample_x(sample, ii, 1)
         m = self._shift_sample_x(sample, ii, -1)
 
-        dx = .5 * (p[ii] - m[ii])
+        dx = 0.5 * (p[ii] - m[ii])
 
         loglp = self.log_likelihood(p)
         logl = self.log_likelihood(sample)
         loglm = self.log_likelihood(m)
 
-        return (loglp - 2 * logl + loglm) / dx ** 2
+        return (loglp - 2 * logl + loglm) / dx**2
 
     def get_finite_difference_xy(self, sample, ii, jj):
         # Sample grid
@@ -163,8 +183,8 @@ class FisherMatrixPosteriorEstimator(object):
         mp = self._shift_sample_xy(sample, ii, -1, jj, 1)
         mm = self._shift_sample_xy(sample, ii, -1, jj, -1)
 
-        dx = .5 * (pp[ii] - mm[ii])
-        dy = .5 * (pp[jj] - mm[jj])
+        dx = 0.5 * (pp[ii] - mm[ii])
+        dy = 0.5 * (pp[jj] - mm[jj])
 
         loglpp = self.log_likelihood(pp)
         loglpm = self.log_likelihood(pm)
@@ -200,7 +220,7 @@ class FisherMatrixPosteriorEstimator(object):
         x0 = list(initial_sample.values())
 
         def neg_log_like(x):
-            return - self.log_likelihood_from_array(x)
+            return -self.log_likelihood_from_array(x)
 
         out = minimize(
             neg_log_like,
@@ -211,7 +231,7 @@ class FisherMatrixPosteriorEstimator(object):
         return out
 
     def get_maximum_likelihood_sample(self, initial_sample=None):
-        """ A method to attempt optimization of the maximum likelihood
+        """A method to attempt optimization of the maximum likelihood
 
         This uses a simple scipy optimization approach, starting from a number
         of draws from the prior to avoid problems with local optimization.
@@ -223,10 +243,14 @@ class FisherMatrixPosteriorEstimator(object):
         """
 
         if initial_sample:
-            logger.info(f"Maximising the likelihood from initial sample {initial_sample}")
+            logger.info(
+                f"Maximising the likelihood from initial sample {initial_sample}"
+            )
             minout = self._maximize_likelihood_from_initial_sample(initial_sample)
         else:
-            logger.info(f"Maximising the likelihood using {self.n_prior_samples} prior samples")
+            logger.info(
+                f"Maximising the likelihood using {self.n_prior_samples} prior samples"
+            )
             max_logL = -np.inf
             logL_list = []
             successes = 0

@@ -120,7 +120,10 @@ class Fisher(Sampler):
         )
 
         if self.injection_parameters and "use_injection_for_maxL" in self.kwargs:
-            sample = {key: self.injection_parameters[key] for key in fisher_mpe.parameter_names}
+            sample = {
+                key: self.injection_parameters[key]
+                for key in fisher_mpe.parameter_names
+            }
         else:
             sample = None
         maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample(sample)
@@ -129,8 +132,10 @@ class Fisher(Sampler):
         cov = self.kwargs["cov_scaling"] * iFIM
 
         msg = "Generation-distribution:\n " + "\n ".join(
-            [f"{key}: {val:0.5f} +/- {np.sqrt(var):.5f}" for ((key, val), var)
-             in zip(maxL_sample_dict.items(), np.diag(cov))]
+            [
+                f"{key}: {val:0.5f} +/- {np.sqrt(var):.5f}"
+                for ((key, val), var) in zip(maxL_sample_dict.items(), np.diag(cov))
+            ]
         )
         logger.info(msg)
 
@@ -142,14 +147,22 @@ class Fisher(Sampler):
         all_logl = []
         all_weights = []
         resample = self.kwargs["resample"]
-        logger.info(f"Starting sampling in batches of {batch_nsamples} to produce {target_nsamples} samples")
-        pbar = tqdm.tqdm(total=target_nsamples, desc=f"{resample.capitalize()} sampling")
+        logger.info(
+            f"Starting sampling in batches of {batch_nsamples} to produce {target_nsamples} samples"
+        )
+        pbar = tqdm.tqdm(
+            total=target_nsamples, desc=f"{resample.capitalize()} sampling"
+        )
         while nsamples < target_nsamples:
-            g_samples, g_logl, g_logpi = self._draw_samples_from_generating_distribution(
-                mean, cov, fisher_mpe, batch_nsamples
+            g_samples, g_logl, g_logpi = (
+                self._draw_samples_from_generating_distribution(
+                    mean, cov, fisher_mpe, batch_nsamples
+                )
             )
 
-            _methods = dict(rejection=self._rejection_sample, importance=self._importance_sample)
+            _methods = dict(
+                rejection=self._rejection_sample, importance=self._importance_sample
+            )
 
             if resample in _methods:
                 weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
@@ -162,9 +175,11 @@ class Fisher(Sampler):
                 weights = np.ones_like(logl)
 
             nsamples += len(samples)
-            pbar.set_postfix({
-                'eff': f"{efficiency:.3f}%",
-            })
+            pbar.set_postfix(
+                {
+                    "eff": f"{efficiency:.3f}%",
+                }
+            )
             pbar.update(len(samples))
             all_g_samples.append(g_samples)
             all_samples.append(samples)
@@ -182,7 +197,9 @@ class Fisher(Sampler):
         logger.info(f"Finished sampling: total efficiency is {efficiency:0.3f}%")
 
         if self.kwargs["plot_diagnostic"]:
-            self.create_resample_diagnostic(samples, g_samples, mean, weights, method=self.kwargs["resample"])
+            self.create_resample_diagnostic(
+                samples, g_samples, mean, weights, method=self.kwargs["resample"]
+            )
 
         end_time = datetime.datetime.now()
         self.sampling_time = end_time - self.start_time
@@ -190,7 +207,9 @@ class Fisher(Sampler):
         if self.use_ratio:
             logl -= self.likelihood.noise_log_likelihood()
 
-        self._generate_result(samples, logl, efficiency=efficiency, nlikelihood=len(g_samples))
+        self._generate_result(
+            samples, logl, efficiency=efficiency, nlikelihood=len(g_samples)
+        )
 
         return self.result
 
@@ -241,7 +260,7 @@ class Fisher(Sampler):
                 fill_contours=False,
                 quantiles=[0.16, 0.84],
                 levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
-                **kwargs
+                **kwargs,
             )
             lines.append(mpllines.Line2D([0], [0], color=g_color, linestyle=g_ls))
 
@@ -290,9 +309,9 @@ class Fisher(Sampler):
                         ysamples,
                         c=np.log(weights),
                         alpha=alphas,
-                        edgecolor='none',
+                        edgecolor="none",
                         vmin=-5,
-                        vmax=0
+                        vmax=0,
                     )
             cbar = fig.colorbar(sc, ax=axes[0, -1])
             cbar.set_label("Log-weight")
@@ -341,7 +360,9 @@ class Fisher(Sampler):
         run_stats["sampling_time_s"] = self.sampling_time.total_seconds()
         self.result.meta_data["run_statistics"] = run_stats
 
-    def _draw_samples_from_generating_distribution(self, mean, cov, fisher_mpe, nsamples):
+    def _draw_samples_from_generating_distribution(
+        self, mean, cov, fisher_mpe, nsamples
+    ):
         samples_array = random.rng.multivariate_normal(mean, cov, nsamples)
         samples = pd.DataFrame(samples_array, columns=fisher_mpe.parameter_names)
 
@@ -375,9 +396,7 @@ class Fisher(Sampler):
         return samples, logl, logpi
 
     def _calculate_weights(self, g_samples, g_logl, g_logpi, mean, cov):
-        g_logl_norm = multivariate_normal.logpdf(
-            g_samples, mean=mean, cov=cov
-        )
+        g_logl_norm = multivariate_normal.logpdf(g_samples, mean=mean, cov=cov)
 
         ln_weights = g_logl + g_logpi - g_logl_norm
 
@@ -407,7 +426,9 @@ class Fisher(Sampler):
         logl = g_logl[idxs]
 
         if self.ess < self.ndim:
-            raise SamplerError("Effective sample size less than ndim: sampling has failed")
+            raise SamplerError(
+                "Effective sample size less than ndim: sampling has failed"
+            )
 
         return samples, logl
 
