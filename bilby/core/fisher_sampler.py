@@ -50,7 +50,7 @@ class Fisher(Sampler):
     default_kwargs = dict(
         resample="importance",
         target_nsamples=10000,
-        batch_nsamples=10000,
+        batch_nsamples=1000,
         prior_nsamples=100,
         minimization_method="Nelder-Mead",
         fd_eps=1e-6,
@@ -58,6 +58,7 @@ class Fisher(Sampler):
         mirror_diagnostic_plot=False,
         cov_scaling=1,
         use_injection_for_maxL=True,
+        fail_on_error=False
     )
 
     def __init__(
@@ -382,7 +383,11 @@ class Fisher(Sampler):
                     logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
 
         if outside_prior_count == len(samples):
-            raise SamplerError("Sampling has failed: no viable samples left")
+            msg = "Sampling has failed: no viable samples left"
+            if self.kwargs["fail_on_error"]:
+                raise SamplerError(msg)
+            else:
+                logger.info(msg)
         elif outside_prior_count > 0:
             logger.info(
                 f"Discarding {100 * outside_prior_count / len(samples):0.3f}% of samples that"
@@ -402,15 +407,12 @@ class Fisher(Sampler):
 
         # Remove impossible samples
         idxs = ~np.isinf(ln_weights)
-        ln_weights = ln_weights[idxs]
-        g_samples = g_samples[idxs]
-        g_logl = g_logl[idxs]
-        g_logpi = g_logpi[idxs]
+        ln_weights_viable = ln_weights[idxs]
 
         # Scale
-        ln_weights -= np.max(ln_weights)
+        ln_weights -= np.max(ln_weights_viable)
 
-        self.ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
+        self.ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights_viable))))
         logger.debug(f"Calculated weights have an effective sample size {self.ess}")
 
         weights = np.exp(ln_weights)
@@ -426,9 +428,11 @@ class Fisher(Sampler):
         logl = g_logl[idxs]
 
         if self.ess < self.ndim:
-            raise SamplerError(
-                "Effective sample size less than ndim: sampling has failed"
-            )
+            msg = "Effective sample size less than ndim: sampling has failed"
+            if self.kwargs["fail_on_error"]:
+                raise SamplerError(msg)
+            else:
+                logger.info(msg)
 
         return samples, logl
 
@@ -441,6 +445,10 @@ class Fisher(Sampler):
         nsamples = len(samples)
 
         if nsamples < self.ndim:
-            raise SamplerError("Number of samples less than ndim: sampling has failed")
+            msg = "Number of samples less than ndim: sampling has failed"
+            if self.kwargs["fail_on_error"]:
+                raise SamplerError(msg)
+            else:
+                logger.info(msg)
 
         return samples, logl
