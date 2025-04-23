@@ -311,14 +311,17 @@ class Fisher(Sampler):
         logpi = []
         logl = []
         logger.info("Calculating the likelihood and priors")
-        outside_prior_count = 0
-        for _, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
-            logpi.append(self.priors.ln_prob(rs.to_dict(), axis=0))
-            if np.isinf(logpi[-1]):
-                outside_prior_count += 1
-                logl.append(-np.inf)
-            else:
-                logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
+
+        logpi = self.priors.ln_prob(samples, axis=0)
+        outside_prior_count = np.sum(np.isinf(logpi))
+        if outside_prior_count == 0:
+            logl = fisher_mpe.log_likelihood_from_array(samples.values.T)
+        else:
+            for ii, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
+                if np.isinf(logpi[ii]):
+                    logl.append(-np.inf)
+                else:
+                    logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
 
         if outside_prior_count < len(samples):
             logger.info(
