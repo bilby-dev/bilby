@@ -124,7 +124,7 @@ class Fisher(Sampler):
         else:
             sample = None
         maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample(sample)
-        maxL_sample_array = np.array(list(maxL_sample_dict.values()))
+        mean = np.array(list(maxL_sample_dict.values()))
         iFIM = fisher_mpe.calculate_iFIM(maxL_sample_dict)
         cov = self.kwargs["cov_scaling"] * iFIM
 
@@ -134,28 +134,67 @@ class Fisher(Sampler):
         )
         logger.info(msg)
 
-        g_samples, g_logl, g_logpi = self._draw_samples_from_generating_distribution(
-            maxL_sample_array, cov, fisher_mpe, self.kwargs["batch_nsamples"])
+        nsamples = 0
+        target_nsamples = self.kwargs["target_nsamples"]
+        batch_nsamples = self.kwargs["batch_nsamples"]
+        all_g_samples = []
+        all_samples = []
+        all_logl = []
+        all_weights = []
+        resample = self.kwargs["resample"]
+        logger.info(f"Starting sampling in batches of {batch_nsamples} to produce {target_nsamples} samples")
+        pbar = tqdm.tqdm(total=target_nsamples, desc=f"{resample.capitalize()} sampling")
+        while nsamples < target_nsamples:
+            g_samples, g_logl, g_logpi = self._draw_samples_from_generating_distribution(
+                mean, cov, fisher_mpe, batch_nsamples
+            )
 
-        if self.use_ratio:
-            g_logl -= self.likelihood.noise_log_likelihood()
+            _methods = dict(rejection=self._rejection_sample, importance=self._importance_sample)
 
-        if self.kwargs["resample"] == "rejection":
-            samples, logl = self._rejection_sample(g_samples, g_logl, g_logpi, maxL_sample_array, cov)
-        elif self.kwargs["resample"] == "importance":
-            samples, logl = self._importance_sample(g_samples, g_logl, g_logpi, maxL_sample_array, cov)
-        else:
-            samples = g_samples
-            logl = g_logl
+            if resample in _methods:
+                weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
+                samples, logl = _methods[resample](g_samples, g_logl, weights)
+                efficiency = 100 * len(samples) / len(g_samples)
+            else:
+                logger.info("No resampling applied")
+                samples = g_samples
+                logl = g_logl
+                weights = np.ones_like(logl)
+
+            nsamples += len(samples)
+            pbar.set_postfix({
+                'eff': f"{efficiency:.3f}%",
+            })
+            pbar.update(len(samples))
+            all_g_samples.append(g_samples)
+            all_samples.append(samples)
+            all_logl.append(logl)
+            all_weights.append(weights)
+
+        pbar.close()
+
+        g_samples = pd.concat(all_g_samples)
+        samples = pd.concat(all_samples)
+        logl = np.concat(all_logl)
+        weights = np.concat(all_weights)
+        efficiency = 100 * len(samples) / len(g_samples)
+
+        logger.info(f"Finished sampling: total efficiency is {efficiency:0.3f}%")
+
+        if self.kwargs["plot_diagnostic"]:
+            self.create_resample_diagnostic(samples, g_samples, mean, weights, method=self.kwargs["resample"])
 
         end_time = datetime.datetime.now()
         self.sampling_time = end_time - self.start_time
 
-        self._generate_result(samples, logl)
+        if self.use_ratio:
+            logl -= self.likelihood.noise_log_likelihood()
+
+        self._generate_result(samples, logl, efficiency=efficiency, nlikelihood=len(g_samples))
 
         return self.result
 
-    def create_resample_diagnostic(self, samples, raw_samples, maxL, weights, method):
+    def create_resample_diagnostic(self, samples, raw_samples, mean, weights, method):
         import corner
         import matplotlib.pyplot as plt
         import matplotlib.lines as mpllines
@@ -164,8 +203,9 @@ class Fisher(Sampler):
             bins=50,
             smooth=0.7,
             max_n_ticks=5,
-            truths=maxL,
+            truths=mean,
             truth_color="C3",
+            truth_width=0.5,
         )
 
         kwargs["labels"] = [
@@ -285,7 +325,7 @@ class Fisher(Sampler):
 
         return fig
 
-    def _generate_result(self, samples, log_likelihood_evaluations):
+    def _generate_result(self, samples, log_likelihood_evaluations, **run_stats):
         """
         Extract the information we need from the output.
 
@@ -298,11 +338,8 @@ class Fisher(Sampler):
         self.result.samples = samples
         self.result.log_likelihood_evaluations = log_likelihood_evaluations
 
-        self.result.meta_data["run_statistics"] = dict(
-            nlikelihood=None,
-            neffsamples=None,
-            sampling_time_s=self.sampling_time.total_seconds(),
-        )
+        run_stats["sampling_time_s"] = self.sampling_time.total_seconds()
+        self.result.meta_data["run_statistics"] = run_stats
 
     def _draw_samples_from_generating_distribution(self, mean, cov, fisher_mpe, nsamples):
         samples_array = random.rng.multivariate_normal(mean, cov, nsamples)
@@ -310,11 +347,11 @@ class Fisher(Sampler):
 
         logpi = []
         logl = []
-        logger.info("Calculating the likelihood and priors")
+        logger.debug("Calculating the likelihood and priors")
 
         logpi = self.priors.ln_prob(samples, axis=0)
         outside_prior_count = np.sum(np.isinf(logpi))
-        if outside_prior_count == 0 and False:
+        if outside_prior_count == 0:
             logl = fisher_mpe.log_likelihood_from_array(samples.values.T)
         else:
             for ii, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
@@ -323,13 +360,15 @@ class Fisher(Sampler):
                 else:
                     logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
 
-        if outside_prior_count < len(samples):
+        if outside_prior_count == len(samples):
+            raise SamplerError("Sampling has failed: no viable samples left")
+        elif outside_prior_count > 0:
             logger.info(
                 f"Discarding {100 * outside_prior_count / len(samples):0.3f}% of samples that"
                 " fall outside the prior"
             )
         else:
-            raise SamplerError("Sampling has failed: no viable samples left")
+            logger.debug("No samples outside the prior bounds")
 
         logpi = np.real(np.array(logpi))
         logl = np.array(logl)
@@ -353,55 +392,34 @@ class Fisher(Sampler):
         ln_weights -= np.max(ln_weights)
 
         self.ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
-        logger.info(f"Calculated weights have an effective sample size {self.ess}")
+        logger.debug(f"Calculated weights have an effective sample size {self.ess}")
 
         weights = np.exp(ln_weights)
 
         return weights
 
-    def _importance_sample(self, g_samples, g_logl, g_logpi, mean, cov):
-        logger.info(f"Importance sampling the posterior from {len(g_samples)} samples")
-        weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
+    def _importance_sample(self, g_samples, g_logl, weights):
+        logger.debug(f"Importance sampling the posterior from {len(g_samples)} samples")
 
         normalized_weights = weights / np.sum(weights)
         idxs = np.random.choice(len(g_samples), size=self.ess, p=normalized_weights)
         samples = g_samples.iloc[idxs]
         logl = g_logl[idxs]
 
-        if self.kwargs["plot_diagnostic"]:
-            self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
-
         if self.ess < self.ndim:
             raise SamplerError("Effective sample size less than ndim: sampling has failed")
 
-        nsamples = len(samples)
-        efficiency = 100 * nsamples / len(g_samples)
-        logger.info(
-            f"Importance sampling Fisher posterior produced {nsamples} samples"
-            f" with an efficiency of {efficiency:0.3f}%"
-        )
-
         return samples, logl
 
-    def _rejection_sample(self, g_samples, g_logl, g_logpi, mean, cov):
-        logger.info(f"Rejection sampling the posterior from {len(g_samples)} samples")
-        weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
+    def _rejection_sample(self, g_samples, g_logl, weights):
+        logger.debug(f"Rejection sampling the posterior from {len(g_samples)} samples")
 
         samples, idxs = rejection_sample(g_samples, weights, return_idxs=True)
         logl = g_logl[idxs]
 
         nsamples = len(samples)
 
-        if self.kwargs["plot_diagnostic"]:
-            self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
-
         if nsamples < self.ndim:
             raise SamplerError("Number of samples less than ndim: sampling has failed")
-
-        efficiency = 100 * nsamples / len(g_samples)
-        logger.info(
-            f"Rejection sampling Fisher posterior produced {nsamples} samples"
-            f" with an efficiency of {efficiency:0.3f}%"
-        )
 
         return samples, logl
