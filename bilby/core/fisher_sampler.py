@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal
 import tqdm
 
 from .fisher_matrix import FisherMatrixPosteriorEstimator
-from .sampler.base_sampler import Sampler, signal_wrapper
+from .sampler.base_sampler import Sampler, signal_wrapper, SamplerError
 from .result import rejection_sample
 from .utils import logger, kish_log_effective_sample_size, safe_save_figure, random
 
@@ -127,7 +127,7 @@ class Fisher(Sampler):
         iFIM = fisher_mpe.calculate_iFIM(maxL_sample_dict)
         cov = self.kwargs["cov_scaling"] * iFIM
 
-        msg = "Generation-distribution: " + "| ".join(
+        msg = "Generation-distribution:\n " + "\n ".join(
             [f"{key}: {val:0.5f} +/- {np.sqrt(var):.5f}" for ((key, val), var)
              in zip(maxL_sample_dict.items(), np.diag(cov))]
         )
@@ -226,15 +226,14 @@ class Fisher(Sampler):
                 logger.info("Too few samples to add to the diagnostic plot")
 
             axes = fig.get_axes()
-            ndim = int(np.sqrt(len(axes)))
             axes[0].legend(lines, ["$g(x)$", "$f(x)$"])
 
-            axes = np.array(axes).reshape((ndim, ndim))
+            axes = np.array(axes).reshape((self.ndim, self.ndim))
 
             base_alpha = 0.1
             alphas = base_alpha + (1 - base_alpha) * weights
-            for ii in range(1, ndim):
-                for jj in range(0, ndim - 1):
+            for ii in range(1, self.ndim):
+                for jj in range(0, self.ndim - 1):
                     if ii <= jj:
                         continue
                     if self.kwargs["mirror_diagnostic_plot"]:
@@ -314,7 +313,7 @@ class Fisher(Sampler):
 
         logpi = self.priors.ln_prob(samples, axis=0)
         outside_prior_count = np.sum(np.isinf(logpi))
-        if outside_prior_count == 0:
+        if outside_prior_count == 0 and False:
             logl = fisher_mpe.log_likelihood_from_array(samples.values.T)
         else:
             for ii, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
@@ -329,7 +328,7 @@ class Fisher(Sampler):
                 " fall outside the prior"
             )
         else:
-            raise ValueError("Sampling has failed: no viable samples left")
+            raise SamplerError("Sampling has failed: no viable samples left")
 
         logpi = np.real(np.array(logpi))
         logl = np.array(logl)
@@ -371,6 +370,9 @@ class Fisher(Sampler):
         if self.kwargs["plot_diagnostic"]:
             self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
 
+        if self.ess < self.ndim:
+            raise SamplerError("Effective sample size less than ndim: sampling has failed")
+
         nsamples = len(samples)
         efficiency = 100 * nsamples / len(g_samples)
         logger.info(
@@ -392,10 +394,8 @@ class Fisher(Sampler):
         if self.kwargs["plot_diagnostic"]:
             self.create_resample_diagnostic(samples, g_samples, mean, weights, method="importance")
 
-        if nsamples == 1:
-            raise ValueError(
-                "Rejection sampling has produced a single sample and therefore failed."
-            )
+        if nsamples < self.ndim:
+            raise SamplerError("Number of samples less than ndim: sampling has failed")
 
         efficiency = 100 * nsamples / len(g_samples)
         logger.info(
