@@ -48,7 +48,7 @@ class Fisher(Sampler):
     sampler_name = "fisher"
     sampling_seed_key = "seed"
     default_kwargs = dict(
-        rejection_sampling=True,
+        resample="importance",
         nsamples=1000,
         minimization_method="Nelder-Mead",
         n_prior_samples=100,
@@ -138,8 +138,10 @@ class Fisher(Sampler):
         if self.use_ratio:
             g_logl -= self.likelihood.noise_log_likelihood()
 
-        if self.kwargs["rejection_sampling"]:
+        if self.kwargs["resample"] == "rejection":
             samples, logl = self._rejection_sample(g_samples, g_logl, g_logpi, maxL_sample_array, cov)
+        elif self.kwargs["resample"] == "importance":
+            samples, logl = self._importance_sample(g_samples, g_logl, g_logpi, maxL_sample_array, cov)
         else:
             samples = g_samples
             logl = g_logl
@@ -323,9 +325,7 @@ class Fisher(Sampler):
         logl = np.array(logl)
         return samples, logl, logpi
 
-    def _rejection_sample(self, g_samples, g_logl, g_logpi, mean, cov):
-        logger.info(f"Rejection sampling the posterior from {len(g_samples)} samples")
-
+    def _calculate_weights(self, g_samples, g_logl, g_logpi, mean, cov):
         g_logl_norm = multivariate_normal.logpdf(
             g_samples, mean=mean, cov=cov
         )
@@ -349,7 +349,19 @@ class Fisher(Sampler):
         g_logpi = g_logpi[idxs]
         ln_weights = ln_weights[idxs]
 
+        ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
+        logger.info(f"Calculated weights have an effective sample size {ess}")
+
         weights = np.exp(ln_weights)
+
+        return weights
+
+    def _importance_sample(self, g_samples, g_logl, g_logpi, mean, cov):
+        raise NotImplementedError()
+
+    def _rejection_sample(self, g_samples, g_logl, g_logpi, mean, cov):
+        logger.info(f"Rejection sampling the posterior from {len(g_samples)} samples")
+        weights = self._calculate_weights(g_samples, g_logl, g_logpi, mean, cov)
 
         samples, idxs = rejection_sample(g_samples, weights, return_idxs=True)
         logl = g_logl[idxs]
@@ -365,11 +377,9 @@ class Fisher(Sampler):
             )
 
         efficiency = 100 * nsamples / len(g_samples)
-        ess = int(np.floor(np.exp(kish_log_effective_sample_size(ln_weights))))
         logger.info(
             f"Rejection sampling Fisher posterior produced {nsamples} samples"
-            f" with an efficiency of {efficiency:0.3f}% and effective sample"
-            f" size {ess}"
+            f" with an efficiency of {efficiency:0.3f}%"
         )
 
         return samples, logl
