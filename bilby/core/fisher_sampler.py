@@ -223,18 +223,20 @@ class Fisher(Sampler):
             bins=50,
             smooth=0.7,
             max_n_ticks=5,
-            truths=mean,
+            truths=np.concat((mean, [1])),
             truth_color="C3",
-            truth_width=0.5,
         )
 
         kwargs["labels"] = [
             label.replace("_", " ") for label in self.search_parameter_keys
         ]
+        kwargs["labels"].append("weights")
 
         # Create the data array to plot and pass everything to corner
         xs = samples[self.search_parameter_keys].values
+        xs = np.concat((xs, np.random.uniform(0, 1, len(xs)).reshape(-1, 1)), axis=1)
         rxs = raw_samples[self.search_parameter_keys].values
+        rxs = np.concat((rxs, weights.reshape((-1, 1))), axis=1)
 
         # Sort by weight (only for plotting)
         idxs = np.argsort(weights)
@@ -246,96 +248,82 @@ class Fisher(Sampler):
         f_color = "C0"
         f_ls = "-"
 
-        if len(self.search_parameter_keys) > 1:
-            lines = []
+        lines = []
+        fig = corner.corner(
+            rxs,
+            color=g_color,
+            contour_kwargs={"linestyles": g_ls, "alpha": 0.8},
+            hist_kwargs={"density": True, "ls": g_ls, "alpha": 0.8},
+            data_kwargs={"alpha": 1},
+            no_fill_contours=True,
+            alpha=0.8,
+            plot_density=False,
+            plot_datapoints=False,
+            fill_contours=False,
+            levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
+            **kwargs,
+        )
+        lines.append(mpllines.Line2D([0], [0], color=g_color, linestyle=g_ls))
+
+        if len(xs) > len(samples.keys()):
             fig = corner.corner(
-                rxs,
-                color=g_color,
-                contour_kwargs={"linestyles": g_ls, "alpha": 0.8},
-                hist_kwargs={"density": True, "ls": g_ls, "alpha": 0.8},
-                data_kwargs={"alpha": 1},
+                xs,
+                color=f_color,
+                contour_kwargs={"linestyles": f_ls, "alpha": 0.8},
+                contourf_kwargs={"alpha": 0.8},
+                hist_kwargs={"density": True, "ls": f_ls, "alpha": 0.8},
                 no_fill_contours=True,
-                alpha=0.8,
-                plot_density=False,
+                fig=fig,
+                alpha=0.1,
+                plot_density=True,
                 plot_datapoints=False,
                 fill_contours=False,
-                quantiles=[0.16, 0.84],
                 levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
+                range=[1] * self.ndim + [(0, 1)],
                 **kwargs,
             )
-            lines.append(mpllines.Line2D([0], [0], color=g_color, linestyle=g_ls))
 
-            if len(xs) > len(samples.keys()):
-                fig = corner.corner(
-                    xs,
-                    color=f_color,
-                    contour_kwargs={"linestyles": f_ls, "alpha": 0.8},
-                    contourf_kwargs={"alpha": 0.8},
-                    hist_kwargs={"density": True, "ls": f_ls, "alpha": 0.8},
-                    no_fill_contours=True,
-                    fig=fig,
-                    alpha=0.1,
-                    plot_density=True,
-                    plot_datapoints=False,
-                    fill_contours=False,
-                    quantiles=[0.16, 0.84],
-                    levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
-                    **kwargs,
-                )
-                lines.append(mpllines.Line2D([0], [0], color=f_color, linestyle=f_ls))
-            else:
-                logger.info("Too few samples to add to the diagnostic plot")
-
+            # Remove the weights from the re-weighted samples
             axes = fig.get_axes()
-            axes[0].legend(lines, ["$g(x)$", "$f(x)$"])
+            axes[-1].patches[-1].remove()
+            for ii in range(2, self.ndim + 2):
+                axes[-ii].collections[-1].remove()
+                axes[-ii].collections[-1].remove()
 
-            axes = np.array(axes).reshape((self.ndim, self.ndim))
-
-            base_alpha = 0.1
-            alphas = base_alpha + (1 - base_alpha) * weights
-            for ii in range(1, self.ndim):
-                for jj in range(0, self.ndim - 1):
-                    if ii <= jj:
-                        continue
-                    if self.kwargs["mirror_diagnostic_plot"]:
-                        ax = axes[jj, ii]
-                        xsamples = rxs[:, ii]
-                        ysamples = rxs[:, jj]
-                    else:
-                        ax = axes[ii, jj]
-                        xsamples = rxs[:, jj]
-                        ysamples = rxs[:, ii]
-                    sc = ax.scatter(
-                        xsamples,
-                        ysamples,
-                        c=np.log(weights),
-                        alpha=alphas,
-                        edgecolor="none",
-                        vmin=-5,
-                        vmax=0,
-                    )
-            cbar = fig.colorbar(sc, ax=axes[0, -1])
-            cbar.set_label("Log-weight")
-
+            lines.append(mpllines.Line2D([0], [0], color=f_color, linestyle=f_ls))
         else:
-            fig, ax = plt.subplots()
-            ax.hist(
-                xs,
-                bins=kwargs["bins"],
-                color=f_color,
-                histtype="step",
-                ls=f_ls,
-                density=True,
-            )
-            ax.hist(
-                rxs,
-                bins=kwargs["bins"],
-                color=g_color,
-                histtype="step",
-                ls=g_ls,
-                density=True,
-            )
-            ax.set_xlabel(kwargs["labels"][0])
+            logger.info("Too few samples to add to the diagnostic plot")
+
+        axes = fig.get_axes()
+        axes[0].legend(lines, ["$g(x)$", "$f(x)$"])
+
+        axes = np.array(axes).reshape((self.ndim + 1, self.ndim + 1))
+
+        base_alpha = 0.1
+        alphas = base_alpha + (1 - base_alpha) * weights
+        for ii in range(1, self.ndim + 1):
+            for jj in range(0, self.ndim):
+                if ii <= jj:
+                    continue
+                if self.kwargs["mirror_diagnostic_plot"]:
+                    ax = axes[jj, ii]
+                    xsamples = rxs[:, ii]
+                    ysamples = rxs[:, jj]
+                else:
+                    ax = axes[ii, jj]
+                    xsamples = rxs[:, jj]
+                    ysamples = rxs[:, ii]
+                sc = ax.scatter(
+                    xsamples,
+                    ysamples,
+                    c=np.log(weights),
+                    alpha=alphas,
+                    edgecolor="none",
+                    vmin=-5,
+                    vmax=0,
+                )
+        cbar = fig.colorbar(sc, ax=axes[0, -1])
+        cbar.set_label("Log-weight")
 
         fig.suptitle(f"Resampling method: {method}")
 
