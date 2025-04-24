@@ -309,6 +309,9 @@ class Interferometer(object):
         else:
             mask = np.ones(len(frequencies), dtype=bool)
 
+        if "psi" not in parameters:
+            parameters = generate_all_bbh_parameters(parameters)
+
         signal = {}
         for mode in waveform_polarizations.keys():
             det_response = self.antenna_response(
