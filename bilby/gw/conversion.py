@@ -204,7 +204,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     added_keys: list
         keys which are added to parameters during function call
     """
-
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
     if 'luminosity_distance' not in original_keys:
@@ -279,6 +278,10 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 - np.sign(np.cos(converted_parameters["theta_jn"]))
                 * converted_parameters["psi"],
                 2 * np.pi)
+
+    if "psi_mod_pib2" in original_keys:
+        converted_parameters["psi"] = np.mod(converted_parameters["psi_mod_pib2"], np.pi / 2)
+
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
 
