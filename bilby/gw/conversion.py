@@ -236,10 +236,13 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                     converted_parameters[f"chi_{idx}"] ** 2
                     + converted_parameters[f"chi_{idx}_in_plane"] ** 2
                 ) ** 0.5
-                converted_parameters[f"cos_tilt_{idx}"] = (
-                    converted_parameters[f"chi_{idx}"]
-                    / converted_parameters[f"a_{idx}"]
-                )
+                if converted_parameters[f"a_{idx}"] == 0:
+                    converted_parameters[f"cos_tilt_{idx}"] = 0
+                else:
+                    converted_parameters[f"cos_tilt_{idx}"] = (
+                        converted_parameters[f"chi_{idx}"]
+                        / converted_parameters[f"a_{idx}"]
+                    )
             elif "a_{}".format(idx) not in original_keys:
                 converted_parameters['a_{}'.format(idx)] = abs(
                     converted_parameters[key])
