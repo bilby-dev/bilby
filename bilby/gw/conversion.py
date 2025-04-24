@@ -2540,7 +2540,8 @@ def generate_sky_frame_parameters(samples, likelihood):
         new_samples.append(likelihood.get_sky_frame_parameters())
     new_samples = DataFrame(new_samples)
     for key in new_samples:
-        samples[key] = new_samples[key]
+        # Use values to avoid index-sorting (new-samples are automatically sorted properly)
+        samples[key] = new_samples[key].values
 
 
 def fill_sample(args):
