@@ -101,10 +101,12 @@ class Fisher(Sampler):
         Returns
         -------
         list
-            List of file names.
+            List of file names: empty (resuming not yet implemented)
         list
-            List of directory names. Will always be empty for dynesty.
+            List of directory names. Will always be empty for fisher.
         """
+        return [], []
+
         raise NotImplementedError()
 
     @signal_wrapper
