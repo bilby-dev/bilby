@@ -189,6 +189,14 @@ class Dynesty(NestedSampler):
         kwargs["seed"] = None
         return kwargs
 
+    @property
+    def new_dynesty_api(self):
+        try:
+            from dynesty.sampling import InternalSampler  # noqa
+            return True
+        except ImportError:
+            return False
+
     def __init__(
         self,
         likelihood,
@@ -261,7 +269,20 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init_kwargs(self):
-        return {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        kwargs = {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        if self.new_dynesty_api:
+            from . import dynesty3_utils as dynesty_utils
+
+            if kwargs["sample"] == "act-walk":
+                kwargs["sample"] = dynesty_utils.ACTTrackingEnsembleWalk(**kwargs)
+                kwargs["bound"] = "none"
+            elif kwargs["sample"] == "acceptance-walk":
+                kwargs["sample"] = dynesty_utils.EnsembleWalkSampler(**kwargs)
+                kwargs["bound"] = "none"
+            elif kwargs["sample"] == "rwalk":
+                kwargs["sample"] = dynesty_utils.AcceptanceTrackingRWalk(**kwargs)
+                kwargs["bound"] = "none"
+        return kwargs
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
@@ -429,7 +450,7 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init(self):
-        from dynesty import NestedSampler
+        from dynesty.dynesty import NestedSampler
 
         return NestedSampler
 
@@ -450,6 +471,9 @@ class Dynesty(NestedSampler):
         Additionally, some combinations of bound/sample/proposals are not
         compatible and so we either warn the user or raise an error.
         """
+        if self.new_dynesty_api:
+            return
+
         import dynesty
 
         _set_sampling_kwargs((self.nact, self.maxmcmc, self.proposals, self.naccept))
@@ -595,6 +619,10 @@ class Dynesty(NestedSampler):
         more times than we have processes.
         """
         super(Dynesty, self)._setup_pool()
+
+        if self.new_dynesty_api:
+            return
+
         if self.pool is not None:
             args = (
                 [(self.nact, self.maxmcmc, self.proposals, self.naccept)]
