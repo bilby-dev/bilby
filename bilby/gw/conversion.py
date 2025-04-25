@@ -1730,7 +1730,7 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
 
     .. versionchanged:: 2.5.1
        To ensure that internal state of :code:`likelihood` is not changed by
-       this function. The initial value of :code:`likelihood.parameters` are
+       this function, the initial value of :code:`likelihood.parameters` are
        saved and reset at the end of the function.
     """
     waveform_defaults = {
@@ -1766,7 +1766,7 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
 
     .. versionchanged:: 2.5.1
        To ensure that internal state of :code:`likelihood` is not changed by
-       this function. The initial value of :code:`likelihood.parameters` are
+       this function, the initial value of :code:`likelihood.parameters` are
        saved and reset at the end of the function.
     """
     waveform_defaults = {
