@@ -1,4 +1,5 @@
 import datetime
+import sys
 
 import numpy as np
 import pandas as pd
@@ -122,7 +123,7 @@ class Fisher(Sampler):
             fd_eps=self.kwargs["fd_eps"],
         )
 
-        if self.injection_parameters and "use_injection_for_maxL" in self.kwargs:
+        if self.injection_parameters and self.kwargs["use_injection_for_maxL"]:
             sample = {
                 key: self.injection_parameters[key]
                 for key in fisher_mpe.parameter_names
@@ -154,7 +155,10 @@ class Fisher(Sampler):
             f"Starting sampling in batches of {batch_nsamples} to produce {target_nsamples} samples"
         )
         pbar = tqdm.tqdm(
-            total=target_nsamples, desc=f"{resample.capitalize()} sampling"
+            total=target_nsamples,
+            desc=f"{resample.capitalize()} sampling",
+            file=sys.stdout,
+            initial=0,
         )
         while nsamples < target_nsamples:
             g_samples, g_logl, g_logpi = (
@@ -181,20 +185,24 @@ class Fisher(Sampler):
             pbar.set_postfix(
                 {
                     "eff": f"{efficiency:.3f}%",
-                }
+                },
+                refresh=False,
             )
-            pbar.update(len(samples))
-            all_g_samples.append(g_samples)
-            all_samples.append(samples)
-            all_logl.append(logl)
-            all_weights.append(weights)
+            if len(samples) > self.ndim:
+                pbar.update(len(samples))
+                all_g_samples.append(g_samples)
+                all_samples.append(samples)
+                all_logl.append(logl)
+                all_weights.append(weights)
+            else:
+                pbar.update(0)
 
         pbar.close()
 
         g_samples = pd.concat(all_g_samples)
         samples = pd.concat(all_samples)
-        logl = np.concat(all_logl)
-        weights = np.concat(all_weights)
+        logl = np.concatenate(all_logl)
+        weights = np.concatenate(all_weights)
         efficiency = 100 * len(samples) / len(g_samples)
 
         logger.info(f"Finished sampling: total efficiency is {efficiency:0.3f}%")
@@ -225,7 +233,7 @@ class Fisher(Sampler):
             bins=50,
             smooth=0.7,
             max_n_ticks=5,
-            truths=np.concat((mean, [1])),
+            truths=np.concatenate((mean, [1])),
             truth_color="C3",
         )
 
@@ -236,9 +244,9 @@ class Fisher(Sampler):
 
         # Create the data array to plot and pass everything to corner
         xs = samples[self.search_parameter_keys].values
-        xs = np.concat((xs, np.random.uniform(0, 1, len(xs)).reshape(-1, 1)), axis=1)
+        xs = np.concatenate((xs, np.random.uniform(0, 1, len(xs)).reshape(-1, 1)), axis=1)
         rxs = raw_samples[self.search_parameter_keys].values
-        rxs = np.concat((rxs, weights.reshape((-1, 1))), axis=1)
+        rxs = np.concatenate((rxs, weights.reshape((-1, 1))), axis=1)
 
         # Sort by weight (only for plotting)
         idxs = np.argsort(weights)
