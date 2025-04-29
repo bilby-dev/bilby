@@ -7,6 +7,7 @@ import os
 import sys
 import multiprocessing
 import pickle
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -1633,6 +1634,12 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                                  likelihood=None, priors=None, npool=1):
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
+
+    if likelihood is not None:
+        # make a copy of the state of the likelihood so that changes during
+        # e.g., marginalized posterior reconstruction don't get retained
+        initial_likelihood_parameters = deepcopy(likelihood.parameters)
+
     waveform_defaults = defaults
     for key in waveform_defaults:
         try:
@@ -1697,6 +1704,11 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             logger.info(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
+
+    if likelihood is not None:
+        likelihood.parameters.clear()
+        likelihood.parameters.update(initial_likelihood_parameters)
+
     return output_sample
 
 
@@ -1715,6 +1727,11 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+
+    .. versionchanged:: 2.5.1
+       To ensure that internal state of :code:`likelihood` is not changed by
+       this function, the initial value of :code:`likelihood.parameters` are
+       saved and reset at the end of the function.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2',
@@ -1747,6 +1764,10 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
     npool: int, (default=1)
         If given, perform generation (where possible) using a multiprocessing pool
 
+    .. versionchanged:: 2.5.1
+       To ensure that internal state of :code:`likelihood` is not changed by
+       this function, the initial value of :code:`likelihood.parameters` are
+       saved and reset at the end of the function.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'TaylorF2',
