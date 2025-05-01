@@ -75,7 +75,6 @@ all = { file = [
 ]}
 
 [tool.setuptools_scm]
-version_scheme = "release-branch-semver"
 write_to = "bilby/_version.py"
 
 [tool.pytest.ini_options]
