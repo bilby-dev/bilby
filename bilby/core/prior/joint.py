@@ -63,8 +63,11 @@ class BaseJointPriorDist(object):
         self.requested_parameters = dict()
         self.reset_request()
 
-        # a dictionary of the rescaled parameters
-        self.rescale_parameters = dict()
+        # a dictionary that stores the unit-cube values of parameters for later rescaling
+        self._current_unit_cube_parameter_values = dict()
+        # a dictionary of arrays that are used as intermediate return values of JointPrior.rescale()
+        # and updated in-place once all parameters have been requested
+        self._current_rescaled_parameter_values = dict()
         self.reset_rescale()
 
         # a list of sampled parameters
@@ -94,15 +97,24 @@ class BaseJointPriorDist(object):
         Check if all the rescaled parameters have been filled.
         """
 
-        return not np.any([val is None for val in self.rescale_parameters.values()])
+        return not np.any([val is None for val in self._current_unit_cube_parameter_values.values()])
+
+    def set_rescale(self, key, values):
+        self._current_unit_cube_parameter_values[key] = np.array(values)
+        self._current_rescaled_parameter_values[key] = np.full_like(values, np.nan, dtype=float)
 
     def reset_rescale(self):
         """
         Reset the rescaled parameters to None.
         """
-
         for name in self.names:
-            self.rescale_parameters[name] = None
+            self._current_unit_cube_parameter_values[name] = None
+            self._current_rescaled_parameter_values[name] = None
+
+    def get_rescaled(self, key):
+        """Return an array that will be updated in-place once the rescale-operation
+        has been performed."""
+        return self._current_rescaled_parameter_values[key]
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
@@ -303,10 +315,12 @@ class BaseJointPriorDist(object):
 
         Parameters
         ==========
-        value: array
-            A 1d vector sample (one for each parameter) drawn from a uniform
+        value: array or None
+            If given, a 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
             N is the number of samples and M is the number of parameters.
+            If None, the values previously set using BaseJointPriorDist.set_rescale() are used,
+            the result is stored and can be accessed using get_rescaled().
         kwargs: dict
             All keyword args that need to be passed to _rescale method, these keyword
             args are called in the JointPrior rescale methods for each parameter
@@ -317,16 +331,30 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = np.array(value)
-        if len(samp.shape) == 1:
-            samp = samp.reshape(1, self.num_vars)
-
-        if len(samp.shape) != 2:
-            raise ValueError("Array is the wrong shape")
-        elif samp.shape[1] != self.num_vars:
-            raise ValueError("Array is the wrong shape")
+        if value is None:
+            if not self.filled_rescale():
+                raise ValueError("Attempting to rescale from stored values without having set all required values.")
+            samp = np.array([self._current_unit_cube_parameter_values[key] for key in self.names]).T
+            if len(samp.shape) == 1:
+                samp = samp.reshape(1, self.num_vars)
+        else:
+            samp = np.asarray(value)
+            if len(samp.shape) == 1:
+                samp = samp.reshape(1, self.num_vars)
+            if len(samp.shape) != 2:
+                raise ValueError("Array is the wrong shape")
+            elif samp.shape[1] != self.num_vars:
+                raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
+        # only store result if the rescale was done with saved unit-cube values
+        if value is None:
+            for i, key in enumerate(self.names):
+                # get the numpy array used for indermediate outputs
+                # prior to a full rescale-operation
+                output = self.get_rescaled(key)
+                # update the array in-place
+                output[...] = samp[:, i]
         return np.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
@@ -790,19 +818,41 @@ class JointPrior(Prior):
             all kwargs passed to the dist.rescale method
         Returns
         =======
-        float:
-            A sample from the prior parameter.
+        np.ndarray:
+            The samples from the prior parameter. If not all names in "dist" have been filled,
+            the array contains only np.nan. *This* specific array instance will be filled with
+            the rescaled value once all parameters have been requested
         """
 
-        self.dist.rescale_parameters[self.name] = val
+        if self.dist.get_rescaled(self.name) is not None:
+            import warnings
+            warnings.warn(
+                f"Rescale values for {self.name} in {self.dist} have already been set, "
+                "indicating that another rescale-operation is in progress.\n"
+                "Call dist.reset_rescale() on the joint prior distribution associated "
+                "with this prior after using dist.rescale() and make sure all parameters "
+                "necessary for rescaling have been requested in PriorDict.rescale().\n"
+                "Resetting now.",
+                RuntimeWarning
+            )
+            self.dist.reset_rescale()
+        self.dist.set_rescale(self.name, val)
 
         if self.dist.filled_rescale():
-            values = np.array(list(self.dist.rescale_parameters.values())).T
-            samples = self.dist.rescale(values, **kwargs)
+            # If all names have been filled, perform rescale operation
+            self.dist.rescale(value=None, **kwargs)
+            # get the rescaled values for the requested parameter
+            output = self.dist.get_rescaled(self.name)
+            # reset the rescale operation
             self.dist.reset_rescale()
-            return samples
         else:
-            return []  # return empty list
+            # If not all names have been filled, return a *numpy array*
+            # filled only with `np.nan`. Once all names have been requested,
+            # this array is updated *in-place* with the rescaled values.
+            output = self.dist.get_rescaled(self.name)
+
+        # have to return raw output to conserve in-place modifications
+        return output
 
     def sample(self, size=1, **kwargs):
         """

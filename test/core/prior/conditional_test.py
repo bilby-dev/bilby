@@ -334,7 +334,7 @@ class TestConditionalPriorDict(unittest.TestCase):
 
         # set multivariate Gaussian distribution
         names = ["mvgvar_0", "mvgvar_1"]
-        mu = [[0.79, -0.83]]
+        mu = [[1, 1]]
         cov = [[[0.03, 0.], [0., 0.04]]]
         mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
@@ -349,7 +349,7 @@ class TestConditionalPriorDict(unittest.TestCase):
             )
         )
 
-        ref_variables = list(self.test_sample.values()) + [0.4, 0.1]
+        ref_variables = list(self.test_sample.values()) + [0.5, 0.5]
         keys = list(self.test_sample.keys()) + names
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
@@ -359,9 +359,11 @@ class TestConditionalPriorDict(unittest.TestCase):
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
+        self.assertFalse(np.any(np.isnan(res)))
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        self.assertListEqual(expected, res[0:4])
+        expected.extend([1, 1])
+        self.assertListEqual(expected, res)
 
     def test_cdf(self):
         """
