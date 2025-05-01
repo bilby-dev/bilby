@@ -441,6 +441,23 @@ class PriorDict(dict):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
     def sample_subset_constrained(self, keys=iter([]), size=None):
+        """
+        Sample a subset of priors while ensuring constraints are satisfied.
+
+        Parameters
+        ==========
+        keys: list
+            List of prior keys to sample from.
+        size: int
+            The number of samples to draw.
+
+        Returns
+        =======
+        dict: Dictionary of valid samples.
+        """
+        if not any(isinstance(self[key], Constraint) for key in self):
+            return self.sample_subset(keys=keys, size=size)
+
         efficiency_warning_was_issued = False
 
         def check_efficiency(n_tested, n_valid):
