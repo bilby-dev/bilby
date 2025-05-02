@@ -41,7 +41,7 @@ jobs:
       - name: Run jupyter notebooks
         run: |
           source ${CONDA_PATH}/bin/activate python311
-          python -m ipykernel install
+          python -m pip install ipykernel
           jupyter nbconvert --to notebook --execute examples/tutorials/*.ipynb --output-dir docs
           cd -
         shell: bash
