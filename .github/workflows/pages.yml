@@ -41,6 +41,7 @@ jobs:
       - name: Run jupyter notebooks
         run: |
           source ${CONDA_PATH}/bin/activate python311
+          python -c "import bilby; print(bilby.__version__), print(bilby.__path__)"
           python -m pip install ipykernel
           jupyter nbconvert --to notebook --execute examples/tutorials/*.ipynb --output-dir docs
           cd -
