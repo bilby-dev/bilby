@@ -71,9 +71,9 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-"bilby.gw" = ["prior_files/*"],
-"bilby.gw.detector" = ["noise_curves/*.txt", "detectors/*"],
-"bilby.gw.eos" = ["eos_tables/*.dat"],
+"bilby.gw" = ["prior_files/*"]
+"bilby.gw.detector" = ["noise_curves/*.txt", "detectors/*"]
+"bilby.gw.eos" = ["eos_tables/*.dat"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
