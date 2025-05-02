@@ -20,9 +20,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CONDA_PATH: /opt/conda/
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,18 +31,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       - name: install
-        run: |
-          source ${CONDA_PATH}/bin/activate python311
-          python -m pip install .
-        shell: bash
+        run: python -m pip install .
       - name: Run jupyter notebooks
         run: |
-          source ${CONDA_PATH}/bin/activate python311
-          python -c "import bilby; print(bilby.__version__), print(bilby.__path__)"
-          python -m pip install ipykernel
-          jupyter nbconvert --to notebook --execute examples/tutorials/*.ipynb --output-dir docs
+          python -m ipykernel install
+          cd examples/tutorials
+          jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
           cd -
-        shell: bash
       - name: Build docs
         run: |
           cd docs
