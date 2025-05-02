@@ -69,11 +69,11 @@ packages = [
     "bilby.hyper",
     "cli_bilby",
 ]
-include-package-data = true
 
 [tool.setuptools.package-data]
-"bilby" = ["*.py", "*.prior"]
-"cli_bilby" = ["*.py"]
+"bilby.gw" = ["prior_files/*"],
+"bilby.gw.detector" = ["noise_curves/*.txt", "detectors/*"],
+"bilby.gw.eos" = ["eos_tables/*.dat"],
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
