@@ -54,7 +54,21 @@ bilby_result = "cli_bilby.bilby_result:main"
 "bilby.fake_sampler" = "bilby.core.sampler.fake_sampler:FakeSampler"
 
 [tool.setuptools]
-packages = ["bilby", "cli_bilby"]
+packages = [
+    "bilby",
+    "bilby.bilby_mcmc",
+    "bilby.core",
+    "bilby.core.prior",
+    "bilby.core.sampler",
+    "bilby.core.utils",
+    "bilby.gw",
+    "bilby.gw.detector",
+    "bilby.gw.eos",
+    "bilby.gw.likelihood",
+    "bilby.gw.sampler",
+    "bilby.hyper",
+    "cli_bilby",
+]
 include-package-data = true
 
 [tool.setuptools.package-data]
