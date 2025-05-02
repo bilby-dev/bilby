@@ -20,6 +20,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CONDA_PATH: /opt/conda/
+
 jobs:
   build:
     runs-on: ubuntu-latest
