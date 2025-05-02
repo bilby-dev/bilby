@@ -42,8 +42,7 @@ jobs:
         run: |
           source ${CONDA_PATH}/bin/activate python311
           python -m ipykernel install
-          cd examples/tutorials
-          jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
+          jupyter nbconvert --to notebook --execute examples/tutorials/*.ipynb --output-dir docs
           cd -
         shell: bash
       - name: Build docs
