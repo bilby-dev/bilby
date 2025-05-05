@@ -205,7 +205,6 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     added_keys: list
         keys which are added to parameters during function call
     """
-
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
     if 'luminosity_distance' not in original_keys:
@@ -237,10 +236,13 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                     converted_parameters[f"chi_{idx}"] ** 2
                     + converted_parameters[f"chi_{idx}_in_plane"] ** 2
                 ) ** 0.5
-                converted_parameters[f"cos_tilt_{idx}"] = (
-                    converted_parameters[f"chi_{idx}"]
-                    / converted_parameters[f"a_{idx}"]
-                )
+                if converted_parameters[f"a_{idx}"] == 0:
+                    converted_parameters[f"cos_tilt_{idx}"] = 0
+                else:
+                    converted_parameters[f"cos_tilt_{idx}"] = (
+                        converted_parameters[f"chi_{idx}"]
+                        / converted_parameters[f"a_{idx}"]
+                    )
             elif "a_{}".format(idx) not in original_keys:
                 converted_parameters['a_{}'.format(idx)] = abs(
                     converted_parameters[key])
@@ -277,6 +279,10 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 - np.sign(np.cos(converted_parameters["theta_jn"]))
                 * converted_parameters["psi"],
                 2 * np.pi)
+
+    if "psi_mod_pib2" in original_keys:
+        converted_parameters["psi"] = np.mod(converted_parameters["psi_mod_pib2"], np.pi / 2)
+
     added_keys = [key for key in converted_parameters.keys()
                   if key not in original_keys]
 
@@ -2561,7 +2567,8 @@ def generate_sky_frame_parameters(samples, likelihood):
         new_samples.append(likelihood.get_sky_frame_parameters())
     new_samples = DataFrame(new_samples)
     for key in new_samples:
-        samples[key] = new_samples[key]
+        # Use values to avoid index-sorting (new-samples are automatically sorted properly)
+        samples[key] = new_samples[key].values
 
 
 def fill_sample(args):

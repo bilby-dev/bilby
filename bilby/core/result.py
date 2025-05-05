@@ -266,7 +266,7 @@ def get_weights_for_reweighting(
     return ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array
 
 
-def rejection_sample(posterior, weights):
+def rejection_sample(posterior, weights, return_idxs=False):
     """ Perform rejection sampling on a posterior using weights
 
     Parameters
@@ -275,6 +275,8 @@ def rejection_sample(posterior, weights):
         The dataframe or array containing posterior samples
     weights: np.ndarray
         An array of weights
+    return_idxs: bool
+        If true, also return the boolean indexes
 
     Returns
     =======
@@ -283,7 +285,10 @@ def rejection_sample(posterior, weights):
 
     """
     keep = weights > random.rng.uniform(0, max(weights), weights.shape)
-    return posterior[keep]
+    if return_idxs:
+        return posterior[keep], keep
+    else:
+        return posterior[keep]
 
 
 def reweight(result, label=None, new_likelihood=None, new_prior=None,
