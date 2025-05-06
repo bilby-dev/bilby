@@ -129,9 +129,9 @@ class Prior(object):
         float: A random number between 0 and 1, rescaled to match the distribution of this Prior
 
         """
-        from ..utils.random import rng
+        from ..utils import random
 
-        self.least_recently_sampled = self.rescale(rng.uniform(0, 1, size))
+        self.least_recently_sampled = self.rescale(random.rng.uniform(0, 1, size))
         return self.least_recently_sampled
 
     def rescale(self, val):

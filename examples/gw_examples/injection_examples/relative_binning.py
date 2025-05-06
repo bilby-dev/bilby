@@ -11,11 +11,11 @@ from copy import deepcopy
 
 import bilby
 import numpy as np
-from bilby.core.utils.random import rng, seed
+from bilby.core.utils import random
 from tqdm.auto import trange
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
@@ -175,7 +175,7 @@ print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 # Generate result object with the posterior for the regular likelihood using
 # rejection sampling
 alt_result = deepcopy(result)
-keep = weights > rng.uniform(0, max(weights), len(weights))
+keep = weights > random.rng.uniform(0, max(weights), len(weights))
 alt_result.posterior = result.posterior.iloc[keep]
 
 # Make a comparison corner plot.

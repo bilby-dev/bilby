@@ -617,7 +617,7 @@ class Dynesty(NestedSampler):
         import dynesty
         from scipy.special import logsumexp
 
-        from ..utils.random import rng
+        from ..utils import random
 
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
@@ -626,7 +626,7 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > rng.uniform(0, max(weights), len(weights))
+            keep = weights > random.rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(
