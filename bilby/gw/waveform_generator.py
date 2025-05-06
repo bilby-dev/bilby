@@ -450,6 +450,10 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         return self._extract_waveform(hpc, "time")
 
     def _extract_waveform(self, hpc, kind):
+        # pass through waveform errors
+        if hpc is None:
+            return None
+
         if kind == "frequency":
             dtype = complex
             array = self.frequency_array
