@@ -422,6 +422,8 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         )
 
         wf = self._extract_waveform(hpc, "frequency")
+        if wf is None:
+            return None
 
         frequency_bounds = (
             (self.frequency_array >= self.waveform_arguments.get("minimum_frequency", 20.0))
