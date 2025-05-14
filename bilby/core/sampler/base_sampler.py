@@ -61,7 +61,7 @@ def _initialize_global_variables(
     Store a global copy of the likelihood, priors, and search keys for
     multiprocessing.
     """
-    global _sampling_convenience_dump
+    global _sampling_convenience_dump  # noqa
     _sampling_convenience_dump.likelihood = likelihood
     _sampling_convenience_dump.priors = priors
     _sampling_convenience_dump.search_parameter_keys = search_parameter_keys

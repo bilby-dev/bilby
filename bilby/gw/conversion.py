@@ -7,7 +7,6 @@ import os
 import sys
 import multiprocessing
 import pickle
-from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame, Series
