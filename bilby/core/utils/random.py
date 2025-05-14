@@ -11,7 +11,11 @@ class Generator:
 
 
 def seed(seed):
+    from .meta_data import global_meta_data
+
     Generator.rng = default_rng(seed)
+    global_meta_data["rng"] = Generator.rng
+    global_meta_data["seed"] = seed
 
 
 def generate_seeds(nseeds):

@@ -1,4 +1,3 @@
-import logging
 import os
 import unittest
 from unittest import mock
@@ -196,33 +195,25 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         self.assertTrue(np.allclose(expected.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(expected.asd_array, psd.asd_array))
 
-    def test_check_file_psd_file_set_to_asd_file(self):
-        logger = logging.getLogger("bilby")
-        m = mock.MagicMock()
-        logger.warning = m
+    @mock.patch.object(bilby.gw.detector.psd.logger, "warning")
+    def test_check_file_psd_file_set_to_asd_file(self, mock_warning):
         _ = bilby.gw.detector.PowerSpectralDensity(psd_file=self.asd_file)
-        self.assertEqual(4, m.call_count)
+        self.assertEqual(4, mock_warning.call_count)
 
-    def test_check_file_not_called_psd_file_set_to_psd_file(self):
-        logger = logging.getLogger("bilby")
-        m = mock.MagicMock()
-        logger.warning = m
+    @mock.patch.object(bilby.gw.detector.psd.logger, "warning")
+    def test_check_file_not_called_psd_file_set_to_psd_file(self, mock_warning):
         _ = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
-        self.assertEqual(0, m.call_count)
+        self.assertEqual(0, mock_warning.call_count)
 
-    def test_check_file_asd_file_set_to_psd_file(self):
-        logger = logging.getLogger("bilby")
-        m = mock.MagicMock()
-        logger.warning = m
+    @mock.patch.object(bilby.gw.detector.psd.logger, "warning")
+    def test_check_file_asd_file_set_to_psd_file(self, mock_warning):
         _ = bilby.gw.detector.PowerSpectralDensity(asd_file=self.psd_file)
-        self.assertEqual(4, m.call_count)
+        self.assertEqual(4, mock_warning.call_count)
 
-    def test_check_file_not_called_asd_file_set_to_asd_file(self):
-        logger = logging.getLogger("bilby")
-        m = mock.MagicMock()
-        logger.warning = m
+    @mock.patch.object(bilby.gw.detector.psd.logger, "warning")
+    def test_check_file_not_called_asd_file_set_to_asd_file(self, mock_warning):
         _ = bilby.gw.detector.PowerSpectralDensity(asd_file=self.asd_file)
-        self.assertEqual(0, m.call_count)
+        self.assertEqual(0, mock_warning.call_count)
 
     def test_from_frame_file(self):
         expected_frequency_array = np.array([1.0, 2.0, 3.0])

@@ -170,6 +170,44 @@ class TestBBHPriorDict(unittest.TestCase):
         )
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
 
+    def test_is_cosmological_true(self):
+        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name="luminosity_distance"
+        )
+        self.assertTrue(self.bbh_prior_dict.is_cosmological)
+
+    def test_is_cosmological_false(self):
+        del self.bbh_prior_dict["luminosity_distance"]
+        self.assertFalse(self.bbh_prior_dict.is_cosmological)
+
+    def test_check_valid_cosmology(self):
+        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name="luminosity_distance"
+        )
+        self.assertTrue(self.bbh_prior_dict.check_valid_cosmology())
+
+    def test_check_valid_cosmology_raises_error(self):
+        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name="luminosity_distance", cosmology="Planck15",
+        )
+        self.bbh_prior_dict["redshift"] = bilby.gw.prior.UniformComovingVolume(
+            minimum=0.1, maximum=1, name="redshift", cosmology="Planck15_LAL",
+        )
+        self.assertEqual(
+            self.bbh_prior_dict._cosmological_priors,
+            ["luminosity_distance", "redshift"],
+        )
+        self.assertRaises(ValueError, self.bbh_prior_dict.check_valid_cosmology)
+
+    def test_cosmology(self):
+        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
+            minimum=10, maximum=10000, name="luminosity_distance"
+        )
+        self.assertEqual(
+            self.bbh_prior_dict.cosmology,
+            self.bbh_prior_dict["luminosity_distance"].cosmology,
+        )
+
     def test_pickle_prior(self):
         priors = dict(
             chirp_mass=bilby.core.prior.Uniform(10, 20),
@@ -529,6 +567,15 @@ class TestAlignedSpin(unittest.TestCase):
         analytic = -np.log(np.abs(chis)) / 2
         max_difference = max(abs(analytic - prior.prob(chis)))
         self.assertAlmostEqual(max_difference, 0, 2)
+
+    def test_non_analytic_form_has_correct_statistics(self):
+        a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
+        z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
+        chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
+        chis = chi_prior.sample(100000)
+        alts = a_prior.sample(100000) * z_prior.sample(100000)
+        self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
+        self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
 
 
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):

@@ -25,6 +25,7 @@ from .utils import (
     recursively_decode_bilby_json,
     safe_file_dump,
     random,
+    string_to_boolean,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
@@ -193,7 +194,9 @@ def get_weights_for_reweighting(
 
         starting_index = np.argmin(np.abs(old_log_likelihood_array))
         logger.info(f'Checkpoint resuming from {starting_index}.')
-
+    elif resume_file is not None:
+        basedir = os.path.split(resume_file)[0]
+        check_directory_exists_and_if_not_mkdir(basedir)
     else:
         old_log_likelihood_array = np.zeros(nposterior)
         old_log_prior_array = np.zeros(nposterior)
@@ -502,6 +505,18 @@ class Result(object):
         self.prior_values = None
         self._kde = None
 
+        if not string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA", "False")):
+            gmd = self.meta_data.pop("global_meta_data", None)
+            if gmd is not None:
+                logger.info(
+                    "Global meta data was removed from the result object for compatibility. "
+                    "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
+                    "This behaviour will be removed in a future release. "
+                    "For more details see: https://bilby-dev.github.io/bilby/faq.html#global-meta-data"
+                )
+        else:
+            logger.debug("Including global meta data in the result object.")
+
     _load_doctstring = """ Read in a saved .{format} data file
 
     Parameters
@@ -769,6 +784,7 @@ class Result(object):
             default=False
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
+            If given, overwrite path prefix in 'filename'.
         extension: str, optional {json, hdf5, pkl, pickle, True}
             Determines the method to use to store the data (if True defaults
             to json)
@@ -780,11 +796,20 @@ class Result(object):
         if extension is True:
             extension = "json"
 
+        _outdir = None
+        if filename is not None:
+            _outdir, filename = os.path.split(filename)
+            _outdir = None if _outdir == "" else _outdir
+            filename = f"{os.path.splitext(filename)[0]}.{extension}"
+
+        outdir = _outdir if outdir is None else outdir
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
         if filename is None:
-            filename = result_file_name(outdir, self.label, extension, gzip)
+            output_path = result_file_name(outdir, self.label, extension, gzip)
+        else:
+            output_path = os.path.join(outdir, filename)
 
-        move_old_file(filename, overwrite)
+        move_old_file(output_path, overwrite)
 
         # Convert the prior to a string representation for saving on disk
         dictionary = self._get_save_data_dictionary()
@@ -803,27 +828,27 @@ class Result(object):
                     import gzip
                     # encode to a string
                     json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
-                    with gzip.GzipFile(filename, 'w') as file:
+                    with gzip.GzipFile(output_path, 'w') as file:
                         file.write(json_str)
                 else:
-                    with open(filename, 'w') as file:
+                    with open(output_path, 'w') as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
             elif extension == 'hdf5':
                 import h5py
                 dictionary["__module__"] = self.__module__
                 dictionary["__name__"] = self.__class__.__name__
-                with h5py.File(filename, 'w') as h5file:
+                with h5py.File(output_path, 'w') as h5file:
                     recursively_save_dict_contents_to_group(h5file, '/', dictionary)
             elif extension == 'pkl':
-                safe_file_dump(self, filename, "dill")
+                safe_file_dump(self, output_path, "dill")
             else:
                 raise ValueError("Extension type {} not understood".format(extension))
         except Exception as e:
-            filename = ".".join(filename.split(".")[:-1]) + ".pkl"
-            safe_file_dump(self, filename, "dill")
+            output_path = f"{os.path.splitext(output_path)[0]}.pkl"
+            safe_file_dump(self, output_path, "dill")
             logger.error(
                 "\n\nSaving the data has failed with the following message:\n"
-                "{}\nData has been dumped to {}.\n\n".format(e, filename)
+                "{}\nData has been dumped to {}.\n\n".format(e, output_path)
             )
 
     def save_posterior_samples(self, filename=None, outdir=None, label=None):
@@ -1523,8 +1548,7 @@ class Result(object):
         if keys is None:
             keys = self.search_parameter_keys
         if self.injection_parameters is None:
-            raise (
-                TypeError,
+            raise TypeError(
                 "Result object has no 'injection_parameters'. "
                 "Cannot compute credible levels."
             )

@@ -2,6 +2,7 @@ import os
 import copy
 
 import numpy as np
+from scipy.integrate import quad
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.special import hyp2f1
 from scipy.stats import norm
@@ -294,7 +295,8 @@ class Cosmological(Interped):
 
     def get_instantiation_dict(self):
         from astropy import units
-        from astropy.cosmology.realizations import available
+        from .cosmology import get_available_cosmologies
+        available = get_available_cosmologies()
         instantiation_dict = super().get_instantiation_dict()
         if self.cosmology.name in available:
             instantiation_dict['cosmology'] = self.cosmology.name
@@ -481,11 +483,22 @@ class AlignedSpin(Interped):
     This is useful when using aligned-spin only waveform approximants.
 
     This is an extension of e.g., (A7) of https://arxiv.org/abs/1805.10457.
+    For the simple case of uniform in magnitude and orientation priors, we use an
+    analytic form of the PDF.
     """
 
-    def __init__(self, a_prior=Uniform(0, 1), z_prior=Uniform(-1, 1),
-                 name=None, latex_label=None, unit=None, boundary=None,
-                 minimum=np.nan, maximum=np.nan):
+    def __init__(
+        self,
+        a_prior=Uniform(0, 1),
+        z_prior=Uniform(-1, 1),
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary=None,
+        minimum=np.nan,
+        maximum=np.nan,
+        num_interp=None,
+    ):
         """
         Parameters
         ==========
@@ -496,23 +509,54 @@ class AlignedSpin(Interped):
         name: see superclass
         latex_label: see superclass
         unit: see superclass
+        num_interp: int
+            The number of points to use in the interpolation. Defaults to 100,000
+            for simple aligned priors and 10,000 for general priors.
         """
         self.a_prior = a_prior
         self.z_prior = z_prior
         chi_min = min(a_prior.maximum * z_prior.minimum,
                       a_prior.minimum * z_prior.maximum)
         chi_max = a_prior.maximum * z_prior.maximum
-        xx = np.linspace(chi_min, chi_max, 800)
-        a_prior_minimum = a_prior.minimum
-        if a_prior_minimum == 0:
-            a_prior_minimum += 1e-32
-        aas = np.linspace(a_prior_minimum, a_prior.maximum, 1000)
-        yy = [np.trapz(np.nan_to_num(a_prior.prob(aas) / aas *
-                                     z_prior.prob(x / aas)), aas) for x in xx]
-        super(AlignedSpin, self).__init__(xx=xx, yy=yy, name=name,
-                                          latex_label=latex_label, unit=unit,
-                                          boundary=boundary, minimum=minimum,
-                                          maximum=maximum)
+        if self._is_simple_aligned_prior:
+            self.num_interp = 100_000 if num_interp is None else num_interp
+            xx = np.linspace(chi_min, chi_max, self.num_interp)
+            yy = - np.log(np.abs(xx) / a_prior.maximum) / (2 * a_prior.maximum)
+        else:
+
+            def integrand(aa, chi):
+                """
+                The integrand for the aligned spin (chi) probability density
+                after performing the integral over spin orientation using a
+                delta function identity.
+                """
+                return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
+
+            self.num_interp = 10_000 if num_interp is None else num_interp
+            xx = np.linspace(chi_min, chi_max, self.num_interp)
+            yy = [
+                quad(integrand, a_prior.minimum, a_prior.maximum, chi)[0]
+                for chi in xx
+            ]
+        super().__init__(
+            xx=xx,
+            yy=yy,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+            minimum=minimum,
+            maximum=maximum,
+        )
+
+    @property
+    def _is_simple_aligned_prior(self):
+        return (
+            isinstance(self.a_prior, Uniform)
+            and isinstance(self.z_prior, Uniform)
+            and self.z_prior.minimum == -1
+            and self.z_prior.maximum == 1
+        )
 
 
 class ConditionalChiUniformSpinMagnitude(ConditionalLogUniform):
@@ -810,6 +854,68 @@ class CBCPriorDict(ConditionalPriorDict):
     def phase(self):
         """ Return true if priors include phase parameters """
         return self.is_nonempty_intersection("phase")
+
+    @property
+    def _cosmological_priors(self):
+        return [
+            key for key, prior in self.items() if isinstance(prior, Cosmological)
+        ]
+
+    @property
+    def is_cosmological(self):
+        """Return True if any of the priors are cosmological."""
+        if self._cosmological_priors:
+            return True
+        else:
+            return False
+
+    @property
+    def cosmology(self):
+        """The cosmology used in the priors."""
+        if self.is_cosmological:
+            return self[self._cosmological_priors[0]].cosmology
+        else:
+            return None
+
+    def check_valid_cosmology(self, error=True, warning=False):
+        """Check that all cosmological priors use the same cosmology.
+
+        .. versionadded:: 2.5.0
+
+        Parameters
+        ==========
+        error: bool
+            Whether to raise a ValueError on failure.
+        warning: bool
+            Whether to log a warning on failure.
+
+        Returns
+        =======
+        bool: whether the cosmological priors are valid.
+
+        Raises
+        ======
+        ValueError: if error is True and the cosmological priors are invalid.
+        """
+        cosmological_priors = self._cosmological_priors
+        if not cosmological_priors:
+            return True
+
+        from astropy.cosmology import cosmology_equal
+
+        cosmologies = [self[key].cosmology for key in self._cosmological_priors]
+        if all(cosmology_equal(cosmologies[0], c, allow_equivalent=True) for c in cosmologies[1:]):
+            return True
+
+        message = (
+            "All cosmological priors must use the same cosmology. "
+            f"Found: {cosmologies}"
+        )
+        if warning:
+            logger.warning(message)
+            return False
+        if error:
+            raise ValueError(message)
 
     def validate_prior(self, duration, minimum_frequency, N=1000, error=True, warning=False):
         """ Validate the prior is suitable for use

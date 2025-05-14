@@ -441,10 +441,26 @@ class PriorDict(dict):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
     def sample_subset_constrained(self, keys=iter([]), size=None):
+        efficiency_warning_was_issued = False
+
+        def check_efficiency(n_tested, n_valid):
+            nonlocal efficiency_warning_was_issued
+            if efficiency_warning_was_issued:
+                return
+            efficiency = n_valid / float(n_tested)
+            if n_tested >= 1e3 and efficiency < 1e-3:
+                logger.warning("Prior sampling efficiency is very low, please verify its validity.")
+                efficiency_warning_was_issued = True
+
+        n_tested_samples, n_valid_samples = 0, 0
         if size is None or size == 1:
             while True:
                 sample = self.sample_subset(keys=keys, size=size)
-                if self.evaluate_constraints(sample):
+                is_valid = self.evaluate_constraints(sample)
+                n_tested_samples += 1
+                n_valid_samples += int(is_valid)
+                check_efficiency(n_tested_samples, n_valid_samples)
+                if is_valid:
                     return sample
         else:
             needed = np.prod(size)
@@ -460,6 +476,9 @@ class PriorDict(dict):
                     all_samples[key] = np.hstack(
                         [all_samples[key], samples[key][keep].flatten()]
                     )
+                n_tested_samples += needed
+                n_valid_samples += np.sum(keep)
+                check_efficiency(n_tested_samples, n_valid_samples)
             all_samples = {
                 key: np.reshape(all_samples[key][:needed], size) for key in keys
             }
@@ -607,11 +626,12 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        from matplotlib.cbook import flatten
-
-        return list(
-            flatten([self[key].rescale(sample) for key, sample in zip(keys, theta)])
-        )
+        theta = list(theta)
+        samples = []
+        for key, units in zip(keys, theta):
+            samps = self[key].rescale(units)
+            samples += list(np.asarray(samps).flatten())
+        return samples
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -838,8 +858,6 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
-        from matplotlib.cbook import flatten
-
         keys = list(keys)
         theta = list(theta)
         self._check_resolved()
@@ -852,7 +870,10 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        return list(flatten([result[key] for key in keys]))
+        samples = []
+        for key in keys:
+            samples += list(np.asarray(result[key]).flatten())
+        return samples
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

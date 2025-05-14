@@ -131,6 +131,7 @@ result = bilby.run_sampler(
     outdir=outdir,
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bns_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 result.plot_corner()
