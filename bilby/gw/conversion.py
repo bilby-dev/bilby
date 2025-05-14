@@ -7,6 +7,7 @@ import os
 import sys
 import multiprocessing
 import pickle
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -1677,7 +1678,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
 
         if (
             not getattr(likelihood, "reference_frame", "sky") == "sky"
-            or not getattr(likelihood, "time_reference", "geocenter") == "geocenter"
+            or "geocent" not in getattr(likelihood, "time_reference", "geocent")
         ):
             try:
                 generate_sky_frame_parameters(
@@ -1717,6 +1718,11 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+
+    .. versionchanged:: 2.5.1
+       To ensure that internal state of :code:`likelihood` is not changed by
+       this function, the initial value of :code:`likelihood.parameters` are
+       saved and reset at the end of the function.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2',

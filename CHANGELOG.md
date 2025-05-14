@@ -5,7 +5,20 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
-## [2.5.0]
+## [2.5.1]
+
+### Changed
+
+- Pin dynesty to version < 2.2 (https://github.com/bilby-dev/bilby/pull/949)
+
+### Fixed
+
+- Enable printing dlogZ values below 1e-3 with `dynesty` (https://github.com/bilby-dev/bilby/pull/936)
+- Fix how injection parameters are handled in parameter conversion to avoid bugs with parameter reconstruction in `run_sampler` (https://github.com/bilby-dev/bilby/pull/931)
+- Fix `time_reference` check in `_generate_all_cbc_parameters` (https://github.com/bilby-dev/bilby/pull/930)
+- Ensure output directory exists when performing reweighting with `get_weights_for_reweighting` (https://github.com/bilby-dev/bilby/pull/923/)
+
+## [2.5.0] - 2025-03-20
 
 ### Added
 
@@ -34,7 +47,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 - Specify likelihood for injection conversion function (https://github.com/bilby-dev/bilby/pull/900)
 
 
-## [2.4.0]
+## [2.4.0] - 2024-11-15
 
 Note: this release contains changes made on both GitHub and LIGO GitLab.
 
@@ -1138,7 +1151,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.1...main
+[2.5.1]: https://github.com/bilby-dev/bilby/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/bilby-dev/bilby/compare/v2.2.3...v2.3.0
