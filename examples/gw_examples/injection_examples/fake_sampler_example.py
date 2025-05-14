@@ -115,6 +115,7 @@ def main():
         outdir=outdir,
         label="primary_mode_only",
         save="hdf5",
+        result_class=bilby.gw.result.CBCResult,
     )
 
     # update the waveform generator to use our higher-order mode waveform
@@ -133,6 +134,7 @@ def main():
         verbose=False,
         label="higher_order_mode",
         save="hdf5",
+        result_class=bilby.gw.result.CBCResult,
     )
 
     # make some comparison plots

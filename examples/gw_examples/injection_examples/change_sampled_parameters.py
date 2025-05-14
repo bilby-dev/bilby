@@ -115,5 +115,6 @@ result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters,
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

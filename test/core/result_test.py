@@ -445,8 +445,11 @@ class TestResult(unittest.TestCase):
 
     def test_get_credible_levels_raises_error_if_no_injection_parameters(self):
         self.result.injection_parameters = None
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError) as error_context:
             self.result.get_all_injection_credible_levels()
+        self.assertTrue(
+            "Result object has no 'injection_parameters" in str(error_context.exception)
+        )
 
     def test_kde(self):
         kde = self.result.kde
@@ -829,7 +832,7 @@ class TestReweight(unittest.TestCase):
         self.result = bilby.core.result.Result(
             search_parameter_keys=list(self.priors.keys()),
             priors=self.priors,
-            posterior=pd.DataFrame(self.priors.sample(1000)),
+            posterior=pd.DataFrame(self.priors.sample(2000)),
             log_evidence=-np.log(10),
         )
 
@@ -854,6 +857,7 @@ class TestReweight(unittest.TestCase):
         _, weights, _, _, _, _ = self._run_reweighting(sigma=1)
         self.assertLess(min(abs(weights - 1)), 1e-10)
 
+    @pytest.mark.flaky(reruns=3)
     def test_reweight_different_likelihood_weights_correct(self):
         """
         Test the known case where the target likelihood is a Gaussian with

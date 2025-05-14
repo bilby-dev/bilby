@@ -25,6 +25,7 @@ from .utils import (
     recursively_decode_bilby_json,
     safe_file_dump,
     random,
+    string_to_boolean,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
@@ -193,7 +194,9 @@ def get_weights_for_reweighting(
 
         starting_index = np.argmin(np.abs(old_log_likelihood_array))
         logger.info(f'Checkpoint resuming from {starting_index}.')
-
+    elif resume_file is not None:
+        basedir = os.path.split(resume_file)[0]
+        check_directory_exists_and_if_not_mkdir(basedir)
     else:
         old_log_likelihood_array = np.zeros(nposterior)
         old_log_prior_array = np.zeros(nposterior)
@@ -501,6 +504,18 @@ class Result(object):
 
         self.prior_values = None
         self._kde = None
+
+        if not string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA", "False")):
+            gmd = self.meta_data.pop("global_meta_data", None)
+            if gmd is not None:
+                logger.info(
+                    "Global meta data was removed from the result object for compatibility. "
+                    "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
+                    "This behaviour will be removed in a future release. "
+                    "For more details see: https://bilby-dev.github.io/bilby/faq.html#global-meta-data"
+                )
+        else:
+            logger.debug("Including global meta data in the result object.")
 
     _load_doctstring = """ Read in a saved .{format} data file
 
@@ -1533,8 +1548,7 @@ class Result(object):
         if keys is None:
             keys = self.search_parameter_keys
         if self.injection_parameters is None:
-            raise (
-                TypeError,
+            raise TypeError(
                 "Result object has no 'injection_parameters'. "
                 "Cannot compute credible levels."
             )
