@@ -218,7 +218,10 @@ class WaveformGenerator(object):
         dict: The dictionary of parameter key-value pairs
 
         """
-        return self.__parameters
+        if hasattr(self, "_WaveformGenerator__parameters"):
+            return self.__parameters
+        else:
+            return self._cache.get("parameters", None)
 
     @parameters.setter
     def parameters(self, parameters):
