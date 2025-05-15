@@ -714,7 +714,7 @@ class TestGWSignalGenerator(unittest.TestCase):
         for key in keys:
             assert key not in defaults
 
-        # test ommitted parameters are in the defaults
+        # test omitted parameters are in the defaults
         kwargs = {kind: False}
         wfg = self.get_wfgen(**kwargs)
         defaults = wfg.defaults
@@ -875,7 +875,7 @@ class TestGWSignalGenerator(unittest.TestCase):
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
         wfg = self.get_wfgen()
-        
+
         parameters = dict(
             mass_1=10.0,
             mass_2=8.0,
