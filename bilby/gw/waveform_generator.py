@@ -76,29 +76,21 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             self.parameters = parameters
         self._cache = dict(parameters=None, waveform=None, model=None)
-        utils.logger.info(
-            "Waveform generator initiated with\n"
-            "  frequency_domain_source_model: {}\n"
-            "  time_domain_source_model: {}\n"
-            "  parameter_conversion: {}"
-            .format(utils.get_function_path(self.frequency_domain_source_model),
-                    utils.get_function_path(self.time_domain_source_model),
-                    utils.get_function_path(self.parameter_conversion))
-        )
+        utils.logger.info(f"Waveform generator instantiated: {self}")
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
-            fdsm_name = self.frequency_domain_source_model.__name__
+            fdsm_name = utils.get_function_path(self.frequency_domain_source_model)
         else:
             fdsm_name = None
         if self.time_domain_source_model is not None:
-            tdsm_name = self.time_domain_source_model.__name__
+            tdsm_name = utils.get_function_path(self.time_domain_source_model)
         else:
             tdsm_name = None
         if self.parameter_conversion is None:
             param_conv_name = None
         else:
-            param_conv_name = self.parameter_conversion.__name__
+            param_conv_name = utils.get_function_path(self.parameter_conversion)
 
         return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
                                          'frequency_domain_source_model={}, time_domain_source_model={}, ' \
@@ -289,6 +281,21 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         self.waveform_approximant = self.waveform_arguments["waveform_approximant"]
         self.generator = gwsignal_get_waveform_generator(self.waveform_approximant)
 
+    def __repr__(self):
+        if self.parameter_conversion is None:
+            param_conv_name = None
+        else:
+            param_conv_name = utils.get_function_path(self.parameter_conversion)
+
+        return (
+            f"{self.__class__.__name__}(duration={self.duration}, "
+            f"sampling_frequency={self.duration}, start_time={self.start_time}, "
+            f"parameter_conversion={param_conv_name}, "
+            f"waveform_arguments={self.waveform_arguments}, "
+            f"spinning={self.spinning}, eccentric={self.eccentric}, tidal={self.tidal}"
+            ")"
+        )
+
     @property
     def defaults(self):
         from lalsimulation.gwsignal.core import parameter_conventions
@@ -300,6 +307,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             keys += ["lambda_1", "lambda_2"]
         if not self.spinning:
             keys += ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
+        keys += ["longitude_ascending_nodes"]
 
         output = {key: 0.0 for key in keys}
         return output
@@ -351,8 +359,6 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             phase=parameters["phase"],
         )
 
-        longitude_ascending_nodes = 0.0
-
         gwsignal_dict = {
             'mass1': parameters["mass_1"],
             'mass2': parameters["mass_2"],
@@ -362,18 +368,20 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             'spin2x': spin_2x,
             'spin2y': spin_2y,
             'spin2z': spin_2z,
+            'lambda1': parameters["lambda_1"],
+            'lambda2': parameters["lambda_2"],
             'deltaF': 1 / self.duration,
             'deltaT': 1 / self.sampling_frequency,
             'f22_start': start_frequency,
             'f_max': maximum_frequency,
             'f22_ref': reference_frequency,
             'phi_ref': parameters["phase"],
-            'distance': parameters["luminosity_distance"],
+            'distance': parameters["luminosity_distance"] * 1e6,
             'inclination': iota,
             'eccentricity': parameters["eccentricity"],
-            'longAscNodes': longitude_ascending_nodes,
+            'longAscNodes': parameters["longitude_ascending_nodes"],
             'meanPerAno': parameters["mean_per_ano"],
-            'condition': self.condition
+            'condition': self.condition,
         }
         gwsignal_dict = {
             key: val << Cosmo_units_dictionary.get(key, 0)
@@ -425,9 +433,11 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         if wf is None:
             return None
 
+        minimum_frequency = self.waveform_arguments.get("minimum_frequency", 20.0)
+        maximum_frequency = self.waveform_arguments.get("maximum_frequency", self.frequency_array[-1])
         frequency_bounds = (
-            (self.frequency_array >= self.waveform_arguments.get("minimum_frequency", 20.0))
-            * (self.frequency_array <= self.waveform_arguments.get("maximum_frequency", 50.0))
+            (self.frequency_array >= minimum_frequency)
+            * (self.frequency_array <= maximum_frequency)
         )
         for key in wf:
             wf[key] *= frequency_bounds
@@ -470,8 +480,9 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             logger.debug(
                 f"GWsignal waveform longer than bilby's `{kind}_array`({len(hpc.hp)} "
                 f"vs {len(array)}). Truncating GWsignal array.")
-            h_plus = hpc.hp[:len(h_plus)]
-            h_cross = hpc.hc[:len(h_cross)]
+            # set slice to force the output into a numpy array
+            h_plus[:] = hpc.hp[:len(h_plus)]
+            h_cross[:] = hpc.hc[:len(h_cross)]
         else:
             h_plus[:len(hpc.hp)] = hpc.hp
             h_cross[:len(hpc.hc)] = hpc.hc
@@ -509,9 +520,10 @@ def _try_waveform_call(func, parameters, generator, catch_waveform_errors):
         else:
             EDOM = "Input domain error" in e.args[0]
             if EDOM:
-                logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
-                               "The parameters were {}\n".format(parameters) +
-                               "Likelihood will be set to -inf.")
+                logger.warning(
+                    f"Evaluating the waveform failed with error: {e}\nThe parameters "
+                    f"were {parameters}\nLikelihood will be set to -inf."
+                )
                 return None
             else:
                 raise
