@@ -69,9 +69,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model.__name__,
-                self.waveform_generator.time_domain_source_model,
-                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -88,9 +88,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model,
-                self.waveform_generator.time_domain_source_model.__name__,
-                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -108,9 +108,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model.__name__,
-                self.waveform_generator.time_domain_source_model,
-                conversion_func.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(conversion_func),
                 self.waveform_generator.waveform_arguments,
             )
         )
