@@ -114,6 +114,7 @@ class Fisher(Sampler):
     def run_sampler(self):
 
         self.start_time = datetime.datetime.now()
+        cov_scaling = self.kwargs["cov_scaling"]
 
         fisher_mpe = FisherMatrixPosteriorEstimator(
             likelihood=self.likelihood,
@@ -133,7 +134,7 @@ class Fisher(Sampler):
         maxL_sample_dict = fisher_mpe.get_maximum_likelihood_sample(sample)
         mean = np.array(list(maxL_sample_dict.values()))
         iFIM = fisher_mpe.calculate_iFIM(maxL_sample_dict)
-        cov = self.kwargs["cov_scaling"] * iFIM
+        cov = cov_scaling * iFIM
 
         msg = "Generation-distribution:\n " + "\n ".join(
             [
@@ -161,7 +162,7 @@ class Fisher(Sampler):
             initial=0,
         )
         while nsamples < target_nsamples:
-            g_samples, g_logl, g_logpi = (
+            g_samples, g_logl, g_logpi, discard_inef = (
                 self._draw_samples_from_generating_distribution(
                     mean, cov, fisher_mpe, batch_nsamples
                 )
@@ -181,10 +182,16 @@ class Fisher(Sampler):
                 logl = g_logl
                 weights = np.ones_like(logl)
 
+            #if efficiency < 10:
+            #    cov_scaling *= 0.9
+            #    cov = cov_scaling * iFIM
+
             nsamples += len(samples)
             pbar.set_postfix(
                 {
                     "eff": f"{efficiency:.3f}%",
+                    "de": f"{discard_inef:.1f}%",
+                    "cs": f"{cov_scaling:.2f}",
                 },
                 refresh=False,
             )
@@ -370,15 +377,15 @@ class Fisher(Sampler):
         logger.debug("Calculating the likelihood and priors")
 
         logpi = self.priors.ln_prob(samples, axis=0)
-        outside_prior_count = np.sum(np.isinf(logpi))
-        if outside_prior_count == 0:
-            logl = fisher_mpe.log_likelihood_from_array(samples.values.T)
-        else:
-            for ii, rs in tqdm.tqdm(samples.iterrows(), total=len(samples)):
-                if np.isinf(logpi[ii]):
-                    logl.append(-np.inf)
-                else:
-                    logl.append(fisher_mpe.log_likelihood(rs.to_dict()))
+        logl = np.full_like(logpi, -np.inf)
+
+        in_prior = ~np.isinf(logpi)
+        outside_prior_count = np.sum(~in_prior)
+        discard_inef = 100 * outside_prior_count / len(samples)
+
+        logl[in_prior] = fisher_mpe.log_likelihood_from_array(
+            samples.values[in_prior].T
+        )
 
         if outside_prior_count == len(samples):
             msg = "Sampling has failed: no viable samples left"
@@ -386,17 +393,11 @@ class Fisher(Sampler):
                 raise SamplerError(msg)
             else:
                 logger.info(msg)
-        elif outside_prior_count > 0:
-            logger.info(
-                f"Discarding {100 * outside_prior_count / len(samples):0.3f}% of samples that"
-                " fall outside the prior"
-            )
         else:
             logger.debug("No samples outside the prior bounds")
 
         logpi = np.real(np.array(logpi))
-        logl = np.array(logl)
-        return samples, logl, logpi
+        return samples, logl, logpi, discard_inef
 
     def _calculate_weights(self, g_samples, g_logl, g_logpi, mean, cov):
         g_logl_norm = multivariate_normal.logpdf(g_samples, mean=mean, cov=cov)
@@ -430,7 +431,7 @@ class Fisher(Sampler):
             if self.kwargs["fail_on_error"]:
                 raise SamplerError(msg)
             else:
-                logger.info(msg)
+                logger.debug(msg)
 
         return samples, logl
 
@@ -447,6 +448,6 @@ class Fisher(Sampler):
             if self.kwargs["fail_on_error"]:
                 raise SamplerError(msg)
             else:
-                logger.info(msg)
+                logger.debug(msg)
 
         return samples, logl
