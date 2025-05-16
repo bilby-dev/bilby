@@ -164,7 +164,7 @@ def create_white_noise(sampling_frequency, duration):
     array_like: white noise
     array_like: frequency array
     """
-    from .random import rng
+    from . import random
 
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
@@ -172,7 +172,7 @@ def create_white_noise(sampling_frequency, duration):
     frequencies = create_frequency_series(sampling_frequency, duration)
 
     norm1 = 0.5 * duration**0.5
-    re1, im1 = rng.normal(0, norm1, (2, len(frequencies)))
+    re1, im1 = random.rng.normal(0, norm1, (2, len(frequencies)))
     white_noise = re1 + 1j * im1
 
     # set DC and Nyquist = 0

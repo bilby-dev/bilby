@@ -1620,9 +1620,9 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
     lambda_2: float
         Tidal parameter of less massive neutron star.
     """
-    from ..core.utils.random import rng
+    from ..core.utils import random
 
-    binary_love_uniform = rng.uniform(0, 1, len(lambda_symmetric))
+    binary_love_uniform = random.rng.uniform(0, 1, len(lambda_symmetric))
 
     lambda_1, lambda_2 = binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(
         binary_love_uniform, lambda_symmetric, mass_ratio)
