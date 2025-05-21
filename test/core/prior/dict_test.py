@@ -33,8 +33,17 @@ class TestPriorDict(unittest.TestCase):
             name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None
         )
         self.third_prior = bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m")
+
+        mvg = bilby.core.prior.MultivariateGaussianDist(
+            names=["testa", "testb"],
+            mus=[1, 1],
+            covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
+            weights=1.0,
+        )
+        self.testa = bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit")
+        self.testb = bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit")
         self.priors = dict(
-            mass=self.first_prior, speed=self.second_prior, length=self.third_prior
+            mass=self.first_prior, speed=self.second_prior, length=self.third_prior, testa=self.testa, testb=self.testb
         )
         self.prior_set_from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
@@ -70,7 +79,7 @@ class TestPriorDict(unittest.TestCase):
         self.assertIsInstance(self.prior_set_from_dict, dict)
 
     def test_prior_set_has_correct_length(self):
-        self.assertEqual(3, len(self.prior_set_from_dict))
+        self.assertEqual(5, len(self.prior_set_from_dict))
 
     def test_prior_set_has_expected_priors(self):
         self.assertDictEqual(self.priors, dict(self.prior_set_from_dict))
@@ -160,6 +169,12 @@ class TestPriorDict(unittest.TestCase):
             "unit='m/s', boundary=None)\n",
             "mass = Uniform(minimum=0, maximum=1, name='a', latex_label='a', "
             "unit='kg', boundary=None)\n",
+            "testa_testb_mvg = MultivariateGaussianDist(names=['testa', 'testb'], nmodes=1, mus=[[1, 1]], "
+            "sigmas=[[1.4142135623730951, 1.4142135623730951]], "
+            "corrcoefs=[[[0.9999999999999998, 0.24999999999999994], [0.24999999999999994, 0.9999999999999998]]], "
+            "covs=[[[2.0, 0.5], [0.5, 2.0]]], weights=[1.0], bounds={'testa': (-inf, inf), 'testb': (-inf, inf)})\n",
+            "testa = MultivariateGaussian(dist=testa_testb_mvg, name='testa', latex_label='testa', unit='unit')\n",
+            "testb = MultivariateGaussian(dist=testa_testb_mvg, name='testb', latex_label='testb', unit='unit')\n",
         ]
         self.prior_set_from_dict.to_file(outdir="prior_files", label="to_file_test")
         with open("prior_files/to_file_test.prior") as f:
@@ -178,6 +193,13 @@ class TestPriorDict(unittest.TestCase):
         self.assertDictEqual(self.prior_set_from_dict, from_dict)
 
     def test_convert_floats_to_delta_functions(self):
+        mvg = bilby.core.prior.MultivariateGaussianDist(
+            names=["testa", "testb"],
+            mus=[1, 1],
+            covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
+            weights=1.0,
+        )
+
         self.prior_set_from_dict["d"] = 5
         self.prior_set_from_dict["e"] = 7.3
         self.prior_set_from_dict["f"] = "unconvertable"
@@ -190,6 +212,8 @@ class TestPriorDict(unittest.TestCase):
                 name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None
             ),
             length=bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m"),
+            testa=bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
+            testb=bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
             d=bilby.core.prior.DeltaFunction(peak=5),
             e=bilby.core.prior.DeltaFunction(peak=7.3),
             f="unconvertable",
@@ -287,6 +311,11 @@ class TestPriorDict(unittest.TestCase):
         expected = dict(length=np.array([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
 
+        joint_prior = self.joint_prior_from_file
+        samples = joint_prior.sample_subset(keys=["testAbase"], size=size)
+        self.assertTrue(joint_prior["testAbase"].dist.sampled_parameters == [])
+        self.assertTrue(joint_prior["testBbase"].dist.sampled_parameters == [])
+
     def test_sample_subset_constrained_as_array(self):
         size = 3
         keys = ["mass", "speed"]
@@ -358,13 +387,25 @@ class TestPriorDict(unittest.TestCase):
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
 
+    def test_ln_prob_actual_subset(self):
+        joint_prior = self.joint_prior_from_file
+        keys = ["testAbase"]
+        samples = joint_prior.sample_subset(keys=keys, size=1)
+        lnprob = joint_prior.ln_prob(samples)
+        self.assertTrue(joint_prior["testAbase"].dist.requested_parameters["testAbase"] is None)
+        self.assertTrue(joint_prior["testBbase"].dist.requested_parameters["testBbase"] is None)
+        self.assertTrue(lnprob == 0)
+
     def test_rescale(self):
-        theta = [0.5, 0.5, 0.5]
+        theta = [0.5, 0.5, 0.5, 0.5, 0.5]
         expected = [
             self.first_prior.rescale(0.5),
             self.second_prior.rescale(0.5),
             self.third_prior.rescale(0.5),
+            self.testa.rescale(0.5),
+            self.testb.rescale(0.5)
         ]
+        assert not np.any(np.isnan(expected))
         self.assertListEqual(
             sorted(expected),
             sorted(
@@ -374,13 +415,22 @@ class TestPriorDict(unittest.TestCase):
             ),
         )
 
+    def test_rescale_actual_subset(self):
+        theta = [0.5]
+        keys = ["testAbase"]
+        joint_prior = self.joint_prior_from_file
+        samples = joint_prior.rescale(keys=keys, theta=theta)
+        self.assertTrue(joint_prior["testAbase"].dist._current_rescaled_parameter_values["testAbase"] is None)
+        self.assertTrue(joint_prior["testBbase"].dist._current_rescaled_parameter_values["testBbase"] is None)
+        self.assertTrue(np.all(np.isnan(samples)))
+
     def test_cdf(self):
         """
         Test that the CDF method is the inverse of the rescale method.
 
         Note that the format of inputs/outputs is different between the two methods.
         """
-        sample = self.prior_set_from_dict.sample()
+        sample = self.prior_set_from_dict.sample_subset(keys=["length", "speed", "mass"])
         original = np.array(list(sample.values()))
         new = np.array(self.prior_set_from_dict.rescale(
             sample.keys(),
