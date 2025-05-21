@@ -19,7 +19,7 @@ maintainers = [
   {name = "Greg Ashton"},
   {name = "Sylvia Biscoveanu"},
   {name = "Colm Talbot"},
-  {name = "Aditya Vijaykumar"}
+  {name = "Aditya Vijaykumar"},
   {name = "Michael J. Williams"}
 ]
 classifiers = [
