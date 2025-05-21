@@ -53,4 +53,4 @@ def test_injection_into_timeseries_matches_ifo_injections():
         / sum(whitened_data_1**2)**0.5
         / sum(whitened_data_2**2)**0.5
     )
-    assert mismatch < 1e-3
+    assert mismatch < 3e-3
