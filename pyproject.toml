@@ -1,26 +1,14 @@
 [build-system]
-requires = [
-    "setuptools>=62.6",
-    "setuptools_scm[toml]>=3.4.3",
-    "wheel",
-]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=62.6",
+  "setuptools_scm[toml]>=3.4.3",
+  "wheel"
+]
 
 [project]
-name = "bilby"
-description = "A user-friendly Bayesian inference library"
-readme = "README.rst"
-requires-python = ">=3.10"
-license = { file = "LICENSE.md" }
 authors = [
   {name = "Bilby Developers"}
-]
-maintainers = [
-  {name = "Greg Ashton"},
-  {name = "Sylvia Biscoveanu"},
-  {name = "Colm Talbot"},
-  {name = "Aditya Vijaykumar"},
-  {name = "Michael J. Williams"}
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -29,25 +17,28 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering :: Physics"
 ]
+description = "A user-friendly Bayesian inference library"
 dynamic = ["dependencies", "optional-dependencies", "version"]
-
-[project.urls]
-Homepage = "https://github.com/bilby-dev/bilby"
-Documentation = "https://bilby.readthedocs.io"
-Source = "https://github.com/bilby-dev/bilby"
-Tracker = "https://github.com/bilby-dev/bilby/issues"
-
-[project.scripts]
-bilby_plot = "cli_bilby.plot_multiple_posteriors:main"
-bilby_result = "cli_bilby.bilby_result:main"
+license = {file = "LICENSE.md"}
+maintainers = [
+  {name = "Greg Ashton"},
+  {name = "Sylvia Biscoveanu"},
+  {name = "Colm Talbot"},
+  {name = "Aditya Vijaykumar"},
+  {name = "Michael J. Williams"}
+]
+name = "bilby"
+readme = "README.rst"
+requires-python = ">=3.10"
 
 [project.entry-points."bilby.samplers"]
 "bilby.bilby_mcmc" = "bilby.bilby_mcmc.sampler:Bilby_MCMC"
 "bilby.cpnest" = "bilby.core.sampler.cpnest:Cpnest"
 "bilby.dnest4" = "bilby.core.sampler.dnest4:DNest4"
-"bilby.dynesty" = "bilby.core.sampler.dynesty:Dynesty"
 "bilby.dynamic_dynesty" = "bilby.core.sampler.dynamic_dynesty:DynamicDynesty"
+"bilby.dynesty" = "bilby.core.sampler.dynesty:Dynesty"
 "bilby.emcee" = "bilby.core.sampler.emcee:Emcee"
+"bilby.fake_sampler" = "bilby.core.sampler.fake_sampler:FakeSampler"
 "bilby.kombine" = "bilby.core.sampler.kombine:Kombine"
 "bilby.nessai" = "bilby.core.sampler.nessai:Nessai"
 "bilby.nestle" = "bilby.core.sampler.nestle:Nestle"
@@ -58,73 +49,101 @@ bilby_result = "cli_bilby.bilby_result:main"
 "bilby.pypolychord" = "bilby.core.sampler.polychord:PyPolyChord"
 "bilby.ultranest" = "bilby.core.sampler.ultranest:Ultranest"
 "bilby.zeus" = "bilby.core.sampler.zeus:Zeus"
-"bilby.fake_sampler" = "bilby.core.sampler.fake_sampler:FakeSampler"
+
+[project.scripts]
+bilby_plot = "cli_bilby.plot_multiple_posteriors:main"
+bilby_result = "cli_bilby.bilby_result:main"
+
+[project.urls]
+Documentation = "https://bilby.readthedocs.io"
+Homepage = "https://github.com/bilby-dev/bilby"
+Source = "https://github.com/bilby-dev/bilby"
+Tracker = "https://github.com/bilby-dev/bilby/issues"
+
+[tool.flake8]
+exclude = [
+  ".git",
+  "docs",
+  "build",
+  "dist",
+  "test",
+  "*__init__.py"
+]
+ignore = ["E129", "W503", "W504", "E203", "E402"]
+max-line-length = 120
+
+[tool.isort]
+known_third_party = [
+  "astropy",
+  "attr",
+  "bilby",
+  "deepdish",
+  "gwin",
+  "gwinc",
+  "gwpy",
+  "lal",
+  "lalsimulation",
+  "matplotlib",
+  "mock",
+  "nflows",
+  "numpy",
+  "packaging",
+  "pandas",
+  "past",
+  "pycbc",
+  "pymc3",
+  "pytest",
+  "scipy",
+  "setuptools",
+  "skimage",
+  "torch"
+]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--ignore=test/import_test.py",
+  "--ignore=test/integration/other_test.py",
+  "--ignore=test/integration/example_test.py",
+  "--ignore=test/integration/sample_from_the_prior_test.py",
+  "--ignore=test/gw/plot_test.py",
+  "--ignore=test/integration/sampler_run_test.py"
+]
 
 [tool.setuptools]
 packages = [
-    "bilby",
-    "bilby.bilby_mcmc",
-    "bilby.core",
-    "bilby.core.prior",
-    "bilby.core.sampler",
-    "bilby.core.utils",
-    "bilby.gw",
-    "bilby.gw.detector",
-    "bilby.gw.eos",
-    "bilby.gw.likelihood",
-    "bilby.gw.sampler",
-    "bilby.hyper",
-    "cli_bilby",
+  "bilby",
+  "bilby.bilby_mcmc",
+  "bilby.core",
+  "bilby.core.prior",
+  "bilby.core.sampler",
+  "bilby.core.utils",
+  "bilby.gw",
+  "bilby.gw.detector",
+  "bilby.gw.eos",
+  "bilby.gw.likelihood",
+  "bilby.gw.sampler",
+  "bilby.hyper",
+  "cli_bilby"
 ]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.dynamic.optional-dependencies]
+all = {file = [
+  "gw_requirements.txt",
+  "mcmc_requirements.txt",
+  "sampler_requirements.txt",
+  "optional_requirements.txt"
+]}
+gw = {file = ["gw_requirements.txt"]}
+mcmc = {file = ["mcmc_requirements.txt"]}
 
 [tool.setuptools.package-data]
 "bilby.gw" = ["prior_files/*"]
 "bilby.gw.detector" = ["noise_curves/*.txt", "detectors/*"]
 "bilby.gw.eos" = ["eos_tables/*.dat"]
 
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
-
-[tool.setuptools.dynamic.optional-dependencies]
-gw = { file = ["gw_requirements.txt"] }
-mcmc = { file = ["mcmc_requirements.txt"] }
-all = { file = [
-    "gw_requirements.txt",
-    "mcmc_requirements.txt",
-    "sampler_requirements.txt",
-    "optional_requirements.txt"
-]}
-
 [tool.setuptools_scm]
 write_to = "bilby/_version.py"
-
-[tool.pytest.ini_options]
-addopts = [
-    "--ignore=test/import_test.py",
-    "--ignore=test/integration/other_test.py",
-    "--ignore=test/integration/example_test.py",
-    "--ignore=test/integration/sample_from_the_prior_test.py",
-    "--ignore=test/gw/plot_test.py",
-    "--ignore=test/integration/sampler_run_test.py"
-]
-
-[tool.isort]
-known_third_party = [
-    "astropy", "attr", "bilby", "deepdish", "gwin", "gwinc", "gwpy",
-    "lal", "lalsimulation", "matplotlib", "mock", "nflows", "numpy",
-    "packaging", "pandas", "past", "pycbc", "pymc3", "pytest", "scipy",
-    "setuptools", "skimage", "torch"
-]
-profile = "black"
-
-[tool.flake8]
-exclude = [
-    ".git",
-    "docs",
-    "build",
-    "dist",
-    "test",
-    "*__init__.py"
-]
-max-line-length = 120
-ignore = ["E129", "W503", "W504", "E203", "E402"]
