@@ -13,7 +13,14 @@ readme = "README.rst"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
 authors = [
-  { name = "Bilby Developers" }
+  {name = "Bilby Developers"}
+]
+maintainers = [
+  {name = "Greg Ashton"},
+  {name = "Sylvia Biscoveanu"},
+  {name = "Colm Talbot"},
+  {name = "Aditya Vijaykumar"}
+  {name = "Michael J. Williams"}
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
