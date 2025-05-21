@@ -106,7 +106,7 @@ def inject_signal_into_gwpy_timeseries(
         fig.savefig('{}/{}_{}_time_domain_injected_signal'.format(
             outdir, ifo.name, label))
 
-    meta_data = dict()
+    meta_data = dict(name=det)
     frequency_domain_signal, _ = utils.nfft(
         signal_shifted.value, waveform_generator.sampling_frequency
     )
@@ -122,6 +122,7 @@ def inject_signal_into_gwpy_timeseries(
         ifo.power_spectral_density_array,
         ifo.duration,
     )
+    meta_data["parameters"] = parameters
 
     logger.info("Injected signal in {}:".format(ifo.name))
     logger.info("  optimal SNR = {:.2f}".format(meta_data['optimal_SNR']))
