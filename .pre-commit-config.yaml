@@ -27,7 +27,6 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
-        args: [-w=88, -m=3, -tc]
         files: '^(bilby/bilby_mcmc/|bilby/core/sampler/|examples/)'
 
 -   repo: https://github.com/datarootsio/databooks

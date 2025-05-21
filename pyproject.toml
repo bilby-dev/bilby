@@ -115,6 +115,7 @@ known_third_party = [
     "packaging", "pandas", "past", "pycbc", "pymc3", "pytest", "scipy",
     "setuptools", "skimage", "torch"
 ]
+profile = "black"
 
 [tool.flake8]
 exclude = [
