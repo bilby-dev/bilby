@@ -13,6 +13,7 @@ import pandas as pd
 import scipy.stats
 
 from . import utils
+from .likelihood import _safe_likelihood_call
 from .utils import (
     logger, infer_parameters_from_function,
     check_directory_exists_and_if_not_mkdir,
@@ -31,11 +32,6 @@ from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
-
-
-def __eval_l(likelihood, params):
-    likelihood.parameters.update(params)
-    return likelihood.log_likelihood()
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -214,7 +210,7 @@ def get_weights_for_reweighting(
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100, n // (2 * npool))
             return list(tqdm(
-                pool.imap(partial(__eval_l, this_logl),
+                pool.imap(partial(_safe_likelihood_call, this_logl),
                         dict_samples[starting_index:], chunksize=chunksize),
                 desc='Computing likelihoods',
                 total=n)
