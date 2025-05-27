@@ -874,6 +874,31 @@ class TestReweight(unittest.TestCase):
         self.assertLess(abs(new.log_evidence - self.result.log_evidence), 0.05)
         self.assertNotEqual(new.log_evidence, self.result.log_evidence)
 
+    def test_save_to_file_filename_with_extension_and_extension_none(self):
+        # Should use the extension from filename
+        filename = os.path.join(self.result.outdir, "custom_name.hdf5")
+        self.result.save_to_file(filename=filename, extension=None)
+        self.assertTrue(os.path.isfile(filename))
+        os.remove(filename)
+
+    def test_save_to_file_filename_with_extension_and_extension_set(self):
+        # Should override the extension in filename with the one provided in extension
+        filename = os.path.join(self.result.outdir, "custom_name.hdf5")
+        expected = os.path.join(self.result.outdir, "custom_name.json")
+        self.result.save_to_file(filename=filename, extension="json")
+        self.assertTrue(os.path.isfile(expected))
+        self.assertFalse(os.path.isfile(filename))
+        os.remove(expected)
+
+    def test_save_to_file_filename_without_extension_and_extension_none(self):
+        # Should use the default extension (json)
+        filename = os.path.join(self.result.outdir, "custom_name_noext")
+        expected = filename + ".json"
+        self.result.save_to_file(filename=filename, extension=None)
+        self.assertTrue(os.path.isfile(expected))
+        self.assertFalse(os.path.isfile(filename))
+        os.remove(expected)
+
 
 if __name__ == "__main__":
     unittest.main()
