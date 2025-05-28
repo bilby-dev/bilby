@@ -71,10 +71,10 @@ def get_cosmology(cosmology=None):
 
             # Convert H0 from SI to km / (Mpc s) using LAL constants to ensure
             # consistency
-            LAL_H0 = LAL_H0_SI * 1e3 * LAL_PC_SI
+            LAL_H0 = LAL_H0_SI * 1e3 * LAL_PC_SI * units.km / (units.Mpc * units.s)
 
             cosmology = cosmo.FlatLambdaCDM(
-                H0=LAL_H0 * units.km / (units.Mpc * units.s), Om0=LAL_OMEGA_M, name="Planck15_LAL"
+                H0=LAL_H0, Om0=LAL_OMEGA_M, name="Planck15_LAL"
             )
         else:
             cosmology = getattr(cosmo, cosmology)
