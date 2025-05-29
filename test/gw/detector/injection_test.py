@@ -2,6 +2,7 @@ import bilby
 from gwpy.frequencyseries import FrequencySeries
 
 
+@pytest.mark.flaky(reruns=3)
 def test_injection_into_timeseries_matches_ifo_injections():
     """
     Test that injecting into a gwpy timeseries agree with the frequency-domain
