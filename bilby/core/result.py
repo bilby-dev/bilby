@@ -811,8 +811,8 @@ class Result(object):
                 extension = "json"
                 filename = base_filename
             filename = f"{base}.{extension}"
-            if extension is None or extension is True:
-                extension = 'json'
+        if extension is None or extension is True:
+            extension = 'json'
 
         outdir = _outdir if outdir is None else outdir
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
