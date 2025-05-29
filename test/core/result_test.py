@@ -889,7 +889,6 @@ class TestReweight(unittest.TestCase):
         self.assertTrue(os.path.isfile(expected))
         self.assertFalse(os.path.isfile(filename))
         os.remove(expected)
-        
 
     def test_save_to_file_filename_with_extension_and_extension_set(self):
         # Should override the extension in filename with the one provided in extension
