@@ -768,9 +768,8 @@ class Result(object):
         return dictionary
 
     def save_to_file(self, filename=None, overwrite=False, outdir=None,
-                     extension='json', gzip=False):
+                     extension=None, gzip=False):
         """
-
         Writes the Result to a file.
 
         Supported formats are: `json`, `hdf5`, `pickle`
@@ -785,22 +784,35 @@ class Result(object):
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
             If given, overwrite path prefix in 'filename'.
-        extension: str, optional {json, hdf5, pkl, pickle, True}
-            Determines the method to use to store the data (if True defaults
-            to json)
+        extension: {"json", "hdf5", "pkl", None}, optional
+            Determines the method to use to store the data. If None, the extension
+            is inferred from the filename if provided, otherwise defaults to 'json'.
         gzip: bool, optional
             If true, and outputting to a json file, this will gzip the resulting
             file and add '.gz' to the file extension.
         """
 
-        if extension is True:
-            extension = "json"
-
         _outdir = None
         if filename is not None:
-            _outdir, filename = os.path.split(filename)
+            _outdir, base_filename = os.path.split(filename)
             _outdir = None if _outdir == "" else _outdir
-            filename = f"{os.path.splitext(filename)[0]}.{extension}"
+            base, ext = os.path.splitext(base_filename)
+            if extension is None:
+                extension = ext[1:] if ext else "json"
+                filename = base_filename
+            elif extension is True:
+                message = "Result.save_to_file called with extension=True. "
+                if len(ext) > 0:
+                    message += f"Overwriting extension to json from {ext}, this"
+                else:
+                    message += "This"
+                message += " behaviour is deprecated and will be removed."
+                logger.warning(message)
+                extension = "json"
+                filename = base_filename
+            filename = f"{base}.{extension}"
+        if extension is None or extension is True:
+            extension = 'json'
 
         outdir = _outdir if outdir is None else outdir
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
@@ -842,13 +854,13 @@ class Result(object):
             elif extension == 'pkl':
                 safe_file_dump(self, output_path, "dill")
             else:
-                raise ValueError("Extension type {} not understood".format(extension))
+                raise ValueError(f"Extension type {extension} not understood")
         except Exception as e:
             output_path = f"{os.path.splitext(output_path)[0]}.pkl"
             safe_file_dump(self, output_path, "dill")
             logger.error(
                 "\n\nSaving the data has failed with the following message:\n"
-                "{}\nData has been dumped to {}.\n\n".format(e, output_path)
+                f"{e}\nData has been dumped to {output_path}.\n\n"
             )
 
     def save_posterior_samples(self, filename=None, outdir=None, label=None):
