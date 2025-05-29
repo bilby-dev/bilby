@@ -803,7 +803,7 @@ class Result(object):
             elif extension is True:
                 message = "Result.save_to_file called with extension=True. "
                 if len(ext) > 0:
-                    messsage += f"Overwriting extension to json from {ext}, this"
+                    message += f"Overwriting extension to json from {ext}, this"
                 else:
                     message += "This"
                 message += " behaviour is deprecated and will be removed."
