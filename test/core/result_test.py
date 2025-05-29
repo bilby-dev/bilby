@@ -918,5 +918,6 @@ class TestReweight(unittest.TestCase):
         self.assertFalse(os.path.isfile(filename))
         os.remove(expected)
 
+
 if __name__ == "__main__":
     unittest.main()
