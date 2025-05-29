@@ -1,4 +1,5 @@
 import bilby
+import pytest
 from gwpy.frequencyseries import FrequencySeries
 
 
