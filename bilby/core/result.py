@@ -784,7 +784,7 @@ class Result(object):
         outdir: str, optional
             Path to the outdir. Default is the one stored in the result object.
             If given, overwrite path prefix in 'filename'.
-        extension: str or None, optional {json, hdf5, pkl, pickle None}
+        extension: {"json", "hdf5", "pkl", None}, optional
             Determines the method to use to store the data. If None, the extension
             is inferred from the filename if provided, otherwise defaults to 'json'.
         gzip: bool, optional
@@ -797,12 +797,20 @@ class Result(object):
             _outdir, base_filename = os.path.split(filename)
             _outdir = None if _outdir == "" else _outdir
             base, ext = os.path.splitext(base_filename)
-            if extension is None or extension is True:
+            if extension is None:
                 extension = ext[1:] if ext else "json"
                 filename = base_filename
+            elif extension is True:
+                message = "Result.save_to_file called with extension=True. "
+                if len(ext) > 0:
+                    messsage += f"Overwriting extension to json from {ext}, this"
+                else:
+                    message += "This"
+                message += " behaviour is deprecated and will be removed."
+                logger.warning(message)
+                extension = "json"
+                filename = base_filename
             filename = f"{base}.{extension}"
-        else:
-            filename = None
             if extension is None or extension is True:
                 extension = 'json'
 

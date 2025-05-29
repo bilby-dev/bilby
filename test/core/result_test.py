@@ -881,6 +881,16 @@ class TestReweight(unittest.TestCase):
         self.assertTrue(os.path.isfile(filename))
         os.remove(filename)
 
+    def test_save_to_file_filename_with_extension_and_extension_true(self):
+        """This is a strange default, that we should remove, but is here for consistency"""
+        filename = os.path.join(self.result.outdir, "custom_name.hdf5")
+        expected = os.path.join(self.result.outdir, "custom_name.json")
+        self.result.save_to_file(filename=filename, extension=True)
+        self.assertTrue(os.path.isfile(expected))
+        self.assertFalse(os.path.isfile(filename))
+        os.remove(expected)
+        
+
     def test_save_to_file_filename_with_extension_and_extension_set(self):
         # Should override the extension in filename with the one provided in extension
         filename = os.path.join(self.result.outdir, "custom_name.hdf5")
@@ -899,6 +909,14 @@ class TestReweight(unittest.TestCase):
         self.assertFalse(os.path.isfile(filename))
         os.remove(expected)
 
+    def test_save_to_file_defaults_to_pickle_with_incorrect_extension(self):
+        """This is a weird fallback..."""
+        filename = os.path.join(self.result.outdir, "custom_name_noext")
+        expected = filename + ".pkl"
+        self.result.save_to_file(filename=filename, extension="bar")
+        self.assertTrue(os.path.isfile(expected))
+        self.assertFalse(os.path.isfile(filename))
+        os.remove(expected)
 
 if __name__ == "__main__":
     unittest.main()
