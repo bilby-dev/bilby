@@ -5,6 +5,12 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.5.2]
+
+### Fixed
+
+- Fix the filename extension precedence for result files (https://github.com/bilby-dev/bilby/pull/960)
+
 ## [2.5.1]
 
 ### Changed
@@ -1151,7 +1157,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.1...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.2...main
+[2.5.2]: https://github.com/bilby-dev/bilby/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/bilby-dev/bilby/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0
