@@ -41,11 +41,11 @@ class _DNest4Model(object):
 
     def perturb(self, coords):
         """The perturb function to perform Monte Carlo trial moves."""
-        from ..utils.random import rng
+        from ..utils import random
 
-        idx = rng.integers(self._n_dim)
+        idx = random.rng.integers(self._n_dim)
 
-        coords[idx] += self._widths[idx] * (rng.uniform(size=1) - 0.5)
+        coords[idx] += self._widths[idx] * (random.rng.uniform(size=1) - 0.5)
         cw = self._widths[idx]
         cc = self._centers[idx]
 

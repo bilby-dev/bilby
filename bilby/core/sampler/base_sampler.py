@@ -585,14 +585,14 @@ class Sampler(object):
             likelihood evaluations.
 
         """
-        from ..utils.random import rng
+        from ..utils import random
 
         logger.info("Generating initial points from the prior")
         unit_cube = []
         parameters = []
         likelihood = []
         while len(unit_cube) < npoints:
-            unit = rng.uniform(0, 1, self.ndim)
+            unit = random.rng.uniform(0, 1, self.ndim)
             theta = self.prior_transform(unit)
             if self.check_draw(theta, warning=False):
                 unit_cube.append(unit)
