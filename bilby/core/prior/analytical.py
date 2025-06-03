@@ -1439,34 +1439,63 @@ class FermiDirac(Prior):
             return lnp
 
 
-class Categorical(Prior):
-    def __init__(self, ncategories, name=None, latex_label=None,
-                 unit=None, boundary="periodic"):
-        """ An equal-weighted Categorical prior
+class WeightedCategorical(Prior):
+    def __init__(
+        self,
+        ncategories,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary="periodic",
+    ):
+        """A weighted Categorical prior
 
         Parameters
         ==========
         ncategories: int
             The number of available categories. The prior mass support is then
             integers [0, ncategories - 1].
+        weights: array_like
+            The weights of each category. If None, then all categories are
+            equally weighted.
         name: str
-            See superclass
+            The name of the parameter
         latex_label: str
-            See superclass
+            The latex label of the parameter. Used for plotting.
         unit: str
-            See superclass
+            The unit of the parameter. Used for plotting.
         """
 
         minimum = 0
         # Small delta added to help with MCMC walking
         maximum = ncategories - 1 + 1e-15
-        super(Categorical, self).__init__(
-            name=name, latex_label=latex_label, minimum=minimum,
-            maximum=maximum, unit=unit, boundary=boundary)
+        super().__init__(
+            name=name,
+            latex_label=latex_label,
+            minimum=minimum,
+            maximum=maximum,
+            unit=unit,
+            boundary=boundary,
+        )
         self.ncategories = ncategories
-        self.categories = np.arange(self.minimum, self.maximum)
-        self.p = 1 / self.ncategories
-        self.lnp = -np.log(self.ncategories)
+        self.categories = np.arange(self.minimum, self.maximum, dtype=int)
+
+        p = (
+            np.atleast_1d(weights) / np.sum(weights)
+            if weights is not None
+            else np.ones(self.ncategories) / self.ncategories
+        )
+        # check for consistent shape of input
+        if len(p) != self.ncategories or len(p.shape) != 1:
+            raise ValueError(
+                "Inconsistent shape of weights and number of categories:"
+                + f"np.atleast_1d(weights) has shape {p.shape} "
+                + f"while number of categories is {self.ncategories}")
+        self.p = p
+        # save cdf for rescaling
+        self._cum_p = np.cumsum(p)
+        self.lnp = np.log(self.p)
 
     def rescale(self, val):
         """
@@ -1483,7 +1512,30 @@ class Categorical(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return np.floor(val * (1 + self.maximum))
+        return np.searchsorted(self._cum_p, val)
+
+    def cdf(self, val):
+        """Return the cumulative prior probability of val.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: cumulative prior probability of val
+        """
+        if (not hasattr(val, "__len__")):
+            if val in self.categories:
+                return self._cum_p[int(val)]
+            else:
+                return 0
+        else:
+            val = np.atleast_1d(val).astype(int)
+            cumprobs = np.zeros_like(val, dtype=np.float64)
+            idxs = np.isin(val, self.categories)
+            cumprobs[idxs] = self._cum_p[val[idxs]]
+            return cumprobs
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1496,16 +1548,16 @@ class Categorical(Prior):
         =======
         float: Prior probability of val
         """
-        if isinstance(val, (float, int)):
+        if (not hasattr(val, "__len__")):
             if val in self.categories:
-                return self.p
+                return self.p[int(val)]
             else:
                 return 0
         else:
-            val = np.atleast_1d(val)
+            val = np.atleast_1d(val).astype(int)
             probs = np.zeros_like(val, dtype=np.float64)
             idxs = np.isin(val, self.categories)
-            probs[idxs] = self.p
+            probs[idxs] = self.p[val[idxs]]
             return probs
 
     def ln_prob(self, val):
@@ -1520,17 +1572,43 @@ class Categorical(Prior):
         float:
 
         """
-        if isinstance(val, (float, int)):
+        if (not hasattr(val, "__len__")):
             if val in self.categories:
-                return self.lnp
+                return self.lnp[int(val)]
             else:
                 return -np.inf
         else:
-            val = np.atleast_1d(val)
-            probs = -np.inf * np.ones_like(val, dtype=np.float64)
+            val = np.atleast_1d(val).astype(int)
+            lnprobs = np.ones_like(val, dtype=np.float64) * (-np.inf)
             idxs = np.isin(val, self.categories)
-            probs[idxs] = self.lnp
-            return probs
+            lnprobs[idxs] = self.lnp[val[idxs]]
+            return lnprobs
+
+
+class Categorical(WeightedCategorical):
+    def __init__(self, ncategories, name=None, latex_label=None,
+                 unit=None, boundary="periodic"):
+        """ An equal-weighted Categorical prior
+
+        Parameters
+        ==========
+        ncategories: int
+            The number of available categories. The prior mass support is then
+            integers [0, ncategories - 1].
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        super().__init__(ncategories=ncategories,
+                         weights=None,
+                         name=name,
+                         latex_label=latex_label,
+                         unit=unit,
+                         boundary=boundary
+                         )
 
 
 class Triangular(Prior):
