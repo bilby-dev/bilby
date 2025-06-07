@@ -31,7 +31,7 @@ class DynamicDynesty(Dynesty):
 
     @property
     def sampler_init(self):
-        from dynesty import DynamicNestedSampler
+        from dynesty.dynesty import DynamicNestedSampler
 
         return DynamicNestedSampler
 
