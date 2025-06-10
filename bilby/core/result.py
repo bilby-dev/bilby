@@ -82,7 +82,7 @@ def _determine_file_name(filename, outdir, label, extension, gzip):
             return result_file_name(outdir, label, extension, gzip)
 
 
-def read_in_result(filename=None, outdir=None, label=None, extension='json', gzip=False, result_class=None):
+def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=False, result_class=None):
     """ Reads in a stored bilby result object
 
     Parameters
@@ -92,12 +92,17 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
     outdir, label, extension: str
         Name of the output directory, label and extension used for the default
         naming scheme.
+    extension: str, optional
+        The file extension to use. If not given, the extension is inferred from
+        the filename if provided, otherwise defaults to 'json'.
     result_class: bilby.core.result.Result, or child of
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
         additional methods.
     """
-    filename = _determine_file_name(filename, outdir, label, extension, gzip)
+    filename = _determine_file_name(
+        filename, outdir, label, extension or "json", gzip
+    )
 
     if result_class is None:
         result_class = Result
@@ -106,8 +111,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
 
     # Get the actual extension (may differ from the default extension if the filename is given)
     if extension is None:
-        extension = os.path.splitext(filename)[1].lstrip('.')
-    elif extension == 'gz':  # gzipped file
+        extension = os.path.splitext(filename)[1][1:]
+    if extension == 'gz':  # gzipped file
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
     if 'json' in extension:
