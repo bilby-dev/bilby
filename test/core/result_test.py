@@ -4,11 +4,13 @@ import pandas as pd
 import shutil
 import os
 import json
+import parameterized
 import pytest
 from unittest.mock import patch
 
 import bilby
 from bilby.core.result import ResultError
+from bilby.core.utils import logger
 
 
 class TestJson(unittest.TestCase):
@@ -290,7 +292,7 @@ class TestResult(unittest.TestCase):
         self._save_with_outdir_and_filename("out/result", None, "out/result.json")
         self._save_with_outdir_and_filename("result", "out", "out/result.json")
         self._save_with_outdir_and_filename(
-            "result", None, os.path.join(self.result.outdir, "result.json"))
+            "result", None, os.path.join(self.result.outdir, "result"))
         self._save_with_outdir_and_filename(
             None, "out", os.path.join("out", f"{self.result.label}_result.json"))
 
@@ -881,31 +883,28 @@ class TestReweight(unittest.TestCase):
         self.assertTrue(os.path.isfile(filename))
         os.remove(filename)
 
-    def test_save_to_file_filename_with_extension_and_extension_true(self):
-        """This is a strange default, that we should remove, but is here for consistency"""
+    @parameterized.parameterized.expand([
+        ("json",),
+        ("pkl",),
+        ("pickle",),
+        (True,),
+    ])
+    def test_save_to_file_filename_with_extension_and_extension(self, extension):
+        """Test all the extensions that are support when the filename is provided"""
         filename = os.path.join(self.result.outdir, "custom_name.hdf5")
-        expected = os.path.join(self.result.outdir, "custom_name.json")
-        self.result.save_to_file(filename=filename, extension=True)
+        expected = filename
+        with self.assertLogs(logger, level='WARNING') as cm:
+            self.result.save_to_file(filename=filename, extension=extension)
+        self.assertIn("does not match the provided extension", cm.output[0])
         self.assertTrue(os.path.isfile(expected))
-        self.assertFalse(os.path.isfile(filename))
-        os.remove(expected)
-
-    def test_save_to_file_filename_with_extension_and_extension_set(self):
-        # Should override the extension in filename with the one provided in extension
-        filename = os.path.join(self.result.outdir, "custom_name.hdf5")
-        expected = os.path.join(self.result.outdir, "custom_name.json")
-        self.result.save_to_file(filename=filename, extension="json")
-        self.assertTrue(os.path.isfile(expected))
-        self.assertFalse(os.path.isfile(filename))
         os.remove(expected)
 
     def test_save_to_file_filename_without_extension_and_extension_none(self):
         # Should use the default extension (json)
         filename = os.path.join(self.result.outdir, "custom_name_noext")
-        expected = filename + ".json"
+        expected = filename
         self.result.save_to_file(filename=filename, extension=None)
         self.assertTrue(os.path.isfile(expected))
-        self.assertFalse(os.path.isfile(filename))
         os.remove(expected)
 
     def test_save_to_file_defaults_to_pickle_with_incorrect_extension(self):
