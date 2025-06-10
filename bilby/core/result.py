@@ -777,7 +777,8 @@ class Result(object):
         Parameters
         ==========
         filename: optional,
-            Filename to write to (overwrites the default)
+            Filename to write to (overwrites the default). Assumed to include the
+            file extension.
         overwrite: bool, optional
             Whether or not to overwrite an existing result file.
             default=False
@@ -794,24 +795,34 @@ class Result(object):
 
         _outdir = None
         if filename is not None:
-            _outdir, base_filename = os.path.split(filename)
+            # Overwrite the full filename with the base filename
+            # Well append the outdir later on
+            _outdir, filename = os.path.split(filename)
             _outdir = None if _outdir == "" else _outdir
-            base, ext = os.path.splitext(base_filename)
-            if extension is None:
-                extension = ext[1:] if ext else "json"
-                filename = base_filename
-            elif extension is True:
-                message = "Result.save_to_file called with extension=True. "
-                if len(ext) > 0:
-                    message += f"Overwriting extension to json from {ext}, this"
-                else:
-                    message += "This"
-                message += " behaviour is deprecated and will be removed."
-                logger.warning(message)
-                extension = "json"
-                filename = base_filename
-            filename = f"{base}.{extension}"
-        if extension is None or extension is True:
+            _, ext = os.path.splitext(filename)
+            ext = ext[1:] if ext else None
+            # If the extension has not been set, try to infer it from the filename
+            # if not, it will fall back to the default
+            if ext in EXTENSIONS:
+                if extension is None:
+                    extension = ext
+                elif ext != extension:
+                    message = (
+                        f"The specified extension '{ext}' "
+                        f"does not match the provided extension '{extension}'. "
+                    )
+                    logger.warning(message)
+
+        if extension is None:
+            extension = 'json'
+
+        if extension is True:
+            message = (
+                "Result.save_to_file called with extension=True. "
+                "This will default to json, and ignore the extension from the filename. "
+                "This behaviour is deprecated and will be removed. "
+            )
+            logger.warning(message)
             extension = 'json'
 
         outdir = _outdir if outdir is None else outdir
@@ -845,13 +856,13 @@ class Result(object):
                 else:
                     with open(output_path, 'w') as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
-            elif extension == 'hdf5':
+            elif extension in ['hdf5', 'h5']:
                 import h5py
                 dictionary["__module__"] = self.__module__
                 dictionary["__name__"] = self.__class__.__name__
                 with h5py.File(output_path, 'w') as h5file:
                     recursively_save_dict_contents_to_group(h5file, '/', dictionary)
-            elif extension == 'pkl':
+            elif extension in ['pkl', 'pickle']:
                 safe_file_dump(self, output_path, "dill")
             else:
                 raise ValueError(f"Extension type {extension} not understood")
