@@ -111,7 +111,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
 
     # Get the actual extension (may differ from the default extension if the filename is given)
     if extension is None:
-        extension = os.path.splitext(filename)[1][1:]
+        ext = os.path.splitext(filename)[1][1:]
+        extension = ext if ext else 'json'
     if extension == 'gz':  # gzipped file
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
