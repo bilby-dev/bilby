@@ -897,6 +897,9 @@ class TestReweight(unittest.TestCase):
             self.result.save_to_file(filename=filename, extension=extension)
         self.assertIn("does not match the provided extension", cm.output[0])
         self.assertTrue(os.path.isfile(expected))
+        if extension is True:
+            extension = "json"
+        bilby.core.result.read_in_result(filename=expected, extension=extension)
         os.remove(expected)
 
     def test_save_to_file_filename_without_extension_and_extension_none(self):
