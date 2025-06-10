@@ -288,9 +288,9 @@ class TestResult(unittest.TestCase):
         self.assertTrue(os.path.isfile(template))
 
     def test_save_with_outdir_and_filename(self):
-        self._save_with_outdir_and_filename("out/result", "out2", "out2/result.json")
-        self._save_with_outdir_and_filename("out/result", None, "out/result.json")
-        self._save_with_outdir_and_filename("result", "out", "out/result.json")
+        self._save_with_outdir_and_filename("out/result", "out2", "out2/result")
+        self._save_with_outdir_and_filename("out/result", None, "out/result")
+        self._save_with_outdir_and_filename("result", "out", "out/result")
         self._save_with_outdir_and_filename(
             "result", None, os.path.join(self.result.outdir, "result"))
         self._save_with_outdir_and_filename(
