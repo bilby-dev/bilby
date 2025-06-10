@@ -105,8 +105,9 @@ def read_in_result(filename=None, outdir=None, label=None, extension='json', gzi
         raise ValueError(f"Input result_class={result_class} not understood")
 
     # Get the actual extension (may differ from the default extension if the filename is given)
-    extension = os.path.splitext(filename)[1].lstrip('.')
-    if extension == 'gz':  # gzipped file
+    if extension is None:
+        extension = os.path.splitext(filename)[1].lstrip('.')
+    elif extension == 'gz':  # gzipped file
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
     if 'json' in extension:
