@@ -139,13 +139,14 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
     # Catch all other exceptions and raise a FileLoadError
     try:
         result = func(filename=filename)
-    except IOError:
+    except IOError as e:
         raise IOError(
             f"Failed to read in file {filename} using "
             f"`{result_class.__name__}.{func.__name__}` "
             f"(extension={extension}). "
             "This is likely because the file does not exist or is not a valid bilby result."
-        )
+            f"The error was: {e}"
+        ) from e
     except Exception as e:
         raise FileLoadError(
             f"Failed to read in file {filename} using "
