@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import patch
 
 import bilby
-from bilby.core.result import ResultError
+from bilby.core.result import ResultError, FileLoadError
 from bilby.core.utils import logger
 
 
@@ -602,6 +602,8 @@ class TestResult(unittest.TestCase):
         # result should be specified result_class
         assert isinstance(result, NotAResult)
 
+        # TODO: figure out why the caching message is not logged
+        # with self.assertLogs(logger, "INFO") as cm:
         cached_result = bilby.run_sampler(
             likelihood,
             priors,
@@ -614,6 +616,7 @@ class TestResult(unittest.TestCase):
             check_point_plot=False,
             result_class=NotAResult
         )
+        # self.assertIn("Using cached result", cm.output[0])
 
         # so should a result loaded from cache
         assert isinstance(cached_result, NotAResult)
@@ -1005,6 +1008,24 @@ class TestResultSaveAndRead(unittest.TestCase):
         self.assertFalse(os.path.isfile(filename))
         bilby.core.result.read_in_result(filename=expected)
         os.remove(expected)
+
+    @parameterized.parameterized.expand([
+        ("json", "hdf5"),
+        ("json", "pkl"),
+        ("hdf5", "json"),
+        ("pkl", "json"),
+        ("json", "pkl"),
+        ("hdf5", "pkl"),
+    ])
+    def test_save_and_read_incorrect_extension(self, save_extension, read_extension):
+        """Test that an incorrect extension raises a somewhat helpful error"""
+        filename = os.path.join(self.result.outdir, "my_result")
+        self.result.save_to_file(filename=filename, extension=save_extension)
+        with self.assertRaises(
+            (FileLoadError, IOError), msg=f"Failed to read in file {filename}"
+        ):
+            bilby.core.result.read_in_result(filename=filename, extension=read_extension)
+        os.remove(filename)
 
 
 if __name__ == "__main__":
