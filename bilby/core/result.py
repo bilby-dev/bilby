@@ -117,18 +117,41 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
     if extension == 'gz':  # gzipped file
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
-    if 'json' == extension:
-        result = result_class.from_json(filename=filename)
-    elif extension in ['hdf5', 'h5']:
-        result = result_class.from_hdf5(filename=filename)
-    elif extension in ['pkl', 'pickle']:
-        result = result_class.from_pickle(filename=filename)
-    elif extension is None:
+    if extension is None:
+        raise ValueError("No filetype extension provided and could not be inferred from filename")
+
+    extension = extension.lower()
+    read_functions = {
+        'json': result_class.from_json,
+        'hdf5': result_class.from_hdf5,
+        'h5': result_class.from_hdf5,
+        'pkl': result_class.from_pickle,
+        'pickle': result_class.from_pickle,
+    }
+    if extension not in read_functions:
         raise ValueError(
-            "No filetype extension provided and could not be inferred from filename"
+            f"Filetype {extension} not understood, known types are {list(read_functions.keys())}"
         )
-    else:
-        raise ValueError("Filetype {} not understood".format(extension))
+
+    func = read_functions[extension]
+
+    # Raise IO errors since this is what the caching relies on
+    # Catch all other exceptions and raise a FileLoadError
+    try:
+        result = func(filename=filename)
+    except IOError:
+        raise IOError(
+            f"Failed to read in file {filename} using "
+            f"`{result_class.__name__}.{func.__name__}` "
+            f"(extension={extension}). "
+            "This is likely because the file does not exist or is not a valid bilby result."
+        )
+    except Exception as e:
+        raise FileLoadError(
+            f"Failed to read in file {filename} using "
+            f"`{result_class.__name__}.{func.__name__}` "
+            f"(extension={extension}). The error was: {e}"
+        ) from e
     return result
 
 
@@ -815,6 +838,10 @@ class Result(object):
             # if not, it will fall back to the default
             if ext in EXTENSIONS:
                 if extension is None:
+                    logger.debug(
+                        f"Inferred extension '{ext}' from filename '{filename}'. "
+                        "Using this extension for saving."
+                    )
                     extension = ext
                 elif ext != extension:
                     message = (
@@ -824,6 +851,7 @@ class Result(object):
                     logger.warning(message)
 
         if extension is None:
+            logger.info("No extension given, defaulting to JSON.")
             extension = 'json'
 
         if extension is True:
@@ -2312,3 +2340,7 @@ class ResultListError(ResultError):
 
 class FileMovedError(ResultError):
     """ Exceptions that occur when files have been moved """
+
+
+class FileLoadError(ResultError):
+    """ Exceptions that occur when files cannot be loaded """
