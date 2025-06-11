@@ -94,7 +94,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
         naming scheme.
     extension: str, optional
         The file extension to use. If not given, the extension is inferred from
-        the filename if provided, otherwise defaults to 'json'.
+        the filename if provided. If the filename is not given, defaults to
+        'json'.
     result_class: bilby.core.result.Result, or child of
         The result class to use. By default, `bilby.core.result.Result` is used,
         but objects which inherit from this class can be given providing
@@ -112,18 +113,20 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
     # Get the actual extension (may differ from the default extension if the filename is given)
     if extension is None:
         ext = os.path.splitext(filename)[1][1:]
-        extension = ext if ext else 'json'
+        extension = ext if ext else None
     if extension == 'gz':  # gzipped file
         extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
 
-    if 'json' in extension:
+    if 'json' == extension:
         result = result_class.from_json(filename=filename)
-    elif ('hdf5' in extension) or ('h5' in extension):
+    elif extension in ['hdf5', 'h5']:
         result = result_class.from_hdf5(filename=filename)
-    elif ("pkl" in extension) or ("pickle" in extension):
+    elif extension in ['pkl', 'pickle']:
         result = result_class.from_pickle(filename=filename)
     elif extension is None:
-        raise ValueError("No filetype extension provided")
+        raise ValueError(
+            "No filetype extension provided and could not be inferred from filename"
+        )
     else:
         raise ValueError("Filetype {} not understood".format(extension))
     return result
