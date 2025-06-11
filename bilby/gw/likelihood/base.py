@@ -552,7 +552,7 @@ class GravitationalWaveTransient(Likelihood):
         new_calibration: dict
             Sample set from the calibration posterior
         """
-        from ...core.utils.random import rng
+        from ...core.utils import random
 
         parameters = _fallback_to_parameters(self, parameters)
         if 'recalib_index' in parameters:
@@ -569,7 +569,7 @@ class GravitationalWaveTransient(Likelihood):
         calibration_post = np.exp(log_like - max(log_like))
         calibration_post /= np.sum(calibration_post)
 
-        new_calibration = rng.choice(self.number_of_response_curves, p=calibration_post)
+        new_calibration = random.rng.choice(self.number_of_response_curves, p=calibration_post)
 
         return new_calibration
 

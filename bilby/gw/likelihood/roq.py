@@ -1198,8 +1198,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             for mode in signal[kind]:
                 signal[kind][mode] *= self._ref_dist / new_distance
 
-    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, parameters=None):
-        from ...core.utils.random import rng
+    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, parmaeters=None):
+        from ...core.utils import random
 
         parameters = _fallback_to_parameters(self, parameters)
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
@@ -1231,7 +1231,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         time_prior_array = self.priors['geocent_time'].prob(times)
         time_post = np.exp(time_log_like - max(time_log_like)) * time_prior_array
         time_post /= np.sum(time_post)
-        return rng.choice(times, p=time_post)
+        return random.rng.choice(times, p=time_post)
 
 
 class BilbyROQParamsRangeError(Exception):
