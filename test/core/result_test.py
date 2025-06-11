@@ -59,6 +59,9 @@ class TestResult(unittest.TestCase):
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
         self.outdir = str(tmp_path / "test")
+        # Outdirs not used in the result object
+        self.other_outdir = str(tmp_path / "test2")
+        self.other_outdir2 = str(tmp_path / "test3")
 
     def setUp(self):
         np.random.seed(7)
@@ -137,16 +140,25 @@ class TestResult(unittest.TestCase):
             "{}/{}_result.pkl".format(outdir, label),
         )
 
-    def test_fail_save_and_load(self):
-        with self.assertRaises(ValueError):
+    def test_fail_save_and_load_missing_inputs(self):
+        with self.assertRaises(
+            ValueError, msg="No information given to load file"
+        ):
             bilby.core.result.read_in_result()
 
-        with self.assertRaises(ValueError):
+    def test_fail_save_and_load_no_extension(self):
+        with self.assertRaises(ValueError, msg="No file extension provided."):
             bilby.core.result.read_in_result(filename="no_file_extension")
 
+    def test_fail_save_and_load_invalid_extension(self):
+        with self.assertRaises(ValueError, msg="Filetype .invalid not understood."):
+            bilby.core.result.read_in_result(filename="file.invalid")
+
+    def test_fail_save_and_load_invalid_file(self):
         with self.assertRaises(IOError):
             bilby.core.result.read_in_result(filename="not/a/file.json")
 
+    def test_fail_save_and_load_incomplete_json(self):
         with self.assertRaises(IOError):
             incomplete_json = """
 {
@@ -287,14 +299,35 @@ class TestResult(unittest.TestCase):
         self.result.save_to_file(filename=filename, outdir=outdir, extension="json", gzip=False)
         self.assertTrue(os.path.isfile(template))
 
-    def test_save_with_outdir_and_filename(self):
-        self._save_with_outdir_and_filename("out/result", "out2", "out2/result")
-        self._save_with_outdir_and_filename("out/result", None, "out/result")
-        self._save_with_outdir_and_filename("result", "out", "out/result")
+    def test_save_with_outdir_and_filename_different_outdir(self):
         self._save_with_outdir_and_filename(
-            "result", None, os.path.join(self.result.outdir, "result"))
+            f"{self.other_outdir}/result", self.other_outdir2, f"{self.other_outdir2}/result"
+        )
+
+    def test_save_with_outdir_and_filename_same_outdir(self):
         self._save_with_outdir_and_filename(
-            None, "out", os.path.join("out", f"{self.result.label}_result.json"))
+            f"{self.other_outdir}/result", None, f"{self.other_outdir}/result"
+        )
+
+    def test_save_with_outdir_and_filename_no_outdir_in_filename(self):
+        self._save_with_outdir_and_filename(
+            "result", self.other_outdir, f"{self.other_outdir}/result"
+        )
+
+    def test_save_with_filename_only(self):
+        self._save_with_outdir_and_filename(
+            "result", None, os.path.join(self.result.outdir, "result")
+        )
+
+    def test_save_with_outdir_no_filename(self):
+        self._save_with_outdir_and_filename(
+            None, self.other_outdir, os.path.join(self.other_outdir, f"{self.result.label}_result.json")
+        )
+
+    def test_save_no_filename_or_outdir(self):
+        self._save_with_outdir_and_filename(
+            None, None, os.path.join(self.result.outdir, f"{self.result.label}_result.json")
+        )
 
     def test_save_and_overwrite_json(self):
         self._save_and_overwrite_test(extension='json')
@@ -779,6 +812,11 @@ class TestMiscResults(unittest.TestCase):
 
 class TestPPPlots(unittest.TestCase):
 
+    @pytest.fixture(autouse=True)
+    def init_outdir(self, tmp_path):
+        # Use pytest's tmp_path fixture to create a temporary directory
+        self.outdir = str(tmp_path / "test_pp_plots")
+
     def setUp(self):
         priors = bilby.core.prior.PriorDict(dict(
             a=bilby.core.prior.Uniform(0, 1, latex_label="$a$"),
@@ -787,7 +825,7 @@ class TestPPPlots(unittest.TestCase):
         self.results = [
             bilby.core.result.Result(
                 label=str(ii),
-                outdir='.',
+                outdir=self.outdir,
                 search_parameter_keys=list(priors.keys()),
                 priors=priors,
                 injection_parameters=priors.sample(),
@@ -876,11 +914,58 @@ class TestReweight(unittest.TestCase):
         self.assertLess(abs(new.log_evidence - self.result.log_evidence), 0.05)
         self.assertNotEqual(new.log_evidence, self.result.log_evidence)
 
-    def test_save_to_file_filename_with_extension_and_extension_none(self):
+
+class TestResultSaveAndRead(unittest.TestCase):
+
+    @pytest.fixture(autouse=True)
+    def init_outdir(self, tmp_path):
+        # Use pytest's tmp_path fixture to create a temporary directory
+        self.outdir = str(tmp_path / "test_result_save_and_read")
+
+    def setUp(self):
+        np.random.seed(7)
+        bilby.utils.command_line_args.bilby_test_mode = False
+        priors = bilby.prior.PriorDict(
+            dict(
+                x=bilby.prior.Uniform(0, 1, "x", latex_label="$x$", unit="s"),
+                y=bilby.prior.Uniform(0, 1, "y", latex_label="$y$", unit="m"),
+                c=1,
+                d=2,
+            )
+        )
+        result = bilby.core.result.Result(
+            label="label",
+            outdir=self.outdir,
+            sampler="nestle",
+            search_parameter_keys=["x", "y"],
+            fixed_parameter_keys=["c", "d"],
+            priors=priors,
+            sampler_kwargs=dict(test="test", func=lambda x: x),
+            injection_parameters=dict(x=0.5, y=0.5),
+            meta_data=dict(test="test"),
+            sampling_time=100.0,
+        )
+
+        n = 100
+        posterior = pd.DataFrame(
+            dict(x=np.random.normal(0, 1, n), y=np.random.normal(0, 1, n))
+        )
+        result.posterior = posterior
+        result.log_evidence = 10
+        result.log_evidence_err = 11
+        result.log_bayes_factor = 12
+        result.log_noise_evidence = 13
+        self.result = result
+
+    @parameterized.parameterized.expand([
+        ".h5", ".hdf5", ".json", ".pkl", ".pickle",
+    ])
+    def test_save_and_read_filename_with_extension_and_extension_none(self, ext):
         # Should use the extension from filename
-        filename = os.path.join(self.result.outdir, "custom_name.hdf5")
+        filename = os.path.join(self.result.outdir, f"custom_name.{ext}")
         self.result.save_to_file(filename=filename, extension=None)
         self.assertTrue(os.path.isfile(filename))
+        bilby.core.result.read_in_result(filename=filename)
         os.remove(filename)
 
     @parameterized.parameterized.expand([
@@ -889,7 +974,7 @@ class TestReweight(unittest.TestCase):
         ("pickle",),
         (True,),
     ])
-    def test_save_to_file_filename_with_extension_and_extension(self, extension):
+    def test_save_and_read_filename_with_extension_and_extension(self, extension):
         """Test all the extensions that are support when the filename is provided"""
         filename = os.path.join(self.result.outdir, "custom_name.hdf5")
         expected = filename
@@ -902,12 +987,13 @@ class TestReweight(unittest.TestCase):
         bilby.core.result.read_in_result(filename=expected, extension=extension)
         os.remove(expected)
 
-    def test_save_to_file_filename_without_extension_and_extension_none(self):
+    def test_save_and_read_filename_without_extension_and_extension_none(self):
         # Should use the default extension (json)
         filename = os.path.join(self.result.outdir, "custom_name_noext")
         expected = filename
         self.result.save_to_file(filename=filename, extension=None)
         self.assertTrue(os.path.isfile(expected))
+        bilby.core.result.read_in_result(filename=expected, extension="json")
         os.remove(expected)
 
     def test_save_to_file_defaults_to_pickle_with_incorrect_extension(self):
@@ -917,6 +1003,7 @@ class TestReweight(unittest.TestCase):
         self.result.save_to_file(filename=filename, extension="bar")
         self.assertTrue(os.path.isfile(expected))
         self.assertFalse(os.path.isfile(filename))
+        bilby.core.result.read_in_result(filename=expected)
         os.remove(expected)
 
 
