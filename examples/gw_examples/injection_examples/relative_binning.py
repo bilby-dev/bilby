@@ -12,7 +12,7 @@ from copy import deepcopy
 import bilby
 import numpy as np
 from bilby.core.utils import random
-from tqdm.auto import trange
+from tqdm.auto import tqdm
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
@@ -81,6 +81,7 @@ ifos.set_strain_data_from_power_spectral_densities(
 ifos.inject_signal(
     waveform_generator=waveform_generator, parameters=injection_parameters
 )
+injection_parameters["fiducial"] = 0
 
 # Set up a PriorDict, which inherits from dict.
 # By default we will sample all terms in the signal models.  However, this will
@@ -107,6 +108,7 @@ for key in [
     "phase",
 ]:
     priors[key] = injection_parameters[key]
+priors["fiducial"] = 0
 
 # Perform a check that the prior does not extend to a parameter space longer than the data
 priors.validate_prior(duration, minimum_frequency)
@@ -159,12 +161,10 @@ alt_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
 )
 likelihood.distance_marginalization = False
 weights = list()
-for ii in trange(len(result.posterior)):
-    parameters = dict(result.posterior.iloc[ii])
-    likelihood.parameters.update(parameters)
-    alt_likelihood.parameters.update(parameters)
+for parameters in tqdm(result.posterior.to_dict(orient="records")):
     weights.append(
-        alt_likelihood.log_likelihood_ratio() - likelihood.log_likelihood_ratio()
+        alt_likelihood.log_likelihood_ratio(parameters)
+        - likelihood.log_likelihood_ratio(parameters)
     )
 weights = np.exp(weights)
 print(
