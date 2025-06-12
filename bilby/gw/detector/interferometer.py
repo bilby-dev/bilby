@@ -485,7 +485,7 @@ class Interferometer(object):
         self.strain_data.frequency_domain_strain += signal_ifo
 
         self.meta_data['optimal_SNR'] = (
-            np.sqrt(self.optimal_snr_squared(signal=signal_ifo)).real)
+            self.optimal_snr_squared(signal=signal_ifo)).real ** 0.5
         self.meta_data['matched_filter_SNR'] = (
             self.matched_filter_snr(signal=signal_ifo))
         self.meta_data['parameters'] = parameters
@@ -671,7 +671,7 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        return frequency_series / (self.amplitude_spectral_density_array * np.sqrt(self.duration / 4))
+        return frequency_series / (self.amplitude_spectral_density_array * (self.duration / 4)**0.5)
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,
@@ -702,14 +702,13 @@ class Interferometer(object):
             w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
 
         """
-        frequency_window_factor = (
-            np.sum(self.frequency_mask)
-            / len(self.frequency_mask)
-        )
+        xp = array_module(whitened_frequency_series)
+
+        frequency_window_factor = self.frequency_mask.mean()
 
         whitened_time_series = (
-            np.fft.irfft(whitened_frequency_series)
-            * np.sqrt(np.sum(self.frequency_mask)) / frequency_window_factor
+            xp.fft.irfft(whitened_frequency_series)
+            * self.frequency_mask.sum()**0.5 / frequency_window_factor
         )
 
         return whitened_time_series
