@@ -990,53 +990,64 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     def save_weights(self, filename, format='hdf5'):
         """
         Save ROQ weights into a single file.
-        Support for json format was removed in :code:`v2.5`, only hdf5 is supported.
+        Support for json format was removed in :code:`v2.6`, only hdf5 and npz are supported.
 
         Parameters
         ==========
         filename : str
             The name of the file to save the weights to.
-        format : str (deprecated)
-            This argument has no effect after removing support for json weight files.
+        format : str
+            The format to save the weight in, should be in :code:`hdf5, npz`.
         """
-        if format != 'hdf5':
+        if format not in ['hdf5', 'npz']:
             raise IOError(f"Format {format} not recognized.")
         if format not in filename:
             filename += "." + format
         logger.info(f"Saving ROQ weights to {filename}")
-        import h5py
-        with h5py.File(filename, 'w') as f:
-            f.create_dataset('time_samples', data=self.weights['time_samples'])
+        if format == 'npz':
+            if self.number_of_bases_linear > 1 or self.number_of_bases_quadratic > 1:
+                raise ValueError(f'Format {format} not compatible with multiple bases')
+            weights = dict()
+            weights['time_samples'] = self.weights['time_samples']
             for basis_type in ['linear', 'quadratic']:
-                key = f'prior_range_{basis_type}'
-                if key in self.weights:
-                    grp = f.create_group(key)
-                    for param_name in self.weights[key]:
-                        grp.create_dataset(
-                            param_name, data=self.weights[key][param_name])
-                key = f'frequency_nodes_{basis_type}'
-                if key in self.weights:
-                    grp = f.create_group(key)
-                    for i in range(len(self.weights[key])):
-                        grp.create_dataset(
-                            str(i), data=self.weights[key][i])
                 for ifo in self.interferometers:
-                    key = f"{ifo.name}_{basis_type}"
-                    grp = f.create_group(key)
-                    for i in range(len(self.weights[key])):
-                        grp.create_dataset(
-                            str(i), data=self.weights[key][i])
-
+                    key = f'{ifo.name}_{basis_type}'
+                    weights[key] = self.weights[key][0]
+            np.savez(filename, **weights)
+        else:
+            import h5py
+            with h5py.File(filename, 'w') as f:
+                f.create_dataset('time_samples',
+                                 data=self.weights['time_samples'])
+                for basis_type in ['linear', 'quadratic']:
+                    key = f'prior_range_{basis_type}'
+                    if key in self.weights:
+                        grp = f.create_group(key)
+                        for param_name in self.weights[key]:
+                            grp.create_dataset(
+                                param_name, data=self.weights[key][param_name])
+                    key = f'frequency_nodes_{basis_type}'
+                    if key in self.weights:
+                        grp = f.create_group(key)
+                        for i in range(len(self.weights[key])):
+                            grp.create_dataset(
+                                str(i), data=self.weights[key][i])
+                    for ifo in self.interferometers:
+                        key = f"{ifo.name}_{basis_type}"
+                        grp = f.create_group(key)
+                        for i in range(len(self.weights[key])):
+                            grp.create_dataset(
+                                str(i), data=self.weights[key][i])
     def load_weights(self, filename, format=None):
         """
-        Load ROQ weights. Support for json format was removed in :code:`v2.2`.
+        Load ROQ weights. Support for json format was removed in :code:`v2.6`.
 
         Parameters
         ==========
         filename : str
             The name of the file to save the weights to.
-        format : str (deprecated)
-            This argument is no longer used after removing json support.
+        format : str
+            The format of the weight file, should be in :code:`hdf5, npz`.
 
         Returns
         =======
@@ -1045,29 +1056,41 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """
         if format is None:
             format = filename.split(".")[-1]
-        if format != "hdf5":
-            raise IOError(f"Format {format} not recognized.")
+        if format == "json":
+            import warnings
+
+            warnings.warn(
+                "json format for ROQ weights is deprecated, use hdf5 instead.",
+                DeprecationWarning
+            )
         logger.info(f"Loading ROQ weights from {filename}")
-        weights = dict()
-        import h5py
-        with h5py.File(filename, 'r') as f:
-            weights['time_samples'] = f['time_samples'][()]
+        if format == "npz":
+            weights = dict(np.load(filename))
             for basis_type in ['linear', 'quadratic']:
-                key = f'prior_range_{basis_type}'
-                if key in f:
-                    idxs_in_prior_range, selected_prior_ranges = \
-                        self._select_prior_ranges(f[key])
-                    weights[key] = selected_prior_ranges
-                else:
-                    idxs_in_prior_range = [0]
-                key = f'frequency_nodes_{basis_type}'
-                if key in f:
-                    weights[key] = [f[key][str(i)][()]
-                                    for i in idxs_in_prior_range]
                 for ifo in self.interferometers:
-                    key = f"{ifo.name}_{basis_type}"
-                    weights[key] = [f[key][str(i)][()]
-                                    for i in idxs_in_prior_range]
+                    key = f'{ifo.name}_{basis_type}'
+                    weights[key] = [weights[key]]
+        else:
+            weights = dict()
+            import h5py
+            with h5py.File(filename, 'r') as f:
+                weights['time_samples'] = f['time_samples'][()]
+                for basis_type in ['linear', 'quadratic']:
+                    key = f'prior_range_{basis_type}'
+                    if key in f:
+                        idxs_in_prior_range, selected_prior_ranges = \
+                            self._select_prior_ranges(f[key])
+                        weights[key] = selected_prior_ranges
+                    else:
+                        idxs_in_prior_range = [0]
+                    key = f'frequency_nodes_{basis_type}'
+                    if key in f:
+                        weights[key] = [f[key][str(i)][()]
+                                        for i in idxs_in_prior_range]
+                    for ifo in self.interferometers:
+                        key = f"{ifo.name}_{basis_type}"
+                        weights[key] = [f[key][str(i)][()]
+                                        for i in idxs_in_prior_range]
         return weights
 
     def _get_time_resolution(self):
