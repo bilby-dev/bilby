@@ -50,3 +50,38 @@ This change provides a number of improvements:
 
 The previous method is still supported, but will be deprecated and removed in
 the future.
+
+
+For users
+---------
+
+We have tried to minimize the impact of this change for users, however, there are a few necessary changes:
+
+- the :code:`log_likelihood` and :code:`log_likelihood_ratio` methods now accept a new argument `parameters`.
+  Additionally, various methods of other likelihoods accept the `parameters` argument.
+  Currently, this is an optional, positional argument.
+- while both the state- and argument-based parameter passing methods are supported, there is a
+  :pyfunc:`bilby.core.likelihood._safe_likelihood_call` function that can be used in sampler interfaces to
+  support both methods.
+- calls to the base :pyfunc:`bilby.core.likelihood.Likelihood.__init__` (e.g., via :code:`super`) no longer
+  needs to be passed a dictionary of parameters.
+- :pyfunc:`bilby.core.likelihood.Analytical1DLikelihood.residual` is now a method that accepts an argument
+  :code:`parameters` rather than a property.
+- :pyfunc:`bilby.core.prior.PriorDict.fill_priors` no longer uses the argument :code:`likelihood` and that argument
+  will be removed in future.
+
+Gravitational-wave specific changes:
+
+- many methods of :pyfunc:`bilby.gw.likelihood.base.GravitationalWaveTransient` (and subclasses) now take the
+  `parameters` argument.
+- :code:`fiducial` is now a required parameter for the relative binning likelihood. This may change in a future release.
+
+
+For developers
+--------------
+
+- when possible, new features should support both methods of specifying the parameters until we drop support.
+- while both methods are supported, :pyfunc:`bilby.core.likelihood._safe_likelihood_call` should be used
+  for any likelihood calls.
+- when writing tests that involve likelihood calls, both approaches should be tested.
+- all examples/tutorials should use the new method.
