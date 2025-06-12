@@ -1038,6 +1038,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                         for i in range(len(self.weights[key])):
                             grp.create_dataset(
                                 str(i), data=self.weights[key][i])
+
     def load_weights(self, filename, format=None):
         """
         Load ROQ weights. Support for json format was removed in :code:`v2.6`.
