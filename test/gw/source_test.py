@@ -1,13 +1,15 @@
-import unittest
 import logging
-import pytest
+import random
+import unittest
+from copy import copy
+from unittest.mock import patch
 
+import astropy.units as u
 import bilby
 import lal
 import lalsimulation
-
 import numpy as np
-from copy import copy
+import pytest
 
 
 class TestLalBBH(unittest.TestCase):
@@ -170,6 +172,7 @@ class TestGWSignalBBH(unittest.TestCase):
             bilby.gw.source.gwsignal_binary_black_hole(
                 self.frequency_array, **raise_error_parameters
             )
+
     # def test_gwsignal_bbh_works_without_waveform_parameters(self):
     #    self.assertIsInstance(
     #        bilby.gw.source.gwsignal_binary_black_hole(
@@ -192,6 +195,79 @@ class TestGWSignalBBH(unittest.TestCase):
         self.assertTrue(
             np.allclose(hpc_gwsignal["cross"], hpc_lal["cross"], atol=0, rtol=1e-7)
         )
+
+    def test_argument_passed_to_generate_waveform(self):
+        # here we test the behaviour of the function "gwsignal_binary_black_hole"
+        # until the execution of the "generate_fd_waveform" in gwsignal. In particular
+        # the actual generate_fd_waveform is not called and only the parameters passed to
+        # the function are checked.
+        # The test does not require gwsignal to support any of the approximants or parameters.
+        from lalsimulation.gwsignal.models.pyseobnr_model import SEOBNRv5PHM as wf_gen
+
+        class MyException(Exception):
+            pass
+
+        with patch.object(
+            lalsimulation.gwsignal.models,
+            "gwsignal_get_waveform_generator",
+            autospec=True,
+        ) as mock_gwsignal_get_waveform_generator:
+
+            with patch.object(
+                wf_gen, "generate_fd_waveform", autospec=True
+            ) as mock_wgen_gen_fd:
+                mock_wgen_gen_fd.side_effect = MyException(
+                    "__not_the_string_input_domain_error__"
+                )
+                mock_gwsignal_get_waveform_generator.return_value = wf_gen()
+
+                for current_param, gwsignal_target_param in (
+                    "eccentricity",
+                    "eccentricity",
+                ), ("mean_per_ano", "meanPerAno"):
+                    mock_wgen_gen_fd.reset_mock()
+                    mock_gwsignal_get_waveform_generator.reset_mock()
+
+                    parameters = self.parameters.copy()
+                    parameters["waveform_approximant"] = "SEOBNRv5PHM"
+                    parameters.update(self.waveform_kwargs | {"eccentricity": 0, "mean_per_ano": 0})
+                    parameters[current_param] = random.uniform(0, 0.3)
+
+                    with self.assertRaises(MyException):
+                        bilby.gw.source.gwsignal_eccentric_binary_black_hole(
+                            self.frequency_array, **parameters
+                        )
+
+                    # check we are calling the mock generator
+                    mock_gwsignal_get_waveform_generator.assert_called_once_with(
+                        parameters["waveform_approximant"]
+                    )
+
+                    # checks generated_fd_waveform is called
+                    mock_wgen_gen_fd.assert_called_once()
+
+                    # checks parameters are passed: this is done inside the
+                    self.assertIsInstance(
+                        mock_wgen_gen_fd.call_args_list[0].args[0], wf_gen
+                    )
+
+                    # check if the currently modified parameter is dA22, dtau32 etc
+                    self.assertIn(
+                        gwsignal_target_param, mock_wgen_gen_fd.call_args_list[0].kwargs
+                    )
+                    converted_param = mock_wgen_gen_fd.call_args_list[0].kwargs[
+                        gwsignal_target_param
+                    ]
+
+                    if converted_param.unit == u.rad:
+                        self.assertEqual(
+                            converted_param.value, parameters[current_param]
+                        )
+
+                    elif converted_param.unit == u.dimensionless_unscaled:
+                        self.assertEqual(
+                            float(converted_param), parameters[current_param]
+                        )
 
 
 class TestLalBNS(unittest.TestCase):
