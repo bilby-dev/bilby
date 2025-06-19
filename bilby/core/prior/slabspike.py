@@ -137,6 +137,7 @@ class SlabSpikePrior(Prior):
         original_is_number = isinstance(val, Number)
         res = self.slab.prob(val) * self.slab_fraction
         res = np.atleast_1d(res)
+        val = np.atleast_1d(val)
         res[np.where(val == self.spike_location)] = np.inf
         if original_is_number:
             try:
@@ -161,6 +162,7 @@ class SlabSpikePrior(Prior):
         original_is_number = isinstance(val, Number)
         res = self.slab.ln_prob(val) + np.log(self.slab_fraction)
         res = np.atleast_1d(res)
+        val = np.atleast_1d(val)
         res[np.where(val == self.spike_location)] = np.inf
         if original_is_number:
             try:
@@ -186,6 +188,7 @@ class SlabSpikePrior(Prior):
         """
         res = self.slab.cdf(val) * self.slab_fraction
         res = np.atleast_1d(res)
+        val = np.atleast_1d(val)
         indices_above_spike = np.where(val > self.spike_location)[0]
         res[indices_above_spike] += self.spike_height
         return res
