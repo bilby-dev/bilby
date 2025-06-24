@@ -1054,9 +1054,9 @@ class TestInOutROQWeights(unittest.TestCase):
 
     def test_saving_wrong_format_fails(self):
         likelihood = self.create_likelihood_single_basis()
-        filename = 'weights.npz'
+        filename = 'weights.json'
         with self.assertRaises(IOError):
-            likelihood.save_weights(filename, format='npz')
+            likelihood.save_weights(filename, format='json')
 
     def test_in_single_basis(self):
         likelihood = self.create_likelihood_single_basis()
