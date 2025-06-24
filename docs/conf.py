@@ -66,7 +66,8 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx_tabs.tabs',
     "sphinx.ext.linkcode",
-    'myst_parser'
+    'myst_parser',
+    "sphinx_sitemap",
 ]
 autosummary_generate = True
 
@@ -110,6 +111,12 @@ language = None
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'requirements.txt']
 
+# The html path allows for google search console verification through
+# Aditya Vijaykumar's gmail ID
+
+html_extra_path = ['robots.txt', 'google063678b5c432c237.html']
+
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
@@ -150,6 +157,7 @@ html_sidebars = {
     ]
 }
 
+html_baseurl = 'https://bilby-dev.github.io/bilby/'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
