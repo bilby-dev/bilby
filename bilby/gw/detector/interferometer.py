@@ -516,7 +516,7 @@ class Interferometer(object):
 
         """
         return self.power_spectral_density.get_power_spectral_density_array(
-                frequency_array=self.strain_data.frequency_array
+            frequency_array=self.strain_data.frequency_array
         )
 
     def unit_vector_along_arm(self, arm):
