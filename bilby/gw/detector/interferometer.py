@@ -9,6 +9,7 @@ from bilby_cython.geometry import (
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
+from ...core.utils.env import string_to_boolean
 from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
@@ -497,7 +498,9 @@ class Interferometer(object):
         This property enables the old (incorrect) PSD correction to be applied
         using the :code:`BILBY_INCORRECT_PSD_NORMALIZATION` environment variable.
         """
-        if os.environ.get("BILBY_INCORRECT_PSD_NORMALIZATION", "FALSE").upper() == "TRUE":
+        if string_to_boolean(
+            os.environ.get("BILBY_INCORRECT_PSD_NORMALIZATION", "FALSE").upper()
+        ):
             return self.strain_data.window_factor
         else:
             return 1
