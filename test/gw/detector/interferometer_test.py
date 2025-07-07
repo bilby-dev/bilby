@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest import mock
 
@@ -369,6 +370,31 @@ class TestInterferometer(unittest.TestCase):
         )
         with self.assertRaises(TypeError):
             bilby.gw.detector.Interferometer.from_pickle(filename)
+
+
+def test_psd_not_impacted_by_window_factor(monkeypatch):
+    ifo = bilby.gw.detector.get_empty_interferometer("H1")
+    ifo.set_strain_data_from_zero_noise(duration=4, sampling_frequency=256)
+    monkeypatch.setattr(ifo.strain_data, "window_factor", np.nan)
+    np.testing.assert_array_equal(
+        ifo.power_spectral_density.get_power_spectral_density_array(
+            frequency_array=ifo.strain_data.frequency_array
+        ),
+        ifo.power_spectral_density_array
+    )
+
+def test_psd_impacted_by_window_factor_with_environment_variable(monkeypatch):
+    env = dict(BILBY_INCORRECT_PSD_NORMALIZATION="TRUE")
+    monkeypatch.setattr(os, "environ", env)
+    ifo = bilby.gw.detector.get_empty_interferometer("H1")
+    ifo.set_strain_data_from_zero_noise(duration=4, sampling_frequency=256)
+    monkeypatch.setattr(ifo.strain_data, "window_factor", 0.1)
+    np.testing.assert_array_equal(
+        ifo.power_spectral_density.get_power_spectral_density_array(
+            frequency_array=ifo.strain_data.frequency_array
+        ) * 0.1,
+        ifo.power_spectral_density_array
+    )
 
 
 class TestInterferometerEquals(unittest.TestCase):

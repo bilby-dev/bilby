@@ -492,6 +492,17 @@ class Interferometer(object):
             logger.info('  {} = {}'.format(key, parameters[key]))
 
     @property
+    def _window_power_correction(self):
+        """
+        This property enables the old (incorrect) PSD correction to be applied
+        using the :code:`BILBY_INCORRECT_PSD_NORMALIZATION` environment variable.
+        """
+        if os.environ.get("BILBY_INCORRECT_PSD_NORMALIZATION", "FALSE").upper() == "TRUE":
+            return self.strain_data.window_factor
+        else:
+            return 1
+
+    @property
     def amplitude_spectral_density_array(self):
         """ Returns the amplitude spectral density (ASD) given we know a power spectral density (PSD)
 
@@ -502,7 +513,7 @@ class Interferometer(object):
         """
         return self.power_spectral_density.get_amplitude_spectral_density_array(
             frequency_array=self.strain_data.frequency_array
-        )
+        ) * self._window_power_correction**0.5
 
     @property
     def power_spectral_density_array(self):
@@ -517,7 +528,7 @@ class Interferometer(object):
         """
         return self.power_spectral_density.get_power_spectral_density_array(
             frequency_array=self.strain_data.frequency_array
-        )
+        ) * self._window_power_correction
 
     def unit_vector_along_arm(self, arm):
         logger.warning("This method has been moved and will be removed in the future."
