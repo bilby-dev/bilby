@@ -269,17 +269,41 @@ class LALCBCWaveformGenerator(WaveformGenerator):
 class GWSignalWaveformGenerator(WaveformGenerator):
     """ A waveform generator with specific checks for GW signals """
 
+    generator_pickles = False
+
     def __init__(self, spinning=True, eccentric=False, tidal=False, **kwargs):
-        try:
-            from lalsimulation.gwsignal import gwsignal_get_waveform_generator
-        except ImportError:
-            raise ImportError("lalsimulation is not installed. Cannot use the GWSignal waveform generator.")
         self.spinning = spinning
         self.tidal = tidal
         self.eccentric = eccentric
         super().__init__(**kwargs)
         self.waveform_approximant = self.waveform_arguments["waveform_approximant"]
-        self.generator = gwsignal_get_waveform_generator(self.waveform_approximant)
+        self.generator = self._create_generator()
+
+    def _create_generator(self, waveform_approximant=None):
+        try:
+            from lalsimulation.gwsignal import gwsignal_get_waveform_generator
+        except ImportError:
+            raise ImportError("lalsimulation is not installed. Cannot use the GWSignal waveform generator.")
+
+        if waveform_approximant is None:
+            waveform_approximant = self.waveform_approximant
+        return gwsignal_get_waveform_generator(waveform_approximant)
+
+    def __getstate__(self):
+        # the waveform generator can't be pickled add a placeholder
+        # so it will be re-instantiated on unpickling
+        state = self.__dict__.copy()
+        if "generator" in state and not self.generator_pickles:
+            state["generator"] = "<unpickleable generator>"
+        return state
+
+    def __setstate__(self, state):
+        # if the waveform generator can't be pickled, will reinstantiate it
+        if state.get("generator", None) == "<unpickleable generator>":
+            state["generator"] = self._create_generator(waveform_approximant=state["waveform_approximant"])
+        self.__dict__.update(state)
+        # if self.__dict__.get("generator", None) == "<unpickleable generator>":
+        #     self._generator = self._create_generator()
 
     def __repr__(self):
         if self.parameter_conversion is None:
