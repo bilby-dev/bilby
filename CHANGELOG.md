@@ -7,7 +7,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [2.6.0]
 
-We noticed a longstanding bug in the `GravitationalWaveTransient` likelihood that caused the PSD to be
+We noticed a longstanding mis-definition in the `GravitationalWaveTransient` likelihood that caused the PSD to be
 incorrectly normalised when using time domain data with a Tukey window (https://github.com/bilby-dev/bilby/issues/869).
 By extension, the SNR and log-likelihood is overestimated. While the peak of the likelihood is in
 the correct place, the posterior is overly constrained and due to prior effects may not peak in the
