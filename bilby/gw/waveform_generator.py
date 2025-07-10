@@ -302,8 +302,6 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         if state.get("generator", None) == "<unpickleable generator>":
             state["generator"] = self._create_generator(waveform_approximant=state["waveform_approximant"])
         self.__dict__.update(state)
-        # if self.__dict__.get("generator", None) == "<unpickleable generator>":
-        #     self._generator = self._create_generator()
 
     def __repr__(self):
         if self.parameter_conversion is None:
