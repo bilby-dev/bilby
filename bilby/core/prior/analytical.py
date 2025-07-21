@@ -1439,33 +1439,60 @@ class FermiDirac(Prior):
             return lnp
 
 
-class DiscreteValues(Prior):
-    def __init__(self, values, name=None, latex_label=None,
-                 unit=None, boundary="periodic"):
-        """ An equal-weighted discrete-valued prior
+class WeightedDiscreteValues(Prior):
+    def __init__(
+        self,
+        values,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary="periodic",
+    ):
+        """A weighted discrete-valued prior
 
         Parameters
         ==========
         values: array
             The discrete values of the prior.
+        weights: array_like
+            The weights of each category. If None, then all categories are
+            equally weighted.
         name: str
-            See superclass
+            The name of the parameter
         latex_label: str
-            See superclass
+            The latex label of the parameter. Used for plotting.
         unit: str
-            See superclass
+            The unit of the parameter. Used for plotting.
         """
+
         nvalues = len(values)
         minimum = np.min(values)
         # Small delta added to help with MCMC walking
         maximum = np.max(values) * (1 + 1e-15)
-        super(DiscreteValues, self).__init__(
+        super(WeightedDiscreteValues, self).__init__(
             name=name, latex_label=latex_label, minimum=minimum,
             maximum=maximum, unit=unit, boundary=boundary)
         self.nvalues = nvalues
-        self.values = np.sort(np.array(values))
-        self.p = 1 / self.nvalues
-        self.lnp = -np.log(self.nvalues)
+        sorter = np.argsort(values)
+        self.values = np.array(values)[sorter]
+        p = (
+            np.atleast_1d(weights) / np.sum(weights)
+            if weights is not None
+            else np.ones(self.nvalues) / self.nvalues
+        )
+
+        # check for consistent shape of input
+        if len(p) != self.nvalues or len(p.shape) != 1:
+            raise ValueError(
+                "Inconsistent shape of weights and number of categories:"
+                + f"np.atleast_1d(weights) has shape {p.shape} "
+                + f"while number of categories is {self.values}"
+            )
+        self.p = p[sorter]
+        # save cdf for rescaling
+        self._cum_p = np.cumsum(p)
+        self.lnp = np.log(self.p)
 
     def rescale(self, val):
         """
@@ -1482,8 +1509,31 @@ class DiscreteValues(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        idx = np.asarray(np.floor(val * self.nvalues), dtype=int)
-        return self.values[idx]
+        return self.values[np.searchsorted(self._cum_p, val)]
+
+    def cdf(self, val):
+        """Return the cumulative prior probability of val.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: cumulative prior probability of val
+        """
+        if (not hasattr(val, "__len__")):
+            if val in self.values:
+                return self._cum_p[np.searchsorted(self.values, val)]
+            else:
+                return 0
+        else:
+            index = np.searchsorted(self.values, val)
+            index[index == self.nvalues] = self.nvalues - 1
+            mask = (self.values[index] == val)
+            cumprobs = np.zeros_like(val, dtype=np.float64)
+            cumprobs[mask] = self._cum_p[index[mask]]
+            return cumprobs
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1496,16 +1546,17 @@ class DiscreteValues(Prior):
         =======
         float: Prior probability of val
         """
-        if isinstance(val, (float, int)):
+        if (not hasattr(val, "__len__")):
             if val in self.values:
-                return self.p
+                return self.p[np.searchsorted(self.values, val)]
             else:
                 return 0
         else:
-            val = np.atleast_1d(val)
+            index = np.searchsorted(self.values, val)
+            index[index == self.nvalues] = self.nvalues - 1
+            mask = self.values[index] == val
             probs = np.zeros_like(val, dtype=np.float64)
-            idxs = np.isin(val, self.values)
-            probs[idxs] = self.p
+            probs[mask] = self.p[index[mask]]
             return probs
 
     def ln_prob(self, val):
@@ -1520,24 +1571,90 @@ class DiscreteValues(Prior):
         float:
 
         """
-        if isinstance(val, (float, int)):
+        if not hasattr(val, "__len__"):
             if val in self.values:
-                return self.lnp
+                return self.lnp[np.searchsorted(self.values, val)]
             else:
                 return -np.inf
         else:
-            val = np.atleast_1d(val)
-            probs = -np.inf * np.ones_like(val, dtype=np.float64)
-            idxs = np.isin(val, self.values)
-            probs[idxs] = self.lnp
-            return probs
+            index = np.searchsorted(self.values, val)
+            index[index == self.nvalues] = self.nvalues - 1
+            mask = self.values[index] == val
+            lnprobs = np.ones_like(val, dtype=np.float64) * (-np.inf)
+            lnprobs[mask] = self.lnp[index[mask]]
+            return lnprobs
+
+
+class DiscreteValues(WeightedDiscreteValues):
+    def __init__(self, values, name=None, latex_label=None,
+                 unit=None, boundary="periodic"):
+        """An equal-weighted discrete-valued prior
+
+        Parameters
+        ==========
+        values: array
+            The discrete values of the prior.
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        weights = np.ones_like(values)
+        super(DiscreteValues, self).__init__(
+            values=values,
+            weights=weights,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
+
+
+class WeightedCategorical(WeightedDiscreteValues):
+    def __init__(
+        self,
+        ncategories,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary="periodic",
+    ):
+        """A weighted Categorical prior
+
+        Parameters
+        ==========
+        ncategories: int
+            The number of available categories. The prior mass support is then
+            integers [0, ncategories - 1].
+        weights: array_like
+            The weights of each category. If None, then all categories are
+            equally weighted.
+        name: str
+            The name of the parameter
+        latex_label: str
+            The latex label of the parameter. Used for plotting.
+        unit: str
+            The unit of the parameter. Used for plotting.
+        """
+        values = np.arange(0, ncategories)
+        super(WeightedCategorical, self).__init__(
+            values=values,
+            weights=weights,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
 
 
 class Categorical(DiscreteValues):
-    def __init__(self, ncategories, name=None, latex_label=None,
-                 unit=None, boundary="periodic"):
-        """ An equal-weighted Categorical prior
-
+    def __init__(
+        self, ncategories, name=None, latex_label=None, unit=None, boundary="periodic"
+    ):
+        """An equal-weighted Categorical prior
         Parameters
         ==========
         ncategories: int
@@ -1551,8 +1668,13 @@ class Categorical(DiscreteValues):
             See superclass
         """
         values = np.arange(0, ncategories)
-        DiscreteValues.__init__(self, values=values, name=name, latex_label=latex_label,
-                                unit=unit, boundary=boundary)
+        super(Categorical, self).__init__(
+            values=values,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
 
 
 class Triangular(Prior):
