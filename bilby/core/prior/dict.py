@@ -420,6 +420,9 @@ class PriorDict(dict):
                 samples[key] = self[key].sample(size=size)
             else:
                 logger.debug("{} not a known prior.".format(key))
+        # ensure that `reset_sampled()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_sampled")
         return samples
 
     @property
@@ -429,6 +432,27 @@ class PriorDict(dict):
         keys = [k for k in keys if self[k].is_fixed is False]
         keys = [k for k in keys if k not in self.constraint_keys]
         return keys
+
+    @property
+    def jointprior_dependencies(self):
+        keys = self.keys()
+        keys = [k for k in keys if isinstance(self[k], JointPrior)]
+        dependencies = {k: list(set(self[k].dist.names) - set([k])) for k in keys}
+        return dependencies
+
+    def _reset_jointprior_dists_with_missed_dependencies(self, keys, reset_func):
+        keys = set(keys)
+        dependencies = self.jointprior_dependencies
+        requested_jointpriors = set(dependencies).intersection(keys)
+        missing_dependencies = {value for key in requested_jointpriors for value in dependencies[key]}
+        reset_dists = []
+        for key in missing_dependencies:
+            dist = self[key].dist
+            if id(dist) in reset_dists:
+                pass
+            else:
+                getattr(dist, reset_func)()
+                reset_dists.append(id(dist))
 
     @property
     def fixed_keys(self):
@@ -535,13 +559,16 @@ class PriorDict(dict):
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
-    def prob(self, sample, **kwargs):
+    def prob(self, sample, normalized=True, **kwargs):
         """
 
         Parameters
         ==========
         sample: dict
             Dictionary of the samples of which we want to have the probability of
+        normalized: bool
+            When False, disables calculation of constraint normalization factor
+            during prior probability computation. Default value is True.
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -552,10 +579,16 @@ class PriorDict(dict):
         """
         prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
 
-        return self.check_prob(sample, prob)
+        # ensure that `reset_request()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), reset_func="reset_request")
+        return self.check_prob(sample, prob, normalized)
 
-    def check_prob(self, sample, prob):
-        ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+    def check_prob(self, sample, prob, normalized=True):
+        if normalized:
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+        else:
+            ratio = 1
         if np.all(prob == 0.0):
             return prob * ratio
         else:
@@ -570,18 +603,18 @@ class PriorDict(dict):
                 constrained_prob[keep] = prob[keep] * ratio
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None, normalized=True):
+    def ln_prob(self, sample, normalized=True, **kwargs):
         """
 
         Parameters
         ==========
         sample: dict
             Dictionary of the samples of which to calculate the log probability
-        axis: None or int
-            Axis along which the summation is performed
         normalized: bool
             When False, disables calculation of constraint normalization factor
             during prior probability computation. Default value is True.
+        kwargs:
+            The keyword arguments are passed directly to `np.prod`
 
         Returns
         =======
@@ -589,7 +622,11 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
+        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], **kwargs)
+
+        # ensure that `reset_request()` of all JointPrior.dist
+        # with missing dependencies is called
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_ln_prob(sample, ln_prob,
                                   normalized=normalized)
 
@@ -636,18 +673,24 @@ class PriorDict(dict):
         ==========
         keys: list
             List of prior keys to be rescaled
-        theta: list
-            List of randomly drawn values on a unit cube associated with the prior keys
+        theta: dict or array-like
+            Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
         =======
-        list: List of floats containing the rescaled sample
+        list:
+            If theta is 1D, returns list of floats containing the rescaled sample.
+            If theta is 2D, returns list of lists containing the rescaled samples.
         """
-        theta = list(theta)
+        theta = [theta[key] for key in keys] if isinstance(theta, dict) else list(theta)
         samples = []
         for key, units in zip(keys, theta):
             samps = self[key].rescale(units)
-            samples += list(np.asarray(samps).flatten())
+            samples.append(samps)
+        for i, samps in enumerate(samples):
+            # turns 0d-arrays into scalars
+            samples[i] = np.squeeze(samps).tolist()
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_rescale")
         return samples
 
     def test_redundancy(self, key, disable_logging=False):
@@ -703,8 +746,6 @@ class ConditionalPriorDict(PriorDict):
         self._conditional_keys = []
         self._unconditional_keys = []
         self._rescale_keys = []
-        self._rescale_indexes = []
-        self._least_recently_rescaled_keys = []
         super(ConditionalPriorDict, self).__init__(
             dictionary=dictionary,
             filename=filename,
@@ -748,42 +789,54 @@ class ConditionalPriorDict(PriorDict):
         for k in self[key].required_variables:
             if k not in sampled_keys:
                 conditions_resolved = False
+                break
+            elif isinstance(self[k], JointPrior):
+                dependencies = self.jointprior_dependencies[k]
+                if len(set(dependencies) - set(sampled_keys)) > 0:
+                    conditions_resolved = False
+                    break
         return conditions_resolved
 
     def sample_subset(self, keys=iter([]), size=None):
+        keys = list(keys)
         self.convert_floats_to_delta_functions()
-        add_delta_keys = [
-            key
-            for key in self.keys()
-            if key not in keys and isinstance(self[key], DeltaFunction)
-        ]
-        use_keys = add_delta_keys + list(keys)
-        subset_dict = ConditionalPriorDict({key: self[key] for key in use_keys})
-        if not subset_dict._resolved:
-            raise IllegalConditionsException(
-                "The current set of priors contains unresolvable conditions."
-            )
+        add_delta_keys = []
+        for key in self.keys():
+            if key not in keys and isinstance(self[key], DeltaFunction):
+                add_delta_keys.append(key)
+
+        use_keys = add_delta_keys + keys
+        unconditional_use_keys = [key for key in self.unconditional_keys if key in use_keys]
+        sorted_conditional_use_keys = [key for key in self.conditional_keys if key in use_keys]
+
+        for i, key in enumerate(sorted_conditional_use_keys):
+            if not self._check_conditions_resolved(key, unconditional_use_keys + sorted_conditional_use_keys[:i]):
+                raise IllegalConditionsException(
+                    "The current set of priors contains unresolvable conditions."
+                )
+        sorted_use_keys = unconditional_use_keys + sorted_conditional_use_keys
         samples = dict()
-        for key in subset_dict.sorted_keys:
+        for key in sorted_use_keys:
             if key not in keys or isinstance(self[key], Constraint):
                 continue
             if isinstance(self[key], Prior):
                 try:
-                    samples[key] = subset_dict[key].sample(
-                        size=size, **subset_dict.get_required_variables(key)
+                    samples[key] = self[key].sample(
+                        size=size, **self.get_required_variables(key)
                     )
                 except ValueError:
                     # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
                     # If that is the case, we sample each sample individually.
-                    required_variables = subset_dict.get_required_variables(key)
+                    required_variables = self.get_required_variables(key)
                     samples[key] = np.zeros(size)
                     for i in range(size):
                         rvars = {
                             key: value[i] for key, value in required_variables.items()
                         }
-                        samples[key][i] = subset_dict[key].sample(**rvars)
+                        samples[key][i] = self[key].sample(**rvars)
             else:
                 logger.debug("{} not a known prior.".format(key))
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_sampled")
         return samples
 
     def get_required_variables(self, key):
@@ -824,6 +877,7 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         prob = np.prod(res, **kwargs)
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_prob(sample, prob)
 
     def ln_prob(self, sample, axis=None, normalized=True):
@@ -850,6 +904,7 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ]
         ln_prob = np.sum(res, axis=axis)
+        self._reset_jointprior_dists_with_missed_dependencies(sample.keys(), "reset_request")
         return self.check_ln_prob(sample, ln_prob,
                                   normalized=normalized)
 
@@ -868,37 +923,49 @@ class ConditionalPriorDict(PriorDict):
         ==========
         keys: list
             List of prior keys to be rescaled
-        theta: list
-            List of randomly drawn values on a unit cube associated with the prior keys
+        theta: dict or array-like
+            Randomly drawn values on a unit cube associated with the prior keys
 
         Returns
         =======
-        list: List of floats containing the rescaled sample
+        list:
+            If theta is float for each key, returns list of floats containing the rescaled sample.
+            If theta is array-like for each key, returns list of lists containing the rescaled samples.
         """
         keys = list(keys)
-        theta = list(theta)
-        self._check_resolved()
-        self._update_rescale_keys(keys)
+
+        unconditional_keys = [key for key in self.unconditional_keys if key in keys]
+        sorted_conditional_keys = [key for key in self.conditional_keys if key in keys]
+
+        for i, key in enumerate(sorted_conditional_keys):
+            if not self._check_conditions_resolved(key, unconditional_keys + sorted_conditional_keys[:i]):
+                raise IllegalConditionsException(
+                    "The current set of priors contains unresolvable conditions."
+                )
+        sorted_keys = unconditional_keys + sorted_conditional_keys
+        theta = [theta[key] for key in sorted_keys] if isinstance(theta, dict) else list(theta)
         result = dict()
-        for key, index in zip(
-            self.sorted_keys_without_fixed_parameters, self._rescale_indexes
-        ):
-            result[key] = self[key].rescale(
-                theta[index], **self.get_required_variables(key)
-            )
+        for key, vals in zip(sorted_keys, theta):
+            try:
+                result[key] = self[key].rescale(vals, **self.get_required_variables(key))
+            except ValueError:
+                # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
+                # If that is the case, we sample each sample individually.
+                required_variables = self.get_required_variables(key)
+                result[key] = np.zeros_like(vals)
+                for i in range(len(vals)):
+                    rvars = {
+                        key: value[i] for key, value in required_variables.items()
+                    }
+                    result[key][i] = self[key].rescale(vals[i], **rvars)
             self[key].least_recently_sampled = result[key]
         samples = []
         for key in keys:
-            samples += list(np.asarray(result[key]).flatten())
+            # turns 0d-arrays into scalars
+            res = np.squeeze(result[key]).tolist()
+            samples.append(res)
+        self._reset_jointprior_dists_with_missed_dependencies(keys, "reset_rescale")
         return samples
-
-    def _update_rescale_keys(self, keys):
-        if not keys == self._least_recently_rescaled_keys:
-            self._rescale_indexes = [
-                keys.index(element)
-                for element in self.sorted_keys_without_fixed_parameters
-            ]
-            self._least_recently_rescaled_keys = keys
 
     def _prepare_evaluation(self, keys, theta):
         self._check_resolved()

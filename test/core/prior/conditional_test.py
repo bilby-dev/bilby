@@ -334,34 +334,99 @@ class TestConditionalPriorDict(unittest.TestCase):
 
         # set multivariate Gaussian distribution
         names = ["mvgvar_0", "mvgvar_1"]
-        mu = [[0.79, -0.83]]
+        mu = [[1, 1]]
         cov = [[[0.03, 0.], [0., 0.04]]]
         mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
+        names_2 = ["mvgvar_a", "mvgvar_b"]
+        mvg_dual_mode = bilby.core.prior.MultivariateGaussianDist(
+            names=names_2,
+            nmodes=2,
+            mus=[mu[0], (np.array(mu[0]) + np.ones_like(mu[0])).tolist()],
+            covs=[cov[0], cov[0]],
+            weights=[1, 2]
+        )
+
+        def condition_func_2(reference_params, var_0):
+            return dict(mode=np.searchsorted(np.cumsum(np.array([1, 2]) / 3), var_0))
+
+        def condition_func_1(reference_params, var_0, var_1):
+            return {"minimum": var_0 - 1, "maximum": var_1 + 1}
+
+        def condition_func_5(reference_parameters, mvgvar_a):
+            return dict(minimum=reference_parameters["minimum"], maximum=mvgvar_a)
+
+        prior_5 = bilby.core.prior.ConditionalUniform(
+            condition_func=condition_func_5, minimum=self.minimum, maximum=self.maximum
+        )
+
         priordict = bilby.core.prior.ConditionalPriorDict(
             dict(
+                var_5=prior_5,
+                mvgvar_a=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_2, dist=mvg_dual_mode, name="mvgvar_a",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
                 var_3=self.prior_3,
                 var_2=self.prior_2,
                 var_0=self.prior_0,
                 var_1=self.prior_1,
-                mvgvar_0=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_0"),
-                mvgvar_1=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_1"),
+                mvgvar_0=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_1, dist=mvg, name="mvgvar_0", minimum=self.minimum, maximum=self.maximum),
+                mvgvar_1=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_1, dist=mvg, name="mvgvar_1", minimum=self.minimum, maximum=self.maximum),
+                mvgvar_b=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_2, dist=mvg_dual_mode, name="mvgvar_b",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
             )
         )
 
-        ref_variables = list(self.test_sample.values()) + [0.4, 0.1]
-        keys = list(self.test_sample.keys()) + names
+        ref_variables = self.test_sample.copy()
+        ref_variables.update({"mvgvar_0": 0.5, "mvgvar_1": 0.5, "mvgvar_a": 0.5, "mvgvar_b": 0.2, "var_5": 0.5})
+        keys = list(self.test_sample.keys()) + names + names_2 + ["var_5"]
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertIsInstance(res, list)
-        self.assertEqual(np.shape(res), (6,))
-        self.assertListEqual([isinstance(r, float) for r in res], 6 * [True])
+        self.assertEqual(np.shape(res), (9,))
+        self.assertListEqual([isinstance(r, float) for r in res], 9 * [True])
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
+        self.assertFalse(np.any(np.isnan(res)))
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        self.assertListEqual(expected, res[0:4])
+        expected.extend([1, 1])
+        self.assertListEqual(expected, res[:6])
+        res_sample = priordict.sample(1)
+        self.assertEqual(list(res_sample.keys()), priordict.sorted_keys_without_fixed_parameters)
+        res_sample = priordict.sample(1000)
+        self.assertListEqual([len(val) for val in res_sample.values()], [1000] * len(res_sample.keys()))
+        lnprobs = priordict.ln_prob(priordict.sample(10), axis=0)
+        self.assertEqual(len(lnprobs), 10)
+
+        with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+            keys = set(priordict.keys()) - set(["mvgvar_a"])
+            priordict.rescale(keys=keys, theta=ref_variables)
+
+        def condition_func_6(reference_params, var_5):
+            return dict(mode=np.searchsorted(np.cumsum(np.array([1, 2]) / 3), var_5))
+
+        priordict_unresolveable = bilby.core.prior.ConditionalPriorDict(
+            dict(
+                var_5=prior_5,
+                var_3=self.prior_3,
+                var_2=self.prior_2,
+                var_0=self.prior_0,
+                var_1=self.prior_1,
+                mvgvar_a=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_6, dist=mvg_dual_mode, name="mvgvar_a",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
+                mvgvar_b=bilby.core.prior.ConditionalJointPrior(
+                    condition_func_6, dist=mvg_dual_mode, name="mvgvar_b",
+                    minimum=self.minimum, maximum=self.maximum, mode=None),
+
+            )
+        )
+        self.assertEqual(priordict_unresolveable._resolved, False)
 
     def test_cdf(self):
         """
@@ -378,10 +443,11 @@ class TestConditionalPriorDict(unittest.TestCase):
         )
 
     def test_rescale_illegal_conditions(self):
-        del self.conditional_priors["var_0"]
+        test_sample = self.test_sample.copy()
+        test_sample.pop("var_0")
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.rescale(
-                keys=list(self.test_sample.keys()),
+                keys=list(test_sample.keys()),
                 theta=list(self.test_sample.values()),
             )
 

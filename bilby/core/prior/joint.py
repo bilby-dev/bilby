@@ -63,8 +63,11 @@ class BaseJointPriorDist(object):
         self.requested_parameters = dict()
         self.reset_request()
 
-        # a dictionary of the rescaled parameters
-        self.rescale_parameters = dict()
+        # a dictionary that stores the unit-cube values of parameters for later rescaling
+        self._current_unit_cube_parameter_values = dict()
+        # a dictionary of arrays that are used as intermediate return values of JointPrior.rescale()
+        # and updated in-place once all parameters have been requested
+        self._current_rescaled_parameter_values = dict()
         self.reset_rescale()
 
         # a list of sampled parameters
@@ -94,15 +97,24 @@ class BaseJointPriorDist(object):
         Check if all the rescaled parameters have been filled.
         """
 
-        return not np.any([val is None for val in self.rescale_parameters.values()])
+        return not np.any([val is None for val in self._current_unit_cube_parameter_values.values()])
+
+    def set_rescale(self, key, values):
+        self._current_unit_cube_parameter_values[key] = np.array(values)
+        self._current_rescaled_parameter_values[key] = np.full_like(values, np.nan, dtype=float)
 
     def reset_rescale(self):
         """
         Reset the rescaled parameters to None.
         """
-
         for name in self.names:
-            self.rescale_parameters[name] = None
+            self._current_unit_cube_parameter_values[name] = None
+            self._current_rescaled_parameter_values[name] = None
+
+    def get_rescaled(self, key):
+        """Return an array that will be updated in-place once the rescale-operation
+        has been performed."""
+        return self._current_rescaled_parameter_values[key]
 
     def get_instantiation_dict(self):
         subclass_args = infer_args_from_method(self.__init__)
@@ -172,13 +184,13 @@ class BaseJointPriorDist(object):
             kwargs[key.strip()] = arg
         return kwargs
 
-    def prob(self, samp):
+    def prob(self, samp, **kwargs):
         """
         Get the probability of a sample. For bounded priors the
         probability will not be properly normalised.
         """
 
-        return np.exp(self.ln_prob(samp))
+        return np.exp(self.ln_prob(samp, **kwargs))
 
     def _check_samp(self, value):
         """
@@ -209,14 +221,12 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         # check sample(s) is within bounds
-        outbounds = np.ones(samp.shape[0], dtype=bool)
+        outbounds = np.zeros(samp.shape[0], dtype=bool)
         for s, bound in zip(samp.T, self.bounds.values()):
-            outbounds = (s < bound[0]) | (s > bound[1])
-            if np.any(outbounds):
-                break
+            outbounds += (s < bound[0]) | (s > bound[1])
         return samp, outbounds
 
-    def ln_prob(self, value):
+    def ln_prob(self, value, **kwargs):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised.
@@ -231,7 +241,7 @@ class BaseJointPriorDist(object):
 
         samp, outbounds = self._check_samp(value)
         lnprob = -np.inf * np.ones(samp.shape[0])
-        lnprob = self._ln_prob(samp, lnprob, outbounds)
+        lnprob = self._ln_prob(samp, lnprob, outbounds, **kwargs)
         if samp.shape[0] == 1:
             return lnprob[0]
         else:
@@ -303,10 +313,12 @@ class BaseJointPriorDist(object):
 
         Parameters
         ==========
-        value: array
-            A 1d vector sample (one for each parameter) drawn from a uniform
+        value: array or None
+            If given, a 1d vector sample (one for each parameter) drawn from a uniform
             distribution between 0 and 1, or a 2d NxM array of samples where
             N is the number of samples and M is the number of parameters.
+            If None, the values previously set using BaseJointPriorDist.set_rescale() are used,
+            the result is stored and can be accessed using get_rescaled().
         kwargs: dict
             All keyword args that need to be passed to _rescale method, these keyword
             args are called in the JointPrior rescale methods for each parameter
@@ -317,16 +329,30 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = np.array(value)
-        if len(samp.shape) == 1:
-            samp = samp.reshape(1, self.num_vars)
-
-        if len(samp.shape) != 2:
-            raise ValueError("Array is the wrong shape")
-        elif samp.shape[1] != self.num_vars:
-            raise ValueError("Array is the wrong shape")
+        if value is None:
+            if not self.filled_rescale():
+                raise ValueError("Attempting to rescale from stored values without having set all required values.")
+            samp = np.array([self._current_unit_cube_parameter_values[key] for key in self.names]).T
+            if len(samp.shape) == 1:
+                samp = samp.reshape(1, self.num_vars)
+        else:
+            samp = np.asarray(value)
+            if len(samp.shape) == 1:
+                samp = samp.reshape(1, self.num_vars)
+            if len(samp.shape) != 2:
+                raise ValueError("Array is the wrong shape")
+            elif samp.shape[1] != self.num_vars:
+                raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
+        # only store result if the rescale was done with saved unit-cube values
+        if value is None:
+            for i, key in enumerate(self.names):
+                # get the numpy array used for indermediate outputs
+                # prior to a full rescale-operation
+                output = self.get_rescaled(key)
+                # update the array in-place
+                output[...] = samp[:, i]
         return np.squeeze(samp)
 
     def _rescale(self, samp, **kwargs):
@@ -612,76 +638,95 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         )
 
     def _rescale(self, samp, **kwargs):
-        try:
-            mode = kwargs["mode"]
-        except KeyError:
-            mode = None
+        mode = kwargs.get("mode", self.mode)
 
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
             else:
-                mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
+                mode = random.rng.choice(
+                    self.nmodes, size=len(samp), p=self.weights
+                )
 
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = self.mus[mode] + self.sigmas[mode] * np.einsum(
-            "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
-        )
+        uniques = np.unique(mode)
+        if len(uniques) == 1:
+            unique = uniques[0]
+            samp = self.mus[unique] + self.sigmas[unique] * np.einsum(
+                "ij,kj->ik", samp * self.sqeigvalues[unique], self.eigvectors[unique]
+            )
+        else:
+            mode = np.asarray(mode)
+            if mode.shape != (samp.shape[0],):
+                raise ValueError(f"Inconsistent sizes of the array-like used to select modes "
+                                 f"with shape {mode.shape} and the array of requested samps "
+                                 f"with length {len(samp)}.")
+            for m in uniques:
+                mask = m == mode
+                samp[mask] = self.mus[m] + self.sigmas[m] * np.einsum(
+                    "ij,kj->ik", samp[mask] * self.sqeigvalues[m], self.eigvectors[m]
+                )
+
         return samp
 
     def _sample(self, size, **kwargs):
-        try:
-            mode = kwargs["mode"]
-        except KeyError:
-            mode = None
+        mode = kwargs.get("mode", self.mode)
+
+        samps = np.zeros((size, len(self)))
+        outbound = np.ones(size, dtype=bool)
 
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
-            else:
-                if size == 1:
-                    mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
-                else:
-                    # pick modes
-                    mode = [
-                        np.argwhere(self.cumweights - r > 0)[0][0]
-                        for r in random.rng.uniform(0, 1, size)
-                    ]
+        while np.any(outbound):
+            # sample the multivariate Gaussian keys
+            vals = random.rng.uniform(0, 1, (np.sum(outbound), len(self)))
 
-        samps = np.zeros((size, len(self)))
-        for i in range(size):
-            inbound = False
-            while not inbound:
-                # sample the multivariate Gaussian keys
-                vals = random.rng.uniform(0, 1, len(self))
+            if mode is None:
+                mode = random.rng.choice(
+                    self.nmodes, size=np.sum(outbound), p=self.weights
+                )
 
-                if isinstance(mode, list):
-                    samp = np.atleast_1d(self.rescale(vals, mode=mode[i]))
-                else:
-                    samp = np.atleast_1d(self.rescale(vals, mode=mode))
-                samps[i, :] = samp
+            samps[outbound] = np.atleast_1d(self.rescale(vals, mode=mode))
 
-                # check sample is in bounds (otherwise perform another draw)
-                outbound = False
-                for name, val in zip(self.names, samp):
-                    if val < self.bounds[name][0] or val > self.bounds[name][1]:
-                        outbound = True
-                        break
-
-                if not outbound:
-                    inbound = True
+            # check sample is in bounds and redraw those which are not
+            samps, outbound = self._check_samp(samps)
 
         return samps
 
-    def _ln_prob(self, samp, lnprob, outbounds):
-        for j in range(samp.shape[0]):
+    def _ln_prob(self, samp, lnprob, outbounds, **kwargs):
+        mode = kwargs.get("mode", self.mode)
+
+        if mode is None:
             # loop over the modes and sum the probabilities
             for i in range(self.nmodes):
                 # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
-                z = (samp[j] - self.mus[i]) / self.sigmas[i]
-                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
+                z = (samp - self.mus[i]) / self.sigmas[i]
+                lnprob = np.logaddexp(
+                    lnprob,
+                    self.mvn[i].logpdf(z) - self.logprodsigmas[i] + np.log(self.weights[i])
+                )
+        else:
+            uniques = np.unique(np.asarray(mode, dtype=int))
+            if len(uniques) == 1:
+                unique = uniques[0]
+                z = (samp - self.mus[unique]) / self.sigmas[unique]
+                # don't multiply by the mode weight if the mode is given (ie. prob(mode|mode) = 1)
+                lnprob = np.logaddexp(lnprob, self.mvn[unique].logpdf(z) - self.logprodsigmas[unique])
+            else:
+                mode = np.asarray(mode)
+                print(mode.shape, samp.shape)
+                if mode.shape != (samp.shape[0],):
+                    raise ValueError(f"Inconsistent sizes of the array-like used to select modes "
+                                     f"with shape {mode.shape} and the array of requested samps "
+                                     f"with length {len(samp)}.")
+                for m in uniques:
+                    mask = mode == m
+                    z = (samp[mask] - self.mus[m]) / self.sigmas[m]
+                    # don't multiply by the mode weight if the mode is given (ie. prob(mode|mode) = 1)
+                    lnprob[mask] = np.logaddexp(lnprob[mask], self.mvn[m].logpdf(z) - self.logprodsigmas[m])
 
         # set out-of-bounds values to -inf
         lnprob[outbounds] = -np.inf
@@ -721,13 +766,28 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                     return False
         return True
 
+    @property
+    def mode(self):
+        if hasattr(self, "_mode"):
+            return self._mode
+        else:
+            return None
+
+    @mode.setter
+    def mode(self, mode):
+        if not np.issubdtype(np.asarray(mode).dtype, np.integer):
+            raise ValueError("The mode to set must have integral data type.")
+        if np.any(mode >= self.nmodes) or np.any(mode < 0):
+            raise ValueError("The value of mode cannot be higher than the number of modes or smaller than zero.")
+        self._mode = mode
+
 
 class MultivariateNormalDist(MultivariateGaussianDist):
     """A synonym for the :class:`~bilby.core.prior.MultivariateGaussianDist` distribution."""
 
 
 class JointPrior(Prior):
-    def __init__(self, dist, name=None, latex_label=None, unit=None):
+    def __init__(self, dist, name=None, latex_label=None, unit=None, **kwargs):
         """This defines the single parameter Prior object for parameters that belong to a JointPriorDist
 
         Parameters
@@ -778,6 +838,17 @@ class JointPrior(Prior):
         self._maximum = maximum
         self.dist.bounds[self.name] = (self.dist.bounds[self.name][0], maximum)
 
+    def __setattr__(self, name, value):
+        # first check that the JointPrior has an explicit setter method for the attribute, which should take presedence
+        if hasattr(self.__class__, name) and getattr(self.__class__, name).fset is not None:
+            return super().__setattr__(name, value)
+        # then check if the BaseJointPriorDist-!subclass! has an explicit setter method for the attribute
+        elif hasattr(self, "dist") and hasattr(self.dist, name) and getattr(self.dist.__class__, name).fset is not None:
+            return self.dist.__setattr__(name, value)
+        # if not, use the default settattr
+        else:
+            return super().__setattr__(name, value)
+
     def rescale(self, val, **kwargs):
         """
         Scale a unit hypercube sample to the prior.
@@ -790,19 +861,41 @@ class JointPrior(Prior):
             all kwargs passed to the dist.rescale method
         Returns
         =======
-        float:
-            A sample from the prior parameter.
+        np.ndarray:
+            The samples from the prior parameter. If not all names in "dist" have been filled,
+            the array contains only np.nan. *This* specific array instance will be filled with
+            the rescaled value once all parameters have been requested
         """
 
-        self.dist.rescale_parameters[self.name] = val
+        if self.dist.get_rescaled(self.name) is not None:
+            import warnings
+            warnings.warn(
+                f"Rescale values for {self.name} in {self.dist} have already been set, "
+                "indicating that another rescale-operation is in progress.\n"
+                "Call dist.reset_rescale() on the joint prior distribution associated "
+                "with this prior after using dist.rescale() and make sure all parameters "
+                "necessary for rescaling have been requested in PriorDict.rescale().\n"
+                "Resetting now.",
+                RuntimeWarning
+            )
+            self.dist.reset_rescale()
+        self.dist.set_rescale(self.name, val)
 
         if self.dist.filled_rescale():
-            values = np.array(list(self.dist.rescale_parameters.values())).T
-            samples = self.dist.rescale(values, **kwargs)
+            # If all names have been filled, perform rescale operation
+            self.dist.rescale(value=None, **kwargs)
+            # get the rescaled values for the requested parameter
+            output = self.dist.get_rescaled(self.name)
+            # reset the rescale operation
             self.dist.reset_rescale()
-            return samples
         else:
-            return []  # return empty list
+            # If not all names have been filled, return a *numpy array*
+            # filled only with `np.nan`. Once all names have been requested,
+            # this array is updated *in-place* with the rescaled values.
+            output = self.dist.get_rescaled(self.name)
+
+        # have to return raw output to conserve in-place modifications
+        return output
 
     def sample(self, size=1, **kwargs):
         """
