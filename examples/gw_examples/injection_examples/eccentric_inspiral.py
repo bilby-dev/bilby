@@ -17,7 +17,8 @@ seed(123)
 duration = 64
 sampling_frequency = 256
 
-outdir = "outdir"label = "eccentric"
+outdir = "outdir"
+label = "eccentric"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 injection_parameters = dict(
