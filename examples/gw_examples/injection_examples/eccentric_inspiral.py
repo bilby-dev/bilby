@@ -12,21 +12,19 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
-# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
 duration = 64
 sampling_frequency = 256
 
-outdir = "outdir"
-label = "eccentric_GW150914"
+outdir = "outdir"label = "eccentric"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
-
 
 injection_parameters = dict(
     mass_1=35.0,
     mass_2=30.0,
     eccentricity=0.1,
+    mean_per_ano=0.0,
     luminosity_distance=440.0,
     theta_jn=0.4,
     psi=0.1,
@@ -40,21 +38,15 @@ waveform_arguments = dict(
     waveform_approximant="EccentricFD", reference_frequency=10.0, minimum_frequency=10.0
 )
 
-# Create the waveform_generator using the LAL eccentric black hole no spins
-# source function
-waveform_generator = bilby.gw.WaveformGenerator(
+waveform_generator = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
+    eccentric=True,
+    spinning=False,
     duration=duration,
     sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=bilby.gw.source.lal_eccentric_binary_black_hole_no_spins,
     parameters=injection_parameters,
     waveform_arguments=waveform_arguments,
 )
 
-
-# Setting up three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1), and
-# Virgo (V1)) at their design sensitivities. The maximum frequency is set just
-# prior to the point at which the waveform model terminates. This is to avoid
-# any biases introduced from using a sharply terminating waveform model.
 minimum_frequency = 10.0
 maximum_frequency = 128.0
 
@@ -102,18 +94,16 @@ priors["geocent_time"] = bilby.core.prior.Uniform(
     name="geocent_time",
     unit="s",
 )
+priors["mean_per_ano"] = 0.0
 
-# Initialising the likelihood function.
 likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     interferometers=ifos,
     waveform_generator=waveform_generator,
     priors=priors,
-    time_marginalization=True,
     distance_marginalization=True,
     phase_marginalization=True,
 )
 
-# Now we run sampler (PyMultiNest in our case).
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
@@ -124,6 +114,4 @@ result = bilby.run_sampler(
     label=label,
     result_class=bilby.gw.result.CBCResult,
 )
-
-# And finally we make some plots of the output posteriors.
 result.plot_corner()
