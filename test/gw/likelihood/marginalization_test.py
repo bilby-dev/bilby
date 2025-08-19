@@ -380,7 +380,7 @@ class TestMarginalizations(unittest.TestCase):
             ln_likes[ii] = non_marginalized.log_likelihood_ratio()
         like = np.exp(ln_likes - max(ln_likes))
 
-        marg_like = np.log(np.trapz(like * prior_values, values)) + max(ln_likes)
+        marg_like = np.log(np.trapezoid(like * prior_values, values)) + max(ln_likes)
         self.assertAlmostEqual(
             marg_like, marginalized.log_likelihood_ratio(), delta=0.5
         )
