@@ -80,5 +80,12 @@ class Model:
             for key in ignore:
                 if key in param_keys:
                     del param_keys[param_keys.index(key)]
-        parameters = {key: kwargs.get(key, self.parameters[key]) for key in param_keys}
+        parameters = dict()
+        for key in param_keys:
+            if key in kwargs:
+                parameters[key] = kwargs[key]
+            elif key in self.parameters:
+                parameters[key] = self.parameters[key]
+            else:
+                raise KeyError(f"Missing parameter {key} for hyper model")
         return parameters
