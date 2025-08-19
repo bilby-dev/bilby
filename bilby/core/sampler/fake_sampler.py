@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..likelihood import _safe_likelihood_call
 from ..result import read_in_result
 from .base_sampler import Sampler
 
@@ -75,17 +76,16 @@ class FakeSampler(Sampler):
         for i in np.arange(posterior.shape[0]):
             sample = posterior.iloc[i]
 
-            self.likelihood.parameters = sample.to_dict()
-            logl = self.likelihood.log_likelihood_ratio()
+            params = sample.to_dict()
+            logl = _safe_likelihood_call(self.likelihood, params, use_ratio=True)
             sample.log_likelihood = logl
             likelihood_ratios.append(logl)
 
             if self.kwargs["verbose"]:
                 print(
-                    self.likelihood.parameters["log_likelihood"],
+                    params["log_likelihood"],
                     likelihood_ratios[-1],
-                    self.likelihood.parameters["log_likelihood"]
-                    - likelihood_ratios[-1],
+                    params["log_likelihood"] - likelihood_ratios[-1],
                 )
 
         self.result.log_likelihood_evaluations = np.array(likelihood_ratios)
