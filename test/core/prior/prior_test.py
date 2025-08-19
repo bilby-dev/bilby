@@ -573,7 +573,7 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(prior.minimum, prior.maximum, 10000)
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
-            self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+            self.assertAlmostEqual(np.trapezoid(prior.prob(domain), domain), 1, 3)
 
     def test_accuracy(self):
         """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
