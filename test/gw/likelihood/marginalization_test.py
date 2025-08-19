@@ -9,6 +9,7 @@ from parameterized import parameterized
 import numpy as np
 import bilby
 from bilby.gw.detector import calibration
+from scipy.integrate import trapezoid
 from scipy.special import logsumexp
 
 
@@ -380,7 +381,7 @@ class TestMarginalizations(unittest.TestCase):
             ln_likes[ii] = non_marginalized.log_likelihood_ratio()
         like = np.exp(ln_likes - max(ln_likes))
 
-        marg_like = np.log(np.trapezoid(like * prior_values, values)) + max(ln_likes)
+        marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
         self.assertAlmostEqual(
             marg_like, marginalized.log_likelihood_ratio(), delta=0.5
         )
