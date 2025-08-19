@@ -2,7 +2,7 @@ import os
 import copy
 
 import numpy as np
-from scipy.integrate import quad
+from scipy.integrate import quad, trapezoid
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.special import hyp2f1
 from scipy.stats import norm
@@ -1520,7 +1520,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         from scipy.integrate import cumulative_trapezoid
         yy = self._all_interped(self.pix_xx)
-        yy /= np.trapz(yy, self.pix_xx)
+        yy /= trapezoid(yy, self.pix_xx)
         YY = cumulative_trapezoid(yy, self.pix_xx, initial=0)
         YY[-1] = 1
         self.inverse_cdf = interp1d(x=YY, y=self.pix_xx, bounds_error=True)

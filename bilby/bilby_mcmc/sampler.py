@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.integrate import trapezoid
 from scipy.optimize import differential_evolution
 
 from ..core.result import rejection_sample
@@ -1090,8 +1091,8 @@ class BilbyPTMCMCSampler(object):
 
     @staticmethod
     def _compute_evidence_from_mean_lnlikes(betas, mean_lnlikes):
-        lnZ = np.trapz(mean_lnlikes, betas)
-        z2 = np.trapz(mean_lnlikes[::-1][::2][::-1], betas[::-1][::2][::-1])
+        lnZ = trapezoid(mean_lnlikes, betas)
+        z2 = trapezoid(mean_lnlikes[::-1][::2][::-1], betas[::-1][::2][::-1])
         lnZerr = np.abs(lnZ - z2)
         return lnZ, lnZerr
 

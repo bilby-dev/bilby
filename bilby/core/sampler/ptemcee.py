@@ -7,6 +7,7 @@ from collections import namedtuple
 
 import numpy as np
 import pandas as pd
+from scipy.integrate import trapezoid
 
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
 from .base_sampler import (
@@ -1396,9 +1397,9 @@ def compute_evidence(
         mean_lnlikes = mean_lnlikes[~idxs]
         betas = betas[~idxs]
 
-    lnZ = np.trapz(mean_lnlikes, betas)
-    z1 = np.trapz(mean_lnlikes, betas)
-    z2 = np.trapz(mean_lnlikes[::-1][::2][::-1], betas[::-1][::2][::-1])
+    lnZ = trapezoid(mean_lnlikes, betas)
+    z1 = trapezoid(mean_lnlikes, betas)
+    z2 = trapezoid(mean_lnlikes[::-1][::2][::-1], betas[::-1][::2][::-1])
     lnZerr = np.abs(z1 - z2)
 
     if make_plots:
@@ -1410,7 +1411,7 @@ def compute_evidence(
         evidence = []
         for i in range(int(len(betas) / 2.0)):
             min_betas.append(betas[i])
-            evidence.append(np.trapz(mean_lnlikes[i:], betas[i:]))
+            evidence.append(trapezoid(mean_lnlikes[i:], betas[i:]))
 
         ax2.semilogx(min_betas, evidence, "-o")
         ax2.set_ylabel(
