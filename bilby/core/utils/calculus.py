@@ -262,6 +262,7 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
             jnp.asarray(self.y),
             jnp.asarray(self.z),
             extrap=self.fill_value,
+            method="cubic2",
         )
 
 
