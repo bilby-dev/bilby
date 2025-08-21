@@ -8,6 +8,13 @@ from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrap
 
 
 class _DNest4Model(object):
+    msg = (
+        "The DNest4 sampler interface in bilby is deprecated and will"
+        " be removed in future release. Please use the `dnest4-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/dnest4-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
+
     def __init__(
         self, log_likelihood_func, from_prior_func, widths, centers, highs, lows
     ):
