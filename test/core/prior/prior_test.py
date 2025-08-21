@@ -402,10 +402,7 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_cdf_float_with_float_input(self):
         for prior in self.priors:
-            if (
-                bilby.core.prior.JointPrior in prior.__class__.__mro__
-                and prior.maximum == np.inf
-            ):
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
             self.assertIsInstance(prior.cdf(prior.sample()), float)
 
