@@ -57,9 +57,7 @@ Nested Samplers
 - Nestle :code:`bilby.core.sampler.nestle.Nestle`
 - CPNest :code:`bilby.core.sampler.cpnest.Cpnest`
 - PyMultiNest :code:`bilby.core.sampler.pymultinest.Pymultinest`
-- PyPolyChord :code:`bilby.core.sampler.polychord.PyPolyChord`
 - UltraNest :code:`bilby.core.sampler.ultranest.Ultranest`
-- DNest4 :code:`bilby.core.sampler.dnest4.DNest4`
 - Nessai :code:`bilby.core.sampler.nessai.Nessai`
 
 -------------
@@ -72,6 +70,17 @@ MCMC samplers
 - pymc :code:`bilby.core.sampler.pymc.Pymc`
 - zeus :code:`bilby.core.sampler.zeus.Zeus`
 
+-------------------
+Deprecated samplers
+-------------------
+
+For some samplers that are not actively maintained, the maintenance burden
+outweighed the benefit of shipping the interfaces with :code:`bilby`.
+The following samplers are no longer actively supported in the main package,
+but are available via plugin packages.
+
+- PyPolyChord :code:`pypolychord-bilby`
+- DNest4 :code:`dnest4-bilby`
 
 --------------------------
 Listing available samplers
