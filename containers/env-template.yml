@@ -9,7 +9,7 @@ dependencies:
   - setuptools
   - setuptools_scm
   - matplotlib
-  - numpy
+  - numpy<2.2  # dynesty<2.2 requires numpy<2.2
   - scipy
   - pandas
   - astropy
