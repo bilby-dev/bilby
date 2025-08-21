@@ -107,38 +107,41 @@ def read_calibration_file(
         Shape is (number_of_response_curves x len(frequency_array))
 
     """
-    import tables
+    import h5py
 
     correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
     logger.info(f"Reading calibration draws from {filename}")
-    calibration_file = tables.open_file(filename, 'r')
-    calibration_amplitude = \
-        calibration_file.root.deltaR.draws_amp_rel[starting_index:number_of_response_curves + starting_index]
-    calibration_phase = \
-        calibration_file.root.deltaR.draws_phase[starting_index:number_of_response_curves + starting_index]
+    with h5py.File(filename, 'r') as calibration_file:
+        try:
+            dr = calibration_file['deltaR']
+        except KeyError:
+            raise KeyError(f"File {filename} does not contain 'deltaR' group.")
 
-    calibration_frequencies = calibration_file.root.deltaR.freq[:]
+        # slice draws according to starting_index and number_of_response_curves
+        calibration_amplitude = dr['draws_amp_rel'][starting_index: starting_index + number_of_response_curves]
+        calibration_phase = dr['draws_phase'][starting_index: starting_index + number_of_response_curves]
+        calibration_frequencies = dr['freq'][:]
 
-    calibration_file.close()
+        # read parameter draws if present; stored under CalParams/table as a structured dataset
+        parameter_draws = None
+        if 'CalParams' in calibration_file and 'table' in calibration_file['CalParams']:
+            table_ds = calibration_file['CalParams']['table']
+            try:
+                rec = np.array(table_ds)
+                # convert structured array to DataFrame
+                parameter_draws = pd.DataFrame.from_records(rec)
+            except Exception:
+                parameter_draws = None
 
-    if len(calibration_amplitude.dtype) != 0:  # handling if this is a calibration group hdf5 file
-        calibration_amplitude = calibration_amplitude.view(np.float64).reshape(calibration_amplitude.shape + (-1,))
-        calibration_phase = calibration_phase.view(np.float64).reshape(calibration_phase.shape + (-1,))
-        calibration_frequencies = calibration_frequencies.view(np.float64)
-
-    # interpolate to the frequency array (where if outside the range of the calibration uncertainty its fixed to 1)
+    # calibration_amplitude and calibration_phase should be arrays of shape (n_curves, n_freq)
+    # combine into complex responses and interpolate to requested frequency array
     calibration_draws = calibration_amplitude * np.exp(1j * calibration_phase)
     calibration_draws = interp1d(
         calibration_frequencies, calibration_draws, kind='cubic',
         bounds_error=False, fill_value=1)(frequency_array)
     if correction_type == "data":
         calibration_draws = 1 / calibration_draws
-
-    try:
-        parameter_draws = pd.read_hdf(filename, key="CalParams")
-    except KeyError:
-        parameter_draws = None
 
     return calibration_draws, parameter_draws
 
@@ -170,27 +173,34 @@ def write_calibration_file(
         .. versionadded:: 1.4.0
 
     """
-    import tables
+    import h5py
 
     correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
+    # if the correction is specified as mapping data -> template, invert when writing
     if correction_type == "data":
         calibration_draws = 1 / calibration_draws
 
     logger.info(f"Writing calibration draws to {filename}")
-    calibration_file = tables.open_file(filename, 'w')
-    deltaR_group = calibration_file.create_group(calibration_file.root, 'deltaR')
+    # overwrite/create the file
+    with h5py.File(filename, 'w') as calibration_file:
+        deltaR_group = calibration_file.create_group('deltaR')
 
-    # Save output
-    calibration_file.create_carray(deltaR_group, 'draws_amp_rel', obj=np.abs(calibration_draws))
-    calibration_file.create_carray(deltaR_group, 'draws_phase', obj=np.angle(calibration_draws))
-    calibration_file.create_carray(deltaR_group, 'freq', obj=frequency_array)
+        # Save output: amplitude and phase arrays
+        amp = np.abs(calibration_draws)
+        phase = np.angle(calibration_draws)
+        deltaR_group.create_dataset('draws_amp_rel', data=amp, dtype=np.float64, compression='gzip')
+        deltaR_group.create_dataset('draws_phase', data=phase, dtype=np.float64, compression='gzip')
+        deltaR_group.create_dataset('freq', data=frequency_array, dtype=np.float64)
 
-    calibration_file.close()
-
-    # Save calibration parameter draws
-    if calibration_parameter_draws is not None:
-        calibration_parameter_draws.to_hdf(filename, key='CalParams', data_columns=True, format='table')
+        # Save calibration parameter draws (DataFrame) if provided. Store as a structured
+        # dataset under CalParams/table so it can be read back into a DataFrame.
+        if calibration_parameter_draws is not None:
+            cp_group = calibration_file.create_group('CalParams')
+            # convert DataFrame to a numpy recarray / structured array
+            rec = calibration_parameter_draws.to_records(index=False)
+            # create dataset
+            cp_group.create_dataset('table', data=rec, compression='gzip')
 
 
 class Recalibrate(object):
