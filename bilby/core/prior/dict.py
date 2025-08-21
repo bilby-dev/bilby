@@ -880,6 +880,12 @@ class ConditionalPriorDict(PriorDict):
             elif isinstance(self[key], JointPrior):
                 joint[self[key].dist.distname].append(key)
         for names in joint.values():
+            # this is needed to unpack how joint prior rescaling works
+            # as an example of a joint prior over {a, b, c, d} we might
+            # get the following based on the order within the joint prior
+            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
+            # -> [1, 2, 3, 4]
+            # -> {a: 1, b: 2, c: 3, d: 4}
             values = list()
             for key in names:
                 values = np.concatenate([values, result[key]])
