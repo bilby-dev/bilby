@@ -31,7 +31,6 @@ dependencies:
   - corner
   - healpy
   - cython
-  - pytables
   - pytorch
   - cpuonly
   - python-lalsimulation
