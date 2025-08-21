@@ -19,15 +19,6 @@ import numpy as np
 _sampler_kwargs = dict(
     bilby_mcmc=dict(nsamples=200, printdt=1),
     cpnest=dict(nlive=100),
-    dnest4=dict(
-        max_num_levels=2,
-        num_steps=10,
-        new_level_interval=10,
-        num_per_step=10,
-        thread_steps=1,
-        num_particles=50,
-        max_pool=1,
-    ),
     dynesty=dict(nlive=10, sample="acceptance-walk", nact=5, proposals=["diff"]),
     dynamic_dynesty=dict(
         nlive_init=10,
@@ -64,7 +55,7 @@ sampler_imports = dict(
     dynamic_dynesty="dynesty"
 )
 
-no_pool_test = ["dnest4", "pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
+no_pool_test = ["pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
 
 loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
 
@@ -143,8 +134,6 @@ class TestRunningSamplers(unittest.TestCase):
             **extra_kwargs,
         )
         assert "derived" in res.posterior
-        if sampler != "dnest4":
-            assert res.log_likelihood_evaluations is not None
 
     @parameterized.expand(_sampler_kwargs.keys())
     def test_interrupt_sampler_single(self, sampler):

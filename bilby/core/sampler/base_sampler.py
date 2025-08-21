@@ -1044,7 +1044,7 @@ class _TemporaryFileSamplerMixin:
         """
         If using a temporary directory, the output directory is moved to the
         temporary directory.
-        Used for Dnest4, Pymultinest, and Ultranest.
+        Used for Pymultinest, and Ultranest.
         """
         check_directory_exists_and_if_not_mkdir(self.outputfiles_basename)
         if self.use_temporary_directory:
