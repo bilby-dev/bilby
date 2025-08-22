@@ -53,14 +53,21 @@ recommended for direct use by the user, rather it should be accessed via the
 Nested Samplers
 ---------------
 
+Native
+======
+
 - Dynesty: :code:`bilby.core.sampler.dynesty.Dynesty`
 - Nestle :code:`bilby.core.sampler.nestle.Nestle`
 - CPNest :code:`bilby.core.sampler.cpnest.Cpnest`
 - PyMultiNest :code:`bilby.core.sampler.pymultinest.Pymultinest`
-- PyPolyChord :code:`bilby.core.sampler.polychord.PyPolyChord`
 - UltraNest :code:`bilby.core.sampler.ultranest.Ultranest`
-- DNest4 :code:`bilby.core.sampler.dnest4.DNest4`
-- Nessai :code:`bilby.core.sampler.nessai.Nessai`
+
+External
+========
+
+- DNest4 :code:`dnest4-bilby`
+- Nessai :code:`nessai-bilby`
+- PyPolyChord :code:`pypolychord-bilby`
 
 -------------
 MCMC samplers
@@ -71,7 +78,6 @@ MCMC samplers
 - ptemcee :code:`bilby.core.sampler.ptemcee.Ptemcee`
 - pymc :code:`bilby.core.sampler.pymc.Pymc`
 - zeus :code:`bilby.core.sampler.zeus.Zeus`
-
 
 --------------------------
 Listing available samplers
@@ -116,7 +122,6 @@ can simply download that file and use the command above).
 
    Some samplers are being migrated to use sampler plugins and may require an
    additional step, see `migrating to sampler plugins`_.
-
 
 Installing PyPolyChord
 ======================
@@ -182,11 +187,14 @@ We actively encourage the addition of new samplers to :code:`bilby`.
 We now recommended adding support for new samplers via the sampler plugins
 interface. For more details, and a template, see `sampler plugins`_.
 
+If you have a :code:`bilby` sampler plugin that you would like to be listed here,
+please let us know!
+
 ----------------------------
 Migrating to sampler plugins
 ----------------------------
 
-The interfaces for some samplers are being move from bilby to external sampler
+The interface for some samplers are being moved from bilby to external sampler
 plugins. This does not change how the samplers are used for most users, you
 still specify :code:`sampler='sampler name'` in :code:`run_sampler`, however,
 an additional dependency must be installed before using a sampler.
