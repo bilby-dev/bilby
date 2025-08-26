@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import trapezoid
 from scipy.interpolate import interp1d
 
 from .base import Prior
@@ -163,9 +164,9 @@ class Interped(Prior):
 
     def _initialize_attributes(self):
         from scipy.integrate import cumulative_trapezoid
-        if np.trapz(self._yy, self.xx) != 1:
+        if trapezoid(self._yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
-        self._yy /= np.trapz(self._yy, self.xx)
+        self._yy /= trapezoid(self._yy, self.xx)
         self.YY = cumulative_trapezoid(self._yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
         self.YY[-1] = 1
