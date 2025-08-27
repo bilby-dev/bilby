@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.integrate import trapezoid
-from scipy.interpolate import interp1d
 
 from .base import Prior
 from ..utils import logger, WrappedInterp1d as interp1d
