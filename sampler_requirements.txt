@@ -8,7 +8,6 @@ pymc>=4.0.0
 pymultinest
 kombine
 ultranest>=3.0.0
-dnest4
 nessai>=0.7.0
 schwimmbad
 zeus-mcmc>=2.3.0

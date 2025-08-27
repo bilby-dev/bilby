@@ -5,6 +5,10 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Deprecated
+
+- `dnest4` is no longer tested, the plugin package should be used instead.
+
 ## [2.6.0]
 
 We noticed a longstanding mis-definition in the `GravitationalWaveTransient` likelihood that caused the PSD to be
