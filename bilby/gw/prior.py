@@ -2,6 +2,7 @@ import os
 import copy
 
 import numpy as np
+from scipy.integrate import cumulative_trapezoid, trapezoid, quad
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import hyp2f1
 from scipy.stats import norm
@@ -1498,7 +1499,6 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         """
         Method that builds the inverse cdf of the P(pixel) distribution for rescaling
         """
-        from scipy.integrate import cumulative_trapezoid
         yy = self._all_interped(self.pix_xx)
         yy /= trapezoid(yy, self.pix_xx)
         YY = cumulative_trapezoid(yy, self.pix_xx, initial=0)
