@@ -60,8 +60,21 @@ def get_cosmology(cosmology=None):
         if cosmology.lower() == "planck15_lal":
             # Planck15_LAL cosmology as defined in:
             # https://dcc.ligo.org/DocDB/0167/T2000185/005/LVC_symbol_convention.pdf
+            from astropy import units
+            from lal import PC_SI as LAL_PC_SI
+
+            # Older version of LAL do not expose H0 and Omega_M
+            try:
+                from lal import H0_SI as LAL_H0_SI, OMEGA_M as LAL_OMEGA_M
+            except ImportError:
+                LAL_H0_SI, LAL_OMEGA_M = 2.200489137532724e-18, 0.3065
+
+            # Convert H0 from SI to km / (Mpc s) using LAL constants to ensure
+            # consistency
+            LAL_H0 = LAL_H0_SI * 1e3 * LAL_PC_SI * units.km / (units.Mpc * units.s)
+
             cosmology = cosmo.FlatLambdaCDM(
-                H0=67.90, Om0=0.3065, name="Planck15_LAL"
+                H0=LAL_H0, Om0=LAL_OMEGA_M, name="Planck15_LAL"
             )
         else:
             cosmology = getattr(cosmo, cosmology)
