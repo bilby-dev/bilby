@@ -2,6 +2,7 @@ import datetime
 import os
 import time
 from collections import Counter
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +10,7 @@ import pandas as pd
 from scipy.integrate import trapezoid
 from scipy.optimize import differential_evolution
 
+from ..core.likelihood import _safe_likelihood_call
 from ..core.result import rejection_sample
 from ..core.sampler.base_sampler import (
     MCMCSampler,
@@ -1235,14 +1237,14 @@ class BilbyMCMCSampler(object):
         self.stop_after_convergence = convergence_inputs.stop_after_convergence
 
     def log_likelihood(self, sample):
-        _sampling_convenience_dump.likelihood.parameters.update(sample.sample_dict)
+        params = deepcopy(_sampling_convenience_dump.parameters)
+        params.update(sample.sample_dict)
 
-        if self.use_ratio:
-            logl = _sampling_convenience_dump.likelihood.log_likelihood_ratio()
-        else:
-            logl = _sampling_convenience_dump.likelihood.log_likelihood()
-
-        return logl
+        return _safe_likelihood_call(
+            _sampling_convenience_dump.likelihood,
+            parameters=params,
+            use_ratio=self.use_ratio,
+        )
 
     def log_prior(self, sample):
         return _sampling_convenience_dump.priors.ln_prob(
@@ -1398,9 +1400,10 @@ def get_initial_maximimum_posterior_sample(beta):
         if np.isinf(ln_prior):
             return -np.inf
 
-        likelihood.parameters.update(sample)
+        parameters = deepcopy(_sampling_convenience_dump.parameters)
+        parameters.update(sample)
 
-        return -beta * likelihood.log_likelihood() - ln_prior
+        return -beta * _safe_likelihood_call(likelihood, parameters) - ln_prior
 
     res = differential_evolution(neg_log_post, bounds, popsize=100, init="sobol")
     if res.success:
