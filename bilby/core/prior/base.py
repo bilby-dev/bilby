@@ -5,7 +5,6 @@ import re
 
 import numpy as np
 import scipy.stats
-from scipy.interpolate import interp1d
 
 from ..utils import (
     infer_args_from_method,
@@ -13,6 +12,7 @@ from ..utils import (
     decode_bilby_json,
     logger,
     get_dict_with_properties,
+    WrappedInterp1d as interp1d,
 )
 
 
@@ -178,7 +178,10 @@ class Prior(object):
         cdf = cumulative_trapezoid(pdf, x, initial=0)
         interp = interp1d(x, cdf, assume_sorted=True, bounds_error=False,
                           fill_value=(0, 1))
-        return interp(val)
+        output = interp(val)
+        if isinstance(val, (int, float)):
+            output = float(output)
+        return output
 
     def ln_prob(self, val):
         """Return the prior ln probability of val, this should be overwritten

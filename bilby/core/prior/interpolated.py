@@ -1,9 +1,8 @@
 import numpy as np
 from scipy.integrate import trapezoid
-from scipy.interpolate import interp1d
 
 from .base import Prior
-from ..utils import logger
+from ..utils import logger, WrappedInterp1d as interp1d
 
 
 class Interped(Prior):
@@ -87,10 +86,7 @@ class Interped(Prior):
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        rescaled = self.inverse_cumulative_distribution(val)
-        if rescaled.shape == ():
-            rescaled = float(rescaled)
-        return rescaled
+        return self.inverse_cumulative_distribution(val)
 
     @property
     def minimum(self):
