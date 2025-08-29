@@ -87,6 +87,8 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Lorentzian(name="test", unit="unit", alpha=0, beta=1),
             bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
             bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
+            bilby.core.prior.FermiDirac(name="test", unit="unit", mu=1, sigma=1),
+            bilby.core.prior.SymmetricLogUniform(name="test", unit="unit", minimum=1e-2, maximum=1e2),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
             bilby.gw.prior.AlignedSpin(
                 a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
@@ -236,6 +238,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if isinstance(prior, bilby.gw.prior.AlignedSpin):
                 # the edge of the prior is extremely suppressed for these priors
                 # and so the rescale function doesn't quite return the lower bound
@@ -264,6 +269,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_many_sample_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             many_samples = prior.rescale(np.random.uniform(0, 1, 1000))
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_rescale():
@@ -282,6 +290,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             single_sample = prior.sample()
             self.assertTrue(
                 (single_sample >= prior.minimum) & (single_sample <= prior.maximum)
@@ -290,6 +301,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             many_samples = prior.sample(5000)
             self.assertTrue(
                 (all(many_samples >= prior.minimum))
@@ -312,6 +326,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_probability_below_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if prior.minimum != -np.inf:
                 outside_domain = np.linspace(
                     prior.minimum - 1e4, prior.minimum - 1, 1000
@@ -370,6 +387,9 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_cdf_zero_below_domain(self):
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if (
                 bilby.core.prior.JointPrior in prior.__class__.__mro__
                 and prior.maximum == np.inf
@@ -380,6 +400,12 @@ class TestPriorClasses(unittest.TestCase):
                     prior.minimum - 1e4, prior.minimum - 1, 1000
                 )
                 self.assertTrue(all(np.nan_to_num(prior.cdf(outside_domain)) == 0))
+
+    def test_cdf_float_with_float_input(self):
+        for prior in self.priors:
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                continue
+            self.assertIsInstance(prior.cdf(prior.sample()), float)
 
     def test_log_normal_fail(self):
         with self.assertRaises(ValueError):
@@ -530,6 +556,9 @@ class TestPriorClasses(unittest.TestCase):
             # skip delta function prior in this case
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
             indomain = (surround_domain >= prior.minimum) | (
                 surround_domain <= prior.maximum
@@ -544,11 +573,18 @@ class TestPriorClasses(unittest.TestCase):
             self.assertTrue(all(prior.prob(surround_domain[outdomain]) == 0))
 
     def test_normalized(self):
-        """Test that each of the priors are normalised, this needs care for delta function and Gaussian priors"""
+        """
+        Test that each of the priors are normalised.
+        This needs extra care for priors defined on infinite domains and the
+        Cauchy, DeltaFunction, and SymmetricLogUniform priors are skipped
+        because they are too sharply peaked to be tested efficiently in this way.
+        """
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.DeltaFunction):
-                continue
-            if isinstance(prior, bilby.core.prior.Cauchy):
+            if isinstance(prior, (
+                bilby.core.prior.DeltaFunction,
+                bilby.core.prior.Cauchy,
+                bilby.core.prior.SymmetricLogUniform
+            )):
                 continue
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
@@ -762,6 +798,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.MultivariateGaussian,
                     bilby.core.prior.FermiDirac,
                     bilby.core.prior.Triangular,
+                    bilby.core.prior.SymmetricLogUniform,
                     bilby.gw.prior.HealPixPrior,
                 ),
             ):
