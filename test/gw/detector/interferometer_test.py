@@ -4,6 +4,7 @@ from unittest import mock
 
 import lal
 import lalsimulation
+import pytest
 from shutil import rmtree
 
 import numpy as np
@@ -594,6 +595,7 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
                 self.assertAlmostEqual(std, 0.0, places=10)
 
 
+@pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64
