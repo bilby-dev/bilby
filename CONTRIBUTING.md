@@ -324,7 +324,7 @@ The version tag should also start with `v` e.g. `v2.4.0`.
 `bilby` uses `setuptools_scm` to automatically set the version based on git tags.
 This means no manual changes are needed to the version number are required.
 
-As on version v2.6.0, `bilby` uses a [stable mainline](https://www.bitsnbites.eu/a-stable-mainline-branching-model-for-git/) branching model for releases.
+As of version v2.6.0, `bilby` uses a [stable mainline](https://www.bitsnbites.eu/a-stable-mainline-branching-model-for-git/) branching model for releases.
 This means that all major and minor releases should have a corresponding branch `release/X.Y.x`.
 
 ### Updating the changelog
