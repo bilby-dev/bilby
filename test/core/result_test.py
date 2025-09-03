@@ -599,24 +599,25 @@ class TestResult(unittest.TestCase):
             check_point_plot=False,
             result_class=NotAResult
         )
-        # result should be specified result_class
         assert isinstance(result, NotAResult)
 
-        # TODO: figure out why the caching message is not logged
-        # with self.assertLogs(logger, "INFO") as cm:
-        cached_result = bilby.run_sampler(
-            likelihood,
-            priors,
-            sampler='bilby_mcmc',
-            outdir=self.outdir,
-            nsamples=10,
-            L1steps=1,
-            proposal_cycle="default_noGMnoKD",
-            printdt=1,
-            check_point_plot=False,
-            result_class=NotAResult
-        )
-        # self.assertIn("Using cached result", cm.output[0])
+        # Due to a quirk with how the logger is configured (propagate=False)
+        # It's easier to just patch the logger and check the call exists
+        with patch("bilby.core.sampler.logger") as mock_logger:
+            cached_result = bilby.run_sampler(
+                likelihood,
+                priors,
+                sampler='bilby_mcmc',
+                outdir=self.outdir,
+                nsamples=10,
+                L1steps=1,
+                proposal_cycle="default_noGMnoKD",
+                printdt=1,
+                check_point_plot=False,
+                result_class=NotAResult,
+                clean=False,
+            )
+        mock_logger.warning.assert_any_call("Using cached result")
 
         # so should a result loaded from cache
         assert isinstance(cached_result, NotAResult)
