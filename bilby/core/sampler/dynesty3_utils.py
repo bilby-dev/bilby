@@ -9,32 +9,50 @@ from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
 
 
-EnsembleSamplerArgument = namedtuple('EnsembleSamplerArgument', [
-    'u', 'loglstar', 'live_points', 'prior_transform', 'loglikelihood',
-    'rseed', 'kwargs'
-])
-EnsembleAxisSamplerArgument = namedtuple('EnsembleAxisSamplerArgument', [
-    'u', 'loglstar', 'axes', 'live_points', 'prior_transform', 'loglikelihood',
-    'rseed', 'kwargs'
-])
+EnsembleSamplerArgument = namedtuple(
+    "EnsembleSamplerArgument",
+    [
+        "u",
+        "loglstar",
+        "live_points",
+        "prior_transform",
+        "loglikelihood",
+        "rseed",
+        "kwargs",
+    ],
+)
+EnsembleAxisSamplerArgument = namedtuple(
+    "EnsembleAxisSamplerArgument",
+    [
+        "u",
+        "loglstar",
+        "axes",
+        "live_points",
+        "prior_transform",
+        "loglikelihood",
+        "rseed",
+        "kwargs",
+    ],
+)
 
 
 class BaseEnsembleSampler(InternalSampler):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ncdim = kwargs.get('ncdim')
-        self.sampler_kwargs['ncdim'] = self.ncdim
+        self.ncdim = kwargs.get("ncdim")
+        self.sampler_kwargs["ncdim"] = self.ncdim
         self.sampler_kwargs["proposals"] = kwargs.get("proposals", ["diff"])
 
-    def prepare_sampler(self,
-                        loglstar=None,
-                        points=None,
-                        axes=None,
-                        seeds=None,
-                        prior_transform=None,
-                        loglikelihood=None,
-                        nested_sampler=None):
+    def prepare_sampler(
+        self,
+        loglstar=None,
+        points=None,
+        axes=None,
+        seeds=None,
+        prior_transform=None,
+        loglikelihood=None,
+        nested_sampler=None,
+    ):
         """
         Prepare the list of arguments for sampling.
 
@@ -89,10 +107,10 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.walks = max(2, kwargs.get('walks', 25))
-        self.sampler_kwargs['walks'] = self.walks
-        self.naccept = kwargs.get('naccept', 10)
-        self.maxmcmc = kwargs.get('maxmcmc', 5000)
+        self.walks = max(2, kwargs.get("walks", 25))
+        self.sampler_kwargs["walks"] = self.walks
+        self.naccept = kwargs.get("naccept", 10)
+        self.maxmcmc = kwargs.get("maxmcmc", 5000)
 
     def tune(self, sampling_info, update=True):
         """
@@ -237,14 +255,16 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["act"] = self.act
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
 
-    def prepare_sampler(self,
-                        loglstar=None,
-                        points=None,
-                        axes=None,
-                        seeds=None,
-                        prior_transform=None,
-                        loglikelihood=None,
-                        nested_sampler=None):
+    def prepare_sampler(
+        self,
+        loglstar=None,
+        points=None,
+        axes=None,
+        seeds=None,
+        prior_transform=None,
+        loglikelihood=None,
+        nested_sampler=None,
+    ):
         """
         Prepare the list of arguments for sampling.
 
@@ -309,7 +329,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         while len(cache) > 0 and cache[0][2] < args.loglstar:
             state = cache.pop(0)
         if len(cache) == 0:
-            current_u, current_v, logl, ncall, blob = state    
+            current_u, current_v, logl, ncall, blob = state
         else:
             current_u, current_v, logl, ncall, blob = cache.pop(0)
         blob["remaining"] = len(cache)
@@ -435,7 +455,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             reject //= n_found
             nfail //= n_found
             ncall_list = [ncall // n_found] * n_found
-            blob_list = [dict(accept=accept, reject=reject, fail=nfail, act=act)] * n_found
+            blob_list = [
+                dict(accept=accept, reject=reject, fail=nfail, act=act)
+            ] * n_found
             cache.extend(zip(u_list, v_list, logl_list, ncall_list, blob_list))
             logger.debug(
                 f"act: {act:.2f}, max failures: {most_failures}, thin: {thin}, "
@@ -518,7 +540,9 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             iteration += 1
 
             prop = proposals[iteration % len(proposals)]
-            u_prop = proposal_funcs[prop](current_u, **common_kwargs, **proposal_kwargs[prop])
+            u_prop = proposal_funcs[prop](
+                current_u, **common_kwargs, **proposal_kwargs[prop]
+            )
             u_prop = apply_boundaries_(u_prop, **boundary_kwargs)
 
             if u_prop is None:
@@ -543,7 +567,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
                     safety=1,
                     tau=nlive,
                     maxmcmc=maxmcmc,
-                    old_act=AcceptanceTrackingRWalk.old_act
+                    old_act=AcceptanceTrackingRWalk.old_act,
                 )
 
             # If we've taken too many likelihood evaluations then break
@@ -843,4 +867,6 @@ def apply_boundaries_(u_prop, periodic, reflective):
         return u_prop
 
 
-proposal_funcs = dict(diff=propose_differential_evolution, volumetric=propose_volumetric)
+proposal_funcs = dict(
+    diff=propose_differential_evolution, volumetric=propose_volumetric
+)
