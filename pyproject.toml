@@ -146,4 +146,5 @@ mcmc = {file = ["mcmc_requirements.txt"]}
 "bilby.gw.eos" = ["eos_tables/*.dat"]
 
 [tool.setuptools_scm]
+"version_scheme" = "release-branch-semver"
 write_to = "bilby/_version.py"
