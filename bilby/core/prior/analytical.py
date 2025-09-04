@@ -1491,7 +1491,7 @@ class WeightedDiscreteValues(Prior):
             )
         self.p = p[sorter]
         # save cdf for rescaling
-        self._cum_p = np.cumsum(p)
+        self._cumulative_p = np.cumsum(p)
         self.lnp = np.log(self.p)
 
     def rescale(self, val):
@@ -1509,7 +1509,7 @@ class WeightedDiscreteValues(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return self.values[np.searchsorted(self._cum_p, val)]
+        return self.values[np.searchsorted(self._cumulative_p, val)]
 
     def cdf(self, val):
         """Return the cumulative prior probability of val.
@@ -1522,18 +1522,10 @@ class WeightedDiscreteValues(Prior):
         =======
         float: cumulative prior probability of val
         """
-        if (not hasattr(val, "__len__")):
-            if val in self.values:
-                return self._cum_p[np.searchsorted(self.values, val)]
-            else:
-                return 0
-        else:
-            index = np.searchsorted(self.values, val)
-            index[index == self.nvalues] = self.nvalues - 1
-            mask = (self.values[index] == val)
-            cumprobs = np.zeros_like(val, dtype=np.float64)
-            cumprobs[mask] = self._cum_p[index[mask]]
-            return cumprobs
+        index = np.searchsorted(self.values, val)
+        index = np.clip(index, 0, self.nvalues - 1)
+        cumprobs = self._cumulative_p[index]
+        return cumprobs
 
     def prob(self, val):
         """Return the prior probability of val.
