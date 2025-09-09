@@ -4,7 +4,7 @@
 Bilby and Parameters
 ====================
 
-From the early stages of development of Bilby and up until version XYZ,
+From the early stages of development of Bilby and up until version 2.7,
 the standard method of specifying the parameters for which to evaluate the
 likelihood is to add them to a dictionary using the
 :code:`Likelihood.parameters` attribute and then calling the likelihood methods
@@ -17,7 +17,7 @@ likelihood is to add them to a dictionary using the
 This method is somewhat unintuitive as it relies on state stored within the
 instance of the likelihood.
 
-In version XYZ we added the functionality to combine this into a single line
+In version 2.7 we added the functionality to combine this into a single line
 
 .. code-block:: python
 
