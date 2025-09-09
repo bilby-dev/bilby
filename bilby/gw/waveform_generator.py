@@ -76,7 +76,7 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             self.parameters = parameters
         self._cache = dict(parameters=None, waveform=None, model=None)
-        utils.logger.info(f"Waveform generator instantiated: {self}")
+        logger.info(f"Waveform generator instantiated: {self}")
 
     def __repr__(self):
         if self.frequency_domain_source_model is not None:
