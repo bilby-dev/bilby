@@ -8,7 +8,6 @@ from dynesty.utils import apply_reflect, get_random_generator
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
 
-
 EnsembleSamplerArgument = namedtuple(
     "EnsembleSamplerArgument",
     [
@@ -104,7 +103,6 @@ class BaseEnsembleSampler(InternalSampler):
 
 
 class EnsembleWalkSampler(BaseEnsembleSampler):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.walks = max(2, kwargs.get("walks", 25))
@@ -584,7 +582,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             )
             current_u = rstate.uniform(size=len(current_u))
             current_v = args.prior_transform(current_u)
-            logl = args.loglikelihood(v)
+            logl = args.loglikelihood(current_v)
 
         blob = {"accept": accept, "reject": reject + nfail}
         AcceptanceTrackingRWalk.old_act = act

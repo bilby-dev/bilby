@@ -193,6 +193,7 @@ class Dynesty(NestedSampler):
     def new_dynesty_api(self):
         try:
             from dynesty.sampling import InternalSampler  # noqa
+
             return True
         except ImportError:
             return False
