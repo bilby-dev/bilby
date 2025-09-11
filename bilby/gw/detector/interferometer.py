@@ -92,6 +92,7 @@ class Interferometer(object):
             minimum_frequency=minimum_frequency,
             maximum_frequency=maximum_frequency)
         self.meta_data = dict(name=name)
+        self.reference_time = None
 
     def __eq__(self, other):
         if self.name == other.name and \
@@ -300,9 +301,16 @@ class Interferometer(object):
         not provided, the response is computed using
         :code:`self.frequency_array`. If the frequencies are
         specified, no frequency masking is performed.
+
         Returns
         =======
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
+
+        Notes
+        =====
+        If the :code:`reference_time` attribute is not :code:`None`, this is
+        used to set the time at which the antenna response is evaluated,
+        otherwise the provided :code:`Parameters["geocent_time"]` is used.
         """
         if frequencies is None:
             frequencies = self.frequency_array[self.frequency_mask]
@@ -310,12 +318,17 @@ class Interferometer(object):
         else:
             mask = np.ones(len(frequencies), dtype=bool)
 
+        if self.reference_time is None:
+            antenna_time = parameters["geocent_time"]
+        else:
+            antenna_time = self.reference_time
+
         signal = {}
         for mode in waveform_polarizations.keys():
             det_response = self.antenna_response(
                 parameters['ra'],
                 parameters['dec'],
-                parameters['geocent_time'],
+                antenna_time,
                 parameters['psi'], mode)
 
             signal[mode] = waveform_polarizations[mode] * det_response
