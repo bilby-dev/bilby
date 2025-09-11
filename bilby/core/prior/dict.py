@@ -336,9 +336,9 @@ class PriorDict(dict):
 
         """
         if likelihood is not None:
-            logger.warning("Filling priors from likelihood parameters is deprecated")
+            warn("Filling priors from likelihood parameters is deprecated")
         if default_priors_file is not None:
-            logger.warning("Setting default priors from a defaults file is deprecated")
+            warn("Setting default priors from a defaults file is deprecated")
 
         self.convert_floats_to_delta_functions()
 

@@ -1,6 +1,7 @@
 import copy
 import inspect
 import os
+from warnings import warn
 
 import numpy as np
 from scipy.special import gammaln, xlogy
@@ -27,7 +28,7 @@ def _fallback_to_parameters(obj, parameters):
         if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
         elif PARAMETERS_AS_STATE == "WARN":
-            logger.warning(msg)
+            warn(msg)
         else:
             logger.debug(msg)
         parameters = copy.deepcopy(obj.parameters)
@@ -49,7 +50,7 @@ def _safe_likelihood_call(likelihood, parameters=None, use_ratio=False):
                 f"Unable to call {likelihood} with {parameters} as an argument"
             )
         elif PARAMETERS_AS_STATE == "WARN":
-            logger.warning(f"Using parameters as state for {likelihood}")
+            warn(f"Using parameters as state for {likelihood}")
         likelihood.parameters.update(parameters)
         logl = method()
     return logl
@@ -63,7 +64,7 @@ class Likelihood:
             "parameters" not in inspect.signature(cls.log_likelihood).parameters
             or "parameters" not in inspect.signature(cls.log_likelihood_ratio).parameters
         ):
-            logger.warning(
+            warn(
                 f"{cls} log_likelihood or log_likelihood_ratio method does not "
                 "accept 'parameters' as an argument. This is deprecated behaviour and will "
                 "be removed in a future release. See FIXME for more details."
@@ -87,7 +88,7 @@ class Likelihood:
         if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
         elif PARAMETERS_AS_STATE == "WARN":
-            logger.warning(msg)
+            warn(msg)
         return self._parameters
 
     @parameters.setter
@@ -97,7 +98,7 @@ class Likelihood:
             if PARAMETERS_AS_STATE == "FALSE":
                 raise LikelihoodParameterError(msg)
             elif PARAMETERS_AS_STATE == "WARN":
-                logger.warning(msg)
+                warn(msg)
         else:
             parameters = dict()
         self._parameters = parameters
