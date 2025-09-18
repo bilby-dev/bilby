@@ -1064,6 +1064,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 "json format for ROQ weights is deprecated, use hdf5 instead.",
                 DeprecationWarning
             )
+        elif format not in ["npz", "hdf5"]:
+            raise IOError(f"Format {format} not recognized.")
+
         logger.info(f"Loading ROQ weights from {filename}")
         if format == "npz":
             weights = dict(np.load(filename))

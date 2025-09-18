@@ -1046,10 +1046,11 @@ class TestCreateROQLikelihood(unittest.TestCase):
 @pytest.mark.requires_roqs
 class TestInOutROQWeights(unittest.TestCase):
 
-    def test_out_single_basis(self):
+    @parameterized.expand(['npz', 'hdf5'])
+    def test_out_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
-        filename = 'weights.hdf5'
-        likelihood.save_weights(filename, format='hdf5')
+        filename = f'weights.{format}'
+        likelihood.save_weights(filename, format=format)
         self.assertTrue(os.path.exists(filename))
 
     def test_saving_wrong_format_fails(self):
@@ -1058,10 +1059,11 @@ class TestInOutROQWeights(unittest.TestCase):
         with self.assertRaises(IOError):
             likelihood.save_weights(filename, format='json')
 
-    def test_in_single_basis(self):
+    @parameterized.expand(['npz', 'hdf5'])
+    def test_in_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
-        filename = 'weights.hdf5'
-        likelihood.save_weights(filename, format='hdf5')
+        filename = f'weights.{format}'
+        likelihood.save_weights(filename, format=format)
         likelihood_from_weights = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=likelihood.interferometers,
             priors=likelihood.priors,
