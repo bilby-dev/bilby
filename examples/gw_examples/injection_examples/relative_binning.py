@@ -49,7 +49,6 @@ injection_parameters = dict(
     geocent_time=1126259642.413,
     ra=1.375,
     dec=-1.2108,
-    fiducial=1,
 )
 
 # Fixed arguments passed into the source model
@@ -57,6 +56,7 @@ waveform_arguments = dict(
     waveform_approximant="IMRPhenomXP",
     reference_frequency=50.0,
     minimum_frequency=minimum_frequency,
+    fiducial=1,
 )
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
@@ -81,7 +81,6 @@ ifos.set_strain_data_from_power_spectral_densities(
 ifos.inject_signal(
     waveform_generator=waveform_generator, parameters=injection_parameters
 )
-injection_parameters["fiducial"] = 0
 
 # Set up a PriorDict, which inherits from dict.
 # By default we will sample all terms in the signal models.  However, this will
@@ -108,7 +107,6 @@ for key in [
     "phase",
 ]:
     priors[key] = injection_parameters[key]
-priors["fiducial"] = 0
 
 # Perform a check that the prior does not extend to a parameter space longer than the data
 priors.validate_prior(duration, minimum_frequency)
@@ -147,13 +145,14 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
+alt_waveform_arguments = deepcopy(waveform_arguments)
+del alt_waveform_arguments["frequency_bin_edges"], alt_waveform_arguments["fiducial"]
 alt_waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    # frequency_domain_source_model=lal_binary_black_hole_relative_binning,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-    waveform_arguments=waveform_arguments,
+    waveform_arguments=alt_waveform_arguments,
 )
 alt_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     interferometers=ifos,

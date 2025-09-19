@@ -129,7 +129,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             logger.info("Drawing fiducial parameters from prior.")
             fiducial_parameters = priors.sample()
         self.fiducial_parameters = fiducial_parameters.copy()
-        self.fiducial_parameters["fiducial"] = 0
+        self._unset_fiducial()
         if self.time_marginalization:
             self.fiducial_parameters["geocent_time"] = interferometers.start_time
         if self.distance_marginalization:
@@ -235,10 +235,11 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def set_fiducial_waveforms(self, parameters):
         parameters = parameters.copy()
-        parameters["fiducial"] = 1
+        self._set_fiducial()
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters)
+        self._unset_fiducial()
 
         maximum_nonzero_index = np.where(self.fiducial_polarizations["plus"] != 0j)[0][-1]
         logger.debug(f"Maximum Nonzero Index is {maximum_nonzero_index}")
@@ -260,7 +261,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         if maximization_kwargs is None:
             maximization_kwargs = dict()
         parameters = deepcopy(self.fiducial_parameters)
-        parameters["fiducial"] = 0
+        self._unset_fiducial()
         updated_parameters_list = self.get_parameter_list_from_dictionary(self.fiducial_parameters)
         old_fiducial_ln_likelihood = self.log_likelihood_ratio(self.fiducial_parameters)
         logger.info(f"Fiducial ln likelihood ratio: {old_fiducial_ln_likelihood:.2f}")
@@ -421,3 +422,25 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_array=d_inner_h_array
         )
+
+    def _set_fiducial(self):
+        """
+        Set the internal waveform generator to generate fiducial waveforms,
+        e.g., for setting up the reference point.
+
+        This is handled automatically within the likelihood for most applications
+        and users shouldn't need to use this method.
+        """
+        self.waveform_generator.waveform_arguments["fiducial"] = 1
+        self.waveform_generator._cache["parameters"] = None
+
+    def _unset_fiducial(self):
+        """
+        Set the internal waveform generator to generate waveforms at the binning
+        frequencies.
+
+        This is handled automatically within the likelihood for most applications
+        and users shouldn't need to use this method.
+        """
+        self.waveform_generator.waveform_arguments["fiducial"] = 0
+        self.waveform_generator._cache["parameters"] = None
