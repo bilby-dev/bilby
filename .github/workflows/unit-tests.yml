@@ -62,18 +62,15 @@ jobs:
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v
     - name: Generate coverage badge
-      if: matrix.python.short-version == '312' && github.ref == 'refs/heads/main'
+      if: matrix.python.short-version == '312' #&& github.ref == 'refs/heads/main'
       run: |
         source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
         pip install coverage-badge
         coverage-badge -o coverage.svg
       shell: bash
-    - name: Commit coverage badge
-      if: matrix.python.short-version == '312' && github.ref == 'refs/heads/main'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add coverage.svg || exit 0
-        git diff --staged --quiet || git commit -m "Update coverage badge"
-        git push || exit 0
-      shell: bash
+	- name: Upload coverage badge as artifact
+      if: matrix.python.short-version == '312' #&& github.ref == 'refs/heads/main'
+	  uses: actions/upload-artifact@v4
+	  with:
+		name: coverage-badge
+		path: coverage.svg
