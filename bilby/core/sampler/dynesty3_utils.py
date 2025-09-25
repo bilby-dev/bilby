@@ -3,7 +3,7 @@ from collections import namedtuple
 
 import numpy as np
 from dynesty.internal_samplers import InternalSampler, SamplerReturn
-from dynesty.utils import apply_reflect, get_random_generator, SamplerHistoryItem
+from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generator
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
@@ -200,7 +200,9 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
 
             v_prop = args.prior_transform(u_prop)
             logl_prop = args.loglikelihood(v_prop)
-            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
+            evaluation_history.append(
+                SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
+            )
             ncall += 1
 
             if logl_prop > args.loglstar:
@@ -233,7 +235,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             tuning_info=sampling_info,
             ncalls=ncall,
             proposal_stats=sampling_info,
-            evaluation_history=evaluation_history
+            evaluation_history=evaluation_history,
         )
 
         # return current_u, current_v, logl, ncall, sampling_info
@@ -378,7 +380,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         # Initialize internal variables
         current_v = args.prior_transform(np.array(current_u))
         logl = args.loglikelihood(np.array(current_v))
-        evaluation_history.append(SamplerHistoryItem(u=current_u, v=current_v, logl=logl))
+        evaluation_history.append(
+            SamplerHistoryItem(u=current_u, v=current_v, logl=logl)
+        )
         accept = 0
         reject = 0
         nfail = 0
@@ -403,7 +407,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             if u_prop is not None:
                 v_prop = args.prior_transform(np.array(u_prop))
                 logl_prop = args.loglikelihood(np.array(v_prop))
-                evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
+                evaluation_history.append(
+                    SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
+                )
                 ncall += 1
                 if logl_prop > args.loglstar:
                     success = True
@@ -464,7 +470,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             u = common_kwargs["rstate"].uniform(size=len(current_u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)
-            evaluation_history = [SamplerHistoryItem(u=current_u, v=current_v, logl=logl)]
+            evaluation_history = [
+                SamplerHistoryItem(u=current_u, v=current_v, logl=logl)
+            ]
             cache.append((u, v, logl, ncall, blob, evaluation_history))
         elif not np.isfinite(act):
             logger.warning(
@@ -478,7 +486,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             v_list = v_list[thin::thin]
             logl_list = logl_list[thin::thin]
             evaluation_history_list = (
-                evaluation_history[thin * ii:thin * (ii + 1)]
+                evaluation_history[thin * ii : thin * (ii + 1)]
                 for ii in range(len(u_list))
             )
             n_found = len(u_list)
@@ -489,7 +497,16 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             blob_list = [
                 dict(accept=accept, reject=reject, fail=nfail, act=act)
             ] * n_found
-            cache.extend(zip(u_list, v_list, logl_list, ncall_list, blob_list, evaluation_history_list))
+            cache.extend(
+                zip(
+                    u_list,
+                    v_list,
+                    logl_list,
+                    ncall_list,
+                    blob_list,
+                    evaluation_history_list,
+                )
+            )
             logger.debug(
                 f"act: {act:.2f}, max failures: {most_failures}, thin: {thin}, "
                 f"iteration: {iteration}, n_found: {n_found}"
@@ -584,7 +601,9 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             # Check proposed point.
             v_prop = args.prior_transform(np.array(u_prop))
             logl_prop = args.loglikelihood(np.array(v_prop))
-            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
+            evaluation_history.append(
+                SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
+            )
             if logl_prop > args.loglstar:
                 current_u = u_prop
                 current_v = v_prop
