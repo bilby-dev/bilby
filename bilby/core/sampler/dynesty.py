@@ -192,7 +192,7 @@ class Dynesty(NestedSampler):
     @property
     def new_dynesty_api(self):
         try:
-            from dynesty.sampling import InternalSampler  # noqa
+            import dynesty.internal_samplers  # noqa
 
             return True
         except ImportError:
@@ -822,8 +822,17 @@ class Dynesty(NestedSampler):
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                self.start_time = self.sampler.kwargs.pop("start_time")
-                self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                if hasattr(self.sampler, "_bilby_metadata"):
+                    extras = self.sampler._bilby_metadata
+                elif hasattr(self.sampler, "kwargs"):
+                    extras = self.sampler.kwargs
+                else:
+                    raise AttributeError(
+                        "Loaded sampler doesn't contain timing info, "
+                        "the checkpoint is probably corrupted."
+                    )
+                self.start_time = extras.pop("start_time")
+                self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
@@ -864,8 +873,10 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler.kwargs["sampling_time"] = self.sampling_time
-            self.sampler.kwargs["start_time"] = self.start_time
+            self.sampler._bilby_metadata = dict(
+                sampling_time=self.sampling_time,
+                start_time=self.start_time,
+            )
         self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         self.sampler.M = map
