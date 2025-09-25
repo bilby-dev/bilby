@@ -2,8 +2,8 @@ import warnings
 from collections import namedtuple
 
 import numpy as np
-from dynesty.sampling import InternalSampler
-from dynesty.utils import apply_reflect, get_random_generator
+from dynesty.internal_samplers import InternalSampler, SamplerReturn
+from dynesty.utils import apply_reflect, get_random_generator, SamplerHistoryItem
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
@@ -110,7 +110,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         self.naccept = kwargs.get("naccept", 10)
         self.maxmcmc = kwargs.get("maxmcmc", 5000)
 
-    def tune(self, sampling_info, update=True):
+    def tune(self, tuning_info, update=True):
         """
         Update the proposal parameters based on the number of accepted steps
         and MCMC chain length.
@@ -119,12 +119,12 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         desired number of accepted steps.
         """
         # update walks to match target naccept
-        accept_prob = max(0.5, sampling_info["accept"]) / self.sampler_kwargs["walks"]
+        accept_prob = max(0.5, tuning_info["accept"]) / self.sampler_kwargs["walks"]
         delay = max(self.nlive // 10 - 1, 0)
         self.walks = (self.walks * delay + self.naccept / accept_prob) / (delay + 1)
         self.sampler_kwargs["walks"] = min(int(np.ceil(self.walks)), self.maxmcmc)
 
-        self.scale = sampling_info["accept"]
+        tuning_info["accept"]
 
     @staticmethod
     def sample(args):
@@ -188,6 +188,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
 
         proposals, common_kwargs, proposal_kwargs = _get_proposal_kwargs(args)
         walks = len(proposals)
+        evaluation_history = list()
 
         for prop in proposals:
             u_prop = proposal_funcs[prop](
@@ -199,6 +200,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
 
             v_prop = args.prior_transform(u_prop)
             logl_prop = args.loglikelihood(v_prop)
+            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
             ncall += 1
 
             if logl_prop > args.loglstar:
@@ -224,7 +226,17 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             "reject": walks - naccept,
         }
 
-        return current_u, current_v, logl, ncall, sampling_info
+        return SamplerReturn(
+            u=current_u,
+            v=current_v,
+            logl=logl,
+            tuning_info=sampling_info,
+            ncalls=ncall,
+            proposal_stats=sampling_info,
+            evaluation_history=evaluation_history
+        )
+
+        # return current_u, current_v, logl, ncall, sampling_info
 
 
 class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
@@ -252,6 +264,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["thin"] = self.thin
         self.sampler_kwargs["act"] = self.act
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
+        # reset the cache at instantiation to avoid contamination from
+        # previous analyses
+        self.__class__._cache = list()
 
     def prepare_sampler(
         self,
@@ -303,7 +318,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["rebuild"] = False
         return arg_list
 
-    def tune(self, sampling_info, update=True):
+    def tune(self, tuning_info, update=True):
         """
         Update the proposal parameters based on the number of accepted steps
         and MCMC chain length.
@@ -311,10 +326,10 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         The :code:`walks` parameter to asymptotically approach the
         desired number of accepted steps.
         """
-        if sampling_info.get("remaining", 0) == 0:
+        if tuning_info.get("remaining", 0) == 0:
             self.sampler_kwargs["rebuild"] = True
-        self.scale = sampling_info["accept"]
-        self.sampler_kwargs["act"] = sampling_info["act"]
+        self.scale = tuning_info["accept"]
+        self.sampler_kwargs["act"] = tuning_info["act"]
 
     @staticmethod
     def sample(args):
@@ -327,11 +342,21 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         while len(cache) > 0 and cache[0][2] < args.loglstar:
             state = cache.pop(0)
         if len(cache) == 0:
-            current_u, current_v, logl, ncall, blob = state
+            current_u, current_v, logl, ncall, blob, evaluation_history = state
         else:
-            current_u, current_v, logl, ncall, blob = cache.pop(0)
+            current_u, current_v, logl, ncall, blob, evaluation_history = cache.pop(0)
         blob["remaining"] = len(cache)
-        return current_u, current_v, logl, ncall, blob
+        return SamplerReturn(
+            u=current_u,
+            v=current_v,
+            logl=logl,
+            tuning_info=blob,
+            ncalls=ncall,
+            proposal_stats=blob,
+            evaluation_history=evaluation_history,
+        )
+
+        # return current_u, current_v, logl, ncall, blob
 
     @staticmethod
     def build_cache(args):
@@ -348,10 +373,12 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         target_nact = 50
         next_check = check_interval
         n_checks = 0
+        evaluation_history = list()
 
         # Initialize internal variables
         current_v = args.prior_transform(np.array(current_u))
         logl = args.loglikelihood(np.array(current_v))
+        evaluation_history.append(SamplerHistoryItem(u=current_u, v=current_v, logl=logl))
         accept = 0
         reject = 0
         nfail = 0
@@ -376,6 +403,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             if u_prop is not None:
                 v_prop = args.prior_transform(np.array(u_prop))
                 logl_prop = args.loglikelihood(np.array(v_prop))
+                evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
                 ncall += 1
                 if logl_prop > args.loglstar:
                     success = True
@@ -436,18 +464,23 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             u = common_kwargs["rstate"].uniform(size=len(current_u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)
-            cache.append((u, v, logl, ncall, blob))
+            evaluation_history = [SamplerHistoryItem(u=current_u, v=current_v, logl=logl)]
+            cache.append((u, v, logl, ncall, blob, evaluation_history))
         elif not np.isfinite(act):
             logger.warning(
                 "Unable to find a new point using walk: try increasing maxmcmc"
             )
-            cache.append((current_u, current_v, logl, ncall, blob))
+            cache.append((current_u, current_v, logl, ncall, blob, evaluation_history))
         elif (thin == -1) or (len(u_list) <= thin):
-            cache.append((current_u, current_v, logl, ncall, blob))
+            cache.append((current_u, current_v, logl, ncall, blob, evaluation_history))
         else:
             u_list = u_list[thin::thin]
             v_list = v_list[thin::thin]
             logl_list = logl_list[thin::thin]
+            evaluation_history_list = (
+                evaluation_history[thin * ii:thin * (ii + 1)]
+                for ii in range(len(u_list))
+            )
             n_found = len(u_list)
             accept = max(accept // n_found, 1)
             reject //= n_found
@@ -456,7 +489,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             blob_list = [
                 dict(accept=accept, reject=reject, fail=nfail, act=act)
             ] * n_found
-            cache.extend(zip(u_list, v_list, logl_list, ncall_list, blob_list))
+            cache.extend(zip(u_list, v_list, logl_list, ncall_list, blob_list, evaluation_history_list))
             logger.debug(
                 f"act: {act:.2f}, max failures: {most_failures}, thin: {thin}, "
                 f"iteration: {iteration}, n_found: {n_found}"
@@ -532,6 +565,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
         act = np.inf
         nact = args.kwargs["nact"]
         maxmcmc = args.kwargs["maxmcmc"]
+        evaluation_history = list()
 
         iteration = 0
         while iteration < nact * act:
@@ -550,6 +584,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             # Check proposed point.
             v_prop = args.prior_transform(np.array(u_prop))
             logl_prop = args.loglikelihood(np.array(v_prop))
+            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
             if logl_prop > args.loglstar:
                 current_u = u_prop
                 current_v = v_prop
@@ -588,7 +623,16 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
         AcceptanceTrackingRWalk.old_act = act
 
         ncall = accept + reject
-        return current_u, current_v, logl, ncall, blob
+        return SamplerReturn(
+            u=current_u,
+            v=current_v,
+            logl=logl,
+            tuning_info=blob,
+            ncalls=ncall,
+            proposal_info=blob,
+            evaluation_history=evaluation_history,
+        )
+        # return current_u, current_v, logl, ncall, blob
 
     @staticmethod
     def estimate_nmcmc(accept_ratio, safety=5, tau=None, maxmcmc=5000, old_act=None):
