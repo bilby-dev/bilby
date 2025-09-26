@@ -8,10 +8,10 @@ This will take many hours to run.
 """
 import bilby
 import numpy as np
-from bilby.core.utils.random import seed
+from bilby.core.utils import random
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
@@ -139,6 +139,7 @@ result = bilby.run_sampler(
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
     result_class=bilby.gw.result.CBCResult,
+    rstate=random.rng,
 )
 
 # Plot the inferred waveform superposed on the actual data.
