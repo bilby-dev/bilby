@@ -990,7 +990,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     def save_weights(self, filename, format='hdf5'):
         """
         Save ROQ weights into a single file.
-        Support for json format was removed in :code:`v2.6`, only hdf5 and npz are supported.
+        Support for json format was removed in :code:`v2.7`, only hdf5 and npz are supported.
 
         Parameters
         ==========
