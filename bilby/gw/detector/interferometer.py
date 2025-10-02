@@ -4,6 +4,7 @@ import numpy as np
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
+from ...core.utils.env import string_to_boolean
 from ...compat.utils import array_module
 from .. import utils as gwutils
 from ..geometry import (

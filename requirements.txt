@@ -12,3 +12,5 @@ tqdm
 h5py
 attrs
 importlib-metadata>=3.6; python_version < '3.10'
+plum-dispatch
+array_api_compat

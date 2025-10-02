@@ -411,6 +411,7 @@ class GravitationalWaveTransient(Likelihood):
             self._noise_log_likelihood_value = self._calculate_noise_log_likelihood()
         return self._noise_log_likelihood_value
 
+    def log_likelihood_ratio(self, parameters=None):
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
         else:

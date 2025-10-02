@@ -167,7 +167,7 @@ class ZeroLikelihood(Likelihood):
 
     def __init__(self, likelihood):
         super(ZeroLikelihood, self).__init__()
-        self.parameters = likelihood.parameters
+        self.parameters = dict()
         self._parent = likelihood
 
     def log_likelihood(self, parameters=None):
