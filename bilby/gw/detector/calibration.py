@@ -46,6 +46,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
+from ...compat.utils import array_module
 from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
 from ..prior import CalibrationPriorDict
@@ -330,9 +331,11 @@ class CubicSpline(Recalibrate):
 
     def _evaluate_spline(self, kind, a, b, c, d, previous_nodes):
         """Evaluate Eq. (1) in https://dcc.ligo.org/LIGO-T2300140"""
-        parameters = np.array([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
+        xp = array_module(self.params[f"{kind}_0"])
+        parameters = xp.array([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
         next_nodes = previous_nodes + 1
-        spline_coefficients = self.nodes_to_spline_coefficients.dot(parameters)
+        nodes = xp.array(self.nodes_to_spline_coefficients)
+        spline_coefficients = nodes.dot(parameters)
         return (
             a * parameters[previous_nodes]
             + b * parameters[next_nodes]

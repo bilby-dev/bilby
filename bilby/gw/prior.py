@@ -7,6 +7,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
+from ..compat.utils import xp_wrap
 from ..core.prior import (
     PriorDict, Uniform, Prior, DeltaFunction, Gaussian, Interped, Constraint,
     conditional_prior_factory, PowerLaw, ConditionalLogUniform,
@@ -600,19 +601,23 @@ class ConditionalChiInPlane(ConditionalBasePrior):
         self.__class__.__name__ = "ConditionalChiInPlane"
         self.__class__.__qualname__ = "ConditionalChiInPlane"
 
-    def prob(self, val, **required_variables):
-        self.update_conditions(**required_variables)
+    @xp_wrap
+    def prob(self, val, *, xp=np, **required_variables):
+        parameters = self.condition_func(self.reference_params.copy(), **required_variables)
         chi_aligned = abs(required_variables[self._required_variables[0]])
+        minimum = parameters.get("minimum", self.minimum)
+        maximum = parameters.get("maximum", self.maximum)
         return (
-            (val >= self.minimum) * (val <= self.maximum)
+            (val >= minimum) * (val <= maximum)
             * val
             / (chi_aligned ** 2 + val ** 2)
-            / np.log(self._reference_maximum / chi_aligned)
+            / xp.log(self._reference_maximum / chi_aligned)
         )
 
-    def ln_prob(self, val, **required_variables):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np, **required_variables):
         with np.errstate(divide="ignore"):
-            return np.log(self.prob(val, **required_variables))
+            return xp.log(self.prob(val, **required_variables))
 
     def cdf(self, val, **required_variables):
         r"""
@@ -664,9 +669,9 @@ class ConditionalChiInPlane(ConditionalBasePrior):
 
     def _condition_function(self, reference_params, **kwargs):
         with np.errstate(invalid="ignore"):
-            maximum = np.sqrt(
+            maximum = (
                 self._reference_maximum ** 2 - kwargs[self._required_variables[0]] ** 2
-            )
+            )**0.5
         return dict(minimum=0, maximum=maximum)
 
     def __repr__(self):

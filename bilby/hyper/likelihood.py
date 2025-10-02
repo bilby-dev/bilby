@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 
+from ..compat.utils import array_module
 from ..core.likelihood import Likelihood, _fallback_to_parameters
 from .model import Model
 from ..core.prior import PriorDict
@@ -29,11 +30,13 @@ class HyperparameterLikelihood(Likelihood):
         the sampling prior and the hyperparameterised model.
     max_samples: int, optional
         Maximum number of samples to use from each set.
+    xp: module
+        The array backend to use for the data.
 
     """
 
     def __init__(self, posteriors, hyper_prior, sampling_prior=None,
-                 log_evidences=None, max_samples=1e100):
+                 log_evidences=None, max_samples=1e100, xp=np):
         if not isinstance(hyper_prior, Model):
             hyper_prior = Model([hyper_prior])
         if sampling_prior is None:
@@ -53,7 +56,7 @@ class HyperparameterLikelihood(Likelihood):
         self.max_samples = max_samples
         super(HyperparameterLikelihood, self).__init__()
 
-        self.data = self.resample_posteriors()
+        self.data = self.resample_posteriors(xp=xp)
         self.n_posteriors = len(self.posteriors)
         self.samples_per_posterior = self.max_samples
         self.samples_factor =\
@@ -61,10 +64,11 @@ class HyperparameterLikelihood(Likelihood):
 
     def log_likelihood_ratio(self, parameters=None):
         parameters = _fallback_to_parameters(self, parameters)
-        log_l = np.sum(np.log(np.sum(self.hyper_prior.prob(self.data, **parameters) /
-                       self.data['prior'], axis=-1)))
+        probs = self.hyper_prior.prob(self.data, **parameters)
+        xp = array_module(probs)
+        log_l = xp.sum(xp.log(xp.sum(probs / self.data['prior'], axis=-1)))
         log_l += self.samples_factor
-        return np.nan_to_num(log_l)
+        return xp.nan_to_num(log_l)
 
     def noise_log_likelihood(self):
         return self.evidence_factor
@@ -72,7 +76,7 @@ class HyperparameterLikelihood(Likelihood):
     def log_likelihood(self, parameters=None):
         return self.noise_log_likelihood() + self.log_likelihood_ratio(parameters=parameters)
 
-    def resample_posteriors(self, max_samples=None):
+    def resample_posteriors(self, max_samples=None, xp=np):
         """
         Convert list of pandas DataFrame object to dict of arrays.
 
@@ -107,5 +111,5 @@ class HyperparameterLikelihood(Likelihood):
             for key in data:
                 data[key].append(temp[key])
         for key in data:
-            data[key] = np.array(data[key])
+            data[key] = xp.array(data[key])
         return data
