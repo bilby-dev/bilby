@@ -267,7 +267,39 @@ class LALCBCWaveformGenerator(WaveformGenerator):
 
 
 class GWSignalWaveformGenerator(WaveformGenerator):
-    """ A waveform generator with specific checks for GW signals """
+    """
+    A wrapper to the `gwsignal waveform generator`_ that allows for use of arbitrary
+    waveforms implemented as gwsignal generators and caches the generator between calls.
+
+    This wrapper allows sets of parameters to be enabled/disabled.
+    When, e.g., :code:`spinning=False` all spin parameters will be fixed to zero.
+
+    Parameters
+    ==========
+    spinning: bool
+        Whether to model spins of the individual objects (default=True)
+    eccentric: bool
+        Whether to model orbital eccentricity (default=False)
+    tidal: bool
+        Whether to model tidal deformability of the individual objects (default=False)
+    sampling_frequency: float, optional
+        The sampling frequency
+    duration: float, optional
+        Time duration of data
+    start_time: float, optional
+        Starting time of the time array
+    parameters: dict, optional
+        Initial values for the parameters
+    parameter_conversion: func, optional
+        Function to convert from sampled parameters to parameters of the
+        waveform generator. The default value is the identity, i.e., it leaves
+        the parameters unaffected.
+    waveform_arguments: dict, optional
+        A dictionary of fixed keyword arguments to pass to the waveform generator.
+        There is one required waveform argument :code:`waveform_approximant`.
+
+    .. gwsignal waveform generator: https://docs.ligo.org/lscsoft/lalsuite/lalsimulation/classlalsimulation_1_1gwsignal_1_1core_1_1waveform_1_1_gravitational_wave_generator.html
+    """
 
     generator_pickles = False
 
