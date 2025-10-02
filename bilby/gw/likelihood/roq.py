@@ -1041,7 +1041,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     def load_weights(self, filename, format=None):
         """
-        Load ROQ weights. Support for json format was removed in :code:`v2.6`.
+        Load ROQ weights. Support for json format was removed in :code:`v2.7`.
 
         Parameters
         ==========
