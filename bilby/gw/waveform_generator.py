@@ -298,7 +298,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         A dictionary of fixed keyword arguments to pass to the waveform generator.
         There is one required waveform argument :code:`waveform_approximant`.
 
-    .. gwsignal waveform generator: https://docs.ligo.org/lscsoft/lalsuite/lalsimulation/classlalsimulation_1_1gwsignal_1_1core_1_1waveform_1_1_gravitational_wave_generator.html
+    .. gwsignal waveform generator: https://docs.ligo.org/lscsoft/lalsuite/lalsimulation/classlalsimulation_1_1gwsignal_1_1core_1_1waveform_1_1_gravitational_wave_generator.html  # noqa
     """
 
     generator_pickles = False
