@@ -196,6 +196,15 @@ class Dynesty(NestedSampler):
         kwargs["seed"] = None
         return kwargs
 
+    @property
+    def new_dynesty_api(self):
+        try:
+            import dynesty.internal_samplers  # noqa
+
+            return True
+        except ImportError:
+            return False
+
     def __init__(
         self,
         likelihood,
@@ -268,7 +277,20 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init_kwargs(self):
-        return {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        kwargs = {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        if self.new_dynesty_api:
+            from . import dynesty3_utils as dynesty_utils
+
+            if kwargs["sample"] == "act-walk":
+                kwargs["sample"] = dynesty_utils.ACTTrackingEnsembleWalk(**kwargs)
+                kwargs["bound"] = "none"
+            elif kwargs["sample"] == "acceptance-walk":
+                kwargs["sample"] = dynesty_utils.EnsembleWalkSampler(**kwargs)
+                kwargs["bound"] = "none"
+            elif kwargs["sample"] == "rwalk":
+                kwargs["sample"] = dynesty_utils.AcceptanceTrackingRWalk(**kwargs)
+                kwargs["bound"] = "none"
+        return kwargs
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
@@ -436,7 +458,7 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init(self):
-        from dynesty import NestedSampler
+        from dynesty.dynesty import NestedSampler
 
         return NestedSampler
 
@@ -457,6 +479,9 @@ class Dynesty(NestedSampler):
         Additionally, some combinations of bound/sample/proposals are not
         compatible and so we either warn the user or raise an error.
         """
+        if self.new_dynesty_api:
+            return
+
         import dynesty
 
         _set_sampling_kwargs((self.nact, self.maxmcmc, self.proposals, self.naccept))
@@ -602,6 +627,10 @@ class Dynesty(NestedSampler):
         more times than we have processes.
         """
         super(Dynesty, self)._setup_pool()
+
+        if self.new_dynesty_api:
+            return
+
         if self.pool is not None:
             args = (
                 [(self.nact, self.maxmcmc, self.proposals, self.naccept)]
@@ -800,8 +829,17 @@ class Dynesty(NestedSampler):
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                self.start_time = self.sampler.kwargs.pop("start_time")
-                self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                if hasattr(self.sampler, "_bilby_metadata"):
+                    extras = self.sampler._bilby_metadata
+                elif hasattr(self.sampler, "kwargs"):
+                    extras = self.sampler.kwargs
+                else:
+                    raise AttributeError(
+                        "Loaded sampler doesn't contain timing info, "
+                        "the checkpoint is probably corrupted."
+                    )
+                self.start_time = extras.pop("start_time")
+                self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
@@ -842,8 +880,10 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler.kwargs["sampling_time"] = self.sampling_time
-            self.sampler.kwargs["start_time"] = self.start_time
+            self.sampler._bilby_metadata = dict(
+                sampling_time=self.sampling_time,
+                start_time=self.start_time,
+            )
         self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         self.sampler.M = map
