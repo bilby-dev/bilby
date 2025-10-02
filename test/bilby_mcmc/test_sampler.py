@@ -49,6 +49,7 @@ class TestBilbyMCMCSampler(unittest.TestCase):
             priors,
             search_parameter_keys,
             use_ratio,
+            priors.sample(),
         )
 
     def tearDown(self):

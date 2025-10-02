@@ -6,6 +6,7 @@ from ..likelihood import (
     GaussianLikelihood,
     PoissonLikelihood,
     StudentTLikelihood,
+    _safe_likelihood_call,
 )
 from ..prior import Cosine, DeltaFunction, MultivariateGaussian, PowerLaw, Sine
 from ..utils import derivatives, infer_args_from_method
@@ -816,7 +817,7 @@ class Pymc(MCMCSampler):
                 # set the fixed parameters
                 for key in self.priors.keys():
                     if isinstance(self.priors[key], float):
-                        self.likelihood.parameters[key] = self.priors[key]
+                        self.parameters[key] = self.priors[key]
 
                 self.logpgrad = LogLikeGrad(
                     self.parameters, self.likelihood, self.priors
@@ -825,9 +826,12 @@ class Pymc(MCMCSampler):
             def perform(self, node, inputs, outputs):
                 (theta,) = inputs
                 for i, key in enumerate(self.parameters):
-                    self.likelihood.parameters[key] = theta[i]
+                    self.parameters[key] = theta[i]
 
-                outputs[0][0] = np.array(self.likelihood.log_likelihood())
+                logl = _safe_likelihood_call(
+                    self.likelihood.log_likelihood, self.parameters
+                )
+                outputs[0][0] = np.array(logl)
 
             def grad(self, inputs, g):
                 (theta,) = inputs
@@ -848,7 +852,7 @@ class Pymc(MCMCSampler):
                 # set the fixed parameters
                 for key in self.priors.keys():
                     if isinstance(self.priors[key], float):
-                        self.likelihood.parameters[key] = self.priors[key]
+                        self.parameters[key] = self.priors[key]
 
             def perform(self, node, inputs, outputs):
                 (theta,) = inputs
@@ -856,8 +860,10 @@ class Pymc(MCMCSampler):
                 # define version of likelihood function to pass to derivative function
                 def lnlike(values):
                     for i, key in enumerate(self.parameters):
-                        self.likelihood.parameters[key] = values[i]
-                    return self.likelihood.log_likelihood()
+                        self.parameters[key] = values[i]
+                    return _safe_likelihood_call(
+                        self.likelihood.log_likelihood, self.parameters
+                    )
 
                 # calculate gradients
                 grads = derivatives(

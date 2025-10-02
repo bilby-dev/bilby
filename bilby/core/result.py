@@ -13,6 +13,7 @@ import pandas as pd
 import scipy.stats
 
 from . import utils
+from .likelihood import _safe_likelihood_call
 from .utils import (
     logger, infer_parameters_from_function,
     check_directory_exists_and_if_not_mkdir,
@@ -31,11 +32,6 @@ from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
-
-
-def __eval_l(likelihood, params):
-    likelihood.parameters.update(params)
-    return likelihood.log_likelihood()
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -222,6 +218,13 @@ def get_weights_for_reweighting(
 
     nposterior = len(result.posterior)
 
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    starting_index = 0
+
     if (resume_file is not None) and os.path.exists(resume_file):
         old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = \
             np.genfromtxt(resume_file)
@@ -231,13 +234,6 @@ def get_weights_for_reweighting(
     elif resume_file is not None:
         basedir = os.path.split(resume_file)[0]
         check_directory_exists_and_if_not_mkdir(basedir)
-    else:
-        old_log_likelihood_array = np.zeros(nposterior)
-        old_log_prior_array = np.zeros(nposterior)
-        new_log_likelihood_array = np.zeros(nposterior)
-        new_log_prior_array = np.zeros(nposterior)
-
-        starting_index = 0
 
     dict_samples = [{key: sample[key] for key in result.posterior}
                     for _, sample in result.posterior.iterrows()]
@@ -248,7 +244,7 @@ def get_weights_for_reweighting(
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100, n // (2 * npool))
             return list(tqdm(
-                pool.imap(partial(__eval_l, this_logl),
+                pool.imap(partial(_safe_likelihood_call, this_logl),
                         dict_samples[starting_index:], chunksize=chunksize),
                 desc='Computing likelihoods',
                 total=n)
