@@ -17,7 +17,7 @@ from scipy.special import (
 
 from .base import Prior
 from ..utils import logger
-from ...compat.utils import xp_wrap
+from ...compat.utils import array_module, xp_wrap
 
 
 class DeltaFunction(Prior):
@@ -363,7 +363,7 @@ class SymmetricLogUniform(Prior):
         float:
 
         """
-        return np.nan_to_num(- xp.log(2 * xp.abs(val)) - xp.log(xp.log(self.maximum / self.minimum)))
+        return xp.nan_to_num(- xp.log(2 * xp.abs(val)) - xp.log(xp.log(self.maximum / self.minimum)))
 
     @xp_wrap
     def cdf(self, val, *, xp=np):
@@ -1055,7 +1055,8 @@ class Logistic(Prior):
             val = xp.asarray(val)
             return self.mu + self.scale * xp.log(xp.maximum(val / (1 - val), 0))
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=np):
         """Return the prior probability of val.
 
         Parameters
@@ -1066,7 +1067,7 @@ class Logistic(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return np.exp(self.ln_prob(val))
+        return xp.exp(self.ln_prob(val))
 
     @xp_wrap
     def ln_prob(self, val, *, xp=np):
@@ -1082,10 +1083,11 @@ class Logistic(Prior):
         """
         with np.errstate(over="ignore"):
             return -(val - self.mu) / self.scale -\
-                2. * np.log1p(xp.exp(-(val - self.mu) / self.scale)) - np.log(self.scale)
+                2. * xp.log1p(xp.exp(-(val - self.mu) / self.scale)) - xp.log(self.scale)
 
-    def cdf(self, val):
-        return 1. / (1. + np.exp(-(val - self.mu) / self.scale))
+    @xp_wrap
+    def cdf(self, val, *, xp=np):
+        return 1. / (1. + xp.exp(-(val - self.mu) / self.scale))
 
 
 class Cauchy(Prior):
@@ -1141,7 +1143,8 @@ class Cauchy(Prior):
         """
         return 1. / self.beta / np.pi / (1. + ((val - self.alpha) / self.beta) ** 2)
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np):
         """Return the log prior probability of val.
 
         Parameters
@@ -1152,10 +1155,11 @@ class Cauchy(Prior):
         =======
         Union[float, array_like]: Log prior probability of val
         """
-        return - np.log(self.beta * np.pi) - np.log(1. + ((val - self.alpha) / self.beta) ** 2)
+        return - xp.log(self.beta * np.pi) - xp.log(1. + ((val - self.alpha) / self.beta) ** 2)
 
-    def cdf(self, val):
-        return 0.5 + np.arctan((val - self.alpha) / self.beta) / np.pi
+    @xp_wrap
+    def cdf(self, val, *, xp=np):
+        return 0.5 + xp.arctan((val - self.alpha) / self.beta) / np.pi
 
 
 class Lorentzian(Cauchy):
@@ -1323,9 +1327,11 @@ class FermiDirac(Prior):
             raise ValueError("For the Fermi-Dirac prior the values of sigma and r "
                              "must be positive.")
 
-        self.expr = np.exp(self.r)
+        xp = array_module(np)
+        self.expr = xp.exp(self.r)
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the appropriate Fermi-Dirac prior.
 
@@ -1343,7 +1349,7 @@ class FermiDirac(Prior):
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
         inv = -1 / self.expr + (1 + self.expr)**-val + (1 + self.expr)**-val / self.expr
-        return -self.sigma * np.log(np.maximum(inv, 0))
+        return -self.sigma * xp.log(xp.maximum(inv, 0))
 
     @xp_wrap
     def prob(self, val, *, xp=np):
@@ -1363,7 +1369,8 @@ class FermiDirac(Prior):
             * (val >= self.minimum)
         )
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np):
         """Return the log prior probability of val.
 
         Parameters
@@ -1374,9 +1381,10 @@ class FermiDirac(Prior):
         =======
         Union[float, array_like]: Log prior probability of val
         """
-        return np.log(self.prob(val))
+        return xp.log(self.prob(val))
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=np):
         """
         Evaluate the CDF of the Fermi-Dirac distribution using a slightly
         modified form of Equation 23 of [1]_.
@@ -1398,10 +1406,10 @@ class FermiDirac(Prior):
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
         result = (
-            (np.logaddexp(0, -self.r) - np.logaddexp(-val / self.sigma, -self.r))
-            / np.logaddexp(0, self.r)
+            (xp.logaddexp(0, -self.r) - xp.logaddexp(-val / self.sigma, -self.r))
+            / xp.logaddexp(0, self.r)
         )
-        return np.clip(result, 0, 1)
+        return xp.clip(result, 0, 1)
 
 
 class WeightedDiscreteValues(Prior):

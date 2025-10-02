@@ -13,7 +13,7 @@ class SkyLocationWanderJump(JumpProposal):
 
     def __call__(self, sample, **kwargs):
         temperature = 1 / kwargs.get('inverse_temperature', 1.0)
-        sigma = np.sqrt(temperature) / 2 / np.pi
+        sigma = temperature**0.5 / 2 / np.pi
         sample['ra'] += random.gauss(0, sigma)
         sample['dec'] += random.gauss(0, sigma)
         return super(SkyLocationWanderJump, self).__call__(sample)
