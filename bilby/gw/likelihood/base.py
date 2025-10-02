@@ -412,7 +412,6 @@ class GravitationalWaveTransient(Likelihood):
 
     def log_likelihood_ratio(self, parameters):
         parameters = copy.deepcopy(parameters)
-
         parameters.update(self.get_sky_frame_parameters(parameters))
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(parameters)

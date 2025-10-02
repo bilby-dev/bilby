@@ -2,7 +2,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from ..core.likelihood import Likelihood
+from ..core.likelihood import Likelihood, _safe_likelihood_call
 
 
 def generic_bilby_likelihood_function(likelihood, parameters, use_ratio=True):
@@ -20,11 +20,7 @@ def generic_bilby_likelihood_function(likelihood, parameters, use_ratio=True):
         Default is :code:`True`.
     """
     parameters = {k: jnp.array(v) for k, v in parameters.items()}
-    likelihood.parameters.update(parameters)
-    if use_ratio:
-        return likelihood.log_likelihood_ratio()
-    else:
-        return likelihood.log_likelihood()
+    return _safe_likelihood_call(likelihood, parameters, use_ratio)
 
 
 class JittedLikelihood(Likelihood):
