@@ -5,7 +5,82 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
-## [2.4.0]
+### Deprecated
+
+- `dnest4` is no longer tested, the plugin package should be used instead.
+
+## [2.6.0]
+
+We noticed a longstanding mis-definition in the `GravitationalWaveTransient` likelihood that caused the PSD to be
+incorrectly normalised when using time domain data with a Tukey window (https://github.com/bilby-dev/bilby/issues/869).
+By extension, the SNR and log-likelihood is overestimated. While the peak of the likelihood is in
+the correct place, the posterior is overly constrained and due to prior effects may not peak in the
+correct place.
+
+The specific form of the previous version of the likelihood is
+
+$$
+\hat{p}(d | \theta) = \frac{p(d  | theta)}{\beta}
+$$
+
+where $\beta$ is the power loss factor in the Tukey window ($\beta = 1 - 5 \alpha / 8$).
+
+The impact of this bug is most pronounced for short-duration signals, with a long turn on for the Tukey window.
+To reproduce the old behaviour, users can set the environment variable `BILBY_INCORRECT_PSD_NORMALIZATION=TRUE`.
+
+### Fixed
+
+- Fix PSD normalisation in `GravitationalWaveTransient` (https://github.com/bilby-dev/bilby/pull/967)
+
+## [2.5.2]
+
+### Fixed
+
+- Fix the filename extension precedence for result files (https://github.com/bilby-dev/bilby/pull/960)
+
+## [2.5.1]
+
+### Changed
+
+- Pin dynesty to version < 2.2 (https://github.com/bilby-dev/bilby/pull/949)
+
+### Fixed
+
+- Enable printing dlogZ values below 1e-3 with `dynesty` (https://github.com/bilby-dev/bilby/pull/936)
+- Fix how injection parameters are handled in parameter conversion to avoid bugs with parameter reconstruction in `run_sampler` (https://github.com/bilby-dev/bilby/pull/931)
+- Fix `time_reference` check in `_generate_all_cbc_parameters` (https://github.com/bilby-dev/bilby/pull/930)
+- Ensure output directory exists when performing reweighting with `get_weights_for_reweighting` (https://github.com/bilby-dev/bilby/pull/923/)
+
+## [2.5.0] - 2025-03-20
+
+### Added
+
+- Add `cosmology` to `CBCPriorDict` (https://github.com/bilby-dev/bilby/pull/868)
+- Add `cosmology` to `CBCResult` (https://github.com/bilby-dev/bilby/pull/867)
+- Add support for analytic aligned spin priors (https://github.com/bilby-dev/bilby/pull/849)
+- Add optional global meta data (https://github.com/bilby-dev/bilby/pull/873, https://github.com/bilby-dev/bilby/pull/915)
+- Add warning when prior sampling efficiency is low (https://github.com/bilby-dev/bilby/pull/853)
+- Add `plot_time_domain_data` to `InterferometerList` (https://github.com/bilby-dev/bilby/pull/920)
+
+### Changed
+
+- Remove calls to deprecated scipy functions (https://github.com/bilby-dev/bilby/pull/884)
+- [dynesty] Reduce number of calls to `add_live_points (https://github.com/bilby-dev/bilby/pull/872)
+- Check for empty result files when resuming (https://github.com/bilby-dev/bilby/pull/890)
+- Add `num_interp` to `AlignedSpin` prior (https://github.com/bilby-dev/bilby/pull/912)
+- Allow result files with inconsistent priors to be merged (https://github.com/bilby-dev/bilby/pull/918)
+
+### Fixed
+
+- Fix `numerical_relativity_file` keyword argument (https://github.com/bilby-dev/bilby/pull/909)
+- Fix missing argument in precomputed calibration (https://github.com/bilby-dev/bilby/pull/882)
+- Fix passing `mode_array` in injections waveform arguments (https://github.com/bilby-dev/bilby/pull/820)
+- Fix dtypes changing in `plot_interferometer_waveform_posterior` (https://github.com/bilby-dev/bilby/pull/870)
+- Fix raise statement in `get_all_injection_credible_levels` (https://github.com/bilby-dev/bilby/pull/911)
+- Specify likelihood for injection conversion function (https://github.com/bilby-dev/bilby/pull/900)
+
+
+## [2.4.0] - 2024-11-15
 
 Note: this release contains changes made on both GitHub and LIGO GitLab.
 
@@ -1109,7 +1184,10 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.4.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.2...main
+[2.5.2]: https://github.com/bilby-dev/bilby/compare/v2.5.1...v2.5.2
+[2.5.1]: https://github.com/bilby-dev/bilby/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/bilby-dev/bilby/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/bilby-dev/bilby/compare/v2.2.2...v2.2.3

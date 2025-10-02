@@ -1,5 +1,6 @@
 import datetime
 import time
+import warnings
 
 import numpy as np
 
@@ -8,6 +9,13 @@ from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrap
 
 
 class _DNest4Model(object):
+    msg = (
+        "The DNest4 sampler interface in bilby is deprecated and will"
+        " be removed in future release. Please use the `dnest4-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/dnest4-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
+
     def __init__(
         self, log_likelihood_func, from_prior_func, widths, centers, highs, lows
     ):
@@ -41,11 +49,11 @@ class _DNest4Model(object):
 
     def perturb(self, coords):
         """The perturb function to perform Monte Carlo trial moves."""
-        from ..utils.random import rng
+        from ..utils import random
 
-        idx = rng.integers(self._n_dim)
+        idx = random.rng.integers(self._n_dim)
 
-        coords[idx] += self._widths[idx] * (rng.uniform(size=1) - 0.5)
+        coords[idx] += self._widths[idx] * (random.rng.uniform(size=1) - 0.5)
         cw = self._widths[idx]
         cc = self._centers[idx]
 

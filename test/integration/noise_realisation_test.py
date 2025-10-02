@@ -34,6 +34,7 @@ class TestNoiseRealisation(unittest.TestCase):
         time_array = bilby.core.utils.create_time_series(
             sampling_frequency=sampling_frequency, duration=duration
         )
+        interferometer = bilby.gw.detector.get_empty_interferometer("H1")
 
         # generate some toy-model signal for matched filtering SNR testing
         n_avg = 1000
@@ -43,7 +44,6 @@ class TestNoiseRealisation(unittest.TestCase):
         )
         muf, frequency_array = bilby.core.utils.nfft(mu, sampling_frequency)
         for x in range(0, n_avg):
-            interferometer = bilby.gw.detector.get_empty_interferometer("H1")
             interferometer.set_strain_data_from_power_spectral_density(
                 sampling_frequency=sampling_frequency, duration=duration
             )

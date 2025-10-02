@@ -324,6 +324,9 @@ The version tag should also start with `v` e.g. `v2.4.0`.
 `bilby` uses `setuptools_scm` to automatically set the version based on git tags.
 This means no manual changes are needed to the version number are required.
 
+As of version v2.6.0, `bilby` uses a [stable mainline](https://www.bitsnbites.eu/a-stable-mainline-branching-model-for-git/) branching model for releases.
+This means that all major and minor releases should have a corresponding branch `release/X.Y.x`.
+
 ### Updating the changelog
 
 Before making a release, the [changelog](https://github.com/bilby-dev/bilby/blob/main/CHANGELOG.md)
@@ -337,6 +340,52 @@ When making a changelog keep the following in mind:
 - Include links to the relevant PRs
 - Remember to update the URLs at the bottom of changelog file
 
+### Making the release branch
+
+#### Major and minor releases 
+
+If making a major or minor release you must first make the release branch from the current `main` branch
+
+##### Via the web interface
+
+From the [branches page of the repo](https://github.com/bilby-dev/bilby/branches), click `New branch`,
+select `main` as the source and name the branch `release/Major.Minor.x` for example `release/2.6.x`.
+
+##### Via the command line
+
+Ensure you have checked out the `main` branch and it is up-to-date with the upstream repo.
+Then run the following commands with the appropriate version number:
+
+```bash
+git checkout -b release/2.6.x
+git push upstream release/2.6.x
+```
+
+**Note:** this assume you have add the `bilby-dev/bilby` repository as `upstream`
+
+#### Bug-fix releases
+
+If making a bugfix release, the relevant commits should be cherry-picked and merged
+into the release branch.
+
+**Note:** make sure the changelog is up-to-date.
+
+### Tagging the release (optional)
+
+**Note:** this step is optional but if followed, allows one to verify the correct commit has been tagged before making the release.
+
+Make sure you have the release branch checked out and up-to-date, then tag the release
+
+```bash
+git tag v2.6.0
+```
+
+Once it is tagged, it should be pushed to the `bilby-dev/bilby` repository.
+
+```bash
+git push upstream v2.6.0
+```
+
 ### Making the release on GitHub
 
 **Note:** releases will automatically be pushed to PyPI and versions on PyPI
@@ -346,9 +395,10 @@ Once the changelog has been updated, follow these steps for making a release:
 
 1. Navigate to https://github.com/bilby-dev/bilby/releases.
 2. Click `Draft new release`.
-3. Select an existing tag that does not have a release or specify the name of a
-new tag that will be made when the release is made.
-4. Specify the version as the title, e.g. `v2.4.0`.
+3. Do **one of these steps**:
+    - **If you tagged the release manually**: click `Select Tag` and select the correct tag e.g. `v2.6.0`
+    - **If you did not tag the release manually**: click `Select Tag`, type the name of the tag e.g. `v2.6.0` and choose `Create new tag: <tag name> on publish`. Set the `Target` to the release branch, e.g.`release/2.6.x`
+4. Specify the version as the title, e.g. `v2.6.0`.
 5. Copy the relevant section from the changelog and include a link to the full changelog, e.g.
 `**Full Changelog:** https://github.com/bilby-dev/bilby/compare/<previous-release>...<this-release>`
 6. If this is latest stable release, make sure `Set at latest release` is checked.
