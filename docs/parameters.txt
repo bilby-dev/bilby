@@ -1,0 +1,87 @@
+.. _parameters:
+
+====================
+Bilby and Parameters
+====================
+
+From the early stages of development of Bilby and up until version 2.7,
+the standard method of specifying the parameters for which to evaluate the
+likelihood is to add them to a dictionary using the
+:code:`Likelihood.parameters` attribute and then calling the likelihood methods
+
+.. code-block:: python
+
+   likelihood.parameters.update(parameters)
+   likelihood.log_likelihood()
+
+This method is somewhat unintuitive as it relies on state stored within the
+instance of the likelihood.
+
+In version 2.7 we added the functionality to combine this into a single line
+
+.. code-block:: python
+
+   likelihood.log_likelihood(parameters)
+
+This change provides a number of improvements:
+
+- It is aesthetically cleaner. It also matches better how we call the :code:`Prior` object.
+- It will make it easier to, e.g., call the likelihood within a loop
+
+  .. code-block:: python
+
+     for parameters in result.posterior.to_dict(orient="records"):
+         likelihood.log_likelihood(parameters)
+
+- It is also safer for a few reasons. With the parameters as state implementation,
+  if you forget to specify some parameters, then the values already in the likelihood
+  object will be used and can cause stealth errors.
+- We found that the parameters as state implementation was bug prone, and lead to
+  unexpected behaviour.
+- Just-in-time (JIT) compilers (e.g., via JAX) typically require the variables for a
+  function to be explicitly described. With parameters as state, formatting a likelihood
+  for use with JAX requires a workaround. The new version makes bilby likelihood calls
+  natively JIT-compatible assuming the likelihood call does not make any other state 
+  changes (the same argument probably applies for similar packages, e.g., MLX).
+- Python 3.13 introduced a free-threaded build that enables thread-safe parallelism,
+  rather than the current process-based parallelism. Thread-based parallelism can be
+  more efficient in many cases, and allow easier use of shared memory. Moving away from 
+  parameters as state will make it easier for us to work with thread-safe parallelism.
+
+The previous method is still supported, but will be deprecated and removed in
+the future.
+
+
+For users
+---------
+
+We have tried to minimize the impact of this change for users, however, there are a few necessary changes:
+
+- the :code:`log_likelihood` and :code:`log_likelihood_ratio` methods now accept a new argument `parameters`.
+  Additionally, various methods of other likelihoods accept the `parameters` argument.
+  Currently, this is an optional, positional argument.
+- while both the state- and argument-based parameter passing methods are supported, there is a
+  :pyfunc:`bilby.core.likelihood._safe_likelihood_call` function that can be used in sampler interfaces to
+  support both methods.
+- calls to the base :pyfunc:`bilby.core.likelihood.Likelihood.__init__` (e.g., via :code:`super`) no longer
+  needs to be passed a dictionary of parameters.
+- :pyfunc:`bilby.core.likelihood.Analytical1DLikelihood.residual` is now a method that accepts an argument
+  :code:`parameters` rather than a property.
+- :pyfunc:`bilby.core.prior.PriorDict.fill_priors` no longer uses the argument :code:`likelihood` and that argument
+  will be removed in future.
+
+Gravitational-wave specific changes:
+
+- many methods of :pyfunc:`bilby.gw.likelihood.base.GravitationalWaveTransient` (and subclasses) now take the
+  `parameters` argument.
+- :code:`fiducial` is now a required parameter for the relative binning likelihood. This may change in a future release.
+
+
+For developers
+--------------
+
+- when possible, new features should support both methods of specifying the parameters until we drop support.
+- while both methods are supported, :pyfunc:`bilby.core.likelihood._safe_likelihood_call` should be used
+  for any likelihood calls.
+- when writing tests that involve likelihood calls, both approaches should be tested.
+- all examples/tutorials should use the new method.

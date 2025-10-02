@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 
+from .likelihood import _safe_likelihood_call
 from .prior import Prior, PriorDict
 from .utils import (
     logtrapzexp, check_directory_exists_and_if_not_mkdir, logger,
@@ -304,20 +305,22 @@ class Grid(object):
 
     def _evaluate(self):
         self._ln_likelihood = np.empty(self.mesh_grid[0].shape)
-        self._evaluate_recursion(0)
+        self._evaluate_recursion(0, parameters=dict())
         self.ln_noise_evidence = self.likelihood.noise_log_likelihood()
 
-    def _evaluate_recursion(self, dimension):
+    def _evaluate_recursion(self, dimension, parameters):
         if dimension == self.n_dims:
             current_point = tuple([[int(np.where(
-                self.likelihood.parameters[name] ==
+                parameters[name] ==
                 self.sample_points[name])[0])] for name in self.parameter_names])
-            self._ln_likelihood[current_point] = self.likelihood.log_likelihood()
+            self._ln_likelihood[current_point] = _safe_likelihood_call(
+                self.likelihood, parameters
+            )
         else:
             name = self.parameter_names[dimension]
             for ii in range(self._ln_likelihood.shape[dimension]):
-                self.likelihood.parameters[name] = self.sample_points[name][ii]
-                self._evaluate_recursion(dimension + 1)
+                parameters[name] = self.sample_points[name][ii]
+                self._evaluate_recursion(dimension + 1, parameters)
 
     def _get_sample_points(self, grid_size):
         for ii, key in enumerate(self.parameter_names):
