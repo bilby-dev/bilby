@@ -1,10 +1,7 @@
 
-import json
-
 import numpy as np
 
 from .base import GravitationalWaveTransient
-from ...core.utils import BilbyJsonEncoder, decode_bilby_json
 from ...core.utils import (
     logger, create_frequency_series, speed_of_light, radius_of_earth
 )
@@ -992,32 +989,22 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     def save_weights(self, filename, format='hdf5'):
         """
-        Save ROQ weights into a single file. format should be npz, or hdf5.
-        For weights from multiple bases, hdf5 is only the possible option.
-        Support for json format is deprecated as of :code:`v2.1` and will be
-        removed in :code:`v2.2`, another method should be used by default.
+        Save ROQ weights into a single file.
+        Support for json format was removed in :code:`v2.7`, only hdf5 and npz are supported.
 
         Parameters
         ==========
         filename : str
             The name of the file to save the weights to.
         format : str
-            The format to save the data to, this should be one of
-            :code:`"hdf5"`, :code:`"npz"`, default=:code:`"hdf5"`.
+            The format to save the weight in, should be in :code:`hdf5, npz`.
         """
-        if format not in ['json', 'npz', 'hdf5']:
+        if format not in ['hdf5', 'npz']:
             raise IOError(f"Format {format} not recognized.")
-        if format == "json":
-            import warnings
-
-            warnings.warn(
-                "json format for ROQ weights is deprecated, use hdf5 instead.",
-                DeprecationWarning
-            )
         if format not in filename:
             filename += "." + format
         logger.info(f"Saving ROQ weights to {filename}")
-        if format == 'json' or format == 'npz':
+        if format == 'npz':
             if self.number_of_bases_linear > 1 or self.number_of_bases_quadratic > 1:
                 raise ValueError(f'Format {format} not compatible with multiple bases')
             weights = dict()
@@ -1026,11 +1013,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 for ifo in self.interferometers:
                     key = f'{ifo.name}_{basis_type}'
                     weights[key] = self.weights[key][0]
-            if format == 'json':
-                with open(filename, 'w') as file:
-                    json.dump(weights, file, indent=2, cls=BilbyJsonEncoder)
-            else:
-                np.savez(filename, **weights)
+            np.savez(filename, **weights)
         else:
             import h5py
             with h5py.File(filename, 'w') as f:
@@ -1058,18 +1041,14 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     def load_weights(self, filename, format=None):
         """
-        Load ROQ weights. format should be json, npz, or hdf5.
-        json or npz file is assumed to contain weights from a single basis.
-        Support for json format is deprecated as of :code:`v2.1` and will be
-        removed in :code:`v2.2`, another method should be used by default.
+        Load ROQ weights. Support for json format was removed in :code:`v2.7`.
 
         Parameters
         ==========
         filename : str
             The name of the file to save the weights to.
         format : str
-            The format to save the data to, this should be one of
-            :code:`"hdf5"`, :code:`"npz"`, default=:code:`"hdf5"`.
+            The format of the weight file, should be in :code:`hdf5, npz`.
 
         Returns
         =======
@@ -1078,8 +1057,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """
         if format is None:
             format = filename.split(".")[-1]
-        if format not in ["json", "npz", "hdf5"]:
-            raise IOError(f"Format {format} not recognized.")
         if format == "json":
             import warnings
 
@@ -1087,15 +1064,12 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 "json format for ROQ weights is deprecated, use hdf5 instead.",
                 DeprecationWarning
             )
+        elif format not in ["npz", "hdf5"]:
+            raise IOError(f"Format {format} not recognized.")
+
         logger.info(f"Loading ROQ weights from {filename}")
-        if format == "json" or format == "npz":
-            # Old file format assumed to contain only a single basis
-            if format == "json":
-                with open(filename, 'r') as file:
-                    weights = json.load(file, object_hook=decode_bilby_json)
-            else:
-                # Wrap in dict to load data into memory
-                weights = dict(np.load(filename))
+        if format == "npz":
+            weights = dict(np.load(filename))
             for basis_type in ['linear', 'quadratic']:
                 for ifo in self.interferometers:
                     key = f'{ifo.name}_{basis_type}'

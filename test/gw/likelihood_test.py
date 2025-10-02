@@ -1053,6 +1053,12 @@ class TestInOutROQWeights(unittest.TestCase):
         likelihood.save_weights(filename, format=format)
         self.assertTrue(os.path.exists(filename))
 
+    def test_saving_wrong_format_fails(self):
+        likelihood = self.create_likelihood_single_basis()
+        filename = 'weights.json'
+        with self.assertRaises(IOError):
+            likelihood.save_weights(filename, format='json')
+
     @parameterized.expand(['npz', 'hdf5'])
     def test_in_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
@@ -1068,18 +1074,16 @@ class TestInOutROQWeights(unittest.TestCase):
 
     @parameterized.expand([(False, ), (True, )])
     def test_out_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         self.assertTrue(os.path.exists(filename))
 
     @parameterized.expand([(False, ), (True, )])
     def test_in_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         likelihood_from_weights = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=likelihood.interferometers,
             priors=likelihood.priors,
@@ -1088,15 +1092,15 @@ class TestInOutROQWeights(unittest.TestCase):
         )
         self.check_weights_are_same(likelihood, likelihood_from_weights)
 
-    @parameterized.expand(product(['npz', 'json'], [False, True]))
-    def test_out_multiple_bases_inconsistent_format(self, format, multiband):
-        "npz or json format is not compatible with multiple bases"
+    @parameterized.expand([(False, ), (True, )])
+    def test_out_multiple_bases_inconsistent_format(self, multiband):
+        "npz format is not compatible with multiple bases"
         likelihood = self.create_likelihood_multiple_bases(multiband)
         with self.assertRaises(ValueError):
-            likelihood.save_weights('weights', format=format)
+            likelihood.save_weights('weights', format="npz")
 
     def tearDown(self):
-        for format in ['npz', 'json', 'hdf5']:
+        for format in ['npz', 'hdf5']:
             filename = f'weights.{format}'
             if os.path.exists(filename):
                 os.remove(filename)
