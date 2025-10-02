@@ -1,5 +1,5 @@
 import numpy as np
-from scipy._lib._array_api import array_namespace
+from array_api_compat import array_namespace
 
 __all__ = ["array_module", "promote_to_array"]
 

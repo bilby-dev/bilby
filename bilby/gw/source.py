@@ -1203,7 +1203,7 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
 
     h_cross = -1j * hrss * np.pi**0.5 * tau / 2 * (
         negative_term - positive_term
-    ) / (temp * (1 - np.exp(-Q**2)))**0.5
+    ) / (temp * (1 - xp.exp(-Q**2)))**0.5
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -1286,12 +1286,13 @@ def supernova_pca_model(
     dict:
         The plus and cross polarizations of the signal
     """
+    xp = array_module(frequency_array)
 
     principal_components = kwargs["realPCs"] + 1j * kwargs["imagPCs"]
     coefficients = [pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5]
 
-    strain = np.sum(
-        [coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)],
+    strain = xp.sum(
+        xp.array([coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)]),
         axis=0
     )
 

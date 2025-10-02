@@ -1,26 +1,6 @@
-from functools import partial
-
 import jax
 import jax.numpy as jnp
-from ..core.likelihood import Likelihood, _safe_likelihood_call
-
-
-def generic_bilby_likelihood_function(likelihood, parameters, use_ratio=True):
-    """
-    A wrapper to allow a :code:`Bilby` likelihood to be used with :code:`jax`.
-
-    Parameters
-    ==========
-    likelihood: bilby.core.likelihood.Likelihood
-        The likelihood to evaluate.
-    parameters: dict
-        The parameters to evaluate the likelihood at.
-    use_ratio: bool, optional
-        Whether to evaluate the likelihood ratio or the full likelihood.
-        Default is :code:`True`.
-    """
-    parameters = {k: jnp.array(v) for k, v in parameters.items()}
-    return _safe_likelihood_call(likelihood, parameters, use_ratio)
+from ..core.likelihood import Likelihood
 
 
 class JittedLikelihood(Likelihood):
@@ -36,34 +16,30 @@ class JittedLikelihood(Likelihood):
     ==========
     likelihood: bilby.core.likelihood.Likelihood
         The likelihood to wrap.
-    likelihood_func: callable, optional
-        The function to use to evaluate the likelihood. Default is
-        :code:`generic_bilby_likelihood_function`. This function should take the
-        likelihood and parameters as arguments along with additional keyword arguments.
-    kwargs: dict, optional
-        Additional keyword arguments to pass to the likelihood function.
+    cast_to_float: bool
+        Whether to return a float instead of a :code:`jax.Array`.
     """
 
-    def __init__(
-        self,
-        likelihood,
-        likelihood_func=generic_bilby_likelihood_function,
-        kwargs=None,
-        cast_to_float=True,
-    ):
-        if kwargs is None:
-            kwargs = dict()
-        self.kwargs = kwargs
+    def __init__(self, likelihood, cast_to_float=True):
         self._likelihood = likelihood
-        self.likelihood_func = jax.jit(partial(likelihood_func, likelihood))
+        self._ll = jax.jit(likelihood.log_likelihood)
+        self._llr = jax.jit(likelihood.log_likelihood_ratio)
         self.cast_to_float = cast_to_float
-        super().__init__(dict())
+        super().__init__()
 
     def __getattr__(self, name):
         return getattr(self._likelihood, name)
 
-    def log_likelihood_ratio(self):
-        ln_l = jnp.nan_to_num(self.likelihood_func(self.parameters, **self.kwargs))
+    def log_likelihood(self, parameters):
+        parameters = {k: jnp.array(v) for k, v in parameters.items()}
+        ln_l = self._ll(parameters)
+        if self.cast_to_float:
+            ln_l = float(ln_l)
+        return ln_l
+
+    def log_likelihood_ratio(self, parameters):
+        parameters = {k: jnp.array(v) for k, v in parameters.items()}
+        ln_l = self._llr(parameters)
         if self.cast_to_float:
             ln_l = float(ln_l)
         return ln_l

@@ -6,7 +6,6 @@ import attr
 import numpy as np
 from scipy.special import logsumexp
 
-from ...compat.utils import array_module
 from ...core.likelihood import Likelihood, _fallback_to_parameters
 from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
@@ -158,6 +157,7 @@ class GravitationalWaveTransient(Likelihood):
         self.waveform_generator = waveform_generator
         super(GravitationalWaveTransient, self).__init__()
         self.interferometers = InterferometerList(interferometers)
+        self.interferometers.set_array_backend(interferometers.array_backend)
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -170,7 +170,7 @@ class GravitationalWaveTransient(Likelihood):
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
-            self.reference_ifo.set_array_backend(array_module(self.interferometers[0].vertex))
+            self.reference_ifo.set_array_backend(self.interferometers.array_backend)
             if self.time_marginalization:
                 logger.info("Cannot marginalise over non-geocenter time.")
                 self.time_marginalization = False
@@ -398,12 +398,12 @@ class GravitationalWaveTransient(Likelihood):
         log_l = 0
         for interferometer in self.interferometers:
             mask = interferometer.frequency_mask
-            log_l -= noise_weighted_inner_product(
+            log_l -= abs(noise_weighted_inner_product(
                 interferometer.frequency_domain_strain[mask],
                 interferometer.frequency_domain_strain[mask],
                 interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
-        return float(np.real(log_l))
+                self.waveform_generator.duration) / 2)
+        return log_l
 
     def noise_log_likelihood(self):
         # only compute likelihood if called for the 1st time
@@ -1093,6 +1093,8 @@ class GravitationalWaveTransient(Likelihood):
             self._reference_frame = InterferometerList([frame[:2], frame[2:4]])
         else:
             raise ValueError("Unable to parse reference frame {}".format(frame))
+        if isinstance(self._reference_frame, InterferometerList):
+            self._reference_frame.set_array_backend(self.interferometers.array_backend)
 
     def get_sky_frame_parameters(self, parameters=None):
         """

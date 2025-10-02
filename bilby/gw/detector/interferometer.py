@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from ...core import utils
-from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
+from ...core.utils import PropertyAccessor, docstring, logger, safe_file_dump
 from ...core.utils.env import string_to_boolean
 from ...compat.utils import array_module
 from .. import utils as gwutils
@@ -929,14 +929,8 @@ class Interferometer(object):
         return res
 
     def set_array_backend(self, xp):
-        for attr in [
-            "length",
-            "latitude",
-            "longitude",
-            "elevation",
-            "xarm_azimuth",
-            "yarm_azimuth",
-            "xarm_tilt",
-            "yarm_tilt",
-        ]:
-            setattr(self, attr, xp.array(getattr(self, attr)))
+        self.geometry.set_array_backend(xp=xp)
+
+    @property
+    def array_backend(self):
+        return array_module(self.geometry.length)

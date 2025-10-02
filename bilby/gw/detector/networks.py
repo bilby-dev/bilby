@@ -336,6 +336,10 @@ class InterferometerList(list):
         for ifo in self:
             ifo.set_array_backend(xp)
 
+    @property
+    def array_backend(self):
+        return self[0].array_backend
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
