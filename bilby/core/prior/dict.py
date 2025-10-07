@@ -3,6 +3,7 @@ import os
 import re
 from importlib import import_module
 from io import open as ioopen
+from warnings import warn
 
 import numpy as np
 
@@ -317,15 +318,9 @@ class PriorDict(dict):
                     "{} cannot be converted to delta function prior.".format(key)
                 )
 
-    def fill_priors(self, likelihood, default_priors_file=None):
+    def fill_priors(self, likelihood=None, default_priors_file=None):
         """
-        Fill dictionary of priors based on required parameters of likelihood
-
-        Any floats in prior will be converted to delta function prior. Any
-        required, non-specified parameters will use the default.
-
-        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
-        this will set-up default priors for those as well.
+        Any floats in prior will be converted to delta function prior.
 
         Parameters
         ==========
@@ -341,24 +336,12 @@ class PriorDict(dict):
             The filled prior dictionary
 
         """
+        if likelihood is not None:
+            warn("Filling priors from likelihood parameters is deprecated", FutureWarning)
+        if default_priors_file is not None:
+            warn("Setting default priors from a defaults file is deprecated", FutureWarning)
 
         self.convert_floats_to_delta_functions()
-
-        missing_keys = set(likelihood.parameters) - set(self.keys())
-
-        for missing_key in missing_keys:
-            if not self.test_redundancy(missing_key):
-                default_prior = create_default_prior(missing_key, default_priors_file)
-                if default_prior is None:
-                    set_val = likelihood.parameters[missing_key]
-                    logger.warning(
-                        "Parameter {} has no default prior and is set to {}, this"
-                        " will not be sampled and may cause an error.".format(
-                            missing_key, set_val
-                        )
-                    )
-                else:
-                    self[missing_key] = default_prior
 
         for key in self:
             self.test_redundancy(key)
