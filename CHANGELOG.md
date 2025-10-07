@@ -5,6 +5,39 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Deprecated
+
+- `dnest4` is no longer tested, the plugin package should be used instead.
+
+## [2.6.0]
+
+We noticed a longstanding mis-definition in the `GravitationalWaveTransient` likelihood that caused the PSD to be
+incorrectly normalised when using time domain data with a Tukey window (https://github.com/bilby-dev/bilby/issues/869).
+By extension, the SNR and log-likelihood is overestimated. While the peak of the likelihood is in
+the correct place, the posterior is overly constrained and due to prior effects may not peak in the
+correct place.
+
+The specific form of the previous version of the likelihood is
+
+$$
+\hat{p}(d | \theta) = \frac{p(d  | theta)}{\beta}
+$$
+
+where $\beta$ is the power loss factor in the Tukey window ($\beta = 1 - 5 \alpha / 8$).
+
+The impact of this bug is most pronounced for short-duration signals, with a long turn on for the Tukey window.
+To reproduce the old behaviour, users can set the environment variable `BILBY_INCORRECT_PSD_NORMALIZATION=TRUE`.
+
+### Fixed
+
+- Fix PSD normalisation in `GravitationalWaveTransient` (https://github.com/bilby-dev/bilby/pull/967)
+
+## [2.5.2]
+
+### Fixed
+
+- Fix the filename extension precedence for result files (https://github.com/bilby-dev/bilby/pull/960)
+
 ## [2.5.1]
 
 ### Changed
@@ -1151,7 +1184,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.1...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.2...main
+[2.5.2]: https://github.com/bilby-dev/bilby/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/bilby-dev/bilby/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/bilby-dev/bilby/compare/v2.3.0...v2.4.0

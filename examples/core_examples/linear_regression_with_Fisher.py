@@ -37,7 +37,7 @@ time_duration = 10
 time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
 sigma = random.rng.normal(1, 0.01, N)
-data = model(time, **injection_parameters) + random.normal(0, sigma, N)
+data = model(time, **injection_parameters) + random.rng.normal(0, sigma, N)
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
