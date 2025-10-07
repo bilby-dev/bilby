@@ -1637,9 +1637,9 @@ class WeightedCategorical(WeightedDiscreteValues):
         ncategories: int
             The number of available categories. The prior mass support is then
             integers [0, ncategories - 1].
-        weights: array_like
+        weights: 1d array_like or None
             The weights of each category. If None, then all categories are
-            equally weighted.
+            equally weighted. Default None.
         name: str
             The name of the parameter
         latex_label: str
