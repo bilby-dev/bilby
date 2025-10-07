@@ -494,7 +494,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
         if parameters is None:
             parameters = self.parameters
-        
+
         hpc = _try_waveform_call(
             GenerateFDWaveform,
             self._from_bilby_parameters(**parameters),
