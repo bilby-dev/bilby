@@ -1469,11 +1469,11 @@ class WeightedDiscreteValues(Prior):
 
         Parameters
         ==========
-        values: array
+        values: 1d array_like of numeric type
             The discrete values of the prior.
-        weights: array_like
-            The weights of each category. If None, then all categories are
-            equally weighted.
+        weights: 1d array_like of numeric type or None
+            The weights of each category. If None, then all values are
+            equally weighted. Default: None.
         name: str
             The name of the parameter
         latex_label: str
@@ -1483,6 +1483,11 @@ class WeightedDiscreteValues(Prior):
         """
 
         nvalues = len(values)
+        values = np.array(values)
+        if values.shape != (nvalues,):
+            raise ValueError(
+                f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}"
+            )
         minimum = np.min(values)
         # Small delta added to help with MCMC walking
         maximum = np.max(values) * (1 + 1e-15)
@@ -1491,24 +1496,32 @@ class WeightedDiscreteValues(Prior):
             maximum=maximum, unit=unit, boundary=boundary)
         self.nvalues = nvalues
         sorter = np.argsort(values)
-        self.values = np.array(values)[sorter]
-        p = (
-            np.atleast_1d(weights) / np.sum(weights)
+        self._values_array = values[sorter]
+
+        # inititialization of priors from repr only supports
+        # python buildins
+        self.values = self._values_array.tolist()
+
+        weights = (
+            np.array(weights) / np.sum(weights)
             if weights is not None
             else np.ones(self.nvalues) / self.nvalues
         )
-
         # check for consistent shape of input
-        if len(p) != self.nvalues or len(p.shape) != 1:
+        if weights.shape != (self.nvalues,):
             raise ValueError(
-                "Inconsistent shape of weights and number of categories:"
-                + f"np.atleast_1d(weights) has shape {p.shape} "
-                + f"while number of categories is {self.values}"
+                "Inconsistent shape of weights and number of values:"
+                + f"weights has shape {weights.shape} "
+                + f"while number of values is {self.values}"
             )
-        self.p = p[sorter]
+        self._weights_array = weights[sorter]
+        self.weights = self._weights_array.tolist()
+        self._lnweights_array = np.log(self._weights_array)
+
         # save cdf for rescaling
-        self._cumulative_p = np.cumsum(p)
-        self.lnp = np.log(self.p)
+        _cumulative_weights_array = np.cumsum(self._weights_array)
+        # insert 0 for values smaller than minimum
+        self._cumulative_weights_array = np.insert(_cumulative_weights_array, 0, 0)
 
     def rescale(self, val):
         """
@@ -1525,7 +1538,8 @@ class WeightedDiscreteValues(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return self.values[np.searchsorted(self._cumulative_p, val)]
+        index = np.searchsorted(self._cumulative_weights_array[1:], val)
+        return self._values_array[index]
 
     def cdf(self, val):
         """Return the cumulative prior probability of val.
@@ -1538,10 +1552,8 @@ class WeightedDiscreteValues(Prior):
         =======
         float: cumulative prior probability of val
         """
-        index = np.searchsorted(self.values, val)
-        index = np.clip(index, 0, self.nvalues - 1)
-        cumprobs = self._cumulative_p[index]
-        return cumprobs
+        index = np.searchsorted(self._values_array, val, side="right")
+        return self._cumulative_weights_array[index]
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1554,18 +1566,11 @@ class WeightedDiscreteValues(Prior):
         =======
         float: Prior probability of val
         """
-        if (not hasattr(val, "__len__")):
-            if val in self.values:
-                return self.p[np.searchsorted(self.values, val)]
-            else:
-                return 0
-        else:
-            index = np.searchsorted(self.values, val)
-            index[index == self.nvalues] = self.nvalues - 1
-            mask = self.values[index] == val
-            probs = np.zeros_like(val, dtype=np.float64)
-            probs[mask] = self.p[index[mask]]
-            return probs
+        index = np.searchsorted(self._values_array, val)
+        index = np.clip(index, 0, self.nvalues - 1)
+        p = np.where(self._values_array[index] == val, self._weights_array[index], 0)
+        # turn 0d numpy array to scalar
+        return p[()]
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -1579,18 +1584,13 @@ class WeightedDiscreteValues(Prior):
         float:
 
         """
-        if not hasattr(val, "__len__"):
-            if val in self.values:
-                return self.lnp[np.searchsorted(self.values, val)]
-            else:
-                return -np.inf
-        else:
-            index = np.searchsorted(self.values, val)
-            index[index == self.nvalues] = self.nvalues - 1
-            mask = self.values[index] == val
-            lnprobs = np.ones_like(val, dtype=np.float64) * (-np.inf)
-            lnprobs[mask] = self.lnp[index[mask]]
-            return lnprobs
+        index = np.searchsorted(self._values_array, val)
+        index = np.clip(index, 0, self.nvalues - 1)
+        lnp = np.where(
+            self._values_array[index] == val, self._lnweights_array[index], -np.inf
+        )
+        # turn 0d numpy array to scalar
+        return lnp[()]
 
 
 class DiscreteValues(WeightedDiscreteValues):
@@ -1647,6 +1647,7 @@ class WeightedCategorical(WeightedDiscreteValues):
         unit: str
             The unit of the parameter. Used for plotting.
         """
+        self.ncategories = ncategories
         values = np.arange(0, ncategories)
         super(WeightedCategorical, self).__init__(
             values=values,
@@ -1675,6 +1676,7 @@ class Categorical(DiscreteValues):
         unit: str
             See superclass
         """
+        self.ncategories = ncategories
         values = np.arange(0, ncategories)
         super(Categorical, self).__init__(
             values=values,
