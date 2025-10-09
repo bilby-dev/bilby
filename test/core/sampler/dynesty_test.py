@@ -1,15 +1,25 @@
+import os
+import shutil
 import unittest
 from copy import deepcopy
 
-from attr import define
 import bilby
+import bilby.core.sampler.dynesty
 import numpy as np
 import parameterized
-import bilby.core.sampler.dynesty
-from bilby.core.sampler import dynesty_utils
+import pytest
+from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
-import shutil
-import os
+
+
+try:
+    import dynesty.internal_samplers  # noqa
+    from bilby.core.sampler import dynesty3_utils as dynesty_utils  # noqa
+
+    NEW_DYNESTY_API = True
+except ImportError:
+    from bilby.core.sampler import dynesty_utils  # noqa
+    NEW_DYNESTY_API = False
 
 
 @define
@@ -168,6 +178,7 @@ class ProposalsTest(unittest.TestCase):
         self.assertGreater(ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01)
         self.assertGreater(ks_1samp(np.abs(new_samples[:, :2].flatten()), gamma(4, scale=scale / 4).cdf).pvalue, 0.01)
 
+    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_get_proposal_kwargs_diff(self):
         args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
         dynesty_utils._SamplingContainer.proposals = ["diff"]
@@ -179,6 +190,7 @@ class ProposalsTest(unittest.TestCase):
         del specific["diff"]["live"]
         self.assertDictEqual(specific, dict(diff=dict(mix=0.5, scale=1.19)))
 
+    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_get_proposal_kwargs_volumetric(self):
         args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
         dynesty_utils._SamplingContainer.proposals = ["volumetric"]
@@ -188,6 +200,7 @@ class ProposalsTest(unittest.TestCase):
         self.assertDictEqual(common, dict(n=len(args.u), n_cluster=len(args.axes)))
         self.assertDictEqual(specific, dict(volumetric=dict(axes=args.axes, scale=args.scale)))
 
+    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_proposal_functions_run(self):
         args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
         args.kwargs["live"][0] += 1
@@ -233,6 +246,7 @@ class TestCustomSampler(unittest.TestCase):
     def tearDown(self):
         dynesty_utils._SamplingContainer.proposals = None
 
+    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_update_with_update(self):
         """
         If there is only one element left in the cache for ACT tracking we
@@ -247,6 +261,7 @@ class TestCustomSampler(unittest.TestCase):
         self.sampler.update_user(blob=self.blob, update=True)
         self.assertEqual(self.sampler.kwargs["rebuild"], False)
 
+    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_diff_update(self):
         """
         Sampler updates do different things depending on whether ellipsoid
